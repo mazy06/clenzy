@@ -408,7 +408,7 @@ public class TagResolverService {
             demande.put("date", form.getCreatedAt() != null ? form.getCreatedAt().format(DATETIME_FORMAT) : "");
             context.put("demande", demande);
 
-            // ── Ligne (premiere ligne du tableau devis) ───────────────
+            // ── Ligne (premiere ligne du tableau devis, retro-compat) ──
             Map<String, Object> ligne = new LinkedHashMap<>();
             if (quote != null) {
                 ligne.put("description", "Forfait " + quote.forfaitLabel() + " — abonnement mensuel");
@@ -422,7 +422,76 @@ public class TagResolverService {
                 ligne.put("total", "Sur demande");
             }
             context.put("ligne", ligne);
+
+            // ── Intervention : lignes pour iteration <#list intervention.lignes as l> ──
+            Map<String, Object> intervention = new LinkedHashMap<>();
+            intervention.put("lignes", buildDevisLineItems(quote, typeService));
+            // champs frequemment utilises sur les templates intervention/facture
+            intervention.put("titre", titre);
+            intervention.put("description", description);
+            intervention.put("date_debut", form.getCreatedAt() != null ? form.getCreatedAt().format(DATE_FORMAT) : "");
+            intervention.put("date_fin", "");
+            intervention.put("cout_reel", quote != null ? formatEur(quote.monthlyTotal()) : "Sur demande");
+            context.put("intervention", intervention);
         });
+    }
+
+    /**
+     * Construit la liste des lignes pour le tableau de devis.
+     * Multiplie le ménage par les interventions mensuelles, ajoute l'abonnement
+     * mensuel et la promo annuelle pour donner au template toutes les options.
+     */
+    private List<Map<String, Object>> buildDevisLineItems(PricingConfigService.DevisQuoteBreakdown q, String fallbackDescription) {
+        List<Map<String, Object>> lignes = new ArrayList<>();
+        if (q == null) {
+            lignes.add(makeLine(fallbackDescription, "1", "Sur demande", "Sur demande"));
+            return lignes;
+        }
+
+        // Ligne 1 : Ménage par intervention
+        lignes.add(makeLine(
+                "Prestation de ménage (forfait " + q.forfaitLabel() + ")",
+                String.valueOf(q.interventionsPerMonth()) + " /mois",
+                formatEur(q.interventionPrice()),
+                formatEur(q.monthlyCleaningCost()) + "/mois"
+        ));
+
+        // Ligne 2 : Abonnement mensuel
+        lignes.add(makeLine(
+                "Abonnement Clenzy — Forfait " + q.forfaitLabel() + " (mensuel)",
+                "1",
+                formatEur(q.monthlySubscriptionPrice()) + "/mois",
+                formatEur(q.monthlySubscriptionPrice()) + "/mois"
+        ));
+
+        // Ligne 3 : Sous-total mensuel
+        lignes.add(makeLine(
+                "Sous-total mensuel",
+                "—",
+                "—",
+                formatEur(q.monthlyTotal()) + "/mois"
+        ));
+
+        // Ligne 4 : Option paiement annuel (avec promo)
+        lignes.add(makeLine(
+                "Option paiement annuel — Abonnement Clenzy ("
+                        + q.annualDiscountPercent() + " % de remise, "
+                        + formatEur(q.annualSubscriptionSavings()) + " économisés)",
+                "1",
+                formatEur(q.annualSubscriptionWithDiscount()) + "/an",
+                formatEur(q.annualSubscriptionWithDiscount()) + "/an"
+        ));
+
+        return lignes;
+    }
+
+    private Map<String, Object> makeLine(String description, String quantite, String prixUnitaire, String total) {
+        Map<String, Object> l = new LinkedHashMap<>();
+        l.put("description", description);
+        l.put("quantite", quantite);
+        l.put("prix_unitaire", prixUnitaire);
+        l.put("total", total);
+        return l;
     }
 
     /** Convertit un montant entier euros en chaine "X €" formatee FR. */
