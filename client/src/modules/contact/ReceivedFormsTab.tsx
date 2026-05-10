@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -43,9 +43,16 @@ import {
 } from '../../icons';
 import type { ReceivedForm } from '../../services/api/receivedFormsApi';
 import { useReceivedForms, useUpdateFormStatus, useResetFormsAvailability } from '../../hooks/useReceivedForms';
-import { useTemplates, useGenerateDocument } from '../documents/hooks/useDocuments';
+import { useTemplates, useGenerateDocument, useGenerationsByReference } from '../documents/hooks/useDocuments';
 import { documentsApi } from '../../services/api/documentsApi';
-import { PictureAsPdf as PdfIcon } from '../../icons';
+import {
+  PictureAsPdf as PdfIcon,
+  Close as CloseIconBase,
+  OpenInNew as OpenInNewIcon,
+  Download as DownloadIcon,
+  History as HistoryIcon,
+} from '../../icons';
+import { Dialog, DialogTitle, DialogContent } from '@mui/material';
 import { useNotification } from '../../hooks/useNotification';
 
 // ─── Config types & statuts (PMS soft-filled design system) ─────────────────
@@ -457,6 +464,47 @@ const ReceivedFormsTab: React.FC = () => {
   const generateDocumentMutation = useGenerateDocument();
   const { notify } = useNotification();
 
+  // ─── PDF preview state ─────────────────────────────────────────
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewMeta, setPreviewMeta] = useState<{ generationId: number; filename: string; createdAt?: string } | null>(null);
+
+  // Fetch previous generations for the selected form so we can offer to re-open them.
+  const { data: priorGenerations } = useGenerationsByReference(
+    'RECEIVED_FORM',
+    selectedForm?.id ?? 0,
+  );
+
+  // Liberer le blob URL au close pour ne pas leak de la memoire.
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const openPreview = async (gen: { id: number; fileName?: string; createdAt?: string }) => {
+    try {
+      const url = await documentsApi.fetchGenerationBlobUrl(gen.id);
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
+      setPreviewMeta({
+        generationId: gen.id,
+        filename: gen.fileName || `document-${gen.id}.pdf`,
+        createdAt: gen.createdAt,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Impossible de charger le document';
+      notify.error(msg);
+    }
+  };
+
+  const closePreview = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setPreviewMeta(null);
+  };
+
   // ─── Active template lookup per form type ─────────────────────
   // Map des types de formulaire vers le documentType côté serveur
   const FORM_TO_DOC_TYPE: Record<string, string> = {
@@ -486,8 +534,14 @@ const ReceivedFormsTab: React.FC = () => {
         sendEmail: false,
       });
       if (generation?.id) {
-        notify.success('PDF généré — ouverture…');
-        await documentsApi.viewGeneration(generation.id);
+        notify.success('PDF généré');
+        // Affiche l'apercu inline au lieu de tenter un window.open
+        // (souvent bloque par le popup blocker des navigateurs).
+        await openPreview({
+          id: generation.id,
+          fileName: generation.fileName,
+          createdAt: generation.createdAt,
+        });
       } else {
         notify.error('Génération impossible — vérifie que le template DEVIS est compatible avec ce type de formulaire');
       }
@@ -990,6 +1044,49 @@ const ReceivedFormsTab: React.FC = () => {
                     </Box>
                   );
                 })()}
+
+                {/* ── Documents deja generes pour ce formulaire ───────────── */}
+                {priorGenerations && priorGenerations.length > 0 && (
+                  <Box sx={{ mt: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+                        <HistoryIcon size={14} strokeWidth={1.75} />
+                      </Box>
+                      <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
+                        Documents générés ({priorGenerations.length})
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                      {priorGenerations.slice(0, 5).map((gen) => (
+                        <Box
+                          key={gen.id}
+                          onClick={() => openPreview(gen)}
+                          sx={{
+                            display: 'flex', alignItems: 'center', gap: 1, py: 0.75, px: 1,
+                            borderRadius: '8px', border: '1px solid', borderColor: 'divider',
+                            cursor: 'pointer', transition: 'all 150ms',
+                            '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+                          }}
+                        >
+                          <Box component="span" sx={{ display: 'inline-flex', color: '#d32f2f' }}>
+                            <PdfIcon size={16} strokeWidth={1.75} />
+                          </Box>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {gen.fileName || `document-${gen.id}.pdf`}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
+                              {gen.legalNumber ? `${gen.legalNumber} · ` : ''}{gen.createdAt ? formatDate(gen.createdAt) : ''}
+                            </Typography>
+                          </Box>
+                          <Typography sx={{ fontSize: '0.6875rem', color: 'primary.main', fontWeight: 600 }}>
+                            Aperçu →
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 1 }}>
@@ -1002,6 +1099,100 @@ const ReceivedFormsTab: React.FC = () => {
           </Box>
         </Box>
       )}
+
+      {/* ── PDF preview dialog ─────────────────────────────────────── */}
+      <Dialog
+        open={Boolean(previewUrl)}
+        onClose={closePreview}
+        fullWidth
+        maxWidth="lg"
+        PaperProps={{
+          sx: {
+            height: '92vh',
+            display: 'flex',
+            flexDirection: 'column',
+            borderRadius: 2,
+            overflow: 'hidden',
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            py: 1.25,
+            px: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            bgcolor: (t) => alpha(t.palette.primary.main, t.palette.mode === 'dark' ? 0.08 : 0.04),
+          }}
+        >
+          <Box component="span" sx={{ display: 'inline-flex', color: '#d32f2f' }}>
+            <PdfIcon size={18} strokeWidth={1.75} />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {previewMeta?.filename || 'Aperçu du document'}
+            </Typography>
+            {previewMeta?.createdAt && (
+              <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                Généré le {formatDate(previewMeta.createdAt)}
+              </Typography>
+            )}
+          </Box>
+          {previewUrl && (
+            <>
+              <Tooltip title="Ouvrir dans un nouvel onglet">
+                <IconButton
+                  size="small"
+                  onClick={() => window.open(previewUrl, '_blank', 'noopener,noreferrer')}
+                  sx={{ color: 'text.secondary' }}
+                >
+                  <OpenInNewIcon size={16} strokeWidth={1.75} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Télécharger">
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    if (!previewMeta) return;
+                    const link = document.createElement('a');
+                    link.href = previewUrl;
+                    link.download = previewMeta.filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  sx={{ color: 'text.secondary' }}
+                >
+                  <DownloadIcon size={16} strokeWidth={1.75} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Fermer">
+                <IconButton size="small" onClick={closePreview} sx={{ color: 'text.secondary' }}>
+                  <CloseIconBase size={18} strokeWidth={1.75} />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, flex: 1, bgcolor: '#525659' /* viewer grey */ }}>
+          {previewUrl && (
+            <Box
+              component="iframe"
+              src={previewUrl}
+              title={previewMeta?.filename || 'PDF'}
+              sx={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                display: 'block',
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

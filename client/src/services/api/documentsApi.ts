@@ -187,6 +187,16 @@ export const documentsApi = {
 
   /** Ouvrir un document genere dans un nouvel onglet (PDF viewer) */
   async viewGeneration(generationId: number) {
+    const blobUrl = await this.fetchGenerationBlobUrl(generationId);
+    window.open(blobUrl, '_blank');
+  },
+
+  /**
+   * Recupere le document en blob et retourne une URL locale (object URL).
+   * L'appelant est responsable de la liberer avec URL.revokeObjectURL()
+   * quand le blob n'est plus utilise.
+   */
+  async fetchGenerationBlobUrl(generationId: number): Promise<string> {
     const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/documents/generations/${generationId}/download`;
     const token = getAccessToken();
     const response = await fetch(url, {
@@ -194,11 +204,10 @@ export const documentsApi = {
       credentials: 'include',
     });
     if (!response.ok) {
-      throw new Error(`Erreur ${response.status} lors de l'ouverture`);
+      throw new Error(`Erreur ${response.status} lors du chargement du document`);
     }
     const blob = await response.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    window.open(blobUrl, '_blank');
+    return window.URL.createObjectURL(blob);
   },
 
   /** Generations par reference (ex: RESERVATION + reservationId) */
