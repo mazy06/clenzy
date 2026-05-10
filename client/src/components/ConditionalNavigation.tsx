@@ -17,7 +17,7 @@ import {
   Settings as SettingsIcon,
   Person as PersonIcon,
   Assessment as AssessmentIcon
-} from '@mui/icons-material';
+} from '../icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
