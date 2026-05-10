@@ -9,18 +9,44 @@ import {
   Bed,
   Euro,
   AccessTime,
-  Hotel,
   CleaningServices,
   Person,
   CalendarMonth,
 } from '../../icons';
 
+// ─── Static map URL helper (Mapbox Static Images API) ───────────────────────
+
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+
+function buildStaticMapUrl(
+  lat: number | undefined,
+  lng: number | undefined,
+  width: number,
+  height: number,
+  dark: boolean,
+): string | null {
+  if (!MAPBOX_TOKEN || lat == null || lng == null) return null;
+  const style = dark ? 'dark-v11' : 'streets-v12';
+  // Pin couleur ambrée pour être visible sur les deux fonds
+  const marker = `pin-s+f59e0b(${lng},${lat})`;
+  // Plafonner pour éviter de payer plus que nécessaire (Mapbox max 1280)
+  const w = Math.min(1280, Math.max(60, Math.round(width)));
+  const h = Math.min(1280, Math.max(60, Math.round(height)));
+  return `https://api.mapbox.com/styles/v1/mapbox/${style}/static/${marker}/${lng},${lat},13,0/${w}x${h}@2x?access_token=${MAPBOX_TOKEN}`;
+}
+
 // ─── Rich tooltip content ────────────────────────────────────────────────────
 
 function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
+  const theme = useTheme();
   const currency = property.currency || 'EUR';
   const fmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 });
   const photo = property.photoUrls?.[0];
+  // Fallback : si pas de photo mais coords disponibles → carte statique Mapbox
+  const mapUrl = !photo
+    ? buildStaticMapUrl(property.latitude, property.longitude, 280, 110, theme.palette.mode === 'dark')
+    : null;
+  const hasHeader = Boolean(photo || mapUrl);
 
   return (
     <Box sx={{ width: 280 }}>
@@ -38,7 +64,42 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
           }}
         />
       )}
-      <Box sx={{ px: 1.25, pb: 1.25, pt: photo ? 0 : 1.25 }}>
+      {!photo && mapUrl && (
+        <Box
+          sx={{
+            position: 'relative',
+            width: '100%',
+            height: 110,
+            backgroundImage: `url(${mapUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+            mb: 1,
+          }}
+        >
+          <Chip
+            size="small"
+            icon={<LocationOn size={11} strokeWidth={2} />}
+            label="Localisation"
+            sx={{
+              position: 'absolute',
+              top: 6,
+              left: 6,
+              height: 20,
+              fontSize: '0.625rem',
+              fontWeight: 600,
+              bgcolor: 'background.paper',
+              color: 'text.primary',
+              border: '1px solid',
+              borderColor: 'divider',
+              '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: 'warning.main' },
+              '& .MuiChip-label': { px: 0.75 },
+            }}
+          />
+        </Box>
+      )}
+      <Box sx={{ px: 1.25, pb: 1.25, pt: hasHeader ? 0 : 1.25 }}>
         <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, lineHeight: 1.2, color: 'text.primary' }}>
           {property.name}
         </Typography>
@@ -310,15 +371,52 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 } : {},
               }}
             >
-              {showCarousel && (
-                <PropertyImageCarousel
-                  photoUrls={property.photoUrls}
-                  alt={property.name}
-                  width="100%"
-                  height={carouselHeight}
-                  sx={{ width: '100%' }}
-                />
-              )}
+              {showCarousel && (() => {
+                const hasPhoto = (property.photoUrls?.length ?? 0) > 0;
+                if (hasPhoto) {
+                  return (
+                    <PropertyImageCarousel
+                      photoUrls={property.photoUrls}
+                      alt={property.name}
+                      width="100%"
+                      height={carouselHeight}
+                      sx={{ width: '100%' }}
+                    />
+                  );
+                }
+                // Pas de photo → on tente la carte statique
+                const mapUrl = buildStaticMapUrl(
+                  property.latitude,
+                  property.longitude,
+                  Math.max(60, colWidth),
+                  carouselHeight,
+                  theme.palette.mode === 'dark',
+                );
+                if (mapUrl) {
+                  return (
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: carouselHeight,
+                        backgroundImage: `url(${mapUrl})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        flexShrink: 0,
+                      }}
+                    />
+                  );
+                }
+                // Aucun fallback dispo → placeholder du carousel
+                return (
+                  <PropertyImageCarousel
+                    photoUrls={property.photoUrls}
+                    alt={property.name}
+                    width="100%"
+                    height={carouselHeight}
+                    sx={{ width: '100%' }}
+                  />
+                );
+              })()}
               <Typography
                 sx={{
                   fontSize: density === 'compact' ? '0.6875rem' : '0.75rem',

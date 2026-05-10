@@ -53,6 +53,8 @@ function mapToPlanning(list: Property[]): PlanningProperty[] {
     cleaningBasePrice: p.cleaningBasePrice,
     currency: (p as unknown as { defaultCurrency?: string }).defaultCurrency || 'EUR',
     photoUrls: p.photoUrls ?? [],
+    latitude: p.latitude,
+    longitude: p.longitude,
   }));
 }
 
