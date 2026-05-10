@@ -22,7 +22,7 @@ import {
   CheckCircle,
   ExpandMore,
   AttachMoney,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { PlanningEvent, PanelView } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
 import PanelPhotoGallery from './PanelPhotoGallery';
@@ -144,8 +144,8 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
       {/* Header with icon + title */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
         {isCleaning
-          ? <AutoAwesome sx={{ fontSize: 20, color: '#9B7FC4' }} />
-          : <Handyman sx={{ fontSize: 20, color: '#F59E0B' }} />}
+          ? <AutoAwesome size={20} strokeWidth={1.75} color='#9B7FC4' />
+          : <Handyman size={20} strokeWidth={1.75} color='#F59E0B' />}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {intervention.title}
@@ -167,7 +167,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
         ); })()}
         {intervention.assigneeName && (
           <Chip
-            icon={<Person sx={{ fontSize: 12, color: '#757575 !important' }} />}
+            icon={<Person size={12} strokeWidth={1.75} color="#757575" />}
             label={intervention.assigneeName}
             size="small"
             sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
@@ -175,7 +175,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
         )}
         {intervention.estimatedDurationHours && (
           <Chip
-            icon={<Schedule sx={{ fontSize: 12, color: '#0288d1 !important' }} />}
+            icon={<Schedule size={12} strokeWidth={1.75} color="#0288d1" />}
             label={`${intervention.estimatedDurationHours}h`}
             size="small"
             sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
@@ -183,7 +183,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
         )}
         {estimatedCost > 0 && (
           <Chip
-            icon={<AttachMoney sx={{ fontSize: 12, color: '#4A9B8E !important' }} />}
+            icon={<AttachMoney size={12} strokeWidth={1.75} color="#4A9B8E" />}
             label={`${estimatedCost.toFixed(0)} €`}
             size="small"
             sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#4A9B8E18', color: '#4A9B8E', border: '1px solid #4A9B8E40', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
@@ -194,7 +194,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
       {/* Dates */}
       <Box sx={{ display: 'flex', gap: 2, mb: 1.5, alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <CalendarMonth sx={{ fontSize: 14, color: 'text.secondary' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={14} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.6875rem' }}>
             {intervention.startDate}
             {intervention.startTime && ` ${intervention.startTime}`}
@@ -245,7 +245,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
           variant="contained"
           fullWidth
           size="small"
-          startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <PlayArrow sx={{ fontSize: 16 }} />}
+          startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <PlayArrow size={16} strokeWidth={1.75} />}
           onClick={handleStart}
           disabled={loading}
           sx={{ mb: 1, textTransform: 'none', fontSize: '0.75rem' }}
@@ -260,7 +260,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
           color="success"
           fullWidth
           size="small"
-          startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <CheckCircle sx={{ fontSize: 14 }} />}
+          startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <CheckCircle size={14} strokeWidth={1.75} />}
           onClick={handleComplete}
           disabled={loading}
           sx={{ mb: 1, textTransform: 'none', fontSize: '0.75rem' }}
@@ -273,7 +273,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
 
       {/* Photos preview */}
       <Accordion disableGutters elevation={0} sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: '8px !important', mb: 1 }}>
-        <AccordionSummary expandIcon={<ExpandMore sx={{ fontSize: 16 }} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
+        <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
           <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>Photos ({beforePhotos.length + afterPhotos.length})</Typography>
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0 }}>
@@ -290,7 +290,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
       {/* Notes */}
       {intervention.notes && (
         <Accordion disableGutters elevation={0} sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: '8px !important' }}>
-          <AccordionSummary expandIcon={<ExpandMore sx={{ fontSize: 16 }} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
+          <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
             <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>Notes</Typography>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0 }}>

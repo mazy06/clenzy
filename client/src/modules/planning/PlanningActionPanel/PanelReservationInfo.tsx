@@ -32,7 +32,7 @@ import {
   Send,
   MarkEmailRead,
   Email,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import { reservationsApi, RESERVATION_STATUS_COLORS, RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
 import type { ReservationStatus, ReservationSource } from '../../../services/api';
@@ -79,7 +79,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
       {/* Guest info */}
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Person sx={{ fontSize: 20, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Person size={20} strokeWidth={1.75} /></Box>
           {editingName ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1 }}>
               <input
@@ -209,7 +209,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
             '&:hover': onNavigate ? { backgroundColor: 'action.hover' } : {},
           }}
         >
-          <Home sx={{ fontSize: 18, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Home size={18} strokeWidth={1.75} /></Box>
           <Typography variant="body2" sx={{ fontWeight: 600, color: onNavigate ? 'primary.main' : 'text.primary', textDecoration: onNavigate ? 'underline' : 'none', textDecorationStyle: 'dotted' as const }}>
             {reservation.propertyName}
           </Typography>
@@ -221,7 +221,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
       {/* Price & Payment link */}
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <AttachMoney sx={{ fontSize: 18, color: 'text.secondary' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AttachMoney size={18} strokeWidth={1.75} /></Box>
           {(!reservation.totalPrice || reservation.totalPrice === 0) && isICalSource ? (
             <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary', fontStyle: 'italic' }}>
               Tarif à la nuitée non communiqué — import iCal
@@ -256,7 +256,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
           <Button
             size="small"
             variant="outlined"
-            startIcon={<SwapHoriz sx={{ fontSize: 14 }} />}
+            startIcon={<SwapHoriz size={14} strokeWidth={1.75} />}
             sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
             onClick={() => setChangePropertyOpen(true)}
           >
@@ -266,7 +266,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
             size="small"
             variant="outlined"
             color="error"
-            startIcon={<Cancel sx={{ fontSize: 14 }} />}
+            startIcon={<Cancel size={14} strokeWidth={1.75} />}
             sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
             onClick={() => setCancelDialogOpen(true)}
             disabled={reservation.status === 'cancelled'}
@@ -276,7 +276,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
           <Button
             size="small"
             variant="outlined"
-            startIcon={<OpenInNew sx={{ fontSize: 14 }} />}
+            startIcon={<OpenInNew size={14} strokeWidth={1.75} />}
             sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
             onClick={() => setGuestCardOpen(true)}
           >
@@ -321,7 +321,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
         PaperProps={{ sx: { borderRadius: 2 } }}
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1, pt: 2, px: 2.5 }}>
-          <Warning sx={{ fontSize: 22, color: 'error.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Warning size={22} strokeWidth={1.75} /></Box>
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
             Annuler la reservation
           </Typography>
@@ -369,7 +369,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
             color="error"
             size="small"
             disabled={cancelLoading || !onCancelReservation}
-            startIcon={cancelLoading ? <CircularProgress size={14} /> : <Cancel sx={{ fontSize: 16 }} />}
+            startIcon={cancelLoading ? <CircularProgress size={14} /> : <Cancel size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
             Confirmer l'annulation
@@ -442,7 +442,7 @@ const PaymentLinkSection: React.FC<PaymentLinkSectionProps> = ({ reservation }) 
       {/* Status indicator */}
       {lastSentAt ? (
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
-          <MarkEmailRead sx={{ fontSize: 16, color: '#4A9B8E', mt: 0.25 }} />
+          <Box component="span" sx={{ display: 'inline-flex', mt: 0.25 }}><MarkEmailRead size={16} strokeWidth={1.75} color='#4A9B8E' /></Box>
           <Box sx={{ flex: 1 }}>
             <Typography variant="caption" sx={{ color: '#4A9B8E', fontWeight: 600, fontSize: '0.6875rem', display: 'block' }}>
               Lien de paiement envoye
@@ -455,7 +455,7 @@ const PaymentLinkSection: React.FC<PaymentLinkSectionProps> = ({ reservation }) 
       ) : (
         hasTotalPrice && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <Email sx={{ fontSize: 16, color: 'text.disabled' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Email size={16} strokeWidth={1.75} /></Box>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6875rem' }}>
               Lien de paiement non envoye
             </Typography>
@@ -472,7 +472,7 @@ const PaymentLinkSection: React.FC<PaymentLinkSectionProps> = ({ reservation }) 
                 <Button
                   size="small"
                   variant="outlined"
-                  startIcon={sending ? <CircularProgress size={12} /> : <Send sx={{ fontSize: 14 }} />}
+                  startIcon={sending ? <CircularProgress size={12} /> : <Send size={14} strokeWidth={1.75} />}
                   onClick={() => handleSend()}
                   disabled={sending || !reservation.guestEmail}
                   sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
@@ -484,7 +484,7 @@ const PaymentLinkSection: React.FC<PaymentLinkSectionProps> = ({ reservation }) 
                 <Button
                   size="small"
                   variant="text"
-                  startIcon={<Edit sx={{ fontSize: 12 }} />}
+                  startIcon={<Edit size={12} strokeWidth={1.75} />}
                   onClick={() => setShowEmailInput(true)}
                   disabled={sending}
                   sx={{ fontSize: '0.6875rem', textTransform: 'none', color: 'text.secondary' }}
@@ -510,7 +510,7 @@ const PaymentLinkSection: React.FC<PaymentLinkSectionProps> = ({ reservation }) 
                 <Button
                   size="small"
                   variant="contained"
-                  startIcon={sending ? <CircularProgress size={12} /> : <Send sx={{ fontSize: 14 }} />}
+                  startIcon={sending ? <CircularProgress size={12} /> : <Send size={14} strokeWidth={1.75} />}
                   onClick={() => handleSend(customEmail)}
                   disabled={sending || !customEmail.trim() || !customEmail.includes('@')}
                   sx={{ fontSize: '0.6875rem', textTransform: 'none', flex: 1 }}
@@ -694,7 +694,7 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
           )}
         </Typography>
         {saving && <CircularProgress size={12} />}
-        {saved && <Check sx={{ fontSize: 14, color: 'success.main' }} />}
+        {saved && <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Check size={14} strokeWidth={1.75} /></Box>}
       </Box>
 
       {/* Bullet list */}
@@ -776,7 +776,7 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
                 '&:hover': { color: 'error.main', bgcolor: 'error.lighter' },
               }}
             >
-              <Close sx={{ fontSize: 14 }} />
+              <Close size={14} strokeWidth={1.75} />
             </IconButton>
           </Box>
         ))}
@@ -881,11 +881,11 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <CalendarMonth sx={{ fontSize: 18, color: 'text.secondary' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={18} strokeWidth={1.75} /></Box>
         <Typography variant="body2" sx={{ fontWeight: 600, flex: 1 }}>Dates & Horaires</Typography>
         {!editing ? (
           <IconButton size="small" onClick={() => setEditing(true)} sx={{ p: 0.25 }}>
-            <Edit sx={{ fontSize: 14, color: 'text.secondary' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Edit size={14} strokeWidth={1.75} /></Box>
           </IconButton>
         ) : (
           <Box sx={{ display: 'flex', gap: 0.25 }}>
@@ -895,10 +895,10 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
               disabled={!hasChanges}
               sx={{ p: 0.25, color: 'success.main' }}
             >
-              <Check sx={{ fontSize: 16 }} />
+              <Check size={16} strokeWidth={1.75} />
             </IconButton>
             <IconButton size="small" onClick={handleCancel} sx={{ p: 0.25, color: 'error.main' }}>
-              <Close sx={{ fontSize: 16 }} />
+              <Close size={16} strokeWidth={1.75} />
             </IconButton>
           </Box>
         )}
@@ -914,7 +914,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
             </Typography>
             {reservation.checkInTime && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                <Schedule sx={{ fontSize: 12, color: 'text.secondary' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={12} strokeWidth={1.75} /></Box>
                 <Typography variant="caption" sx={{ fontWeight: 500 }}>
                   {reservation.checkInTime}
                 </Typography>
@@ -929,7 +929,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
             </Typography>
             {reservation.checkOutTime && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, justifyContent: 'flex-end' }}>
-                <Schedule sx={{ fontSize: 12, color: 'text.secondary' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={12} strokeWidth={1.75} /></Box>
                 <Typography variant="caption" sx={{ fontWeight: 500 }}>
                   {reservation.checkOutTime}
                 </Typography>

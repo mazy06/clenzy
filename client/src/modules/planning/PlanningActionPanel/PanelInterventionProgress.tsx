@@ -20,7 +20,7 @@ import {
   CameraAlt,
   MeetingRoom,
   Search as InspectIcon,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { PlanningEvent } from '../types';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -154,7 +154,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
           variant="contained"
           fullWidth
           size="small"
-          startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <PlayArrow sx={{ fontSize: 16 }} />}
+          startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <PlayArrow size={16} strokeWidth={1.75} />}
           onClick={handleStart}
           disabled={loading || !onStartIntervention}
           sx={{ mb: 2, textTransform: 'none', fontSize: '0.75rem' }}
@@ -171,7 +171,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
         <Step completed={inspectionDone}>
           <StepLabel
             StepIconProps={{ sx: { fontSize: 20 } }}
-            icon={inspectionDone ? <CheckCircle sx={{ fontSize: 20, color: 'success.main' }} /> : <InspectIcon sx={{ fontSize: 20 }} />}
+            icon={inspectionDone ? <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box> : <InspectIcon size={20} strokeWidth={1.75} />}
           >
             Inspection
           </StepLabel>
@@ -190,7 +190,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
             <Button
               variant="outlined"
               size="small"
-              startIcon={<CameraAlt sx={{ fontSize: 14 }} />}
+              startIcon={<CameraAlt size={14} strokeWidth={1.75} />}
               onClick={() => beforeInputRef.current?.click()}
               disabled={loading || !onUploadPhotos}
               sx={{ textTransform: 'none', fontSize: '0.6875rem', mb: 0.5 }}
@@ -203,7 +203,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
         {/* Step 2: Room validation */}
         <Step completed={roomsDone}>
           <StepLabel
-            icon={roomsDone ? <CheckCircle sx={{ fontSize: 20, color: 'success.main' }} /> : <MeetingRoom sx={{ fontSize: 20 }} />}
+            icon={roomsDone ? <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box> : <MeetingRoom size={20} strokeWidth={1.75} />}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               Validation pièces
@@ -240,7 +240,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
         {/* Step 3: After photos */}
         <Step completed={photosDone}>
           <StepLabel
-            icon={photosDone ? <CheckCircle sx={{ fontSize: 20, color: 'success.main' }} /> : <CameraAlt sx={{ fontSize: 20 }} />}
+            icon={photosDone ? <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box> : <CameraAlt size={20} strokeWidth={1.75} />}
           >
             Photos après & finalisation
           </StepLabel>
@@ -260,7 +260,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
               <Button
                 variant="outlined"
                 size="small"
-                startIcon={<CameraAlt sx={{ fontSize: 14 }} />}
+                startIcon={<CameraAlt size={14} strokeWidth={1.75} />}
                 onClick={() => afterInputRef.current?.click()}
                 disabled={loading || !onUploadPhotos}
                 sx={{ textTransform: 'none', fontSize: '0.6875rem' }}
@@ -271,7 +271,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
                 variant="contained"
                 size="small"
                 color="success"
-                startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <CheckCircle sx={{ fontSize: 14 }} />}
+                startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <CheckCircle size={14} strokeWidth={1.75} />}
                 onClick={handleComplete}
                 disabled={loading || !onCompleteIntervention || isCompleted}
                 sx={{ textTransform: 'none', fontSize: '0.6875rem' }}

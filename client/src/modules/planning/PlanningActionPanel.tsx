@@ -18,7 +18,7 @@ import {
   TrendingUp,
   PhotoLibrary,
   Payment,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { PlanningEvent, PanelTab, PlanningProperty, PlanningEventType, PanelView } from './types';
 import type { PlanningIntervention } from '../../services/api';
 import PanelReservationInfo from './PlanningActionPanel/PanelReservationInfo';
@@ -370,7 +370,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
           </Box>
         </Box>
         <IconButton size="small" onClick={onClose} sx={{ flexShrink: 0 }}>
-          <Close sx={{ fontSize: 18 }} />
+          <Close size={18} strokeWidth={1.75} />
         </IconButton>
       </Box>
 

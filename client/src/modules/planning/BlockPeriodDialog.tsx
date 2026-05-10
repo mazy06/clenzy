@@ -15,7 +15,7 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import { Lock, Build } from '@mui/icons-material';
+import { Lock, Build } from '../../icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import { planningKeys } from './hooks/usePlanningData';

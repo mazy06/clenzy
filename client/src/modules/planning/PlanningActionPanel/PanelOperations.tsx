@@ -56,7 +56,7 @@ import {
   HourglassEmpty,
   Person,
   DeleteOutline,
-} from '@mui/icons-material';
+} from '../../../icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
@@ -759,13 +759,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
     return (
       <Box sx={{ mt: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <CalendarMonth sx={{ fontSize: 18, color: 'text.secondary' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={18} strokeWidth={1.75} /></Box>
           <Typography variant="body2" sx={{ fontWeight: 600, flex: 1, fontSize: '0.8125rem' }}>
             Dates & Horaires
           </Typography>
           {!editing ? (
             <IconButton size="small" onClick={() => setEditing(true)} sx={{ p: 0.25 }}>
-              <Edit sx={{ fontSize: 14, color: 'text.secondary' }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Edit size={14} strokeWidth={1.75} /></Box>
             </IconButton>
           ) : (
             <Box sx={{ display: 'flex', gap: 0.25 }}>
@@ -775,10 +775,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 disabled={!hasChanges || saving}
                 sx={{ p: 0.25, color: 'success.main' }}
               >
-                {saving ? <CircularProgress size={14} /> : <Check sx={{ fontSize: 16 }} />}
+                {saving ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
               </IconButton>
               <IconButton size="small" onClick={handleCancel} sx={{ p: 0.25, color: 'error.main' }}>
-                <Close sx={{ fontSize: 16 }} />
+                <Close size={16} strokeWidth={1.75} />
               </IconButton>
             </Box>
           )}
@@ -794,7 +794,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               </Typography>
               {intv.startTime && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                  <Schedule sx={{ fontSize: 12, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={12} strokeWidth={1.75} /></Box>
                   <Typography variant="caption" sx={{ fontWeight: 500 }}>
                     {intv.startTime}
                   </Typography>
@@ -809,7 +809,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               </Typography>
               {intv.endTime && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, justifyContent: 'flex-end' }}>
-                  <Schedule sx={{ fontSize: 12, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={12} strokeWidth={1.75} /></Box>
                   <Typography variant="caption" sx={{ fontWeight: 500 }}>
                     {intv.endTime}
                   </Typography>
@@ -903,9 +903,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             {intervention.type === 'cleaning' ? (
-              <AutoAwesome sx={{ fontSize: 20, color: '#9B7FC4' }} />
+              <AutoAwesome size={20} strokeWidth={1.75} color='#9B7FC4' />
             ) : (
-              <Handyman sx={{ fontSize: 20, color: '#7EBAD0' }} />
+              <Handyman size={20} strokeWidth={1.75} color='#7EBAD0' />
             )}
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
               {intervention.title}
@@ -942,7 +942,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={<CleaningServices sx={{ fontSize: 14 }} />}
+                startIcon={<CleaningServices size={14} strokeWidth={1.75} />}
                 fullWidth
                 onClick={handleCleaningRequestClick}
                 sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
@@ -952,7 +952,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={<Handyman sx={{ fontSize: 14 }} />}
+                startIcon={<Handyman size={14} strokeWidth={1.75} />}
                 fullWidth
                 onClick={handleMaintenanceRequestClick}
                 sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
@@ -962,7 +962,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={<Add sx={{ fontSize: 14 }} />}
+                startIcon={<Add size={14} strokeWidth={1.75} />}
                 fullWidth
                 onClick={handleNewServiceRequestClick}
                 sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
@@ -1010,14 +1010,17 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           '&:hover .sr-arrow': { opacity: 1, transform: 'translateX(2px)' },
                         }}
                       >
-                        <Send sx={{ fontSize: 12, color: 'text.secondary' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Send size={12} strokeWidth={1.75} /></Box>
                         <Typography variant="caption" sx={{ flex: 1, fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {sr.title}
                         </Typography>
-                        <OpenInNew
+                        <Box
+                          component="span"
                           className="sr-arrow"
-                          sx={{ fontSize: 14, color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
-                        />
+                          sx={{ display: 'inline-flex', color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
+                        >
+                          <OpenInNew size={14} strokeWidth={1.75} />
+                        </Box>
                       </Box>
                       {/* Status chips row */}
                       <Box sx={{ display: 'flex', gap: 0.5, mb: 0.5, flexWrap: 'wrap' }}>
@@ -1043,7 +1046,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         />
                         {assigneeName && (
                           <Chip
-                            icon={<Groups sx={{ fontSize: 10, color: '#0288d1 !important' }} />}
+                            icon={<Groups size={10} strokeWidth={1.75} color="#0288d1" />}
                             label={assigneeName}
                             size="small"
                             sx={{
@@ -1063,7 +1066,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           <Button
                             size="small"
                             variant="contained"
-                            startIcon={<PersonAdd sx={{ fontSize: 14 }} />}
+                            startIcon={<PersonAdd size={14} strokeWidth={1.75} />}
                             disabled={isValidating}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1118,7 +1121,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           <Button
                             size="small"
                             variant="outlined"
-                            startIcon={<PersonAdd sx={{ fontSize: 14 }} />}
+                            startIcon={<PersonAdd size={14} strokeWidth={1.75} />}
                             disabled={isValidating}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1137,7 +1140,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           <Button
                             size="small"
                             variant="outlined"
-                            startIcon={<PersonAdd sx={{ fontSize: 14 }} />}
+                            startIcon={<PersonAdd size={14} strokeWidth={1.75} />}
                             disabled={isValidating}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1162,7 +1165,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             }}
                             sx={{ color: 'error.main', ml: 'auto', p: 0.5 }}
                           >
-                            <DeleteOutline sx={{ fontSize: 16 }} />
+                            <DeleteOutline size={16} strokeWidth={1.75} />
                           </IconButton>
                         )}
                       </Box>
@@ -1222,17 +1225,20 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         }}
                       >
                         {li.type === 'cleaning' ? (
-                          <AutoAwesome sx={{ fontSize: 14, color: '#9B7FC4' }} />
+                          <AutoAwesome size={14} strokeWidth={1.75} color='#9B7FC4' />
                         ) : (
-                          <Handyman sx={{ fontSize: 14, color: '#7EBAD0' }} />
+                          <Handyman size={14} strokeWidth={1.75} color='#7EBAD0' />
                         )}
                         <Typography variant="caption" sx={{ flex: 1, fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {li.title}
                         </Typography>
-                        <ChevronRight
+                        <Box
+                          component="span"
                           className="drill-arrow"
-                          sx={{ fontSize: 16, color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
-                        />
+                          sx={{ display: 'inline-flex', color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
+                        >
+                          <ChevronRight size={16} strokeWidth={1.75} />
+                        </Box>
                       </Box>
 
                       {/* Status chips row */}
@@ -1250,8 +1256,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         {/* Assignment status */}
                         <Chip
                           icon={isAssigned
-                            ? <CheckCircle sx={{ fontSize: 10, color: '#4A9B8E !important' }} />
-                            : <HourglassEmpty sx={{ fontSize: 10, color: '#ED6C02 !important' }} />}
+                            ? <CheckCircle size={10} strokeWidth={1.75} color="#4A9B8E" />
+                            : <HourglassEmpty size={10} strokeWidth={1.75} color="#ED6C02" />}
                           label={isAssigned ? li.assigneeName : 'Non assigne'}
                           size="small"
                           sx={{
@@ -1267,7 +1273,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         {/* Payment status (only if cost > 0) */}
                         {cost > 0 && payStatusCfg && (
                           <Chip
-                            icon={<Payment sx={{ fontSize: 10, color: `${payStatusCfg.color} !important` }} />}
+                            icon={<Payment size={10} strokeWidth={1.75} color={payStatusCfg.color} />}
                             label={`${payStatusCfg.label} (${cost.toFixed(0)}€)`}
                             size="small"
                             sx={{
@@ -1283,8 +1289,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         <Tooltip title={isOnPlanning ? 'Visible sur le planning' : 'Non visible sur le planning (attribution et paiement requis)'}>
                           <Chip
                             icon={isOnPlanning
-                              ? <Visibility sx={{ fontSize: 10, color: '#4A9B8E !important' }} />
-                              : <VisibilityOff sx={{ fontSize: 10, color: '#9e9e9e !important' }} />}
+                              ? <Visibility size={10} strokeWidth={1.75} color="#4A9B8E" />
+                              : <VisibilityOff size={10} strokeWidth={1.75} color="#9e9e9e" />}
                             label={isOnPlanning ? 'Planning' : 'Masque'}
                             size="small"
                             sx={{
@@ -1322,7 +1328,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         <Button
                           size="small"
                           variant="outlined"
-                          startIcon={<PersonAdd sx={{ fontSize: 12 }} />}
+                          startIcon={<PersonAdd size={12} strokeWidth={1.75} />}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAssignFromCard(li);
@@ -1365,7 +1371,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={<Groups sx={{ fontSize: 14 }} />}
+                startIcon={<Groups size={14} strokeWidth={1.75} />}
                 fullWidth
                 onClick={handleAssignClick}
                 sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
@@ -1375,7 +1381,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={<PriorityHigh sx={{ fontSize: 14 }} />}
+                startIcon={<PriorityHigh size={14} strokeWidth={1.75} />}
                 fullWidth
                 onClick={handlePriorityClick}
                 sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
@@ -1396,7 +1402,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={<CheckCircleOutline sx={{ fontSize: 14 }} />}
+                startIcon={<CheckCircleOutline size={14} strokeWidth={1.75} />}
                 fullWidth
                 onClick={() => {
                   if (!targetIntervention) {
@@ -1423,7 +1429,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={<NotificationsActive sx={{ fontSize: 14 }} />}
+                startIcon={<NotificationsActive size={14} strokeWidth={1.75} />}
                 fullWidth
                 onClick={() => {
                   if (!targetIntervention) {
@@ -1476,14 +1482,14 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {assignMode === 'service_request'
-              ? <PersonAdd sx={{ fontSize: 20, color: 'primary.main' }} />
-              : <Groups sx={{ fontSize: 20, color: 'primary.main' }} />}
+              ? <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><PersonAdd size={20} strokeWidth={1.75} /></Box>
+              : <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Groups size={20} strokeWidth={1.75} /></Box>}
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               {assignMode === 'service_request' ? 'Assigner la demande' : 'Assigner intervention'}
             </Typography>
           </Box>
           <IconButton size="small" onClick={() => setAssignDialogOpen(false)}>
-            <Close sx={{ fontSize: 18 }} />
+            <Close size={18} strokeWidth={1.75} />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
@@ -1516,7 +1522,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <AutoFixHigh sx={{ fontSize: 18, color: assignAutoMode ? 'primary.main' : 'text.secondary' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: assignAutoMode ? 'primary.main' : 'text.secondary' }}><AutoFixHigh size={18} strokeWidth={1.75} /></Box>
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem', lineHeight: 1.2 }}>
                     Assignation automatique
@@ -1538,7 +1544,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           {assignAutoMode && autoAssignSuggestion && (
             <Alert
               severity="info"
-              icon={<AutoFixHigh sx={{ fontSize: 18 }} />}
+              icon={<AutoFixHigh size={18} strokeWidth={1.75} />}
               sx={{ fontSize: '0.75rem', mb: 1.5, '& .MuiAlert-message': { py: 0.25 } }}
             >
               <strong>{autoAssignSuggestion.name}</strong> — {autoAssignSuggestion.reason}
@@ -1572,7 +1578,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               .map((opt) => (
                 <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                    <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
                         {opt.label}
@@ -1597,7 +1603,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               .map((opt) => (
                 <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                    <Groups sx={{ fontSize: 16, color: 'primary.main' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Groups size={16} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
                         {opt.label}
@@ -1692,7 +1698,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         }}
                       >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Person sx={{ fontSize: 15, color: member.available ? 'success.main' : 'text.disabled' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'success.main' : 'text.disabled' }}><Person size={15} strokeWidth={1.75} /></Box>
                           <Box>
                             <Typography
                               variant="body2"
@@ -1751,7 +1757,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             variant="contained"
             size="small"
             disabled={!assignValue || assignLoading}
-            startIcon={assignLoading ? <CircularProgress size={14} /> : <Check sx={{ fontSize: 16 }} />}
+            startIcon={assignLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
             Confirmer
@@ -1769,13 +1775,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PriorityHigh sx={{ fontSize: 20, color: 'warning.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><PriorityHigh size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               Definir la priorite
             </Typography>
           </Box>
           <IconButton size="small" onClick={() => setPriorityDialogOpen(false)}>
-            <Close sx={{ fontSize: 18 }} />
+            <Close size={18} strokeWidth={1.75} />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
@@ -1824,7 +1830,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             variant="contained"
             size="small"
             disabled={priorityLoading}
-            startIcon={priorityLoading ? <CircularProgress size={14} /> : <Check sx={{ fontSize: 16 }} />}
+            startIcon={priorityLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
             Confirmer
@@ -1842,13 +1848,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CheckCircleOutline sx={{ fontSize: 20, color: 'success.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleOutline size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               Checklist operationnelle
             </Typography>
           </Box>
           <IconButton size="small" onClick={() => setChecklistOpen(false)}>
-            <Close sx={{ fontSize: 18 }} />
+            <Close size={18} strokeWidth={1.75} />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 0, pb: 0 }}>
@@ -1890,7 +1896,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             variant="contained"
             size="small"
             disabled={checklistSaving}
-            startIcon={checklistSaving ? <CircularProgress size={14} /> : <Check sx={{ fontSize: 16 }} />}
+            startIcon={checklistSaving ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
             Enregistrer
@@ -1908,13 +1914,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <NotificationsActive sx={{ fontSize: 20, color: 'info.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><NotificationsActive size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               Ajouter un rappel
             </Typography>
           </Box>
           <IconButton size="small" onClick={() => setAlertDialogOpen(false)}>
-            <Close sx={{ fontSize: 18 }} />
+            <Close size={18} strokeWidth={1.75} />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
@@ -1961,7 +1967,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             variant="contained"
             size="small"
             disabled={!alertDate || !alertMessage.trim() || alertSaving}
-            startIcon={alertSaving ? <CircularProgress size={14} /> : <NotificationsActive sx={{ fontSize: 16 }} />}
+            startIcon={alertSaving ? <CircularProgress size={14} /> : <NotificationsActive size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
             Ajouter rappel
@@ -1995,7 +2001,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             color="error"
             onClick={handleDeleteSr}
             disabled={deleteSrLoading}
-            startIcon={deleteSrLoading ? <CircularProgress size={14} /> : <DeleteOutline sx={{ fontSize: 16 }} />}
+            startIcon={deleteSrLoading ? <CircularProgress size={14} /> : <DeleteOutline size={16} strokeWidth={1.75} />}
           >
             Supprimer
           </Button>

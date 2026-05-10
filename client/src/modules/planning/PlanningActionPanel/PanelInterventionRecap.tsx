@@ -23,7 +23,7 @@ import {
   Schedule,
   AttachMoney,
   Add,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { PlanningEvent } from '../types';
 import PanelPhotoGallery from './PanelPhotoGallery';
 
@@ -121,7 +121,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
         ); })()}
         {intervention.estimatedDurationHours && (() => { const c = '#0288d1'; return (
           <Chip
-            icon={<Schedule sx={{ fontSize: 12, color: `${c} !important` }} />}
+            icon={<Schedule size={12} strokeWidth={1.75} color={c} />}
             label={`${intervention.estimatedDurationHours}h estimées`}
             size="small"
             sx={{ fontSize: '0.625rem', height: 22, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
@@ -129,7 +129,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
         ); })()}
         {intervention.estimatedDurationHours && (() => { const c = '#4A9B8E'; return (
           <Chip
-            icon={<AttachMoney sx={{ fontSize: 12, color: `${c} !important` }} />}
+            icon={<AttachMoney size={12} strokeWidth={1.75} color={c} />}
             label={`${(intervention.estimatedDurationHours * 25).toFixed(0)} EUR`}
             size="small"
             sx={{ fontSize: '0.625rem', height: 22, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
@@ -174,9 +174,9 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
                 defaultExpanded
                 sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: '6px !important', mb: 0.75 }}
               >
-                <AccordionSummary expandIcon={<ExpandMore sx={{ fontSize: 16 }} />} sx={{ minHeight: 32, '& .MuiAccordionSummary-content': { my: 0.25 } }}>
+                <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 32, '& .MuiAccordionSummary-content': { my: 0.25 } }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Notes sx={{ fontSize: 14, color: 'primary.main' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Notes size={14} strokeWidth={1.75} /></Box>
                     <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>{labels[step]}</Typography>
                   </Box>
                 </AccordionSummary>
@@ -205,7 +205,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
         </Typography>
         <Button
           size="small"
-          startIcon={<Add sx={{ fontSize: 14 }} />}
+          startIcon={<Add size={14} strokeWidth={1.75} />}
           onClick={() => setAddDialogOpen(true)}
           sx={{ textTransform: 'none', fontSize: '0.625rem' }}
         >
@@ -234,7 +234,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
             >
               {(() => { const c = SEVERITY_HEX[s.severity] || '#ED6C02'; return (
               <>
-              <Warning sx={{ fontSize: 16, color: c, mt: 0.25 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: c, mt: 0.25 }}><Warning size={16} strokeWidth={1.75} /></Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Chip
                   label={s.severity.charAt(0).toUpperCase() + s.severity.slice(1)}

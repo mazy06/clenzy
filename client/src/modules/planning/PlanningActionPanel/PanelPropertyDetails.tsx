@@ -28,7 +28,7 @@ import {
   Handyman,
   Assignment,
   ArrowForward,
-} from '@mui/icons-material';
+} from '../../../icons';
 import { useNavigate } from 'react-router-dom';
 import { usePropertyDetails } from '../../../hooks/usePropertyDetails';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -88,11 +88,11 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
   }
 
   const metrics = [
-    { icon: <Bed sx={{ fontSize: 16 }} />, label: 'Chambres', value: property.bedrooms },
-    { icon: <Bathtub sx={{ fontSize: 16 }} />, label: 'SDB', value: property.bathrooms },
-    { icon: <SquareFoot sx={{ fontSize: 16 }} />, label: 'm²', value: property.surfaceArea || '—' },
-    { icon: <People sx={{ fontSize: 16 }} />, label: 'Capacité', value: property.maxGuests },
-    ...(property.numberOfFloors ? [{ icon: <Stairs sx={{ fontSize: 16 }} />, label: 'Étages', value: property.numberOfFloors }] : []),
+    { icon: <Bed size={16} strokeWidth={1.75} />, label: 'Chambres', value: property.bedrooms },
+    { icon: <Bathtub size={16} strokeWidth={1.75} />, label: 'SDB', value: property.bathrooms },
+    { icon: <SquareFoot size={16} strokeWidth={1.75} />, label: 'm²', value: property.surfaceArea || '—' },
+    { icon: <People size={16} strokeWidth={1.75} />, label: 'Capacité', value: property.maxGuests },
+    ...(property.numberOfFloors ? [{ icon: <Stairs size={16} strokeWidth={1.75} />, label: 'Étages', value: property.numberOfFloors }] : []),
   ];
 
   const cleaningFeatures = [
@@ -107,7 +107,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
     <Box>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        <Home sx={{ fontSize: 18, color: 'primary.main' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Home size={18} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.875rem', flex: 1 }}>
           {property.name}
         </Typography>
@@ -217,28 +217,28 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
           mb: 1.5,
         }}
       >
-        <AccordionSummary expandIcon={<ExpandMore sx={{ fontSize: 16 }} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
+        <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <CleaningServices sx={{ fontSize: 16, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><CleaningServices size={16} strokeWidth={1.75} /></Box>
             <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>Configuration ménage</Typography>
           </Box>
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0, pb: 1 }}>
           <Box sx={INFO_ROW_SX}>
-            <Schedule sx={{ fontSize: 14, color: 'text.secondary' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={14} strokeWidth={1.75} /></Box>
             <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>Fréquence :</Typography>
             <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>{property.cleaningFrequency?.replace(/_/g, ' ')}</Typography>
           </Box>
           {property.cleaningBasePrice != null && (
             <Box sx={INFO_ROW_SX}>
-              <AttachMoney sx={{ fontSize: 14, color: 'text.secondary' }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AttachMoney size={14} strokeWidth={1.75} /></Box>
               <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>Prix base :</Typography>
               <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>{property.cleaningBasePrice} EUR</Typography>
             </Box>
           )}
           {property.cleaningDurationMinutes != null && (
             <Box sx={INFO_ROW_SX}>
-              <Schedule sx={{ fontSize: 14, color: 'text.secondary' }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={14} strokeWidth={1.75} /></Box>
               <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>Durée :</Typography>
               <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>{property.cleaningDurationMinutes} min</Typography>
             </Box>
@@ -274,7 +274,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             mb: 1.5,
           }}
         >
-          <AccordionSummary expandIcon={<ExpandMore sx={{ fontSize: 16 }} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
+          <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
             <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>Notes ménage</Typography>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0 }}>
@@ -303,13 +303,13 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         }}
       >
         <Tab
-          icon={<Assignment sx={{ fontSize: 14 }} />}
+          icon={<Assignment size={14} strokeWidth={1.75} />}
           iconPosition="start"
           label={`Demandes (${serviceRequests.length})`}
           value="requests"
         />
         <Tab
-          icon={<Handyman sx={{ fontSize: 14 }} />}
+          icon={<Handyman size={14} strokeWidth={1.75} />}
           iconPosition="start"
           label={`Interventions (${interventions.length})`}
           value="interventions"
@@ -363,7 +363,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                         '&:hover': { backgroundColor: 'action.hover' },
                       }}
                     >
-                      <Assignment sx={{ fontSize: 14, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Assignment size={14} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {sr.title}
@@ -382,7 +382,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                 })}
               <Button
                 size="small"
-                endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+                endIcon={<ArrowForward size={14} strokeWidth={1.75} />}
                 onClick={() => navigate(`/service-requests?propertyId=${propertyId}`)}
                 sx={{ fontSize: '0.6875rem', textTransform: 'none', mt: 0.5, alignSelf: 'center' }}
               >
@@ -420,7 +420,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                       '&:hover': { backgroundColor: 'action.hover' },
                     }}
                   >
-                    <Handyman sx={{ fontSize: 14, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Handyman size={14} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {intv.description || intv.type}
@@ -440,7 +440,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                 ))}
               <Button
                 size="small"
-                endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+                endIcon={<ArrowForward size={14} strokeWidth={1.75} />}
                 onClick={() => navigate(`/interventions?propertyId=${propertyId}`)}
                 sx={{ fontSize: '0.6875rem', textTransform: 'none', mt: 0.5, alignSelf: 'center' }}
               >
@@ -457,7 +457,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         variant="outlined"
         size="small"
         fullWidth
-        startIcon={<OpenInNew sx={{ fontSize: 14 }} />}
+        startIcon={<OpenInNew size={14} strokeWidth={1.75} />}
         onClick={() => navigate(`/properties/${propertyId}`)}
         sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
       >

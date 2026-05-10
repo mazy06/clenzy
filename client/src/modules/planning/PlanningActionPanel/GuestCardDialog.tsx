@@ -21,7 +21,7 @@ import {
   AttachMoney,
   Edit,
   Check,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { PlanningEvent } from '../types';
 import type { Reservation } from '../../../services/api';
 import { RESERVATION_STATUS_COLORS, RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
@@ -155,13 +155,13 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Person sx={{ fontSize: '1.25rem', color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Person size={'1.25rem'} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
             Fiche client
           </Typography>
         </Box>
         <IconButton size="small" onClick={onClose}>
-          <Close sx={{ fontSize: '1rem' }} />
+          <Close size={'1rem'} strokeWidth={1.75} />
         </IconButton>
       </DialogTitle>
 
@@ -228,7 +228,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                   {onUpdateGuestInfo && (
                     <Edit className="edit-hint" sx={{ fontSize: 14, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
                   )}
-                  {saved === 'name' && <Check sx={{ fontSize: 14, color: 'success.main' }} />}
+                  {saved === 'name' && <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Check size={14} strokeWidth={1.75} /></Box>}
                 </Box>
               )}
 
@@ -237,7 +237,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                 {/* Email — editable */}
                 {editingField === 'email' ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Email sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Email size={'0.8rem'} strokeWidth={1.75} /></Box>
                     <TextField
                       inputRef={editRef}
                       value={editValue}
@@ -252,7 +252,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     />
                     {saving ? <CircularProgress size={12} /> : (
                       <IconButton size="small" onClick={commitEdit} sx={{ p: 0.25 }}>
-                        <Check sx={{ fontSize: 14, color: 'success.main' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Check size={14} strokeWidth={1.75} /></Box>
                       </IconButton>
                     )}
                   </Box>
@@ -274,21 +274,21 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       } : {},
                     }}
                   >
-                    <Email sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Email size={'0.8rem'} strokeWidth={1.75} /></Box>
                     <Typography sx={{ fontSize: '0.75rem', color: displayEmail ? 'text.secondary' : 'text.disabled', fontStyle: displayEmail ? 'normal' : 'italic' }}>
                       {displayEmail || 'Ajouter un email'}
                     </Typography>
                     {onUpdateGuestInfo && (
                       <Edit className="edit-hint" sx={{ fontSize: 12, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
                     )}
-                    {saved === 'email' && <Check sx={{ fontSize: 12, color: 'success.main' }} />}
+                    {saved === 'email' && <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Check size={12} strokeWidth={1.75} /></Box>}
                   </Box>
                 )}
 
                 {/* Phone — editable */}
                 {editingField === 'phone' ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Phone sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Phone size={'0.8rem'} strokeWidth={1.75} /></Box>
                     <TextField
                       inputRef={editRef}
                       value={editValue}
@@ -322,14 +322,14 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       } : {},
                     }}
                   >
-                    <Phone sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Phone size={'0.8rem'} strokeWidth={1.75} /></Box>
                     <Typography sx={{ fontSize: '0.75rem', color: displayPhone ? 'text.secondary' : 'text.disabled', fontStyle: displayPhone ? 'normal' : 'italic' }}>
                       {displayPhone || 'Ajouter un telephone'}
                     </Typography>
                     {onUpdateGuestInfo && (
                       <Edit className="edit-hint" sx={{ fontSize: 12, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
                     )}
-                    {saved === 'phone' && <Check sx={{ fontSize: 12, color: 'success.main' }} />}
+                    {saved === 'phone' && <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Check size={12} strokeWidth={1.75} /></Box>}
                   </Box>
                 )}
               </Box>
@@ -383,13 +383,13 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                    <Home sx={{ fontSize: 14, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Home size={14} strokeWidth={1.75} /></Box>
                     <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
                       {reservation.propertyName}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <CalendarMonth sx={{ fontSize: 12, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={12} strokeWidth={1.75} /></Box>
                     <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
                       {formatDate(reservation.checkIn)} → {formatDate(reservation.checkOut)}
                     </Typography>
@@ -404,7 +404,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                    <AttachMoney sx={{ fontSize: 14, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AttachMoney size={14} strokeWidth={1.75} /></Box>
                     {hasNoPrice && isICalSource ? (
                       <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
                         Non communiqué
@@ -462,9 +462,9 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     mb: 0.75,
                   }}
                 >
-                  <CalendarMonth
-                    sx={{ fontSize: '0.75rem', mr: 0.25, verticalAlign: 'middle' }}
-                  />
+                  <Box component="span" sx={{ display: 'inline-flex', mr: 0.25, verticalAlign: 'middle' }}>
+                    <CalendarMonth size={12} strokeWidth={1.75} />
+                  </Box>
                   Historique des sejours ({guestReservations.length})
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>

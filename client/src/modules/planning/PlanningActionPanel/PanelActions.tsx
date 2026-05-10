@@ -31,7 +31,7 @@ import {
   Check,
   Person,
   Groups,
-} from '@mui/icons-material';
+} from '../../../icons';
 import { useQuery } from '@tanstack/react-query';
 import type { PlanningEvent } from '../types';
 import { managersApi } from '../../../services/api';
@@ -347,7 +347,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
             <Button
               size="small"
               variant="outlined"
-              startIcon={<ContentCopy sx={{ fontSize: 14 }} />}
+              startIcon={<ContentCopy size={14} strokeWidth={1.75} />}
               fullWidth
               onClick={() => {
                 // Pre-fill with dates shifted by the stay duration
@@ -368,7 +368,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
             <Button
               size="small"
               variant="outlined"
-              startIcon={<AddCircleOutline sx={{ fontSize: 14 }} />}
+              startIcon={<AddCircleOutline size={14} strokeWidth={1.75} />}
               fullWidth
               onClick={() => {
                 setExtendMode('extend');
@@ -383,7 +383,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
             <Button
               size="small"
               variant="outlined"
-              startIcon={<RemoveCircleOutline sx={{ fontSize: 14 }} />}
+              startIcon={<RemoveCircleOutline size={14} strokeWidth={1.75} />}
               fullWidth
               onClick={() => {
                 setExtendMode('shorten');
@@ -398,7 +398,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
             <Button
               size="small"
               variant="outlined"
-              startIcon={<Block sx={{ fontSize: 14 }} />}
+              startIcon={<Block size={14} strokeWidth={1.75} />}
               fullWidth
               onClick={() => {
                 setBlockDays(1);
@@ -430,7 +430,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
           <Button
             size="small"
             variant={isVip ? 'contained' : 'outlined'}
-            startIcon={vipLoading ? <CircularProgress size={14} /> : <Star sx={{ fontSize: 14, color: isVip ? '#fff' : '#FFB800' }} />}
+            startIcon={vipLoading ? <CircularProgress size={14} /> : <Box component="span" sx={{ display: 'inline-flex', color: isVip ? '#fff' : '#FFB800' }}><Star size={14} strokeWidth={1.75} /></Box>}
             fullWidth
             disabled={vipLoading || !reservation}
             onClick={handleToggleVip}
@@ -446,7 +446,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
           <Button
             size="small"
             variant={hasAttention ? 'contained' : 'outlined'}
-            startIcon={attentionLoading ? <CircularProgress size={14} /> : <Warning sx={{ fontSize: 14, color: hasAttention ? '#fff' : '#EF4444' }} />}
+            startIcon={attentionLoading ? <CircularProgress size={14} /> : <Box component="span" sx={{ display: 'inline-flex', color: hasAttention ? '#fff' : '#EF4444' }}><Warning size={14} strokeWidth={1.75} /></Box>}
             fullWidth
             disabled={attentionLoading || !reservation}
             onClick={handleToggleAttention}
@@ -462,7 +462,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
           <Button
             size="small"
             variant="outlined"
-            startIcon={<Label sx={{ fontSize: 14 }} />}
+            startIcon={<Label size={14} strokeWidth={1.75} />}
             fullWidth
             disabled={!reservation}
             onClick={() => {
@@ -487,7 +487,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
           <Button
             size="small"
             variant="outlined"
-            startIcon={<Send sx={{ fontSize: 14 }} />}
+            startIcon={<Send size={14} strokeWidth={1.75} />}
             fullWidth
             disabled={!reservation}
             onClick={() => {
@@ -502,7 +502,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
           <Button
             size="small"
             variant="outlined"
-            startIcon={<TaskAlt sx={{ fontSize: 14 }} />}
+            startIcon={<TaskAlt size={14} strokeWidth={1.75} />}
             fullWidth
             disabled={!reservation}
             onClick={() => {
@@ -524,10 +524,10 @@ const PanelActions: React.FC<PanelActionsProps> = ({
       <Dialog open={duplicateOpen} onClose={() => setDuplicateOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ContentCopy sx={{ fontSize: 20, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><ContentCopy size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Dupliquer reservation</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setDuplicateOpen(false)}><Close sx={{ fontSize: 18 }} /></IconButton>
+          <IconButton size="small" onClick={() => setDuplicateOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
           {reservation && (
@@ -555,7 +555,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
           <Button onClick={() => setDuplicateOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
           <Button onClick={handleDuplicate} variant="contained" size="small" disabled={!dupCheckIn || !dupCheckOut || dupCheckIn >= dupCheckOut || dupLoading}
-            startIcon={dupLoading ? <CircularProgress size={14} /> : <ContentCopy sx={{ fontSize: 16 }} />}
+            startIcon={dupLoading ? <CircularProgress size={14} /> : <ContentCopy size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
             Dupliquer
           </Button>
@@ -567,14 +567,14 @@ const PanelActions: React.FC<PanelActionsProps> = ({
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {extendMode === 'extend'
-              ? <AddCircleOutline sx={{ fontSize: 20, color: 'success.main' }} />
-              : <RemoveCircleOutline sx={{ fontSize: 20, color: 'warning.main' }} />
+              ? <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><AddCircleOutline size={20} strokeWidth={1.75} /></Box>
+              : <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><RemoveCircleOutline size={20} strokeWidth={1.75} /></Box>
             }
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               {extendMode === 'extend' ? 'Prolonger le sejour' : 'Raccourcir le sejour'}
             </Typography>
           </Box>
-          <IconButton size="small" onClick={() => setExtendOpen(false)}><Close sx={{ fontSize: 18 }} /></IconButton>
+          <IconButton size="small" onClick={() => setExtendOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
           {reservation && (
@@ -599,7 +599,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
           <Button onClick={() => setExtendOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
           <Button onClick={handleExtend} variant="contained" size="small" disabled={extendLoading}
             color={extendMode === 'extend' ? 'primary' : 'warning'}
-            startIcon={extendLoading ? <CircularProgress size={14} /> : <Check sx={{ fontSize: 16 }} />}
+            startIcon={extendLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
             Confirmer
           </Button>
@@ -610,10 +610,10 @@ const PanelActions: React.FC<PanelActionsProps> = ({
       <Dialog open={blockOpen} onClose={() => setBlockOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Block sx={{ fontSize: 20, color: 'error.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Block size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Bloquer le logement</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setBlockOpen(false)}><Close sx={{ fontSize: 18 }} /></IconButton>
+          <IconButton size="small" onClick={() => setBlockOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
           {reservation && (
@@ -640,7 +640,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
           <Button onClick={() => setBlockOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
           <Button onClick={handleBlock} variant="contained" color="error" size="small" disabled={blockLoading}
-            startIcon={blockLoading ? <CircularProgress size={14} /> : <Block sx={{ fontSize: 16 }} />}
+            startIcon={blockLoading ? <CircularProgress size={14} /> : <Block size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
             Bloquer
           </Button>
@@ -651,10 +651,10 @@ const PanelActions: React.FC<PanelActionsProps> = ({
       <Dialog open={tagDialogOpen} onClose={() => setTagDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Label sx={{ fontSize: 20, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Label size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Tag personnalise</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setTagDialogOpen(false)}><Close sx={{ fontSize: 18 }} /></IconButton>
+          <IconButton size="small" onClick={() => setTagDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
           <TextField
@@ -669,7 +669,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
           <Button onClick={() => setTagDialogOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
           <Button onClick={handleAddTag} variant="contained" size="small" disabled={!tagValue.trim() || tagLoading}
-            startIcon={tagLoading ? <CircularProgress size={14} /> : <Label sx={{ fontSize: 16 }} />}
+            startIcon={tagLoading ? <CircularProgress size={14} /> : <Label size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
             Ajouter
           </Button>
@@ -680,10 +680,10 @@ const PanelActions: React.FC<PanelActionsProps> = ({
       <Dialog open={messageOpen} onClose={() => setMessageOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Send sx={{ fontSize: 20, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Send size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Message a l'equipe</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setMessageOpen(false)}><Close sx={{ fontSize: 18 }} /></IconButton>
+          <IconButton size="small" onClick={() => setMessageOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -702,7 +702,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               {teamMemberOptions.users.map((u) => (
                 <MenuItem key={`user-${u.id}`} value={u.label} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Person sx={{ fontSize: 14, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={14} strokeWidth={1.75} /></Box>
                     {u.label}
                   </Box>
                 </MenuItem>
@@ -715,7 +715,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               {teamMemberOptions.teams.map((t) => (
                 <MenuItem key={`team-${t.id}`} value={t.label} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Groups sx={{ fontSize: 14, color: 'primary.main' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Groups size={14} strokeWidth={1.75} /></Box>
                     {t.label}
                   </Box>
                 </MenuItem>
@@ -734,7 +734,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
           <Button onClick={() => setMessageOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
           <Button onClick={handleSendMessage} variant="contained" size="small"
             disabled={!messageRecipient || !messageText.trim() || messageLoading}
-            startIcon={messageLoading ? <CircularProgress size={14} /> : <Send sx={{ fontSize: 16 }} />}
+            startIcon={messageLoading ? <CircularProgress size={14} /> : <Send size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
             Envoyer
           </Button>
@@ -745,10 +745,10 @@ const PanelActions: React.FC<PanelActionsProps> = ({
       <Dialog open={taskOpen} onClose={() => setTaskOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <TaskAlt sx={{ fontSize: 20, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><TaskAlt size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Tache interne</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setTaskOpen(false)}><Close sx={{ fontSize: 18 }} /></IconButton>
+          <IconButton size="small" onClick={() => setTaskOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -773,7 +773,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               {teamMemberOptions.users.map((u) => (
                 <MenuItem key={`user-${u.id}`} value={u.label} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Person sx={{ fontSize: 14, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={14} strokeWidth={1.75} /></Box>
                     {u.label}
                   </Box>
                 </MenuItem>
@@ -786,7 +786,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               {teamMemberOptions.teams.map((t) => (
                 <MenuItem key={`team-${t.id}`} value={t.label} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Groups sx={{ fontSize: 14, color: 'primary.main' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Groups size={14} strokeWidth={1.75} /></Box>
                     {t.label}
                   </Box>
                 </MenuItem>
@@ -804,7 +804,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
           <Button onClick={() => setTaskOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
           <Button onClick={handleCreateTask} variant="contained" size="small"
             disabled={!taskTitle.trim() || !taskAssignee || taskLoading}
-            startIcon={taskLoading ? <CircularProgress size={14} /> : <TaskAlt sx={{ fontSize: 16 }} />}
+            startIcon={taskLoading ? <CircularProgress size={14} /> : <TaskAlt size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
             Creer
           </Button>
