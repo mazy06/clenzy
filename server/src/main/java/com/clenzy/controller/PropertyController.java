@@ -157,6 +157,19 @@ public class PropertyController {
         propertyService.delete(id);
     }
 
+    @PatchMapping("/{id}/status")
+    @Operation(summary = "Mettre à jour uniquement le statut d'un logement (active/inactive/...)")
+    public PropertyDto updateStatus(@PathVariable Long id,
+                                    @RequestBody Map<String, String> body,
+                                    @AuthenticationPrincipal Jwt jwt) {
+        checkHostAccess(id, jwt);
+        final String status = body.get("status");
+        if (status == null || status.isBlank()) {
+            throw new IllegalArgumentException("Le champ 'status' est requis");
+        }
+        return propertyService.updateStatus(id, status);
+    }
+
     @GetMapping("/{propertyId}/can-assign")
     @Operation(summary = "Vérifier si l'utilisateur connecté peut assigner une demande pour cette propriété")
     public ResponseEntity<Map<String, Boolean>> canAssignForProperty(@PathVariable Long propertyId, @AuthenticationPrincipal Jwt jwt) {
