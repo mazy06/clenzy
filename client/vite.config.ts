@@ -27,7 +27,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8 MiB — le bundle dépasse 5 MiB avec lucide-react + iconify
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB — vendor chunks splités, plus aucun chunk > 1.5 MiB
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -62,14 +62,34 @@ export default defineConfig({
     }),
   ],
   build: {
-    chunkSizeWarningLimit: 1000, // Augmenter le warning à 1 MiB
+    chunkSizeWarningLimit: 1500, // 1.5 MiB — heic2any pèse ~1.35 MiB en standalone
     rollupOptions: {
       output: {
+        // Code-splitting du bundle pour éviter qu'un seul chunk dépasse 2 MiB
+        // (utile pour le PWA workbox cache et le TTI initial)
         manualChunks: {
-          // Séparer les gros modules en chunks dédiés
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-mui': ['@mui/material', '@mui/icons-material'],
+          'vendor-mui': [
+            '@mui/material',
+            '@emotion/react',
+            '@emotion/styled',
+            '@emotion/cache',
+          ],
+          'vendor-icons': ['lucide-react', '@iconify/react'],
           'vendor-charts': ['recharts'],
+          'vendor-calendar': [
+            '@fullcalendar/react',
+            '@fullcalendar/daygrid',
+            '@fullcalendar/timegrid',
+            '@fullcalendar/list',
+            '@fullcalendar/interaction',
+          ],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
+          'vendor-stripe': ['@stripe/react-stripe-js', '@stripe/stripe-js'],
+          'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/modifiers', '@dnd-kit/utilities'],
+          'vendor-map': ['mapbox-gl'],
         },
       },
     },

@@ -1,6 +1,6 @@
 # Clenzy — Icônes
 
-Migration progressive de `@mui/icons-material` vers une stack moderne :
+Stack icônes moderne (migration depuis `@mui/icons-material` terminée en phase 9) :
 
 - **[Lucide](https://lucide.dev)** (primaire) — strokes 2px, ~1600 icônes, look "Linear/Notion/shadcn"
 - **[Iconify](https://icon-sets.iconify.design)** (fallback) — méta-aggrégateur 150+ sets, lazy-loadé
@@ -71,26 +71,18 @@ Le set `mdi:` (Material Design Icons community) est le filet de sécurité quand
 
 Un wrapper runtime perdrait le tree-shaking : tout le bundle Lucide finirait dans le build. Avec le barrel d'exports nommés, chaque import individuel `import { Edit } from '@/icons'` ne tire que l'icône `Edit` dans le bundle final.
 
-## Plan de migration
+## Historique de migration
 
 | Phase | Périmètre | Statut |
 |-------|-----------|--------|
 | 1 | Setup (libs + barrel + 30 icônes communes) | ✅ |
-| 2 | Composants partagés (PageHeader, FilterSearchBar, dialogs) | ⏳ |
-| 3 | Properties | — |
-| 4 | Interventions + Service Requests | — |
-| 5 | Planning | — |
-| 6 | Dashboard | — |
-| 7 | Settings + Organization + Users | — |
-| 8 | Reste (Documents, Booking Engine, Channels, Tarification…) | — |
-| 9 | Drop `@mui/icons-material` du `package.json` | — |
+| 2 | Composants partagés (PageHeader, FilterSearchBar, dialogs) | ✅ |
+| 3 | Properties (18 fichiers) | ✅ |
+| 4 | Interventions + Service Requests (23 fichiers) | ✅ |
+| 5 | Planning (22 fichiers, ~290 icônes) | ✅ |
+| 6 | Dashboard (40 fichiers, ~260 icônes) | ✅ |
+| 7 | Settings + Organization + Users + Teams (33 fichiers) | ✅ |
+| 8 | Reste — Documents/Booking Engine/Channels/Tarification/etc. (117 fichiers) | ✅ |
+| 9 | Drop `@mui/icons-material` + code-splitting bundle | ✅ |
 
-Chaque phase = 1 PR mergeable indépendamment.
-
-## Cohabitation transitoire
-
-Pendant les phases 2-8, le code mixe `@mui/icons-material` (legacy) et `@/icons` (nouveau). C'est attendu — la convention est :
-
-- **Nouveau code** : toujours via `@/icons`
-- **Modification d'un fichier existant** : si on touche déjà aux imports, on bascule, sinon on laisse pour la phase dédiée
-- **Ne pas mixer** dans un même composant si possible (cohérence visuelle)
+Tous les fichiers utilisent désormais `@/icons` — aucun import `@mui/icons-material` ne subsiste dans `src/`.
