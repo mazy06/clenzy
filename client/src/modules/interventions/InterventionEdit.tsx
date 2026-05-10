@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Box, CircularProgress } from '@mui/material';
-import { Cancel, Save } from '@mui/icons-material';
+import { Cancel, Save } from "../../icons";
 import InterventionForm from './InterventionForm';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -26,7 +26,7 @@ const InterventionEdit: React.FC = () => {
               variant="outlined"
               size="small"
               onClick={() => navigate(`/interventions/${id}`)}
-              startIcon={<Cancel />}
+              startIcon={<Cancel size={18} strokeWidth={1.75} />}
               disabled={loading}
               title={t('common.cancel')}
             >
@@ -41,7 +41,7 @@ const InterventionEdit: React.FC = () => {
                   submitButton.click();
                 }
               }}
-              startIcon={loading ? <CircularProgress size={16} /> : <Save />}
+              startIcon={loading ? <CircularProgress size={16} /> : <Save size={18} strokeWidth={1.75} />}
               disabled={loading}
               title={t('common.save')}
             >

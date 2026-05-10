@@ -8,7 +8,7 @@ import {
   CircularProgress,
   Collapse,
 } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import { ArrowBack } from "../../icons";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { serviceRequestsApi, propertiesApi, usersApi, teamsApi, reservationsApi } from '../../services/api';
@@ -579,7 +579,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
         <Button
           variant="contained"
           onClick={() => navigate(`/service-requests/${serviceRequestId}`)}
-          startIcon={<ArrowBack />}
+          startIcon={<ArrowBack size={18} strokeWidth={1.75} />}
         >
           {t('common.back')}
         </Button>

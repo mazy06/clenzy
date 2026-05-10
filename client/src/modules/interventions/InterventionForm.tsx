@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import {
   ArrowBack
-} from '@mui/icons-material';
+} from "../../icons";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -376,7 +376,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
           sx={{ mr: 1.5 }}
           size="small"
         >
-          <ArrowBack sx={{ fontSize: 20 }} />
+          <ArrowBack size={20} strokeWidth={1.75} />
         </IconButton>
         <Typography variant="h6" fontWeight={600}>
           {isEditMode
