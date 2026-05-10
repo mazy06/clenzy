@@ -23,7 +23,7 @@ import {
   AutoFixHigh,
   Assignment,
   Person as PersonIcon,
-} from '@mui/icons-material';
+} from '../icons';
 import { useNavigate } from 'react-router-dom';
 import { INTERVENTION_TYPE_OPTIONS } from '../types/interventionTypes';
 import type { Team } from '../services/api';
@@ -76,7 +76,7 @@ const getAccentColor = (type: string): string => {
 // ─── Icône de type pour le banner ────────────────────────────────────────────
 
 const getTypeIcon = (type: string, size: number = 44) => {
-  const iconProps = { sx: { fontSize: size, color: 'rgba(255,255,255,0.18)' } };
+  const iconProps = { size, color: 'rgba(255,255,255,0.18)', strokeWidth: 1.5 };
   const opt = INTERVENTION_TYPE_OPTIONS.find(t => t.value === type);
   if (!opt) return <Category {...iconProps} />;
 
@@ -95,7 +95,7 @@ const getTypeIcon = (type: string, size: number = 44) => {
 // ─── Petite icône pour le label type ─────────────────────────────────────────
 
 const getTypeSmallIcon = (type: string) => {
-  const iconProps = { sx: { fontSize: 16, color: 'rgba(255,255,255,0.85)' } };
+  const iconProps = { size: 16, color: 'rgba(255,255,255,0.85)', strokeWidth: 1.75 };
   const opt = INTERVENTION_TYPE_OPTIONS.find(t => t.value === type);
   if (!opt) return <Category {...iconProps} />;
 
@@ -368,7 +368,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
 
         {/* Member count badge — bottom left */}
         <Box sx={styles.memberCountBadge}>
-          <GroupIcon sx={{ fontSize: 14, color: 'rgba(255,255,255,0.8)' }} />
+          <GroupIcon size={14} strokeWidth={1.75} color="rgba(255,255,255,0.8)" />
           <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600, fontSize: '0.68rem' }}>
             {members.length} {members.length > 1 ? 'membres' : 'membre'}
           </Typography>
@@ -380,7 +380,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
           onClick={(e) => { e.stopPropagation(); onMenuOpen(e, team); }}
           sx={styles.menuButton}
         >
-          <MoreVert sx={{ fontSize: 16 }} />
+          <MoreVert size={16} strokeWidth={1.75} />
         </IconButton>
       </Box>
 
@@ -401,7 +401,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
           {activeInterventionsCount > 0 && (() => { const c = activeInterventionsCount > 5 ? '#d32f2f' : activeInterventionsCount > 2 ? '#ED6C02' : '#0288d1'; return (
             <Chip
-              icon={<Assignment sx={{ fontSize: 12, color: `${c} !important` }} />}
+              icon={<Assignment size={12} strokeWidth={1.75} color={c} />}
               label={`${activeInterventionsCount} active${activeInterventionsCount > 1 ? 's' : ''}`}
               size="small"
               sx={{ ...styles.workloadChip, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
@@ -462,7 +462,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
             </AvatarGroup>
           ) : (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
-              <PersonIcon sx={{ fontSize: 12, color: 'text.disabled' }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><PersonIcon size={12} strokeWidth={1.75} /></Box>
               <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.62rem' }}>
                 Aucun membre
               </Typography>
@@ -475,7 +475,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
           {/* Total interventions chip */}
           {(team.totalInterventions ?? 0) > 0 && (
             <Chip
-              icon={<Build sx={{ fontSize: 12, color: '#1976d2 !important' }} />}
+              icon={<Build size={12} strokeWidth={1.75} color="#1976d2" />}
               label={`${team.totalInterventions} interv.`}
               size="small"
               sx={{
@@ -500,7 +500,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
         <Button
           fullWidth
           size="small"
-          startIcon={<Visibility sx={{ fontSize: 15 }} />}
+          startIcon={<Visibility size={15} strokeWidth={1.75} />}
           onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
           variant="outlined"
           sx={styles.detailsButton}
@@ -511,7 +511,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
           <Button
             fullWidth
             size="small"
-            startIcon={<Edit sx={{ fontSize: 15 }} />}
+            startIcon={<Edit size={15} strokeWidth={1.75} />}
             onClick={(e) => { e.stopPropagation(); navigate(`/teams/${team.id}/edit`); }}
             variant="outlined"
             color="primary"

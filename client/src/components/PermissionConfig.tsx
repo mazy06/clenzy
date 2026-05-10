@@ -47,7 +47,7 @@ import {
   Speed as SpeedIcon,
   StorageRounded as DatabaseIcon,
   Receipt as TarificationIcon,
-} from '@mui/icons-material';
+} from '../icons';
 import PageHeader from './PageHeader';
 import { useAuth } from '../hooks/useAuth';
 import { useRolePermissions } from '../hooks/useRolePermissions';
@@ -213,29 +213,29 @@ const PermissionConfig: React.FC = () => {
   // Fonction pour obtenir l'icône appropriée pour chaque module
   const getModuleIcon = (moduleName: string) => {
     const iconMap: { [key: string]: React.ReactNode } = {
-      'Dashboard': <DashboardIcon sx={{ color: 'text.secondary' }} />,
-      'Propriétés': <HomeIcon sx={{ color: 'text.secondary' }} />,
-      'Demandes de Service': <AssignmentIcon sx={{ color: 'text.secondary' }} />,
-      'Interventions': <BuildIcon sx={{ color: 'text.secondary' }} />,
-      'Équipes': <GroupIcon sx={{ color: 'text.secondary' }} />,
-      'Portefeuilles': <BusinessIcon sx={{ color: 'text.secondary' }} />,
-      'Contact': <NotificationsIcon sx={{ color: 'text.secondary' }} />,
-      'Utilisateurs': <PersonIcon sx={{ color: 'text.secondary' }} />,
-      'Paramètres': <SettingsIcon sx={{ color: 'text.secondary' }} />,
-      'Rapports': <AssessmentIcon sx={{ color: 'text.secondary' }} />,
-      'Documents': <DescriptionIcon sx={{ color: 'text.secondary' }} />,
-      'Réservations': <EventNoteIcon sx={{ color: 'text.secondary' }} />,
-      'Prix Dynamiques': <TrendingUpIcon sx={{ color: 'text.secondary' }} />,
-      'Tarification': <TarificationIcon sx={{ color: 'text.secondary' }} />,
-      'Paiements': <PaymentIcon sx={{ color: 'text.secondary' }} />,
-      'Canaux': <ChannelsIcon sx={{ color: 'text.secondary' }} />,
-      'Messagerie': <ChatIcon sx={{ color: 'text.secondary' }} />,
-      'Monitoring': <MonitorIcon sx={{ color: 'text.secondary' }} />,
-      'Synchronisation': <SyncIcon sx={{ color: 'text.secondary' }} />,
-      'KPI Readiness': <SpeedIcon sx={{ color: 'text.secondary' }} />,
-      'Base de Données': <DatabaseIcon sx={{ color: 'text.secondary' }} />,
+      'Dashboard': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DashboardIcon size={20} strokeWidth={1.75} /></Box>,
+      'Propriétés': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><HomeIcon size={20} strokeWidth={1.75} /></Box>,
+      'Demandes de Service': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AssignmentIcon size={20} strokeWidth={1.75} /></Box>,
+      'Interventions': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BuildIcon size={20} strokeWidth={1.75} /></Box>,
+      'Équipes': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><GroupIcon size={20} strokeWidth={1.75} /></Box>,
+      'Portefeuilles': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BusinessIcon size={20} strokeWidth={1.75} /></Box>,
+      'Contact': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><NotificationsIcon size={20} strokeWidth={1.75} /></Box>,
+      'Utilisateurs': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PersonIcon size={20} strokeWidth={1.75} /></Box>,
+      'Paramètres': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SettingsIcon size={20} strokeWidth={1.75} /></Box>,
+      'Rapports': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AssessmentIcon size={20} strokeWidth={1.75} /></Box>,
+      'Documents': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DescriptionIcon size={20} strokeWidth={1.75} /></Box>,
+      'Réservations': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><EventNoteIcon size={20} strokeWidth={1.75} /></Box>,
+      'Prix Dynamiques': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><TrendingUpIcon size={20} strokeWidth={1.75} /></Box>,
+      'Tarification': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><TarificationIcon size={20} strokeWidth={1.75} /></Box>,
+      'Paiements': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PaymentIcon size={20} strokeWidth={1.75} /></Box>,
+      'Canaux': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ChannelsIcon size={20} strokeWidth={1.75} /></Box>,
+      'Messagerie': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ChatIcon size={20} strokeWidth={1.75} /></Box>,
+      'Monitoring': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><MonitorIcon size={20} strokeWidth={1.75} /></Box>,
+      'Synchronisation': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SyncIcon size={20} strokeWidth={1.75} /></Box>,
+      'KPI Readiness': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SpeedIcon size={20} strokeWidth={1.75} /></Box>,
+      'Base de Données': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DatabaseIcon size={20} strokeWidth={1.75} /></Box>,
     };
-    return iconMap[moduleName] || <InfoIcon sx={{ color: 'text.secondary' }} />;
+    return iconMap[moduleName] || <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><InfoIcon size={20} strokeWidth={1.75} /></Box>;
   };
 
   if (!user) {
@@ -280,7 +280,7 @@ const PermissionConfig: React.FC = () => {
                 variant="outlined"
                 size="small"
                 color="warning"
-                startIcon={<RefreshIcon sx={{ color: 'text.secondary' }} />}
+                startIcon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><RefreshIcon size={20} strokeWidth={1.75} /></Box>}
                 onClick={async () => {
                   await resetRolePermissions(selectedRole);
                   triggerGlobalRefresh();
@@ -294,7 +294,7 @@ const PermissionConfig: React.FC = () => {
                 variant="outlined"
                 size="small"
                 color="error"
-                startIcon={<StorageIcon sx={{ color: 'text.secondary' }} />}
+                startIcon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><StorageIcon size={20} strokeWidth={1.75} /></Box>}
                 onClick={async () => {
                   try {
                     await resetToInitialPermissions(selectedRole);
@@ -321,7 +321,7 @@ const PermissionConfig: React.FC = () => {
                 variant="contained"
                 size="small"
                 color="primary"
-                startIcon={<SaveIcon sx={{ color: 'text.secondary' }} />}
+                startIcon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SaveIcon size={20} strokeWidth={1.75} /></Box>}
                 onClick={async () => {
                   try {
                     await applyLocalChanges(selectedRole);
@@ -501,7 +501,7 @@ const PermissionConfig: React.FC = () => {
                 id="tab-0" 
                 aria-controls="tabpanel-0"
                 disabled={!selectedRole || !rolePermissions}
-                icon={<SettingsIcon sx={{ color: 'text.secondary' }} />}
+                icon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SettingsIcon size={20} strokeWidth={1.75} /></Box>}
                 iconPosition="start"
               />
               <Tab 
@@ -509,7 +509,7 @@ const PermissionConfig: React.FC = () => {
                 id="tab-1" 
                 aria-controls="tabpanel-1"
                 disabled={!selectedRole || !rolePermissions}
-                icon={<SecurityIcon sx={{ color: 'text.secondary' }} />}
+                icon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SecurityIcon size={20} strokeWidth={1.75} /></Box>}
                 iconPosition="start"
               />
             </Tabs>
@@ -630,9 +630,9 @@ const PermissionConfig: React.FC = () => {
                                   />
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
                                     {isActive ? (
-                                      <CheckCircleIcon sx={{ fontSize: '1rem', color: 'text.secondary' }} />
+                                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CheckCircleIcon size={16} strokeWidth={1.75} /></Box>
                                     ) : (
-                                      <ErrorIcon sx={{ fontSize: '1rem', color: 'text.secondary' }} />
+                                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ErrorIcon size={16} strokeWidth={1.75} /></Box>
                                     )}
                                     <Typography
                                       variant="caption"

@@ -59,6 +59,7 @@ export {
   CircleAlert as Error,
   TriangleAlert as Warning,
   TriangleAlert as WarningAmber,
+  OctagonAlert as ReportProblem,
   Info,
   Info as InfoOutlined,
   CircleHelp as Help,
@@ -94,6 +95,7 @@ export {
   UserPlus as PersonAdd,
   ShieldAlert as AdminPanelSettings,
   Briefcase as BusinessCenter,
+  Building as Business,
 } from 'lucide-react';
 
 // ─── Property / domaine PMS ─────────────────────────────────────────────────
@@ -155,7 +157,12 @@ export {
   PersonStanding as DirectionsWalk,
   Gauge as Speed,
   HardDrive as Storage,
+  HardDrive as StorageRounded,
   Cpu as Memory,
+  Activity as MonitorHeart,
+  RotateCw as Sync,
+  RadioTower as SettingsInputAntenna,
+  ReceiptText as Receipt,
 } from 'lucide-react';
 
 // ─── Localisation / map ─────────────────────────────────────────────────────
