@@ -59,11 +59,18 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
           mr: isCollapsed ? 0 : 1.25,
           justifyContent: 'center',
           color: isActive ? 'primary.main' : 'text.secondary',
-          '& .MuiSvgIcon-root': { fontSize: iconSize },
+          // Lucide icons inherit color via currentColor; size injected below via cloneElement.
+          // Le sélecteur SVG cible aussi les icônes Iconify qui rendent un <svg>.
+          '& svg': { width: iconSize, height: iconSize, flexShrink: 0 },
           transition: 'color 150ms',
         }}
       >
-        {item.icon}
+        {React.isValidElement(item.icon)
+          ? React.cloneElement(item.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
+              size: iconSize,
+              strokeWidth: 1.75,
+            })
+          : item.icon}
       </ListItemIcon>
       <ListItemText
         primary={item.text}
