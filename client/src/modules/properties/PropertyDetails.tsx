@@ -54,6 +54,7 @@ import {
   OpenInNew,
   PhotoLibrary,
   Inventory2,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -66,6 +67,7 @@ import DescriptionNotesDisplay from '../../components/DescriptionNotesDisplay';
 import CheckInInstructionsForm from '../channels/CheckInInstructionsForm';
 import PropertyPhotosTab from './PropertyPhotosTab';
 import PropertyInventoryTab from './PropertyInventoryTab';
+import PropertySettingsTab from './PropertySettingsTab';
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
 import hotelsComLogo from '../../assets/logo/hotels-com-logo-small.svg';
@@ -483,6 +485,14 @@ const PropertyDetails: React.FC = () => {
             label="Inventaire"
             {...a11yProps(5)}
           />
+          {canEdit && (
+            <Tab
+              icon={<SettingsIcon sx={{ fontSize: 16 }} />}
+              iconPosition="start"
+              label="Parametres"
+              {...a11yProps(6)}
+            />
+          )}
         </Tabs>
       </Paper>
 
@@ -1092,6 +1102,23 @@ const PropertyDetails: React.FC = () => {
           sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
         >
           <PropertyInventoryTab propertyId={Number(id)} canEdit={canEdit} />
+        </Box>
+      )}
+
+      {/* ─── Tab 6: Parametres (statut + suppression) ────────────────────── */}
+      {tabValue === 6 && canEdit && property && (
+        <Box
+          role="tabpanel"
+          id="property-tabpanel-6"
+          aria-labelledby="property-tab-6"
+          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
+        >
+          <PropertySettingsTab
+            propertyId={Number(id)}
+            propertyName={property.name}
+            status={property.status}
+            canEdit={canEdit}
+          />
         </Box>
       )}
     </Box>
