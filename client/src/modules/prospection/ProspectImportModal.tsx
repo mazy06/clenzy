@@ -20,7 +20,7 @@ import {
   CloudUpload,
   InsertDriveFile,
   CheckCircle,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useImportProspects } from '../../hooks/useProspects';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -195,7 +195,7 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
             </Box>
           ) : (
             <>
-              <CloudUpload sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><CloudUpload size={48} strokeWidth={1.75} /></Box>
               <Typography variant="body1" color="text.secondary">
                 Deposez votre fichier CSV ici
               </Typography>

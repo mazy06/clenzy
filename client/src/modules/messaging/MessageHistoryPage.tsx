@@ -15,7 +15,7 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import { Refresh, History } from '@mui/icons-material';
+import { Refresh, History } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/PageHeader';
 import {
@@ -98,7 +98,7 @@ export default function MessageHistoryPage() {
         </Box>
       ) : logs.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <History sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 2 }}><History size={48} strokeWidth={1.75} /></Box>
           <Typography variant="h6" color="text.secondary" gutterBottom>
             {t('messaging.history.empty')}
           </Typography>

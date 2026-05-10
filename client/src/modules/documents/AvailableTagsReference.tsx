@@ -28,7 +28,7 @@ import {
   Computer,
   GppGood,
   Email,
-} from '@mui/icons-material';
+} from '../../icons';
 
 // ─── Définition de tous les tags disponibles (miroir de TagResolverService.java) ───
 
@@ -400,7 +400,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                               color: copiedTag === tagDef.tag ? 'success.main' : 'text.secondary',
                             }}
                           >
-                            <ContentCopy sx={{ fontSize: 16 }} />
+                            <ContentCopy size={16} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                       </TableCell>

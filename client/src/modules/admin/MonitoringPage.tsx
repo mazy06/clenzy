@@ -11,7 +11,7 @@ import {
   TrendingUp,
   Assignment,
   HealthAndSafety,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import TokenMonitoring from '../../components/TokenMonitoring';
 import KeycloakMetrics from '../../components/KeycloakMetrics';

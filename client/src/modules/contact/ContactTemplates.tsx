@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import {
   Description as TemplateIcon
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface MessageTemplate {

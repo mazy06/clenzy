@@ -16,7 +16,7 @@ import {
   Alert,
   Divider,
 } from '@mui/material';
-import { Save, ContentCopy } from '@mui/icons-material';
+import { Save, ContentCopy } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   guestMessagingApi,

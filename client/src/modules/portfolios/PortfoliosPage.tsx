@@ -33,7 +33,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   BarChart,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import PortfolioStatsTab from './PortfolioStatsTab';
@@ -194,7 +194,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
       <Button
         variant="outlined"
         size="small"
-        startIcon={<AssignmentIcon sx={{ fontSize: 16 }} />}
+        startIcon={<AssignmentIcon size={16} strokeWidth={1.75} />}
         onClick={handleClientAssignment}
         sx={{ fontSize: '0.8rem' }}
         title={t('portfolios.associateClientsProperties')}
@@ -204,7 +204,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
       <Button
         variant="outlined"
         size="small"
-        startIcon={<PeopleIcon sx={{ fontSize: 16 }} />}
+        startIcon={<PeopleIcon size={16} strokeWidth={1.75} />}
         onClick={handleTeamAssignment}
         sx={{ fontSize: '0.8rem' }}
         title={t('portfolios.associateTeamsUsers')}
@@ -248,19 +248,19 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
           >
             <Tab
               label={t('portfolios.tabs.myPortfolios')}
-              icon={<BusinessIcon sx={{ fontSize: 18 }} />}
+              icon={<BusinessIcon size={18} strokeWidth={1.75} />}
               iconPosition="start"
               {...a11yProps(0)}
             />
             <Tab
               label={t('portfolios.tabs.teamManagement')}
-              icon={<Group sx={{ fontSize: 18 }} />}
+              icon={<Group size={18} strokeWidth={1.75} />}
               iconPosition="start"
               {...a11yProps(1)}
             />
             <Tab
               label={t('portfolios.tabs.statistics')}
-              icon={<BarChart sx={{ fontSize: 18 }} />}
+              icon={<BarChart size={18} strokeWidth={1.75} />}
               iconPosition="start"
               {...a11yProps(2)}
             />
@@ -278,7 +278,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
               {/* Clients */}
               <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
                 <SectionHeader
-                  icon={<Person sx={{ fontSize: 20 }} />}
+                  icon={<Person size={20} strokeWidth={1.75} />}
                   title={t('portfolios.sections.clients')}
                   count={clients.length}
                 />
@@ -333,7 +333,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                   onClick={() => setEditingClient(client)}
                                   sx={{ color: 'primary.main', p: 0.5 }}
                                 >
-                                  <EditIcon sx={{ fontSize: 16 }} />
+                                  <EditIcon size={16} strokeWidth={1.75} />
                                 </IconButton>
                               </Tooltip>
                               <Tooltip title={t('portfolios.fields.unassignClient')}>
@@ -342,14 +342,14 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                   onClick={() => handleUnassignClient(client.id)}
                                   sx={{ color: 'error.main', p: 0.5 }}
                                 >
-                                  <DeleteIcon sx={{ fontSize: 16 }} />
+                                  <DeleteIcon size={16} strokeWidth={1.75} />
                                 </IconButton>
                               </Tooltip>
                             </Box>
                           </Box>
                           {client.phoneNumber && (
                             <Box display="flex" alignItems="center" mt={0.75} ml={5.5}>
-                              <Phone sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><Phone size={14} strokeWidth={1.75} /></Box>
                               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                                 {client.phoneNumber}
                               </Typography>
@@ -364,13 +364,13 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   </Box>
                 ) : (
                   <EmptyState
-                    icon={<Person sx={{ fontSize: 40 }} />}
+                    icon={<Person size={40} strokeWidth={1.75} />}
                     message={t('portfolios.fields.noClientAssociated')}
                     action={
                       <Button
                         variant="outlined"
                         size="small"
-                        startIcon={<AssignmentIcon sx={{ fontSize: 14 }} />}
+                        startIcon={<AssignmentIcon size={14} strokeWidth={1.75} />}
                         onClick={handleClientAssignment}
                         sx={{ fontSize: '0.78rem' }}
                       >
@@ -384,7 +384,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
               {/* Properties grouped by client */}
               <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
                 <SectionHeader
-                  icon={<Home sx={{ fontSize: 20 }} />}
+                  icon={<Home size={20} strokeWidth={1.75} />}
                   title={t('portfolios.sections.propertiesByClient')}
                   count={properties.length}
                   color="secondary.main"
@@ -431,9 +431,9 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                             </Box>
                             <IconButton size="small" sx={{ color: 'primary.main', p: 0.25 }}>
                               {expandedClients.has(client.id) ? (
-                                <ExpandLessIcon sx={{ fontSize: 18 }} />
+                                <ExpandLessIcon size={18} strokeWidth={1.75} />
                               ) : (
-                                <ExpandMoreIcon sx={{ fontSize: 18 }} />
+                                <ExpandMoreIcon size={18} strokeWidth={1.75} />
                               )}
                             </IconButton>
                           </Box>
@@ -467,14 +467,14 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                             mr: 1.25,
                                           }}
                                         >
-                                          <Home sx={{ fontSize: 14 }} />
+                                          <Home size={14} strokeWidth={1.75} />
                                         </Avatar>
                                         <Box flex={1} minWidth={0}>
                                           <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }} noWrap>
                                             {property.name}
                                           </Typography>
                                           <Box display="flex" alignItems="center">
-                                            <LocationOn sx={{ fontSize: 13, mr: 0.5, color: 'text.secondary' }} />
+                                            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
                                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }} noWrap>
                                               {property.address}, {property.city}
                                             </Typography>
@@ -488,7 +488,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                           />
                                           {propertyTeamMap.get(property.id) ? (
                                             <Chip
-                                              icon={<Group sx={{ fontSize: 13 }} />}
+                                              icon={<Group size={13} strokeWidth={1.75} />}
                                               label={propertyTeamMap.get(property.id)!.teamName}
                                               size="small"
                                               color="success"
@@ -497,7 +497,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                             />
                                           ) : (
                                             <Chip
-                                              icon={<Group sx={{ fontSize: 13 }} />}
+                                              icon={<Group size={13} strokeWidth={1.75} />}
                                               label={t('portfolios.fields.assignTeam')}
                                               size="small"
                                               variant="outlined"
@@ -514,7 +514,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                               onClick={() => handleUnassignProperty(property.id)}
                                               sx={{ color: 'error.main', p: 0.25 }}
                                             >
-                                              <DeleteIcon sx={{ fontSize: 14 }} />
+                                              <DeleteIcon size={14} strokeWidth={1.75} />
                                             </IconButton>
                                           </Tooltip>
                                         </Box>
@@ -542,7 +542,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   </Box>
                 ) : (
                   <EmptyState
-                    icon={<Home sx={{ fontSize: 40 }} />}
+                    icon={<Home size={40} strokeWidth={1.75} />}
                     message={t('portfolios.fields.noClientAssociated')}
                   />
                 )}
@@ -557,7 +557,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
             {/* Teams */}
             <Grid item xs={12} md={6}>
               <SectionHeader
-                icon={<Group sx={{ fontSize: 20 }} />}
+                icon={<Group size={20} strokeWidth={1.75} />}
                 title={t('teams.title')}
                 count={teams.length}
                 color="success.main"
@@ -588,7 +588,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                               mr: 1.5,
                             }}
                           >
-                            <Group sx={{ fontSize: 16 }} />
+                            <Group size={16} strokeWidth={1.75} />
                           </Avatar>
                           <Box flex={1} minWidth={0}>
                             <Typography variant="subtitle2" sx={{ fontSize: '0.85rem', fontWeight: 600 }} noWrap>
@@ -604,7 +604,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                               onClick={() => handleUnassignTeam(team.id)}
                               sx={{ color: 'error.main', p: 0.5 }}
                             >
-                              <DeleteIcon sx={{ fontSize: 16 }} />
+                              <DeleteIcon size={16} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
                         </Box>
@@ -622,13 +622,13 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                 </Box>
               ) : (
                 <EmptyState
-                  icon={<Group sx={{ fontSize: 40 }} />}
+                  icon={<Group size={40} strokeWidth={1.75} />}
                   message={t('portfolios.fields.noClientAssociated')}
                   action={
                     <Button
                       variant="outlined"
                       size="small"
-                      startIcon={<PeopleIcon sx={{ fontSize: 14 }} />}
+                      startIcon={<PeopleIcon size={14} strokeWidth={1.75} />}
                       onClick={handleTeamAssignment}
                       sx={{ fontSize: '0.78rem' }}
                     >
@@ -642,7 +642,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
             {/* Users */}
             <Grid item xs={12} md={6}>
               <SectionHeader
-                icon={<Person sx={{ fontSize: 20 }} />}
+                icon={<Person size={20} strokeWidth={1.75} />}
                 title={t('users.title')}
                 count={users.length}
                 color="warning.main"
@@ -698,7 +698,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                 onClick={() => handleUnassignUser(portfolioUser.id)}
                                 sx={{ color: 'error.main', p: 0.5 }}
                               >
-                                <DeleteIcon sx={{ fontSize: 16 }} />
+                                <DeleteIcon size={16} strokeWidth={1.75} />
                               </IconButton>
                             </Tooltip>
                           </Box>
@@ -712,13 +712,13 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                 </Box>
               ) : (
                 <EmptyState
-                  icon={<Person sx={{ fontSize: 40 }} />}
+                  icon={<Person size={40} strokeWidth={1.75} />}
                   message={t('portfolios.fields.noClientAssociated')}
                   action={
                     <Button
                       variant="outlined"
                       size="small"
-                      startIcon={<PeopleIcon sx={{ fontSize: 14 }} />}
+                      startIcon={<PeopleIcon size={14} strokeWidth={1.75} />}
                       onClick={handleTeamAssignment}
                       sx={{ fontSize: '0.78rem' }}
                     >
@@ -762,7 +762,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
             }}
             sx={{ fontSize: '0.82rem', py: 0.75 }}
           >
-            <Group sx={{ fontSize: 16, mr: 1, color: 'success.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mr: 1 }}><Group size={16} strokeWidth={1.75} /></Box>
             {team.name}
           </MenuItem>
         )) : (

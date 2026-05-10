@@ -13,7 +13,7 @@ import {
   Remove,
   Delete,
   ShoppingCartOutlined,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
 import { SHOP_PRODUCTS } from './shopProducts';
@@ -80,7 +80,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
             {t('shop.cart')}
           </Typography>
           <IconButton onClick={onClose} size="small">
-            <Close sx={{ fontSize: 20 }} />
+            <Close size={20} strokeWidth={1.75} />
           </IconButton>
         </Box>
 
@@ -88,7 +88,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
         <Box sx={{ flex: 1, overflowY: 'auto', px: 2.5, py: 2 }}>
           {isEmpty ? (
             <Box sx={{ textAlign: 'center', py: 6 }}>
-              <ShoppingCartOutlined sx={{ fontSize: 48, color: 'text.disabled', mb: 1.5 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1.5 }}><ShoppingCartOutlined size={48} strokeWidth={1.75} /></Box>
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
                 {t('shop.cartEmpty')}
               </Typography>
@@ -117,7 +117,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                       onClick={() => onUpdateQuantity(product.id, -1)}
                       sx={{ border: '1px solid', borderColor: 'divider', width: 28, height: 28 }}
                     >
-                      <Remove sx={{ fontSize: 14 }} />
+                      <Remove size={14} strokeWidth={1.75} />
                     </IconButton>
                     <Typography
                       fontWeight={700}
@@ -130,7 +130,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                       onClick={() => onUpdateQuantity(product.id, 1)}
                       sx={{ border: '1px solid', borderColor: 'divider', width: 28, height: 28 }}
                     >
-                      <Add sx={{ fontSize: 14 }} />
+                      <Add size={14} strokeWidth={1.75} />
                     </IconButton>
                   </Box>
 
@@ -144,7 +144,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                       onClick={() => onRemoveItem(product.id)}
                       sx={{ color: 'error.main', mt: 0.25, p: 0.25 }}
                     >
-                      <Delete sx={{ fontSize: 16 }} />
+                      <Delete size={16} strokeWidth={1.75} />
                     </IconButton>
                   </Box>
                 </Box>

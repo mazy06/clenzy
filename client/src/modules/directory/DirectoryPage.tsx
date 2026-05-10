@@ -12,7 +12,7 @@ import {
   ManageAccounts,
   CorporateFare,
   TrendingUp,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -39,12 +39,12 @@ interface TabDef {
 }
 
 const ALL_TABS: TabDef[] = [
-  { key: 'users', labelKey: 'directoryPage.tabs.users', icon: <ManageAccounts sx={{ fontSize: 18 }} />, permission: 'users:manage' },
-  { key: 'teams', labelKey: 'directoryPage.tabs.teams', icon: <People sx={{ fontSize: 18 }} />, permission: 'teams:view' },
-  { key: 'portfolios', labelKey: 'directoryPage.tabs.portfolios', icon: <Business sx={{ fontSize: 18 }} />, permission: 'portfolios:view' },
-  { key: 'organizations', labelKey: 'directoryPage.tabs.organizations', icon: <CorporateFare sx={{ fontSize: 18 }} />, permission: 'users:manage' },
-  { key: 'guests', labelKey: 'directoryPage.tabs.guests', icon: <PersonSearch sx={{ fontSize: 18 }} />, permission: 'guests:view' },
-  { key: 'prospection', labelKey: 'directoryPage.tabs.prospection', icon: <TrendingUp sx={{ fontSize: 18 }} />, permission: 'teams:view', roles: ['SUPER_ADMIN', 'SUPER_MANAGER'] },
+  { key: 'users', labelKey: 'directoryPage.tabs.users', icon: <ManageAccounts size={18} strokeWidth={1.75} />, permission: 'users:manage' },
+  { key: 'teams', labelKey: 'directoryPage.tabs.teams', icon: <People size={18} strokeWidth={1.75} />, permission: 'teams:view' },
+  { key: 'portfolios', labelKey: 'directoryPage.tabs.portfolios', icon: <Business size={18} strokeWidth={1.75} />, permission: 'portfolios:view' },
+  { key: 'organizations', labelKey: 'directoryPage.tabs.organizations', icon: <CorporateFare size={18} strokeWidth={1.75} />, permission: 'users:manage' },
+  { key: 'guests', labelKey: 'directoryPage.tabs.guests', icon: <PersonSearch size={18} strokeWidth={1.75} />, permission: 'guests:view' },
+  { key: 'prospection', labelKey: 'directoryPage.tabs.prospection', icon: <TrendingUp size={18} strokeWidth={1.75} />, permission: 'teams:view', roles: ['SUPER_ADMIN', 'SUPER_MANAGER'] },
 ];
 
 // ─── Component ──────────────────────────────────────────────────────────────

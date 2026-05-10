@@ -19,7 +19,7 @@ import {
   ErrorOutline,
   Login as LoginIcon,
   Phone,
-} from '@mui/icons-material';
+} from '../../icons';
 import keycloak from '../../keycloak';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 import apiClient from '../../services/apiClient';
@@ -223,7 +223,7 @@ export default function AcceptInvitationPage() {
                   background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)',
                 }}
               >
-                <Business sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mb: 1 }}><Business size={48} strokeWidth={1.75} /></Box>
                 <Typography variant="h5" fontWeight={700} gutterBottom>
                   Invitation
                 </Typography>
@@ -342,7 +342,7 @@ export default function AcceptInvitationPage() {
           {state === 'complete_profile' && (
             <Box sx={{ py: 2, textAlign: 'left' }}>
               <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <CheckCircle sx={{ fontSize: 48, color: 'success.main', mb: 1 }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 1 }}><CheckCircle size={48} strokeWidth={1.75} /></Box>
                 <Typography variant="h6" fontWeight={700}>
                   Completez votre profil
                 </Typography>
@@ -402,7 +402,7 @@ export default function AcceptInvitationPage() {
           {/* Accepted */}
           {state === 'accepted' && (
             <Box sx={{ py: 3 }}>
-              <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 2 }}><CheckCircle size={64} strokeWidth={1.75} /></Box>
               <Typography variant="h5" fontWeight={700} gutterBottom>
                 Bienvenue !
               </Typography>
@@ -418,7 +418,7 @@ export default function AcceptInvitationPage() {
           {/* Error */}
           {state === 'error' && (
             <Box sx={{ py: 3 }}>
-              <ErrorOutline sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'error.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
               <Typography variant="h6" fontWeight={600} gutterBottom>
                 Invitation non valide
               </Typography>

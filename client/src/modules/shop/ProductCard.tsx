@@ -24,7 +24,7 @@ import {
   ExpandLess,
   CheckCircleOutline,
   Wifi,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
 import type { ShopProduct } from './shopProducts';
@@ -176,7 +176,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <Box sx={{ display: 'flex', gap: 0.5, mb: 1.5 }}>
           {(product.protocol === 'wifi' || product.protocol === 'both') && (
             <Chip
-              icon={<Wifi sx={{ fontSize: 14 }} />}
+              icon={<Wifi size={14} strokeWidth={1.75} />}
               label={t('shop.protocols.wifi')}
               size="small"
               variant="outlined"
@@ -198,7 +198,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <Box sx={{ mb: 1.5, flex: 1 }}>
         {product.features.slice(0, 4).map((feature) => (
           <Box key={feature} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
-            <CheckCircleOutline sx={{ fontSize: 14, color: 'success.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleOutline size={14} strokeWidth={1.75} /></Box>
             <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
               {feature}
             </Typography>
@@ -256,7 +256,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             onClick={onRemoveFromCart}
             sx={{ border: '1px solid', borderColor: 'divider' }}
           >
-            <Remove sx={{ fontSize: 16 }} />
+            <Remove size={16} strokeWidth={1.75} />
           </IconButton>
           <Typography fontWeight={700} sx={{ minWidth: 24, textAlign: 'center' }}>
             {quantity}
@@ -266,7 +266,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             onClick={onAddToCart}
             sx={{ border: '1px solid', borderColor: 'divider' }}
           >
-            <Add sx={{ fontSize: 16 }} />
+            <Add size={16} strokeWidth={1.75} />
           </IconButton>
         </Box>
       )}

@@ -27,7 +27,7 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { PlayArrow } from '@mui/icons-material';
+import { PlayArrow } from '../../../icons';
 import { syncAdminApi, ReconciliationRun, ReconciliationStats } from '../../../services/api/syncAdminApi';
 
 const STATUSES = ['', 'SUCCESS', 'FAILED', 'DIVERGENCE', 'RUNNING'] as const;

@@ -8,7 +8,7 @@ import {
 import {
   Assignment,
   Build,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -101,12 +101,12 @@ const WorkOrdersPage: React.FC = () => {
             scrollButtons="auto"
           >
             <Tab
-              icon={<Assignment sx={{ fontSize: 18 }} />}
+              icon={<Assignment size={18} strokeWidth={1.75} />}
               iconPosition="start"
               label={t('workOrders.tabs.serviceRequests')}
             />
             <Tab
-              icon={<Build sx={{ fontSize: 18 }} />}
+              icon={<Build size={18} strokeWidth={1.75} />}
               iconPosition="start"
               label={t('workOrders.tabs.interventions')}
             />

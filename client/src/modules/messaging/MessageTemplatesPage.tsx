@@ -22,7 +22,7 @@ import {
   Delete,
   Email,
   Visibility,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/PageHeader';
 import {
@@ -134,7 +134,7 @@ export default function MessageTemplatesPage() {
         </Box>
       ) : templates.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Email sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 2 }}><Email size={48} strokeWidth={1.75} /></Box>
           <Typography variant="h6" color="text.secondary" gutterBottom>
             {t('messaging.templates.empty')}
           </Typography>

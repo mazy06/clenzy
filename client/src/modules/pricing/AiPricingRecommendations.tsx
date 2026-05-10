@@ -15,7 +15,7 @@ import {
   TrendingUp,
   TrendingDown,
   Settings as SettingsIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAiPricingPredictions } from '../../hooks/useAi';
@@ -77,7 +77,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
       return (
         <Paper sx={CARD_SX}>
           <Box sx={HEADER_SX}>
-            <AutoAwesome sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
             <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
               {t('bookingEngine.ai.pricing.title')}
             </Typography>
@@ -98,7 +98,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
       return (
         <Paper sx={CARD_SX}>
           <Box sx={HEADER_SX}>
-            <AutoAwesome sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
             <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
               {t('bookingEngine.ai.pricing.title')}
             </Typography>
@@ -111,7 +111,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={<SettingsIcon sx={{ fontSize: 14 }} />}
+                startIcon={<SettingsIcon size={14} strokeWidth={1.75} />}
                 onClick={() => navigate('/settings')}
                 sx={{ textTransform: 'none', fontSize: '0.7rem' }}
               >
@@ -132,7 +132,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
       return (
         <Paper sx={CARD_SX}>
           <Box sx={HEADER_SX}>
-            <AutoAwesome sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
             <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
               {t('bookingEngine.ai.pricing.title')}
             </Typography>
@@ -148,7 +148,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
     return (
       <Paper sx={CARD_SX}>
         <Box sx={HEADER_SX}>
-          <AutoAwesome sx={{ fontSize: 18, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
           <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
             {t('bookingEngine.ai.pricing.title')}
           </Typography>

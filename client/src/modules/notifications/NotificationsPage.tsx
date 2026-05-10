@@ -20,7 +20,7 @@ import {
   Circle,
   NotificationsNone,
   EventNote,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAsync } from '../../hooks/useAsync';
@@ -34,14 +34,14 @@ import DataFetchWrapper from '../../components/DataFetchWrapper';
 type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'payment' | 'reservation' | 'system' | 'contact' | 'document';
 
 const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
-  intervention: <Build sx={{ fontSize: 18, color: 'primary.main' }} />,
-  service_request: <Description sx={{ fontSize: 18, color: 'warning.main' }} />,
-  payment: <Payment sx={{ fontSize: 18, color: 'success.main' }} />,
-  system: <Info sx={{ fontSize: 18, color: 'secondary.main' }} />,
-  team: <Groups sx={{ fontSize: 18, color: 'info.main' }} />,
-  contact: <Email sx={{ fontSize: 18, color: 'error.main' }} />,
-  document: <Description sx={{ fontSize: 18, color: 'warning.dark' }} />,
-  reservation: <EventNote sx={{ fontSize: 18, color: 'info.main' }} />,
+  intervention: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Build size={18} strokeWidth={1.75} /></Box>,
+  service_request: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Description size={18} strokeWidth={1.75} /></Box>,
+  payment: <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Payment size={18} strokeWidth={1.75} /></Box>,
+  system: <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Info size={18} strokeWidth={1.75} /></Box>,
+  team: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Groups size={18} strokeWidth={1.75} /></Box>,
+  contact: <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Email size={18} strokeWidth={1.75} /></Box>,
+  document: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.dark' }}><Description size={18} strokeWidth={1.75} /></Box>,
+  reservation: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><EventNote size={18} strokeWidth={1.75} /></Box>,
 };
 
 function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string, lang = 'fr'): string {
@@ -157,7 +157,7 @@ export default function NotificationsPage() {
             <Button
               variant="outlined"
               size="small"
-              startIcon={<DoneAll sx={{ fontSize: 18 }} />}
+              startIcon={<DoneAll size={18} strokeWidth={1.75} />}
               onClick={handleMarkAllRead}
               sx={{ fontSize: '0.8125rem', py: 0.5 }}
               title={t('notifications.markAllRead')}
@@ -194,7 +194,7 @@ export default function NotificationsPage() {
         isEmpty={filtered.length === 0}
         emptyState={
           <Box sx={{ textAlign: 'center', py: 6 }}>
-            <NotificationsNone sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><NotificationsNone size={48} strokeWidth={1.75} /></Box>
             <Typography variant="h6" color="text.secondary" sx={{ fontSize: '1rem' }}>
               {t('notifications.empty')}
             </Typography>
@@ -244,14 +244,14 @@ export default function NotificationsPage() {
                   flexShrink: 0,
                 }}
               >
-                {CATEGORY_ICONS[notification.category] ?? <Info sx={{ fontSize: 18 }} />}
+                {CATEGORY_ICONS[notification.category] ?? <Info size={18} strokeWidth={1.75} />}
               </Box>
 
               {/* Text */}
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                   {!notification.read && (
-                    <Circle sx={{ fontSize: 7, color: 'primary.main', flexShrink: 0 }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', flexShrink: 0 }}><Circle size={7} strokeWidth={1.75} /></Box>
                   )}
                   <Typography
                     variant="body2"
@@ -311,7 +311,7 @@ export default function NotificationsPage() {
                     '&:hover': { color: 'error.main' },
                   }}
                 >
-                  <DeleteOutline sx={{ fontSize: 17 }} />
+                  <DeleteOutline size={17} strokeWidth={1.75} />
                 </IconButton>
               </Tooltip>
             </Box>

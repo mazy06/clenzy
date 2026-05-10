@@ -15,9 +15,9 @@ import {
   CircularProgress,
   Divider,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Add as AddIcon } from '../../icons';
+import { Edit as EditIcon } from '../../icons';
+import { Delete as DeleteIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
 import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPricingApi';
@@ -166,10 +166,10 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
 
             {/* Actions */}
             <IconButton size="small" onClick={() => onEditPlan(plan)} sx={{ p: 0.5 }}>
-              <EditIcon sx={{ fontSize: 16 }} />
+              <EditIcon size={16} strokeWidth={1.75} />
             </IconButton>
             <IconButton size="small" onClick={() => setDeleteConfirmId(plan.id)} color="error" sx={{ p: 0.5 }}>
-              <DeleteIcon sx={{ fontSize: 16 }} />
+              <DeleteIcon size={16} strokeWidth={1.75} />
             </IconButton>
           </Box>
         </React.Fragment>

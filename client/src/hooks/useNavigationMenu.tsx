@@ -28,7 +28,7 @@ import {
   Contacts,
   Language,
   StorefrontOutlined,
-} from '@mui/icons-material';
+} from '../icons';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

@@ -20,7 +20,7 @@ import {
   TrendingUp,
   Lock,
   Business,
-} from '@mui/icons-material';
+} from '../../icons';
 import { walletApi } from '../../services/api/walletApi';
 import { useCurrency } from '../../hooks/useCurrency';
 import { formatCurrency } from '../../utils/currencyUtils';

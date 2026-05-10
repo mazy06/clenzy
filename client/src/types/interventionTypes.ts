@@ -10,7 +10,7 @@ import {
   Sanitizer,
   Restore,
   MoreHoriz
-} from '@mui/icons-material';
+} from '../icons';
 import { SvgIconProps } from '@mui/material/SvgIcon';
 
 /**

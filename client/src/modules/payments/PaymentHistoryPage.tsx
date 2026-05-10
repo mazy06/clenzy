@@ -39,7 +39,7 @@ import {
   Hotel as HotelIcon,
   Assignment as AssignmentIcon,
   Send as SendIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -350,7 +350,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     if (payment.type === 'RESERVATION') {
       return (
         <Chip
-          icon={<HotelIcon sx={{ fontSize: '14px !important' }} />}
+          icon={<HotelIcon size={14} strokeWidth={1.75} />}
           label="Reservation"
           size="small"
           sx={chipSx(hex)}
@@ -360,7 +360,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     if (payment.type === 'SERVICE_REQUEST') {
       return (
         <Chip
-          icon={<AssignmentIcon sx={{ fontSize: '14px !important' }} />}
+          icon={<AssignmentIcon size={14} strokeWidth={1.75} />}
           label="Demande"
           size="small"
           sx={chipSx(hex)}
@@ -369,7 +369,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     }
     return (
       <Chip
-        icon={<SparkleIcon sx={{ fontSize: '14px !important' }} />}
+        icon={<SparkleIcon size={14} strokeWidth={1.75} />}
         label="Intervention"
         size="small"
         sx={chipSx(hex)}
@@ -395,25 +395,25 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           label: t('payments.history.totalPaid'),
           value: convertAndFormat(summary.totalPaid, 'EUR'),
           color: C.success,
-          icon: <CheckCircleIcon sx={{ fontSize: 20, color: C.success }} />,
+          icon: <Box component="span" sx={{ display: 'inline-flex', color: C.success }}><CheckCircleIcon size={20} strokeWidth={1.75} /></Box>,
         },
         {
           label: t('payments.history.totalPending'),
           value: convertAndFormat(summary.totalPending, 'EUR'),
           color: C.warning,
-          icon: <HourglassEmptyIcon sx={{ fontSize: 20, color: C.warning }} />,
+          icon: <Box component="span" sx={{ display: 'inline-flex', color: C.warning }}><HourglassEmptyIcon size={20} strokeWidth={1.75} /></Box>,
         },
         {
           label: t('payments.history.totalRefunded'),
           value: convertAndFormat(summary.totalRefunded, 'EUR'),
           color: C.info,
-          icon: <MoneyOffIcon sx={{ fontSize: 20, color: C.info }} />,
+          icon: <Box component="span" sx={{ display: 'inline-flex', color: C.info }}><MoneyOffIcon size={20} strokeWidth={1.75} /></Box>,
         },
         {
           label: t('payments.history.transactions'),
           value: String(summary.transactionCount),
           color: C.primary,
-          icon: <ReceiptIcon sx={{ fontSize: 20, color: C.primary }} />,
+          icon: <Box component="span" sx={{ display: 'inline-flex', color: C.primary }}><ReceiptIcon size={20} strokeWidth={1.75} /></Box>,
         },
       ]
     : [
@@ -421,19 +421,19 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           label: t('payments.history.totalPaid'),
           value: convertAndFormat(summary.totalPaid, 'EUR'),
           color: C.success,
-          icon: <CheckCircleIcon sx={{ fontSize: 20, color: C.success }} />,
+          icon: <Box component="span" sx={{ display: 'inline-flex', color: C.success }}><CheckCircleIcon size={20} strokeWidth={1.75} /></Box>,
         },
         {
           label: t('payments.history.totalDue'),
           value: convertAndFormat(totalDue, 'EUR'),
           color: totalDue > 0 ? C.error : C.warning,
-          icon: <WarningIcon sx={{ fontSize: 20, color: totalDue > 0 ? C.error : C.warning }} />,
+          icon: <Box component="span" sx={{ display: 'inline-flex', color: totalDue > 0 ? C.error : C.warning }}><WarningIcon size={20} strokeWidth={1.75} /></Box>,
         },
         {
           label: t('payments.history.transactions'),
           value: String(summary.transactionCount),
           color: C.primary,
-          icon: <ReceiptIcon sx={{ fontSize: 20, color: C.primary }} />,
+          icon: <Box component="span" sx={{ display: 'inline-flex', color: C.primary }}><ReceiptIcon size={20} strokeWidth={1.75} /></Box>,
         },
       ];
 
@@ -555,7 +555,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                   mb: 2,
                 }}
               >
-                <ReceiptLongIcon sx={{ fontSize: 28, color: C.primary }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: C.primary }}><ReceiptLongIcon size={28} strokeWidth={1.75} /></Box>
               </Box>
               <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: C.textPrimary, mb: 0.5 }}>
                 {t('payments.history.noPayments')}
@@ -655,7 +655,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                           }}
                           sx={{ color: C.textSecondary, '&:hover': { color: C.primary } }}
                         >
-                          <VisibilityIcon sx={{ fontSize: 18 }} />
+                          <VisibilityIcon size={18} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                       {payment.type === 'RESERVATION' && (payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
@@ -680,7 +680,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                               {sendingPaymentLink === payment.referenceId ? (
                                 <CircularProgress size={14} sx={{ color: C.white }} />
                               ) : (
-                                <SendIcon sx={{ fontSize: 16 }} />
+                                <SendIcon size={16} strokeWidth={1.75} />
                               )}
                             </IconButton>
                           </span>
@@ -708,7 +708,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                               {processingPayment === payment.referenceId ? (
                                 <CircularProgress size={14} sx={{ color: C.white }} />
                               ) : (
-                                <PaymentIcon sx={{ fontSize: 16 }} />
+                                <PaymentIcon size={16} strokeWidth={1.75} />
                               )}
                             </IconButton>
                           </span>
@@ -736,7 +736,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                               {refundingPayment === payment.referenceId ? (
                                 <CircularProgress size={14} sx={{ color: C.white }} />
                               ) : (
-                                <MoneyOffIcon sx={{ fontSize: 16 }} />
+                                <MoneyOffIcon size={16} strokeWidth={1.75} />
                               )}
                             </IconButton>
                           </span>

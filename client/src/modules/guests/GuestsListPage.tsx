@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import {
   People as PeopleIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import { guestsApi } from '../../services/api';
 import type { GuestListDto } from '../../services/api';
@@ -211,7 +211,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                   <TableRow>
                     <TableCell colSpan={isSuperAdmin ? 8 : 7} align="center" sx={{ py: 4 }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                        <PeopleIcon sx={{ fontSize: 40, color: 'text.disabled' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><PeopleIcon size={40} strokeWidth={1.75} /></Box>
                         <Typography color="text.secondary" variant="body2">
                           {searchQuery || channelFilter
                             ? 'Aucun voyageur ne correspond aux filtres'

@@ -24,7 +24,7 @@ import {
   Forum as ForumIcon,
   MarkEmailRead as ReadIcon,
   Refresh as RefreshIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   useChannelInbox,
@@ -40,10 +40,10 @@ const CHANNEL_CONFIG: Record<
   string,
   { label: string; color: string; icon: React.ReactNode }
 > = {
-  AIRBNB: { label: 'Airbnb', color: '#FF5A5F', icon: <AirbnbIcon sx={{ fontSize: '0.875rem' }} /> },
-  BOOKING: { label: 'Booking.com', color: '#003580', icon: <BookingIcon sx={{ fontSize: '0.875rem' }} /> },
-  WHATSAPP: { label: 'WhatsApp', color: '#25D366', icon: <WhatsAppIcon sx={{ fontSize: '0.875rem' }} /> },
-  EMAIL: { label: 'Email', color: '#757575', icon: <EmailIcon sx={{ fontSize: '0.875rem' }} /> },
+  AIRBNB: { label: 'Airbnb', color: '#FF5A5F', icon: <AirbnbIcon size={'0.875rem'} strokeWidth={1.75} /> },
+  BOOKING: { label: 'Booking.com', color: '#003580', icon: <BookingIcon size={'0.875rem'} strokeWidth={1.75} /> },
+  WHATSAPP: { label: 'WhatsApp', color: '#25D366', icon: <WhatsAppIcon size={'0.875rem'} strokeWidth={1.75} /> },
+  EMAIL: { label: 'Email', color: '#757575', icon: <EmailIcon size={'0.875rem'} strokeWidth={1.75} /> },
 };
 
 /** Channels OTA a afficher dans l'onglet Contact */
@@ -53,7 +53,7 @@ function getChannelConfig(channel: string) {
   return CHANNEL_CONFIG[channel] ?? {
     label: channel,
     color: '#9e9e9e',
-    icon: <ForumIcon sx={{ fontSize: '0.875rem' }} />,
+    icon: <ForumIcon size={'0.875rem'} strokeWidth={1.75} />,
   };
 }
 
@@ -181,12 +181,12 @@ const ChannelInboxTab: React.FC = () => {
                 },
               }}
             >
-              <ReadIcon sx={{ fontSize: '1rem', color: 'text.secondary' }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ReadIcon size={'1rem'} strokeWidth={1.75} /></Box>
             </Badge>
           )}
         </Box>
         <IconButton size="small" onClick={() => refetch()} title={t('common.refresh')}>
-          <RefreshIcon sx={{ fontSize: '1rem' }} />
+          <RefreshIcon size={'1rem'} strokeWidth={1.75} />
         </IconButton>
       </Box>
 
@@ -240,9 +240,9 @@ const ChannelInboxTab: React.FC = () => {
                     }}
                   >
                     {conv.guestName ? (
-                      <PersonIcon
-                        sx={{ fontSize: '0.875rem', color: 'white' }}
-                      />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'white' }}>
+                        <PersonIcon size={14} strokeWidth={1.75} />
+                      </Box>
                     ) : (
                       <Box sx={{ color: 'white' }}>{channelCfg.icon}</Box>
                     )}
@@ -333,7 +333,7 @@ const ChannelInboxTab: React.FC = () => {
                     />
                   )}
                   <IconButton size="small" sx={{ p: 0.25 }}>
-                    <ArrowIcon sx={{ fontSize: '0.875rem' }} />
+                    <ArrowIcon size={'0.875rem'} strokeWidth={1.75} />
                   </IconButton>
                 </Box>
               </Box>

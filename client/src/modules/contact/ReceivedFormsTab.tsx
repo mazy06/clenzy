@@ -40,16 +40,16 @@ import {
   Subject as SubjectIcon,
   ChatBubbleOutline as MessageIcon,
   Apartment as ApartmentIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { ReceivedForm } from '../../services/api/receivedFormsApi';
 import { useReceivedForms, useUpdateFormStatus, useResetFormsAvailability } from '../../hooks/useReceivedForms';
 
 // ─── Config types & statuts (PMS soft-filled design system) ─────────────────
 
 const FORM_TYPE_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  DEVIS: { label: 'Devis', color: '#0288d1', icon: <DescriptionIcon sx={{ fontSize: 14 }} /> },
-  MAINTENANCE: { label: 'Maintenance', color: '#ED6C02', icon: <BuildIcon sx={{ fontSize: 14 }} /> },
-  SUPPORT: { label: 'Support', color: '#4A9B8E', icon: <SupportIcon sx={{ fontSize: 14 }} /> },
+  DEVIS: { label: 'Devis', color: '#0288d1', icon: <DescriptionIcon size={14} strokeWidth={1.75} /> },
+  MAINTENANCE: { label: 'Maintenance', color: '#ED6C02', icon: <BuildIcon size={14} strokeWidth={1.75} /> },
+  SUPPORT: { label: 'Support', color: '#4A9B8E', icon: <SupportIcon size={14} strokeWidth={1.75} /> },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -412,7 +412,7 @@ const ReceivedFormsTab: React.FC = () => {
           placeholder="Rechercher..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          InputProps={{ startAdornment: <SearchIcon sx={{ mr: 0.5, fontSize: 18, color: 'text.secondary' }} /> }}
+          InputProps={{ startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><SearchIcon size={18} strokeWidth={1.75} /></Box> }}
           sx={{
             minWidth: 180, flex: 1,
             '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', borderRadius: '8px' },
@@ -445,7 +445,7 @@ const ReceivedFormsTab: React.FC = () => {
         })}
         <Tooltip title="Rafraichir">
           <IconButton size="small" onClick={() => resetAvailabilityMutation.mutate()}>
-            <RefreshIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><RefreshIcon size={18} strokeWidth={1.75} /></Box>
           </IconButton>
         </Tooltip>
       </Box>
@@ -458,7 +458,7 @@ const ReceivedFormsTab: React.FC = () => {
       ) : filteredForms.length === 0 ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 1.5 }}>
           <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: 'action.selected', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <InboxIcon sx={{ fontSize: 28, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><InboxIcon size={28} strokeWidth={1.75} /></Box>
           </Box>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary' }}>Aucun formulaire recu</Typography>
           <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>Les formulaires soumis depuis la landing page apparaitront ici.</Typography>
@@ -566,7 +566,7 @@ const ReceivedFormsTab: React.FC = () => {
                         <>
                           <Box sx={{ width: 2, height: 2, borderRadius: '50%', bgcolor: 'text.disabled' }} />
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                            <LocationIcon sx={{ fontSize: 10, color: 'text.disabled' }} />
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><LocationIcon size={10} strokeWidth={1.75} /></Box>
                             <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', lineHeight: 1 }}>
                               {form.city}
                             </Typography>
@@ -661,7 +661,7 @@ const ReceivedFormsTab: React.FC = () => {
                       bgcolor: alpha(theme.palette.text.primary, 0.04),
                       border: '1px solid', borderColor: 'divider',
                     }}>
-                      <EmailIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><EmailIcon size={14} strokeWidth={1.75} /></Box>
                       <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', fontWeight: 500 }}>
                         {selectedForm.email}
                       </Typography>
@@ -673,7 +673,7 @@ const ReceivedFormsTab: React.FC = () => {
                         bgcolor: alpha(theme.palette.text.primary, 0.04),
                         border: '1px solid', borderColor: 'divider',
                       }}>
-                        <PhoneIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PhoneIcon size={14} strokeWidth={1.75} /></Box>
                         <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', fontWeight: 500 }}>
                           {selectedForm.phone}
                         </Typography>
@@ -686,7 +686,7 @@ const ReceivedFormsTab: React.FC = () => {
                         bgcolor: alpha(theme.palette.text.primary, 0.04),
                         border: '1px solid', borderColor: 'divider',
                       }}>
-                        <LocationIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LocationIcon size={14} strokeWidth={1.75} /></Box>
                         <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', fontWeight: 500 }}>
                           {[selectedForm.city, selectedForm.postalCode].filter(Boolean).join(' ')}
                         </Typography>
@@ -712,7 +712,7 @@ const ReceivedFormsTab: React.FC = () => {
                       size="small"
                       variant="contained"
                       color="success"
-                      startIcon={<CheckCircleIcon sx={{ fontSize: 16 }} />}
+                      startIcon={<CheckCircleIcon size={16} strokeWidth={1.75} />}
                       onClick={() => handleUpdateStatus('PROCESSED')}
                       disabled={updateStatusMutation.isPending}
                       sx={{
@@ -728,7 +728,7 @@ const ReceivedFormsTab: React.FC = () => {
                     <Button
                       size="small"
                       variant="outlined"
-                      startIcon={<ArchiveIcon sx={{ fontSize: 16 }} />}
+                      startIcon={<ArchiveIcon size={16} strokeWidth={1.75} />}
                       onClick={() => handleUpdateStatus('ARCHIVED')}
                       disabled={updateStatusMutation.isPending}
                       sx={{
@@ -743,7 +743,7 @@ const ReceivedFormsTab: React.FC = () => {
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 1 }}>
-                <DescriptionIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><DescriptionIcon size={48} strokeWidth={1.75} /></Box>
                 <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
                   Selectionnez un formulaire pour voir son contenu
                 </Typography>

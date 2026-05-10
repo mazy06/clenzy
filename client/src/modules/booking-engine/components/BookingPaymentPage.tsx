@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, IconButton, Divider, Checkbox, CircularProgress } from '@mui/material';
-import { ArrowBack, CheckCircle, Close } from '@mui/icons-material';
+import { ArrowBack, CheckCircle, Close } from '../../../icons';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import type { ResolvedTokens, PreviewPage, CartItem } from '../types/bookingEngine';
@@ -64,7 +64,7 @@ export const BookingValidationPage: React.FC<BookingValidationPageProps> = ({
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', px: 3, py: 2 }}>
         <IconButton size="small" onClick={() => setPage('identification')} sx={{ color: tk.textLabel, mr: 1 }}>
-          <ArrowBack sx={{ fontSize: 18 }} />
+          <ArrowBack size={18} strokeWidth={1.75} />
         </IconButton>
         <Typography sx={{ fontFamily: tk.headingFont, fontWeight: 700, fontSize: 18, color: tk.text, textTransform: 'uppercase', letterSpacing: 0.5 }}>
           {i18n.t('cart.title')}
@@ -294,7 +294,7 @@ export const BookingValidationPage: React.FC<BookingValidationPageProps> = ({
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderBottom: '1px solid #e5e7eb' }}>
               <Typography sx={{ fontWeight: 700, fontSize: 15 }}>{i18n.t('validation.securePayment')}</Typography>
               <IconButton size="small" onClick={() => { setShowStripeCheckout(false); setStripeClientSecret(null); }}>
-                <Close sx={{ fontSize: 18 }} />
+                <Close size={18} strokeWidth={1.75} />
               </IconButton>
             </Box>
             <Box sx={{ p: 2 }}>
@@ -367,7 +367,7 @@ export const BookingConfirmationPage: React.FC<BookingConfirmationPageProps> = (
 
       <Box sx={{ px: 3, pb: 3, maxWidth: 600, mx: 'auto' }}>
         <Box sx={{ textAlign: 'center', mt: 2, mb: 3 }}>
-          <CheckCircle sx={{ fontSize: 56, color: tk.primary, mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: tk.primary, mb: 1 }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontFamily: tk.headingFont, fontWeight: 700, fontSize: 22, color: tk.text }}>
             {autoConfirm ? i18n.t('confirmation.confirmed') : i18n.t('confirmation.pending')}
           </Typography>

@@ -38,7 +38,7 @@ import {
   PriceChange,
   TuneOutlined,
   Hotel,
-} from '@mui/icons-material';
+} from '../../icons';
 import {
   PieChart,
   Pie,
@@ -148,7 +148,9 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
   const color = isUp ? 'success.main' : isDown ? 'error.main' : 'text.disabled';
   return (
     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, mt: 0.25 }}>
-      <Icon sx={{ fontSize: 12, color }} />
+      <Box component="span" sx={{ display: 'inline-flex', color }}>
+        <Icon size={12} strokeWidth={1.75} />
+      </Box>
       <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}>
         {isUp ? '+' : ''}{value}%
       </Typography>
@@ -286,7 +288,7 @@ interface EmptyChartStateProps {
 
 const EmptyChartState: React.FC<EmptyChartStateProps> = ({ message, description }) => (
   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
-    <BarChartIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+    <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><BarChartIcon size={48} strokeWidth={1.75} /></Box>
     <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
       {message}
     </Typography>

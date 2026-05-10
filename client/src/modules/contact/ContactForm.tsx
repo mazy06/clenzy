@@ -28,7 +28,7 @@ import {
   Message as MessageIcon,
   PriorityHigh as PriorityIcon,
   Category as CategoryIcon
-} from '@mui/icons-material';
+} from '../../icons';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
@@ -364,7 +364,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                       <Select {...field}>
                         {categoryOptions.map((option) => (
                           <MenuItem key={option.value} value={option.value}>
-                            <CategoryIcon sx={{ mr: 1, fontSize: 16 }} />
+                            <Box component="span" sx={{ display: 'inline-flex', mr: 1 }}><CategoryIcon size={16} strokeWidth={1.75} /></Box>
                             {option.label}
                           </MenuItem>
                         ))}

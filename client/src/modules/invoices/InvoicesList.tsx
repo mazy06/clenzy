@@ -39,7 +39,7 @@ import {
   Warning as WarningIcon,
   Home as HomeIcon,
   Build as BuildIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -194,11 +194,11 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
   const summaryCards = stats
     ? [
-        { label: t('invoices.stats.total', 'Total'), value: String(stats.total), color: C.primary, icon: <ReceiptIcon sx={{ fontSize: 20, color: C.primary }} /> },
-        { label: t('invoices.stats.draft', 'Brouillons'), value: String(stats.draft), color: C.warning, icon: <DraftIcon sx={{ fontSize: 20, color: C.warning }} /> },
-        { label: t('invoices.stats.issued', 'Emises'), value: String(stats.issued), color: C.info, icon: <SendIcon sx={{ fontSize: 20, color: C.info }} /> },
-        { label: t('invoices.stats.paid', 'Payees'), value: String(stats.paid), color: C.success, icon: <PaidIcon sx={{ fontSize: 20, color: C.success }} /> },
-        { label: t('invoices.stats.totalTtc', 'Total TTC'), value: formatCurrency(stats.totalTtc, stats.currency), color: C.primary, icon: <MoneyIcon sx={{ fontSize: 20, color: C.primary }} /> },
+        { label: t('invoices.stats.total', 'Total'), value: String(stats.total), color: C.primary, icon: <Box component="span" sx={{ display: 'inline-flex', color: C.primary }}><ReceiptIcon size={20} strokeWidth={1.75} /></Box> },
+        { label: t('invoices.stats.draft', 'Brouillons'), value: String(stats.draft), color: C.warning, icon: <Box component="span" sx={{ display: 'inline-flex', color: C.warning }}><DraftIcon size={20} strokeWidth={1.75} /></Box> },
+        { label: t('invoices.stats.issued', 'Emises'), value: String(stats.issued), color: C.info, icon: <Box component="span" sx={{ display: 'inline-flex', color: C.info }}><SendIcon size={20} strokeWidth={1.75} /></Box> },
+        { label: t('invoices.stats.paid', 'Payees'), value: String(stats.paid), color: C.success, icon: <Box component="span" sx={{ display: 'inline-flex', color: C.success }}><PaidIcon size={20} strokeWidth={1.75} /></Box> },
+        { label: t('invoices.stats.totalTtc', 'Total TTC'), value: formatCurrency(stats.totalTtc, stats.currency), color: C.primary, icon: <Box component="span" sx={{ display: 'inline-flex', color: C.primary }}><MoneyIcon size={20} strokeWidth={1.75} /></Box> },
       ]
     : [];
 
@@ -206,8 +206,8 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
   /** Determine le type de source : Reservation ou Intervention */
   const getSourceType = (inv: Invoice) => {
-    if (inv.reservationId) return { label: 'Reservation', icon: <HomeIcon sx={{ fontSize: 14, mr: 0.5 }} />, color: C.info };
-    if (inv.interventionId) return { label: 'Intervention', icon: <BuildIcon sx={{ fontSize: 14, mr: 0.5 }} />, color: C.warning };
+    if (inv.reservationId) return { label: 'Reservation', icon: <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><HomeIcon size={14} strokeWidth={1.75} /></Box>, color: C.info };
+    if (inv.interventionId) return { label: 'Intervention', icon: <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><BuildIcon size={14} strokeWidth={1.75} /></Box>, color: C.warning };
     return null;
   };
 
@@ -237,7 +237,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
       {templateStatus && !templateStatus.hasTemplate && (
         <Alert
           severity="warning"
-          icon={<WarningIcon sx={{ fontSize: 20 }} />}
+          icon={<WarningIcon size={20} strokeWidth={1.75} />}
           sx={{
             mb: 2,
             borderRadius: '10px',
@@ -334,7 +334,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           <Button
             size="small"
             variant="outlined"
-            startIcon={<ClearIcon sx={{ fontSize: 16 }} />}
+            startIcon={<ClearIcon size={16} strokeWidth={1.75} />}
             onClick={handleClearFilters}
             sx={{
               textTransform: 'none',
@@ -375,7 +375,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                 mb: 2,
               }}
             >
-              <ReceiptIcon sx={{ fontSize: 28, color: C.primary }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: C.primary }}><ReceiptIcon size={28} strokeWidth={1.75} /></Box>
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: C.textPrimary, mb: 0.5 }}>
               {t('invoices.empty', 'Aucune facture trouvee')}
@@ -526,7 +526,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                               sx={{ color: '#e53935' }}
                               onClick={() => handleViewDocumentPdf(inv.documentGenerationId!)}
                             >
-                              <PdfIcon sx={{ fontSize: 18 }} />
+                              <PdfIcon size={18} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
                         )}
@@ -540,7 +540,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                               onClick={() => issueMutation.mutate(inv.id)}
                               disabled={issueMutation.isPending}
                             >
-                              <SendIcon sx={{ fontSize: 18 }} />
+                              <SendIcon size={18} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
                         )}
@@ -554,7 +554,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                               onClick={() => markPaidMutation.mutate(inv.id)}
                               disabled={markPaidMutation.isPending}
                             >
-                              <PaidIcon sx={{ fontSize: 18 }} />
+                              <PaidIcon size={18} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
                         )}
@@ -568,7 +568,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                               onClick={() => cancelMutation.mutate(inv.id)}
                               disabled={cancelMutation.isPending}
                             >
-                              <CancelIcon sx={{ fontSize: 18 }} />
+                              <CancelIcon size={18} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
                         )}
@@ -582,7 +582,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                               onClick={() => duplicateMutation.mutate(inv.id)}
                               disabled={duplicateMutation.isPending}
                             >
-                              <DuplicateIcon sx={{ fontSize: 18 }} />
+                              <DuplicateIcon size={18} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
                         )}
@@ -593,7 +593,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                             size="small"
                             onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
                           >
-                            <DownloadIcon sx={{ fontSize: 18 }} />
+                            <DownloadIcon size={18} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                       </Box>

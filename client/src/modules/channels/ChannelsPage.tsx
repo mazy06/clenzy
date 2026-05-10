@@ -38,9 +38,9 @@ import {
   GridView as GridViewIcon,
   People as PeopleIcon,
   Business as BusinessIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
-import { Star as StarIcon } from '@mui/icons-material';
+import { Star as StarIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { SPACING } from '../../theme/spacing';
@@ -441,16 +441,16 @@ const ChannelsPage: React.FC = () => {
               sx={{ height: 30 }}
             >
               <ToggleButton value="list" sx={{ px: 1 }}>
-                <ViewListIcon sx={{ fontSize: 16 }} />
+                <ViewListIcon size={16} strokeWidth={1.75} />
               </ToggleButton>
               <ToggleButton value="grid" sx={{ px: 1 }}>
-                <GridViewIcon sx={{ fontSize: 16 }} />
+                <GridViewIcon size={16} strokeWidth={1.75} />
               </ToggleButton>
             </ToggleButtonGroup>
             <Button
               size="small"
               variant="outlined"
-              startIcon={<StarIcon sx={{ fontSize: 16 }} />}
+              startIcon={<StarIcon size={16} strokeWidth={1.75} />}
               onClick={() => navigate('/channels/reviews')}
               sx={{ textTransform: 'none', fontSize: '0.75rem' }}
             >
@@ -556,8 +556,8 @@ const ChannelsPage: React.FC = () => {
                     return (
                       <Chip
                         icon={ota.segment === 'B2C'
-                          ? <PeopleIcon sx={{ fontSize: '14px !important', color: `${segHex} !important` }} />
-                          : <BusinessIcon sx={{ fontSize: '14px !important', color: `${segHex} !important` }} />
+                          ? <PeopleIcon size={14} strokeWidth={1.75} color={segHex} />
+                          : <BusinessIcon size={14} strokeWidth={1.75} color={segHex} />
                         }
                         label={ota.segment}
                         size="small"
@@ -584,7 +584,7 @@ const ChannelsPage: React.FC = () => {
                       const hex = '#4A9B8E';
                       return (
                         <Chip
-                          icon={<CheckCircleIcon sx={{ fontSize: '14px !important', color: `${hex} !important` }} />}
+                          icon={<CheckCircleIcon size={14} strokeWidth={1.75} color={hex} />}
                           label={otaStatus?.status ?? (isAirbnb ? connectionStatus?.status ?? 'ACTIVE' : 'ACTIVE')}
                           size="small"
                           sx={{
@@ -645,7 +645,7 @@ const ChannelsPage: React.FC = () => {
                     <Button
                       size="small"
                       variant="contained"
-                      startIcon={<LinkIcon sx={{ fontSize: '0.75rem' }} />}
+                      startIcon={<LinkIcon size={'0.75rem'} strokeWidth={1.75} />}
                       onClick={isAirbnb ? handleConnect : isOtaChannel ? () => handleOtaConnect(ota) : undefined}
                       disabled={(isAirbnb && connectMutation.isPending) || loading}
                       sx={{
@@ -669,7 +669,7 @@ const ChannelsPage: React.FC = () => {
                       size="small"
                       variant="outlined"
                       color="error"
-                      startIcon={<LinkOffIcon sx={{ fontSize: '0.75rem' }} />}
+                      startIcon={<LinkOffIcon size={'0.75rem'} strokeWidth={1.75} />}
                       onClick={isAirbnb ? handleDisconnect : isOtaChannel ? () => handleOtaDisconnectRequest(ota) : undefined}
                       disabled={(isAirbnb && disconnectMutation.isPending) || disconnectingChannelId === ota.id}
                       sx={{ fontSize: '0.6875rem', px: 1.5, py: 0.4, minHeight: 28 }}
@@ -1035,7 +1035,7 @@ function OtaChannelCard({
               border: '1px solid rgba(255,255,255,0.3)',
               backdropFilter: 'blur(4px)',
             }}
-            icon={<CheckCircleIcon sx={{ fontSize: '0.75rem !important', color: '#fff !important' }} />}
+            icon={<CheckCircleIcon size={12} strokeWidth={1.75} color="#fff" />}
           />
         ) : isAvailable ? (
           <Chip
@@ -1092,7 +1092,7 @@ function OtaChannelCard({
             <Button
               size="small"
               variant="contained"
-              startIcon={<LinkIcon sx={{ fontSize: '0.8rem' }} />}
+              startIcon={<LinkIcon size={'0.8rem'} strokeWidth={1.75} />}
               onClick={onConnect}
               disabled={connecting || connectionLoading}
               sx={{
@@ -1116,7 +1116,7 @@ function OtaChannelCard({
               size="small"
               variant="outlined"
               color="error"
-              startIcon={<LinkOffIcon sx={{ fontSize: '0.8rem' }} />}
+              startIcon={<LinkOffIcon size={'0.8rem'} strokeWidth={1.75} />}
               onClick={onDisconnect}
               disabled={disconnecting}
               sx={{ fontSize: '0.6875rem', px: 2, py: 0.5, minHeight: 30 }}
@@ -1203,7 +1203,7 @@ function ListingCard({
                 component="a"
                 sx={{ p: 0.25 }}
               >
-                <OpenInNewIcon sx={{ fontSize: '0.875rem' }} />
+                <OpenInNewIcon size={'0.875rem'} strokeWidth={1.75} />
               </IconButton>
             </Tooltip>
           )}
@@ -1234,7 +1234,7 @@ function ListingCard({
           }
           label={
             <Typography sx={{ fontSize: '0.6875rem', display: 'flex', alignItems: 'center', gap: 0.25 }}>
-              <CleaningIcon sx={{ fontSize: '0.75rem' }} /> {t('channels.listings.autoClean')}
+              <CleaningIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoClean')}
             </Typography>
           }
         />
@@ -1248,13 +1248,13 @@ function ListingCard({
           }
           label={
             <Typography sx={{ fontSize: '0.6875rem', display: 'flex', alignItems: 'center', gap: 0.25 }}>
-              <PricingIcon sx={{ fontSize: '0.75rem' }} /> {t('channels.listings.autoPushPricing')}
+              <PricingIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoPushPricing')}
             </Typography>
           }
         />
         <Tooltip title={t('channels.listings.unlink')}>
           <IconButton size="small" color="error" onClick={() => onUnlink(listing.propertyId)}>
-            <LinkOffIcon sx={{ fontSize: '1rem' }} />
+            <LinkOffIcon size={'1rem'} strokeWidth={1.75} />
           </IconButton>
         </Tooltip>
       </Box>
@@ -1365,7 +1365,9 @@ function SyncStatusCard({
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-        <StatusIcon sx={{ fontSize: '0.875rem', color: statusColor }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: statusColor }}>
+          <StatusIcon size={14} strokeWidth={1.75} />
+        </Box>
         <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
           {propertyName}
         </Typography>
@@ -1375,8 +1377,8 @@ function SyncStatusCard({
         {listing.lastSyncAt && ` · ${t('channels.syncStatus.lastSync')}: ${new Date(listing.lastSyncAt).toLocaleString(dateLocale)}`}
       </Typography>
       <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-        {listing.syncEnabled && <Chip label={<><SyncIcon sx={{ fontSize: '0.625rem' }} /> Sync</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="success" variant="outlined" />}
-        {listing.autoCreateInterventions && <Chip label={<><CleaningIcon sx={{ fontSize: '0.625rem' }} /> Auto</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="info" variant="outlined" />}
+        {listing.syncEnabled && <Chip label={<><SyncIcon size={'0.625rem'} strokeWidth={1.75} /> Sync</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="success" variant="outlined" />}
+        {listing.autoCreateInterventions && <Chip label={<><CleaningIcon size={'0.625rem'} strokeWidth={1.75} /> Auto</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="info" variant="outlined" />}
       </Box>
     </Box>
   );

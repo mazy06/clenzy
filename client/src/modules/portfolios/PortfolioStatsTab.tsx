@@ -21,7 +21,7 @@ import {
   Group,
   Assignment,
   Schedule,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { portfoliosApi, portfoliosKeys } from '../../services/api';
@@ -134,7 +134,7 @@ const PortfolioStatsTab: React.FC = () => {
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            icon={<Business sx={{ fontSize: 22 }} />}
+            icon={<Business size={22} strokeWidth={1.75} />}
             value={stats.totalPortfolios}
             label={t('portfolios.statistics.portfolios')}
             color="primary.main"
@@ -142,7 +142,7 @@ const PortfolioStatsTab: React.FC = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            icon={<People sx={{ fontSize: 22 }} />}
+            icon={<People size={22} strokeWidth={1.75} />}
             value={stats.totalClients}
             label={t('portfolios.statistics.clients')}
             color="success.main"
@@ -150,7 +150,7 @@ const PortfolioStatsTab: React.FC = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            icon={<Assignment sx={{ fontSize: 22 }} />}
+            icon={<Assignment size={22} strokeWidth={1.75} />}
             value={stats.totalProperties}
             label={t('portfolios.statistics.properties')}
             color="info.main"
@@ -158,7 +158,7 @@ const PortfolioStatsTab: React.FC = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            icon={<Group sx={{ fontSize: 22 }} />}
+            icon={<Group size={22} strokeWidth={1.75} />}
             value={stats.totalTeamMembers}
             label={t('teams.members')}
             color="warning.main"
@@ -187,7 +187,7 @@ const PortfolioStatsTab: React.FC = () => {
                             bgcolor: portfolio.isActive ? 'primary.main' : 'grey.400',
                           }}
                         >
-                          <Business sx={{ fontSize: 14 }} />
+                          <Business size={14} strokeWidth={1.75} />
                         </Avatar>
                       </ListItemIcon>
                       <ListItemText
@@ -246,9 +246,9 @@ const PortfolioStatsTab: React.FC = () => {
                           }}
                         >
                           {assignment.type === 'CLIENT' ? (
-                            <People sx={{ fontSize: 14 }} />
+                            <People size={14} strokeWidth={1.75} />
                           ) : (
-                            <Group sx={{ fontSize: 14 }} />
+                            <Group size={14} strokeWidth={1.75} />
                           )}
                         </Avatar>
                       </ListItemIcon>
@@ -264,7 +264,7 @@ const PortfolioStatsTab: React.FC = () => {
                               {assignment.portfolioName}
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                              <Schedule sx={{ fontSize: 12, color: 'text.secondary' }} />
+                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={12} strokeWidth={1.75} /></Box>
                               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
                                 {formatDate(assignment.assignedAt)}
                               </Typography>

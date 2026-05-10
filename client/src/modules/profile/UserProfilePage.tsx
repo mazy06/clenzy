@@ -40,7 +40,7 @@ import {
   Badge as BadgeIcon,
   Group as GroupIcon,
   Settings as SettingsIcon
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useThemeMode } from '../../hooks/useThemeMode';

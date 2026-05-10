@@ -41,7 +41,7 @@ import {
   Language,
   LinkedIn,
   CloudUpload,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useProspects, useUpdateProspect } from '../../hooks/useProspects';
 import type { ProspectDto } from '../../services/api/prospectsApi';
 import ProspectImportModal from './ProspectImportModal';
@@ -68,11 +68,11 @@ const STATUS_CONFIG: Record<ProspectStatus, { label: string; color: string }> = 
 };
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: React.ReactElement; color: string }> = {
-  CONCIERGERIES: { label: 'Conciergeries & Agences', icon: <Business sx={{ fontSize: 20 }} />, color: '#0288d1' },
-  MENAGE: { label: 'Societes de menage', icon: <CleaningServices sx={{ fontSize: 20 }} />, color: '#9B7FC4' },
-  ARTISANS: { label: 'Artisans & Travaux', icon: <Handyman sx={{ fontSize: 20 }} />, color: '#7EBAD0' },
-  ENTRETIEN: { label: 'Entretien exterieur', icon: <Yard sx={{ fontSize: 20 }} />, color: '#66BB6A' },
-  BLANCHISSERIES: { label: 'Blanchisseries', icon: <LocalLaundryService sx={{ fontSize: 20 }} />, color: '#AB47BC' },
+  CONCIERGERIES: { label: 'Conciergeries & Agences', icon: <Business size={20} strokeWidth={1.75} />, color: '#0288d1' },
+  MENAGE: { label: 'Societes de menage', icon: <CleaningServices size={20} strokeWidth={1.75} />, color: '#9B7FC4' },
+  ARTISANS: { label: 'Artisans & Travaux', icon: <Handyman size={20} strokeWidth={1.75} />, color: '#7EBAD0' },
+  ENTRETIEN: { label: 'Entretien exterieur', icon: <Yard size={20} strokeWidth={1.75} />, color: '#66BB6A' },
+  BLANCHISSERIES: { label: 'Blanchisseries', icon: <LocalLaundryService size={20} strokeWidth={1.75} />, color: '#AB47BC' },
 };
 
 const CATEGORY_ORDER = ['CONCIERGERIES', 'MENAGE', 'ARTISANS', 'ENTRETIEN', 'BLANCHISSERIES'];
@@ -114,7 +114,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
     return CATEGORY_ORDER
       .filter((key) => grouped.has(key) || categoryFilter === 'all')
       .map((key) => {
-        const cfg = CATEGORY_CONFIG[key] || { label: key, icon: <Business sx={{ fontSize: 20 }} />, color: '#757575' };
+        const cfg = CATEGORY_CONFIG[key] || { label: key, icon: <Business size={20} strokeWidth={1.75} />, color: '#757575' };
         return {
           key,
           label: cfg.label,
@@ -212,7 +212,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Search sx={{ fontSize: 18, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={18} strokeWidth={1.75} /></Box>
                 </InputAdornment>
               ),
             }}
@@ -221,7 +221,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
 
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel sx={{ fontSize: '0.8125rem' }}>
-              <FilterList sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
+              <Box component="span" sx={{ display: 'inline-flex', mr: 0.5, verticalAlign: 'middle' }}><FilterList size={14} strokeWidth={1.75} /></Box>
               Categorie
             </InputLabel>
             <Select
@@ -264,7 +264,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
       {/* ── Empty state ── */}
       {prospects.length === 0 && !isLoading ? (
         <Paper sx={{ p: 6, textAlign: 'center' }}>
-          <CloudUpload sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 2 }}><CloudUpload size={48} strokeWidth={1.75} /></Box>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
             Aucun prospect pour le moment
           </Typography>
@@ -326,7 +326,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                     }}
                   />
                   <IconButton size="small" sx={{ ml: 0.5 }}>
-                    {isExpanded ? <ExpandLess sx={{ fontSize: 18 }} /> : <ExpandMore sx={{ fontSize: 18 }} />}
+                    {isExpanded ? <ExpandLess size={18} strokeWidth={1.75} /> : <ExpandMore size={18} strokeWidth={1.75} />}
                   </IconButton>
                 </Box>
 
@@ -363,7 +363,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                   {p.email && (
                                     <Tooltip title={p.email}>
                                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                        <Email sx={{ fontSize: 11, color: 'text.disabled' }} />
+                                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Email size={11} strokeWidth={1.75} /></Box>
                                         <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
                                           {p.email}
                                         </Typography>
@@ -372,7 +372,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                   )}
                                   {p.phone && (
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                      <Phone sx={{ fontSize: 11, color: 'text.disabled' }} />
+                                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Phone size={11} strokeWidth={1.75} /></Box>
                                       <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
                                         {p.phone}
                                       </Typography>
@@ -382,7 +382,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                               </TableCell>
                               <TableCell>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  <LocationOn sx={{ fontSize: 12, color: 'text.secondary' }} />
+                                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LocationOn size={12} strokeWidth={1.75} /></Box>
                                   <Typography sx={{ fontSize: '0.75rem' }}>{p.city || '\u2014'}</Typography>
                                 </Box>
                               </TableCell>
@@ -411,7 +411,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                         rel="noopener noreferrer"
                                         sx={{ p: 0.25 }}
                                       >
-                                        <Language sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Language size={16} strokeWidth={1.75} /></Box>
                                       </IconButton>
                                     </Tooltip>
                                   )}
@@ -425,7 +425,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                         rel="noopener noreferrer"
                                         sx={{ p: 0.25 }}
                                       >
-                                        <LinkedIn sx={{ fontSize: 16, color: '#0A66C2' }} />
+                                        <LinkedIn size={16} strokeWidth={1.75} color='#0A66C2' />
                                       </IconButton>
                                     </Tooltip>
                                   )}

@@ -15,7 +15,7 @@ import {
   Email as EmailIcon,
   Sms as SmsIcon,
   WhatsApp as WhatsAppIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -52,9 +52,9 @@ const TRIGGER_OPTIONS: { value: AutomationTrigger; label: string }[] = [
 ];
 
 const CHANNEL_OPTIONS: { value: MessageChannelType; label: string; icon: React.ReactNode }[] = [
-  { value: 'EMAIL', label: 'Email', icon: <EmailIcon sx={{ fontSize: '0.875rem' }} /> },
-  { value: 'SMS', label: 'SMS', icon: <SmsIcon sx={{ fontSize: '0.875rem' }} /> },
-  { value: 'WHATSAPP', label: 'WhatsApp', icon: <WhatsAppIcon sx={{ fontSize: '0.875rem' }} /> },
+  { value: 'EMAIL', label: 'Email', icon: <EmailIcon size={'0.875rem'} strokeWidth={1.75} /> },
+  { value: 'SMS', label: 'SMS', icon: <SmsIcon size={'0.875rem'} strokeWidth={1.75} /> },
+  { value: 'WHATSAPP', label: 'WhatsApp', icon: <WhatsAppIcon size={'0.875rem'} strokeWidth={1.75} /> },
 ];
 
 const CARD_SX = {
@@ -194,7 +194,7 @@ const AutomationRulesPage: React.FC = () => {
         </Alert>
       ) : sortedRules.length === 0 ? (
         <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <AutomationIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><AutomationIcon size={48} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
             {t('automation.empty', 'Aucune regle d\'automatisation configuree')}
           </Typography>
@@ -276,17 +276,17 @@ const AutomationRulesPage: React.FC = () => {
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
                     <Tooltip title={t('common.edit', 'Modifier')}>
                       <IconButton size="small" onClick={() => handleOpenEdit(rule)}>
-                        <EditIcon sx={{ fontSize: '0.875rem' }} />
+                        <EditIcon size={'0.875rem'} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title={t('automation.executions', 'Executions')}>
                       <IconButton size="small" color="info" onClick={() => { setExecRuleId(rule.id); setExecPage(0); }}>
-                        <ExecutionsIcon sx={{ fontSize: '0.875rem' }} />
+                        <ExecutionsIcon size={'0.875rem'} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title={t('common.delete', 'Supprimer')}>
                       <IconButton size="small" color="error" onClick={() => setDeleteTarget(rule)}>
-                        <DeleteIcon sx={{ fontSize: '0.875rem' }} />
+                        <DeleteIcon size={'0.875rem'} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                   </Box>

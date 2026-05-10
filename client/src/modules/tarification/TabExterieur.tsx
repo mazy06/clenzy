@@ -18,7 +18,7 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { Yard, Add, Delete } from '@mui/icons-material';
+import { Yard, Add, Delete } from '../../icons';
 import type { PricingConfig, ServicePriceConfig, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import CommissionSection from './CommissionSection';
@@ -80,7 +80,7 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
   return (
     <Box sx={{ pt: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Yard sx={{ color: 'purple', fontSize: 20 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'purple' }}><Yard size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600}>
           {t('tarification.exterieur.title')}
         </Typography>
@@ -131,7 +131,7 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
                 {canEdit && (
                   <TableCell align="center">
                     <IconButton size="small" onClick={() => removeItem(index)} color="error">
-                      <Delete sx={{ fontSize: 16 }} />
+                      <Delete size={16} strokeWidth={1.75} />
                     </IconButton>
                   </TableCell>
                 )}

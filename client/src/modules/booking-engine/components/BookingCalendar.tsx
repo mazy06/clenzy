@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, IconButton, CircularProgress } from '@mui/material';
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight } from '../../../icons';
 import type { ResolvedTokens, PreviewAvailabilityDay } from '../types/bookingEngine';
 import { getMonthGrid, fmt } from '../types/bookingEngine';
 import type { BookingI18n } from '../sdk/i18n';
@@ -51,7 +51,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
           color: tk.surface, bgcolor: tk.primary, width: 28, height: 28,
           '&:hover': { bgcolor: tk.primary, filter: 'brightness(1.1)' },
         }}>
-          <ChevronLeft sx={{ fontSize: 16 }} />
+          <ChevronLeft size={16} strokeWidth={1.75} />
         </IconButton>
         <IconButton size="small" onClick={() => {
           const next = new Date(year, month + 1, 1);
@@ -60,7 +60,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
           color: tk.surface, bgcolor: tk.primary, width: 28, height: 28,
           '&:hover': { bgcolor: tk.primary, filter: 'brightness(1.1)' },
         }}>
-          <ChevronRight sx={{ fontSize: 16 }} />
+          <ChevronRight size={16} strokeWidth={1.75} />
         </IconButton>
       </Box>
 
