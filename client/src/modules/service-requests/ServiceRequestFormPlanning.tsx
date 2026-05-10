@@ -19,7 +19,7 @@ import {
   FiberManualRecord,
   ArrowUpward,
   Bolt,
-} from '@mui/icons-material';
+} from '../../icons';
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ServiceRequestFormValues } from '../../schemas';
@@ -59,10 +59,10 @@ interface PriorityDef {
 }
 
 const PRIORITIES: PriorityDef[] = [
-  { value: 'LOW', labelKey: 'serviceRequests.priorities.low', color: '#78909c', icon: <ArrowDownward sx={{ fontSize: 14 }} /> },
+  { value: 'LOW', labelKey: 'serviceRequests.priorities.low', color: '#78909c', icon: <ArrowDownward size={14} strokeWidth={1.75} /> },
   { value: 'NORMAL', labelKey: 'serviceRequests.priorities.normal', color: '#42a5f5', icon: <FiberManualRecord sx={{ fontSize: 10 }} /> },
-  { value: 'HIGH', labelKey: 'serviceRequests.priorities.high', color: '#ff9800', icon: <ArrowUpward sx={{ fontSize: 14 }} /> },
-  { value: 'CRITICAL', labelKey: 'serviceRequests.priorities.critical', color: '#ef5350', icon: <Bolt sx={{ fontSize: 14 }} /> },
+  { value: 'HIGH', labelKey: 'serviceRequests.priorities.high', color: '#ff9800', icon: <ArrowUpward size={14} strokeWidth={1.75} /> },
+  { value: 'CRITICAL', labelKey: 'serviceRequests.priorities.critical', color: '#ef5350', icon: <Bolt size={14} strokeWidth={1.75} /> },
 ];
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -358,7 +358,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
               {/* Toggle checkout / custom */}
               <Box sx={{ display: 'flex', gap: 0.5 }}>
                 <Chip
-                  icon={<EventAvailable sx={{ fontSize: 14 }} />}
+                  icon={<EventAvailable size={14} strokeWidth={1.75} />}
                   label="Checkout"
                   size="small"
                   onClick={handleSwitchToCheckout}
@@ -367,7 +367,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                   sx={{ height: 30, fontSize: '0.75rem', '& .MuiChip-icon': { fontSize: 14, ml: 0.5 }, '& .MuiChip-label': { px: 0.75 } }}
                 />
                 <Chip
-                  icon={<EditIcon sx={{ fontSize: 14 }} />}
+                  icon={<EditIcon size={14} strokeWidth={1.75} />}
                   label="Autre date"
                   size="small"
                   onClick={handleSwitchToCustom}

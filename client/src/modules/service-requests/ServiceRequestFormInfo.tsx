@@ -24,7 +24,7 @@ import {
   Iron,
   Kitchen,
   Sanitizer,
-} from '@mui/icons-material';
+} from '../../icons';
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS, InterventionTypeOption } from '../../types/interventionTypes';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -46,21 +46,21 @@ const CATEGORIES: CategoryDef[] = [
   {
     key: 'cleaning',
     label: 'Nettoyage',
-    icon: <AutoAwesome sx={{ fontSize: 16 }} />,
+    icon: <AutoAwesome size={16} strokeWidth={1.75} />,
     color: '#4caf50',
     mappedCategories: ['cleaning'],
   },
   {
     key: 'maintenance',
     label: 'Maintenance / Travaux',
-    icon: <Build sx={{ fontSize: 16 }} />,
+    icon: <Build size={16} strokeWidth={1.75} />,
     color: '#ff9800',
     mappedCategories: ['maintenance'],
   },
   {
     key: 'other',
     label: 'Autre',
-    icon: <MoreHoriz sx={{ fontSize: 16 }} />,
+    icon: <MoreHoriz size={16} strokeWidth={1.75} />,
     color: '#9e9e9e',
     mappedCategories: ['specialized', 'other'],
   },
@@ -127,14 +127,14 @@ interface PrestationDef {
 }
 
 const PRESTATIONS: PrestationDef[] = [
-  { key: 'laundry', label: 'Linge', icon: <LocalLaundryService sx={{ fontSize: 14 }} />, extraMins: 10, type: 'boolean', propertyField: 'hasLaundry' },
-  { key: 'exterior', label: 'Extérieur', icon: <Deck sx={{ fontSize: 14 }} />, extraMins: 25, type: 'boolean', propertyField: 'hasExterior' },
-  { key: 'ironing', label: 'Repassage', icon: <Iron sx={{ fontSize: 14 }} />, extraMins: 20, type: 'boolean', propertyField: 'hasIroning' },
-  { key: 'deepKitchen', label: 'Cuisine profonde', icon: <Kitchen sx={{ fontSize: 14 }} />, extraMins: 30, type: 'boolean', propertyField: 'hasDeepKitchen' },
-  { key: 'disinfection', label: 'Désinfection', icon: <Sanitizer sx={{ fontSize: 14 }} />, extraMins: 40, type: 'boolean', propertyField: 'hasDisinfection' },
-  { key: 'windows', label: 'Fenêtres', icon: <Window sx={{ fontSize: 14 }} />, extraMins: 5, type: 'count', propertyField: 'windowCount' },
-  { key: 'frenchDoors', label: 'Portes-fenêtres', icon: <DoorSliding sx={{ fontSize: 14 }} />, extraMins: 8, type: 'count', propertyField: 'frenchDoorCount' },
-  { key: 'slidingDoors', label: 'Baies vitrées', icon: <DoorSliding sx={{ fontSize: 14 }} />, extraMins: 12, type: 'count', propertyField: 'slidingDoorCount' },
+  { key: 'laundry', label: 'Linge', icon: <LocalLaundryService size={14} strokeWidth={1.75} />, extraMins: 10, type: 'boolean', propertyField: 'hasLaundry' },
+  { key: 'exterior', label: 'Extérieur', icon: <Deck size={14} strokeWidth={1.75} />, extraMins: 25, type: 'boolean', propertyField: 'hasExterior' },
+  { key: 'ironing', label: 'Repassage', icon: <Iron size={14} strokeWidth={1.75} />, extraMins: 20, type: 'boolean', propertyField: 'hasIroning' },
+  { key: 'deepKitchen', label: 'Cuisine profonde', icon: <Kitchen size={14} strokeWidth={1.75} />, extraMins: 30, type: 'boolean', propertyField: 'hasDeepKitchen' },
+  { key: 'disinfection', label: 'Désinfection', icon: <Sanitizer size={14} strokeWidth={1.75} />, extraMins: 40, type: 'boolean', propertyField: 'hasDisinfection' },
+  { key: 'windows', label: 'Fenêtres', icon: <Window size={14} strokeWidth={1.75} />, extraMins: 5, type: 'count', propertyField: 'windowCount' },
+  { key: 'frenchDoors', label: 'Portes-fenêtres', icon: <DoorSliding size={14} strokeWidth={1.75} />, extraMins: 8, type: 'count', propertyField: 'frenchDoorCount' },
+  { key: 'slidingDoors', label: 'Baies vitrées', icon: <DoorSliding size={14} strokeWidth={1.75} />, extraMins: 12, type: 'count', propertyField: 'slidingDoorCount' },
 ];
 
 /** Parse cleaning notes text into checklist items */
@@ -489,7 +489,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                   return (
                     <Chip
                       key={option.value}
-                      icon={<IconComponent sx={{ fontSize: 14 }} />}
+                      icon={<IconComponent size={14} strokeWidth={1.75} />}
                       label={option.label}
                       onClick={disabled ? undefined : () => handleSubTypeClick(option)}
                       disabled={disabled}

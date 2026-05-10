@@ -38,7 +38,7 @@ import {
   Refresh,
   LocationOn,
   Build as BuildIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import ServiceRequestCard from '../../components/ServiceRequestCard';
@@ -318,7 +318,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           onClick={() => navigate('/service-requests/new')}
           sx={{ ...iconButtonSx, color: 'primary.main', borderColor: 'primary.main', bgcolor: 'rgba(107,138,154,0.06)' }}
         >
-          <Add />
+          <Add size={20} strokeWidth={1.75} />
         </IconButton>
       </Tooltip>
     </Box>
@@ -389,7 +389,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
           <CardContent>
             <Box sx={{ mb: 1.5 }}>
-              <Description sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
+              <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", opacity: 0.6 }}><Description size={48} strokeWidth={1.5} /></Box>
             </Box>
             <Typography variant="h6" color="text.secondary" gutterBottom>
               {t('serviceRequests.noRequestFound')}
@@ -406,7 +406,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
               <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                 <Button
                   variant="contained"
-                  startIcon={<Add />}
+                  startIcon={<Add size={20} strokeWidth={1.75} />}
                   onClick={() => navigate('/service-requests/new')}
                   size="small"
                   sx={{ borderRadius: 1.5 }}
@@ -432,7 +432,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
               />
             ) : (
               <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                <BuildIcon sx={{ fontSize: 36, color: 'text.secondary', opacity: 0.5 }} />
+                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", opacity: 0.5 }}><BuildIcon size={36} strokeWidth={1.5} /></Box>
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
                   Aucune demande avec coordonnées GPS
                 </Typography>
@@ -486,7 +486,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
                               {request.title}
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                              <LocationOn sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }} />
+                              <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
@@ -532,7 +532,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
                             )}
                             <Tooltip title="Voir">
                               <IconButton size="small" sx={{ ml: 0.5 }}>
-                                <Visibility sx={{ fontSize: 16 }} />
+                                <Visibility size={16} strokeWidth={1.75} />
                               </IconButton>
                             </Tooltip>
                           </Box>
@@ -697,7 +697,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
                           size="small"
                           onClick={(e) => { e.stopPropagation(); navigate(`/service-requests/${request.id}`); }}
                         >
-                          <Visibility sx={{ fontSize: 18 }} />
+                          <Visibility size={18} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Actions">
@@ -705,7 +705,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
                           size="small"
                           onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, request); }}
                         >
-                          <MoreVert sx={{ fontSize: 18 }} />
+                          <MoreVert size={18} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                     </TableCell>
@@ -743,7 +743,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
       >
         <MenuItem onClick={handleViewDetails}>
           <ListItemIcon>
-            <Visibility fontSize="small" />
+            <Visibility size={20} strokeWidth={1.75} />
           </ListItemIcon>
           {t('serviceRequests.viewDetails')}
         </MenuItem>
@@ -765,7 +765,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         {selectedServiceRequest && canModifyServiceRequest(selectedServiceRequest) && (
           <MenuItem onClick={handleEdit}>
             <ListItemIcon>
-              <Edit fontSize="small" />
+              <Edit size={20} strokeWidth={1.75} />
             </ListItemIcon>
             {t('serviceRequests.modify')}
           </MenuItem>
