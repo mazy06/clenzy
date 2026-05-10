@@ -323,6 +323,24 @@ export {
   Volume2 as VolumeUp,
 } from 'lucide-react';
 
+// ─── Settings / org / users / teams ─────────────────────────────────────────
+export {
+  IdCard as Badge,
+  BarChart3 as BarChart,
+  Moon as DarkMode,
+  Trash2 as DeleteOutlined,
+  Sun as LightMode,
+  Link,
+  Map,
+  Palette,
+  UserMinus as PersonRemove,
+  FlaskConical as Science,
+  SunMoon as SettingsBrightness,
+  ArrowDownAZ as SortByAlpha,
+  Star as StarRate,
+  UserCog as SupervisorAccount,
+} from 'lucide-react';
+
 // ─── Re-export du composant Iconify pour les cas exotiques ──────────────────
 // Usage : <Icon icon="mdi:stairs" width={16} />
 //         <Icon icon="solar:bed-bold-duotone" width={20} />

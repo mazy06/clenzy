@@ -19,7 +19,7 @@ import {
   Build,
   CleaningServices,
   Home,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { ChipColor } from '../../types';
 import type { RoleInfo, StatusInfo } from './components/userDetailsTypes';
@@ -120,7 +120,7 @@ const UserDetails: React.FC = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <IconButton onClick={() => navigate('/users')} sx={{ mr: 1.5 }} size="small">
-            <ArrowBack sx={{ fontSize: 20 }} />
+            <ArrowBack size={20} strokeWidth={1.75} />
           </IconButton>
           <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.25rem' }}>
             Details de l'utilisateur
@@ -129,7 +129,7 @@ const UserDetails: React.FC = () => {
         <Button
           variant="contained"
           size="small"
-          startIcon={<Edit sx={{ fontSize: 16 }} />}
+          startIcon={<Edit size={16} strokeWidth={1.75} />}
           onClick={() => navigate(`/users/${user.id}/edit`)}
           sx={{ fontSize: '0.8125rem' }}
         >

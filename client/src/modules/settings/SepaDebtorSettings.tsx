@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Paper, Typography, TextField, Button, Alert, CircularProgress, Chip,
 } from '@mui/material';
-import { AccountBalance, Save } from '@mui/icons-material';
+import { AccountBalance, Save } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingApi } from '../../services/api/accountingApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -47,7 +47,7 @@ const SepaDebtorSettings: React.FC = () => {
   return (
     <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, height: '100%' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <AccountBalance sx={{ fontSize: 20, color: 'primary.main' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AccountBalance size={20} strokeWidth={1.75} /></Box>
         <Typography variant="h6" sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
           {t('settings.sepaDebtor.title', 'Compte bancaire debiteur (SEPA)')}
         </Typography>

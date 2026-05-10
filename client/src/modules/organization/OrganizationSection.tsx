@@ -16,7 +16,7 @@ import {
   Business,
   PersonAdd,
   InfoOutlined,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { organizationsApi, OrganizationDto } from '../../services/api/organizationsApi';
 import SendInvitationDialog from './SendInvitationDialog';
@@ -107,7 +107,7 @@ export default function OrganizationSection({ organizationId, organizationName }
     return (
       <Paper sx={{ p: 2, height: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-          <Business sx={{ color: 'primary.main', fontSize: 20 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Business size={20} strokeWidth={1.75} /></Box>
           <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
             Organisations
           </Typography>
@@ -129,7 +129,7 @@ export default function OrganizationSection({ organizationId, organizationName }
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Business sx={{ color: 'primary.main', fontSize: 20 }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Business size={20} strokeWidth={1.75} /></Box>
                 <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                   Organisations
                 </Typography>

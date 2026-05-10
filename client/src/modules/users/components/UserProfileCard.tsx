@@ -8,7 +8,7 @@ import {
   Chip,
   Avatar,
 } from '@mui/material';
-import { Person, Email, CalendarToday } from '@mui/icons-material';
+import { Person, Email, CalendarToday } from '../../../icons';
 import type { UserDetailsData, RoleInfo, StatusInfo } from './userDetailsTypes';
 import { getRoleInfo, getStatusInfo, formatDate } from './userDetailsTypes';
 
@@ -62,7 +62,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
         <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid item xs={12} md={4}>
             <Box sx={{ textAlign: 'center' }}>
-              <Person sx={{ fontSize: 18, color: 'text.secondary', mb: 0.5 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mb: 0.5 }}><Person size={18} strokeWidth={1.75} /></Box>
               <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>
                 {user.firstName} {user.lastName}
               </Typography>
@@ -73,7 +73,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
           </Grid>
           <Grid item xs={12} md={4}>
             <Box sx={{ textAlign: 'center' }}>
-              <Email sx={{ fontSize: 18, color: 'text.secondary', mb: 0.5 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mb: 0.5 }}><Email size={18} strokeWidth={1.75} /></Box>
               <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>
                 {user.email}
               </Typography>
@@ -84,7 +84,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
           </Grid>
           <Grid item xs={12} md={4}>
             <Box sx={{ textAlign: 'center' }}>
-              <CalendarToday sx={{ fontSize: 18, color: 'text.secondary', mb: 0.5 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mb: 0.5 }}><CalendarToday size={18} strokeWidth={1.75} /></Box>
               <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>
                 {formatDate(user.createdAt)}
               </Typography>

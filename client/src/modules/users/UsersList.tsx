@@ -46,7 +46,7 @@ import {
   Home,
   Add,
   Sync,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
@@ -330,7 +330,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         variant="outlined"
         color="secondary"
         size="small"
-        startIcon={<Sync sx={{ fontSize: 18 }} />}
+        startIcon={<Sync size={18} strokeWidth={1.75} />}
         onClick={handleSyncUsers}
         disabled={syncing}
         sx={{ fontSize: '0.8125rem' }}
@@ -342,7 +342,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         variant="contained"
         color="primary"
         size="small"
-        startIcon={<Add sx={{ fontSize: 18 }} />}
+        startIcon={<Add size={18} strokeWidth={1.75} />}
         onClick={() => navigate('/users/new')}
         sx={{ fontSize: '0.8125rem' }}
         title="Nouvel utilisateur"
@@ -485,7 +485,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                       onClick={(e) => handleMenuOpen(e, user)}
                       sx={{ p: 0.5, ml: 0.5 }}
                     >
-                      <MoreVert sx={{ fontSize: 18 }} />
+                      <MoreVert size={18} strokeWidth={1.75} />
                     </IconButton>
                   </Box>
 
@@ -513,7 +513,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                     {user.phoneNumber && (
                       <ListItem sx={{ px: 0, py: 0.5 }}>
                         <ListItemIcon sx={{ minWidth: 28 }}>
-                          <Phone sx={{ fontSize: 14, color: 'text.secondary' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Phone size={14} strokeWidth={1.75} /></Box>
                         </ListItemIcon>
                         <ListItemText
                           primary={user.phoneNumber}
@@ -523,7 +523,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                     )}
                     <ListItem sx={{ px: 0, py: 0.5 }}>
                       <ListItemIcon sx={{ minWidth: 28 }}>
-                        <Email sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Email size={14} strokeWidth={1.75} /></Box>
                       </ListItemIcon>
                       <ListItemText
                         primary={user.email}
@@ -532,7 +532,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                     </ListItem>
                     <ListItem sx={{ px: 0, py: 0.5 }}>
                       <ListItemIcon sx={{ minWidth: 28 }}>
-                        <Person sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={14} strokeWidth={1.75} /></Box>
                       </ListItemIcon>
                       <ListItemText
                         primary={`Créé le ${formatDate(user.createdAt)}`}
@@ -547,7 +547,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                   <Button
                     variant="outlined"
                     size="small"
-                    startIcon={<Visibility sx={{ fontSize: 16 }} />}
+                    startIcon={<Visibility size={16} strokeWidth={1.75} />}
                     onClick={() => navigate(`/users/${user.id}`)}
                     fullWidth
                     sx={{ fontSize: '0.75rem' }}
@@ -577,19 +577,19 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       >
         <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
           <ListItemIcon>
-            <Visibility sx={{ fontSize: 18 }} />
+            <Visibility size={18} strokeWidth={1.75} />
           </ListItemIcon>
           Voir détails
         </MenuItem>
         <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
           <ListItemIcon>
-            <Edit sx={{ fontSize: 18 }} />
+            <Edit size={18} strokeWidth={1.75} />
           </ListItemIcon>
           Modifier
         </MenuItem>
         <MenuItem onClick={handleDelete} sx={{ color: 'error.main', fontSize: '0.85rem', py: 0.75 }}>
           <ListItemIcon>
-            <Delete sx={{ fontSize: 18, color: 'error.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Delete size={18} strokeWidth={1.75} /></Box>
           </ListItemIcon>
           Supprimer
         </MenuItem>

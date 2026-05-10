@@ -12,7 +12,7 @@ import {
   Assignment,
   CheckCircle,
   HourglassEmpty,
-} from '@mui/icons-material';
+} from '../../icons';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { interventionsApi } from '../../services/api';
@@ -127,19 +127,19 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
     {
       label: t('teams.workload.active'),
       value: activeInterventions.length,
-      icon: <Assignment sx={{ fontSize: 24, color: 'primary.main' }} />,
+      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Assignment size={24} strokeWidth={1.75} /></Box>,
       color: 'primary.main',
     },
     {
       label: t('teams.workload.completedThisMonth'),
       value: completedThisMonth.length,
-      icon: <CheckCircle sx={{ fontSize: 24, color: 'success.main' }} />,
+      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={24} strokeWidth={1.75} /></Box>,
       color: 'success.main',
     },
     {
       label: t('teams.workload.pending'),
       value: pendingInterventions.length,
-      icon: <HourglassEmpty sx={{ fontSize: 24, color: 'warning.main' }} />,
+      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><HourglassEmpty size={24} strokeWidth={1.75} /></Box>,
       color: 'warning.main',
     },
   ];

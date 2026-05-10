@@ -31,7 +31,7 @@ import {
   Category,
   Map as MapIcon,
   DeleteOutlined,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -259,7 +259,7 @@ const TeamForm: React.FC = () => {
                 const submitButton = document.querySelector('[data-submit-team]') as HTMLButtonElement;
                 if (submitButton) submitButton.click();
               }}
-              startIcon={createMutation.isPending ? <CircularProgress size={16} /> : <Save sx={{ fontSize: 16 }} />}
+              startIcon={createMutation.isPending ? <CircularProgress size={16} /> : <Save size={16} strokeWidth={1.75} />}
               disabled={createMutation.isPending || filteredUsers.length === 0}
               size="small"
               title={t('teams.createTeam')}
@@ -442,7 +442,7 @@ const TeamForm: React.FC = () => {
 
                   {/* Compteur utilisateurs */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <GroupIcon sx={{ fontSize: 16, color: filteredUsers.length > 0 ? 'primary.main' : 'text.disabled' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: filteredUsers.length > 0 ? 'primary.main' : 'text.disabled' }}><GroupIcon size={16} strokeWidth={1.75} /></Box>
                     <Typography variant="caption" sx={{ fontSize: '0.72rem', color: filteredUsers.length > 0 ? 'text.primary' : 'text.disabled', fontWeight: 500 }}>
                       {filteredUsers.length} {t('teams.fields.usersAvailable')}
                     </Typography>
@@ -463,7 +463,7 @@ const TeamForm: React.FC = () => {
               <CardContent sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                   <Typography variant="subtitle1" fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <MapIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><MapIcon size={18} strokeWidth={1.75} /></Box>
                     {t('teams.coverageZones')}
                     {zoneFields.length > 0 && (
                       <Chip
@@ -476,7 +476,7 @@ const TeamForm: React.FC = () => {
                   </Typography>
                   <Button
                     variant="outlined"
-                    startIcon={<Add sx={{ fontSize: 16 }} />}
+                    startIcon={<Add size={16} strokeWidth={1.75} />}
                     onClick={() => appendZone({ country: 'FR', department: '', arrondissement: null, city: null })}
                     size="small"
                   >
@@ -493,7 +493,7 @@ const TeamForm: React.FC = () => {
                     borderRadius: 1.5,
                     bgcolor: 'grey.50',
                   }}>
-                    <MapIcon sx={{ fontSize: 32, color: 'text.disabled', mb: 0.5 }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 0.5 }}><MapIcon size={32} strokeWidth={1.75} /></Box>
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
                       {t('teams.noCoverageZones')}
                     </Typography>
@@ -640,7 +640,7 @@ const TeamForm: React.FC = () => {
                             size="small"
                             sx={{ p: 0.5, color: 'grey.400', flexShrink: 0, '&:hover': { color: 'error.main', bgcolor: 'error.50' } }}
                           >
-                            <DeleteOutlined sx={{ fontSize: 18 }} />
+                            <DeleteOutlined size={18} strokeWidth={1.75} />
                           </IconButton>
                         </Box>
                       );
@@ -670,7 +670,7 @@ const TeamForm: React.FC = () => {
                   {filteredUsers.length > fields.length && (
                     <Button
                       variant="outlined"
-                      startIcon={<Add sx={{ fontSize: 16 }} />}
+                      startIcon={<Add size={16} strokeWidth={1.75} />}
                       onClick={handleAddMember}
                       size="small"
                     >
@@ -688,13 +688,13 @@ const TeamForm: React.FC = () => {
                     borderRadius: 1.5,
                     bgcolor: 'grey.50',
                   }}>
-                    <GroupIcon sx={{ fontSize: 36, color: 'text.disabled', mb: 1 }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><GroupIcon size={36} strokeWidth={1.75} /></Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: '0.8125rem' }}>
                       {t('teams.fields.noMemberAdded')}
                     </Typography>
                     <Button
                       variant="outlined"
-                      startIcon={<Add sx={{ fontSize: 16 }} />}
+                      startIcon={<Add size={16} strokeWidth={1.75} />}
                       onClick={handleAddMember}
                       disabled={filteredUsers.length === 0}
                       size="small"
@@ -736,7 +736,7 @@ const TeamForm: React.FC = () => {
                         >
                           {field.firstName && field.lastName
                             ? `${field.firstName.charAt(0)}${field.lastName.charAt(0)}`
-                            : <Person sx={{ fontSize: 18 }} />
+                            : <Person size={18} strokeWidth={1.75} />
                           }
                         </Avatar>
 
@@ -808,7 +808,7 @@ const TeamForm: React.FC = () => {
                             '&:hover': { color: 'error.main', bgcolor: 'error.50' },
                           }}
                         >
-                          <Delete sx={{ fontSize: 18 }} />
+                          <Delete size={18} strokeWidth={1.75} />
                         </IconButton>
                       </Box>
                     ))}

@@ -43,7 +43,7 @@ import {
   AutoAwesome,
   Extension,
   CalendarMonth,
-} from '@mui/icons-material';
+} from '../../icons';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
@@ -437,26 +437,26 @@ export default function Settings() {
           }}
         >
           <Tab
-            icon={<TuneOutlined sx={{ fontSize: 18 }} />}
+            icon={<TuneOutlined size={18} strokeWidth={1.75} />}
             iconPosition="start"
             label="Général"
             {...a11yProps(0)}
           />
           <Tab
-            icon={<Notifications sx={{ fontSize: 18 }} />}
+            icon={<Notifications size={18} strokeWidth={1.75} />}
             iconPosition="start"
             label="Notifications"
             {...a11yProps(1)}
           />
           <Tab
-            icon={<ChatBubbleOutline sx={{ fontSize: 18 }} />}
+            icon={<ChatBubbleOutline size={18} strokeWidth={1.75} />}
             iconPosition="start"
             label="Messagerie"
             {...a11yProps(2)}
           />
           {hasAnyRole(['HOST']) && (
             <Tab
-              icon={<AccountBalance sx={{ fontSize: 18 }} />}
+              icon={<AccountBalance size={18} strokeWidth={1.75} />}
               iconPosition="start"
               label={t('settings.myPayout.tabLabel', 'Mes reversements')}
               {...a11yProps(3)}
@@ -464,7 +464,7 @@ export default function Settings() {
           )}
           {canViewAi && (
             <Tab
-              icon={<AutoAwesome sx={{ fontSize: 18 }} />}
+              icon={<AutoAwesome size={18} strokeWidth={1.75} />}
               iconPosition="start"
               label="IA"
               {...a11yProps(3)}
@@ -472,7 +472,7 @@ export default function Settings() {
           )}
           {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
             <Tab
-              icon={<AccountBalance sx={{ fontSize: 18 }} />}
+              icon={<AccountBalance size={18} strokeWidth={1.75} />}
               iconPosition="start"
               label="Fiscal"
               {...a11yProps(4)}
@@ -480,7 +480,7 @@ export default function Settings() {
           )}
           {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
             <Tab
-              icon={<GroupAdd sx={{ fontSize: 18 }} />}
+              icon={<GroupAdd size={18} strokeWidth={1.75} />}
               iconPosition="start"
               label="Organisation"
               {...a11yProps(5)}
@@ -488,7 +488,7 @@ export default function Settings() {
           )}
           {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
             <Tab
-              icon={<Payment sx={{ fontSize: 18 }} />}
+              icon={<Payment size={18} strokeWidth={1.75} />}
               iconPosition="start"
               label="Paiement"
               {...a11yProps(6)}
@@ -496,7 +496,7 @@ export default function Settings() {
           )}
           {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
             <Tab
-              icon={<Extension sx={{ fontSize: 18 }} />}
+              icon={<Extension size={18} strokeWidth={1.75} />}
               iconPosition="start"
               label="Intégrations"
               {...a11yProps(7)}
@@ -504,7 +504,7 @@ export default function Settings() {
           )}
           {hasAnyRole(['SUPER_ADMIN']) && (
             <Tab
-              icon={<CalendarMonth sx={{ fontSize: 18 }} />}
+              icon={<CalendarMonth size={18} strokeWidth={1.75} />}
               iconPosition="start"
               label="Reversements"
               {...a11yProps(8)}
@@ -521,7 +521,7 @@ export default function Settings() {
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2, height: '100%' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                <Person sx={{ color: 'secondary.main', fontSize: 20 }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Person size={20} strokeWidth={1.75} /></Box>
                 <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                   Mon compte
                 </Typography>
@@ -631,7 +631,7 @@ export default function Settings() {
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2, height: '100%' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                <Storage sx={{ color: 'secondary.main', fontSize: 20 }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Storage size={20} strokeWidth={1.75} /></Box>
                 <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                   Workflow
                 </Typography>
@@ -710,7 +710,7 @@ export default function Settings() {
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2, height: '100%' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                <Palette sx={{ color: 'secondary.main', fontSize: 20 }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Palette size={20} strokeWidth={1.75} /></Box>
                 <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                   Affichage
                 </Typography>
@@ -719,7 +719,7 @@ export default function Settings() {
               <List>
                 <ListItem sx={{ flexDirection: 'column', alignItems: 'flex-start', gap: 1.5, py: 1.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Palette sx={{ color: 'text.secondary', fontSize: 20 }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Palette size={20} strokeWidth={1.75} /></Box>
                     <ListItemText
                       primary="Apparence"
                       secondary={
@@ -746,15 +746,15 @@ export default function Settings() {
                     sx={{ '& .MuiToggleButton-root': { textTransform: 'none', fontSize: '0.8125rem', gap: 0.75, py: 0.75 } }}
                   >
                     <ToggleButton value="light">
-                      <LightMode sx={{ fontSize: 18 }} />
+                      <LightMode size={18} strokeWidth={1.75} />
                       Clair
                     </ToggleButton>
                     <ToggleButton value="dark">
-                      <DarkMode sx={{ fontSize: 18 }} />
+                      <DarkMode size={18} strokeWidth={1.75} />
                       Sombre
                     </ToggleButton>
                     <ToggleButton value="auto">
-                      <SettingsBrightness sx={{ fontSize: 18 }} />
+                      <SettingsBrightness size={18} strokeWidth={1.75} />
                       Système
                     </ToggleButton>
                   </ToggleButtonGroup>
@@ -802,7 +802,7 @@ export default function Settings() {
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 2, height: '100%' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <BugReport sx={{ color: 'warning.main', fontSize: 20 }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><BugReport size={20} strokeWidth={1.75} /></Box>
                   <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                     Développement
                   </Typography>

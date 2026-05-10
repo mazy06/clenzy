@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import {
   Save, AccountBalance, Info as InfoIcon, CheckCircle,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useFiscalProfile, useUpdateFiscalProfile } from '../../hooks/useFiscalProfile';
 import { CURRENCY_OPTIONS, COUNTRY_OPTIONS } from '../../utils/currencyUtils';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -173,7 +173,7 @@ const FiscalProfileSection: React.FC = () => {
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2, height: '100%' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <AccountBalance sx={{ color: 'primary.main', fontSize: 20 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AccountBalance size={20} strokeWidth={1.75} /></Box>
               <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                 {t('fiscal.profile.sectionFiscalInfo')}
               </Typography>
@@ -320,7 +320,7 @@ const FiscalProfileSection: React.FC = () => {
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2, height: '100%' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <AccountBalance sx={{ color: 'secondary.main', fontSize: 20 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><AccountBalance size={20} strokeWidth={1.75} /></Box>
               <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                 {t('fiscal.profile.sectionLegalInfo')}
               </Typography>

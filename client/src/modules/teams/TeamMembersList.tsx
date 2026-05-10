@@ -19,7 +19,7 @@ import {
   Delete,
   SortByAlpha,
   Badge,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import { interventionsApi } from '../../services/api';
 import type { Intervention, TeamMember } from '../../services/api';
@@ -150,11 +150,11 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
           </Typography>
           <ToggleButtonGroup value={sortBy} exclusive onChange={handleSortChange} size="small">
             <ToggleButton value="name" sx={{ px: 1.5, py: 0.5 }}>
-              <SortByAlpha sx={{ fontSize: 16, mr: 0.5 }} />
+              <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><SortByAlpha size={16} strokeWidth={1.75} /></Box>
               <Typography variant="caption">{t('teams.members.sortByName')}</Typography>
             </ToggleButton>
             <ToggleButton value="role" sx={{ px: 1.5, py: 0.5 }}>
-              <Badge sx={{ fontSize: 16, mr: 0.5 }} />
+              <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><Badge size={16} strokeWidth={1.75} /></Box>
               <Typography variant="caption">{t('teams.members.sortByRole')}</Typography>
             </ToggleButton>
           </ToggleButtonGroup>
@@ -175,7 +175,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                     secondaryAction={
                       canEdit && onRemoveMember ? (
                         <IconButton edge="end" color="error" size="small" onClick={() => onRemoveMember(memberId)}>
-                          <Delete sx={{ fontSize: 18 }} />
+                          <Delete size={18} strokeWidth={1.75} />
                         </IconButton>
                       ) : undefined
                     }
