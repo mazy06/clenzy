@@ -39,7 +39,7 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
         />
       )}
       <Box sx={{ px: 1.25, pb: 1.25, pt: photo ? 0 : 1.25 }}>
-        <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, lineHeight: 1.2, color: 'common.white' }}>
+        <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, lineHeight: 1.2, color: 'text.primary' }}>
           {property.name}
         </Typography>
         {property.type && (
@@ -51,8 +51,9 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
               height: 18,
               fontSize: '0.625rem',
               fontWeight: 600,
-              bgcolor: 'rgba(255,255,255,0.15)',
-              color: 'common.white',
+              bgcolor: (theme) =>
+                theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(107,138,154,0.12)',
+              color: 'primary.main',
               textTransform: 'capitalize',
               '& .MuiChip-label': { px: 0.75 },
             }}
@@ -61,10 +62,10 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
 
         {(property.address || property.city) && (
           <Box sx={{ display: 'flex', gap: 0.5, mt: 1, alignItems: 'flex-start' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'rgba(255,255,255,0.7)', mt: 0.1 }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.1 }}>
               <LocationOn size={12} strokeWidth={1.75} />
             </Box>
-            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.85)', lineHeight: 1.35 }}>
+            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.35 }}>
               {[property.address, property.city].filter(Boolean).join(', ')}
             </Typography>
           </Box>
@@ -72,16 +73,16 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
 
         {property.ownerName && (
           <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, alignItems: 'center' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'rgba(255,255,255,0.7)' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
               <Person size={12} strokeWidth={1.75} />
             </Box>
-            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.85)' }}>
+            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
               {property.ownerName}
             </Typography>
           </Box>
         )}
 
-        <Divider sx={{ my: 1.25, borderColor: 'rgba(255,255,255,0.15)' }} />
+        <Divider sx={{ my: 1.25 }} />
 
         {/* Stats grid */}
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 1 }}>
@@ -119,21 +120,21 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5, flexWrap: 'wrap' }}>
             {property.defaultCheckInTime && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: '#4ade80' }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}>
                   <AccessTime size={11} strokeWidth={1.75} />
                 </Box>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,0.85)' }}>
-                  Check-in <strong>{property.defaultCheckInTime.slice(0, 5)}</strong>
+                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                  Check-in <Box component="strong" sx={{ color: 'text.primary' }}>{property.defaultCheckInTime.slice(0, 5)}</Box>
                 </Typography>
               </Box>
             )}
             {property.defaultCheckOutTime && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: '#fbbf24' }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}>
                   <AccessTime size={11} strokeWidth={1.75} />
                 </Box>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,0.85)' }}>
-                  Check-out <strong>{property.defaultCheckOutTime.slice(0, 5)}</strong>
+                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                  Check-out <Box component="strong" sx={{ color: 'text.primary' }}>{property.defaultCheckOutTime.slice(0, 5)}</Box>
                 </Typography>
               </Box>
             )}
@@ -142,16 +143,16 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
 
         {property.cleaningFrequency && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.75 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'rgba(255,255,255,0.7)' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
               <CalendarMonth size={11} strokeWidth={1.75} />
             </Box>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,0.85)' }}>
-              Fréquence ménage : <strong>{property.cleaningFrequency}</strong>
+            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+              Fréquence ménage : <Box component="strong" sx={{ color: 'text.primary' }}>{property.cleaningFrequency}</Box>
             </Typography>
           </Box>
         )}
 
-        <Typography sx={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.5)', mt: 1.25, fontStyle: 'italic' }}>
+        <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', mt: 1.25, fontStyle: 'italic' }}>
           Cliquez pour ouvrir la fiche complète
         </Typography>
       </Box>
@@ -175,19 +176,28 @@ function StatPill({
       sx={{
         p: 0.75,
         borderRadius: 1,
-        bgcolor: highlight ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.08)',
+        bgcolor: (theme) => {
+          if (highlight) {
+            return theme.palette.mode === 'dark'
+              ? 'rgba(16,185,129,0.18)'
+              : 'rgba(16,185,129,0.10)';
+          }
+          return theme.palette.mode === 'dark'
+            ? 'rgba(255,255,255,0.04)'
+            : 'rgba(0,0,0,0.025)';
+        },
         border: '1px solid',
-        borderColor: highlight ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.12)',
+        borderColor: highlight ? 'success.main' : 'divider',
         minWidth: 0,
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: highlight ? '#4ade80' : 'rgba(255,255,255,0.7)', mb: 0.25 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: highlight ? 'success.main' : 'text.secondary', mb: 0.25 }}>
         {icon}
         <Typography sx={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, color: 'inherit' }}>
           {label}
         </Typography>
       </Box>
-      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: highlight ? '#4ade80' : 'common.white' }}>
+      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: highlight ? 'success.main' : 'text.primary' }}>
         {value}
       </Typography>
     </Box>
@@ -249,18 +259,27 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             leaveDelay={100}
             slotProps={{
               tooltip: {
-                sx: {
-                  bgcolor: 'rgba(17,24,39,0.97)',
-                  backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                sx: (theme) => ({
+                  bgcolor: 'background.paper',
+                  color: 'text.primary',
+                  border: '1px solid',
+                  borderColor: 'divider',
                   borderRadius: 2,
                   p: 0,
                   maxWidth: 'none',
-                  boxShadow: '0 12px 32px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.2)',
+                  boxShadow:
+                    theme.palette.mode === 'dark'
+                      ? '0 12px 32px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35)'
+                      : '0 12px 32px rgba(15,23,42,0.18), 0 2px 6px rgba(15,23,42,0.08)',
                   '& .MuiTooltip-arrow': {
-                    color: 'rgba(17,24,39,0.97)',
+                    color: theme.palette.background.paper,
+                    '&::before': {
+                      border: '1px solid',
+                      borderColor: theme.palette.divider,
+                      backgroundColor: theme.palette.background.paper,
+                    },
                   },
-                },
+                }),
               },
               popper: {
                 modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],
