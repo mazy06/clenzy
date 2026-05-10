@@ -27,7 +27,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB — le bundle dépasse 2 MiB par défaut
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8 MiB — le bundle dépasse 5 MiB avec lucide-react + iconify
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
