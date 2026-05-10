@@ -64,7 +64,7 @@ const teamServiceCategories = [
 ];
 
 const getCategoryIcon = (value: string, size: number = 20) => {
-  const iconProps = { sx: { fontSize: size } };
+  const iconProps = { size, strokeWidth: 1.75 };
   switch (value) {
     case 'CLEANING': return <AutoAwesome {...iconProps} />;
     case 'MAINTENANCE': return <Build {...iconProps} />;

@@ -98,9 +98,9 @@ const NoiseDeviceList: React.FC<NoiseDeviceListProps> = ({ devices, onRemoveDevi
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, flex: 1 }}>
                       {isMinut ? (
-                        <Handshake sx={{ color: '#6B8A9A', fontSize: 20, flexShrink: 0 }} />
+                        <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0 }}><Handshake size={20} strokeWidth={1.75} color='#6B8A9A' /></Box>
                       ) : (
-                        <Memory sx={{ color: '#4A9B8E', fontSize: 20, flexShrink: 0 }} />
+                        <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0 }}><Memory size={20} strokeWidth={1.75} color='#4A9B8E' /></Box>
                       )}
                       <Box sx={{ minWidth: 0 }}>
                         <Typography

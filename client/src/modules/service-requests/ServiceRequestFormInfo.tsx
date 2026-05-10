@@ -302,7 +302,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
             borderColor: 'grey.200',
             minHeight: 80,
           }}>
-            <Description sx={{ fontSize: 16, color: 'text.disabled', mt: 0.125, flexShrink: 0 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mt: 0.125, flexShrink: 0 }}><Description size={16} strokeWidth={1.75} /></Box>
             <Box sx={{ flex: 1 }}>
               <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.disabled', mb: 0.5 }}>
                 Description du logement
@@ -346,7 +346,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
             borderColor: 'primary.100',
             minHeight: 80,
           }}>
-            <Checklist sx={{ fontSize: 16, color: 'primary.main', mt: 0.125, flexShrink: 0 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mt: 0.125, flexShrink: 0 }}><Checklist size={16} strokeWidth={1.75} /></Box>
             <Box sx={{ flex: 1 }}>
               <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'primary.main', mb: 0.5 }}>
                 Consignes de ménage
@@ -392,7 +392,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                           onClick={() => handleRemoveItem(item.id)}
                           sx={{ p: 0.25, opacity: 0, transition: 'opacity 0.15s', color: 'text.disabled', '&:hover': { color: 'error.main' } }}
                         >
-                          <Close sx={{ fontSize: 12 }} />
+                          <Close size={12} strokeWidth={1.75} />
                         </IconButton>
                       )}
                     </Box>
@@ -403,7 +403,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
               {/* Add new item */}
               {!disabled && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                  <Add sx={{ fontSize: 14, color: 'primary.main', flexShrink: 0 }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', flexShrink: 0 }}><Add size={14} strokeWidth={1.75} /></Box>
                   <TextField
                     value={newItemText}
                     onChange={(e) => setNewItemText(e.target.value)}

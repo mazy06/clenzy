@@ -305,9 +305,10 @@ export default function InscriptionConfirm() {
           {/* Succes */}
           {status === 'success' && (
             <Box sx={{ py: 3 }}>
-              <CheckCircleIcon
+              <Box
+                component="span"
                 sx={{
-                  fontSize: 72,
+                  display: 'inline-flex',
                   color: 'success.main',
                   mb: 2,
                   animation: 'scaleIn 0.4s ease-out',
@@ -317,7 +318,9 @@ export default function InscriptionConfirm() {
                     '100%': { transform: 'scale(1)', opacity: 1 },
                   },
                 }}
-              />
+              >
+                <CheckCircleIcon size={72} strokeWidth={1.75} />
+              </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
                 Inscription finalisee !
               </Typography>

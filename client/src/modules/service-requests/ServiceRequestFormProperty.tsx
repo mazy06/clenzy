@@ -320,7 +320,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                       sx={SELECT_SX}
                       renderValue={() => (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Home sx={{ fontSize: 16, color: selectedProp ? 'primary.main' : 'grey.400' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: selectedProp ? 'primary.main' : 'grey.400' }}><Home size={16} strokeWidth={1.75} /></Box>
                           <Typography sx={{ fontSize: '0.8125rem', color: selectedProp ? 'text.secondary' : 'grey.400' }}>
                             {selectedProp
                               ? `${selectedProp.name} - ${selectedProp.address}, ${selectedProp.city}`

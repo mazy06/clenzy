@@ -217,7 +217,7 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'document',
     label: 'Documents',
-    icon: <Description sx={{ color: '#f57c00' }} />,
+    icon: <Description color='#f57c00' />,
     color: '#f57c00',
     keys: [
       { key: 'DOCUMENT_GENERATED', title: 'Document genere', description: 'Quand un document PDF est genere avec succes' },

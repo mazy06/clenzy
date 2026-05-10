@@ -226,7 +226,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     {displayName}
                   </Typography>
                   {onUpdateGuestInfo && (
-                    <Edit className="edit-hint" sx={{ fontSize: 14, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
+                    <Box component="span" className="edit-hint" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={14} strokeWidth={1.75} /></Box>
                   )}
                   {saved === 'name' && <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Check size={14} strokeWidth={1.75} /></Box>}
                 </Box>
@@ -279,7 +279,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       {displayEmail || 'Ajouter un email'}
                     </Typography>
                     {onUpdateGuestInfo && (
-                      <Edit className="edit-hint" sx={{ fontSize: 12, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
+                      <Box component="span" className="edit-hint" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></Box>
                     )}
                     {saved === 'email' && <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Check size={12} strokeWidth={1.75} /></Box>}
                   </Box>
@@ -327,7 +327,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       {displayPhone || 'Ajouter un telephone'}
                     </Typography>
                     {onUpdateGuestInfo && (
-                      <Edit className="edit-hint" sx={{ fontSize: 12, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
+                      <Box component="span" className="edit-hint" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></Box>
                     )}
                     {saved === 'phone' && <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Check size={12} strokeWidth={1.75} /></Box>}
                   </Box>

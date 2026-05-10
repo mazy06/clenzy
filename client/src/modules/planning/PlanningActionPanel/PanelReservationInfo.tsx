@@ -152,7 +152,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
                 {reservation.guestName}
               </Typography>
               {onUpdateGuestInfo && (
-                <Edit className="edit-icon" sx={{ fontSize: 14, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
+                <Box component="span" className="edit-icon" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={14} strokeWidth={1.75} /></Box>
               )}
             </Box>
           )}
@@ -921,7 +921,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
               </Box>
             )}
           </Box>
-          <SwapHoriz sx={{ color: 'text.disabled' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><SwapHoriz  /></Box>
           <Box sx={{ textAlign: 'right' }}>
             <Typography variant="caption" color="text.secondary">Check-out</Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>

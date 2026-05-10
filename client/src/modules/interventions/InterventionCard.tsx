@@ -87,7 +87,7 @@ const getTypeIcon = (type: string, size: number = 48) => {
 
 // Petite icône de type pour le header
 const getTypeSmallIcon = (type: string) => {
-  const iconProps = { sx: { fontSize: 16, color: 'rgba(255,255,255,0.85)' } };
+  const iconProps = { size: 16, strokeWidth: 1.75, color: 'rgba(255,255,255,0.85)' };
   const cleaningTypes = [
     'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
     'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',

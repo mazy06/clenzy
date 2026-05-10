@@ -144,13 +144,13 @@ const BlockPeriodDialog: React.FC<BlockPeriodDialogProps> = ({
             >
               <MenuItem value="BLOCKED">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Lock fontSize="small" sx={{ color: '#616161' }} />
+                  <Lock fontSize="small" color='#616161' />
                   Bloque (indisponible)
                 </Box>
               </MenuItem>
               <MenuItem value="MAINTENANCE">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Build fontSize="small" sx={{ color: '#e65100' }} />
+                  <Build fontSize="small" color='#e65100' />
                   Maintenance / Travaux
                 </Box>
               </MenuItem>

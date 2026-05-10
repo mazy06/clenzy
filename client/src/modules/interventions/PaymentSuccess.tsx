@@ -85,7 +85,9 @@ const PaymentSuccess: React.FC = () => {
       <Box sx={{ maxWidth: 500, mx: 'auto', mt: 6 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center', p: 4 }}>
-            <HourglassTop sx={{ fontSize: 56, color: 'primary.main', mb: 2, animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mb: 2, animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }}>
+              <HourglassTop size={56} strokeWidth={1.75} />
+            </Box>
             <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
               Verification du paiement...
             </Typography>

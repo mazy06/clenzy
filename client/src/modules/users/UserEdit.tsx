@@ -572,7 +572,7 @@ const UserEdit: React.FC = () => {
                     onChange={(e) => handleInputChange('newPassword', e.target.value)}
                     placeholder="Minimum 8 caractères"
                     InputProps={{
-                      startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary' }} />,
+                      startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Lock  /></Box>,
                       endAdornment: (
                         <IconButton
                           onClick={() => setShowNewPassword(!showNewPassword)}
@@ -595,7 +595,7 @@ const UserEdit: React.FC = () => {
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                     placeholder="Répétez le mot de passe"
                     InputProps={{
-                      startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary' }} />,
+                      startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Lock  /></Box>,
                       endAdornment: (
                         <IconButton
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
