@@ -5,7 +5,7 @@ import {
   Checklist,
   Build,
   MoreHoriz,
-} from '@mui/icons-material';
+} from '../icons';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -33,21 +33,21 @@ interface VariantConfig {
 const VARIANT_CONFIG: Record<ConsigneVariant, VariantConfig> = {
   cleaning: {
     title: 'Consignes de ménage',
-    icon: <Checklist sx={{ fontSize: 16, color: 'primary.main', mt: 0.125, flexShrink: 0 }} />,
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mt: 0.125, flexShrink: 0 }}><Checklist size={16} strokeWidth={1.75} /></Box>,
     bgColor: 'primary.50',
     borderColor: 'primary.100',
     accentColor: 'primary.main',
   },
   maintenance: {
     title: 'Consignes de travaux',
-    icon: <Build sx={{ fontSize: 16, color: '#ff9800', mt: 0.125, flexShrink: 0 }} />,
+    icon: <Box component="span" sx={{ display: 'inline-flex', mt: 0.125, flexShrink: 0 }}><Build size={16} strokeWidth={1.75} color="#ff9800" /></Box>,
     bgColor: 'rgba(255,152,0,0.05)',
     borderColor: 'rgba(255,152,0,0.2)',
     accentColor: '#ff9800',
   },
   other: {
     title: 'Consignes diverses',
-    icon: <MoreHoriz sx={{ fontSize: 16, color: '#78909c', mt: 0.125, flexShrink: 0 }} />,
+    icon: <Box component="span" sx={{ display: 'inline-flex', mt: 0.125, flexShrink: 0 }}><MoreHoriz size={16} strokeWidth={1.75} color="#78909c" /></Box>,
     bgColor: 'grey.50',
     borderColor: 'grey.200',
     accentColor: '#78909c',
@@ -123,7 +123,7 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
           bgcolor: 'grey.50',
           borderColor: 'grey.200',
         }}>
-          <Description sx={{ fontSize: 16, color: 'text.disabled', mt: 0.125, flexShrink: 0 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mt: 0.125, flexShrink: 0 }}><Description size={16} strokeWidth={1.75} /></Box>
           <Box sx={{ flex: 1 }}>
             <Typography sx={{ ...TITLE_SX, color: 'text.disabled' }}>
               Description du logement
