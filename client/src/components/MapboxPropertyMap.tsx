@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { Box, Typography } from '@mui/material';
-import { Map as MapIcon } from '@mui/icons-material';
+import { MapIcon } from '../icons';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useThemeMode } from '../hooks/useThemeMode';
@@ -168,7 +168,7 @@ export function MapboxPropertyMap({
           gap: 1,
         }}
       >
-        <MapIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><MapIcon size={48} strokeWidth={1.5} /></Box>
         <Typography variant="body2" color="text.secondary">
           Carte indisponible : token Mapbox non configure (VITE_MAPBOX_TOKEN)
         </Typography>
