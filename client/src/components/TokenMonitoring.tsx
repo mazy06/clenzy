@@ -33,8 +33,8 @@ import {
   Error,
   Info,
   Visibility,
-  VisibilityOff
-} from '@mui/icons-material';
+  VisibilityOff,
+} from '../icons';
 import TokenService, { TokenStats, TokenMetrics } from '../services/TokenService';
 
 interface TokenInfo {
@@ -173,7 +173,7 @@ const TokenMonitoring: React.FC = () => {
           variant="contained"
           onClick={loadTokenStats}
           disabled={isLoading}
-          startIcon={<Refresh />}
+          startIcon={<Refresh size={18} strokeWidth={1.75} />}
         >
           {isLoading ? 'Chargement...' : 'Actualiser'}
         </Button>
@@ -182,7 +182,7 @@ const TokenMonitoring: React.FC = () => {
           variant="outlined"
           onClick={cleanupTokens}
           disabled={isLoading}
-          startIcon={<Delete />}
+          startIcon={<Delete size={18} strokeWidth={1.75} />}
           color="warning"
         >
           Nettoyer les tokens expirés

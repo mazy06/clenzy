@@ -11,14 +11,14 @@ import {
   IconButton,
   Tooltip
 } from '@mui/material';
-import { 
-  Refresh, 
-  Warning, 
-  CheckCircle, 
-  Error, 
+import {
+  Refresh,
+  Warning,
+  CheckCircle,
+  Error,
   Schedule,
-  Security
-} from '@mui/icons-material';
+  Security,
+} from '../icons';
 import TokenService from '../services/TokenService';
 import { useTokenHealth } from '../hooks/useTokenHealth';
 
@@ -39,15 +39,15 @@ export const TokenHealthMonitor: React.FC = () => {
   const getStatusIcon = () => {
     switch (status) {
       case 'healthy':
-        return <CheckCircle color="success" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
       case 'expiring':
-        return <Warning color="warning" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Warning size={20} strokeWidth={1.75} /></Box>;
       case 'expired':
-        return <Error color="error" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Error size={20} strokeWidth={1.75} /></Box>;
       case 'error':
-        return <Error color="error" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Error size={20} strokeWidth={1.75} /></Box>;
       default:
-        return <Security color="info" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Security size={20} strokeWidth={1.75} /></Box>;
     }
   };
 
@@ -96,7 +96,7 @@ export const TokenHealthMonitor: React.FC = () => {
     <Card sx={{ maxWidth: 600, mx: 'auto', mt: 2 }}>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Security sx={{ mr: 1, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><Security size={20} strokeWidth={1.75} /></Box>
           <Typography variant="h6" component="h2">
             Moniteur de Santé des Tokens
           </Typography>
@@ -107,7 +107,7 @@ export const TokenHealthMonitor: React.FC = () => {
                 disabled={isLoading}
                 size="small"
               >
-                <Refresh />
+                <Refresh size={20} strokeWidth={1.75} />
               </IconButton>
             </Tooltip>
           </Box>
@@ -221,7 +221,7 @@ export const TokenHealthMonitor: React.FC = () => {
             variant="outlined"
             onClick={forceCheck}
             disabled={isLoading}
-            startIcon={<Refresh />}
+            startIcon={<Refresh size={18} strokeWidth={1.75} />}
             size="small"
           >
             {isLoading ? 'Vérification...' : 'Vérifier maintenant'}
@@ -232,7 +232,7 @@ export const TokenHealthMonitor: React.FC = () => {
               variant="contained"
               color="primary"
               size="small"
-              startIcon={<Schedule />}
+              startIcon={<Schedule size={18} strokeWidth={1.75} />}
             >
               Rafraîchir manuellement
             </Button>

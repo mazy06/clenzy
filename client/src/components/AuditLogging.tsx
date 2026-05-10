@@ -38,7 +38,7 @@ import {
   ReportProblem,
   Visibility,
   VpnKey,
-} from '@mui/icons-material';
+} from '../icons';
 import { monitoringApi } from '../services/api/monitoringApi';
 import type { AuditLogEntry, AuditLogPage } from '../services/api/monitoringApi';
 
@@ -107,21 +107,21 @@ const AuditLogging: React.FC = () => {
   const getEventTypeIcon = (eventType: string) => {
     switch (eventType) {
       case 'LOGIN_SUCCESS':
-        return <CheckCircle color="success" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
       case 'LOGIN_FAILURE':
-        return <Warning color="warning" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Warning size={20} strokeWidth={1.75} /></Box>;
       case 'PERMISSION_DENIED':
-        return <Lock color="error" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Lock size={20} strokeWidth={1.75} /></Box>;
       case 'DATA_ACCESS':
-        return <Visibility color="info" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Visibility size={20} strokeWidth={1.75} /></Box>;
       case 'ADMIN_ACTION':
-        return <AdminPanelSettings color="info" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><AdminPanelSettings size={20} strokeWidth={1.75} /></Box>;
       case 'SECRET_ROTATION':
-        return <VpnKey color="info" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><VpnKey size={20} strokeWidth={1.75} /></Box>;
       case 'SUSPICIOUS_ACTIVITY':
-        return <ReportProblem color="error" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><ReportProblem size={20} strokeWidth={1.75} /></Box>;
       default:
-        return <Info color="info" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Info size={20} strokeWidth={1.75} /></Box>;
     }
   };
 
@@ -187,7 +187,7 @@ const AuditLogging: React.FC = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-          <Security sx={{ mr: 1, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><Security size={20} strokeWidth={1.75} /></Box>
           Audit et Logging
         </Typography>
         <Box display="flex" alignItems="center" gap={1}>
@@ -199,7 +199,7 @@ const AuditLogging: React.FC = () => {
           {loading && <CircularProgress size={16} />}
           <Tooltip title="Actualiser les logs">
             <IconButton onClick={handleRefresh} size="small">
-              <Refresh />
+              <Refresh size={20} strokeWidth={1.75} />
             </IconButton>
           </Tooltip>
         </Box>
@@ -259,7 +259,7 @@ const AuditLogging: React.FC = () => {
               <Button
                 variant="outlined"
                 size="small"
-                startIcon={<Clear />}
+                startIcon={<Clear size={18} strokeWidth={1.75} />}
                 onClick={clearFilters}
               >
                 Effacer

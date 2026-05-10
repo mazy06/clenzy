@@ -10,7 +10,7 @@ import {
   Settings as SettingsIcon,
   Assessment as AssessmentIcon,
   Info as InfoIcon
-} from '@mui/icons-material';
+} from '../icons';
 
 interface PermissionEffectsDemoProps {
   selectedRole?: string;
@@ -100,23 +100,23 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
   const getModuleIcon = (moduleName: string) => {
     switch (moduleName) {
       case 'Tableau de Bord':
-        return <DashboardIcon fontSize="small" sx={{ color: 'text.secondary' }} />;
+        return <DashboardIcon size={20} strokeWidth={1.75} />;
       case 'Propriétés':
-        return <HomeIcon fontSize="small" sx={{ color: 'text.secondary' }} />;
+        return <HomeIcon size={20} strokeWidth={1.75} />;
       case 'Demandes de Service':
-        return <AssignmentIcon fontSize="small" sx={{ color: 'text.secondary' }} />;
+        return <AssignmentIcon size={20} strokeWidth={1.75} />;
       case 'Interventions':
-        return <BuildIcon fontSize="small" sx={{ color: 'text.secondary' }} />;
+        return <BuildIcon size={20} strokeWidth={1.75} />;
       case 'Équipes':
-        return <GroupIcon fontSize="small" sx={{ color: 'text.secondary' }} />;
+        return <GroupIcon size={20} strokeWidth={1.75} />;
       case 'Utilisateurs':
-        return <PersonIcon fontSize="small" sx={{ color: 'text.secondary' }} />;
+        return <PersonIcon size={20} strokeWidth={1.75} />;
       case 'Paramètres':
-        return <SettingsIcon fontSize="small" sx={{ color: 'text.secondary' }} />;
+        return <SettingsIcon size={20} strokeWidth={1.75} />;
       case 'Rapports':
-        return <AssessmentIcon fontSize="small" sx={{ color: 'text.secondary' }} />;
+        return <AssessmentIcon size={20} strokeWidth={1.75} />;
       default:
-        return <InfoIcon fontSize="small" sx={{ color: 'text.secondary' }} />;
+        return <InfoIcon size={20} strokeWidth={1.75} />;
     }
   };
 
