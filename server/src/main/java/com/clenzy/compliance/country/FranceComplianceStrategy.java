@@ -42,8 +42,15 @@ public class FranceComplianceStrategy implements CountryComplianceStrategy {
             tags.putIfAbsent("conditions_paiement",
                 "Paiement a reception. Penalites de retard : 3 fois le taux d'interet legal.");
         } else if (type == DocumentType.DEVIS) {
-            tags.putIfAbsent("duree_validite",
-                "Ce devis est valable 30 jours a compter de sa date d'emission.");
+            String validite = "Ce devis est valable 30 jours a compter de sa date d'emission.";
+            tags.putIfAbsent("duree_validite", validite);
+            // Alias historique utilise par certains templates (nf.validite)
+            tags.putIfAbsent("validite", validite);
+            // Conditions de paiement applicables au devis (acceptation = signature)
+            tags.putIfAbsent("conditions_paiement",
+                "Paiement de l'abonnement par prelevement SEPA mensuel ou virement annuel. "
+              + "Acceptation du devis : retour signe par email. "
+              + "Penalites de retard : 3 fois le taux d'interet legal.");
         }
 
         return tags;
