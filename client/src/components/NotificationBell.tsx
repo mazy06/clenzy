@@ -24,7 +24,7 @@ import {
   Email,
   Circle,
   EventNote,
-} from '@mui/icons-material';
+} from '../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../hooks/useTranslation';
 import { notificationsApi } from '../services/api';
@@ -33,14 +33,14 @@ import type { Notification } from '../services/api';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
-  intervention: <Build sx={{ fontSize: 18, color: '#1976d2' }} />,
-  service_request: <Description sx={{ fontSize: 18, color: '#ed6c02' }} />,
-  payment: <Payment sx={{ fontSize: 18, color: '#2e7d32' }} />,
-  system: <Info sx={{ fontSize: 18, color: '#9c27b0' }} />,
-  team: <Groups sx={{ fontSize: 18, color: '#0288d1' }} />,
-  contact: <Email sx={{ fontSize: 18, color: '#e91e63' }} />,
-  document: <Description sx={{ fontSize: 18, color: '#f57c00' }} />,
-  reservation: <EventNote sx={{ fontSize: 18, color: '#0288d1' }} />,
+  intervention: <Build size={18} strokeWidth={1.75} color="#1976d2" />,
+  service_request: <Description size={18} strokeWidth={1.75} color="#ed6c02" />,
+  payment: <Payment size={18} strokeWidth={1.75} color="#2e7d32" />,
+  system: <Info size={18} strokeWidth={1.75} color="#9c27b0" />,
+  team: <Groups size={18} strokeWidth={1.75} color="#0288d1" />,
+  contact: <Email size={18} strokeWidth={1.75} color="#e91e63" />,
+  document: <Description size={18} strokeWidth={1.75} color="#f57c00" />,
+  reservation: <EventNote size={18} strokeWidth={1.75} color="#0288d1" />,
 };
 
 function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string, lang = 'fr'): string {
@@ -162,9 +162,9 @@ export default function NotificationBell() {
           }}
         >
           {unreadCount > 0 ? (
-            <Notifications sx={{ fontSize: 22 }} />
+            <Notifications size={22} strokeWidth={1.75} />
           ) : (
-            <NotificationsNone sx={{ fontSize: 22 }} />
+            <NotificationsNone size={22} strokeWidth={1.75} />
           )}
         </Badge>
       </IconButton>
@@ -216,7 +216,7 @@ export default function NotificationBell() {
           </Box>
         ) : recent.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 3, px: 2 }}>
-            <NotificationsNone sx={{ fontSize: 36, color: 'text.disabled', mb: 0.5 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 0.5 }}><NotificationsNone size={36} strokeWidth={1.5} /></Box>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
               {t('notifications.empty') || 'Aucune notification'}
             </Typography>
@@ -236,13 +236,13 @@ export default function NotificationBell() {
                   }}
                 >
                   <ListItemIcon sx={{ minWidth: 32, mt: 0.5 }}>
-                    {CATEGORY_ICONS[notification.category] ?? <Info sx={{ fontSize: 18 }} />}
+                    {CATEGORY_ICONS[notification.category] ?? <Info size={18} strokeWidth={1.75} />}
                   </ListItemIcon>
                   <ListItemText
                     primary={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         {!notification.read && (
-                          <Circle sx={{ fontSize: 6, color: 'primary.main', flexShrink: 0 }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', flexShrink: 0 }}><Circle size={6} fill="currentColor" /></Box>
                         )}
                         <Typography
                           variant="body2"

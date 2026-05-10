@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, Button, Tooltip, useTheme, useMediaQuery } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon } from '../icons';
 import { useNavigate } from 'react-router-dom';
 
 interface PageHeaderProps {
@@ -155,7 +155,7 @@ export default function PageHeader({
               <Button
                 variant="outlined"
                 size="small"
-                startIcon={isCompact ? undefined : <ArrowBackIcon sx={{ fontSize: '18px' }} />}
+                startIcon={isCompact ? undefined : <ArrowBackIcon size={18} strokeWidth={1.75} />}
                 onClick={handleBack}
                 title={backLabel}
                 sx={{
@@ -165,7 +165,7 @@ export default function PageHeader({
                   ...(isCompact && { minWidth: 36, px: 1 }),
                 }}
               >
-                {isCompact ? <ArrowBackIcon sx={{ fontSize: '18px' }} /> : backLabel}
+                {isCompact ? <ArrowBackIcon size={18} strokeWidth={1.75} /> : backLabel}
               </Button>
             </Tooltip>
           )}
@@ -176,7 +176,7 @@ export default function PageHeader({
               <Button
                 variant="outlined"
                 size="small"
-                startIcon={isCompact ? undefined : <ArrowBackIcon sx={{ fontSize: '18px' }} />}
+                startIcon={isCompact ? undefined : <ArrowBackIcon size={18} strokeWidth={1.75} />}
                 onClick={handleBack}
                 title={backLabel}
                 sx={{
@@ -186,7 +186,7 @@ export default function PageHeader({
                   ...(isCompact && { minWidth: 36, px: 1 }),
                 }}
               >
-                {isCompact ? <ArrowBackIcon sx={{ fontSize: '18px' }} /> : backLabel}
+                {isCompact ? <ArrowBackIcon size={18} strokeWidth={1.75} /> : backLabel}
               </Button>
             </Tooltip>
           )}
