@@ -40,8 +40,37 @@ import {
   StickyNote2,
   Remove,
   Numbers,
+  PhotoCamera,
+  ImageIcon,
 } from '../../../icons';
 import type { PropertyInventoryItem } from '../../../services/api/propertyInventoryApi';
+
+// ─── Image resize helper (max 800px, 80% JPEG quality) ──────────────────────
+
+async function resizeImage(file: File, maxDim = 800, quality = 0.8): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read error'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('load error'));
+      img.onload = () => {
+        const ratio = Math.min(maxDim / img.width, maxDim / img.height, 1);
+        const w = Math.round(img.width * ratio);
+        const h = Math.round(img.height * ratio);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('no ctx'));
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 // ─── Categories with icons ──────────────────────────────────────────────────
 
@@ -70,8 +99,14 @@ const CATEGORY_BY_VALUE = CATEGORIES.reduce<Record<string, InventoryCategory>>((
   return acc;
 }, {});
 
-const EMPTY_FORM = { name: '', category: '', quantity: 1, notes: '' };
-type InventoryForm = typeof EMPTY_FORM;
+const EMPTY_FORM: InventoryForm = { name: '', category: '', quantity: 1, notes: '', photoUrl: null };
+interface InventoryForm {
+  name: string;
+  category: string;
+  quantity: number;
+  notes: string;
+  photoUrl: string | null;
+}
 
 interface Props {
   items: PropertyInventoryItem[];
@@ -114,6 +149,123 @@ interface InlineFormProps {
   submitting?: boolean;
 }
 
+// ─── Photo upload zone (used inside InlineForm) ─────────────────────────────
+
+function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange: (url: string | null) => void }) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFile = async (file: File) => {
+    setError(null);
+    if (!file.type.startsWith('image/')) {
+      setError('Format non supporté');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Fichier trop volumineux (>10 Mo)');
+      return;
+    }
+    try {
+      const dataUrl = await resizeImage(file, 800, 0.8);
+      onChange(dataUrl);
+    } catch {
+      setError('Erreur de chargement');
+    }
+  };
+
+  return (
+    <Box>
+      <FieldLabel icon={<PhotoCamera size={12} strokeWidth={1.75} />}>
+        Photo
+      </FieldLabel>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          if (inputRef.current) inputRef.current.value = '';
+        }}
+      />
+      {photoUrl ? (
+        <Box
+          sx={{
+            position: 'relative',
+            width: 64,
+            height: 64,
+            borderRadius: 1.5,
+            overflow: 'hidden',
+            border: '1px solid',
+            borderColor: 'divider',
+            backgroundImage: `url(${photoUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            cursor: 'pointer',
+            transition: 'border-color 150ms',
+            '&:hover': { borderColor: 'error.main' },
+            '&:hover .photo-remove': { opacity: 1 },
+          }}
+          onClick={() => onChange(null)}
+          title="Cliquer pour retirer la photo"
+        >
+          <Box
+            className="photo-remove"
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: 'rgba(239,68,68,0.7)',
+              color: '#fff',
+              opacity: 0,
+              transition: 'opacity 150ms',
+            }}
+          >
+            <Close size={20} strokeWidth={2} />
+          </Box>
+        </Box>
+      ) : (
+        <Box
+          onClick={() => inputRef.current?.click()}
+          sx={{
+            width: 64,
+            height: 64,
+            borderRadius: 1.5,
+            border: '1.5px dashed',
+            borderColor: 'divider',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 0.25,
+            cursor: 'pointer',
+            color: 'text.disabled',
+            transition: 'border-color 150ms, color 150ms, background-color 150ms',
+            '&:hover': {
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              bgcolor: 'action.hover',
+            },
+          }}
+        >
+          <PhotoCamera size={20} strokeWidth={1.75} />
+          <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, lineHeight: 1 }}>
+            Ajouter
+          </Typography>
+        </Box>
+      )}
+      {error && (
+        <Typography sx={{ fontSize: '0.625rem', color: 'error.main', mt: 0.5 }}>
+          {error}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
 function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitting }: InlineFormProps) {
   const incrementQty = (delta: number) =>
     onChange({ ...value, quantity: Math.max(1, value.quantity + delta) });
@@ -129,7 +281,13 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
         bgcolor: (theme) => (theme.palette.mode === 'dark' ? 'background.paper' : '#fafbfc'),
       }}
     >
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.5fr 2fr 0.9fr 1.6fr' }, gap: 2 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '64px 1.5fr 2fr 0.9fr 1.6fr' }, gap: 2 }}>
+        {/* Photo */}
+        <PhotoUpload
+          photoUrl={value.photoUrl}
+          onChange={(url) => onChange({ ...value, photoUrl: url })}
+        />
+
         {/* Designation */}
         <Box>
           <FieldLabel icon={<Label size={12} strokeWidth={1.75} />}>Designation</FieldLabel>
@@ -305,6 +463,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
       category: item.category ?? '',
       quantity: item.quantity,
       notes: item.notes ?? '',
+      photoUrl: item.photoUrl ?? null,
     });
     setEditingId(item.id);
   };
@@ -407,6 +566,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
           <Table size="small">
             <TableHead>
               <TableRow>
+                <TableCell sx={{ width: 64 }} />
                 <TableCell>Designation</TableCell>
                 <TableCell>Categorie</TableCell>
                 <TableCell align="center">Qte</TableCell>
@@ -420,7 +580,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                 if (isEditing) {
                   return (
                     <TableRow key={item.id}>
-                      <TableCell colSpan={5} sx={{ p: 1, bgcolor: 'action.hover' }}>
+                      <TableCell colSpan={6} sx={{ p: 1, bgcolor: 'action.hover' }}>
                         <InlineForm
                           value={editForm}
                           onChange={setEditForm}
@@ -435,6 +595,47 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                 }
                 return (
                   <TableRow key={item.id} hover>
+                    <TableCell sx={{ p: 0.75 }}>
+                      {item.photoUrl ? (
+                        <Box
+                          component="a"
+                          href={item.photoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          sx={{
+                            display: 'block',
+                            width: 44,
+                            height: 44,
+                            borderRadius: 1,
+                            backgroundImage: `url(${item.photoUrl})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            cursor: 'zoom-in',
+                            transition: 'transform 150ms',
+                            '&:hover': { transform: 'scale(1.08)' },
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 1,
+                            border: '1px dashed',
+                            borderColor: 'divider',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'text.disabled',
+                          }}
+                        >
+                          <ImageIcon size={16} strokeWidth={1.5} />
+                        </Box>
+                      )}
+                    </TableCell>
                     <TableCell>{item.name}</TableCell>
                     <TableCell>{item.category && renderCategoryChip(item.category)}</TableCell>
                     <TableCell align="center">{item.quantity}</TableCell>
