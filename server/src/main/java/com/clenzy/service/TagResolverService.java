@@ -5,6 +5,7 @@ import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
+import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
@@ -52,6 +53,7 @@ public class TagResolverService {
     private final ReservationRepository reservationRepository;
     private final ProviderExpenseRepository providerExpenseRepository;
     private final CheckInInstructionsRepository checkInInstructionsRepository;
+    private final ReceivedFormRepository receivedFormRepository;
 
     @Value("${clenzy.company.name:Clenzy}")
     private String companyName;
@@ -75,7 +77,8 @@ public class TagResolverService {
             ServiceRequestRepository serviceRequestRepository,
             ReservationRepository reservationRepository,
             ProviderExpenseRepository providerExpenseRepository,
-            CheckInInstructionsRepository checkInInstructionsRepository
+            CheckInInstructionsRepository checkInInstructionsRepository,
+            ReceivedFormRepository receivedFormRepository
     ) {
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
@@ -84,6 +87,7 @@ public class TagResolverService {
         this.reservationRepository = reservationRepository;
         this.providerExpenseRepository = providerExpenseRepository;
         this.checkInInstructionsRepository = checkInInstructionsRepository;
+        this.receivedFormRepository = receivedFormRepository;
     }
 
     /**
@@ -111,6 +115,7 @@ public class TagResolverService {
             case "property" -> resolveFromProperty(referenceId, context);
             case "user" -> resolveFromUser(referenceId, context);
             case "provider_expense" -> resolveFromProviderExpense(referenceId, context);
+            case "received_form" -> resolveFromReceivedForm(referenceId, context);
             default -> log.warn("Unknown reference type: {}", referenceType);
         }
 
@@ -275,6 +280,206 @@ public class TagResolverService {
                 }
             }
         });
+    }
+
+    /**
+     * Resout les tags pour un ReceivedForm (formulaire de contact / devis / maintenance / support).
+     * Construit toutes les namespaces exigees par le template DEVIS standard :
+     *   - client.*    (nom, prenom, nom_complet, email, telephone, societe, ville, code_postal, role)
+     *   - property.*  (nom, adresse, ville, code_postal, type, surface, ...) synthetisees depuis le payload
+     *   - demande.*   (titre, type_service, description, priorite, date_souhaitee, creneau,
+     *                  cout_estime, cout_reel, instructions, sujet, ...)
+     *   - ligne.*     (description, prix_unitaire, quantite, total) — placeholder devis
+     */
+    private void resolveFromReceivedForm(Long formId, Map<String, Object> context) {
+        if (formId == null) return;
+
+        receivedFormRepository.findById(formId).ifPresent(form -> {
+            JsonNode payload = parsePayloadSafely(form.getPayload());
+
+            // ── Client ────────────────────────────────────────────────
+            Map<String, Object> client = new LinkedHashMap<>();
+            String fullName = safeStr(form.getFullName());
+            String[] parts = fullName.trim().split("\\s+");
+            String prenom = parts.length >= 2 ? parts[0] : "";
+            String nom = parts.length >= 2
+                    ? String.join(" ", java.util.Arrays.copyOfRange(parts, 1, parts.length))
+                    : fullName;
+            client.put("nom", nom);
+            client.put("prenom", prenom);
+            client.put("nom_complet", fullName);
+            client.put("email", safeStr(form.getEmail()));
+            client.put("telephone", safeStr(form.getPhone()));
+            client.put("societe", "");
+            client.put("ville", safeStr(form.getCity()));
+            client.put("code_postal", safeStr(form.getPostalCode()));
+            client.put("role", "PROSPECT");
+            context.put("client", client);
+
+            // ── Property (synthetisee depuis le payload) ──────────────
+            Map<String, Object> property = new LinkedHashMap<>();
+            String propertyType = payload != null ? labelize(jsonText(payload, "propertyType")) : "";
+            String surface = payload != null ? jsonText(payload, "surface") : "";
+            // Nom du logement : on n'a pas de nom dans le formulaire → on synthetise
+            String synthName = !propertyType.isEmpty()
+                    ? propertyType + (form.getCity() != null ? " — " + form.getCity() : "")
+                    : (form.getCity() != null ? "Logement — " + form.getCity() : "Logement");
+            property.put("nom", synthName);
+            property.put("adresse", "");  // pas dans le formulaire
+            property.put("ville", safeStr(form.getCity()));
+            property.put("code_postal", safeStr(form.getPostalCode()));
+            property.put("pays", "France");
+            property.put("type", propertyType);
+            property.put("surface", surface.isEmpty() ? "" : surface + " m²");
+            property.put("chambres", "");
+            property.put("salles_bain", "");
+            property.put("capacite", payload != null ? labelize(jsonText(payload, "guestCapacity")) : "");
+            property.put("prix_nuit", "");
+            property.put("check_in", "");
+            property.put("check_out", "");
+            property.put("instructions_acces", "");
+            context.put("property", property);
+
+            // ── Demande (riche) ───────────────────────────────────────
+            Map<String, Object> demande = new LinkedHashMap<>();
+            String typeService;
+            String titre;
+            String description;
+            String priorite;
+            if ("DEVIS".equalsIgnoreCase(form.getFormType())) {
+                typeService = "Demande de devis — Gestion locative";
+                titre = safeStr(form.getSubject() != null ? form.getSubject() :
+                        "Devis " + propertyType + " — " + safeStr(form.getCity()));
+                description = buildDevisDescription(payload);
+                priorite = "Normale";
+            } else if ("MAINTENANCE".equalsIgnoreCase(form.getFormType())) {
+                typeService = "Travaux / maintenance";
+                titre = safeStr(form.getSubject() != null ? form.getSubject() : "Travaux — " + safeStr(form.getCity()));
+                description = buildMaintenanceDescription(payload);
+                priorite = payload != null ? labelize(jsonText(payload, "urgency")) : "Normale";
+                if (priorite.isEmpty()) priorite = "Normale";
+            } else {
+                typeService = "Support";
+                titre = safeStr(form.getSubject() != null ? form.getSubject() :
+                        (payload != null ? jsonText(payload, "subject") : ""));
+                description = payload != null ? jsonText(payload, "message") : "";
+                priorite = "Normale";
+            }
+            demande.put("id", String.valueOf(form.getId()));
+            demande.put("titre", titre);
+            demande.put("type_service", typeService);
+            demande.put("description", description);
+            demande.put("priorite", priorite);
+            demande.put("date_souhaitee", form.getCreatedAt() != null ? form.getCreatedAt().format(DATE_FORMAT) : "");
+            demande.put("creneau", "À convenir");
+            demande.put("cout_estime", "Sur demande");
+            demande.put("cout_reel", "Sur demande");
+            demande.put("instructions", description);
+            demande.put("sujet", safeStr(form.getSubject()));
+            demande.put("statut", safeStr(form.getStatus()));
+            demande.put("type", safeStr(form.getFormType()));
+            demande.put("ip", safeStr(form.getIpAddress()));
+            demande.put("date", form.getCreatedAt() != null ? form.getCreatedAt().format(DATETIME_FORMAT) : "");
+            context.put("demande", demande);
+
+            // ── Ligne (placeholder pour le tableau devis) ─────────────
+            Map<String, Object> ligne = new LinkedHashMap<>();
+            ligne.put("description", typeService);
+            ligne.put("quantite", "1");
+            ligne.put("prix_unitaire", "Sur demande");
+            ligne.put("total", "Sur demande");
+            context.put("ligne", ligne);
+        });
+    }
+
+    /** Resume textuel des champs DEVIS pour la description du document. */
+    private String buildDevisDescription(JsonNode payload) {
+        if (payload == null) return "";
+        StringBuilder sb = new StringBuilder();
+        String type = labelize(jsonText(payload, "propertyType"));
+        String surface = jsonText(payload, "surface");
+        String capacite = labelize(jsonText(payload, "guestCapacity"));
+        String nombre = jsonText(payload, "propertyCount");
+        if (!type.isEmpty() || !surface.isEmpty() || !capacite.isEmpty() || !nombre.isEmpty()) {
+            sb.append("Bien : ");
+            List<String> bits = new ArrayList<>();
+            if (!type.isEmpty()) bits.add(type);
+            if (!surface.isEmpty()) bits.add(surface + " m²");
+            if (!capacite.isEmpty()) bits.add(capacite + " voyageurs");
+            if (!nombre.isEmpty() && !"1".equals(nombre)) bits.add(nombre + " logements");
+            sb.append(String.join(", ", bits)).append(".\n");
+        }
+        String forfait = joinJsonArray(payload, "services");
+        String devis = joinJsonArray(payload, "servicesDevis");
+        String cal = labelize(jsonText(payload, "calendarSync"));
+        if (!forfait.isEmpty() || !devis.isEmpty() || !cal.isEmpty()) {
+            sb.append("Services souhaités :");
+            if (!forfait.isEmpty()) sb.append("\n  • Forfait : ").append(forfait);
+            if (!devis.isEmpty()) sb.append("\n  • Sur devis : ").append(devis);
+            if (!cal.isEmpty()) sb.append("\n  • Synchro calendrier : ").append(cal);
+            sb.append('\n');
+        }
+        String freq = labelize(jsonText(payload, "bookingFrequency"));
+        String menage = labelize(jsonText(payload, "cleaningSchedule"));
+        if (!freq.isEmpty() || !menage.isEmpty()) {
+            sb.append("Planning :");
+            if (!freq.isEmpty()) sb.append("\n  • Fréquence des réservations : ").append(freq);
+            if (!menage.isEmpty()) sb.append("\n  • Planning ménage : ").append(menage);
+        }
+        return sb.toString().trim();
+    }
+
+    /** Resume textuel des champs MAINTENANCE. */
+    private String buildMaintenanceDescription(JsonNode payload) {
+        if (payload == null) return "";
+        StringBuilder sb = new StringBuilder();
+        String works = joinJsonArray(payload, "selectedWorks");
+        if (!works.isEmpty()) sb.append("Travaux demandés : ").append(works).append("\n");
+        String custom = jsonText(payload, "customNeed");
+        if (!custom.isEmpty()) sb.append("Besoin spécifique : ").append(custom).append("\n");
+        String desc = jsonText(payload, "description");
+        if (!desc.isEmpty()) sb.append("\n").append(desc);
+        return sb.toString().trim();
+    }
+
+    // ─── ReceivedForm helpers ─────────────────────────────────────────────
+
+    private JsonNode parsePayloadSafely(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return new ObjectMapper().readTree(json);
+        } catch (Exception e) {
+            log.warn("Cannot parse ReceivedForm payload as JSON: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String jsonText(JsonNode node, String field) {
+        if (node == null || !node.hasNonNull(field)) return "";
+        JsonNode v = node.get(field);
+        return v.isTextual() ? v.asText() : v.toString();
+    }
+
+    private String joinJsonArray(JsonNode node, String field) {
+        if (node == null || !node.hasNonNull(field)) return "";
+        JsonNode arr = node.get(field);
+        if (!arr.isArray()) return labelize(arr.isTextual() ? arr.asText() : arr.toString());
+        List<String> parts = new ArrayList<>();
+        arr.forEach(item -> parts.add(labelize(item.isTextual() ? item.asText() : item.toString())));
+        return String.join(", ", parts);
+    }
+
+    /** kebab-case → "Kebab Case" — lit les codes du frontend (ex: 'tres-frequent') */
+    private String labelize(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        String[] words = raw.replace('_', ' ').replace('-', ' ').toLowerCase().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < words.length; i++) {
+            if (words[i].isEmpty()) continue;
+            sb.append(Character.toUpperCase(words[i].charAt(0))).append(words[i].substring(1));
+            if (i < words.length - 1) sb.append(' ');
+        }
+        return sb.toString();
     }
 
     private Map<String, Object> resolveExpenseTags(ProviderExpense expense) {

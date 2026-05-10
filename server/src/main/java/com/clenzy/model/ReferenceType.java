@@ -10,7 +10,8 @@ public enum ReferenceType {
     PROPERTY("Bien immobilier"),
     USER("Utilisateur"),
     RESERVATION("Reservation"),
-    PROVIDER_EXPENSE("Depense prestataire");
+    PROVIDER_EXPENSE("Depense prestataire"),
+    RECEIVED_FORM("Formulaire recu (contact)");
 
     private final String label;
 
