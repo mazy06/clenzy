@@ -27,7 +27,7 @@ import {
   Receipt,
   MoneyOff,
   Gavel,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
 import { useAuth } from '../../../hooks/useAuth';
@@ -117,7 +117,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
     <Box>
       {/* Payment status */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Payment sx={{ fontSize: 18, color: 'primary.main' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Payment size={18} strokeWidth={1.75} /></Box>
         <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>Statut paiement</Typography>
         {(() => { const c = STATUS_HEX[(intervention.paymentStatus || intervention.status)?.toUpperCase()] || '#757575'; return (
         <Chip
@@ -132,7 +132,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       <Box sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, mb: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Schedule sx={{ fontSize: 14, color: 'text.secondary' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={14} strokeWidth={1.75} /></Box>
             <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>Durée estimée</Typography>
           </Box>
           <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
@@ -141,7 +141,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <AttachMoney sx={{ fontSize: 14, color: 'text.secondary' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AttachMoney size={14} strokeWidth={1.75} /></Box>
             <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>Coût estimé</Typography>
           </Box>
           <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: 'primary.main' }}>
@@ -162,7 +162,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       {canValidate && intervention.status === 'awaiting_validation' && (
         <>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-            <Gavel sx={{ fontSize: 16, color: 'warning.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Gavel size={16} strokeWidth={1.75} /></Box>
             <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
               Validation manager
             </Typography>
@@ -175,7 +175,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
             color="warning"
             fullWidth
             size="small"
-            startIcon={<CheckCircle sx={{ fontSize: 14 }} />}
+            startIcon={<CheckCircle size={14} strokeWidth={1.75} />}
             onClick={() => {
               setValidateCost(estimatedCost.toFixed(2));
               setValidateDialogOpen(true);
@@ -190,7 +190,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
 
       {/* Payment history */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-        <Receipt sx={{ fontSize: 16, color: 'text.secondary' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Receipt size={16} strokeWidth={1.75} /></Box>
         <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
           Historique paiements
         </Typography>

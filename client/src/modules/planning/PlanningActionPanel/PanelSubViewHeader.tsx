@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import { ArrowBack } from '../../../icons';
 
 interface PanelSubViewHeaderProps {
   title: string;
@@ -20,7 +20,7 @@ const PanelSubViewHeader: React.FC<PanelSubViewHeaderProps> = ({ title, onBack }
     }}
   >
     <IconButton size="small" onClick={onBack} sx={{ p: 0.5 }}>
-      <ArrowBack sx={{ fontSize: 18 }} />
+      <ArrowBack size={18} strokeWidth={1.75} />
     </IconButton>
     <Typography
       variant="subtitle2"

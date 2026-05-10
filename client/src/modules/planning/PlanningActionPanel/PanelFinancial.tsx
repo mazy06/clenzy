@@ -48,7 +48,7 @@ import {
   Email,
   CheckCircle,
   Download,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
 import { useCurrency } from '../../../hooks/useCurrency';
@@ -669,7 +669,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <SectionCard
           borderColor="#0288d1"
           bgColor="#0288d108"
-          icon={<Person sx={{ fontSize: 18, color: '#0288d1' }} />}
+          icon={<Person size={18} strokeWidth={1.75} color='#0288d1' />}
           title="Paiement reservation"
           badge="Voyageur"
           badgeColor="#0288d1"
@@ -729,7 +729,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               </Typography>
               {invoices.map((inv) => (
                 <Box key={inv.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
-                  <Receipt sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Receipt size={14} strokeWidth={1.75} /></Box>
                   <Typography variant="caption" sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
                     {inv.legalNumber || inv.fileName}
                   </Typography>
@@ -744,7 +744,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                         }}
                         sx={{ p: 0.25 }}
                       >
-                        <Download sx={{ fontSize: 14 }} />
+                        <Download size={14} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Duplicata">
@@ -756,7 +756,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                         }}
                         sx={{ p: 0.25 }}
                       >
-                        <Receipt sx={{ fontSize: 14 }} />
+                        <Receipt size={14} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                   </Box>
@@ -770,7 +770,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {/* ── Confirmation lien envoye ──────────────────────────── */}
           {lastSentAt && (
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 0.5 }}>
-              <CheckCircle sx={{ fontSize: 16, color: '#4A9B8E', mt: 0.25 }} />
+              <Box component="span" sx={{ display: 'inline-flex', mt: 0.25 }}><CheckCircle size={16} strokeWidth={1.75} color='#4A9B8E' /></Box>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: '#4A9B8E', fontWeight: 600 }}>
                   Lien envoye le {fmtDate(lastSentAt)}
@@ -795,7 +795,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <Button
               size="small"
               variant="contained"
-              startIcon={sendingLink ? <CircularProgress size={14} color="inherit" /> : <Send sx={{ fontSize: 14 }} />}
+              startIcon={sendingLink ? <CircularProgress size={14} color="inherit" /> : <Send size={14} strokeWidth={1.75} />}
               disabled={sendingLink || !onSendPaymentLink || !hasTotalPrice || reservation?.paymentStatus === 'PAID'}
               onClick={() => {
                 if (reservation.guestEmail) {
@@ -816,7 +816,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={<Download sx={{ fontSize: 12 }} />}
+                startIcon={<Download size={12} strokeWidth={1.75} />}
                 onClick={async () => {
                   const inv = invoices[invoices.length - 1];
                   const { documentsApi } = await import('../../../services/api/documentsApi');
@@ -830,7 +830,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt sx={{ fontSize: 12 }} />}
+                startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt size={12} strokeWidth={1.75} />}
                 disabled={invoiceLoading || !onGenerateInvoice || !reservation || !hasTotalPrice}
                 onClick={() => reservation && handleGenerateInvoice('RESERVATION', reservation.id)}
                 sx={{ flex: 1, fontSize: '0.6875rem', textTransform: 'none' }}
@@ -852,7 +852,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 fullWidth
                 sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
                 InputProps={{
-                  startAdornment: <Email sx={{ fontSize: 14, color: 'text.secondary', mr: 0.5 }} />,
+                  startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><Email size={14} strokeWidth={1.75} /></Box>,
                 }}
               />
               <Button
@@ -877,7 +877,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <SectionCard
           borderColor="#D4A574"
           bgColor="#D4A57408"
-          icon={<Business sx={{ fontSize: 18, color: '#D4A574' }} />}
+          icon={<Business size={18} strokeWidth={1.75} color='#D4A574' />}
           title="Paiement interventions"
           badge="Proprietaire"
           badgeColor="#D4A574"
@@ -893,8 +893,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               {payableServiceRequests.map((sr) => {
                 const cost = sr.estimatedCost || (sr.estimatedDurationHours ? sr.estimatedDurationHours * 25 : 0);
                 const typeIcon = sr.serviceType === 'CLEANING' || sr.serviceType === 'EXPRESS_CLEANING'
-                  ? <CleaningServices sx={{ fontSize: 14, color: '#D4A574' }} />
-                  : <Handyman sx={{ fontSize: 14, color: '#D4A574' }} />;
+                  ? <CleaningServices size={14} strokeWidth={1.75} color='#D4A574' />
+                  : <Handyman size={14} strokeWidth={1.75} color='#D4A574' />;
                 return (
                   <Box
                     key={`sr-${sr.id}`}
@@ -947,7 +947,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   Prestations liees ({linkedInterventions.length})
                 </Typography>
                 <IconButton size="small" onClick={() => setInterventionsExpanded(!interventionsExpanded)} sx={{ p: 0.25 }}>
-                  {interventionsExpanded ? <ExpandLess sx={{ fontSize: 16 }} /> : <ExpandMore sx={{ fontSize: 16 }} />}
+                  {interventionsExpanded ? <ExpandLess size={16} strokeWidth={1.75} /> : <ExpandMore size={16} strokeWidth={1.75} />}
                 </IconButton>
               </Box>
 
@@ -955,8 +955,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 {linkedInterventions.map((intv) => {
                   const cost = intv.actualCost || intv.estimatedCost || (intv.estimatedDurationHours ? intv.estimatedDurationHours * 25 : 0);
                   const typeIcon = intv.type === 'cleaning'
-                    ? <CleaningServices sx={{ fontSize: 14, color: 'text.secondary' }} />
-                    : <Handyman sx={{ fontSize: 14, color: 'text.secondary' }} />;
+                    ? <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CleaningServices size={14} strokeWidth={1.75} /></Box>
+                    : <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Handyman size={14} strokeWidth={1.75} /></Box>;
                   return (
                     <Box
                       key={intv.id}
@@ -1014,7 +1014,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <Button
               size="small"
               variant="contained"
-              startIcon={payingSR ? <CircularProgress size={14} color="inherit" /> : <CreditCard sx={{ fontSize: 14 }} />}
+              startIcon={payingSR ? <CircularProgress size={14} color="inherit" /> : <CreditCard size={14} strokeWidth={1.75} />}
               disabled={payingSR || (payableServiceRequests.length === 0 && interventionCostTotal <= interventionPaid)}
               onClick={() => {
                 if (payableServiceRequests.length > 0) {
@@ -1037,7 +1037,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <Button
               size="small"
               variant="outlined"
-              startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt sx={{ fontSize: 12 }} />}
+              startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt size={12} strokeWidth={1.75} />}
               disabled={invoiceLoading || linkedInterventions.length === 0 || !onGenerateInvoice}
               onClick={() => {
                 if (linkedInterventions.length > 0) {
@@ -1054,7 +1054,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               size="small"
               variant="outlined"
               color="warning"
-              startIcon={<MoneyOff sx={{ fontSize: 12 }} />}
+              startIcon={<MoneyOff size={12} strokeWidth={1.75} />}
               disabled={interventionPaid <= 0}
               onClick={() => setRefundDialogOpen(true)}
               sx={{ flex: 1, fontSize: '0.6875rem', textTransform: 'none' }}
@@ -1070,7 +1070,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <SectionCard
           borderColor="#D4A574"
           bgColor="#D4A57408"
-          icon={<Business sx={{ fontSize: 18, color: '#D4A574' }} />}
+          icon={<Business size={18} strokeWidth={1.75} color='#D4A574' />}
           title="Paiement interventions"
           badge="Proprietaire"
           badgeColor="#D4A574"
@@ -1088,7 +1088,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <SectionCard
           borderColor="#D4A574"
           bgColor="#D4A57408"
-          icon={<Business sx={{ fontSize: 18, color: '#D4A574' }} />}
+          icon={<Business size={18} strokeWidth={1.75} color='#D4A574' />}
           title="Cout intervention"
           badge="Proprietaire"
           badgeColor="#D4A574"
@@ -1122,7 +1122,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <Button
               size="small"
               variant="contained"
-              startIcon={<CreditCard sx={{ fontSize: 14 }} />}
+              startIcon={<CreditCard size={14} strokeWidth={1.75} />}
               fullWidth
               onClick={() => {
                 const cost = intervention.estimatedCost || (intervention.estimatedDurationHours ? intervention.estimatedDurationHours * 25 : 0);
@@ -1144,7 +1144,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <Button
               size="small"
               variant="outlined"
-              startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt sx={{ fontSize: 12 }} />}
+              startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt size={12} strokeWidth={1.75} />}
               fullWidth
               disabled={invoiceLoading}
               onClick={() => handleGenerateInvoice('INTERVENTION', intervention.id)}
@@ -1166,7 +1166,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               </Typography>
               {invoices.map((inv) => (
                 <Box key={inv.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
-                  <Receipt sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Receipt size={14} strokeWidth={1.75} /></Box>
                   <Typography variant="caption" sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
                     {inv.legalNumber || inv.fileName}
                   </Typography>
@@ -1181,7 +1181,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                         }}
                         sx={{ p: 0.25 }}
                       >
-                        <Download sx={{ fontSize: 14 }} />
+                        <Download size={14} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Duplicata">
@@ -1193,7 +1193,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                         }}
                         sx={{ p: 0.25 }}
                       >
-                        <Receipt sx={{ fontSize: 14 }} />
+                        <Receipt size={14} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                   </Box>
@@ -1212,10 +1212,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       <Dialog open={paymentsDialogOpen} onClose={() => setPaymentsDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Payment sx={{ fontSize: 20, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Payment size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Historique des paiements</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setPaymentsDialogOpen(false)}><Close sx={{ fontSize: 18 }} /></IconButton>
+          <IconButton size="small" onClick={() => setPaymentsDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 2 }}>
           {payments.length === 0 ? (
@@ -1275,10 +1275,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       <Dialog open={addPaymentOpen} onClose={() => setAddPaymentOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Add sx={{ fontSize: 20, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Add size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Ajouter un paiement</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setAddPaymentOpen(false)}><Close sx={{ fontSize: 18 }} /></IconButton>
+          <IconButton size="small" onClick={() => setAddPaymentOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
           {reservation && (
@@ -1297,7 +1297,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
           <Button onClick={() => setAddPaymentOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
-          <Button onClick={handleAddPayment} variant="contained" size="small" disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || paymentLoading} startIcon={paymentLoading ? <CircularProgress size={14} /> : <Check sx={{ fontSize: 16 }} />} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+          <Button onClick={handleAddPayment} variant="contained" size="small" disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || paymentLoading} startIcon={paymentLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
             Enregistrer
           </Button>
         </DialogActions>
@@ -1307,10 +1307,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       <Dialog open={addFeeOpen} onClose={() => setAddFeeOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <AttachMoney sx={{ fontSize: 20, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AttachMoney size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Frais supplementaires</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setAddFeeOpen(false)}><Close sx={{ fontSize: 18 }} /></IconButton>
+          <IconButton size="small" onClick={() => setAddFeeOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1325,7 +1325,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
           <Button onClick={() => setAddFeeOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
-          <Button onClick={handleAddFee} variant="contained" size="small" disabled={!feeDescription.trim() || !feeAmount || parseFloat(feeAmount) <= 0 || feeLoading} startIcon={feeLoading ? <CircularProgress size={14} /> : <Add sx={{ fontSize: 16 }} />} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+          <Button onClick={handleAddFee} variant="contained" size="small" disabled={!feeDescription.trim() || !feeAmount || parseFloat(feeAmount) <= 0 || feeLoading} startIcon={feeLoading ? <CircularProgress size={14} /> : <Add size={16} strokeWidth={1.75} />} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
             Ajouter
           </Button>
         </DialogActions>
@@ -1335,13 +1335,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       <Dialog open={refundDialogOpen} onClose={() => setRefundDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <MoneyOff sx={{ fontSize: 20, color: 'warning.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><MoneyOff size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Confirmer le remboursement</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setRefundDialogOpen(false)}><Close sx={{ fontSize: 18 }} /></IconButton>
+          <IconButton size="small" onClick={() => setRefundDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
-          <Alert severity="warning" icon={<Warning sx={{ fontSize: 18 }} />} sx={{ fontSize: '0.8125rem', mb: 2 }}>
+          <Alert severity="warning" icon={<Warning size={18} strokeWidth={1.75} />} sx={{ fontSize: '0.8125rem', mb: 2 }}>
             Cette action est irreversible. Le remboursement sera traite via le mode de paiement d'origine.
           </Alert>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 1.5, borderRadius: 1.5, bgcolor: 'action.hover' }}>
@@ -1365,7 +1365,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
           <Button onClick={() => setRefundDialogOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
-          <Button onClick={handleRefund} variant="contained" color="warning" size="small" disabled={refundLoading} startIcon={refundLoading ? <CircularProgress size={14} /> : <MoneyOff sx={{ fontSize: 16 }} />} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+          <Button onClick={handleRefund} variant="contained" color="warning" size="small" disabled={refundLoading} startIcon={refundLoading ? <CircularProgress size={14} /> : <MoneyOff size={16} strokeWidth={1.75} />} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
             Confirmer le remboursement
           </Button>
         </DialogActions>

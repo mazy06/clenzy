@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Tooltip, Typography, useTheme } from '@mui/material';
 import { useDraggable } from '@dnd-kit/core';
-import { AutoAwesome, Handyman, Lock as LockIcon, Close, WarningAmber, CreditCardOff } from '@mui/icons-material';
+import { AutoAwesome, Handyman, Lock as LockIcon, Close, WarningAmber, CreditCardOff } from '../../icons';
 import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData } from './types';
 import { BAR_BORDER_RADIUS } from './constants';
 import { hexToRgba } from './utils/colorUtils';
@@ -24,9 +24,9 @@ interface PlanningBarProps {
 function getEventIcon(type: PlanningEvent['type'], compact: boolean) {
   const size = compact ? 9 : 12;
   switch (type) {
-    case 'cleaning': return <AutoAwesome sx={{ fontSize: size }} />;
-    case 'maintenance': return <Handyman sx={{ fontSize: size }} />;
-    case 'blocked': return <LockIcon sx={{ fontSize: size }} />;
+    case 'cleaning': return <AutoAwesome size={size} strokeWidth={1.75} />;
+    case 'maintenance': return <Handyman size={size} strokeWidth={1.75} />;
+    case 'blocked': return <LockIcon size={size} strokeWidth={1.75} />;
     default: return null;
   }
 }
@@ -288,7 +288,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               transition: 'transform 0.15s ease, background-color 0.15s ease',
             }}
           >
-            <Close sx={{ fontSize: 10, color: '#fff' }} />
+            <Close size={10} strokeWidth={1.75} color='#fff' />
           </Box>
         </Tooltip>
       )}
@@ -313,7 +313,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               border: `1.5px solid ${isDark ? '#1e1e1e' : '#fff'}`,
             }}
           >
-            <WarningAmber sx={{ fontSize: 10, color: '#fff' }} />
+            <WarningAmber size={10} strokeWidth={1.75} color='#fff' />
           </Box>
         </Tooltip>
       )}
@@ -345,7 +345,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 border: `1.5px solid ${isDark ? '#1e1e1e' : '#fff'}`,
               }}
             >
-              <CreditCardOff sx={{ fontSize: 10, color: '#fff' }} />
+              <CreditCardOff size={10} strokeWidth={1.75} color='#fff' />
             </Box>
           </Tooltip>
         );

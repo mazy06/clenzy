@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, IconButton, Typography, useTheme } from '@mui/material';
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight } from '../../icons';
 import { PAGINATION_BAR_HEIGHT } from './constants';
 
 interface PlanningPaginationBarProps {
@@ -47,7 +47,7 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
         disabled={currentPage === 0}
         sx={{ width: 28, height: 28 }}
       >
-        <ChevronLeft sx={{ fontSize: 18 }} />
+        <ChevronLeft size={18} strokeWidth={1.75} />
       </IconButton>
 
       {/* Page indicator */}
@@ -70,7 +70,7 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
         disabled={currentPage >= totalPages - 1}
         sx={{ width: 28, height: 28 }}
       >
-        <ChevronRight sx={{ fontSize: 18 }} />
+        <ChevronRight size={18} strokeWidth={1.75} />
       </IconButton>
 
       {/* Range info */}

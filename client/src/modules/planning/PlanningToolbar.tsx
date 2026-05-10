@@ -34,7 +34,7 @@ import {
   CalendarToday as CalendarTodayIcon,
   TuneOutlined,
   Lock,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { ZoomLevel, DensityMode, PlanningFilters } from './types';
 import type { ReservationStatus } from '../../services/api';
 import { ZOOM_LABELS } from './constants';
@@ -164,11 +164,11 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
       {/* Navigation */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
         <IconButton size="small" onClick={onGoPrev} sx={{ width: 28, height: 28 }}>
-          <ChevronLeft sx={{ fontSize: 18 }} />
+          <ChevronLeft size={18} strokeWidth={1.75} />
         </IconButton>
 
         <Chip
-          icon={<TodayOutlined sx={{ fontSize: 14 }} />}
+          icon={<TodayOutlined size={14} strokeWidth={1.75} />}
           label="Aujourd'hui"
           size="small"
           variant="outlined"
@@ -185,7 +185,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
         />
 
         <IconButton size="small" onClick={onGoNext} sx={{ width: 28, height: 28 }}>
-          <ChevronRight sx={{ fontSize: 18 }} />
+          <ChevronRight size={18} strokeWidth={1.75} />
         </IconButton>
       </Box>
 
@@ -245,7 +245,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Search sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={16} strokeWidth={1.75} /></Box>
                 </InputAdornment>
               ),
             }}
@@ -288,7 +288,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                 },
               }}
             >
-              <FilterListIcon sx={{ fontSize: 16 }} />
+              <FilterListIcon size={16} strokeWidth={1.75} />
             </Badge>
           </IconButton>
 
@@ -318,7 +318,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                 Filtres
               </Typography>
               <IconButton size="small" onClick={() => setFilterAnchor(null)} sx={{ p: 0.25 }}>
-                <CloseIcon sx={{ fontSize: 16 }} />
+                <CloseIcon size={16} strokeWidth={1.75} />
               </IconButton>
             </Box>
 
@@ -362,7 +362,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
               <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                 {/* Interventions toggle */}
                 <Chip
-                  icon={filters.showInterventions ? <Visibility sx={{ fontSize: 13 }} /> : <VisibilityOff sx={{ fontSize: 13 }} />}
+                  icon={filters.showInterventions ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
                   label="Interventions"
                   size="small"
                   variant={filters.showInterventions ? 'filled' : 'outlined'}
@@ -380,7 +380,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
 
                 {/* Prices toggle */}
                 <Chip
-                  icon={<AttachMoney sx={{ fontSize: 13 }} />}
+                  icon={<AttachMoney size={13} strokeWidth={1.75} />}
                   label="Tarifs"
                   size="small"
                   variant={filters.showPrices ? 'filled' : 'outlined'}
@@ -398,7 +398,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
 
                 {/* Density toggle */}
                 <Chip
-                  icon={density === 'normal' ? <ViewCompact sx={{ fontSize: 13 }} /> : <ViewComfy sx={{ fontSize: 13 }} />}
+                  icon={density === 'normal' ? <ViewCompact size={13} strokeWidth={1.75} /> : <ViewComfy size={13} strokeWidth={1.75} />}
                   label={density === 'normal' ? 'Compact' : 'Normal'}
                   size="small"
                   variant="outlined"
@@ -443,7 +443,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           {onImportICal && (
             <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
               <Chip
-                icon={<CalendarTodayIcon sx={{ fontSize: 13 }} />}
+                icon={<CalendarTodayIcon size={13} strokeWidth={1.75} />}
                 label="Import iCal"
                 size="small"
                 variant="outlined"
@@ -470,7 +470,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           {onBlockPeriod && (
             <Tooltip title="Bloquer une periode (indisponible)" arrow>
               <Chip
-                icon={<Lock sx={{ fontSize: 13 }} />}
+                icon={<Lock size={13} strokeWidth={1.75} />}
                 label="Bloquer"
                 size="small"
                 variant="outlined"
@@ -514,7 +514,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                   '& .MuiBadge-dot': { width: 8, height: 8, borderRadius: '50%' },
                 }}
               >
-                <TuneOutlined sx={{ fontSize: 18 }} />
+                <TuneOutlined size={18} strokeWidth={1.75} />
               </Badge>
             </IconButton>
           </Tooltip>
@@ -547,7 +547,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Search sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={16} strokeWidth={1.75} /></Box>
                     </InputAdornment>
                   ),
                 }}
@@ -605,7 +605,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                 <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                   {/* Interventions toggle */}
                   <Chip
-                    icon={filters.showInterventions ? <Visibility sx={{ fontSize: 13 }} /> : <VisibilityOff sx={{ fontSize: 13 }} />}
+                    icon={filters.showInterventions ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
                     label="Interventions"
                     size="small"
                     variant={filters.showInterventions ? 'filled' : 'outlined'}
@@ -623,7 +623,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
 
                   {/* Prices toggle */}
                   <Chip
-                    icon={<AttachMoney sx={{ fontSize: 13 }} />}
+                    icon={<AttachMoney size={13} strokeWidth={1.75} />}
                     label="Tarifs"
                     size="small"
                     variant={filters.showPrices ? 'filled' : 'outlined'}
@@ -641,7 +641,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
 
                   {/* Density toggle */}
                   <Chip
-                    icon={density === 'normal' ? <ViewCompact sx={{ fontSize: 13 }} /> : <ViewComfy sx={{ fontSize: 13 }} />}
+                    icon={density === 'normal' ? <ViewCompact size={13} strokeWidth={1.75} /> : <ViewComfy size={13} strokeWidth={1.75} />}
                     label={density === 'normal' ? 'Compact' : 'Normal'}
                     size="small"
                     variant="outlined"
@@ -666,7 +666,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                 {/* Import iCal */}
                 {onImportICal && (
                   <Chip
-                    icon={<CalendarTodayIcon sx={{ fontSize: 13 }} />}
+                    icon={<CalendarTodayIcon size={13} strokeWidth={1.75} />}
                     label="Import iCal"
                     size="small"
                     variant="outlined"
@@ -693,7 +693,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                 {/* Block period */}
                 {onBlockPeriod && (
                   <Chip
-                    icon={<Lock sx={{ fontSize: 13 }} />}
+                    icon={<Lock size={13} strokeWidth={1.75} />}
                     label="Bloquer"
                     size="small"
                     variant="outlined"
@@ -720,7 +720,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                 {/* Clear filters */}
                 {hasActiveFilters && (
                   <Chip
-                    icon={<FilterListOff sx={{ fontSize: 13 }} />}
+                    icon={<FilterListOff size={13} strokeWidth={1.75} />}
                     label="Effacer filtres"
                     size="small"
                     variant="outlined"
@@ -754,7 +754,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           onClick={onToggleFullscreen}
           sx={{ width: 28, height: 28, flexShrink: 0 }}
         >
-          {isFullscreen ? <FullscreenExit sx={{ fontSize: 18 }} /> : <Fullscreen sx={{ fontSize: 18 }} />}
+          {isFullscreen ? <FullscreenExit size={18} strokeWidth={1.75} /> : <Fullscreen size={18} strokeWidth={1.75} />}
         </IconButton>
       </Tooltip>
     </Box>

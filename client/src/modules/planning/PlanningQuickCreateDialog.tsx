@@ -38,7 +38,7 @@ import {
   AccountBalance,
   CheckCircle,
   Schedule,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { QuickCreateData, PlanningEvent } from './types';
 import type { CreateReservationData } from '../../services/api';
@@ -46,7 +46,7 @@ import { reservationsApi, guestsApi, propertiesApi } from '../../services/api';
 import type { GuestDto, CreateGuestData } from '../../services/api';
 import { planningKeys } from './hooks/usePlanningData';
 import MiniDateRangePicker from '../../components/MiniDateRangePicker';
-import { Warning as WarningIcon } from '@mui/icons-material';
+import { Warning as WarningIcon } from '../../icons';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -461,23 +461,23 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
             }}
           >
             <ToggleButton value="pending">
-              <Schedule sx={{ fontSize: 13 }} />
+              <Schedule size={13} strokeWidth={1.75} />
               En attente
             </ToggleButton>
             <ToggleButton value="confirmed">
-              <CheckCircle sx={{ fontSize: 13 }} />
+              <CheckCircle size={13} strokeWidth={1.75} />
               Confirmee
             </ToggleButton>
           </ToggleButtonGroup>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 0.5 }}>
-            <Home sx={{ fontSize: 15, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Home size={15} strokeWidth={1.75} /></Box>
             <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.84rem' }}>
               {data.propertyName}
             </Typography>
           </Box>
         </Box>
         <IconButton size="small" onClick={onClose}>
-          <Close sx={{ fontSize: 18 }} />
+          <Close size={18} strokeWidth={1.75} />
         </IconButton>
       </DialogTitle>
 
@@ -513,7 +513,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
                 size="small"
                 fullWidth
                 InputProps={{
-                  startAdornment: <AccessTime sx={{ fontSize: 14, color: 'text.secondary', mr: 0.5 }} />,
+                  startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><AccessTime size={14} strokeWidth={1.75} /></Box>,
                 }}
                 InputLabelProps={{ shrink: true }}
                 sx={{ flex: 1, ...FIELD_SX }}
@@ -526,14 +526,14 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
                 size="small"
                 fullWidth
                 InputProps={{
-                  startAdornment: <AccessTime sx={{ fontSize: 14, color: 'text.secondary', mr: 0.5 }} />,
+                  startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><AccessTime size={14} strokeWidth={1.75} /></Box>,
                 }}
                 InputLabelProps={{ shrink: true }}
                 sx={{ flex: 1, ...FIELD_SX }}
               />
               {numberOfNights > 0 && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, whiteSpace: 'nowrap' }}>
-                  <NightsStay sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><NightsStay size={14} strokeWidth={1.75} /></Box>
                   <Typography variant="body2" sx={{ fontSize: '0.78rem', fontWeight: 700 }}>
                     {numberOfNights} nuit{numberOfNights > 1 ? 's' : ''}
                   </Typography>
@@ -549,7 +549,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
             {selectedGuest ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Chip
-                  icon={<Person sx={{ fontSize: 16 }} />}
+                  icon={<Person size={16} strokeWidth={1.75} />}
                   label={selectedGuest.fullName}
                   onDelete={() => {
                     setSelectedGuest(null);
@@ -617,7 +617,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
               <>
                 <Button
                   size="small"
-                  startIcon={<PersonAdd sx={{ fontSize: 14 }} />}
+                  startIcon={<PersonAdd size={14} strokeWidth={1.75} />}
                   onClick={() => setShowCreateGuestForm(!showCreateGuestForm)}
                   sx={{
                     textTransform: 'none',
@@ -702,7 +702,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
 
             {/* Guest count */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.5 }}>
-              <GroupIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><GroupIcon size={16} strokeWidth={1.75} /></Box>
               <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 600, mr: 0.5 }}>
                 Voyageurs
               </Typography>
@@ -727,7 +727,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
                     '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.08) },
                   }}
                 >
-                  <RemoveIcon sx={{ fontSize: 15 }} />
+                  <RemoveIcon size={15} strokeWidth={1.75} />
                 </IconButton>
                 <Typography
                   sx={{
@@ -755,7 +755,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
                     '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.08) },
                   }}
                 >
-                  <AddIcon sx={{ fontSize: 15 }} />
+                  <AddIcon size={15} strokeWidth={1.75} />
                 </IconButton>
               </Box>
             </Box>
@@ -775,7 +775,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
                 fullWidth
                 disabled
                 InputProps={{
-                  startAdornment: <Euro sx={{ fontSize: 14, color: 'text.secondary', mr: 0.5 }} />,
+                  startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><Euro size={14} strokeWidth={1.75} /></Box>,
                 }}
                 InputLabelProps={{ shrink: true }}
                 sx={FIELD_SX}
@@ -816,15 +816,15 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
               }}
             >
               <ToggleButton value="custom">
-                <EditIcon sx={{ fontSize: 12 }} />
+                <EditIcon size={12} strokeWidth={1.75} />
                 Personnalise
               </ToggleButton>
               <ToggleButton value="discount_euro">
-                <Euro sx={{ fontSize: 12 }} />
+                <Euro size={12} strokeWidth={1.75} />
                 Reduction EUR
               </ToggleButton>
               <ToggleButton value="discount_percent">
-                <Percent sx={{ fontSize: 12 }} />
+                <Percent size={12} strokeWidth={1.75} />
                 Reduction %
               </ToggleButton>
             </ToggleButtonGroup>
@@ -873,7 +873,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
               }
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <CleaningServices sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CleaningServices size={14} strokeWidth={1.75} /></Box>
                   <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
                     Menage au depart
                   </Typography>
@@ -897,7 +897,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
                   fullWidth
                   inputProps={{ min: 0, step: 0.01 }}
                   InputProps={{
-                    startAdornment: <CleaningServices sx={{ fontSize: 14, color: 'text.secondary', mr: 0.5 }} />,
+                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><CleaningServices size={14} strokeWidth={1.75} /></Box>,
                   }}
                   InputLabelProps={{ shrink: true }}
                   placeholder={(freshProp?.cleaningBasePrice ?? data.cleaningBasePrice) ? String(freshProp?.cleaningBasePrice ?? data.cleaningBasePrice) : ''}
@@ -916,7 +916,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
               fullWidth
               inputProps={{ min: 0, step: 0.01 }}
               InputProps={{
-                startAdornment: <AccountBalance sx={{ fontSize: 14, color: 'text.secondary', mr: 0.5 }} />,
+                startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><AccountBalance size={14} strokeWidth={1.75} /></Box>,
                 endAdornment: touristTaxAmount > 0 ? (
                   <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, whiteSpace: 'nowrap', color: 'text.secondary' }}>
                     = {touristTaxAmount.toFixed(2)} EUR
@@ -937,7 +937,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
               size="small"
               fullWidth
               InputProps={{
-                startAdornment: <ConfirmationNumber sx={{ fontSize: 14, color: 'text.secondary', mr: 0.5 }} />,
+                startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><ConfirmationNumber size={14} strokeWidth={1.75} /></Box>,
               }}
               InputLabelProps={{ shrink: true }}
               sx={FIELD_SX}
@@ -961,7 +961,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
         {hasConflict && (
           <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 1.5, backgroundColor: (theme) => alpha(theme.palette.warning.main, 0.1), border: '1px solid', borderColor: 'warning.main' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-              <WarningIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><WarningIcon size={16} strokeWidth={1.75} /></Box>
               <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'warning.main' }}>
                 Conflit detecte
               </Typography>
