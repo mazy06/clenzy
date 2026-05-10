@@ -51,6 +51,7 @@ export {
   Menu as MenuIcon,
   MoreHorizontal as MoreHoriz,
   MoreVertical as MoreVert,
+  ExternalLink as OpenInNew,
 } from 'lucide-react';
 
 // ─── Statuts / feedback ─────────────────────────────────────────────────────
