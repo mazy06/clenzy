@@ -12,7 +12,7 @@ import {
 import {
   Logout,
   Person
-} from '@mui/icons-material';
+} from '../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { authApi } from '../services/api';
@@ -223,7 +223,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout }) => {
         {/* Profil */}
         <MenuItem onClick={handleProfileNavigation}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Person sx={{ fontSize: 18, color: 'secondary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Person size={18} strokeWidth={1.75} /></Box>
             <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
               {t('navigation.myProfile')}
             </Typography>
@@ -251,7 +251,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout }) => {
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Logout sx={{ fontSize: 18, color: 'error.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Logout size={18} strokeWidth={1.75} /></Box>
             <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.875rem' }}>
               {t('navigation.logout')}
             </Typography>

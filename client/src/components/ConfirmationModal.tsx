@@ -14,7 +14,7 @@ import {
   Warning as WarningIcon,
   Close as CloseIcon,
   Delete as DeleteIcon,
-} from '@mui/icons-material';
+} from '../icons';
 
 interface ConfirmationModalProps {
   open: boolean;
@@ -56,15 +56,18 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
   const getIcon = () => {
     if (icon) return icon;
+    const wrap = (color: string, child: React.ReactNode) => (
+      <Box component="span" sx={{ display: 'inline-flex', color }}>{child}</Box>
+    );
     switch (severity) {
       case 'error':
-        return <DeleteIcon color="error" />;
+        return wrap('error.main', <DeleteIcon size={22} strokeWidth={1.75} />);
       case 'warning':
-        return <WarningIcon color="warning" />;
+        return wrap('warning.main', <WarningIcon size={22} strokeWidth={1.75} />);
       case 'info':
-        return <WarningIcon color="info" />;
+        return wrap('info.main', <WarningIcon size={22} strokeWidth={1.75} />);
       default:
-        return <WarningIcon color="warning" />;
+        return wrap('warning.main', <WarningIcon size={22} strokeWidth={1.75} />);
     }
   };
 
@@ -100,7 +103,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           size="small"
           sx={{ color: 'text.secondary' }}
         >
-          <CloseIcon />
+          <CloseIcon size={20} strokeWidth={1.75} />
         </IconButton>
       </DialogTitle>
 
@@ -139,7 +142,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           variant="contained"
           color={severity === 'error' ? 'error' : 'primary'}
           disabled={loading}
-          startIcon={loading ? undefined : <DeleteIcon />}
+          startIcon={loading ? undefined : <DeleteIcon size={18} strokeWidth={1.75} />}
           sx={{ minWidth: 100 }}
         >
           {loading ? 'Traitement...' : confirmText}
