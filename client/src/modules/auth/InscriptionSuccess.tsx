@@ -97,8 +97,8 @@ export default function InscriptionSuccess() {
 
           {status === 'success' && (
             <Box sx={{ py: 3 }}>
-              <MarkEmailRead sx={{
-                fontSize: 72,
+              <Box component="span" sx={{
+                display: 'inline-flex',
                 color: '#6B8A9A',
                 mb: 2,
                 animation: 'scaleIn 0.4s ease-out',
@@ -107,7 +107,9 @@ export default function InscriptionSuccess() {
                   '60%': { transform: 'scale(1.15)' },
                   '100%': { transform: 'scale(1)', opacity: 1 },
                 },
-              }} />
+              }}>
+                <MarkEmailRead size={72} strokeWidth={1.75} />
+              </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
                 Verifiez votre boite email
               </Typography>

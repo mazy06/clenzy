@@ -159,24 +159,38 @@ export {
 } from 'lucide-react';
 
 // Pas d'equivalent Lucide pour le fer a repasser → fallback Iconify.
-// Usage : import { Iron } from '@/icons'; <Iron width={16} />
+// Usage : import { Iron } from '@/icons'; <Iron width={16} /> ou <Iron size={16} />
 import { Icon as _IronifyIcon } from '@iconify/react';
 import { createElement, type FC, type ComponentProps } from 'react';
-type IconifyProps = Omit<ComponentProps<typeof _IronifyIcon>, 'icon'>;
+
+// Les wrappers Iconify acceptent aussi `size` (mappé à width/height) et `strokeWidth`
+// (ignoré silencieusement) pour rester compatibles avec l'API Lucide.
+type IconifyBaseProps = Omit<ComponentProps<typeof _IronifyIcon>, 'icon'>;
+type IconifyProps = IconifyBaseProps & {
+  size?: number | string;
+  strokeWidth?: number | string;
+};
+
+const buildIconifyProps = (icon: string, { size, strokeWidth: _sw, ...rest }: IconifyProps) => ({
+  icon,
+  ...(size !== undefined ? { width: size, height: size } : {}),
+  ...rest,
+});
+
 export const Iron: FC<IconifyProps> = (props) =>
-  createElement(_IronifyIcon, { icon: 'mdi:iron', ...props });
+  createElement(_IronifyIcon, buildIconifyProps('mdi:iron', props));
 
 // Window (fenetre) — pas dans Lucide
 export const Window: FC<IconifyProps> = (props) =>
-  createElement(_IronifyIcon, { icon: 'mdi:window-closed', ...props });
+  createElement(_IronifyIcon, buildIconifyProps('mdi:window-closed', props));
 
 // Stairs (escaliers) — pas dans Lucide
 export const Stairs: FC<IconifyProps> = (props) =>
-  createElement(_IronifyIcon, { icon: 'mdi:stairs', ...props });
+  createElement(_IronifyIcon, buildIconifyProps('mdi:stairs', props));
 
 // DoorSliding (porte coulissante / baie vitree) — pas dans Lucide
 export const DoorSliding: FC<IconifyProps> = (props) =>
-  createElement(_IronifyIcon, { icon: 'mdi:door-sliding', ...props });
+  createElement(_IronifyIcon, buildIconifyProps('mdi:door-sliding', props));
 
 // ─── Donnees / dashboard ────────────────────────────────────────────────────
 export {
@@ -282,7 +296,7 @@ export {
   LayoutGrid as ViewComfy,
   MailCheck as MarkEmailRead,
   DoorOpen as MeetingRoom,
-  CreditCardOff as MoneyOff,
+  BanknoteX as MoneyOff,
   BellRing as NotificationsActive,
   CircleMinus as RemoveCircleOutline,
   ArrowLeftRight as SwapHoriz,
@@ -374,7 +388,6 @@ export {
   File as InsertDriveFile,
   Package as Inventory,
   BedSingle as KingBed,
-  Linkedin as LinkedIn,
   ListTodo as ListAlt,
   Tag as LocalOffer,
   UserCog as ManageAccounts,
@@ -395,7 +408,7 @@ export {
   Bot as SmartToy,
   CigaretteOff as SmokeFree,
   MessageSquareText as Sms,
-  Storefront as StorefrontOutlined,
+  Store as StorefrontOutlined,
   AlignJustify as Subject,
   Headset as SupportAgent,
   Thermometer as Thermostat,
@@ -411,11 +424,38 @@ export {
   Wand2 as AutoFixHighRounded,
   CircleCheck as CheckCircleOutlineRounded,
   Settings as SettingsRounded,
+  // Build-revealed missing aliases (direct re-exports + new aliases)
+  Mail,
+  ShoppingCart,
+  Shield,
+  Menu,
+  Pause,
+  Mouse,
+  Smartphone,
+  Tablet,
+  Undo,
+  Redo,
+  Luggage,
+  PieChart as DataUsage,
+  GitCompare as Compare,
+  Trophy as EmojiEvents,
+  PiggyBank as Savings,
+  Eye as Preview,
+  LayoutGrid as Widgets,
+  Monitor as DesktopWindows,
+  FilterX as FilterAltOff,
+  Upload as UploadFile,
+  Wrench as BuildRounded,
+  Puzzle as IntegrationInstructions,
 } from 'lucide-react';
+
+// LinkedIn — pas dans Lucide → Iconify
+export const LinkedIn: FC<IconifyProps> = (props) =>
+  createElement(_IronifyIcon, buildIconifyProps('mdi:linkedin', props));
 
 // WhatsApp — pas de variante officielle dans Lucide → fallback Iconify
 export const WhatsApp: FC<IconifyProps> = (props) =>
-  createElement(_IronifyIcon, { icon: 'mdi:whatsapp', ...props });
+  createElement(_IronifyIcon, buildIconifyProps('mdi:whatsapp', props));
 
 // ─── Re-export du composant Iconify pour les cas exotiques ──────────────────
 // Usage : <Icon icon="mdi:stairs" width={16} />

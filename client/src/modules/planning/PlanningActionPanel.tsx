@@ -89,20 +89,20 @@ interface PlanningActionPanelProps {
 
 // ─── Tab configs ──────────────────────────────────────────────────────────────
 
-const ICON_SX = { fontSize: 16 };
+const ICON_PROPS = { size: 16, strokeWidth: 1.75 } as const;
 
 const RESERVATION_TABS: { value: PanelTab; label: string; icon: React.ReactElement }[] = [
-  { value: 'info', label: 'Infos', icon: <Info sx={ICON_SX} /> },
-  { value: 'property', label: 'Logement', icon: <Home sx={ICON_SX} /> },
-  { value: 'operations', label: 'Opérations', icon: <Build sx={ICON_SX} /> },
-  { value: 'financial', label: 'Paiement', icon: <AccountBalance sx={ICON_SX} /> },
+  { value: 'info', label: 'Infos', icon: <Info {...ICON_PROPS} /> },
+  { value: 'property', label: 'Logement', icon: <Home {...ICON_PROPS} /> },
+  { value: 'operations', label: 'Opérations', icon: <Build {...ICON_PROPS} /> },
+  { value: 'financial', label: 'Paiement', icon: <AccountBalance {...ICON_PROPS} /> },
 ];
 
 const INTERVENTION_TABS: { value: PanelTab; label: string; icon: React.ReactElement }[] = [
-  { value: 'info', label: 'Infos', icon: <Info sx={ICON_SX} /> },
-  { value: 'progress', label: 'Avancement', icon: <TrendingUp sx={ICON_SX} /> },
-  { value: 'recap', label: 'Récap', icon: <PhotoLibrary sx={ICON_SX} /> },
-  { value: 'payment', label: 'Paiement', icon: <Payment sx={ICON_SX} /> },
+  { value: 'info', label: 'Infos', icon: <Info {...ICON_PROPS} /> },
+  { value: 'progress', label: 'Avancement', icon: <TrendingUp {...ICON_PROPS} /> },
+  { value: 'recap', label: 'Récap', icon: <PhotoLibrary {...ICON_PROPS} /> },
+  { value: 'payment', label: 'Paiement', icon: <Payment {...ICON_PROPS} /> },
 ];
 
 const getTabConfig = (eventType: PlanningEventType) =>

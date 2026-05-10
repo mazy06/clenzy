@@ -292,7 +292,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                             ...params.InputProps,
                             startAdornment: (
                               <>
-                                <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><EmailIcon  /></Box>
                                 {params.InputProps.startAdornment}
                               </>
                             ),
@@ -317,7 +317,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                       error={!!errors.subject}
                       helperText={errors.subject?.message}
                       InputProps={{
-                        startAdornment: <SubjectIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                        startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><SubjectIcon  /></Box>
                       }}
                     />
                   )}
@@ -395,7 +395,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                       error={!!errors.message}
                       helperText={errors.message?.message}
                       InputProps={{
-                        startAdornment: <MessageIcon sx={{ mr: 1, color: 'text.secondary', alignSelf: 'flex-start', mt: 1 }} />
+                        startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1, alignSelf: 'flex-start', mt: 1 }}><MessageIcon  /></Box>
                       }}
                     />
                   )}
@@ -407,7 +407,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                 <Paper variant="outlined" sx={{ p: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="subtitle2">
-                      <AttachFileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', mr: 1, verticalAlign: 'middle' }}><AttachFileIcon  /></Box>
                       {t('contact.attachments')}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">

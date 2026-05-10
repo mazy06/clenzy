@@ -40,7 +40,7 @@ class DashboardErrorBoundary extends Component<Props, State> {
       return (
         <Card sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <ErrorOutline color="error" sx={{ fontSize: 28, mb: 0.5, opacity: 0.6 }} />
+            <Box component="span" sx={{ display: 'inline-flex', mb: 0.5, opacity: 0.6 }}><ErrorOutline color="error" size={28} strokeWidth={1.75} /></Box>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
               {this.props.widgetName
                 ? `Erreur lors du chargement de "${this.props.widgetName}"`

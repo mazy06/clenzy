@@ -801,7 +801,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 </Box>
               )}
             </Box>
-            <SwapHoriz sx={{ color: 'text.disabled' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><SwapHoriz  /></Box>
             <Box sx={{ textAlign: 'right' }}>
               <Typography variant="caption" color="text.secondary">Fin</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>

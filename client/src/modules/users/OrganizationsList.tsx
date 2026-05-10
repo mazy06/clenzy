@@ -560,7 +560,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
           <>
             <DialogTitle sx={{ pb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <People sx={{ color: 'primary.main' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><People  /></Box>
                 <Box>
                   <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
                     Membres de {membersDialogOrg.name}

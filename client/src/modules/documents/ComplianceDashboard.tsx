@@ -363,7 +363,9 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                 disabled={autoCheckRunning}
                 sx={{ color: 'primary.main' }}
               >
-                <Refresh sx={{ animation: autoCheckRunning ? 'spin 1s linear infinite' : 'none', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />
+                <Box component="span" sx={{ display: 'inline-flex', animation: autoCheckRunning ? 'spin 1s linear infinite' : 'none', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }}>
+                  <Refresh size={20} strokeWidth={1.75} />
+                </Box>
               </IconButton>
             </Tooltip>
           </Box>
@@ -471,7 +473,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                             }>
                               {(() => { const c = report.compliant ? '#4A9B8E' : '#d32f2f'; return (
                               <Chip
-                                icon={report.compliant ? <GppGood sx={{ color: `${c} !important` }} /> : <GppBad sx={{ color: `${c} !important` }} />}
+                                icon={report.compliant ? <Box component="span" sx={{ display: 'inline-flex', color: `${c} !important` }}><GppGood  /></Box> : <Box component="span" sx={{ display: 'inline-flex', color: `${c} !important` }}><GppBad  /></Box>}
                                 label={report.compliant ? t('documents.compliance.compliant') : t('documents.compliance.nonCompliant')}
                                 size="small"
                                 sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 }, animation: 'fadeIn 0.4s ease' }}
