@@ -33,7 +33,7 @@ import {
   Security,
   Storage as StorageIcon,
   Memory,
-} from '@mui/icons-material';
+} from '../icons';
 import type { ChipColor } from '../types';
 import { monitoringApi } from '../services/api/monitoringApi';
 import type { HealthCheckService, SystemMetrics } from '../services/api/monitoringApi';
@@ -87,13 +87,13 @@ const HealthChecks: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'UP':
-        return <CheckCircle color="success" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
       case 'DOWN':
-        return <ErrorIcon color="error" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><ErrorIcon size={20} strokeWidth={1.75} /></Box>;
       case 'DEGRADED':
-        return <Warning color="warning" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Warning size={20} strokeWidth={1.75} /></Box>;
       default:
-        return <Info color="info" />;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Info size={20} strokeWidth={1.75} /></Box>;
     }
   };
 
@@ -113,23 +113,23 @@ const HealthChecks: React.FC = () => {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'DATABASE':
-        return <StorageIcon />;
+        return <StorageIcon size={20} strokeWidth={1.75} />;
       case 'AUTHENTICATION':
-        return <Security />;
+        return <Security size={20} strokeWidth={1.75} />;
       case 'API':
-        return <Speed />;
+        return <Speed size={20} strokeWidth={1.75} />;
       case 'CACHE':
-        return <Memory />;
+        return <Memory size={20} strokeWidth={1.75} />;
       case 'STORAGE':
-        return <StorageIcon />;
+        return <StorageIcon size={20} strokeWidth={1.75} />;
       case 'NOTIFICATIONS':
-        return <Info />;
+        return <Info size={20} strokeWidth={1.75} />;
       case 'MONITORING':
-        return <HealthAndSafety />;
+        return <HealthAndSafety size={20} strokeWidth={1.75} />;
       case 'NETWORK':
-        return <Wifi />;
+        return <Wifi size={20} strokeWidth={1.75} />;
       default:
-        return <Info />;
+        return <Info size={20} strokeWidth={1.75} />;
     }
   };
 
@@ -181,7 +181,7 @@ const HealthChecks: React.FC = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-          <HealthAndSafety sx={{ mr: 1, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><HealthAndSafety size={20} strokeWidth={1.75} /></Box>
           Health Checks
         </Typography>
         <Box display="flex" alignItems="center" gap={1}>
@@ -193,7 +193,7 @@ const HealthChecks: React.FC = () => {
           {loading && <CircularProgress size={16} />}
           <Tooltip title="Actualiser les vérifications">
             <IconButton onClick={handleRefresh} size="small">
-              <Refresh />
+              <Refresh size={20} strokeWidth={1.75} />
             </IconButton>
           </Tooltip>
         </Box>
@@ -205,7 +205,7 @@ const HealthChecks: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <HealthAndSafety sx={{ mr: 1, color: 'primary.main' }} />
+                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><HealthAndSafety size={20} strokeWidth={1.75} /></Box>
                 Statut Global
               </Typography>
               <Box display="flex" alignItems="center" gap={2} mb={2}>
@@ -225,7 +225,7 @@ const HealthChecks: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Security sx={{ mr: 1, color: 'error.main' }} />
+                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'error.main' }}><Security size={20} strokeWidth={1.75} /></Box>
                 Services Critiques
               </Typography>
               <Box display="flex" alignItems="center" gap={2} mb={2}>
@@ -387,7 +387,7 @@ const HealthChecks: React.FC = () => {
                     onClick={() => toggleExpanded(check.name)}
                     size="small"
                   >
-                    {expandedChecks.has(check.name) ? <ExpandLess /> : <ExpandMore />}
+                    {expandedChecks.has(check.name) ? <ExpandLess size={20} strokeWidth={1.75} /> : <ExpandMore size={20} strokeWidth={1.75} />}
                   </IconButton>
                 </ListItem>
                 {index < healthChecks.length - 1 && <Divider />}

@@ -64,6 +64,9 @@ export {
   CircleHelp as Help,
   Check,
   Ban,
+  X as Clear,
+  Shield as Security,
+  HeartPulse as HealthAndSafety,
 } from 'lucide-react';
 
 // ─── Vue / visibilite ───────────────────────────────────────────────────────
@@ -150,6 +153,9 @@ export {
   Maximize as Fullscreen,
   ImageOff as ImageNotSupported,
   PersonStanding as DirectionsWalk,
+  Gauge as Speed,
+  HardDrive as Storage,
+  Cpu as Memory,
 } from 'lucide-react';
 
 // ─── Localisation / map ─────────────────────────────────────────────────────

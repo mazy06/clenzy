@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Box, Typography, Paper, Chip } from '@mui/material';
 import {
   Lock as LockIcon
-} from '@mui/icons-material';
+} from '../icons';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -125,7 +125,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <LockIcon sx={{ fontSize: 32, color: 'text.secondary' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LockIcon size={32} strokeWidth={1.5} /></Box>
         </Box>
 
         {/* Titre principal */}
