@@ -949,7 +949,6 @@ function OtaLogo({ channel }: { channel: OtaChannel }) {
           maxWidth: 130,
           position: 'relative',
           zIndex: 2,
-          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3)) brightness(1.05)',
         }}
       />
     );
@@ -960,12 +959,11 @@ function OtaLogo({ channel }: { channel: OtaChannel }) {
       sx={{
         fontSize: '1.25rem',
         fontWeight: 800,
-        color: '#fff',
+        color: channel.brandColor,
         letterSpacing: '-0.02em',
         lineHeight: 1,
         position: 'relative',
         zIndex: 2,
-        textShadow: '0 2px 6px rgba(0,0,0,0.35)',
       }}
     >
       {channel.name}
@@ -1006,10 +1004,11 @@ function OtaChannelCard({
           : { borderColor: 'grey.300' },
       }}
     >
-      {/* Brand header with logo + status */}
+      {/* Brand header with logo + status — top accent stripe, neutral bg */}
       <Box
         sx={{
-          background: channel.brandGradient,
+          position: 'relative',
+          bgcolor: 'background.paper',
           opacity: isAvailable ? 1 : 0.6,
           px: 2.5,
           py: 2,
@@ -1017,11 +1016,15 @@ function OtaChannelCard({
           alignItems: 'center',
           justifyContent: 'space-between',
           minHeight: 56,
+          borderTop: '3px solid',
+          borderTopColor: channel.brandColor,
+          borderBottom: '1px solid',
+          borderBottomColor: 'divider',
         }}
       >
         <OtaLogo channel={channel} />
         {connectionLoading && isAvailable ? (
-          <CircularProgress size={14} sx={{ color: 'rgba(255,255,255,0.8)' }} />
+          <CircularProgress size={14} sx={{ color: channel.brandColor }} />
         ) : isAvailable && isConnected ? (
           <Chip
             label={connectionStatus?.status ?? 'ACTIVE'}
@@ -1029,13 +1032,12 @@ function OtaChannelCard({
             sx={{
               fontSize: '0.5625rem',
               height: 20,
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              color: '#fff',
+              backgroundColor: '#10b98115',
+              color: '#10b981',
               fontWeight: 700,
-              border: '1px solid rgba(255,255,255,0.3)',
-              backdropFilter: 'blur(4px)',
+              border: '1px solid #10b98140',
             }}
-            icon={<CheckCircleIcon size={12} strokeWidth={1.75} color="#fff" />}
+            icon={<CheckCircleIcon size={12} strokeWidth={1.75} color="#10b981" />}
           />
         ) : isAvailable ? (
           <Chip
@@ -1045,10 +1047,10 @@ function OtaChannelCard({
               fontSize: '0.5625rem',
               height: 20,
               fontWeight: 600,
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.3)',
-              backdropFilter: 'blur(4px)',
+              backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              color: 'text.secondary',
+              border: '1px solid',
+              borderColor: 'divider',
             }}
           />
         ) : (
@@ -1059,10 +1061,9 @@ function OtaChannelCard({
               fontSize: '0.5625rem',
               height: 20,
               fontWeight: 600,
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.3)',
-              backdropFilter: 'blur(4px)',
+              backgroundColor: `${channel.brandColor}14`,
+              color: channel.brandColor,
+              border: `1px solid ${channel.brandColor}30`,
             }}
           />
         )}
