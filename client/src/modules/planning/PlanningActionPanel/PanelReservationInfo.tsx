@@ -36,6 +36,10 @@ import {
 import type { PlanningEvent, PlanningProperty } from '../types';
 import { reservationsApi, RESERVATION_STATUS_COLORS, RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
 import type { ReservationStatus, ReservationSource } from '../../../services/api';
+import { guestMessagingApi } from '../../../services/api/guestMessagingApi';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle, AccessTime, Settings, Bolt } from '../../../icons';
 import GuestCardDialog from './GuestCardDialog';
 import ChangePropertyDialog from './ChangePropertyDialog';
 
@@ -243,6 +247,14 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
       <NotesSection
         reservation={reservation}
         onSave={onUpdateNotes}
+      />
+
+      <Divider />
+
+      {/* Messagerie automatique */}
+      <MessagingAutomationStatus
+        guestEmail={reservation.guestEmail}
+        source={reservation.source}
       />
 
       <Divider />
@@ -1011,6 +1023,129 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
             <Typography variant="caption" color="warning.main" sx={{ fontSize: '0.625rem' }}>
               Les interventions liees (menage) seront automatiquement decalees.
             </Typography>
+          )}
+        </Box>
+      )}
+    </Box>
+  );
+};
+
+// ─── Messagerie automatique : etat du toggle + sante du destinataire ────────
+
+interface MessagingAutomationStatusProps {
+  guestEmail?: string | null;
+  source?: string | null;
+}
+
+const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ guestEmail, source }) => {
+  const navigate = useNavigate();
+  const { data: config, isLoading } = useQuery({
+    queryKey: ['messaging-automation-config'],
+    queryFn: () => guestMessagingApi.getConfig(),
+    staleTime: 5 * 60 * 1000, // 5 min
+  });
+
+  const hasEmail = Boolean(guestEmail && guestEmail.trim() && guestEmail.includes('@'));
+  const isAnonymizedIcal = (source || '').toLowerCase() === 'airbnb'
+    || (source || '').toLowerCase() === 'booking'
+    || (source || '').toLowerCase().includes('ical');
+
+  const checkInOk = config?.autoSendCheckIn && config?.checkInTemplateId != null;
+  const checkOutOk = config?.autoSendCheckOut && config?.checkOutTemplateId != null;
+
+  const rowStyle = (ok: boolean) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.75,
+    py: 0.5,
+    color: ok ? 'success.main' : 'text.disabled',
+  });
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
+            <Bolt size={16} strokeWidth={1.75} />
+          </Box>
+          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
+            Messagerie automatique
+          </Typography>
+        </Box>
+        <Tooltip title="Configurer dans Paramètres">
+          <IconButton size="small" onClick={() => navigate('/settings?section=messaging')}>
+            <Settings size={14} strokeWidth={1.75} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      {isLoading ? (
+        <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>Chargement…</Typography>
+      ) : (
+        <Box sx={{ pl: 0.25 }}>
+          {/* Check-in */}
+          <Box sx={rowStyle(Boolean(checkInOk))}>
+            {checkInOk
+              ? <CheckCircle size={12} strokeWidth={2} />
+              : <Close size={12} strokeWidth={2} />}
+            <Typography sx={{ fontSize: '0.6875rem', color: 'inherit', fontWeight: 600 }}>
+              Check-in
+            </Typography>
+            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+              {checkInOk
+                ? `automatique · J–${config?.hoursBeforeCheckIn ?? 24}h`
+                : 'désactivé (envoi manuel uniquement)'}
+            </Typography>
+          </Box>
+
+          {/* Check-out */}
+          <Box sx={rowStyle(Boolean(checkOutOk))}>
+            {checkOutOk
+              ? <CheckCircle size={12} strokeWidth={2} />
+              : <Close size={12} strokeWidth={2} />}
+            <Typography sx={{ fontSize: '0.6875rem', color: 'inherit', fontWeight: 600 }}>
+              Check-out
+            </Typography>
+            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+              {checkOutOk
+                ? `automatique · ${config?.hoursBeforeCheckOut ?? 12}h avant départ`
+                : 'désactivé (envoi manuel uniquement)'}
+            </Typography>
+          </Box>
+
+          {/* Destinataire */}
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mt: 0.75, pt: 0.75, borderTop: '1px dashed', borderColor: 'divider' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: hasEmail ? 'success.main' : 'warning.main', mt: 0.1 }}>
+              {hasEmail
+                ? <CheckCircle size={12} strokeWidth={2} />
+                : <Warning size={12} strokeWidth={2} />}
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: hasEmail ? 'success.main' : 'warning.main' }}>
+                {hasEmail ? `Email guest disponible (${guestEmail})` : 'Pas d\'email guest'}
+              </Typography>
+              {!hasEmail && (
+                <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', mt: 0.25, lineHeight: 1.35 }}>
+                  {isAnonymizedIcal
+                    ? `Réservation importée via iCal (${source}) — l'email du voyageur n'est pas exposé par le canal. Renseigne-le manuellement dans la fiche client pour activer les envois.`
+                    : 'Aucun message automatique ne pourra être envoyé tant que l\'email n\'est pas renseigné.'}
+                </Typography>
+              )}
+              {hasEmail && !checkInOk && !checkOutOk && (
+                <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', mt: 0.25, lineHeight: 1.35 }}>
+                  Active l'automation dans Paramètres › Messagerie pour que les emails partent sans intervention.
+                </Typography>
+              )}
+            </Box>
+          </Box>
+
+          {(checkInOk || checkOutOk) && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.75, color: 'text.disabled' }}>
+              <AccessTime size={10} strokeWidth={1.75} />
+              <Typography sx={{ fontSize: '0.625rem', color: 'inherit', fontStyle: 'italic' }}>
+                Scheduler : déclenchement horaire
+              </Typography>
+            </Box>
           )}
         </Box>
       )}
