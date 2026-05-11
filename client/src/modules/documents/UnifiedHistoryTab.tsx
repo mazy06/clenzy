@@ -238,11 +238,23 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       await guestMessagingApi.resendMessage(log.id);
       setActionError(null);
       loadMessages();
-    } catch {
-      setActionError('Erreur lors du renvoi du message');
+    } catch (err) {
+      // Le backend renvoie 400 + code MESSAGING_RECIPIENT_MISSING + message clair quand
+      // la reservation n'a pas d'email guest (typique iCal anonymise).
+      const e = err as { response?: { data?: { message?: string; code?: string } } };
+      const backendMessage = e?.response?.data?.message;
+      setActionError(backendMessage || 'Erreur lors du renvoi du message');
     } finally {
       setResendingId(null);
     }
+  };
+
+  /** Determine si le log a un destinataire utilisable pour un renvoi. */
+  const hasRecipient = (log: GuestMessageLog): boolean => {
+    const r = (log.recipient || '').trim();
+    if (!r || r === 'N/A' || r === '—') return false;
+    if (log.channel === 'EMAIL') return r.includes('@');
+    return true;
   };
 
   const handleUpdateEmailAndResend = async () => {
@@ -432,20 +444,37 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                 </IconButton>
                               </Tooltip>
                             )}
-                            {row.messageLog.status === 'FAILED' && row.messageLog.templateId && (
-                              <Tooltip title="Renvoyer le message">
-                                <IconButton
-                                  size="small"
-                                  color="success"
-                                  disabled={resendingId === row.messageLog.id}
-                                  onClick={() => handleResend(row.messageLog!)}
-                                >
-                                  {resendingId === row.messageLog.id
-                                    ? <CircularProgress size={16} />
-                                    : <Replay fontSize="small" />}
-                                </IconButton>
+                            {row.messageLog.status === 'FAILED' && !row.messageLog.guestId && (
+                              <Tooltip title="Réservation anonymisée (iCal Airbnb/Booking) — l'email du voyageur n'est pas exposé par le canal. Crée un guest manuel pour pouvoir envoyer le message.">
+                                <span>
+                                  <IconButton size="small" disabled>
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
                               </Tooltip>
                             )}
+                            {row.messageLog.status === 'FAILED' && row.messageLog.templateId && (() => {
+                              const canResend = hasRecipient(row.messageLog!);
+                              const tip = canResend
+                                ? "Renvoyer le message"
+                                : "Pas de destinataire — ajoute un email guest avant de renvoyer";
+                              return (
+                                <Tooltip title={tip}>
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      color={canResend ? 'success' : 'default'}
+                                      disabled={!canResend || resendingId === row.messageLog!.id}
+                                      onClick={() => canResend && handleResend(row.messageLog!)}
+                                    >
+                                      {resendingId === row.messageLog!.id
+                                        ? <CircularProgress size={16} />
+                                        : <Replay fontSize="small" />}
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              );
+                            })()}
                           </>
                         )}
                         {/* ── Document actions ── */}
@@ -569,18 +598,29 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               Modifier l&apos;email
             </Button>
           )}
-          {detailLog?.status === 'FAILED' && detailLog.templateId && (
-            <Button
-              color="success"
-              disabled={resendingId === detailLog.id}
-              onClick={() => {
-                handleResend(detailLog);
-                setDetailLog(null);
-              }}
-            >
-              Renvoyer
-            </Button>
-          )}
+          {detailLog?.status === 'FAILED' && detailLog.templateId && (() => {
+            const canResend = hasRecipient(detailLog);
+            return (
+              <Tooltip
+                title={canResend ? '' : "Pas de destinataire — ajoute un email guest avant de renvoyer"}
+                disableHoverListener={canResend}
+              >
+                <span>
+                  <Button
+                    color="success"
+                    disabled={!canResend || resendingId === detailLog.id}
+                    onClick={() => {
+                      if (!canResend) return;
+                      handleResend(detailLog);
+                      setDetailLog(null);
+                    }}
+                  >
+                    Renvoyer
+                  </Button>
+                </span>
+              </Tooltip>
+            );
+          })()}
           <Button onClick={() => setDetailLog(null)}>Fermer</Button>
         </DialogActions>
       </Dialog>

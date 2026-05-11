@@ -45,6 +45,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
+    @ExceptionHandler(MessagingRecipientMissingException.class)
+    public ResponseEntity<Map<String, Object>> handleMessagingRecipientMissing(MessagingRecipientMissingException ex) {
+        logger.info("Envoi message refuse pour reservation #{} (canal {}): {}",
+                ex.getReservationId(), ex.getChannel(), ex.getMessage());
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Destinataire manquant");
+        errorResponse.put("message", ex.getMessage());
+        errorResponse.put("reservationId", ex.getReservationId());
+        errorResponse.put("channel", ex.getChannel());
+        errorResponse.put("code", "MESSAGING_RECIPIENT_MISSING");
+        errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     @ExceptionHandler(RestrictionViolationException.class)
     public ResponseEntity<Map<String, Object>> handleRestrictionViolation(RestrictionViolationException ex) {
         logger.warn("Violation restriction de reservation: {}", ex.getMessage());
