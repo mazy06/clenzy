@@ -484,8 +484,8 @@ const ChannelsPage: React.FC = () => {
           {/* Table header */}
           <Box sx={{
             display: 'grid',
-            gridTemplateColumns: '2fr 0.8fr 1fr 1.2fr',
-            gap: 1,
+            gridTemplateColumns: '110px 1.6fr 0.8fr 1fr 1.4fr',
+            gap: 2,
             px: 2,
             py: 1.25,
             borderBottom: '1px solid',
@@ -493,7 +493,10 @@ const ChannelsPage: React.FC = () => {
             bgcolor: 'action.hover',
           }}>
             <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Channel
+              Logo
+            </Typography>
+            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Nom
             </Typography>
             <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Segment
@@ -519,10 +522,10 @@ const ChannelsPage: React.FC = () => {
                 key={ota.id}
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: '2fr 0.8fr 1fr 1.2fr',
-                  gap: 1,
+                  gridTemplateColumns: '110px 1.6fr 0.8fr 1fr 1.4fr',
+                  gap: 2,
                   px: 2,
-                  py: 1.25,
+                  py: 1.5,
                   alignItems: 'center',
                   borderBottom: idx < OTA_CHANNELS.length - 1 ? '1px solid' : 'none',
                   borderColor: 'divider',
@@ -531,22 +534,38 @@ const ChannelsPage: React.FC = () => {
                   '&:hover': { bgcolor: 'action.hover' },
                 }}
               >
-                {/* Channel name + logo */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {ota.logo && (
+                {/* Logo column (big) */}
+                <Box
+                  sx={{
+                    height: 48,
+                    width: 96,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
+                    borderLeft: '3px solid',
+                    borderLeftColor: ota.brandColor,
+                    pl: 1.25,
+                  }}
+                >
+                  {ota.logo ? (
                     <Box
                       component="img"
                       src={ota.logo}
                       alt={ota.name}
-                      sx={{ height: 20, width: 20, objectFit: 'contain', flexShrink: 0 }}
+                      sx={{ height: 28, maxWidth: 80, objectFit: 'contain' }}
                     />
-                  )}
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>{ota.name}</Typography>
-                    <Typography noWrap sx={{ fontSize: '0.625rem', color: 'text.secondary', lineHeight: 1.3 }}>
-                      {t(ota.descriptionKey)}
+                  ) : (
+                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: ota.brandColor, letterSpacing: '-0.02em' }}>
+                      {ota.name}
                     </Typography>
-                  </Box>
+                  )}
+                </Box>
+
+                {/* Channel name */}
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, color: 'text.primary' }}>
+                    {ota.name}
+                  </Typography>
                 </Box>
 
                 {/* Segment B2B / B2C */}
@@ -660,7 +679,7 @@ const ChannelsPage: React.FC = () => {
                     >
                       {(isAirbnb && connectMutation.isPending)
                         ? <CircularProgress size={12} color="inherit" />
-                        : t('channels.airbnb.connect')
+                        : `Connecter ${ota.name}`
                       }
                     </Button>
                   )}
@@ -676,7 +695,7 @@ const ChannelsPage: React.FC = () => {
                     >
                       {((isAirbnb && disconnectMutation.isPending) || disconnectingChannelId === ota.id)
                         ? <CircularProgress size={12} />
-                        : t('channels.airbnb.disconnect')
+                        : `Déconnecter ${ota.name}`
                       }
                     </Button>
                   )}
@@ -1109,7 +1128,7 @@ function OtaChannelCard({
                 },
               }}
             >
-              {connecting ? <CircularProgress size={12} color="inherit" /> : t('channels.airbnb.connect')}
+              {connecting ? <CircularProgress size={12} color="inherit" /> : `Connecter ${channel.name}`}
             </Button>
           )}
           {isAvailable && isConnected && (
@@ -1122,7 +1141,7 @@ function OtaChannelCard({
               disabled={disconnecting}
               sx={{ fontSize: '0.6875rem', px: 2, py: 0.5, minHeight: 30 }}
             >
-              {disconnecting ? <CircularProgress size={12} /> : t('channels.airbnb.disconnect')}
+              {disconnecting ? <CircularProgress size={12} /> : `Déconnecter ${channel.name}`}
             </Button>
           )}
           {!isAvailable && (
