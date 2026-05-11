@@ -428,11 +428,12 @@ public class DocumentGeneratorService {
             generation = generationRepository.save(generation);
 
             // 10. Notification + Audit + Metrics
+            //     tab=3 = onglet 'Historique' de la page Documents
             notificationService.notifyAdminsAndManagers(
                     NotificationKey.DOCUMENT_GENERATED,
                     "Document genere : " + template.getDocumentType().getLabel(),
                     pdfFilename + " (" + formatFileSize(pdfBytes.length) + ") genere en " + generationTimeMs + "ms",
-                    "/documents",
+                    "/documents?tab=3",
                     orgId
             );
 
