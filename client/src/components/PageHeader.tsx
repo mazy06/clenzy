@@ -67,13 +67,13 @@ export default function PageHeader({
 
   return (
     <Box mb={1}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" gap={1.5} flexWrap="wrap">
+      <Box display="flex" justifyContent="space-between" alignItems="center" gap={1} flexWrap="wrap">
         {/* Titre et sous-titre (avec optionally iconBadge) */}
-        <Box sx={{ minWidth: 0, flex: 1, mr: 1, display: 'flex', alignItems: 'center', gap: 1.25 }}>
+        <Box sx={{ minWidth: 0, flex: 1, mr: 1, display: 'flex', alignItems: 'center', gap: 0.875 }}>
           {iconBadge && (
             <Box
               sx={{
-                width: 32, height: 32, borderRadius: 1,
+                width: 26, height: 26, borderRadius: 0.75,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 bgcolor: iconBadgeColor || 'primary.main',
                 color: 'primary.contrastText',
@@ -136,7 +136,7 @@ export default function PageHeader({
             ...(isCompact && {
               '& .MuiButton-root:has(.MuiButton-startIcon), & .MuiButton-root:has(.MuiButton-endIcon)': {
                 fontSize: 0,
-                minWidth: 36,
+                minWidth: 30,
                 '& .MuiButton-startIcon': { margin: 0 },
                 '& .MuiButton-endIcon':   { margin: 0 },
               },
@@ -155,7 +155,7 @@ export default function PageHeader({
                 onClick={handleBack}
                 title={backLabel}
                 sx={{
-                  ...(isCompact && { minWidth: 36, px: 1 }),
+                  ...(isCompact && { minWidth: 30, px: 0.75 }),
                 }}
               >
                 {isCompact ? <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} /> : backLabel}
@@ -172,7 +172,7 @@ export default function PageHeader({
                 onClick={handleBack}
                 title={backLabel}
                 sx={{
-                  ...(isCompact && { minWidth: 36, px: 1 }),
+                  ...(isCompact && { minWidth: 30, px: 0.75 }),
                 }}
               >
                 {isCompact ? <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} /> : backLabel}

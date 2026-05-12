@@ -24,9 +24,9 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
   const isXl = useMediaQuery(theme.breakpoints.up('xl'));
 
   // Échelles progressives — icônes restent ~1.3x la hauteur du texte
-  const itemHeight = isXl ? 40 : isLg ? 36 : isMd ? 32 : 30;
-  const iconSize = isXl ? 17 : isLg ? 15 : isMd ? 14 : 13;
-  const fontSize = isXl ? '0.8125rem' : isLg ? '0.75rem' : isMd ? '0.6875rem' : '0.625rem';
+  const itemHeight = isXl ? 34 : isLg ? 30 : isMd ? 28 : 26;
+  const iconSize = isXl ? 15 : isLg ? 14 : isMd ? 13 : 12;
+  const fontSize = isXl ? '0.75rem' : isLg ? '0.6875rem' : isMd ? '0.625rem' : '0.5625rem';
 
   // ── État sélectionné : icône + texte dans la couleur primary (cohérent),
   //    fond teinté primary à 14 %, liseré gauche primary 3 px. Pas de noir.
