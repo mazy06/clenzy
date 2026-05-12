@@ -57,8 +57,8 @@ export default function StatTile({
       variant="outlined"
       onClick={onClick}
       sx={{
-        p: 1.5,
-        borderRadius: 2,
+        p: 1.25,
+        borderRadius: 1.5,
         borderColor: 'divider',
         position: 'relative',
         overflow: 'hidden',
@@ -87,10 +87,10 @@ export default function StatTile({
         }),
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 0.75 }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 0.5 }}>
         <Box
           sx={{
-            width: 32, height: 32, borderRadius: 1.25,
+            width: 26, height: 26, borderRadius: 1,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color,
             bgcolor: alpha(color, theme.palette.mode === 'dark' ? 0.2 : 0.12),
@@ -121,11 +121,11 @@ export default function StatTile({
       </Typography>
 
       {loading ? (
-        <Skeleton variant="text" width={70} height={28} />
+        <Skeleton variant="text" width={60} height={22} />
       ) : (
         <Typography
           sx={{
-            fontSize: { xs: '1.125rem', md: '1.25rem', xl: '1.375rem' },
+            fontSize: { xs: '0.9375rem', md: '1.0625rem', xl: '1.1875rem' },
             fontWeight: 700,
             lineHeight: 1.1,
             color: 'text.primary',

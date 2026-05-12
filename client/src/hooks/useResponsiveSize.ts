@@ -23,13 +23,13 @@ export type IconRole = 'hero' | 'badge' | 'section' | 'action' | 'row' | 'inline
  * difference typo (~12 -> 13 -> 14 px sur body).
  */
 const ICON_SIZE_TABLE: Record<IconRole, { base: number; md: number; xl: number }> = {
-  hero:    { base: 32, md: 36, xl: 40 },
-  badge:   { base: 18, md: 20, xl: 22 },
-  section: { base: 16, md: 18, xl: 20 },
-  action:  { base: 14, md: 16, xl: 18 },
-  row:     { base: 13, md: 14, xl: 16 },
-  inline:  { base: 12, md: 13, xl: 14 },
-  micro:   { base: 10, md: 11, xl: 12 },
+  hero:    { base: 26, md: 30, xl: 34 },
+  badge:   { base: 14, md: 16, xl: 18 },
+  section: { base: 13, md: 14, xl: 16 },
+  action:  { base: 12, md: 13, xl: 14 },
+  row:     { base: 11, md: 12, xl: 13 },
+  inline:  { base: 10, md: 11, xl: 12 },
+  micro:   { base: 9,  md: 10, xl: 10 },
 };
 
 /**

@@ -97,16 +97,16 @@ export default function Sidebar({
   const collapsed = isCollapsed && !isMobile;
 
   // Responsive sizes — comfortable on xl+, compact on lg
-  const logoHeight = collapsed ? 24 : isXl ? 28 : 24;
-  const logoMaxWidth = collapsed ? 40 : isXl ? 140 : 120;
-  const headerHeight = isXl ? 56 : 48;
-  const avatarSize = collapsed ? 32 : isXl ? 36 : 32;
-  const avatarFontSize = collapsed ? '0.75rem' : isXl ? '0.875rem' : '0.75rem';
-  const userNameFontSize = isXl ? '0.8125rem' : '0.75rem';
-  const userEmailFontSize = isXl ? '0.6875rem' : '0.625rem';
-  const userRoleFontSize = isXl ? '0.625rem' : '0.5625rem';
-  const groupLabelFontSize = isXl ? '0.6875rem' : '0.625rem';
-  const actionIconSize = isXl ? 18 : 16;
+  const logoHeight = collapsed ? 20 : isXl ? 24 : 20;
+  const logoMaxWidth = collapsed ? 36 : isXl ? 120 : 104;
+  const headerHeight = isXl ? 48 : 40;
+  const avatarSize = collapsed ? 26 : isXl ? 30 : 26;
+  const avatarFontSize = collapsed ? '0.6875rem' : isXl ? '0.75rem' : '0.6875rem';
+  const userNameFontSize = isXl ? '0.75rem' : '0.6875rem';
+  const userEmailFontSize = isXl ? '0.625rem' : '0.5625rem';
+  const userRoleFontSize = isXl ? '0.5625rem' : '0.5rem';
+  const groupLabelFontSize = isXl ? '0.625rem' : '0.5625rem';
+  const actionIconSize = isXl ? 15 : 14;
 
   const handleNavigation = (path: string) => {
     navigate(path);
