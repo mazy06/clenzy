@@ -62,6 +62,7 @@ const PropertiesPage: React.FC = () => {
         <PageHeader
           title={t('propertiesPage.title')}
           subtitle={t('propertiesPage.subtitle')}
+          iconBadge={<Home />}
           backPath="/dashboard"
           showBackButton={false}
           actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
