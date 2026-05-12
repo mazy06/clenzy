@@ -260,50 +260,111 @@ const ManagementContractsPage: React.FC = () => {
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
+  // Refs to scroll/focus form when "Nouveau contrat" is clicked from header
+  const formRef = React.useRef<HTMLDivElement | null>(null);
+  const focusForm = () => {
+    resetForm();
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  };
+
   return (
-    <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {/* ─── Header ────────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      {/* ─── Header : titre + filtres + CTA ──────────────────────────── */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
         <Box
           sx={{
-            width: 40, height: 40, borderRadius: 1.5,
+            width: 32, height: 32, borderRadius: 1,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             bgcolor: 'primary.main', color: 'primary.contrastText',
+            flexShrink: 0,
           }}
         >
-          <Handshake size={20} strokeWidth={1.75} />
+          <Handshake size={16} strokeWidth={1.75} />
         </Box>
-        <Box>
-          <Typography variant="h5" fontWeight={700}>{t('contracts.title')}</Typography>
-          <Typography variant="body2" color="text.secondary">{t('contracts.subtitle')}</Typography>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, lineHeight: 1.2 }}>
+            {t('contracts.title')}
+          </Typography>
+          <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', lineHeight: 1.2 }}>
+            {t('contracts.subtitle')}
+          </Typography>
         </Box>
+
+        <Box sx={{ flex: 1 }} />
+
+        {/* Filter chips inline */}
+        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+          <PmsFilterChip
+            label={t('contracts.allStatuses')}
+            color={FILTER_ALL_COLOR}
+            active={statusFilter === ''}
+            count={contracts.length}
+            onClick={() => setStatusFilter('')}
+            size="compact"
+          />
+          {(Object.keys(STATUS_META) as ContractStatus[]).map(status => {
+            const meta = STATUS_META[status];
+            const count = contracts.filter(c => c.status === status).length;
+            return (
+              <PmsFilterChip
+                key={status}
+                label={meta.label}
+                color={meta.color}
+                active={statusFilter === status}
+                count={count}
+                onClick={() => setStatusFilter(statusFilter === status ? '' : status)}
+                size="compact"
+              />
+            );
+          })}
+        </Box>
+
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<Add size={14} strokeWidth={1.75} />}
+          onClick={focusForm}
+          sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600, py: 0.5 }}
+        >
+          {t('contracts.create')}
+        </Button>
       </Box>
 
       {/* ─── Inline create/edit form — toujours visible, 2 lignes max ─ */}
       <Paper
+        ref={formRef}
         variant="outlined"
         sx={{
-          p: 1.75,
-          borderRadius: 2,
+          p: 1.25,
+          borderRadius: 1.5,
           borderColor: editingContract ? 'warning.main' : 'primary.main',
           borderLeftWidth: 3,
           borderLeftColor: editingContract ? 'warning.main' : 'primary.main',
           bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(107,138,154,0.06)' : 'rgba(107,138,154,0.03)',
+          // Compact form sizing — fields, labels, helper text scaled down to match the sidebar density.
+          '& .MuiInputBase-input': { fontSize: '0.75rem', py: '6px' },
+          '& .MuiInputLabel-root': { fontSize: '0.75rem' },
+          '& .MuiOutlinedInput-root': { borderRadius: 1 },
+          '& .MuiSelect-select': { py: '6px' },
+          '& .MuiFormHelperText-root': { fontSize: '0.625rem', mt: 0.25 },
+          '& .MuiInputAdornment-root': { '& > *': { fontSize: '0.875rem' } },
+          '& .MuiFormControlLabel-label': { fontSize: '0.6875rem' },
+          '& .MuiSwitch-root': { transform: 'scale(0.8)' },
         }}
       >
         {/* Bandeau de mode */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
           <Box component="span" sx={{ display: 'inline-flex', color: editingContract ? 'warning.main' : 'primary.main' }}>
-            {editingContract ? <Edit size={14} strokeWidth={1.75} /> : <Add size={14} strokeWidth={1.75} />}
+            {editingContract ? <Edit size={12} strokeWidth={1.75} /> : <Add size={12} strokeWidth={1.75} />}
           </Box>
-          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: editingContract ? 'warning.main' : 'primary.main' }}>
+          <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: editingContract ? 'warning.main' : 'primary.main' }}>
             {editingContract ? `Modification · ${editingContract.contractNumber}` : 'Nouveau contrat'}
           </Typography>
           <Box sx={{ flex: 1 }} />
           {editingContract && (
             <Tooltip title="Annuler la modification">
-              <IconButton size="small" onClick={resetForm}>
-                <Close size={16} strokeWidth={1.75} />
+              <IconButton size="small" onClick={resetForm} sx={{ p: 0.25 }}>
+                <Close size={14} strokeWidth={1.75} />
               </IconButton>
             </Tooltip>
           )}
@@ -452,31 +513,6 @@ const ManagementContractsPage: React.FC = () => {
         </Box>
       </Paper>
 
-      {/* ─── Filter chips (PMS soft-filled style) ──────────────────── */}
-      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-        <PmsFilterChip
-          label={t('contracts.allStatuses')}
-          color={FILTER_ALL_COLOR}
-          active={statusFilter === ''}
-          count={contracts.length}
-          onClick={() => setStatusFilter('')}
-        />
-        {(Object.keys(STATUS_META) as ContractStatus[]).map(status => {
-          const meta = STATUS_META[status];
-          const count = contracts.filter(c => c.status === status).length;
-          return (
-            <PmsFilterChip
-              key={status}
-              label={meta.label}
-              color={meta.color}
-              active={statusFilter === status}
-              count={count}
-              onClick={() => setStatusFilter(statusFilter === status ? '' : status)}
-            />
-          );
-        })}
-      </Box>
-
       {/* ─── Body ──────────────────────────────────────────────────── */}
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -564,49 +600,52 @@ interface PmsFilterChipProps {
   active: boolean;
   count: number;
   onClick: () => void;
+  size?: 'default' | 'compact';
 }
 
-const PmsFilterChip: React.FC<PmsFilterChipProps> = ({ label, color, active, count, onClick }) => (
-  <Chip
-    label={
-      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-        {label}
-        <Box
-          component="span"
-          sx={{
-            fontSize: '0.625rem',
-            fontWeight: 700,
-            px: 0.6,
-            py: 0.05,
-            borderRadius: 0.75,
-            bgcolor: active ? 'rgba(255,255,255,0.25)' : `${color}28`,
-            color: active ? '#fff' : color,
-          }}
-        >
-          {count}
+const PmsFilterChip: React.FC<PmsFilterChipProps> = ({ label, color, active, count, onClick, size = 'default' }) => {
+  const compact = size === 'compact';
+  return (
+    <Chip
+      label={
+        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4 }}>
+          {label}
+          <Box
+            component="span"
+            sx={{
+              fontSize: compact ? '0.5625rem' : '0.625rem',
+              fontWeight: 700,
+              px: 0.5,
+              py: 0.05,
+              borderRadius: 0.75,
+              bgcolor: active ? 'rgba(255,255,255,0.25)' : `${color}28`,
+              color: active ? '#fff' : color,
+            }}
+          >
+            {count}
+          </Box>
         </Box>
-      </Box>
-    }
-    onClick={onClick}
-    size="small"
-    sx={{
-      height: 26,
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: '0.75rem',
-      fontWeight: 600,
-      px: 0.5,
-      transition: 'all 0.15s ease',
-      backgroundColor: active ? color : `${color}18`,
-      color: active ? '#fff' : color,
-      border: `1px solid ${active ? color : `${color}40`}`,
-      '& .MuiChip-label': { px: 0.75 },
-      '&:hover': {
-        backgroundColor: active ? color : `${color}28`,
-      },
-    }}
-  />
-);
+      }
+      onClick={onClick}
+      size="small"
+      sx={{
+        height: compact ? 22 : 26,
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: compact ? '0.6875rem' : '0.75rem',
+        fontWeight: 600,
+        transition: 'all 0.15s ease',
+        backgroundColor: active ? color : `${color}18`,
+        color: active ? '#fff' : color,
+        border: `1px solid ${active ? color : `${color}40`}`,
+        '& .MuiChip-label': { px: compact ? 0.6 : 0.75 },
+        '&:hover': {
+          backgroundColor: active ? color : `${color}28`,
+        },
+      }}
+    />
+  );
+};
 
 // ─── Table section (used twice: actifs / archives) ──────────────────────────
 
