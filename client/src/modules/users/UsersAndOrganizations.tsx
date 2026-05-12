@@ -143,6 +143,7 @@ const UsersAndOrganizations: React.FC = () => {
       <PageHeader
         title="Utilisateurs et Organisations"
         subtitle="Gestion des utilisateurs et des organisations de la plateforme"
+        iconBadge={<People />}
         backPath="/dashboard"
         showBackButton={false}
         actions={renderActions()}

@@ -223,6 +223,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
         <PageHeader
           title={t('portfolios.title')}
           subtitle={t('portfolios.subtitle')}
+          iconBadge={<BusinessIcon />}
           backPath="/dashboard"
           showBackButton={false}
           actions={actionButtons}

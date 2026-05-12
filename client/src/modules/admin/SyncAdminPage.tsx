@@ -68,6 +68,7 @@ const SyncAdminPage: React.FC = () => {
       <PageHeader
         title="Sync & Diagnostics"
         subtitle="Supervision de la synchronisation channel et diagnostic du systeme"
+        iconBadge={<Sync />}
         backPath="/admin"
         showBackButton={false}
       />

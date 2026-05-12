@@ -63,6 +63,7 @@ const MonitoringPage: React.FC = () => {
       <PageHeader
         title="Monitoring Système"
         subtitle="Surveillance complète de la plateforme Clenzy"
+        iconBadge={<HealthAndSafety />}
         backPath="/admin"
         showBackButton={false}
       />

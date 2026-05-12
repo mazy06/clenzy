@@ -25,6 +25,7 @@ import {
   CheckCircle,
   Error as ErrorIcon,
   Shield,
+  BarChart as BarChartIcon,
 } from '../../icons';
 import {
   LineChart,
@@ -369,6 +370,7 @@ const KpiReadinessPage: React.FC = () => {
       <PageHeader
         title="KPI Readiness"
         subtitle="Indicateurs de performance pour la certification Airbnb Partner"
+        iconBadge={<BarChartIcon />}
         backPath="/admin"
         showBackButton={false}
       />
