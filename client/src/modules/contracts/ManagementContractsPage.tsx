@@ -3,7 +3,7 @@ import {
   Box, Typography, Paper, Button, Chip, IconButton, Tooltip,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TextField, MenuItem, FormControlLabel, Switch, Alert, Snackbar,
-  CircularProgress, InputAdornment, Collapse, Stack,
+  CircularProgress, InputAdornment, Stack,
 } from '@mui/material';
 import {
   Add, Edit, CheckCircle, Pause, Cancel, Close, Save,
@@ -74,9 +74,8 @@ const ManagementContractsPage: React.FC = () => {
     open: false, message: '', severity: 'success',
   });
 
-  // Inline form state — visible quand formMode != null
-  type FormMode = { kind: 'create' } | { kind: 'edit'; contract: ManagementContract };
-  const [formMode, setFormMode] = useState<FormMode | null>(null);
+  // Form state — toujours visible. editingContract != null = mode edition.
+  const [editingContract, setEditingContract] = useState<ManagementContract | null>(null);
   const [form, setForm] = useState<CreateManagementContractRequest>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
@@ -148,18 +147,18 @@ const ManagementContractsPage: React.FC = () => {
 
   // ─── Form handlers ────────────────────────────────────────────────────────
 
-  const openCreateForm = () => {
-    setForm({
-      ...EMPTY_FORM,
-      propertyId: properties.length > 0 ? properties[0].id : 0,
-      ownerId: properties.length > 0 ? properties[0].ownerId : 0,
-    });
-    setFormMode({ kind: 'create' });
-    // Scroll to top so the user sees the form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // Init/reset le formulaire de creation quand les proprietes arrivent
+  useEffect(() => {
+    if (!editingContract && properties.length > 0 && form.propertyId === 0) {
+      setForm(prev => ({
+        ...prev,
+        propertyId: properties[0].id,
+        ownerId: properties[0].ownerId,
+      }));
+    }
+  }, [properties, editingContract, form.propertyId]);
 
-  const openEditForm = (contract: ManagementContract) => {
+  const startEdit = (contract: ManagementContract) => {
     setForm({
       propertyId: contract.propertyId,
       ownerId: contract.ownerId,
@@ -174,13 +173,17 @@ const ManagementContractsPage: React.FC = () => {
       maintenanceIncluded: contract.maintenanceIncluded,
       notes: contract.notes ?? '',
     });
-    setFormMode({ kind: 'edit', contract });
+    setEditingContract(contract);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const closeForm = () => {
-    setFormMode(null);
-    setForm(EMPTY_FORM);
+  const resetForm = () => {
+    setEditingContract(null);
+    setForm({
+      ...EMPTY_FORM,
+      propertyId: properties.length > 0 ? properties[0].id : 0,
+      ownerId: properties.length > 0 ? properties[0].ownerId : 0,
+    });
   };
 
   const handlePropertyChange = (propertyId: number) => {
@@ -195,14 +198,14 @@ const ManagementContractsPage: React.FC = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      if (formMode?.kind === 'edit') {
-        await managementContractsApi.update(formMode.contract.id, form);
+      if (editingContract) {
+        await managementContractsApi.update(editingContract.id, form);
         showSuccess(t('contracts.updated'));
       } else {
         await managementContractsApi.create(form);
         showSuccess(t('contracts.created'));
       }
-      closeForm();
+      resetForm();
       loadContracts();
     } catch {
       showError(t('contracts.errorSaving'));
@@ -260,228 +263,194 @@ const ManagementContractsPage: React.FC = () => {
   return (
     <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* ─── Header ────────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 40, height: 40, borderRadius: 1.5,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              bgcolor: 'primary.main', color: 'primary.contrastText',
-            }}
-          >
-            <Handshake size={20} strokeWidth={1.75} />
-          </Box>
-          <Box>
-            <Typography variant="h5" fontWeight={700}>{t('contracts.title')}</Typography>
-            <Typography variant="body2" color="text.secondary">{t('contracts.subtitle')}</Typography>
-          </Box>
-        </Box>
-        {!formMode && (
-          <Button
-            variant="contained"
-            startIcon={<Add size={16} strokeWidth={1.75} />}
-            onClick={openCreateForm}
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          >
-            {t('contracts.create')}
-          </Button>
-        )}
-      </Box>
-
-      {/* ─── Inline create/edit form ───────────────────────────────── */}
-      <Collapse in={Boolean(formMode)} unmountOnExit timeout={250}>
-        <Paper
-          variant="outlined"
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box
           sx={{
-            p: 2.5,
-            borderRadius: 2,
-            borderColor: 'primary.main',
-            borderLeftWidth: 3,
-            borderLeftColor: 'primary.main',
-            bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(107,138,154,0.06)' : 'rgba(107,138,154,0.03)',
+            width: 40, height: 40, borderRadius: 1.5,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            bgcolor: 'primary.main', color: 'primary.contrastText',
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
-                {formMode?.kind === 'edit' ? <Edit size={18} strokeWidth={1.75} /> : <Add size={18} strokeWidth={1.75} />}
-              </Box>
-              <Typography variant="subtitle1" fontWeight={700}>
-                {formMode?.kind === 'edit' ? t('contracts.editTitle') : t('contracts.createTitle')}
-              </Typography>
-              {formMode?.kind === 'edit' && (
-                <Typography sx={{ ml: 0.5, fontSize: '0.8125rem', color: 'text.secondary', fontFamily: 'monospace' }}>
-                  {formMode.contract.contractNumber}
-                </Typography>
-              )}
-            </Box>
-            <IconButton size="small" onClick={closeForm} aria-label="Fermer">
-              <Close size={18} strokeWidth={1.75} />
-            </IconButton>
+          <Handshake size={20} strokeWidth={1.75} />
+        </Box>
+        <Box>
+          <Typography variant="h5" fontWeight={700}>{t('contracts.title')}</Typography>
+          <Typography variant="body2" color="text.secondary">{t('contracts.subtitle')}</Typography>
+        </Box>
+      </Box>
+
+      {/* ─── Inline create/edit form — toujours visible, 2 lignes max ─ */}
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 1.75,
+          borderRadius: 2,
+          borderColor: editingContract ? 'warning.main' : 'primary.main',
+          borderLeftWidth: 3,
+          borderLeftColor: editingContract ? 'warning.main' : 'primary.main',
+          bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(107,138,154,0.06)' : 'rgba(107,138,154,0.03)',
+        }}
+      >
+        {/* Bandeau de mode */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Box component="span" sx={{ display: 'inline-flex', color: editingContract ? 'warning.main' : 'primary.main' }}>
+            {editingContract ? <Edit size={14} strokeWidth={1.75} /> : <Add size={14} strokeWidth={1.75} />}
           </Box>
+          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: editingContract ? 'warning.main' : 'primary.main' }}>
+            {editingContract ? `Modification · ${editingContract.contractNumber}` : 'Nouveau contrat'}
+          </Typography>
+          <Box sx={{ flex: 1 }} />
+          {editingContract && (
+            <Tooltip title="Annuler la modification">
+              <IconButton size="small" onClick={resetForm}>
+                <Close size={16} strokeWidth={1.75} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-            <TextField
-              select
-              label={t('contracts.property')}
-              value={form.propertyId || ''}
-              onChange={e => handlePropertyChange(Number(e.target.value))}
-              fullWidth
-              size="small"
-              InputProps={{
-                startAdornment: <InputAdornment position="start"><Home size={14} strokeWidth={1.75} /></InputAdornment>,
-              }}
-            >
-              {properties.map(p => (
-                <MenuItem key={p.id} value={p.id}>
-                  {p.name} {p.ownerName ? `(${p.ownerName})` : ''}
-                </MenuItem>
-              ))}
-            </TextField>
+        {/* Ligne 1 — champs principaux */}
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1.6fr 1.3fr 0.8fr 1fr 1fr 0.8fr 0.8fr' },
+          gap: 1.25,
+          alignItems: 'flex-start',
+          mb: 1.25,
+        }}>
+          <TextField
+            select label={t('contracts.property')} value={form.propertyId || ''}
+            onChange={e => handlePropertyChange(Number(e.target.value))}
+            size="small" fullWidth
+            InputProps={{ startAdornment: <InputAdornment position="start"><Home size={14} strokeWidth={1.75} /></InputAdornment> }}
+          >
+            {properties.map(p => (
+              <MenuItem key={p.id} value={p.id}>
+                {p.name}{p.ownerName ? ` (${p.ownerName})` : ''}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select label={t('contracts.type')} value={form.contractType}
+            onChange={e => setForm(prev => ({ ...prev, contractType: e.target.value as ContractType }))}
+            size="small" fullWidth
+          >
+            {(Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(([key, label]) => (
+              <MenuItem key={key} value={key}>{label}</MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="Commission" type="number"
+            value={Math.round(form.commissionRate * 100)}
+            onChange={e => setForm(prev => ({ ...prev, commissionRate: Number(e.target.value) / 100 }))}
+            size="small" fullWidth
+            InputProps={{
+              startAdornment: <InputAdornment position="start"><Euro size={12} strokeWidth={1.75} /></InputAdornment>,
+              endAdornment: <InputAdornment position="end">%</InputAdornment>,
+            }}
+            inputProps={{ min: 1, max: 50, step: 1 }}
+          />
+          <TextField
+            label={t('contracts.startDate')} type="date" value={form.startDate}
+            onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
+            size="small" fullWidth
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label={t('contracts.endDate')} type="date" value={form.endDate ?? ''}
+            onChange={e => setForm(prev => ({ ...prev, endDate: e.target.value || null }))}
+            size="small" fullWidth
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Nuits min." type="number"
+            value={form.minimumStayNights ?? ''}
+            onChange={e => setForm(prev => ({ ...prev, minimumStayNights: e.target.value ? Number(e.target.value) : null }))}
+            size="small" fullWidth
+            inputProps={{ min: 1 }}
+          />
+          <TextField
+            label="Préavis" type="number"
+            value={form.noticePeriodDays ?? 30}
+            onChange={e => setForm(prev => ({ ...prev, noticePeriodDays: Number(e.target.value) }))}
+            size="small" fullWidth
+            InputProps={{ endAdornment: <InputAdornment position="end">j</InputAdornment> }}
+          />
+        </Box>
 
-            <TextField
-              select
-              label={t('contracts.type')}
-              value={form.contractType}
-              onChange={e => setForm(prev => ({ ...prev, contractType: e.target.value as ContractType }))}
-              fullWidth
-              size="small"
-            >
-              {(Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(([key, label]) => (
-                <MenuItem key={key} value={key}>{label}</MenuItem>
-              ))}
-            </TextField>
-
-            <TextField
-              label={t('contracts.commissionRate')}
-              type="number"
-              value={Math.round(form.commissionRate * 100)}
-              onChange={e => setForm(prev => ({ ...prev, commissionRate: Number(e.target.value) / 100 }))}
-              fullWidth
-              size="small"
-              InputProps={{
-                startAdornment: <InputAdornment position="start"><Euro size={14} strokeWidth={1.75} /></InputAdornment>,
-                endAdornment: <InputAdornment position="end">%</InputAdornment>,
-              }}
-              inputProps={{ min: 1, max: 50, step: 1 }}
-              helperText={t('contracts.commissionHelper')}
+        {/* Ligne 2 — options, notes, actions */}
+        <Box sx={{
+          display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap',
+        }}>
+          <Box sx={{ display: 'flex', gap: 0.25, flexWrap: 'wrap' }}>
+            <FormControlLabel
+              control={<Switch size="small" checked={form.autoRenew ?? false} onChange={e => setForm(prev => ({ ...prev, autoRenew: e.target.checked }))} />}
+              label={<Typography sx={{ fontSize: '0.75rem' }}>Renouvellement auto</Typography>}
+              sx={{ mr: 1 }}
             />
-
-            <TextField
-              label={t('contracts.minStayNights')}
-              type="number"
-              value={form.minimumStayNights ?? ''}
-              onChange={e => setForm(prev => ({ ...prev, minimumStayNights: e.target.value ? Number(e.target.value) : null }))}
-              fullWidth
-              size="small"
-              inputProps={{ min: 1 }}
+            <FormControlLabel
+              control={<Switch size="small" checked={form.cleaningFeeIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, cleaningFeeIncluded: e.target.checked }))} />}
+              label={<Typography sx={{ fontSize: '0.75rem' }}>Ménage inclus</Typography>}
+              sx={{ mr: 1 }}
             />
-
-            <TextField
-              label={t('contracts.startDate')}
-              type="date"
-              value={form.startDate}
-              onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
-              fullWidth
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              InputProps={{
-                startAdornment: <InputAdornment position="start"><CalendarMonth size={14} strokeWidth={1.75} /></InputAdornment>,
-              }}
+            <FormControlLabel
+              control={<Switch size="small" checked={form.maintenanceIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, maintenanceIncluded: e.target.checked }))} />}
+              label={<Typography sx={{ fontSize: '0.75rem' }}>Maintenance incluse</Typography>}
             />
-
-            <TextField
-              label={t('contracts.endDate')}
-              type="date"
-              value={form.endDate ?? ''}
-              onChange={e => setForm(prev => ({ ...prev, endDate: e.target.value || null }))}
-              fullWidth
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              helperText={t('contracts.endDateHelper')}
-            />
-
-            <TextField
-              label={t('contracts.noticePeriodDays')}
-              type="number"
-              value={form.noticePeriodDays ?? 30}
-              onChange={e => setForm(prev => ({ ...prev, noticePeriodDays: Number(e.target.value) }))}
-              fullWidth
-              size="small"
-              InputProps={{
-                endAdornment: <InputAdornment position="end">{t('contracts.days')}</InputAdornment>,
-              }}
-            />
-
-            <Box />{/* spacer */}
-
-            <Box sx={{ gridColumn: { md: '1 / -1' }, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-              <FormControlLabel
-                control={<Switch checked={form.autoRenew ?? false} onChange={e => setForm(prev => ({ ...prev, autoRenew: e.target.checked }))} />}
-                label={t('contracts.autoRenew')}
-              />
-              <FormControlLabel
-                control={<Switch checked={form.cleaningFeeIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, cleaningFeeIncluded: e.target.checked }))} />}
-                label={t('contracts.cleaningIncluded')}
-              />
-              <FormControlLabel
-                control={<Switch checked={form.maintenanceIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, maintenanceIncluded: e.target.checked }))} />}
-                label={t('contracts.maintenanceIncluded')}
-              />
-            </Box>
-
-            <TextField
-              label={t('contracts.notes')}
-              value={form.notes ?? ''}
-              onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
-              multiline
-              rows={2}
-              fullWidth
-              size="small"
-              sx={{ gridColumn: { md: '1 / -1' } }}
-            />
-
-            <Box sx={{ gridColumn: { md: '1 / -1' } }}>
-              <Alert severity="info" icon={<Euro size={16} strokeWidth={1.75} />}>
-                <Typography variant="body2" fontWeight={600}>{t('contracts.splitPreview')}</Typography>
-                <Typography variant="body2">
-                  {(() => {
-                    const commissionPct = form.commissionRate * 100;
-                    const ownerPct = 100 - commissionPct;
-                    const platformBase = splitRatios?.platformShare ?? 0.05;
-                    const conciergeBase = splitRatios?.conciergeShare ?? 0.15;
-                    const commissionTotal = platformBase + conciergeBase;
-                    const platformRatio = commissionTotal > 0 ? platformBase / commissionTotal : 0.25;
-                    const conciergeRatio = commissionTotal > 0 ? conciergeBase / commissionTotal : 0.75;
-                    const platformPct = commissionPct * platformRatio;
-                    const conciergePct = commissionPct * conciergeRatio;
-                    return `${t('contracts.ownerGets')}: ${ownerPct.toFixed(0)}% | ${t('contracts.platformGets')}: ${platformPct.toFixed(1)}% | ${t('contracts.conciergeGets')}: ${conciergePct.toFixed(1)}%`;
-                  })()}
-                </Typography>
-              </Alert>
-            </Box>
           </Box>
-
-          <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 2.5 }}>
+          <TextField
+            label="Notes" value={form.notes ?? ''}
+            onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
+            size="small"
+            placeholder="Optionnel"
+            sx={{ flex: 1, minWidth: 200 }}
+          />
+          {/* Split preview compact */}
+          <Tooltip
+            title={(() => {
+              const commissionPct = form.commissionRate * 100;
+              const ownerPct = 100 - commissionPct;
+              const platformBase = splitRatios?.platformShare ?? 0.05;
+              const conciergeBase = splitRatios?.conciergeShare ?? 0.15;
+              const commissionTotal = platformBase + conciergeBase;
+              const platformRatio = commissionTotal > 0 ? platformBase / commissionTotal : 0.25;
+              const conciergeRatio = commissionTotal > 0 ? conciergeBase / commissionTotal : 0.75;
+              return `${t('contracts.ownerGets')}: ${ownerPct.toFixed(0)}% · ${t('contracts.platformGets')}: ${(commissionPct * platformRatio).toFixed(1)}% · ${t('contracts.conciergeGets')}: ${(commissionPct * conciergeRatio).toFixed(1)}%`;
+            })()}
+          >
+            <Chip
+              size="small"
+              icon={<Euro size={12} strokeWidth={1.75} />}
+              label={`${(100 - form.commissionRate * 100).toFixed(0)}% propriétaire`}
+              sx={{
+                fontSize: '0.6875rem', fontWeight: 600,
+                bgcolor: '#6B8A9A20', color: '#6B8A9A',
+                border: '1px solid #6B8A9A40',
+                '& .MuiChip-icon': { color: '#6B8A9A' },
+              }}
+            />
+          </Tooltip>
+          {editingContract && (
             <Button
-              onClick={closeForm}
-              startIcon={<Close size={16} strokeWidth={1.75} />}
+              onClick={resetForm}
+              size="small"
+              startIcon={<Close size={14} strokeWidth={1.75} />}
               sx={{ textTransform: 'none' }}
             >
               {t('contracts.cancel')}
             </Button>
-            <Button
-              variant="contained"
-              onClick={handleSave}
-              disabled={!form.propertyId || !form.startDate || form.commissionRate <= 0 || saving}
-              startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={16} strokeWidth={1.75} />}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
-            >
-              {formMode?.kind === 'edit' ? t('contracts.save') : t('contracts.create')}
-            </Button>
-          </Stack>
-        </Paper>
-      </Collapse>
+          )}
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleSave}
+            disabled={!form.propertyId || !form.startDate || form.commissionRate <= 0 || saving}
+            startIcon={saving ? <CircularProgress size={12} color="inherit" /> : (editingContract ? <Save size={14} strokeWidth={1.75} /> : <Add size={14} strokeWidth={1.75} />)}
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            {editingContract ? t('contracts.save') : t('contracts.create')}
+          </Button>
+        </Box>
+      </Paper>
 
       {/* ─── Filter chips (PMS soft-filled style) ──────────────────── */}
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -527,16 +496,9 @@ const ManagementContractsPage: React.FC = () => {
           <Typography sx={{ fontSize: '0.8125rem', color: 'text.disabled', mb: 2 }}>
             Les paiements seront répartis en 2 parts (propriétaire / plateforme).
           </Typography>
-          {!formMode && (
-            <Button
-              variant="outlined"
-              startIcon={<Add size={16} strokeWidth={1.75} />}
-              onClick={openCreateForm}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
-            >
-              {t('contracts.createFirst')}
-            </Button>
-          )}
+          <Typography sx={{ fontSize: '0.75rem', color: 'primary.main', fontWeight: 600 }}>
+            Remplis le formulaire ci-dessus pour créer ton premier contrat.
+          </Typography>
         </Paper>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -552,7 +514,7 @@ const ManagementContractsPage: React.FC = () => {
               getOwnerName={getOwnerName}
               onActivate={handleActivate}
               onSuspend={handleSuspend}
-              onEdit={openEditForm}
+              onEdit={startEdit}
               onTerminateStart={startTerminate}
               onTerminateCancel={cancelTerminate}
               onTerminateConfirm={confirmTerminate}
@@ -570,7 +532,7 @@ const ManagementContractsPage: React.FC = () => {
               getOwnerName={getOwnerName}
               onActivate={handleActivate}
               onSuspend={handleSuspend}
-              onEdit={openEditForm}
+              onEdit={startEdit}
               onTerminateStart={startTerminate}
               onTerminateCancel={cancelTerminate}
               onTerminateConfirm={confirmTerminate}
