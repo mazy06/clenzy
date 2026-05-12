@@ -25,6 +25,7 @@ import {
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import {
   guestMessagingApi,
   type MessageTemplate,
@@ -109,6 +110,7 @@ export default function MessageTemplatesPage() {
       <PageHeader
         title={t('messaging.templates.title')}
         subtitle={t('messaging.templates.subtitle')}
+        iconBadge={<Email />}
         backPath="/settings"
         actions={
           <Button
@@ -133,18 +135,16 @@ export default function MessageTemplatesPage() {
           <CircularProgress />
         </Box>
       ) : templates.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 2 }}><Email size={48} strokeWidth={1.75} /></Box>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            {t('messaging.templates.empty')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t('messaging.templates.emptyDesc')}
-          </Typography>
-          <Button variant="contained" startIcon={<Add />} onClick={handleCreate}>
-            {t('messaging.templates.createFirst')}
-          </Button>
-        </Paper>
+        <EmptyState
+          icon={<Email />}
+          title={t('messaging.templates.empty')}
+          description={t('messaging.templates.emptyDesc')}
+          action={(
+            <Button variant="outlined" size="small" startIcon={<Add size={16} strokeWidth={1.75} />} onClick={handleCreate}>
+              {t('messaging.templates.createFirst')}
+            </Button>
+          )}
+        />
       ) : (
         <TableContainer component={Paper}>
           <Table>

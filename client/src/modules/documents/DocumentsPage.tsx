@@ -86,6 +86,7 @@ const DocumentsPage: React.FC = () => {
       <PageHeader
         title={t('documents.title')}
         subtitle={t('documents.subtitle')}
+        iconBadge={<Description />}
         backPath="/dashboard"
         showBackButton={false}
       />
