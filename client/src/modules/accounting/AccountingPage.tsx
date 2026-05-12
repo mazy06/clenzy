@@ -34,6 +34,7 @@ import {
   Visibility as VisibilityIcon,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import FilterChipRow from '../../components/FilterChipRow';
 import HelpBanner from '../../components/HelpBanner';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useSearchParams } from 'react-router-dom';
@@ -278,24 +279,19 @@ export const PayoutsTab: React.FC = () => {
           </Select>
         </FormControl>
 
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          {PAYOUT_STATUS_VALUES.map((val) => (
-            <Chip
-              key={val}
-              label={val === '' ? t('common.all', 'Tous') : t(`accounting.payoutStatuses.${val}`, val)}
-              size="small"
-              variant={filterStatus === val ? 'filled' : 'outlined'}
-              onClick={() => setFilterStatus(val as PayoutStatus | '')}
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                ...(filterStatus === val && val !== ''
-                  ? { backgroundColor: PAYOUT_STATUS_COLORS[val as PayoutStatus], color: '#fff' }
-                  : {}),
-              }}
-            />
-          ))}
-        </Box>
+        <FilterChipRow
+          options={PAYOUT_STATUS_VALUES
+            .filter((v): v is PayoutStatus => v !== '')
+            .map((v) => ({
+              value: v,
+              label: t(`accounting.payoutStatuses.${v}`, v),
+              color: PAYOUT_STATUS_COLORS[v],
+            }))}
+          value={filterStatus}
+          onChange={(v) => setFilterStatus(v as PayoutStatus | '')}
+          allLabel={t('common.all', 'Tous')}
+          size="compact"
+        />
 
         {sepaError && (
           <Alert severity="error" sx={{ fontSize: '0.8125rem' }} onClose={() => setSepaError(null)}>
