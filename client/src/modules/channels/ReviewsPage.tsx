@@ -21,6 +21,7 @@ import {
   ExpandMore as ExpandMoreIcon,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { SPACING } from '../../theme/spacing';
 import { airbnbApi } from '../../services/api/airbnbApi';
@@ -120,6 +121,7 @@ const ReviewsPage: React.FC = () => {
       <PageHeader
         title={t('channels.reviews.title')}
         subtitle={t('channels.reviews.subtitle')}
+        iconBadge={<StarIcon />}
         backPath="/channels"
         showBackButton
       />
@@ -179,11 +181,10 @@ const ReviewsPage: React.FC = () => {
           <CircularProgress size={28} />
         </Box>
       ) : reviews.length === 0 ? (
-        <Paper sx={{ ...CARD_SX, textAlign: 'center', py: 4 }}>
-          <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-            {t('channels.reviews.noReviews')}
-          </Typography>
-        </Paper>
+        <EmptyState
+          icon={<StarIcon />}
+          title={t('channels.reviews.noReviews')}
+        />
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {reviews.map((review) => (

@@ -87,6 +87,7 @@ const ContactPage: React.FC = () => {
       <PageHeader
         title={t('contact.title')}
         subtitle={t('contact.subtitle')}
+        iconBadge={<ChatIcon />}
         backPath="/dashboard"
         showBackButton={false}
       />
