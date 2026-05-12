@@ -30,8 +30,10 @@ import {
   AutoAwesome,
   Build,
   Category,
+  Groups,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import TeamCard from '../../components/TeamCard';
 import { useTeamsList } from './useTeamsList';
 
@@ -114,6 +116,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
         <PageHeader
           title={t('teams.title')}
           subtitle={t('teams.subtitle')}
+          iconBadge={<Groups />}
           backPath="/dashboard"
           showBackButton={false}
           actions={actionButtons}
@@ -202,32 +205,21 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
 
       {/* ─── Liste des équipes ─── */}
       {filteredTeams.length === 0 ? (
-        <Box sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          py: 8,
-          textAlign: 'center',
-        }}>
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
-            {t('teams.noTeamFound')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 500 }}>
-            {t('teams.noTeamCreated')}
-          </Typography>
-          {canCreateTeams && (
+        <EmptyState
+          icon={<Groups />}
+          title={t('teams.noTeamFound')}
+          description={t('teams.noTeamCreated')}
+          action={canCreateTeams && (
             <Button
-              variant="contained"
-              color="primary"
-              startIcon={<Add />}
+              variant="outlined"
+              size="small"
+              startIcon={<Add size={16} strokeWidth={1.75} />}
               onClick={() => navigate('/teams/new')}
-              size="medium"
             >
               {t('teams.createFirst')}
             </Button>
           )}
-        </Box>
+        />
       ) : (
         <>
           <Grid container spacing={2}>

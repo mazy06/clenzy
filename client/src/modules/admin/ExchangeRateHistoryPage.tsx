@@ -127,6 +127,7 @@ export default function ExchangeRateHistoryPage() {
       <PageHeader
         title="Historique des taux de change"
         subtitle="Taux de change BCE mis a jour quotidiennement"
+        iconBadge={<CurrencyExchange />}
         showBackButton={false}
         actions={
           <Button

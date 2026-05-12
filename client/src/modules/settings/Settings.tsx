@@ -415,6 +415,7 @@ export default function Settings() {
       <PageHeader
         title="Paramètres"
         subtitle="Configurez votre application selon vos préférences"
+        iconBadge={<TuneOutlined />}
         backPath="/"
         showBackButton={false}
         actions={headerActions}
