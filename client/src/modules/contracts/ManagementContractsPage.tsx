@@ -6,7 +6,7 @@ import {
   CircularProgress, InputAdornment, Stack,
 } from '@mui/material';
 import {
-  Add, Edit, CheckCircle, Pause, Cancel, Close, Save,
+  Add, Edit, CheckCircle, Pause, Cancel, Close, Save, Check,
   Handshake, Home, Person, Euro, CalendarMonth,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -260,13 +260,6 @@ const ManagementContractsPage: React.FC = () => {
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
-  // Refs to scroll/focus form when "Nouveau contrat" is clicked from header
-  const formRef = React.useRef<HTMLDivElement | null>(null);
-  const focusForm = () => {
-    resetForm();
-    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-  };
-
   return (
     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {/* ─── Header : titre + filtres + CTA ──────────────────────────── */}
@@ -319,20 +312,44 @@ const ManagementContractsPage: React.FC = () => {
           })}
         </Box>
 
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<Add size={14} strokeWidth={1.75} />}
-          onClick={focusForm}
-          sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600, py: 0.5 }}
-        >
-          {t('contracts.create')}
-        </Button>
+        {/* Submit du formulaire — actif seulement quand les champs requis sont valides.
+            Pas de background : variant 'outlined' pour rester discret dans le header. */}
+        {(() => {
+          const formValid = Boolean(form.propertyId) && Boolean(form.startDate) && form.commissionRate > 0;
+          const label = editingContract ? 'Enregistrer' : 'Valider';
+          return (
+            <Button
+              variant="outlined"
+              size="small"
+              color={editingContract ? 'warning' : 'primary'}
+              startIcon={saving
+                ? <CircularProgress size={12} color="inherit" />
+                : (editingContract ? <Save size={14} strokeWidth={1.75} /> : <Check size={14} strokeWidth={1.75} />)
+              }
+              onClick={handleSave}
+              disabled={!formValid || saving}
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                py: 0.5,
+                px: 1.5,
+                borderRadius: 1,
+                // Désactivé : bordure et texte grisés mais lisibles
+                '&.Mui-disabled': {
+                  color: 'text.disabled',
+                  borderColor: 'divider',
+                },
+              }}
+            >
+              {saving ? 'Enregistrement…' : label}
+            </Button>
+          );
+        })()}
       </Box>
 
       {/* ─── Inline create/edit form — toujours visible, 2 lignes max ─ */}
       <Paper
-        ref={formRef}
         variant="outlined"
         sx={{
           p: 1.25,
@@ -500,16 +517,7 @@ const ManagementContractsPage: React.FC = () => {
               {t('contracts.cancel')}
             </Button>
           )}
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleSave}
-            disabled={!form.propertyId || !form.startDate || form.commissionRate <= 0 || saving}
-            startIcon={saving ? <CircularProgress size={12} color="inherit" /> : (editingContract ? <Save size={14} strokeWidth={1.75} /> : <Add size={14} strokeWidth={1.75} />)}
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          >
-            {editingContract ? t('contracts.save') : t('contracts.create')}
-          </Button>
+          {/* Submit button is in the page header (top-right) to avoid duplication. */}
         </Box>
       </Paper>
 
