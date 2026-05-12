@@ -45,6 +45,7 @@ import {
 import { useProspects, useUpdateProspect } from '../../hooks/useProspects';
 import type { ProspectDto } from '../../services/api/prospectsApi';
 import ProspectImportModal from './ProspectImportModal';
+import EmptyState from '../../components/EmptyState';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -263,28 +264,27 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
 
       {/* ── Empty state ── */}
       {prospects.length === 0 && !isLoading ? (
-        <Paper sx={{ p: 6, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 2 }}><CloudUpload size={48} strokeWidth={1.75} /></Box>
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-            Aucun prospect pour le moment
-          </Typography>
-          <Typography variant="body2" color="text.disabled" sx={{ mb: 3 }}>
-            Importez un fichier CSV depuis Vibe Prospecting pour commencer.
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<CloudUpload />}
-            onClick={() => setImportOpen(true)}
-          >
-            Importer des prospects
-          </Button>
-        </Paper>
+        <EmptyState
+          icon={<CloudUpload />}
+          title="Aucun prospect pour le moment"
+          description="Importez un fichier CSV depuis Vibe Prospecting pour commencer."
+          action={(
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<CloudUpload size={16} strokeWidth={1.75} />}
+              onClick={() => setImportOpen(true)}
+            >
+              Importer des prospects
+            </Button>
+          )}
+        />
       ) : filteredCategories.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-            Aucun prospect ne correspond aux filtres.
-          </Typography>
-        </Paper>
+        <EmptyState
+          icon={<FilterList />}
+          title="Aucun prospect ne correspond aux filtres"
+          variant="plain"
+        />
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {filteredCategories.map((cat) => {
