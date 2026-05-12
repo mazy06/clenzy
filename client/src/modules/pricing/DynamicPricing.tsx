@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import {
   CloudUpload as PushIcon,
+  TrendingUp,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -284,6 +285,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
         <PageHeader
           title={t('dynamicPricing.title')}
           subtitle={t('dynamicPricing.subtitle')}
+          iconBadge={<TrendingUp />}
           backPath="/dashboard"
           showBackButton={false}
           actions={actionButtons}

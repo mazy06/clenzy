@@ -113,6 +113,7 @@ const AccountingPage: React.FC = () => {
       <PageHeader
         title={t('accounting.title', 'Comptabilite')}
         subtitle={t('accounting.subtitle', 'Payouts proprietaires et commissions channels')}
+        iconBadge={<StepCalcIcon />}
         showBackButton={false}
         backPath="/dashboard"
       />

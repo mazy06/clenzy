@@ -228,6 +228,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
         <PageHeader
           title={t('invoices.title', 'Factures')}
           subtitle={t('invoices.subtitle', 'Gestion des factures et documents fiscaux')}
+          iconBadge={<ReceiptIcon />}
           backPath="/"
           showBackButton={false}
         />

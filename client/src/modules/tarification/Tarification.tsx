@@ -18,6 +18,7 @@ import {
   Yard,
   LocalLaundryService,
   VolumeUp,
+  Euro,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useTarification } from '../../hooks/useTarification';
@@ -73,6 +74,7 @@ export default function Tarification() {
       <PageHeader
         title={t('tarification.title')}
         subtitle={t('tarification.subtitle')}
+        iconBadge={<Euro />}
         backPath="/dashboard"
         actions={
           canEdit ? (

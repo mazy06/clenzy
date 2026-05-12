@@ -446,6 +446,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         <PageHeader
           title={t('payments.history.title')}
           subtitle={t('payments.history.subtitle')}
+          iconBadge={<ReceiptLongIcon />}
           backPath="/dashboard"
           showBackButton={true}
           filters={
