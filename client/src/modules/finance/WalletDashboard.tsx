@@ -117,7 +117,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
   return (
     <Box>
       {!embedded && (
-        <PageHeader title="Portefeuilles" subtitle="Vue d'ensemble des portefeuilles et transactions" backPath="/dashboard" />
+        <PageHeader title="Portefeuilles" subtitle="Vue d'ensemble des portefeuilles et transactions" iconBadge={<AccountBalanceWallet />} backPath="/dashboard" />
       )}
 
       {wallets.length === 0 ? (

@@ -129,6 +129,7 @@ const BillingPage: React.FC = () => {
       <PageHeader
         title={t('billing.title')}
         subtitle={t('billing.subtitle')}
+        iconBadge={<AccountBalance />}
         backPath="/dashboard"
         showBackButton={false}
       />
