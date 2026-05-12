@@ -89,7 +89,7 @@ interface PlanningActionPanelProps {
 
 // ─── Tab configs ──────────────────────────────────────────────────────────────
 
-const ICON_PROPS = { size: 16, strokeWidth: 1.75 } as const;
+const ICON_PROPS = { size: 13, strokeWidth: 1.75 } as const;
 
 const RESERVATION_TABS: { value: PanelTab; label: string; icon: React.ReactElement }[] = [
   { value: 'info', label: 'Infos', icon: <Info {...ICON_PROPS} /> },
@@ -332,19 +332,19 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          px: 2,
-          py: 1.5,
+          px: 1.5,
+          py: 1,
           borderBottom: '1px solid',
           borderColor: 'divider',
           backgroundColor: hexToRgba(event.color, 0.06),
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, minWidth: 0 }}>
           <Box
             sx={{
-              width: 4,
-              height: 32,
-              borderRadius: 2,
+              width: 3,
+              height: 24,
+              borderRadius: 1.5,
               backgroundColor: event.color,
               flexShrink: 0,
             }}
@@ -354,7 +354,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
               variant="subtitle2"
               sx={{
                 fontWeight: 700,
-                fontSize: '0.875rem',
+                fontSize: '0.75rem',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -362,15 +362,15 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
             >
               {event.label}
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.5625rem' }}>
               {isReservation ? 'Reservation' : event.type === 'cleaning' ? 'Ménage' : 'Maintenance'}
               {' · '}
               {event.startDate} → {event.endDate}
             </Typography>
           </Box>
         </Box>
-        <IconButton size="small" onClick={onClose} sx={{ flexShrink: 0 }}>
-          <Close size={18} strokeWidth={1.75} />
+        <IconButton size="small" onClick={onClose} sx={{ flexShrink: 0, width: 22, height: 22 }}>
+          <Close size={14} strokeWidth={1.75} />
         </IconButton>
       </Box>
 
@@ -383,16 +383,16 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
           onChange={(_, value) => onTabChange(value)}
           variant="fullWidth"
           sx={{
-            minHeight: 40,
+            minHeight: 32,
             borderBottom: '1px solid',
             borderColor: 'divider',
             '& .MuiTab-root': {
-              minHeight: 40,
-              fontSize: '0.625rem',
+              minHeight: 32,
+              fontSize: '0.5625rem',
               fontWeight: 600,
               textTransform: 'none',
               letterSpacing: '0.01em',
-              py: 0.5,
+              py: 0.25,
             },
             '& .MuiTab-root .MuiTab-iconWrapper': {
               marginBottom: 0,
@@ -413,7 +413,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
       )}
 
       {/* Content */}
-      <Box sx={{ flex: 1, overflow: 'auto', p: 2, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 1.5, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
         {isSubView ? renderSubView() : renderTabContent()}
       </Box>
     </Drawer>
