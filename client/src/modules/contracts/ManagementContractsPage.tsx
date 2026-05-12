@@ -20,6 +20,9 @@ import {
 import { splitConfigApi } from '../../services/api/splitConfigApi';
 import type { SplitRatios } from '../../types/payment';
 import apiClient from '../../services/apiClient';
+import PageHeader from '../../components/PageHeader';
+import FilterChipRow from '../../components/FilterChipRow';
+import EmptyState from '../../components/EmptyState';
 
 // ─── Status palette (PMS soft-filled, identical aux autres pages) ───────────
 
@@ -260,93 +263,57 @@ const ManagementContractsPage: React.FC = () => {
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
+  // Options de filtre derivees du STATUS_META — passe au FilterChipRow partage
+  const filterOptions = (Object.keys(STATUS_META) as ContractStatus[]).map(status => ({
+    value: status,
+    label: STATUS_META[status].label,
+    color: STATUS_META[status].color,
+    count: contracts.filter(c => c.status === status).length,
+  }));
+
+  const formValid = Boolean(form.propertyId) && Boolean(form.startDate) && form.commissionRate > 0;
+
   return (
     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      {/* ─── Header : titre + filtres + CTA ──────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-        <Box
-          sx={{
-            width: 32, height: 32, borderRadius: 1,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            bgcolor: 'primary.main', color: 'primary.contrastText',
-            flexShrink: 0,
-          }}
-        >
-          <Handshake size={16} strokeWidth={1.75} />
-        </Box>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, lineHeight: 1.2 }}>
-            {t('contracts.title')}
-          </Typography>
-          <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', lineHeight: 1.2 }}>
-            {t('contracts.subtitle')}
-          </Typography>
-        </Box>
-
-        <Box sx={{ flex: 1 }} />
-
-        {/* Filter chips inline */}
-        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
-          <PmsFilterChip
-            label={t('contracts.allStatuses')}
-            color={FILTER_ALL_COLOR}
-            active={statusFilter === ''}
-            count={contracts.length}
-            onClick={() => setStatusFilter('')}
+      {/* ─── Header standardise (PageHeader) ──────────────────────────── */}
+      <PageHeader
+        title={t('contracts.title')}
+        subtitle={t('contracts.subtitle')}
+        iconBadge={<Handshake />}
+        showBackButton={false}
+        filters={(
+          <FilterChipRow
+            options={filterOptions}
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v as ContractStatus | '')}
+            allLabel={t('contracts.allStatuses')}
+            allCount={contracts.length}
+            allColor={FILTER_ALL_COLOR}
             size="compact"
           />
-          {(Object.keys(STATUS_META) as ContractStatus[]).map(status => {
-            const meta = STATUS_META[status];
-            const count = contracts.filter(c => c.status === status).length;
-            return (
-              <PmsFilterChip
-                key={status}
-                label={meta.label}
-                color={meta.color}
-                active={statusFilter === status}
-                count={count}
-                onClick={() => setStatusFilter(statusFilter === status ? '' : status)}
-                size="compact"
-              />
-            );
-          })}
-        </Box>
-
-        {/* Submit du formulaire — actif seulement quand les champs requis sont valides.
-            Pas de background : variant 'outlined' pour rester discret dans le header. */}
-        {(() => {
-          const formValid = Boolean(form.propertyId) && Boolean(form.startDate) && form.commissionRate > 0;
-          const label = editingContract ? 'Enregistrer' : 'Valider';
-          return (
-            <Button
-              variant="outlined"
-              size="small"
-              color={editingContract ? 'warning' : 'primary'}
-              startIcon={saving
-                ? <CircularProgress size={12} color="inherit" />
-                : (editingContract ? <Save size={14} strokeWidth={1.75} /> : <Check size={14} strokeWidth={1.75} />)
-              }
-              onClick={handleSave}
-              disabled={!formValid || saving}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                py: 0.5,
-                px: 1.5,
-                borderRadius: 1,
-                // Désactivé : bordure et texte grisés mais lisibles
-                '&.Mui-disabled': {
-                  color: 'text.disabled',
-                  borderColor: 'divider',
-                },
-              }}
-            >
-              {saving ? 'Enregistrement…' : label}
-            </Button>
-          );
-        })()}
-      </Box>
+        )}
+        actions={(
+          <Button
+            variant="outlined"
+            size="small"
+            color={editingContract ? 'warning' : 'primary'}
+            startIcon={saving
+              ? <CircularProgress size={12} color="inherit" />
+              : (editingContract ? <Save size={14} strokeWidth={1.75} /> : <Check size={14} strokeWidth={1.75} />)
+            }
+            onClick={handleSave}
+            disabled={!formValid || saving}
+            sx={{
+              '&.Mui-disabled': {
+                color: 'text.disabled',
+                borderColor: 'divider',
+              },
+            }}
+          >
+            {saving ? 'Enregistrement…' : (editingContract ? 'Enregistrer' : 'Valider')}
+          </Button>
+        )}
+      />
 
       {/* ─── Inline create/edit form — toujours visible, 2 lignes max ─ */}
       <Paper
@@ -527,23 +494,11 @@ const ManagementContractsPage: React.FC = () => {
           <CircularProgress />
         </Box>
       ) : contracts.length === 0 ? (
-        <Paper
-          variant="outlined"
-          sx={{ p: 5, textAlign: 'center', borderStyle: 'dashed', borderRadius: 2 }}
-        >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}>
-            <Handshake size={36} strokeWidth={1.5} />
-          </Box>
-          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
-            {t('contracts.noContracts')}
-          </Typography>
-          <Typography sx={{ fontSize: '0.8125rem', color: 'text.disabled', mb: 2 }}>
-            Les paiements seront répartis en 2 parts (propriétaire / plateforme).
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'primary.main', fontWeight: 600 }}>
-            Remplis le formulaire ci-dessus pour créer ton premier contrat.
-          </Typography>
-        </Paper>
+        <EmptyState
+          icon={<Handshake />}
+          title={t('contracts.noContracts')}
+          description="Les paiements seront répartis en 2 parts (propriétaire / plateforme). Remplis le formulaire ci-dessus pour créer ton premier contrat."
+        />
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {activeContracts.length > 0 && (
@@ -597,61 +552,6 @@ const ManagementContractsPage: React.FC = () => {
         </Alert>
       </Snackbar>
     </Box>
-  );
-};
-
-// ─── PMS-style filter chip ──────────────────────────────────────────────────
-
-interface PmsFilterChipProps {
-  label: string;
-  color: string;
-  active: boolean;
-  count: number;
-  onClick: () => void;
-  size?: 'default' | 'compact';
-}
-
-const PmsFilterChip: React.FC<PmsFilterChipProps> = ({ label, color, active, count, onClick, size = 'default' }) => {
-  const compact = size === 'compact';
-  return (
-    <Chip
-      label={
-        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4 }}>
-          {label}
-          <Box
-            component="span"
-            sx={{
-              fontSize: compact ? '0.5625rem' : '0.625rem',
-              fontWeight: 700,
-              px: 0.5,
-              py: 0.05,
-              borderRadius: 0.75,
-              bgcolor: active ? 'rgba(255,255,255,0.25)' : `${color}28`,
-              color: active ? '#fff' : color,
-            }}
-          >
-            {count}
-          </Box>
-        </Box>
-      }
-      onClick={onClick}
-      size="small"
-      sx={{
-        height: compact ? 22 : 26,
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: compact ? '0.6875rem' : '0.75rem',
-        fontWeight: 600,
-        transition: 'all 0.15s ease',
-        backgroundColor: active ? color : `${color}18`,
-        color: active ? '#fff' : color,
-        border: `1px solid ${active ? color : `${color}40`}`,
-        '& .MuiChip-label': { px: compact ? 0.6 : 0.75 },
-        '&:hover': {
-          backgroundColor: active ? color : `${color}28`,
-        },
-      }}
-    />
   );
 };
 
