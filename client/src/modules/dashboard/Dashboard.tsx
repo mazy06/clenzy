@@ -155,6 +155,7 @@ const Dashboard: React.FC = () => {
         <PageHeader
           title={getDashboardTitle()}
           subtitle={getDashboardDescription()}
+          iconBadge={<DashboardIcon />}
           backPath="/"
           showBackButton={false}
           actions={

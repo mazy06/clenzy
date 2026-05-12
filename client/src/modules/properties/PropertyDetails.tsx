@@ -422,6 +422,7 @@ const PropertyDetails: React.FC = () => {
         <PageHeader
           title={property.name}
           subtitle={`${getPropertyTypeLabel(property.propertyType, t)} · ${property.city}`}
+          iconBadge={<Home />}
           backPath="/properties"
           actions={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
