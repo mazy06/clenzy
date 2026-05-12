@@ -138,6 +138,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
         <PageHeader
           title="Voyageurs"
           subtitle={`${filteredGuests.length} voyageur${filteredGuests.length !== 1 ? 's' : ''}`}
+          iconBadge={<PeopleIcon />}
           backPath="/dashboard"
           showBackButton={false}
         />

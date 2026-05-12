@@ -13,7 +13,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { FilterAltOff as FilterAltOffIcon } from '../../icons';
+import { FilterAltOff as FilterAltOffIcon, CalendarMonth } from '../../icons';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -209,6 +209,7 @@ export default function CalendarPage() {
       <PageHeader
         title="Planning des interventions"
         subtitle="Vue calendrier de toutes les interventions planifiees"
+        iconBadge={<CalendarMonth />}
         backPath="/interventions"
         showBackButton={false}
       />

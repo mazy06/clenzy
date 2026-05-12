@@ -112,6 +112,7 @@ const DirectoryPage: React.FC = () => {
       <PageHeader
         title={t('directoryPage.title')}
         subtitle={t('directoryPage.subtitle')}
+        iconBadge={<PersonSearch />}
         backPath="/dashboard"
         showBackButton={false}
         actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}

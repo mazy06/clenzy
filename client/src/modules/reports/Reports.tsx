@@ -5,6 +5,7 @@ import {
   Schedule as ScheduleIcon,
   People as PeopleIcon,
   Home as HomeIcon,
+  BarChart as BarChartIcon,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
@@ -143,6 +144,7 @@ const Reports: React.FC = () => {
       <PageHeader
         title={t('reports.title')}
         subtitle={t('reports.subtitle')}
+        iconBadge={<BarChartIcon />}
         backPath="/dashboard"
         showBackButton={false}
       />
