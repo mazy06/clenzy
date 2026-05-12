@@ -139,18 +139,66 @@ const darkTheme = createTheme({
   // ── Typography (identique au light theme) ──
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: { fontWeight: 700, fontSize: '1.75rem', lineHeight: 1.2, letterSpacing: '-0.01em' },
-    h2: { fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.25, letterSpacing: '-0.01em' },
-    h3: { fontWeight: 600, fontSize: '1.25rem', lineHeight: 1.3 },
-    h4: { fontWeight: 600, fontSize: '1.125rem', lineHeight: 1.35 },
-    h5: { fontWeight: 600, fontSize: '1rem', lineHeight: 1.4 },
-    h6: { fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.4 },
-    subtitle1: { fontSize: '0.875rem', lineHeight: 1.5, fontWeight: 500 },
-    subtitle2: { fontSize: '0.8125rem', lineHeight: 1.5, fontWeight: 500 },
-    body1: { fontSize: '0.875rem', lineHeight: 1.5 },
-    body2: { fontSize: '0.8125rem', lineHeight: 1.5 },
-    caption: { fontSize: '0.6875rem', lineHeight: 1.4 },
-    button: { fontWeight: 600, textTransform: 'none' as const, fontSize: '0.8125rem' },
+    // Echelle responsive identique au theme clair — voir src/theme/theme.ts
+    h1: {
+      fontWeight: 700, fontSize: '1.375rem', lineHeight: 1.2, letterSpacing: '-0.01em',
+      '@media (min-width:1200px)': { fontSize: '1.5rem' },
+      '@media (min-width:1536px)': { fontSize: '1.75rem' },
+    },
+    h2: {
+      fontWeight: 700, fontSize: '1.1875rem', lineHeight: 1.25, letterSpacing: '-0.01em',
+      '@media (min-width:1200px)': { fontSize: '1.3125rem' },
+      '@media (min-width:1536px)': { fontSize: '1.5rem' },
+    },
+    h3: {
+      fontWeight: 600, fontSize: '1.0625rem', lineHeight: 1.3,
+      '@media (min-width:1200px)': { fontSize: '1.125rem' },
+      '@media (min-width:1536px)': { fontSize: '1.25rem' },
+    },
+    h4: {
+      fontWeight: 600, fontSize: '0.9375rem', lineHeight: 1.35,
+      '@media (min-width:1200px)': { fontSize: '1rem' },
+      '@media (min-width:1536px)': { fontSize: '1.125rem' },
+    },
+    h5: {
+      fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.4,
+      '@media (min-width:1200px)': { fontSize: '0.9375rem' },
+      '@media (min-width:1536px)': { fontSize: '1rem' },
+    },
+    h6: {
+      fontWeight: 600, fontSize: '0.8125rem', lineHeight: 1.4,
+      '@media (min-width:1200px)': { fontSize: '0.875rem' },
+      '@media (min-width:1536px)': { fontSize: '0.9375rem' },
+    },
+    subtitle1: {
+      fontSize: '0.8125rem', lineHeight: 1.5, fontWeight: 500,
+      '@media (min-width:1200px)': { fontSize: '0.875rem' },
+      '@media (min-width:1536px)': { fontSize: '0.9375rem' },
+    },
+    subtitle2: {
+      fontSize: '0.75rem', lineHeight: 1.5, fontWeight: 500,
+      '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+      '@media (min-width:1536px)': { fontSize: '0.875rem' },
+    },
+    body1: {
+      fontSize: '0.8125rem', lineHeight: 1.5,
+      '@media (min-width:1200px)': { fontSize: '0.875rem' },
+      '@media (min-width:1536px)': { fontSize: '0.9375rem' },
+    },
+    body2: {
+      fontSize: '0.75rem', lineHeight: 1.5,
+      '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+      '@media (min-width:1536px)': { fontSize: '0.875rem' },
+    },
+    caption: {
+      fontSize: '0.6875rem', lineHeight: 1.4,
+      '@media (min-width:1536px)': { fontSize: '0.75rem' },
+    },
+    button: {
+      fontWeight: 600, textTransform: 'none' as const, fontSize: '0.75rem',
+      '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+      '@media (min-width:1536px)': { fontSize: '0.875rem' },
+    },
   },
 
   shape: { borderRadius: 8 },
@@ -183,16 +231,30 @@ const darkTheme = createTheme({
         root: {
           borderRadius: 6,
           padding: '6px 16px',
-          fontSize: '0.8125rem',
+          fontSize: '0.75rem',
+          '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+          '@media (min-width:1536px)': { fontSize: '0.875rem' },
           fontWeight: 600,
-          minHeight: 36,
+          minHeight: 32,
           boxShadow: 'none',
           '&:hover': {
             boxShadow: 'none',
           },
         },
-        sizeSmall: { padding: '4px 12px', fontSize: '0.75rem', minHeight: 32 },
-        sizeLarge: { padding: '8px 20px', fontSize: '0.875rem', minHeight: 40 },
+        sizeSmall: {
+          padding: '4px 12px',
+          fontSize: '0.6875rem',
+          '@media (min-width:1200px)': { fontSize: '0.75rem' },
+          '@media (min-width:1536px)': { fontSize: '0.8125rem' },
+          minHeight: 28,
+        },
+        sizeLarge: {
+          padding: '8px 20px',
+          fontSize: '0.8125rem',
+          '@media (min-width:1200px)': { fontSize: '0.875rem' },
+          '@media (min-width:1536px)': { fontSize: '0.9375rem' },
+          minHeight: 40,
+        },
         contained: {
           '&:hover': {
             boxShadow: 'none',
@@ -265,15 +327,14 @@ const darkTheme = createTheme({
 
     // ── TextFields : border subtile, focus primary ──
     MuiTextField: {
+      defaultProps: { size: 'small' },
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
             borderRadius: 6,
-            fontSize: '0.875rem',
-            '& input': {
-              padding: '10px 14px',
-              height: '1.4375em',
-            },
+            fontSize: '0.75rem',
+            '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+            '@media (min-width:1536px)': { fontSize: '0.875rem' },
             '& .MuiOutlinedInput-notchedOutline': {
               borderColor: 'rgba(138, 170, 196, 0.15)',
             },
@@ -286,20 +347,30 @@ const darkTheme = createTheme({
             },
           },
           '& .MuiInputLabel-root': {
-            fontSize: '0.875rem',
+            fontSize: '0.75rem',
+            '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+            '@media (min-width:1536px)': { fontSize: '0.875rem' },
           },
           '& .MuiFormHelperText-root': {
-            fontSize: '0.75rem',
+            fontSize: '0.6875rem',
             marginTop: '4px',
+            '@media (min-width:1536px)': { fontSize: '0.75rem' },
           },
         },
       },
     },
 
     MuiSelect: {
+      defaultProps: { size: 'small' },
       styleOverrides: {
         root: { borderRadius: 8 },
       },
+    },
+    MuiFormControl: {
+      defaultProps: { size: 'small' },
+    },
+    MuiAutocomplete: {
+      defaultProps: { size: 'small' },
     },
 
     // ── Chips : border outlined subtile ──

@@ -123,64 +123,93 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    // ─── Typography responsive ──────────────────────────────────────────────
+    // 3 paliers : sm (laptop 13"-15") / md (1200+) / xl (1536+). La valeur de
+    // base est la plus petite ; les paliers superieurs sont opt-in via media
+    // queries pour eviter d'agrandir trop tot sur un ecran cible (laptop).
+    // Tous les composants qui utilisent <Typography variant="..."> heritent
+    // automatiquement de cette echelle — aucun changement consommateur.
     h1: {
       fontWeight: 700,
-      fontSize: '1.75rem',
+      fontSize: '1.375rem',
       lineHeight: 1.2,
       letterSpacing: '-0.01em',
+      '@media (min-width:1200px)': { fontSize: '1.5rem' },
+      '@media (min-width:1536px)': { fontSize: '1.75rem' },
     },
     h2: {
       fontWeight: 700,
-      fontSize: '1.5rem',
+      fontSize: '1.1875rem',
       lineHeight: 1.25,
       letterSpacing: '-0.01em',
+      '@media (min-width:1200px)': { fontSize: '1.3125rem' },
+      '@media (min-width:1536px)': { fontSize: '1.5rem' },
     },
     h3: {
       fontWeight: 600,
-      fontSize: '1.25rem', // 1.75rem → 1.25rem
+      fontSize: '1.0625rem',
       lineHeight: 1.3,
+      '@media (min-width:1200px)': { fontSize: '1.125rem' },
+      '@media (min-width:1536px)': { fontSize: '1.25rem' },
     },
     h4: {
       fontWeight: 600,
-      fontSize: '1.125rem', // 1.5rem → 1.125rem
+      fontSize: '0.9375rem',
       lineHeight: 1.35,
+      '@media (min-width:1200px)': { fontSize: '1rem' },
+      '@media (min-width:1536px)': { fontSize: '1.125rem' },
     },
     h5: {
       fontWeight: 600,
-      fontSize: '1rem', // 1.25rem → 1rem
+      fontSize: '0.875rem',
       lineHeight: 1.4,
+      '@media (min-width:1200px)': { fontSize: '0.9375rem' },
+      '@media (min-width:1536px)': { fontSize: '1rem' },
     },
     h6: {
       fontWeight: 600,
-      fontSize: '0.875rem', // 1.125rem → 0.875rem
+      fontSize: '0.8125rem',
       lineHeight: 1.4,
+      '@media (min-width:1200px)': { fontSize: '0.875rem' },
+      '@media (min-width:1536px)': { fontSize: '0.9375rem' },
     },
     subtitle1: {
-      fontSize: '0.875rem',
-      lineHeight: 1.5,
-      fontWeight: 500,
-    },
-    subtitle2: {
       fontSize: '0.8125rem',
       lineHeight: 1.5,
       fontWeight: 500,
+      '@media (min-width:1200px)': { fontSize: '0.875rem' },
+      '@media (min-width:1536px)': { fontSize: '0.9375rem' },
+    },
+    subtitle2: {
+      fontSize: '0.75rem',
+      lineHeight: 1.5,
+      fontWeight: 500,
+      '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+      '@media (min-width:1536px)': { fontSize: '0.875rem' },
     },
     body1: {
-      fontSize: '0.875rem', // 1rem → 0.875rem
-      lineHeight: 1.5, // 1.6 → 1.5
+      fontSize: '0.8125rem',
+      lineHeight: 1.5,
+      '@media (min-width:1200px)': { fontSize: '0.875rem' },
+      '@media (min-width:1536px)': { fontSize: '0.9375rem' },
     },
     body2: {
-      fontSize: '0.8125rem', // 0.875rem → 0.8125rem
-      lineHeight: 1.5, // 1.6 → 1.5
+      fontSize: '0.75rem',
+      lineHeight: 1.5,
+      '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+      '@media (min-width:1536px)': { fontSize: '0.875rem' },
     },
     caption: {
-      fontSize: '0.6875rem', // 0.75rem → 0.6875rem
+      fontSize: '0.6875rem',
       lineHeight: 1.4,
+      '@media (min-width:1536px)': { fontSize: '0.75rem' },
     },
     button: {
       fontWeight: 600,
       textTransform: 'none',
-      fontSize: '0.8125rem', // Ajout taille de police pour boutons
+      fontSize: '0.75rem',
+      '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+      '@media (min-width:1536px)': { fontSize: '0.875rem' },
     },
   },
   shape: {
@@ -193,9 +222,11 @@ const theme = createTheme({
         root: {
           borderRadius: 6,
           padding: '6px 16px',
-          fontSize: '0.8125rem',
+          fontSize: '0.75rem',
+          '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+          '@media (min-width:1536px)': { fontSize: '0.875rem' },
           fontWeight: 600,
-          minHeight: 36,
+          minHeight: 32,
           boxShadow: 'none',
           '&:hover': {
             boxShadow: 'none',
@@ -203,12 +234,16 @@ const theme = createTheme({
         },
         sizeSmall: {
           padding: '4px 12px',
-          fontSize: '0.75rem',
-          minHeight: 32,
+          fontSize: '0.6875rem',
+          '@media (min-width:1200px)': { fontSize: '0.75rem' },
+          '@media (min-width:1536px)': { fontSize: '0.8125rem' },
+          minHeight: 28,
         },
         sizeLarge: {
           padding: '8px 20px',
-          fontSize: '0.875rem',
+          fontSize: '0.8125rem',
+          '@media (min-width:1200px)': { fontSize: '0.875rem' },
+          '@media (min-width:1536px)': { fontSize: '0.9375rem' },
           minHeight: 40,
         },
         contained: {
@@ -266,34 +301,49 @@ const theme = createTheme({
       },
     },
     MuiTextField: {
+      // Tous les TextField sont 'small' par défaut — plus de Form geant sur laptop.
+      // Override possible localement via size="medium" si necessaire.
+      defaultProps: {
+        size: 'small',
+      },
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
             borderRadius: 6,
-            fontSize: '0.875rem',
-            '& input': {
-              padding: '10px 14px', // Réduire le padding pour hauteur 48px
-              height: '1.4375em',
-            },
+            // Echelle responsive : 12px laptop → 13px md → 14px xl
+            fontSize: '0.75rem',
+            '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+            '@media (min-width:1536px)': { fontSize: '0.875rem' },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#6B8A9A', // Couleur primary Clenzy
+              borderColor: '#6B8A9A',
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#6B8A9A', // Couleur primary Clenzy
-              borderWidth: '1.5px', // 2px → 1.5px
+              borderColor: '#6B8A9A',
+              borderWidth: '1.5px',
             },
           },
           '& .MuiInputLabel-root': {
-            fontSize: '0.875rem',
+            fontSize: '0.75rem',
+            '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+            '@media (min-width:1536px)': { fontSize: '0.875rem' },
           },
           '& .MuiFormHelperText-root': {
-            fontSize: '0.75rem',
+            fontSize: '0.6875rem',
             marginTop: '4px',
+            '@media (min-width:1536px)': { fontSize: '0.75rem' },
           },
         },
       },
     },
+    // Selects et Autocomplete suivent la meme echelle responsive.
+    MuiFormControl: {
+      defaultProps: { size: 'small' },
+    },
+    MuiAutocomplete: {
+      defaultProps: { size: 'small' },
+    },
     MuiSelect: {
+      defaultProps: { size: 'small' },
       styleOverrides: {
         root: {
           borderRadius: 8,
