@@ -303,8 +303,8 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
     >
       {properties.map((property, idx) => {
         const showCarousel = colWidth >= 100;
-        const nameHeight = density === 'compact' ? 14 : 18;
-        const verticalPadding = 6;
+        const nameHeight = density === 'compact' ? 12 : 16;
+        const verticalPadding = 4;
         const carouselHeight = Math.max(
           24,
           effectiveRowHeight - nameHeight - verticalPadding,
@@ -419,16 +419,16 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
               })()}
               <Typography
                 sx={{
-                  fontSize: density === 'compact' ? '0.6875rem' : '0.75rem',
-                  fontWeight: 400,
+                  fontSize: density === 'compact' ? '0.5625rem' : '0.625rem',
+                  fontWeight: 500,
                   color: 'text.secondary',
                   lineHeight: 1.2,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                   letterSpacing: '-0.01em',
-                  px: 0.75,
-                  pb: 0.5,
+                  px: 0.5,
+                  pb: 0.25,
                 }}
               >
                 {property.name}

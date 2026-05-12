@@ -3,13 +3,13 @@ import type { ZoomLevel, ZoomConfig, DensityMode } from './types';
 // ─── Layout dimensions ──────────────────────────────────────────────────────
 
 /** Default (large screens ≥1200px) */
-export const PROPERTY_COL_WIDTH = 180;
+export const PROPERTY_COL_WIDTH = 150;
 /** Medium screens (≥900px) */
-export const PROPERTY_COL_WIDTH_MD = 150;
+export const PROPERTY_COL_WIDTH_MD = 128;
 /** Small screens (<900px) */
-export const PROPERTY_COL_WIDTH_SM = 120;
-export const DATE_HEADER_HEIGHT = 60;
-export const ACTION_PANEL_WIDTH = 420;
+export const PROPERTY_COL_WIDTH_SM = 104;
+export const DATE_HEADER_HEIGHT = 46;
+export const ACTION_PANEL_WIDTH = 380;
 
 // ─── Row dimensions by density ──────────────────────────────────────────────
 
@@ -21,17 +21,17 @@ export const ROW_CONFIG: Record<DensityMode, {
   barPadding: number;
 }> = {
   normal: {
-    rowHeight: 68,
-    reservationBarHeight: 34,
-    interventionBarHeight: 24,
-    interventionTop: 38,
-    barPadding: 4,
+    rowHeight: 56,
+    reservationBarHeight: 28,
+    interventionBarHeight: 20,
+    interventionTop: 32,
+    barPadding: 3,
   },
   compact: {
-    rowHeight: 46,
-    reservationBarHeight: 26,
-    interventionBarHeight: 16,
-    interventionTop: 28,
+    rowHeight: 38,
+    reservationBarHeight: 22,
+    interventionBarHeight: 14,
+    interventionTop: 24,
     barPadding: 2,
   },
 };
@@ -39,8 +39,8 @@ export const ROW_CONFIG: Record<DensityMode, {
 // ─── Price line dimensions by density ───────────────────────────────────────
 
 export const PRICE_LINE_HEIGHT: Record<DensityMode, number> = {
-  normal: 20,
-  compact: 16,
+  normal: 16,
+  compact: 14,
 };
 
 // ─── Zoom configuration ─────────────────────────────────────────────────────
@@ -92,9 +92,9 @@ export const WEEKEND_BG_ALPHA = 0.04;
 
 // ─── Pagination ─────────────────────────────────────────────────────────────
 
-export const PAGINATION_BAR_HEIGHT = 40;
-export const TOOLBAR_HEIGHT = 48;
-export const APP_HEADER_HEIGHT = 64;
+export const PAGINATION_BAR_HEIGHT = 32;
+export const TOOLBAR_HEIGHT = 40;
+export const APP_HEADER_HEIGHT = 56;
 
 // ─── Infinite scroll ────────────────────────────────────────────────────────
 

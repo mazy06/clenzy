@@ -45,16 +45,16 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
         size="small"
         onClick={onPrevPage}
         disabled={currentPage === 0}
-        sx={{ width: 28, height: 28 }}
+        sx={{ width: 22, height: 22 }}
       >
-        <ChevronLeft size={18} strokeWidth={1.75} />
+        <ChevronLeft size={14} strokeWidth={1.75} />
       </IconButton>
 
       {/* Page indicator */}
       <Typography
         variant="body2"
         sx={{
-          fontSize: '0.75rem',
+          fontSize: '0.625rem',
           fontWeight: 600,
           color: 'text.primary',
           userSelect: 'none',
@@ -68,16 +68,16 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
         size="small"
         onClick={onNextPage}
         disabled={currentPage >= totalPages - 1}
-        sx={{ width: 28, height: 28 }}
+        sx={{ width: 22, height: 22 }}
       >
-        <ChevronRight size={18} strokeWidth={1.75} />
+        <ChevronRight size={14} strokeWidth={1.75} />
       </IconButton>
 
       {/* Range info */}
       <Typography
         variant="caption"
         sx={{
-          fontSize: '0.6875rem',
+          fontSize: '0.5625rem',
           color: 'text.secondary',
           ml: 1,
         }}

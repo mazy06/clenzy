@@ -226,7 +226,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       {showLabel && (
         <Typography
           sx={{
-            fontSize: isIntervention ? '0.5625rem' : '0.6875rem',
+            fontSize: isIntervention ? '0.5rem' : '0.625rem',
             fontWeight: 600,
             color: isDark ? 'text.primary' : event.color,
             whiteSpace: 'nowrap',

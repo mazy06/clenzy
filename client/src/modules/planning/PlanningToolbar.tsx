@@ -95,8 +95,8 @@ const StatusChips: React.FC<{
             }
           }}
           sx={{
-            fontSize: '0.5625rem',
-            height: 24,
+            fontSize: '0.5rem',
+            height: 20,
             cursor: 'pointer',
             ...(!isActive && { borderColor: 'divider', color: 'text.secondary' }),
           }}
@@ -152,9 +152,9 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
-        gap: 1,
-        py: 1,
-        px: 1.5,
+        gap: 0.75,
+        py: 0.5,
+        px: 1,
         borderBottom: '1px solid',
         borderColor: 'divider',
         backgroundColor: 'background.paper',
@@ -163,29 +163,29 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
     >
       {/* Navigation */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-        <IconButton size="small" onClick={onGoPrev} sx={{ width: 28, height: 28 }}>
-          <ChevronLeft size={18} strokeWidth={1.75} />
+        <IconButton size="small" onClick={onGoPrev} sx={{ width: 22, height: 22 }}>
+          <ChevronLeft size={14} strokeWidth={1.75} />
         </IconButton>
 
         <Chip
-          icon={<TodayOutlined size={14} strokeWidth={1.75} />}
+          icon={<TodayOutlined size={12} strokeWidth={1.75} />}
           label="Aujourd'hui"
           size="small"
           variant="outlined"
           onClick={onGoToday}
           sx={{
-            fontSize: '0.6875rem',
+            fontSize: '0.625rem',
             fontWeight: 600,
-            height: 28,
+            height: 22,
             cursor: 'pointer',
             borderColor: 'divider',
             '&:hover': { backgroundColor: 'action.hover', borderColor: 'text.secondary' },
-            '& .MuiChip-icon': { fontSize: 14, color: 'primary.main' },
+            '& .MuiChip-icon': { fontSize: 12, color: 'primary.main' },
           }}
         />
 
-        <IconButton size="small" onClick={onGoNext} sx={{ width: 28, height: 28 }}>
-          <ChevronRight size={18} strokeWidth={1.75} />
+        <IconButton size="small" onClick={onGoNext} sx={{ width: 22, height: 22 }}>
+          <ChevronRight size={14} strokeWidth={1.75} />
         </IconButton>
       </Box>
 
@@ -193,12 +193,12 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
       <Typography
         variant="subtitle2"
         sx={{
-          fontSize: '0.875rem',
+          fontSize: '0.75rem',
           fontWeight: 700,
           textTransform: 'capitalize',
           color: 'text.primary',
           letterSpacing: '-0.02em',
-          minWidth: 120,
+          minWidth: 96,
         }}
       >
         {formatMonthYear(currentDate)}
@@ -212,11 +212,11 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
         size="small"
         sx={{
           '& .MuiToggleButton-root': {
-            fontSize: '0.625rem',
+            fontSize: '0.5625rem',
             fontWeight: 600,
             py: 0.25,
-            px: 1,
-            height: 28,
+            px: 0.75,
+            height: 22,
             textTransform: 'none',
             letterSpacing: '0.01em',
           },
@@ -245,15 +245,15 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={16} strokeWidth={1.75} /></Box>
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={13} strokeWidth={1.75} /></Box>
                 </InputAdornment>
               ),
             }}
             sx={{
-              width: 160,
+              width: 140,
               '& .MuiOutlinedInput-root': {
-                height: 28,
-                fontSize: '0.6875rem',
+                height: 22,
+                fontSize: '0.625rem',
                 borderRadius: 1,
               },
               '& .MuiOutlinedInput-input': {
@@ -267,9 +267,9 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             size="small"
             onClick={(e) => setFilterAnchor(e.currentTarget)}
             sx={{
-              width: 28,
-              height: 28,
-              p: 0.5,
+              width: 22,
+              height: 22,
+              p: 0.25,
               borderRadius: 1,
               color: filterOpen || activeFilterCount > 0 ? 'primary.main' : 'text.secondary',
               bgcolor: filterOpen || activeFilterCount > 0 ? 'rgba(107,138,154,0.08)' : 'transparent',
@@ -282,13 +282,13 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
               color="primary"
               sx={{
                 '& .MuiBadge-badge': {
-                  fontSize: '0.5625rem',
-                  height: 14,
-                  minWidth: 14,
+                  fontSize: '0.5rem',
+                  height: 12,
+                  minWidth: 12,
                 },
               }}
             >
-              <FilterListIcon size={16} strokeWidth={1.75} />
+              <FilterListIcon size={13} strokeWidth={1.75} />
             </Badge>
           </IconButton>
 
@@ -369,9 +369,9 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                   color={filters.showInterventions ? 'primary' : 'default'}
                   onClick={() => onShowInterventionsChange(!filters.showInterventions)}
                   sx={{
-                    fontSize: '0.625rem',
+                    fontSize: '0.5625rem',
                     fontWeight: 600,
-                    height: 28,
+                    height: 22,
                     cursor: 'pointer',
                     '& .MuiChip-icon': { fontSize: 13 },
                     ...(!filters.showInterventions && { borderColor: 'divider', color: 'text.secondary' }),
@@ -387,9 +387,9 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                   color={filters.showPrices ? 'primary' : 'default'}
                   onClick={() => onShowPricesChange(!filters.showPrices)}
                   sx={{
-                    fontSize: '0.625rem',
+                    fontSize: '0.5625rem',
                     fontWeight: 600,
-                    height: 28,
+                    height: 22,
                     cursor: 'pointer',
                     '& .MuiChip-icon': { fontSize: 13 },
                     ...(!filters.showPrices && { borderColor: 'divider', color: 'text.secondary' }),
@@ -404,9 +404,9 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                   variant="outlined"
                   onClick={() => onDensityChange(density === 'normal' ? 'compact' : 'normal')}
                   sx={{
-                    fontSize: '0.625rem',
+                    fontSize: '0.5625rem',
                     fontWeight: 600,
-                    height: 28,
+                    height: 22,
                     cursor: 'pointer',
                     borderColor: 'divider',
                     color: 'text.secondary',
@@ -449,14 +449,14 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                 variant="outlined"
                 onClick={onImportICal}
                 sx={{
-                  fontSize: '0.625rem',
+                  fontSize: '0.5625rem',
                   fontWeight: 600,
-                  height: 28,
+                  height: 22,
                   borderRadius: 1,
                   cursor: 'pointer',
                   borderColor: 'primary.main',
                   color: 'primary.main',
-                  '& .MuiChip-icon': { fontSize: 13, color: 'primary.main' },
+                  '& .MuiChip-icon': { fontSize: 12, color: 'primary.main' },
                   '&:hover': {
                     backgroundColor: 'rgba(107, 138, 154, 0.08)',
                     borderColor: 'primary.dark',
@@ -476,14 +476,14 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                 variant="outlined"
                 onClick={onBlockPeriod}
                 sx={{
-                  fontSize: '0.625rem',
+                  fontSize: '0.5625rem',
                   fontWeight: 600,
-                  height: 28,
+                  height: 22,
                   borderRadius: 1,
                   cursor: 'pointer',
                   borderColor: 'text.secondary',
                   color: 'text.secondary',
-                  '& .MuiChip-icon': { fontSize: 13, color: 'text.secondary' },
+                  '& .MuiChip-icon': { fontSize: 12, color: 'text.secondary' },
                   '&:hover': {
                     backgroundColor: 'rgba(97, 97, 97, 0.08)',
                     borderColor: 'text.primary',
@@ -504,17 +504,17 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             <IconButton
               size="small"
               onClick={(e) => setMenuAnchor(e.currentTarget)}
-              sx={{ width: 28, height: 28 }}
+              sx={{ width: 22, height: 22 }}
             >
               <Badge
                 variant="dot"
                 color="primary"
                 invisible={!hasBadge}
                 sx={{
-                  '& .MuiBadge-dot': { width: 8, height: 8, borderRadius: '50%' },
+                  '& .MuiBadge-dot': { width: 6, height: 6, borderRadius: '50%' },
                 }}
               >
-                <TuneOutlined size={18} strokeWidth={1.75} />
+                <TuneOutlined size={14} strokeWidth={1.75} />
               </Badge>
             </IconButton>
           </Tooltip>
