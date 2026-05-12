@@ -36,6 +36,7 @@ import {
 } from '@mui/material';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import InterventionCard from './InterventionCard';
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
@@ -425,6 +426,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
           <PageHeader
             title={t('interventions.title')}
             subtitle={t('interventions.subtitle')}
+            iconBadge={<Build />}
             backPath="/dashboard"
             showBackButton={false}
             actions={actionButtons}
@@ -443,24 +445,15 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
 
           {filteredInterventions.length === 0 ? (
-            <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
-              <CardContent>
-                <Box sx={{ mb: 1.5 }}>
-                  <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", opacity: 0.6 }}><Build size={48} strokeWidth={1.5} /></Box>
-                </Box>
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  {t('interventions.noInterventionFound')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                  {canCreateInterventions
-                    ? t('interventions.noInterventionValidated')
-                    : t('interventions.noInterventionAssigned')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 3, display: 'block' }}>
-                  {t('interventions.interventionsDescription')}
-                </Typography>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={<Build />}
+              title={t('interventions.noInterventionFound')}
+              description={`${
+                canCreateInterventions
+                  ? t('interventions.noInterventionValidated')
+                  : t('interventions.noInterventionAssigned')
+              } — ${t('interventions.interventionsDescription')}`}
+            />
           ) : viewMode === 'map' ? (
             /* ─── Vue carte (sticky) + liste viewport (scrollable) ─── */
             <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>

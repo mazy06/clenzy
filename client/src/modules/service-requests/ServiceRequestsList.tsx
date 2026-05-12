@@ -41,6 +41,7 @@ import {
 } from '../../icons';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import ServiceRequestCard from '../../components/ServiceRequestCard';
 import ExportButton from '../../components/ExportButton';
 import type { ExportColumn } from '../../utils/exportUtils';
@@ -376,6 +377,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           <PageHeader
             title={t('serviceRequests.title')}
             subtitle={t('serviceRequests.subtitle')}
+            iconBadge={<Description />}
             backPath="/dashboard"
             showBackButton={false}
             actions={actionButtons}
@@ -386,37 +388,25 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
 
       {/* Liste des demandes de service */}
       {filteredServiceRequests.length === 0 ? (
-        <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
-          <CardContent>
-            <Box sx={{ mb: 1.5 }}>
-              <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", opacity: 0.6 }}><Description size={48} strokeWidth={1.5} /></Box>
-            </Box>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              {t('serviceRequests.noRequestFound')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-              {isAdmin() || isManager()
-                ? t('serviceRequests.noRequestCreated')
-                : t('serviceRequests.noRequestAssigned')}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 3, display: 'block' }}>
-              {t('serviceRequests.requestsDescription')}
-            </Typography>
-            {(isAdmin() || isManager() || isHost()) && (
-              <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                <Button
-                  variant="contained"
-                  startIcon={<Add size={20} strokeWidth={1.75} />}
-                  onClick={() => navigate('/service-requests/new')}
-                  size="small"
-                  sx={{ borderRadius: 1.5 }}
-                >
-                  {t('serviceRequests.createFirst')}
-                </Button>
-              </Box>
-            )}
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<Description />}
+          title={t('serviceRequests.noRequestFound')}
+          description={`${
+            isAdmin() || isManager()
+              ? t('serviceRequests.noRequestCreated')
+              : t('serviceRequests.noRequestAssigned')
+          } — ${t('serviceRequests.requestsDescription')}`}
+          action={(isAdmin() || isManager() || isHost()) && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Add size={16} strokeWidth={1.75} />}
+              onClick={() => navigate('/service-requests/new')}
+            >
+              {t('serviceRequests.createFirst')}
+            </Button>
+          )}
+        />
       ) : viewMode === 'map' ? (
         /* ─── Vue carte + liste viewport ─── */
         <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>

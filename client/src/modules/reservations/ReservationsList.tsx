@@ -36,6 +36,7 @@ import { ReservationStatusChip, ReservationSourceBadge } from './ReservationStat
 import ReservationFormDialog from './ReservationFormDialog';
 import GuestProfileDialog from '../channels/GuestProfileDialog';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import { FilterSearchBar } from '../../components/FilterSearchBar';
 
 import { useCurrency } from '../../hooks/useCurrency';
@@ -261,6 +262,7 @@ const ReservationsList: React.FC = () => {
         <PageHeader
           title={t('reservations.title')}
           subtitle={t('reservations.subtitle')}
+          iconBadge={<EventNoteIcon />}
           backPath="/dashboard"
           showBackButton={false}
           actions={actionButtons}
@@ -281,19 +283,16 @@ const ReservationsList: React.FC = () => {
           <CircularProgress size={32} />
         </Box>
       ) : filteredReservations.length === 0 ? (
-        /* Empty state */
-        <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><EventNoteIcon size={48} strokeWidth={1.75} /></Box>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            {t('reservations.noReservations')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Ajoutez votre premiere reservation ou importez vos calendriers depuis le planning.
-          </Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate} size="small">
-            {t('reservations.create')}
-          </Button>
-        </Paper>
+        <EmptyState
+          icon={<EventNoteIcon />}
+          title={t('reservations.noReservations')}
+          description="Ajoutez votre première réservation ou importez vos calendriers depuis le planning."
+          action={(
+            <Button variant="outlined" size="small" startIcon={<AddIcon size={16} strokeWidth={1.75} />} onClick={handleCreate}>
+              {t('reservations.create')}
+            </Button>
+          )}
+        />
       ) : (
         /* Data table */
         <Paper ref={tableContainerRef} sx={{ ...CARD_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

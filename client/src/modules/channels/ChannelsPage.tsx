@@ -429,6 +429,7 @@ const ChannelsPage: React.FC = () => {
       <PageHeader
         title={t('channels.title')}
         subtitle={t('channels.subtitle')}
+        iconBadge={<LinkIcon />}
         backPath="/settings"
         showBackButton={false}
         actions={
