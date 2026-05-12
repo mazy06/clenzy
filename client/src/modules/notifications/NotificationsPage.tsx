@@ -27,6 +27,7 @@ import { useAsync } from '../../hooks/useAsync';
 import { notificationsApi } from '../../services/api';
 import type { Notification } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -150,6 +151,7 @@ export default function NotificationsPage() {
             ? `${unreadCount} ${t('notifications.unread')}`
             : t('notifications.allRead')
         }
+        iconBadge={<NotificationsNone />}
         backPath="/dashboard"
         backLabel={t('common.back')}
         actions={
@@ -193,17 +195,16 @@ export default function NotificationsPage() {
         onRetry={retry}
         isEmpty={filtered.length === 0}
         emptyState={
-          <Box sx={{ textAlign: 'center', py: 6 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><NotificationsNone size={48} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" color="text.secondary" sx={{ fontSize: '1rem' }}>
-              {t('notifications.empty')}
-            </Typography>
-            <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
-              {activeTab !== 'all'
+          <EmptyState
+            icon={<NotificationsNone />}
+            title={t('notifications.empty')}
+            description={
+              activeTab !== 'all'
                 ? t('notifications.emptyFilter')
-                : t('notifications.emptyAll')}
-            </Typography>
-          </Box>
+                : t('notifications.emptyAll')
+            }
+            variant="transparent"
+          />
         }
       >
         <Box>

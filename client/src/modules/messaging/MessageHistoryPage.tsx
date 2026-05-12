@@ -18,6 +18,7 @@ import {
 import { Refresh, History } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import {
   guestMessagingApi,
   type GuestMessageLog,
@@ -76,6 +77,7 @@ export default function MessageHistoryPage() {
       <PageHeader
         title={t('messaging.history.title')}
         subtitle={t('messaging.history.subtitle')}
+        iconBadge={<History />}
         backPath="/settings"
         actions={
           <Tooltip title={t('common.refresh')}>
@@ -97,15 +99,11 @@ export default function MessageHistoryPage() {
           <CircularProgress />
         </Box>
       ) : logs.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 2 }}><History size={48} strokeWidth={1.75} /></Box>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            {t('messaging.history.empty')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t('messaging.history.emptyDesc')}
-          </Typography>
-        </Paper>
+        <EmptyState
+          icon={<History />}
+          title={t('messaging.history.empty')}
+          description={t('messaging.history.emptyDesc')}
+        />
       ) : (
         <TableContainer component={Paper}>
           <Table>
