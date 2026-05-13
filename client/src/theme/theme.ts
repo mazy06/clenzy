@@ -125,56 +125,69 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    // Plus Jakarta Sans en primary — humaniste, terminaisons rondes, B2B
+    // ready, distinct d'Inter (anti-pattern "Inter everywhere" Taste).
+    // Inter conservé en fallback pour les surfaces legacy.
+    fontFamily: '"Plus Jakarta Sans", "Inter", "Helvetica", "Arial", sans-serif',
     // ─── Typography responsive ──────────────────────────────────────────────
     // 3 paliers : sm (laptop 13"-15") / md (1200+) / xl (1536+). La valeur de
     // base est la plus petite ; les paliers superieurs sont opt-in via media
     // queries pour eviter d'agrandir trop tot sur un ecran cible (laptop).
     // Tous les composants qui utilisent <Typography variant="..."> heritent
     // automatiquement de cette echelle — aucun changement consommateur.
+    // Hierarchy : contraste de scale + weight (ratio ≥ 1.25 entre paliers
+    // de titres) + tracking négatif sur les gros titres. textWrap: balance
+    // pour éviter les orphans (Taste recommendation).
     h1: {
       fontWeight: 700,
-      fontSize: '1.25rem',
-      lineHeight: 1.2,
-      letterSpacing: '-0.01em',
-      '@media (min-width:1200px)': { fontSize: '1.375rem' },
-      '@media (min-width:1536px)': { fontSize: '1.5rem' },
+      fontSize: '1.5rem',
+      lineHeight: 1.15,
+      letterSpacing: '-0.025em',
+      textWrap: 'balance' as const,
+      '@media (min-width:1200px)': { fontSize: '1.75rem' },
+      '@media (min-width:1536px)': { fontSize: '2rem' },
     },
     h2: {
       fontWeight: 700,
-      fontSize: '1.0625rem',
-      lineHeight: 1.25,
-      letterSpacing: '-0.01em',
-      '@media (min-width:1200px)': { fontSize: '1.1875rem' },
-      '@media (min-width:1536px)': { fontSize: '1.3125rem' },
+      fontSize: '1.1875rem',
+      lineHeight: 1.2,
+      letterSpacing: '-0.02em',
+      textWrap: 'balance' as const,
+      '@media (min-width:1200px)': { fontSize: '1.375rem' },
+      '@media (min-width:1536px)': { fontSize: '1.5rem' },
     },
     h3: {
       fontWeight: 600,
-      fontSize: '0.9375rem',
-      lineHeight: 1.3,
-      '@media (min-width:1200px)': { fontSize: '1.0625rem' },
-      '@media (min-width:1536px)': { fontSize: '1.125rem' },
+      fontSize: '1rem',
+      lineHeight: 1.25,
+      letterSpacing: '-0.015em',
+      textWrap: 'balance' as const,
+      '@media (min-width:1200px)': { fontSize: '1.125rem' },
+      '@media (min-width:1536px)': { fontSize: '1.25rem' },
     },
     h4: {
       fontWeight: 600,
+      fontSize: '0.9375rem',
+      lineHeight: 1.3,
+      letterSpacing: '-0.01em',
+      textWrap: 'balance' as const,
+      '@media (min-width:1200px)': { fontSize: '1rem' },
+      '@media (min-width:1536px)': { fontSize: '1.0625rem' },
+    },
+    h5: {
+      fontWeight: 600,
       fontSize: '0.875rem',
       lineHeight: 1.35,
+      letterSpacing: '-0.005em',
       '@media (min-width:1200px)': { fontSize: '0.9375rem' },
       '@media (min-width:1536px)': { fontSize: '1rem' },
     },
-    h5: {
+    h6: {
       fontWeight: 600,
       fontSize: '0.8125rem',
       lineHeight: 1.4,
       '@media (min-width:1200px)': { fontSize: '0.875rem' },
       '@media (min-width:1536px)': { fontSize: '0.9375rem' },
-    },
-    h6: {
-      fontWeight: 600,
-      fontSize: '0.75rem',
-      lineHeight: 1.4,
-      '@media (min-width:1200px)': { fontSize: '0.8125rem' },
-      '@media (min-width:1536px)': { fontSize: '0.875rem' },
     },
     subtitle1: {
       fontSize: '0.75rem',
@@ -221,6 +234,22 @@ const theme = createTheme({
   },
   spacing: 6, // Réduire l'espacement de base (8px → 6px)
   components: {
+    // Baseline globale : tabular-nums sur les nombres pour alignement
+    // vertical des prix/KPI/dates, optical-sizing auto, font smoothing
+    // cohérent macOS/Chrome.
+    MuiCssBaseline: {
+      styleOverrides: {
+        html: {
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          fontVariantNumeric: 'tabular-nums',
+          textRendering: 'optimizeLegibility' as const,
+        },
+        body: {
+          fontVariantNumeric: 'tabular-nums',
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {
@@ -266,7 +295,7 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 10, // Container — softer than interior (4-6) but tighter than modals (12)
           boxShadow: 'none',
           border: '1px solid',
           borderColor: '#E2E8F0',
@@ -289,7 +318,7 @@ const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 10,
         },
         elevation0: {
           boxShadow: 'none',
@@ -300,7 +329,16 @@ const theme = createTheme({
           borderColor: '#E2E8F0',
         },
         elevation2: {
-          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          // Shadow teintée vers la primary plutôt que noir pur (Taste rule).
+          boxShadow: '0 1px 3px rgba(27, 42, 53, 0.08)',
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: 14, // Modals: softer container, signature surface
+          boxShadow: '0 24px 48px rgba(27, 42, 53, 0.18), 0 4px 12px rgba(27, 42, 53, 0.08)',
         },
       },
     },
@@ -452,9 +490,10 @@ const theme = createTheme({
     MuiFab: {
       styleOverrides: {
         root: {
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          // Shadow teintée vers la primary brand (vs noir pur générique)
+          boxShadow: '0 4px 12px rgba(107, 138, 154, 0.22)',
           '&:hover': {
-            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+            boxShadow: '0 6px 16px rgba(107, 138, 154, 0.28)',
           },
         },
       },

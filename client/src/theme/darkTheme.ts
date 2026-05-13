@@ -138,37 +138,41 @@ const darkTheme = createTheme({
 
   // ── Typography (identique au light theme) ──
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Plus Jakarta Sans", "Inter", "Helvetica", "Arial", sans-serif',
     // Echelle responsive identique au theme clair — voir src/theme/theme.ts
     h1: {
-      fontWeight: 700, fontSize: '1.25rem', lineHeight: 1.2, letterSpacing: '-0.01em',
+      fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.15, letterSpacing: '-0.025em',
+      textWrap: 'balance' as const,
+      '@media (min-width:1200px)': { fontSize: '1.75rem' },
+      '@media (min-width:1536px)': { fontSize: '2rem' },
+    },
+    h2: {
+      fontWeight: 700, fontSize: '1.1875rem', lineHeight: 1.2, letterSpacing: '-0.02em',
+      textWrap: 'balance' as const,
       '@media (min-width:1200px)': { fontSize: '1.375rem' },
       '@media (min-width:1536px)': { fontSize: '1.5rem' },
     },
-    h2: {
-      fontWeight: 700, fontSize: '1.0625rem', lineHeight: 1.25, letterSpacing: '-0.01em',
-      '@media (min-width:1200px)': { fontSize: '1.1875rem' },
-      '@media (min-width:1536px)': { fontSize: '1.3125rem' },
-    },
     h3: {
-      fontWeight: 600, fontSize: '0.9375rem', lineHeight: 1.3,
-      '@media (min-width:1200px)': { fontSize: '1.0625rem' },
-      '@media (min-width:1536px)': { fontSize: '1.125rem' },
+      fontWeight: 600, fontSize: '1rem', lineHeight: 1.25, letterSpacing: '-0.015em',
+      textWrap: 'balance' as const,
+      '@media (min-width:1200px)': { fontSize: '1.125rem' },
+      '@media (min-width:1536px)': { fontSize: '1.25rem' },
     },
     h4: {
-      fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.35,
+      fontWeight: 600, fontSize: '0.9375rem', lineHeight: 1.3, letterSpacing: '-0.01em',
+      textWrap: 'balance' as const,
+      '@media (min-width:1200px)': { fontSize: '1rem' },
+      '@media (min-width:1536px)': { fontSize: '1.0625rem' },
+    },
+    h5: {
+      fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.35, letterSpacing: '-0.005em',
       '@media (min-width:1200px)': { fontSize: '0.9375rem' },
       '@media (min-width:1536px)': { fontSize: '1rem' },
     },
-    h5: {
+    h6: {
       fontWeight: 600, fontSize: '0.8125rem', lineHeight: 1.4,
       '@media (min-width:1200px)': { fontSize: '0.875rem' },
       '@media (min-width:1536px)': { fontSize: '0.9375rem' },
-    },
-    h6: {
-      fontWeight: 600, fontSize: '0.75rem', lineHeight: 1.4,
-      '@media (min-width:1200px)': { fontSize: '0.8125rem' },
-      '@media (min-width:1536px)': { fontSize: '0.875rem' },
     },
     subtitle1: {
       fontSize: '0.75rem', lineHeight: 1.5, fontWeight: 500,
@@ -210,10 +214,17 @@ const darkTheme = createTheme({
   // ============================================================================
   components: {
 
-    // ── Scrollbar thématisée ──
+    // ── Scrollbar thématisée + baseline typo (tabular-nums, font smoothing) ──
     MuiCssBaseline: {
       styleOverrides: {
+        html: {
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          fontVariantNumeric: 'tabular-nums',
+          textRendering: 'optimizeLegibility' as const,
+        },
         body: {
+          fontVariantNumeric: 'tabular-nums',
           scrollbarColor: '#3D5468 #0F1923',
           '&::-webkit-scrollbar': { width: 8, height: 8 },
           '&::-webkit-scrollbar-track': { background: '#0F1923' },
