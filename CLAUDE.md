@@ -22,6 +22,39 @@
 
 - Ne JAMAIS ajouter la ligne "Generated with Claude Code" (ni emoji robot) dans les messages de commit ou les descriptions de PR.
 
+## Frontend Design Skills (obligatoire)
+
+> Toute tâche frontend (création de composant, refonte d'écran, choix de palette/typo, audit visuel, polish, micro-interactions) DOIT s'appuyer sur les 4 skills design installés en global.
+
+### Skills à invoquer systématiquement
+1. **`ui-ux-pro-max`** (`~/.claude/skills/ui-ux-pro-max/`) — base de données 67 styles / 96 palettes / 57 pairings typo / 99 règles UX. Exposée via `python3 ~/.claude/skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system | --domain <ux|color|typography|style|react|...>`.
+2. **`frontend-design`** (plugin Impeccable, `~/.claude/plugins/marketplaces/impeccable/source/skills/frontend-design/`) — vocabulaire de design + anti-patterns curés (no Inter, no rounded-icon-over-heading, no gradient text, no card-everywhere, no AI-slop palette, etc.).
+3. **`Taste`** (à installer si manquante)
+4. **`huashu-design`** (à installer si manquante)
+
+### Workflow obligatoire avant tout code frontend
+1. **Cadrer l'intention** : type de surface (dashboard, liste, formulaire, panneau), audience (host, super-admin, technicien), priorité UX (densité info vs. orientation, scan vs. lecture).
+2. **Consulter UI UX Pro Max** : lancer `--design-system` ou un domaine ciblé (`ux`, `color`, `typography`, `react`) selon le besoin.
+3. **Appliquer les anti-patterns Impeccable** : vérifier qu'on n'ajoute pas un *icon-badge-on-everything*, des cartes empilées sans nécessité, des dégradés "WAOUH" non justifiés, des shadows génériques.
+4. **Respecter l'identité Clenzy** : primary `#6B8A9A` (bleu-gris), palette accents validée (`#4A9B8E`, `#D4A574`, `#C97A7A`, `#7BA3C2`), typo responsive 3 paliers déjà au thème, échelle d'icônes via `useIconSize`, primitives partagées (`PageHeader`, `PageTabs`, `StatTile`, `EmptyState`, `FilterChipRow`).
+5. **Pre-delivery checklist** (skills) :
+   - [ ] Aucun emoji utilisé comme icône (SVG/lucide uniquement)
+   - [ ] `cursor: pointer` sur tout ce qui est cliquable
+   - [ ] Hover transitions 150-300ms
+   - [ ] Contraste texte ≥ 4.5:1 (light + dark)
+   - [ ] Focus visible au clavier
+   - [ ] `prefers-reduced-motion` respecté
+   - [ ] Responsive testé 375 / 768 / 1024 / 1440
+   - [ ] Pas de scale-transform sur hover (cause layout shift)
+
+### Red flags design (s'arrêter et reconsidérer)
+- Tout ce qui ressemble à du "AI slop" : cyan-on-dark, gradients purple→blue, glow neon, glassmorphism partout, sparklines décoratifs, hero metric template, identical card grids.
+- Ajout d'une couleur hors palette sans justification documentée.
+- `box-shadow` générique au lieu d'une ombre intentionnelle.
+- Centre tout au lieu d'alignements asymétriques signifiants.
+- Cartes imbriquées dans des cartes (aplatir).
+- "Tout en variant primary contained" — la hiérarchie doit aussi exister entre les boutons.
+
 ## Production Fix Rules
 
 - **Ne JAMAIS proposer de fix manuel sur la production** (SQL ad-hoc via `db-migrate.yml`, `psql` direct, modification d'etat via SSH, etc.) **sauf si l'utilisateur le demande explicitement**.
