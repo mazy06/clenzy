@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, Tooltip, useTheme, Chip, Divider } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import type { PlanningProperty, DensityMode } from './types';
 import { ROW_CONFIG } from './constants';
 import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
@@ -14,6 +15,7 @@ import {
   CleaningServices,
   Person,
   CalendarMonth,
+  ChevronRight,
 } from '../../icons';
 
 // ─── Static map URL helper (Mapbox Static Images API) ───────────────────────
@@ -57,6 +59,7 @@ const HEADER_HEIGHT = 88;
 function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
   const theme = useTheme();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const currency = property.currency || 'EUR';
   const fmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 });
   const rawPhoto = property.photoUrls?.[0];
@@ -265,9 +268,33 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
           </Box>
         )}
 
-        <Typography sx={{ fontSize: LABEL_FS, color: 'text.disabled', mt: 0.875, fontStyle: 'italic' }}>
-          Cliquez pour ouvrir la fiche complète
-        </Typography>
+        {/* CTA navigable vers la fiche complète. Tooltip rendu dans un portail
+            → cet element est cliquable directement (les clicks ne bubblent pas
+            au Box parent dans le planning, donc on declenche la nav ici). */}
+        <Box
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/properties/${property.id}`);
+          }}
+          sx={{
+            mt: 0.875,
+            pt: 0.75,
+            borderTop: '1px dashed',
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            color: 'primary.main',
+            transition: 'color 150ms',
+            '&:hover': { color: 'primary.dark' },
+          }}
+        >
+          <Typography sx={{ fontSize: LABEL_FS, fontWeight: 600, color: 'inherit' }}>
+            Ouvrir la fiche complète
+          </Typography>
+          <ChevronRight size={ICON_SIZE} strokeWidth={2} />
+        </Box>
       </Box>
     </Box>
   );
