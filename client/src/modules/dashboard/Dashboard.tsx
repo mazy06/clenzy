@@ -161,7 +161,7 @@ const Dashboard: React.FC = () => {
           actions={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
               {(isAdmin || isManager || isHost) && (
-                <Tooltip title="Channel Manager — Ce service sera bientôt disponible. Restez connecté !" arrow>
+                <Tooltip title="Channel Manager (bientôt disponible)" arrow>
                   <span>
                     <Chip
                       icon={<SyncIcon size={14} strokeWidth={1.75} />}

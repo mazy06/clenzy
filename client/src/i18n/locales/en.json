@@ -281,7 +281,7 @@
       "activeInterventionsDesc": "Scheduled or ongoing interventions",
       "alerts": "Business Alerts",
       "alertsDesc": "Items requiring action",
-      "noAlerts": "No alerts — everything looks good!",
+      "noAlerts": "No alerts — everything is on track.",
       "subTabs": {
         "overview": "Overview",
         "revenueAndPricing": "Revenue & Pricing",
@@ -1673,7 +1673,7 @@
       "reassignConnectionError": "Connection error during reassignment",
       "unassignError": "Error during unassignment",
       "assignmentError": "Error during assignment",
-      "assignmentSuccess": "Assignment successful!"
+      "assignmentSuccess": "Assignment saved."
     },
     "notifications": {
       "clientReassigned": "Client has been successfully reassigned.",
@@ -1767,7 +1767,7 @@
       "requiredFields": "Please fill in all required fields"
     },
     "success": {
-      "messageSent": "Message sent successfully!"
+      "messageSent": "Message sent."
     },
     "info": {
       "restrictedUser": "As a restricted user, you can only send messages to managers of your portfolio."
@@ -2057,7 +2057,7 @@
   "permissions": {
     "title": "Permission management",
     "subtitle": "Configure permissions by role",
-    "saveSuccess": "Permissions saved successfully!",
+    "saveSuccess": "Permissions saved.",
     "saveError": "Error saving permissions",
     "reset": "Reset",
     "resetToDefault": "Reset to default values"
