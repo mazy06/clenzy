@@ -550,10 +550,10 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
                   <Typography
                     component="span"
                     sx={{
-                      fontSize: dayWidth < 60 ? '0.5rem' : '0.5625rem',
-                      fontWeight: price != null ? 600 : 400,
+                      fontSize: dayWidth < 60 ? '0.4375rem' : '0.5rem',
+                      fontWeight: price != null ? 500 : 400,
                       color: price != null
-                        ? isDark ? 'rgba(76, 175, 80, 0.85)' : 'rgba(46, 125, 50, 0.8)'
+                        ? isDark ? 'rgba(76, 175, 80, 0.75)' : 'rgba(46, 125, 50, 0.7)'
                         : 'text.disabled',
                       lineHeight: 1,
                       whiteSpace: 'nowrap',
