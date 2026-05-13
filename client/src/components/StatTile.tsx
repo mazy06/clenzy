@@ -9,7 +9,7 @@ interface StatTileProps {
   label: string;
   /** Valeur principale — string ou number, affichee en gros. */
   value: string | number;
-  /** Couleur d'accent (hex). Definit le badge icone + le liseré gauche. */
+  /** Couleur d'accent (hex). Pilote le badge icone + le ton de hover. */
   color: string;
   /** Hint secondaire en dessous de la valeur (e.g. "60% du total"). */
   hint?: string;
@@ -23,12 +23,15 @@ interface StatTileProps {
  * Tuile de KPI standardisee pour les dashboards et les vues d'overview.
  *
  * Caracteristiques :
- *  - Liseré gauche colore (3px) reprenant la couleur d'accent
- *  - Badge icone carre arrondi avec bg pastel
- *  - Valeur en 1.25rem bold, qui scale via useTypography responsive
+ *  - Badge icone carre colore (l'accent vit dans l'icone, pas dans un liseré)
+ *  - Valeur en 1.0-1.2rem bold, tabular-nums pour comparaison verticale
  *  - Label en caption uppercase
  *  - Hover : bordure prend la couleur d'accent + lift de 1px (si onClick)
  *  - Loading : Skeleton à la place de la valeur
+ *
+ * Decision de design : pas de side-stripe coloré (anti-pattern Impeccable
+ * "Side-stripe borders >1px never intentional"). L'accent passe par le badge
+ * d'icône et le hover de la bordure.
  *
  * Usage :
  *   <StatTile
@@ -61,23 +64,16 @@ export default function StatTile({
         borderRadius: 1.5,
         borderColor: 'divider',
         position: 'relative',
-        overflow: 'hidden',
         cursor: onClick ? 'pointer' : 'default',
         transition: 'border-color 200ms, transform 200ms, box-shadow 200ms',
-        // Liseré gauche
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0, left: 0, bottom: 0,
-          width: 3,
-          bgcolor: color,
-          opacity: 0.7,
-        },
         ...(onClick && {
           '&:hover': {
             borderColor: color,
             transform: 'translateY(-1px)',
             boxShadow: `0 1px 3px ${alpha(color, 0.18)}`,
+          },
+          '&:active': {
+            transform: 'translateY(0)',
           },
         }),
         ...(!onClick && {

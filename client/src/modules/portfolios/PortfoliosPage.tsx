@@ -448,9 +448,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                     variant="outlined"
                                     sx={{
                                       borderRadius: 1.5,
-                                      borderLeft: 3,
-                                      borderLeftColor: 'primary.main',
-                                      transition: 'all 0.2s ease-in-out',
+                                      transition: 'border-color 0.2s, transform 0.2s, box-shadow 0.2s',
                                       '&:hover': {
                                         borderColor: 'primary.main',
                                         transform: 'translateY(-1px)',

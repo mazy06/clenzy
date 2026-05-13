@@ -301,7 +301,6 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                     px: 2,
                     py: 1.5,
                     cursor: 'pointer',
-                    borderLeft: `4px solid ${cat.color}`,
                     backgroundColor: isDark ? `${cat.color}12` : `${cat.color}08`,
                     '&:hover': { backgroundColor: isDark ? `${cat.color}1A` : `${cat.color}10` },
                     transition: 'background-color 0.15s',

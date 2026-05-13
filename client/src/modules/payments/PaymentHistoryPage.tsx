@@ -377,10 +377,9 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     );
   };
 
-  /** Row styling — left border color matches payment status */
-  const getRowSx = (status: PaymentRecord['status']) => ({
+  /** Row styling — status passe par le chip dans la colonne dédiée, pas un side-stripe */
+  const getRowSx = (_status: PaymentRecord['status']) => ({
     cursor: 'pointer',
-    borderLeft: `3px solid ${statusColor(status)}`,
     transition: 'background-color 0.15s ease',
     '&:hover': { bgcolor: 'rgba(107,138,154,0.04)' },
   });
@@ -506,7 +505,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       {/* Summary cards */}
       <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
         {summaryCards.map((card) => (
-          <Card key={card.label} sx={{ flex: '1 1 180px', borderLeft: `4px solid ${card.color}` }}>
+          <Card key={card.label} sx={{ flex: '1 1 180px' }}>
             <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
               <Box
                 sx={{

@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { alpha } from '@mui/material/styles';
 import {
   Box,
   Paper,
@@ -543,8 +544,6 @@ const ChannelsPage: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'flex-start',
-                    borderLeft: '3px solid',
-                    borderLeftColor: ota.brandColor,
                     pl: 1.25,
                   }}
                 >
@@ -1379,10 +1378,10 @@ function SyncStatusCard({
     <Box
       sx={{
         border: '1px solid',
-        borderColor: 'divider',
+        borderColor: alpha(statusColor, 0.35),
         borderRadius: 1,
         p: 1.25,
-        borderLeft: `3px solid ${statusColor}`,
+        bgcolor: alpha(statusColor, 0.04),
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>

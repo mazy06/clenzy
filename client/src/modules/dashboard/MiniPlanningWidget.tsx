@@ -376,21 +376,10 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
               {t('dashboard.miniPlanning.noProperties')}
             </Typography>
             <Button
-              variant="contained"
+              variant="outlined"
               size="small"
               startIcon={<Add size={14} strokeWidth={1.75} />}
               onClick={() => navigate('/properties/new')}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '0.75rem',
-                borderRadius: '8px',
-                px: 2,
-                py: 0.5,
-                background: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-                color: '#fff',
-                '&:hover': { filter: 'brightness(0.9)' },
-              }}
             >
               {t('dashboard.miniPlanning.addProperty')}
             </Button>

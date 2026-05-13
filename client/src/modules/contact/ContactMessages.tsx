@@ -446,9 +446,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                       cursor: 'pointer',
                       borderBottom: 1, borderColor: 'divider',
                       bgcolor: isSelected ? 'action.selected' : 'transparent',
-                      borderLeft: isSelected ? 3 : 3,
-                      borderLeftColor: isSelected ? 'primary.main' : 'transparent',
-                      transition: 'all 0.15s ease',
+                      transition: 'background-color 0.15s ease',
                       '&:hover': { bgcolor: 'action.hover' },
                     }}
                   >
