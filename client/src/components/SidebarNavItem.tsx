@@ -80,7 +80,7 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
         primary={item.text}
         primaryTypographyProps={{
           fontSize,
-          fontWeight: isActive ? 600 : 500,
+          fontWeight: isActive ? 600 : 400,
           color: isActive ? 'primary.main' : 'text.secondary',
           noWrap: true,
         }}

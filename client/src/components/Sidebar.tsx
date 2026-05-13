@@ -408,6 +408,28 @@ export default function Sidebar({
               <Logout size={actionIconSize} strokeWidth={1.75} />
             </IconButton>
           </Tooltip>
+
+          {/* Collapse toggle (desktop only) — inline avec les autres icones d'action */}
+          {!isMobile && (
+            <Tooltip
+              title={collapsed ? t('common.expandMenu') : t('common.collapseMenu')}
+              placement={collapsed ? 'right' : 'top'}
+            >
+              <IconButton
+                size="small"
+                onClick={onToggleCollapsed}
+                sx={{
+                  color: 'text.secondary',
+                  '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
+                }}
+              >
+                {collapsed
+                  ? (isRtl ? <ChevronLeft size={actionIconSize} strokeWidth={1.75} /> : <ChevronRight size={actionIconSize} strokeWidth={1.75} />)
+                  : (isRtl ? <ChevronRight size={actionIconSize} strokeWidth={1.75} /> : <ChevronLeft size={actionIconSize} strokeWidth={1.75} />)
+                }
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
 
         {/* Language & Currency unified menu */}
@@ -538,37 +560,6 @@ export default function Sidebar({
           )}
         </Menu>
 
-        {/* ── Collapse toggle (desktop only) ─────────────────────────── */}
-        {!isMobile && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: collapsed ? 'center' : 'flex-end',
-              px: 1,
-              pb: 1,
-            }}
-          >
-            <Tooltip
-              title={collapsed ? t('common.expandMenu') : t('common.collapseMenu')}
-              placement="right"
-            >
-              <IconButton
-                onClick={onToggleCollapsed}
-                size="small"
-                sx={{
-                  color: 'text.secondary',
-                  '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
-                }}
-              >
-                {collapsed
-                  ? (isRtl ? <ChevronLeft size={20} strokeWidth={1.75} /> : <ChevronRight size={20} strokeWidth={1.75} />)
-                  : (isRtl ? <ChevronRight size={20} strokeWidth={1.75} /> : <ChevronLeft size={20} strokeWidth={1.75} />)
-                }
-              </IconButton>
-            </Tooltip>
-          </Box>
-        )}
       </Box>
     </Box>
   );
