@@ -34,6 +34,7 @@ import {
   Visibility as VisibilityIcon,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
 import FilterChipRow from '../../components/FilterChipRow';
 import HelpBanner from '../../components/HelpBanner';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -104,7 +105,7 @@ const AccountingPage: React.FC = () => {
   const tabParam = parseInt(searchParams.get('tab') || '0', 10);
   const [activeTab, setActiveTab] = useState(isNaN(tabParam) ? 0 : tabParam);
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (newValue: number) => {
     setActiveTab(newValue);
     setSearchParams(newValue === 0 ? {} : { tab: String(newValue) }, { replace: true });
   };
@@ -119,19 +120,17 @@ const AccountingPage: React.FC = () => {
         backPath="/dashboard"
       />
 
-      <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-        <Tabs
-          value={activeTab}
-          onChange={handleTabChange}
-          sx={{ borderBottom: 1, borderColor: 'divider', minHeight: 40 }}
-        >
-          <Tab label={t('accounting.tabs.payouts', 'Payouts')} sx={TAB_SX} />
-          <Tab label={t('accounting.tabs.commissions', 'Commissions')} sx={TAB_SX} />
-          <Tab label={t('accounting.tabs.expenses', 'Depenses')} sx={TAB_SX} />
-          <Tab label={t('accounting.tabs.fiscalReport', 'Rapport fiscal')} sx={TAB_SX} />
-          <Tab label={t('accounting.tabs.exports', 'Exports')} sx={TAB_SX} />
-        </Tabs>
-      </Paper>
+      <PageTabs
+        options={[
+          { label: t('accounting.tabs.payouts', 'Payouts') },
+          { label: t('accounting.tabs.commissions', 'Commissions') },
+          { label: t('accounting.tabs.expenses', 'Depenses') },
+          { label: t('accounting.tabs.fiscalReport', 'Rapport fiscal') },
+          { label: t('accounting.tabs.exports', 'Exports') },
+        ]}
+        value={activeTab}
+        onChange={handleTabChange}
+      />
 
       {activeTab === 0 && <PayoutsTab />}
       {activeTab === 1 && <CommissionsTab />}

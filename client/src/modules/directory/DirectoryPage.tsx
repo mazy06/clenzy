@@ -1,10 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Tabs,
-  Tab,
-  Paper,
-} from '@mui/material';
+import { Box } from '@mui/material';
 import {
   People,
   Business,
@@ -17,6 +12,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
 import TeamsList from '../teams/TeamsList';
 import PortfoliosPage from '../portfolios/PortfoliosPage';
 import GuestsListPage from '../guests/GuestsListPage';
@@ -39,12 +35,12 @@ interface TabDef {
 }
 
 const ALL_TABS: TabDef[] = [
-  { key: 'users', labelKey: 'directoryPage.tabs.users', icon: <ManageAccounts size={18} strokeWidth={1.75} />, permission: 'users:manage' },
-  { key: 'teams', labelKey: 'directoryPage.tabs.teams', icon: <People size={18} strokeWidth={1.75} />, permission: 'teams:view' },
-  { key: 'portfolios', labelKey: 'directoryPage.tabs.portfolios', icon: <Business size={18} strokeWidth={1.75} />, permission: 'portfolios:view' },
-  { key: 'organizations', labelKey: 'directoryPage.tabs.organizations', icon: <CorporateFare size={18} strokeWidth={1.75} />, permission: 'users:manage' },
-  { key: 'guests', labelKey: 'directoryPage.tabs.guests', icon: <PersonSearch size={18} strokeWidth={1.75} />, permission: 'guests:view' },
-  { key: 'prospection', labelKey: 'directoryPage.tabs.prospection', icon: <TrendingUp size={18} strokeWidth={1.75} />, permission: 'teams:view', roles: ['SUPER_ADMIN', 'SUPER_MANAGER'] },
+  { key: 'users', labelKey: 'directoryPage.tabs.users', icon: <ManageAccounts />, permission: 'users:manage' },
+  { key: 'teams', labelKey: 'directoryPage.tabs.teams', icon: <People />, permission: 'teams:view' },
+  { key: 'portfolios', labelKey: 'directoryPage.tabs.portfolios', icon: <Business />, permission: 'portfolios:view' },
+  { key: 'organizations', labelKey: 'directoryPage.tabs.organizations', icon: <CorporateFare />, permission: 'users:manage' },
+  { key: 'guests', labelKey: 'directoryPage.tabs.guests', icon: <PersonSearch />, permission: 'guests:view' },
+  { key: 'prospection', labelKey: 'directoryPage.tabs.prospection', icon: <TrendingUp />, permission: 'teams:view', roles: ['SUPER_ADMIN', 'SUPER_MANAGER'] },
 ];
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -74,7 +70,7 @@ const DirectoryPage: React.FC = () => {
   const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
 
   // Sync tab to URL param
-  const handleTabChange = useCallback((_: React.SyntheticEvent, v: number) => {
+  const handleTabChange = useCallback((v: number) => {
     setActiveTab(v);
     setSearchParams(v === 0 ? {} : { tab: String(v) }, { replace: true });
   }, [setSearchParams]);
@@ -108,7 +104,7 @@ const DirectoryPage: React.FC = () => {
   const activeTabDef = visibleTabs[activeTab];
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <PageHeader
         title={t('directoryPage.title')}
         subtitle={t('directoryPage.subtitle')}
@@ -117,29 +113,14 @@ const DirectoryPage: React.FC = () => {
         showBackButton={false}
         actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
       />
-      <Paper sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            sx={{
-              flex: 1,
-              '& .MuiTab-root': { minHeight: 48, textTransform: 'none', fontSize: '0.8125rem' },
-            }}
-            variant="scrollable"
-            scrollButtons="auto"
-          >
-            {visibleTabs.map((tab) => (
-              <Tab
-                key={tab.key}
-                icon={tab.icon}
-                iconPosition="start"
-                label={t(tab.labelKey)}
-              />
-            ))}
-          </Tabs>
-        </Box>
-      </Paper>
+      <PageTabs
+        options={visibleTabs.map((tab) => ({
+          label: t(tab.labelKey),
+          icon: tab.icon,
+        }))}
+        value={activeTab}
+        onChange={handleTabChange}
+      />
 
       {/* ── Tab content ── */}
       {activeTabDef?.key === 'teams' && (

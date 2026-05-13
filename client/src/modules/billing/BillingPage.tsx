@@ -1,8 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
-  Tabs,
-  Tab,
   Paper,
   ToggleButtonGroup,
   ToggleButton,
@@ -19,6 +17,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
 import PaymentHistoryPage from '../payments/PaymentHistoryPage';
 import InvoicesList from '../invoices/InvoicesList';
 import WalletDashboard from '../finance/WalletDashboard';
@@ -102,7 +101,7 @@ const BillingPage: React.FC = () => {
   const activeLogicalIndex = visibleTabs[activePos]?.index ?? TAB_PAYMENTS;
 
   const handleTabChange = useCallback(
-    (_: React.SyntheticEvent, newPos: number) => {
+    (newPos: number) => {
       setActivePos(newPos);
       const logicalIndex = visibleTabs[newPos]?.index ?? 0;
       setSearchParams(logicalIndex === 0 ? {} : { tab: String(logicalIndex) }, { replace: true });
@@ -125,7 +124,7 @@ const BillingPage: React.FC = () => {
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <PageHeader
         title={t('billing.title')}
         subtitle={t('billing.subtitle')}
@@ -133,61 +132,18 @@ const BillingPage: React.FC = () => {
         backPath="/dashboard"
         showBackButton={false}
       />
-      <Paper sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={activePos}
-            onChange={handleTabChange}
-            sx={{
-              flex: 1,
-              '& .MuiTab-root': { minHeight: 48, textTransform: 'none', fontSize: '0.8125rem' },
-            }}
-            variant="scrollable"
-            scrollButtons="auto"
-          >
-            <Tab
-              icon={<Payment size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              label={t('billing.tabs.payments')}
-            />
-            {canViewInvoices && (
-              <Tab
-                icon={<Receipt size={18} strokeWidth={1.75} />}
-                iconPosition="start"
-                label={t('billing.tabs.invoices')}
-              />
-            )}
-            {canViewWallets && (
-              <Tab
-                icon={<AccountBalanceWallet size={18} strokeWidth={1.75} />}
-                iconPosition="start"
-                label={t('navigation.wallets')}
-              />
-            )}
-            {canViewAccounting && (
-              <Tab
-                icon={<AccountBalance size={18} strokeWidth={1.75} />}
-                iconPosition="start"
-                label={t('billing.tabs.payouts', 'Reversements')}
-              />
-            )}
-            {canViewAccounting && (
-              <Tab
-                icon={<Category size={18} strokeWidth={1.75} />}
-                iconPosition="start"
-                label={t('billing.tabs.expenses', 'Depenses')}
-              />
-            )}
-            {canViewAccounting && (
-              <Tab
-                icon={<Assessment size={18} strokeWidth={1.75} />}
-                iconPosition="start"
-                label={t('billing.tabs.reportsExports', 'Rapports & Exports')}
-              />
-            )}
-          </Tabs>
-        </Box>
-      </Paper>
+      <PageTabs
+        options={[
+          { label: t('billing.tabs.payments'), icon: <Payment /> },
+          { label: t('billing.tabs.invoices'), icon: <Receipt />, hidden: !canViewInvoices },
+          { label: t('navigation.wallets'), icon: <AccountBalanceWallet />, hidden: !canViewWallets },
+          { label: t('billing.tabs.payouts', 'Reversements'), icon: <AccountBalance />, hidden: !canViewAccounting },
+          { label: t('billing.tabs.expenses', 'Depenses'), icon: <Category />, hidden: !canViewAccounting },
+          { label: t('billing.tabs.reportsExports', 'Rapports & Exports'), icon: <Assessment />, hidden: !canViewAccounting },
+        ]}
+        value={activePos}
+        onChange={handleTabChange}
+      />
 
       {/* ── Tab content ── */}
       {activeLogicalIndex === TAB_PAYMENTS && <PaymentHistoryPage embedded />}

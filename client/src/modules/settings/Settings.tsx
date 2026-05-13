@@ -61,6 +61,7 @@ import { reservationsApi } from '../../services/api/reservationsApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import { planningKeys } from '../../hooks/useDashboardPlanning';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
 import OrganizationSection from '../organization/OrganizationSection';
@@ -361,7 +362,7 @@ export default function Settings() {
     setSnackbarOpen(true);
   };
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (newValue: number) => {
     setTabValue(newValue);
     setSearchParams(newValue === 0 ? {} : { tab: String(newValue) }, { replace: true });
   };
@@ -422,97 +423,24 @@ export default function Settings() {
       />
 
       {/* Onglets */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          aria-label="settings-tabs"
-          sx={{
-            minHeight: 42,
-            '& .MuiTab-root': {
-              minHeight: 42,
-              textTransform: 'none',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-            },
-          }}
-        >
-          <Tab
-            icon={<TuneOutlined size={18} strokeWidth={1.75} />}
-            iconPosition="start"
-            label="Général"
-            {...a11yProps(0)}
-          />
-          <Tab
-            icon={<Notifications size={18} strokeWidth={1.75} />}
-            iconPosition="start"
-            label="Notifications"
-            {...a11yProps(1)}
-          />
-          <Tab
-            icon={<ChatBubbleOutline size={18} strokeWidth={1.75} />}
-            iconPosition="start"
-            label="Messagerie"
-            {...a11yProps(2)}
-          />
-          {hasAnyRole(['HOST']) && (
-            <Tab
-              icon={<AccountBalance size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              label={t('settings.myPayout.tabLabel', 'Mes reversements')}
-              {...a11yProps(3)}
-            />
-          )}
-          {canViewAi && (
-            <Tab
-              icon={<AutoAwesome size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              label="IA"
-              {...a11yProps(3)}
-            />
-          )}
-          {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
-            <Tab
-              icon={<AccountBalance size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              label="Fiscal"
-              {...a11yProps(4)}
-            />
-          )}
-          {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
-            <Tab
-              icon={<GroupAdd size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              label="Organisation"
-              {...a11yProps(5)}
-            />
-          )}
-          {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
-            <Tab
-              icon={<Payment size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              label="Paiement"
-              {...a11yProps(6)}
-            />
-          )}
-          {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
-            <Tab
-              icon={<Extension size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              label="Intégrations"
-              {...a11yProps(7)}
-            />
-          )}
-          {hasAnyRole(['SUPER_ADMIN']) && (
-            <Tab
-              icon={<CalendarMonth size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              label="Reversements"
-              {...a11yProps(8)}
-            />
-          )}
-        </Tabs>
-      </Box>
+      <PageTabs
+        options={[
+          { label: 'Général', icon: <TuneOutlined /> },
+          { label: 'Notifications', icon: <Notifications /> },
+          { label: 'Messagerie', icon: <ChatBubbleOutline /> },
+          { label: t('settings.myPayout.tabLabel', 'Mes reversements'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOST']) },
+          { label: 'IA', icon: <AutoAwesome />, hidden: !canViewAi },
+          { label: 'Fiscal', icon: <AccountBalance />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+          { label: 'Organisation', icon: <GroupAdd />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+          { label: 'Paiement', icon: <Payment />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+          { label: 'Intégrations', icon: <Extension />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+          { label: 'Reversements', icon: <CalendarMonth />, hidden: !hasAnyRole(['SUPER_ADMIN']) },
+        ]}
+        value={tabValue}
+        onChange={handleTabChange}
+        paper={false}
+        ariaLabel="settings-tabs"
+      />
 
       {/* ─── Onglet Général ─────────────────────────────────────────────── */}
       <TabPanel value={tabValue} index={0}>

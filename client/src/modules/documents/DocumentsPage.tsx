@@ -1,9 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Box,
-  Tabs,
-  Tab,
-  Paper,
   Button,
   TextField,
   InputAdornment,
@@ -22,6 +19,7 @@ import {
 } from '../../icons';
 import { useSearchParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useTemplates } from './hooks/useDocuments';
 import TemplateCatalogAccordions from './TemplateCatalogAccordions';
@@ -60,7 +58,7 @@ const DocumentsPage: React.FC = () => {
   const { data: catalogTemplates = [] } = useTemplates();
 
   // Sync tab to URL param
-  const handleTabChange = useCallback((_: React.SyntheticEvent, v: number) => {
+  const handleTabChange = useCallback((v: number) => {
     setActiveTab(v);
     setSearchParams(v === 0 ? {} : { tab: String(v) }, { replace: true });
   }, [setSearchParams]);
@@ -81,8 +79,98 @@ const DocumentsPage: React.FC = () => {
     setSearchParams({ tab: String(TAB_MSG_TEMPLATES) }, { replace: true });
   }, [setSearchParams]);
 
+  // Inline actions per tab
+  const inlineActions = (() => {
+    if (activeTab === TAB_CATALOG) {
+      return (
+        <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
+          {t('common.refresh')}
+        </Button>
+      );
+    }
+    if (activeTab === TAB_MSG_TEMPLATES) {
+      return (
+        <>
+          <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => msgTemplatesRef.current?.fetchTemplates()}>
+            {t('common.refresh')}
+          </Button>
+          <Button variant="contained" startIcon={<Add size={14} strokeWidth={1.75} />} size="small" onClick={() => msgTemplatesRef.current?.openEditor()}>
+            {t('messaging.templates.create')}
+          </Button>
+        </>
+      );
+    }
+    if (activeTab === TAB_DOC_TEMPLATES) {
+      return (
+        <>
+          <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
+            {t('common.refresh')}
+          </Button>
+          <Button variant="contained" startIcon={<Add size={14} strokeWidth={1.75} />} size="small" onClick={() => docTemplatesRef.current?.openUpload()}>
+            {t('documents.tabs.newDocTemplate')}
+          </Button>
+        </>
+      );
+    }
+    if (activeTab === TAB_HISTORY) {
+      return (
+        <>
+          <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => historyRef.current?.refresh()}>
+            {t('common.refresh')}
+          </Button>
+          <Button variant="contained" startIcon={<Send size={14} strokeWidth={1.75} />} size="small" onClick={() => historyRef.current?.openGenerate()}>
+            {t('documents.tabs.generateDoc')}
+          </Button>
+        </>
+      );
+    }
+    if (activeTab === TAB_VARIABLES) {
+      return (
+        <TextField
+          size="small"
+          placeholder={t('documents.tabs.searchTag')}
+          value={tagsSearch}
+          onChange={(e) => setTagsSearch(e.target.value)}
+          sx={{ minWidth: 220 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={14} strokeWidth={1.75} /></Box>
+              </InputAdornment>
+            ),
+          }}
+        />
+      );
+    }
+    if (activeTab === TAB_COMPLIANCE) {
+      return (
+        <>
+          <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => complianceRef.current?.fetchData()}>
+            {t('common.refresh')}
+          </Button>
+          <TextField
+            size="small"
+            placeholder="Ex: FAC-2025-00001"
+            value={complianceSearch}
+            onChange={(e) => setComplianceSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && complianceRef.current?.searchByNumber(complianceSearch)}
+            sx={{ minWidth: 220 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={14} strokeWidth={1.75} /></Box>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </>
+      );
+    }
+    return null;
+  })();
+
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <PageHeader
         title={t('documents.title')}
         subtitle={t('documents.subtitle')}
@@ -90,118 +178,19 @@ const DocumentsPage: React.FC = () => {
         backPath="/dashboard"
         showBackButton={false}
       />
-      <Paper sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            sx={{
-              flex: 1,
-              '& .MuiTab-root': { minHeight: 48, textTransform: 'none', fontSize: '0.8125rem' },
-            }}
-            variant="scrollable"
-            scrollButtons="auto"
-          >
-            <Tab icon={<ViewList size={18} strokeWidth={1.75} />} iconPosition="start" label={t('documents.tabs.catalog')} />
-            <Tab icon={<ChatBubbleOutline size={18} strokeWidth={1.75} />} iconPosition="start" label={t('documents.tabs.messageTemplates')} />
-            <Tab icon={<Description size={18} strokeWidth={1.75} />} iconPosition="start" label={t('documents.tabs.documentTemplates')} />
-            <Tab icon={<History size={18} strokeWidth={1.75} />} iconPosition="start" label={t('documents.tabs.history')} />
-            <Tab icon={<LocalOffer size={18} strokeWidth={1.75} />} iconPosition="start" label={t('documents.tabs.variablesAndTags')} />
-            <Tab icon={<GppGood size={18} strokeWidth={1.75} />} iconPosition="start" label={t('documents.tabs.compliance')} />
-          </Tabs>
-
-          {/* ── Tab-specific actions ── */}
-
-          {/* Catalogue — refresh catalog */}
-          {activeTab === TAB_CATALOG && (
-            <Box sx={{ display: 'flex', gap: 1, pr: 2 }}>
-              <Button startIcon={<Refresh />} size="small" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
-                {t('common.refresh')}
-              </Button>
-            </Box>
-          )}
-
-          {/* Templates messages — New + Refresh */}
-          {activeTab === TAB_MSG_TEMPLATES && (
-            <Box sx={{ display: 'flex', gap: 1, pr: 2 }}>
-              <Button startIcon={<Refresh />} size="small" onClick={() => msgTemplatesRef.current?.fetchTemplates()}>
-                {t('common.refresh')}
-              </Button>
-              <Button variant="contained" startIcon={<Add />} size="small" onClick={() => msgTemplatesRef.current?.openEditor()}>
-                {t('messaging.templates.create')}
-              </Button>
-            </Box>
-          )}
-
-          {/* Templates documents — New + Refresh */}
-          {activeTab === TAB_DOC_TEMPLATES && (
-            <Box sx={{ display: 'flex', gap: 1, pr: 2 }}>
-              <Button startIcon={<Refresh />} size="small" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
-                {t('common.refresh')}
-              </Button>
-              <Button variant="contained" startIcon={<Add />} size="small" onClick={() => docTemplatesRef.current?.openUpload()}>
-                {t('documents.tabs.newDocTemplate')}
-              </Button>
-            </Box>
-          )}
-
-          {/* Historique — Refresh + Generate */}
-          {activeTab === TAB_HISTORY && (
-            <Box sx={{ display: 'flex', gap: 1, pr: 2 }}>
-              <Button startIcon={<Refresh />} size="small" onClick={() => historyRef.current?.refresh()}>
-                {t('common.refresh')}
-              </Button>
-              <Button variant="contained" startIcon={<Send />} size="small" onClick={() => historyRef.current?.openGenerate()}>
-                {t('documents.tabs.generateDoc')}
-              </Button>
-            </Box>
-          )}
-
-          {/* Variables & Tags — search */}
-          {activeTab === TAB_VARIABLES && (
-            <Box sx={{ display: 'flex', gap: 1, pr: 2, alignItems: 'center' }}>
-              <TextField
-                size="small"
-                placeholder={t('documents.tabs.searchTag')}
-                value={tagsSearch}
-                onChange={(e) => setTagsSearch(e.target.value)}
-                sx={{ minWidth: 250 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={20} strokeWidth={1.75} /></Box>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-          )}
-
-          {/* Conformite NF — Refresh + search */}
-          {activeTab === TAB_COMPLIANCE && (
-            <Box sx={{ display: 'flex', gap: 1, pr: 2, alignItems: 'center' }}>
-              <Button startIcon={<Refresh />} size="small" onClick={() => complianceRef.current?.fetchData()}>
-                {t('common.refresh')}
-              </Button>
-              <TextField
-                size="small"
-                placeholder="Ex: FAC-2025-00001"
-                value={complianceSearch}
-                onChange={(e) => setComplianceSearch(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && complianceRef.current?.searchByNumber(complianceSearch)}
-                sx={{ minWidth: 250 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={20} strokeWidth={1.75} /></Box>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-          )}
-        </Box>
-      </Paper>
+      <PageTabs
+        options={[
+          { value: TAB_CATALOG,       label: t('documents.tabs.catalog'),           icon: <ViewList /> },
+          { value: TAB_MSG_TEMPLATES, label: t('documents.tabs.messageTemplates'),  icon: <ChatBubbleOutline /> },
+          { value: TAB_DOC_TEMPLATES, label: t('documents.tabs.documentTemplates'), icon: <Description /> },
+          { value: TAB_HISTORY,       label: t('documents.tabs.history'),           icon: <History /> },
+          { value: TAB_VARIABLES,     label: t('documents.tabs.variablesAndTags'),  icon: <LocalOffer /> },
+          { value: TAB_COMPLIANCE,    label: t('documents.tabs.compliance'),        icon: <GppGood /> },
+        ]}
+        value={activeTab}
+        onChange={handleTabChange}
+        inlineActions={inlineActions}
+      />
 
       {/* ── Tab content ── */}
       {activeTab === TAB_CATALOG && (

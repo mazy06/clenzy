@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Tabs,
-  Tab,
   Paper,
   Button,
-  Badge
 } from '@mui/material';
 import {
   Chat as ChatIcon,
@@ -20,6 +17,7 @@ import ContactMessages from './ContactMessages';
 import ReceivedFormsTab from './ReceivedFormsTab';
 import ChannelInboxTab from '../channels/ChannelInboxTab';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { useFormsStats } from '../../hooks/useReceivedForms';
@@ -74,7 +72,7 @@ const ContactPage: React.FC = () => {
   const { data: threads } = useContactThreads();
   const internalUnread = threads?.reduce((sum, th) => sum + th.unreadCount, 0) ?? 0;
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (newValue: number) => {
     setTabValue(newValue);
   };
 
@@ -92,54 +90,29 @@ const ContactPage: React.FC = () => {
         showBackButton={false}
       />
       <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', height: '100%' }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="contact tabs" sx={{ flex: 1 }}>
-            <Tab
-              icon={
-                <Badge badgeContent={internalUnread} color="error" max={99}>
-                  <ChatIcon />
-                </Badge>
-              }
-              label={t('contact.internalChat')}
-              id="contact-tab-0"
-              aria-controls="contact-tabpanel-0"
-            />
-            <Tab
-              icon={<ArchiveIcon />}
-              label={t('contact.archived')}
-              id="contact-tab-1"
-              aria-controls="contact-tabpanel-1"
-            />
-            {isAdminOrManager && (
-              <Tab
-                icon={
-                  <Badge badgeContent={newFormsCount} color="warning" max={99}>
-                    <FormsIcon />
-                  </Badge>
-                }
-                label="Formulaires reçus"
-                id="contact-tab-2"
-                aria-controls="contact-tabpanel-2"
-              />
-            )}
-            {canAccessOta && (
-              <Tab
-                icon={<ChannelsIcon />}
-                label={t('contact.channelMessages')}
-                id={`contact-tab-${isAdminOrManager ? 3 : 2}`}
-                aria-controls={`contact-tabpanel-${isAdminOrManager ? 3 : 2}`}
-              />
-            )}
-          </Tabs>
-          <Button
-            variant="contained"
-            startIcon={<EditIcon />}
-            onClick={handleNewMessage}
-            sx={{ mr: 2, textTransform: 'none', fontWeight: 600, borderRadius: '8px', whiteSpace: 'nowrap' }}
-          >
-            {t('contact.newMessage')}
-          </Button>
-        </Box>
+        <PageTabs
+          options={[
+            { label: t('contact.internalChat'), icon: <ChatIcon />, badge: internalUnread, badgeColor: 'error' },
+            { label: t('contact.archived'),     icon: <ArchiveIcon /> },
+            { label: 'Formulaires reçus', icon: <FormsIcon />, badge: newFormsCount, badgeColor: 'warning', hidden: !isAdminOrManager },
+            { label: t('contact.channelMessages'), icon: <ChannelsIcon />, hidden: !canAccessOta },
+          ]}
+          value={tabValue}
+          onChange={handleTabChange}
+          paper={false}
+          mb={0}
+          ariaLabel="contact tabs"
+          inlineActions={(
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<EditIcon size={14} strokeWidth={1.75} />}
+              onClick={handleNewMessage}
+            >
+              {t('contact.newMessage')}
+            </Button>
+          )}
+        />
 
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
           <TabPanel value={tabValue} index={0}>

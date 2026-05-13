@@ -1,10 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import {
-  Box,
-  Tabs,
-  Tab,
-  Paper,
-} from '@mui/material';
+import { Box } from '@mui/material';
 import {
   Home,
   TrendingUp,
@@ -12,6 +7,7 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
 import PropertiesList from './PropertiesList';
 import DynamicPricing from '../pricing/DynamicPricing';
 
@@ -40,7 +36,7 @@ const PropertiesPage: React.FC = () => {
   const [tabInlineContainer, setTabInlineContainer] = useState<HTMLDivElement | null>(null);
 
   // Sync tab to URL param
-  const handleTabChange = useCallback((_: React.SyntheticEvent, v: number) => {
+  const handleTabChange = useCallback((v: number) => {
     setActiveTab(v);
     setSearchParams(v === 0 ? {} : { tab: String(v) }, { replace: true });
   }, [setSearchParams]);
@@ -68,34 +64,15 @@ const PropertiesPage: React.FC = () => {
           actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
           filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
         />
-        <Paper sx={{ mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs
-              value={activeTab}
-              onChange={handleTabChange}
-              sx={{
-                flex: 1,
-                '& .MuiTab-root': { minHeight: 48, textTransform: 'none', fontSize: '0.8125rem' },
-              }}
-              variant="scrollable"
-              scrollButtons="auto"
-            >
-              <Tab
-                icon={<Home size={18} strokeWidth={1.75} />}
-                iconPosition="start"
-                label={t('propertiesPage.tabs.properties')}
-              />
-              <Tab
-                icon={<TrendingUp size={18} strokeWidth={1.75} />}
-                iconPosition="start"
-                label={t('propertiesPage.tabs.pricing')}
-              />
-            </Tabs>
-            <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1.5, pr: 1.5 }}>
-              <div ref={setTabInlineContainer} style={PORTAL_STYLE} />
-            </Box>
-          </Box>
-        </Paper>
+        <PageTabs
+          options={[
+            { value: TAB_PROPERTIES, label: t('propertiesPage.tabs.properties'), icon: <Home /> },
+            { value: TAB_PRICING,    label: t('propertiesPage.tabs.pricing'),    icon: <TrendingUp /> },
+          ]}
+          value={activeTab}
+          onChange={handleTabChange}
+          inlineActions={<div ref={setTabInlineContainer} style={PORTAL_STYLE} />}
+        />
       </Box>
 
       {/* ── Tab content ── */}
