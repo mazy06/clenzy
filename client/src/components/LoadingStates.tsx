@@ -6,7 +6,7 @@ import {
   Alert,
   Button
 } from '@mui/material';
-import { Refresh } from '@mui/icons-material';
+import { Refresh } from '../icons';
 
 interface LoadingStatesProps {
   state: 'loading' | 'user-loading' | 'permissions-loading' | 'error-loading' | 'ready';
@@ -78,7 +78,7 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
                   color="inherit" 
                   size="small" 
                   onClick={onRetry}
-                  startIcon={<Refresh />}
+                  startIcon={<Refresh size={18} strokeWidth={1.75} />}
                 >
                   Réessayer
                 </Button>

@@ -38,9 +38,10 @@ import {
   Refresh,
   LocationOn,
   Build as BuildIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import ServiceRequestCard from '../../components/ServiceRequestCard';
 import ExportButton from '../../components/ExportButton';
 import type { ExportColumn } from '../../utils/exportUtils';
@@ -79,6 +80,20 @@ const paginationSx = {
 
 const LIST_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
 const LIST_DEFAULT_ROWS = 10;
+
+/**
+ * Retire le suffixe " — {propertyName}" ou " - {propertyName}" du titre.
+ * Evite la redondance quand le nom de propriete est deja affiche dans sa
+ * propre colonne.
+ */
+function stripPropertySuffix(title: string, propertyName?: string): string {
+  if (!propertyName) return title;
+  const patterns = [` — ${propertyName}`, ` - ${propertyName}`, ` -- ${propertyName}`];
+  for (const p of patterns) {
+    if (title.endsWith(p)) return title.slice(0, -p.length).trim();
+  }
+  return title;
+}
 
 const LIST_PAPER_SX = {
   border: '1px solid',
@@ -318,7 +333,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           onClick={() => navigate('/service-requests/new')}
           sx={{ ...iconButtonSx, color: 'primary.main', borderColor: 'primary.main', bgcolor: 'rgba(107,138,154,0.06)' }}
         >
-          <Add />
+          <Add size={20} strokeWidth={1.75} />
         </IconButton>
       </Tooltip>
     </Box>
@@ -376,6 +391,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           <PageHeader
             title={t('serviceRequests.title')}
             subtitle={t('serviceRequests.subtitle')}
+            iconBadge={<Description />}
             backPath="/dashboard"
             showBackButton={false}
             actions={actionButtons}
@@ -386,37 +402,25 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
 
       {/* Liste des demandes de service */}
       {filteredServiceRequests.length === 0 ? (
-        <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
-          <CardContent>
-            <Box sx={{ mb: 1.5 }}>
-              <Description sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
-            </Box>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              {t('serviceRequests.noRequestFound')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-              {isAdmin() || isManager()
-                ? t('serviceRequests.noRequestCreated')
-                : t('serviceRequests.noRequestAssigned')}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 3, display: 'block' }}>
-              {t('serviceRequests.requestsDescription')}
-            </Typography>
-            {(isAdmin() || isManager() || isHost()) && (
-              <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                <Button
-                  variant="contained"
-                  startIcon={<Add />}
-                  onClick={() => navigate('/service-requests/new')}
-                  size="small"
-                  sx={{ borderRadius: 1.5 }}
-                >
-                  {t('serviceRequests.createFirst')}
-                </Button>
-              </Box>
-            )}
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<Description />}
+          title={t('serviceRequests.noRequestFound')}
+          description={`${
+            isAdmin() || isManager()
+              ? t('serviceRequests.noRequestCreated')
+              : t('serviceRequests.noRequestAssigned')
+          } — ${t('serviceRequests.requestsDescription')}`}
+          action={(isAdmin() || isManager() || isHost()) && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Add size={16} strokeWidth={1.75} />}
+              onClick={() => navigate('/service-requests/new')}
+            >
+              {t('serviceRequests.createFirst')}
+            </Button>
+          )}
+        />
       ) : viewMode === 'map' ? (
         /* ─── Vue carte + liste viewport ─── */
         <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -432,7 +436,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
               />
             ) : (
               <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                <BuildIcon sx={{ fontSize: 36, color: 'text.secondary', opacity: 0.5 }} />
+                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", opacity: 0.5 }}><BuildIcon size={36} strokeWidth={1.5} /></Box>
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
                   Aucune demande avec coordonnées GPS
                 </Typography>
@@ -483,10 +487,10 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
                               fontWeight={600}
                               sx={{ fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                             >
-                              {request.title}
+                              {stripPropertySuffix(request.title, request.propertyName)}
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                              <LocationOn sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }} />
+                              <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
@@ -532,7 +536,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
                             )}
                             <Tooltip title="Voir">
                               <IconButton size="small" sx={{ ml: 0.5 }}>
-                                <Visibility sx={{ fontSize: 16 }} />
+                                <Visibility size={16} strokeWidth={1.75} />
                               </IconButton>
                             </Tooltip>
                           </Box>
@@ -616,10 +620,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
                   >
                     <TableCell>
                       <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
-                        {request.title}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
-                        {request.type}
+                        {stripPropertySuffix(request.title, request.propertyName)}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -697,7 +698,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
                           size="small"
                           onClick={(e) => { e.stopPropagation(); navigate(`/service-requests/${request.id}`); }}
                         >
-                          <Visibility sx={{ fontSize: 18 }} />
+                          <Visibility size={18} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Actions">
@@ -705,7 +706,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
                           size="small"
                           onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, request); }}
                         >
-                          <MoreVert sx={{ fontSize: 18 }} />
+                          <MoreVert size={18} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                     </TableCell>
@@ -743,7 +744,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
       >
         <MenuItem onClick={handleViewDetails}>
           <ListItemIcon>
-            <Visibility fontSize="small" />
+            <Visibility size={20} strokeWidth={1.75} />
           </ListItemIcon>
           {t('serviceRequests.viewDetails')}
         </MenuItem>
@@ -765,7 +766,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         {selectedServiceRequest && canModifyServiceRequest(selectedServiceRequest) && (
           <MenuItem onClick={handleEdit}>
             <ListItemIcon>
-              <Edit fontSize="small" />
+              <Edit size={20} strokeWidth={1.75} />
             </ListItemIcon>
             {t('serviceRequests.modify')}
           </MenuItem>

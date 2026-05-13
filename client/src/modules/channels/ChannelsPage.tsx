@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { alpha } from '@mui/material/styles';
 import {
   Box,
   Paper,
@@ -38,9 +39,9 @@ import {
   GridView as GridViewIcon,
   People as PeopleIcon,
   Business as BusinessIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
-import { Star as StarIcon } from '@mui/icons-material';
+import { Star as StarIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { SPACING } from '../../theme/spacing';
@@ -429,6 +430,7 @@ const ChannelsPage: React.FC = () => {
       <PageHeader
         title={t('channels.title')}
         subtitle={t('channels.subtitle')}
+        iconBadge={<LinkIcon />}
         backPath="/settings"
         showBackButton={false}
         actions={
@@ -441,16 +443,16 @@ const ChannelsPage: React.FC = () => {
               sx={{ height: 30 }}
             >
               <ToggleButton value="list" sx={{ px: 1 }}>
-                <ViewListIcon sx={{ fontSize: 16 }} />
+                <ViewListIcon size={16} strokeWidth={1.75} />
               </ToggleButton>
               <ToggleButton value="grid" sx={{ px: 1 }}>
-                <GridViewIcon sx={{ fontSize: 16 }} />
+                <GridViewIcon size={16} strokeWidth={1.75} />
               </ToggleButton>
             </ToggleButtonGroup>
             <Button
               size="small"
               variant="outlined"
-              startIcon={<StarIcon sx={{ fontSize: 16 }} />}
+              startIcon={<StarIcon size={16} strokeWidth={1.75} />}
               onClick={() => navigate('/channels/reviews')}
               sx={{ textTransform: 'none', fontSize: '0.75rem' }}
             >
@@ -484,8 +486,8 @@ const ChannelsPage: React.FC = () => {
           {/* Table header */}
           <Box sx={{
             display: 'grid',
-            gridTemplateColumns: '2fr 0.8fr 1fr 1.2fr',
-            gap: 1,
+            gridTemplateColumns: '110px 1.6fr 0.8fr 1fr 1.4fr',
+            gap: 2,
             px: 2,
             py: 1.25,
             borderBottom: '1px solid',
@@ -493,7 +495,10 @@ const ChannelsPage: React.FC = () => {
             bgcolor: 'action.hover',
           }}>
             <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Channel
+              Logo
+            </Typography>
+            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Nom
             </Typography>
             <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Segment
@@ -519,10 +524,10 @@ const ChannelsPage: React.FC = () => {
                 key={ota.id}
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: '2fr 0.8fr 1fr 1.2fr',
-                  gap: 1,
+                  gridTemplateColumns: '110px 1.6fr 0.8fr 1fr 1.4fr',
+                  gap: 2,
                   px: 2,
-                  py: 1.25,
+                  py: 1.5,
                   alignItems: 'center',
                   borderBottom: idx < OTA_CHANNELS.length - 1 ? '1px solid' : 'none',
                   borderColor: 'divider',
@@ -531,22 +536,36 @@ const ChannelsPage: React.FC = () => {
                   '&:hover': { bgcolor: 'action.hover' },
                 }}
               >
-                {/* Channel name + logo */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {ota.logo && (
+                {/* Logo column (big) */}
+                <Box
+                  sx={{
+                    height: 48,
+                    width: 96,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
+                    pl: 1.25,
+                  }}
+                >
+                  {ota.logo ? (
                     <Box
                       component="img"
                       src={ota.logo}
                       alt={ota.name}
-                      sx={{ height: 20, width: 20, objectFit: 'contain', flexShrink: 0 }}
+                      sx={{ height: 28, maxWidth: 80, objectFit: 'contain' }}
                     />
-                  )}
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>{ota.name}</Typography>
-                    <Typography noWrap sx={{ fontSize: '0.625rem', color: 'text.secondary', lineHeight: 1.3 }}>
-                      {t(ota.descriptionKey)}
+                  ) : (
+                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: ota.brandColor, letterSpacing: '-0.02em' }}>
+                      {ota.name}
                     </Typography>
-                  </Box>
+                  )}
+                </Box>
+
+                {/* Channel name */}
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, color: 'text.primary' }}>
+                    {ota.name}
+                  </Typography>
                 </Box>
 
                 {/* Segment B2B / B2C */}
@@ -556,8 +575,8 @@ const ChannelsPage: React.FC = () => {
                     return (
                       <Chip
                         icon={ota.segment === 'B2C'
-                          ? <PeopleIcon sx={{ fontSize: '14px !important', color: `${segHex} !important` }} />
-                          : <BusinessIcon sx={{ fontSize: '14px !important', color: `${segHex} !important` }} />
+                          ? <PeopleIcon size={14} strokeWidth={1.75} color={segHex} />
+                          : <BusinessIcon size={14} strokeWidth={1.75} color={segHex} />
                         }
                         label={ota.segment}
                         size="small"
@@ -584,7 +603,7 @@ const ChannelsPage: React.FC = () => {
                       const hex = '#4A9B8E';
                       return (
                         <Chip
-                          icon={<CheckCircleIcon sx={{ fontSize: '14px !important', color: `${hex} !important` }} />}
+                          icon={<CheckCircleIcon size={14} strokeWidth={1.75} color={hex} />}
                           label={otaStatus?.status ?? (isAirbnb ? connectionStatus?.status ?? 'ACTIVE' : 'ACTIVE')}
                           size="small"
                           sx={{
@@ -645,7 +664,7 @@ const ChannelsPage: React.FC = () => {
                     <Button
                       size="small"
                       variant="contained"
-                      startIcon={<LinkIcon sx={{ fontSize: '0.75rem' }} />}
+                      startIcon={<LinkIcon size={'0.75rem'} strokeWidth={1.75} />}
                       onClick={isAirbnb ? handleConnect : isOtaChannel ? () => handleOtaConnect(ota) : undefined}
                       disabled={(isAirbnb && connectMutation.isPending) || loading}
                       sx={{
@@ -660,7 +679,7 @@ const ChannelsPage: React.FC = () => {
                     >
                       {(isAirbnb && connectMutation.isPending)
                         ? <CircularProgress size={12} color="inherit" />
-                        : t('channels.airbnb.connect')
+                        : `Connecter ${ota.name}`
                       }
                     </Button>
                   )}
@@ -669,14 +688,14 @@ const ChannelsPage: React.FC = () => {
                       size="small"
                       variant="outlined"
                       color="error"
-                      startIcon={<LinkOffIcon sx={{ fontSize: '0.75rem' }} />}
+                      startIcon={<LinkOffIcon size={'0.75rem'} strokeWidth={1.75} />}
                       onClick={isAirbnb ? handleDisconnect : isOtaChannel ? () => handleOtaDisconnectRequest(ota) : undefined}
                       disabled={(isAirbnb && disconnectMutation.isPending) || disconnectingChannelId === ota.id}
                       sx={{ fontSize: '0.6875rem', px: 1.5, py: 0.4, minHeight: 28 }}
                     >
                       {((isAirbnb && disconnectMutation.isPending) || disconnectingChannelId === ota.id)
                         ? <CircularProgress size={12} />
-                        : t('channels.airbnb.disconnect')
+                        : `Déconnecter ${ota.name}`
                       }
                     </Button>
                   )}
@@ -949,7 +968,6 @@ function OtaLogo({ channel }: { channel: OtaChannel }) {
           maxWidth: 130,
           position: 'relative',
           zIndex: 2,
-          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3)) brightness(1.05)',
         }}
       />
     );
@@ -960,12 +978,11 @@ function OtaLogo({ channel }: { channel: OtaChannel }) {
       sx={{
         fontSize: '1.25rem',
         fontWeight: 800,
-        color: '#fff',
+        color: channel.brandColor,
         letterSpacing: '-0.02em',
         lineHeight: 1,
         position: 'relative',
         zIndex: 2,
-        textShadow: '0 2px 6px rgba(0,0,0,0.35)',
       }}
     >
       {channel.name}
@@ -1006,10 +1023,11 @@ function OtaChannelCard({
           : { borderColor: 'grey.300' },
       }}
     >
-      {/* Brand header with logo + status */}
+      {/* Brand header with logo + status — top accent stripe, neutral bg */}
       <Box
         sx={{
-          background: channel.brandGradient,
+          position: 'relative',
+          bgcolor: 'background.paper',
           opacity: isAvailable ? 1 : 0.6,
           px: 2.5,
           py: 2,
@@ -1017,11 +1035,15 @@ function OtaChannelCard({
           alignItems: 'center',
           justifyContent: 'space-between',
           minHeight: 56,
+          borderTop: '3px solid',
+          borderTopColor: channel.brandColor,
+          borderBottom: '1px solid',
+          borderBottomColor: 'divider',
         }}
       >
         <OtaLogo channel={channel} />
         {connectionLoading && isAvailable ? (
-          <CircularProgress size={14} sx={{ color: 'rgba(255,255,255,0.8)' }} />
+          <CircularProgress size={14} sx={{ color: channel.brandColor }} />
         ) : isAvailable && isConnected ? (
           <Chip
             label={connectionStatus?.status ?? 'ACTIVE'}
@@ -1029,13 +1051,12 @@ function OtaChannelCard({
             sx={{
               fontSize: '0.5625rem',
               height: 20,
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              color: '#fff',
+              backgroundColor: '#10b98115',
+              color: '#10b981',
               fontWeight: 700,
-              border: '1px solid rgba(255,255,255,0.3)',
-              backdropFilter: 'blur(4px)',
+              border: '1px solid #10b98140',
             }}
-            icon={<CheckCircleIcon sx={{ fontSize: '0.75rem !important', color: '#fff !important' }} />}
+            icon={<CheckCircleIcon size={12} strokeWidth={1.75} color="#10b981" />}
           />
         ) : isAvailable ? (
           <Chip
@@ -1045,10 +1066,10 @@ function OtaChannelCard({
               fontSize: '0.5625rem',
               height: 20,
               fontWeight: 600,
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.3)',
-              backdropFilter: 'blur(4px)',
+              backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              color: 'text.secondary',
+              border: '1px solid',
+              borderColor: 'divider',
             }}
           />
         ) : (
@@ -1059,10 +1080,9 @@ function OtaChannelCard({
               fontSize: '0.5625rem',
               height: 20,
               fontWeight: 600,
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.3)',
-              backdropFilter: 'blur(4px)',
+              backgroundColor: `${channel.brandColor}14`,
+              color: channel.brandColor,
+              border: `1px solid ${channel.brandColor}30`,
             }}
           />
         )}
@@ -1092,7 +1112,7 @@ function OtaChannelCard({
             <Button
               size="small"
               variant="contained"
-              startIcon={<LinkIcon sx={{ fontSize: '0.8rem' }} />}
+              startIcon={<LinkIcon size={'0.8rem'} strokeWidth={1.75} />}
               onClick={onConnect}
               disabled={connecting || connectionLoading}
               sx={{
@@ -1108,7 +1128,7 @@ function OtaChannelCard({
                 },
               }}
             >
-              {connecting ? <CircularProgress size={12} color="inherit" /> : t('channels.airbnb.connect')}
+              {connecting ? <CircularProgress size={12} color="inherit" /> : `Connecter ${channel.name}`}
             </Button>
           )}
           {isAvailable && isConnected && (
@@ -1116,12 +1136,12 @@ function OtaChannelCard({
               size="small"
               variant="outlined"
               color="error"
-              startIcon={<LinkOffIcon sx={{ fontSize: '0.8rem' }} />}
+              startIcon={<LinkOffIcon size={'0.8rem'} strokeWidth={1.75} />}
               onClick={onDisconnect}
               disabled={disconnecting}
               sx={{ fontSize: '0.6875rem', px: 2, py: 0.5, minHeight: 30 }}
             >
-              {disconnecting ? <CircularProgress size={12} /> : t('channels.airbnb.disconnect')}
+              {disconnecting ? <CircularProgress size={12} /> : `Déconnecter ${channel.name}`}
             </Button>
           )}
           {!isAvailable && (
@@ -1203,7 +1223,7 @@ function ListingCard({
                 component="a"
                 sx={{ p: 0.25 }}
               >
-                <OpenInNewIcon sx={{ fontSize: '0.875rem' }} />
+                <OpenInNewIcon size={'0.875rem'} strokeWidth={1.75} />
               </IconButton>
             </Tooltip>
           )}
@@ -1234,7 +1254,7 @@ function ListingCard({
           }
           label={
             <Typography sx={{ fontSize: '0.6875rem', display: 'flex', alignItems: 'center', gap: 0.25 }}>
-              <CleaningIcon sx={{ fontSize: '0.75rem' }} /> {t('channels.listings.autoClean')}
+              <CleaningIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoClean')}
             </Typography>
           }
         />
@@ -1248,13 +1268,13 @@ function ListingCard({
           }
           label={
             <Typography sx={{ fontSize: '0.6875rem', display: 'flex', alignItems: 'center', gap: 0.25 }}>
-              <PricingIcon sx={{ fontSize: '0.75rem' }} /> {t('channels.listings.autoPushPricing')}
+              <PricingIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoPushPricing')}
             </Typography>
           }
         />
         <Tooltip title={t('channels.listings.unlink')}>
           <IconButton size="small" color="error" onClick={() => onUnlink(listing.propertyId)}>
-            <LinkOffIcon sx={{ fontSize: '1rem' }} />
+            <LinkOffIcon size={'1rem'} strokeWidth={1.75} />
           </IconButton>
         </Tooltip>
       </Box>
@@ -1358,14 +1378,16 @@ function SyncStatusCard({
     <Box
       sx={{
         border: '1px solid',
-        borderColor: 'divider',
+        borderColor: alpha(statusColor, 0.35),
         borderRadius: 1,
         p: 1.25,
-        borderLeft: `3px solid ${statusColor}`,
+        bgcolor: alpha(statusColor, 0.04),
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-        <StatusIcon sx={{ fontSize: '0.875rem', color: statusColor }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: statusColor }}>
+          <StatusIcon size={14} strokeWidth={1.75} />
+        </Box>
         <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
           {propertyName}
         </Typography>
@@ -1375,8 +1397,8 @@ function SyncStatusCard({
         {listing.lastSyncAt && ` · ${t('channels.syncStatus.lastSync')}: ${new Date(listing.lastSyncAt).toLocaleString(dateLocale)}`}
       </Typography>
       <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-        {listing.syncEnabled && <Chip label={<><SyncIcon sx={{ fontSize: '0.625rem' }} /> Sync</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="success" variant="outlined" />}
-        {listing.autoCreateInterventions && <Chip label={<><CleaningIcon sx={{ fontSize: '0.625rem' }} /> Auto</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="info" variant="outlined" />}
+        {listing.syncEnabled && <Chip label={<><SyncIcon size={'0.625rem'} strokeWidth={1.75} /> Sync</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="success" variant="outlined" />}
+        {listing.autoCreateInterventions && <Chip label={<><CleaningIcon size={'0.625rem'} strokeWidth={1.75} /> Auto</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="info" variant="outlined" />}
       </Box>
     </Box>
   );

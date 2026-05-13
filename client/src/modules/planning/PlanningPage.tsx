@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Box, CircularProgress, Alert, Typography } from '@mui/material';
+import { CalendarMonth } from '../../icons';
+import EmptyState from '../../components/EmptyState';
 import PlanningToolbar from './PlanningToolbar';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningActionPanel from './PlanningActionPanel';
@@ -357,10 +359,13 @@ const PlanningPage: React.FC = () => {
           </Typography>
         </Box>
       ) : filteredProperties.length === 0 ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            Aucun logement trouve. Verifiez vos filtres ou ajoutez des proprietes.
-          </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, px: 2 }}>
+          <EmptyState
+            icon={<CalendarMonth />}
+            title="Aucun logement trouvé"
+            description="Vérifiez vos filtres ou ajoutez des propriétés pour les voir apparaître dans le planning."
+            variant="transparent"
+          />
         </Box>
       ) : (
         /* Main content area */

@@ -118,6 +118,8 @@ export interface PlanningProperty {
   cleaningBasePrice?: number;
   currency?: string;
   photoUrls?: string[];
+  latitude?: number;
+  longitude?: number;
 }
 
 // ─── Month separator (for date headers) ──────────────────────────────────────

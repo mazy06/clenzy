@@ -34,7 +34,7 @@ import {
   AccountBalance,
   PieChart,
   CreditCard,
-} from '@mui/icons-material';
+} from '../../icons';
 import { paymentConfigApi } from '../../services/api/paymentConfigApi';
 import { splitConfigApi } from '../../services/api/splitConfigApi';
 import type { PaymentMethodConfig, PaymentProviderType, SplitConfiguration } from '../../types/payment';
@@ -188,7 +188,7 @@ export default function PaymentSettings() {
           <Card variant="outlined" sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                <Payment sx={{ color: 'primary.main', fontSize: 22 }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Payment size={22} strokeWidth={1.75} /></Box>
                 <Typography variant="subtitle1" fontWeight={700}>
                   Fournisseurs de paiement
                 </Typography>
@@ -223,7 +223,9 @@ export default function PaymentSettings() {
                           flexShrink: 0,
                         }}
                       >
-                        <CreditCard sx={{ fontSize: 18, color }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color }}>
+                          <CreditCard size={18} strokeWidth={1.75} />
+                        </Box>
                       </Box>
                       <ListItemText
                         primary={
@@ -295,7 +297,7 @@ export default function PaymentSettings() {
             <Card variant="outlined">
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                  <PieChart sx={{ color: '#D4A574', fontSize: 22 }} />
+                  <PieChart size={22} strokeWidth={1.75} color='#D4A574' />
                   <Typography variant="subtitle1" fontWeight={700}>
                     {t('settings.split.title')}
                   </Typography>
@@ -507,7 +509,7 @@ function ChannelCommissionsSection() {
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <AccountBalance sx={{ color: '#6B8A9A', fontSize: 22 }} />
+        <AccountBalance size={22} strokeWidth={1.75} color='#6B8A9A' />
         <Typography variant="subtitle1" fontWeight={700}>
           {t('settings.commissions.title', 'Commissions canaux')}
         </Typography>
@@ -591,7 +593,7 @@ function ChannelCommissionsSection() {
                               onClick={() => handleSave(c)}
                               disabled={saveMutation.isPending}
                             >
-                              <Save sx={{ fontSize: '1rem' }} />
+                              <Save size={'1rem'} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
                         )

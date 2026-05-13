@@ -1,14 +1,14 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Box, Typography, Paper, Button, Chip, IconButton, Tooltip,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, MenuItem, FormControlLabel, Switch, Alert, Snackbar,
-  CircularProgress, InputAdornment,
+  CircularProgress, InputAdornment, Stack,
 } from '@mui/material';
 import {
-  Add, Edit, CheckCircle, Pause, Cancel, Refresh,
-} from '@mui/icons-material';
+  Add, Edit, CheckCircle, Pause, Cancel, Close, Save, Check,
+  Handshake, Home, Person, Euro, CalendarMonth,
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   managementContractsApi,
@@ -20,16 +20,23 @@ import {
 import { splitConfigApi } from '../../services/api/splitConfigApi';
 import type { SplitRatios } from '../../types/payment';
 import apiClient from '../../services/apiClient';
+import PageHeader from '../../components/PageHeader';
+import FilterChipRow from '../../components/FilterChipRow';
+import EmptyState from '../../components/EmptyState';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Status palette (PMS soft-filled, identical aux autres pages) ───────────
 
-const STATUS_CONFIG: Record<ContractStatus, { color: 'success' | 'warning' | 'error' | 'default' | 'info'; label: string }> = {
-  ACTIVE:     { color: 'success', label: 'Actif' },
-  DRAFT:      { color: 'default', label: 'Brouillon' },
-  SUSPENDED:  { color: 'warning', label: 'Suspendu' },
-  TERMINATED: { color: 'error',   label: 'Résilié' },
-  EXPIRED:    { color: 'error',   label: 'Expiré' },
+interface StatusMeta { label: string; color: string }
+
+const STATUS_META: Record<ContractStatus, StatusMeta> = {
+  ACTIVE:     { label: 'Actif',     color: '#10b981' },
+  DRAFT:      { label: 'Brouillon', color: '#6B7280' },
+  SUSPENDED:  { label: 'Suspendu',  color: '#f59e0b' },
+  TERMINATED: { label: 'Résilié',   color: '#d32f2f' },
+  EXPIRED:    { label: 'Expiré',    color: '#9333ea' },
 };
+
+const FILTER_ALL_COLOR = '#6B8A9A';
 
 const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
   FULL_MANAGEMENT:  'Gestion complète',
@@ -40,7 +47,22 @@ const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
 
 interface PropertyOption { id: number; name: string; ownerId: number; ownerName?: string }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+const EMPTY_FORM: CreateManagementContractRequest = {
+  propertyId: 0,
+  ownerId: 0,
+  contractType: 'FULL_MANAGEMENT',
+  startDate: new Date().toISOString().split('T')[0],
+  endDate: null,
+  commissionRate: 0.20,
+  minimumStayNights: null,
+  autoRenew: false,
+  noticePeriodDays: 30,
+  cleaningFeeIncluded: true,
+  maintenanceIncluded: true,
+  notes: '',
+};
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 const ManagementContractsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -49,34 +71,22 @@ const ManagementContractsPage: React.FC = () => {
   const [contracts, setContracts] = useState<ManagementContract[]>([]);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingContract, setEditingContract] = useState<ManagementContract | null>(null);
-  const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
-  const [terminatingId, setTerminatingId] = useState<number | null>(null);
-  const [terminateReason, setTerminateReason] = useState('');
   const [statusFilter, setStatusFilter] = useState<ContractStatus | ''>('');
   const [splitRatios, setSplitRatios] = useState<SplitRatios | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
 
-  // Form state
-  const [form, setForm] = useState<CreateManagementContractRequest>({
-    propertyId: 0,
-    ownerId: 0,
-    contractType: 'FULL_MANAGEMENT',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: null,
-    commissionRate: 0.20,
-    minimumStayNights: null,
-    autoRenew: false,
-    noticePeriodDays: 30,
-    cleaningFeeIncluded: true,
-    maintenanceIncluded: true,
-    notes: '',
-  });
+  // Form state — toujours visible. editingContract != null = mode edition.
+  const [editingContract, setEditingContract] = useState<ManagementContract | null>(null);
+  const [form, setForm] = useState<CreateManagementContractRequest>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
 
-  // ─── Data Loading ──────────────────────────────────────────────────────────
+  // Inline terminate state
+  const [terminatingId, setTerminatingId] = useState<number | null>(null);
+  const [terminateReason, setTerminateReason] = useState('');
+
+  // ─── Data loading ─────────────────────────────────────────────────────────
 
   const loadContracts = useCallback(async () => {
     try {
@@ -114,7 +124,7 @@ const ManagementContractsPage: React.FC = () => {
   useEffect(() => { loadProperties(); }, [loadProperties]);
   useEffect(() => { loadSplitRatios(); }, [loadSplitRatios]);
 
-  // ─── Helpers ───────────────────────────────────────────────────────────────
+  // ─── Derived data ─────────────────────────────────────────────────────────
 
   const getPropertyName = (propertyId: number) =>
     properties.find(p => p.id === propertyId)?.name ?? `Propriété #${propertyId}`;
@@ -127,29 +137,31 @@ const ManagementContractsPage: React.FC = () => {
   const showSuccess = (msg: string) => setSnackbar({ open: true, message: msg, severity: 'success' });
   const showError = (msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' });
 
-  // ─── Dialog Handlers ───────────────────────────────────────────────────────
+  // Split en deux groupes : actifs (ACTIVE+SUSPENDED+DRAFT) / inactifs (TERMINATED+EXPIRED).
+  const { activeContracts, inactiveContracts } = useMemo(() => {
+    const active: ManagementContract[] = [];
+    const inactive: ManagementContract[] = [];
+    for (const c of contracts) {
+      if (c.status === 'TERMINATED' || c.status === 'EXPIRED') inactive.push(c);
+      else active.push(c);
+    }
+    return { activeContracts: active, inactiveContracts: inactive };
+  }, [contracts]);
 
-  const openCreateDialog = () => {
-    setEditingContract(null);
-    setForm({
-      propertyId: properties.length > 0 ? properties[0].id : 0,
-      ownerId: properties.length > 0 ? properties[0].ownerId : 0,
-      contractType: 'FULL_MANAGEMENT',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: null,
-      commissionRate: 0.20,
-      minimumStayNights: null,
-      autoRenew: false,
-      noticePeriodDays: 30,
-      cleaningFeeIncluded: true,
-      maintenanceIncluded: true,
-      notes: '',
-    });
-    setDialogOpen(true);
-  };
+  // ─── Form handlers ────────────────────────────────────────────────────────
 
-  const openEditDialog = (contract: ManagementContract) => {
-    setEditingContract(contract);
+  // Init/reset le formulaire de creation quand les proprietes arrivent
+  useEffect(() => {
+    if (!editingContract && properties.length > 0 && form.propertyId === 0) {
+      setForm(prev => ({
+        ...prev,
+        propertyId: properties[0].id,
+        ownerId: properties[0].ownerId,
+      }));
+    }
+  }, [properties, editingContract, form.propertyId]);
+
+  const startEdit = (contract: ManagementContract) => {
     setForm({
       propertyId: contract.propertyId,
       ownerId: contract.ownerId,
@@ -164,7 +176,17 @@ const ManagementContractsPage: React.FC = () => {
       maintenanceIncluded: contract.maintenanceIncluded,
       notes: contract.notes ?? '',
     });
-    setDialogOpen(true);
+    setEditingContract(contract);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const resetForm = () => {
+    setEditingContract(null);
+    setForm({
+      ...EMPTY_FORM,
+      propertyId: properties.length > 0 ? properties[0].id : 0,
+      ownerId: properties.length > 0 ? properties[0].ownerId : 0,
+    });
   };
 
   const handlePropertyChange = (propertyId: number) => {
@@ -177,6 +199,7 @@ const ManagementContractsPage: React.FC = () => {
   };
 
   const handleSave = async () => {
+    setSaving(true);
     try {
       if (editingContract) {
         await managementContractsApi.update(editingContract.id, form);
@@ -185,14 +208,16 @@ const ManagementContractsPage: React.FC = () => {
         await managementContractsApi.create(form);
         showSuccess(t('contracts.created'));
       }
-      setDialogOpen(false);
+      resetForm();
       loadContracts();
     } catch {
       showError(t('contracts.errorSaving'));
+    } finally {
+      setSaving(false);
     }
   };
 
-  // ─── Status Actions ────────────────────────────────────────────────────────
+  // ─── Status actions ──────────────────────────────────────────────────────
 
   const handleActivate = async (id: number) => {
     try {
@@ -214,342 +239,307 @@ const ManagementContractsPage: React.FC = () => {
     }
   };
 
-  const openTerminateDialog = (id: number) => {
+  const startTerminate = (id: number) => {
     setTerminatingId(id);
     setTerminateReason('');
-    setTerminateDialogOpen(true);
   };
 
-  const handleTerminate = async () => {
+  const cancelTerminate = () => {
+    setTerminatingId(null);
+    setTerminateReason('');
+  };
+
+  const confirmTerminate = async () => {
     if (!terminatingId) return;
     try {
       await managementContractsApi.terminate(terminatingId, terminateReason || 'Résilié par le gestionnaire');
       showSuccess(t('contracts.terminated'));
-      setTerminateDialogOpen(false);
+      cancelTerminate();
       loadContracts();
     } catch {
       showError(t('contracts.errorAction'));
     }
   };
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+  // ─── Render ──────────────────────────────────────────────────────────────
+
+  // Options de filtre derivees du STATUS_META — passe au FilterChipRow partage
+  const filterOptions = (Object.keys(STATUS_META) as ContractStatus[]).map(status => ({
+    value: status,
+    label: STATUS_META[status].label,
+    color: STATUS_META[status].color,
+    count: contracts.filter(c => c.status === status).length,
+  }));
+
+  const formValid = Boolean(form.propertyId) && Boolean(form.startDate) && form.commissionRate > 0;
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h5" fontWeight={700}>{t('contracts.title')}</Typography>
-          <Typography variant="body2" color="text.secondary">{t('contracts.subtitle')}</Typography>
-        </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={openCreateDialog}>
-          {t('contracts.create')}
-        </Button>
-      </Box>
-
-      {/* Filters */}
-      <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-        <Chip
-          label={t('contracts.allStatuses')}
-          variant={statusFilter === '' ? 'filled' : 'outlined'}
-          onClick={() => setStatusFilter('')}
-          color={statusFilter === '' ? 'primary' : 'default'}
-        />
-        {(Object.keys(STATUS_CONFIG) as ContractStatus[]).map(status => (
-          <Chip
-            key={status}
-            label={STATUS_CONFIG[status].label}
-            variant={statusFilter === status ? 'filled' : 'outlined'}
-            color={statusFilter === status ? STATUS_CONFIG[status].color : 'default'}
-            onClick={() => setStatusFilter(status)}
+    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      {/* ─── Header standardise (PageHeader) ──────────────────────────── */}
+      <PageHeader
+        title={t('contracts.title')}
+        subtitle={t('contracts.subtitle')}
+        iconBadge={<Handshake />}
+        showBackButton={false}
+        filters={(
+          <FilterChipRow
+            options={filterOptions}
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v as ContractStatus | '')}
+            allLabel={t('contracts.allStatuses')}
+            allCount={contracts.length}
+            allColor={FILTER_ALL_COLOR}
+            size="compact"
           />
-        ))}
-      </Box>
-
-      {/* Table */}
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
-      ) : contracts.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography color="text.secondary">{t('contracts.noContracts')}</Typography>
-          <Button sx={{ mt: 2 }} variant="outlined" startIcon={<Add />} onClick={openCreateDialog}>
-            {t('contracts.createFirst')}
-          </Button>
-        </Paper>
-      ) : (
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ bgcolor: 'action.hover' }}>
-                <TableCell><strong>{t('contracts.contractNumber')}</strong></TableCell>
-                <TableCell><strong>{t('contracts.property')}</strong></TableCell>
-                <TableCell><strong>{t('contracts.owner')}</strong></TableCell>
-                <TableCell><strong>{t('contracts.type')}</strong></TableCell>
-                <TableCell align="center"><strong>{t('contracts.commission')}</strong></TableCell>
-                <TableCell><strong>{t('contracts.period')}</strong></TableCell>
-                <TableCell align="center"><strong>{t('contracts.status')}</strong></TableCell>
-                <TableCell align="right"><strong>{t('contracts.actions')}</strong></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {contracts.map(c => (
-                <TableRow key={c.id} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace' }}>
-                      {c.contractNumber}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{getPropertyName(c.propertyId)}</TableCell>
-                  <TableCell>{getOwnerName(c.ownerId)}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{CONTRACT_TYPE_LABELS[c.contractType]}</Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={`${(c.commissionRate * 100).toFixed(0)}%`}
-                      size="small"
-                      sx={{
-                        bgcolor: '#6B8A9A20',
-                        color: '#6B8A9A',
-                        fontWeight: 700,
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {c.startDate}{c.endDate ? ` → ${c.endDate}` : ' → ∞'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={STATUS_CONFIG[c.status]?.label ?? c.status}
-                      color={STATUS_CONFIG[c.status]?.color ?? 'default'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                      {(c.status === 'DRAFT' || c.status === 'SUSPENDED') && (
-                        <Tooltip title={t('contracts.activate')}>
-                          <IconButton size="small" color="success" onClick={() => handleActivate(c.id)}>
-                            <CheckCircle fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      {c.status === 'ACTIVE' && (
-                        <Tooltip title={t('contracts.suspend')}>
-                          <IconButton size="small" color="warning" onClick={() => handleSuspend(c.id)}>
-                            <Pause fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      {(c.status === 'ACTIVE' || c.status === 'SUSPENDED') && (
-                        <Tooltip title={t('contracts.terminate')}>
-                          <IconButton size="small" color="error" onClick={() => openTerminateDialog(c.id)}>
-                            <Cancel fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      {(c.status === 'DRAFT' || c.status === 'ACTIVE') && (
-                        <Tooltip title={t('contracts.edit')}>
-                          <IconButton size="small" onClick={() => openEditDialog(c)}>
-                            <Edit fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-
-      {/* ── Create/Edit Dialog ─────────────────────────────────────────────── */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingContract ? t('contracts.editTitle') : t('contracts.createTitle')}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          {/* Property */}
-          <TextField
-            select
-            label={t('contracts.property')}
-            value={form.propertyId || ''}
-            onChange={e => handlePropertyChange(Number(e.target.value))}
-            fullWidth
+        )}
+        actions={(
+          <Button
+            variant="outlined"
             size="small"
+            color={editingContract ? 'warning' : 'primary'}
+            startIcon={saving
+              ? <CircularProgress size={12} color="inherit" />
+              : (editingContract ? <Save size={14} strokeWidth={1.75} /> : <Check size={14} strokeWidth={1.75} />)
+            }
+            onClick={handleSave}
+            disabled={!formValid || saving}
+            sx={{
+              '&.Mui-disabled': {
+                color: 'text.disabled',
+                borderColor: 'divider',
+              },
+            }}
+          >
+            {saving ? 'Enregistrement…' : (editingContract ? 'Enregistrer' : 'Valider')}
+          </Button>
+        )}
+      />
+
+      {/* ─── Inline create/edit form — toujours visible, 2 lignes max ─ */}
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 1.25,
+          borderRadius: 1.5,
+          borderColor: editingContract ? 'warning.main' : 'primary.main',
+          borderLeftWidth: 3,
+          borderLeftColor: editingContract ? 'warning.main' : 'primary.main',
+          bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(107,138,154,0.06)' : 'rgba(107,138,154,0.03)',
+          // Compact form sizing — fields, labels, helper text scaled down to match the sidebar density.
+          '& .MuiInputBase-input': { fontSize: '0.75rem', py: '6px' },
+          '& .MuiInputLabel-root': { fontSize: '0.75rem' },
+          '& .MuiOutlinedInput-root': { borderRadius: 1 },
+          '& .MuiSelect-select': { py: '6px' },
+          '& .MuiFormHelperText-root': { fontSize: '0.625rem', mt: 0.25 },
+          '& .MuiInputAdornment-root': { '& > *': { fontSize: '0.875rem' } },
+          '& .MuiFormControlLabel-label': { fontSize: '0.6875rem' },
+          '& .MuiSwitch-root': { transform: 'scale(0.8)' },
+        }}
+      >
+        {/* Bandeau de mode */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+          <Box component="span" sx={{ display: 'inline-flex', color: editingContract ? 'warning.main' : 'primary.main' }}>
+            {editingContract ? <Edit size={12} strokeWidth={1.75} /> : <Add size={12} strokeWidth={1.75} />}
+          </Box>
+          <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: editingContract ? 'warning.main' : 'primary.main' }}>
+            {editingContract ? `Modification · ${editingContract.contractNumber}` : 'Nouveau contrat'}
+          </Typography>
+          <Box sx={{ flex: 1 }} />
+          {editingContract && (
+            <Tooltip title="Annuler la modification">
+              <IconButton size="small" onClick={resetForm} sx={{ p: 0.25 }}>
+                <Close size={14} strokeWidth={1.75} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+
+        {/* Ligne 1 — champs principaux */}
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1.6fr 1.3fr 0.8fr 1fr 1fr 0.8fr 0.8fr' },
+          gap: 1.25,
+          alignItems: 'flex-start',
+          mb: 1.25,
+        }}>
+          <TextField
+            select label={t('contracts.property')} value={form.propertyId || ''}
+            onChange={e => handlePropertyChange(Number(e.target.value))}
+            size="small" fullWidth
+            InputProps={{ startAdornment: <InputAdornment position="start"><Home size={14} strokeWidth={1.75} /></InputAdornment> }}
           >
             {properties.map(p => (
               <MenuItem key={p.id} value={p.id}>
-                {p.name} {p.ownerName ? `(${p.ownerName})` : ''}
+                {p.name}{p.ownerName ? ` (${p.ownerName})` : ''}
               </MenuItem>
             ))}
           </TextField>
-
-          {/* Contract type */}
           <TextField
-            select
-            label={t('contracts.type')}
-            value={form.contractType}
+            select label={t('contracts.type')} value={form.contractType}
             onChange={e => setForm(prev => ({ ...prev, contractType: e.target.value as ContractType }))}
-            fullWidth
-            size="small"
+            size="small" fullWidth
           >
             {(Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(([key, label]) => (
               <MenuItem key={key} value={key}>{label}</MenuItem>
             ))}
           </TextField>
-
-          {/* Commission rate */}
           <TextField
-            label={t('contracts.commissionRate')}
-            type="number"
+            label="Commission" type="number"
             value={Math.round(form.commissionRate * 100)}
             onChange={e => setForm(prev => ({ ...prev, commissionRate: Number(e.target.value) / 100 }))}
-            fullWidth
-            size="small"
+            size="small" fullWidth
             InputProps={{
+              startAdornment: <InputAdornment position="start"><Euro size={12} strokeWidth={1.75} /></InputAdornment>,
               endAdornment: <InputAdornment position="end">%</InputAdornment>,
             }}
             inputProps={{ min: 1, max: 50, step: 1 }}
-            helperText={t('contracts.commissionHelper')}
           />
+          <TextField
+            label={t('contracts.startDate')} type="date" value={form.startDate}
+            onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
+            size="small" fullWidth
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label={t('contracts.endDate')} type="date" value={form.endDate ?? ''}
+            onChange={e => setForm(prev => ({ ...prev, endDate: e.target.value || null }))}
+            size="small" fullWidth
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Nuits min." type="number"
+            value={form.minimumStayNights ?? ''}
+            onChange={e => setForm(prev => ({ ...prev, minimumStayNights: e.target.value ? Number(e.target.value) : null }))}
+            size="small" fullWidth
+            inputProps={{ min: 1 }}
+          />
+          <TextField
+            label="Préavis" type="number"
+            value={form.noticePeriodDays ?? 30}
+            onChange={e => setForm(prev => ({ ...prev, noticePeriodDays: Number(e.target.value) }))}
+            size="small" fullWidth
+            InputProps={{ endAdornment: <InputAdornment position="end">j</InputAdornment> }}
+          />
+        </Box>
 
-          {/* Dates */}
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <TextField
-              label={t('contracts.startDate')}
-              type="date"
-              value={form.startDate}
-              onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
-              fullWidth
-              size="small"
-              InputLabelProps={{ shrink: true }}
+        {/* Ligne 2 — options, notes, actions */}
+        <Box sx={{
+          display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap',
+        }}>
+          <Box sx={{ display: 'flex', gap: 0.25, flexWrap: 'wrap' }}>
+            <FormControlLabel
+              control={<Switch size="small" checked={form.autoRenew ?? false} onChange={e => setForm(prev => ({ ...prev, autoRenew: e.target.checked }))} />}
+              label={<Typography sx={{ fontSize: '0.75rem' }}>Renouvellement auto</Typography>}
+              sx={{ mr: 1 }}
             />
-            <TextField
-              label={t('contracts.endDate')}
-              type="date"
-              value={form.endDate ?? ''}
-              onChange={e => setForm(prev => ({ ...prev, endDate: e.target.value || null }))}
-              fullWidth
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              helperText={t('contracts.endDateHelper')}
+            <FormControlLabel
+              control={<Switch size="small" checked={form.cleaningFeeIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, cleaningFeeIncluded: e.target.checked }))} />}
+              label={<Typography sx={{ fontSize: '0.75rem' }}>Ménage inclus</Typography>}
+              sx={{ mr: 1 }}
+            />
+            <FormControlLabel
+              control={<Switch size="small" checked={form.maintenanceIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, maintenanceIncluded: e.target.checked }))} />}
+              label={<Typography sx={{ fontSize: '0.75rem' }}>Maintenance incluse</Typography>}
             />
           </Box>
-
-          {/* Options */}
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <TextField
-              label={t('contracts.minStayNights')}
-              type="number"
-              value={form.minimumStayNights ?? ''}
-              onChange={e => setForm(prev => ({ ...prev, minimumStayNights: e.target.value ? Number(e.target.value) : null }))}
-              fullWidth
+          <TextField
+            label="Notes" value={form.notes ?? ''}
+            onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
+            size="small"
+            placeholder="Optionnel"
+            sx={{ flex: 1, minWidth: 200 }}
+          />
+          {/* Split preview compact */}
+          <Tooltip
+            title={(() => {
+              const commissionPct = form.commissionRate * 100;
+              const ownerPct = 100 - commissionPct;
+              const platformBase = splitRatios?.platformShare ?? 0.05;
+              const conciergeBase = splitRatios?.conciergeShare ?? 0.15;
+              const commissionTotal = platformBase + conciergeBase;
+              const platformRatio = commissionTotal > 0 ? platformBase / commissionTotal : 0.25;
+              const conciergeRatio = commissionTotal > 0 ? conciergeBase / commissionTotal : 0.75;
+              return `${t('contracts.ownerGets')}: ${ownerPct.toFixed(0)}% · ${t('contracts.platformGets')}: ${(commissionPct * platformRatio).toFixed(1)}% · ${t('contracts.conciergeGets')}: ${(commissionPct * conciergeRatio).toFixed(1)}%`;
+            })()}
+          >
+            <Chip
               size="small"
-              inputProps={{ min: 1 }}
-            />
-            <TextField
-              label={t('contracts.noticePeriodDays')}
-              type="number"
-              value={form.noticePeriodDays ?? 30}
-              onChange={e => setForm(prev => ({ ...prev, noticePeriodDays: Number(e.target.value) }))}
-              fullWidth
-              size="small"
-              InputProps={{
-                endAdornment: <InputAdornment position="end">{t('contracts.days')}</InputAdornment>,
+              icon={<Euro size={12} strokeWidth={1.75} />}
+              label={`${(100 - form.commissionRate * 100).toFixed(0)}% propriétaire`}
+              sx={{
+                fontSize: '0.6875rem', fontWeight: 600,
+                bgcolor: '#6B8A9A20', color: '#6B8A9A',
+                border: '1px solid #6B8A9A40',
+                '& .MuiChip-icon': { color: '#6B8A9A' },
               }}
             />
-          </Box>
+          </Tooltip>
+          {editingContract && (
+            <Button
+              onClick={resetForm}
+              size="small"
+              startIcon={<Close size={14} strokeWidth={1.75} />}
+              sx={{ textTransform: 'none' }}
+            >
+              {t('contracts.cancel')}
+            </Button>
+          )}
+          {/* Submit button is in the page header (top-right) to avoid duplication. */}
+        </Box>
+      </Paper>
 
-          {/* Toggles */}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            <FormControlLabel
-              control={<Switch checked={form.autoRenew ?? false} onChange={e => setForm(prev => ({ ...prev, autoRenew: e.target.checked }))} />}
-              label={t('contracts.autoRenew')}
+      {/* ─── Body ──────────────────────────────────────────────────── */}
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+          <CircularProgress />
+        </Box>
+      ) : contracts.length === 0 ? (
+        <EmptyState
+          icon={<Handshake />}
+          title={t('contracts.noContracts')}
+          description="Les paiements seront répartis en 2 parts (propriétaire / plateforme). Remplis le formulaire ci-dessus pour créer ton premier contrat."
+        />
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {activeContracts.length > 0 && (
+            <ContractsTableSection
+              title="Contrats en vigueur"
+              accentColor="#10b981"
+              contracts={activeContracts}
+              terminatingId={terminatingId}
+              terminateReason={terminateReason}
+              setTerminateReason={setTerminateReason}
+              getPropertyName={getPropertyName}
+              getOwnerName={getOwnerName}
+              onActivate={handleActivate}
+              onSuspend={handleSuspend}
+              onEdit={startEdit}
+              onTerminateStart={startTerminate}
+              onTerminateCancel={cancelTerminate}
+              onTerminateConfirm={confirmTerminate}
             />
-            <FormControlLabel
-              control={<Switch checked={form.cleaningFeeIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, cleaningFeeIncluded: e.target.checked }))} />}
-              label={t('contracts.cleaningIncluded')}
+          )}
+          {inactiveContracts.length > 0 && (
+            <ContractsTableSection
+              title="Contrats archivés"
+              accentColor="#6B7280"
+              contracts={inactiveContracts}
+              terminatingId={terminatingId}
+              terminateReason={terminateReason}
+              setTerminateReason={setTerminateReason}
+              getPropertyName={getPropertyName}
+              getOwnerName={getOwnerName}
+              onActivate={handleActivate}
+              onSuspend={handleSuspend}
+              onEdit={startEdit}
+              onTerminateStart={startTerminate}
+              onTerminateCancel={cancelTerminate}
+              onTerminateConfirm={confirmTerminate}
+              muted
             />
-            <FormControlLabel
-              control={<Switch checked={form.maintenanceIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, maintenanceIncluded: e.target.checked }))} />}
-              label={t('contracts.maintenanceIncluded')}
-            />
-          </Box>
-
-          {/* Notes */}
-          <TextField
-            label={t('contracts.notes')}
-            value={form.notes ?? ''}
-            onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
-            multiline
-            rows={2}
-            fullWidth
-            size="small"
-          />
-
-          {/* Commission breakdown preview — uses actual split ratios from org config */}
-          <Alert severity="info" sx={{ mt: 1 }}>
-            <Typography variant="body2" fontWeight={600}>{t('contracts.splitPreview')}</Typography>
-            <Typography variant="body2">
-              {(() => {
-                const commissionPct = form.commissionRate * 100;
-                const ownerPct = 100 - commissionPct;
-                // Derive platform/concierge split from org SplitRatios
-                const platformBase = splitRatios?.platformShare ?? 0.05;
-                const conciergeBase = splitRatios?.conciergeShare ?? 0.15;
-                const commissionTotal = platformBase + conciergeBase;
-                // Ratio of commission going to platform vs concierge
-                const platformRatio = commissionTotal > 0 ? platformBase / commissionTotal : 0.25;
-                const conciergeRatio = commissionTotal > 0 ? conciergeBase / commissionTotal : 0.75;
-                const platformPct = commissionPct * platformRatio;
-                const conciergePct = commissionPct * conciergeRatio;
-                return `${t('contracts.ownerGets')}: ${ownerPct.toFixed(0)}% | ${t('contracts.platformGets')}: ${platformPct.toFixed(1)}% | ${t('contracts.conciergeGets')}: ${conciergePct.toFixed(1)}%`;
-              })()}
-            </Typography>
-          </Alert>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDialogOpen(false)}>{t('contracts.cancel')}</Button>
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            disabled={!form.propertyId || !form.startDate || form.commissionRate <= 0}
-          >
-            {editingContract ? t('contracts.save') : t('contracts.create')}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* ── Terminate Dialog ───────────────────────────────────────────────── */}
-      <Dialog open={terminateDialogOpen} onClose={() => setTerminateDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('contracts.terminateTitle')}</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t('contracts.terminateWarning')}
-          </Typography>
-          <TextField
-            label={t('contracts.terminateReason')}
-            value={terminateReason}
-            onChange={e => setTerminateReason(e.target.value)}
-            multiline
-            rows={3}
-            fullWidth
-            size="small"
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setTerminateDialogOpen(false)}>{t('contracts.cancel')}</Button>
-          <Button variant="contained" color="error" onClick={handleTerminate}>
-            {t('contracts.confirmTerminate')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          )}
+        </Box>
+      )}
 
       {/* Snackbar */}
       <Snackbar
@@ -561,6 +551,242 @@ const ManagementContractsPage: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+    </Box>
+  );
+};
+
+// ─── Table section (used twice: actifs / archives) ──────────────────────────
+
+interface ContractsTableSectionProps {
+  title: string;
+  accentColor: string;
+  contracts: ManagementContract[];
+  terminatingId: number | null;
+  terminateReason: string;
+  setTerminateReason: (v: string) => void;
+  getPropertyName: (id: number) => string;
+  getOwnerName: (id: number) => string;
+  onActivate: (id: number) => void;
+  onSuspend: (id: number) => void;
+  onEdit: (c: ManagementContract) => void;
+  onTerminateStart: (id: number) => void;
+  onTerminateCancel: () => void;
+  onTerminateConfirm: () => void;
+  muted?: boolean;
+}
+
+const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
+  title, accentColor, contracts,
+  terminatingId, terminateReason, setTerminateReason,
+  getPropertyName, getOwnerName,
+  onActivate, onSuspend, onEdit,
+  onTerminateStart, onTerminateCancel, onTerminateConfirm,
+  muted,
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <Box sx={{ width: 3, height: 16, borderRadius: 1, bgcolor: accentColor }} />
+        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'text.secondary' }}>
+          {title}
+        </Typography>
+        <Box
+          component="span"
+          sx={{
+            fontSize: '0.625rem',
+            fontWeight: 700,
+            px: 0.75,
+            py: 0.1,
+            borderRadius: 0.75,
+            bgcolor: `${accentColor}18`,
+            color: accentColor,
+          }}
+        >
+          {contracts.length}
+        </Box>
+      </Box>
+      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, opacity: muted ? 0.85 : 1 }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ bgcolor: 'action.hover' }}>
+              <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.contractNumber')}</TableCell>
+              <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.property')}</TableCell>
+              <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.owner')}</TableCell>
+              <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.type')}</TableCell>
+              <TableCell align="center" sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.commission')}</TableCell>
+              <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.period')}</TableCell>
+              <TableCell align="center" sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.status')}</TableCell>
+              <TableCell align="right" sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.actions')}</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {contracts.map(c => {
+              const meta = STATUS_META[c.status] ?? { label: c.status, color: '#6B7280' };
+              const isTerminating = terminatingId === c.id;
+
+              if (isTerminating) {
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell colSpan={8} sx={{ p: 2, bgcolor: 'error.main', color: 'error.contrastText' }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Cancel size={18} strokeWidth={2} />
+                          <Typography variant="subtitle2" fontWeight={700}>
+                            Résilier le contrat {c.contractNumber} ?
+                          </Typography>
+                        </Box>
+                        <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+                          {t('contracts.terminateWarning')}
+                        </Typography>
+                        <TextField
+                          label={t('contracts.terminateReason')}
+                          value={terminateReason}
+                          onChange={e => setTerminateReason(e.target.value)}
+                          multiline
+                          rows={2}
+                          fullWidth
+                          size="small"
+                          sx={{
+                            bgcolor: 'background.paper',
+                            borderRadius: 1,
+                            '& .MuiInputBase-input': { fontSize: '0.8125rem' },
+                          }}
+                        />
+                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={onTerminateCancel}
+                            sx={{
+                              textTransform: 'none',
+                              color: 'common.white',
+                              borderColor: 'rgba(255,255,255,0.6)',
+                              '&:hover': { borderColor: 'common.white', bgcolor: 'rgba(255,255,255,0.1)' },
+                            }}
+                          >
+                            {t('contracts.cancel')}
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={onTerminateConfirm}
+                            startIcon={<Cancel size={14} strokeWidth={1.75} />}
+                            sx={{
+                              textTransform: 'none', fontWeight: 600,
+                              bgcolor: 'common.white', color: 'error.main',
+                              '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' },
+                            }}
+                          >
+                            {t('contracts.confirmTerminate')}
+                          </Button>
+                        </Stack>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              }
+
+              return (
+                <TableRow key={c.id} hover>
+                  <TableCell>
+                    <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>
+                      {c.contractNumber}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                        <Home size={14} strokeWidth={1.75} />
+                      </Box>
+                      <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{getPropertyName(c.propertyId)}</Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                        <Person size={14} strokeWidth={1.75} />
+                      </Box>
+                      <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{getOwnerName(c.ownerId)}</Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{CONTRACT_TYPE_LABELS[c.contractType]}</Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip
+                      label={`${(c.commissionRate * 100).toFixed(0)}%`}
+                      size="small"
+                      sx={{
+                        bgcolor: '#6B8A9A20',
+                        color: '#6B8A9A',
+                        fontWeight: 700,
+                        fontSize: '0.75rem',
+                        height: 22,
+                        borderRadius: '6px',
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                      {c.startDate}{c.endDate ? ` → ${c.endDate}` : ' → ∞'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip
+                      label={meta.label}
+                      size="small"
+                      sx={{
+                        bgcolor: `${meta.color}18`,
+                        color: meta.color,
+                        border: `1px solid ${meta.color}40`,
+                        fontWeight: 600,
+                        fontSize: '0.6875rem',
+                        height: 22,
+                        borderRadius: '6px',
+                        '& .MuiChip-label': { px: 0.75 },
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.25 }}>
+                      {(c.status === 'DRAFT' || c.status === 'SUSPENDED') && (
+                        <Tooltip title={t('contracts.activate')}>
+                          <IconButton size="small" color="success" onClick={() => onActivate(c.id)}>
+                            <CheckCircle size={16} strokeWidth={1.75} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {c.status === 'ACTIVE' && (
+                        <Tooltip title={t('contracts.suspend')}>
+                          <IconButton size="small" color="warning" onClick={() => onSuspend(c.id)}>
+                            <Pause size={16} strokeWidth={1.75} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {(c.status === 'ACTIVE' || c.status === 'SUSPENDED') && (
+                        <Tooltip title={t('contracts.terminate')}>
+                          <IconButton size="small" color="error" onClick={() => onTerminateStart(c.id)}>
+                            <Cancel size={16} strokeWidth={1.75} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {(c.status === 'DRAFT' || c.status === 'ACTIVE') && (
+                        <Tooltip title={t('contracts.edit')}>
+                          <IconButton size="small" onClick={() => onEdit(c)}>
+                            <Edit size={16} strokeWidth={1.75} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, IconButton, Divider } from '@mui/material';
-import { ArrowBack, Delete, Remove, Add, ChevronRight, PhotoLibrary } from '@mui/icons-material';
+import { ArrowBack, Delete, Remove, Add, ChevronRight, PhotoLibrary } from '../../../icons';
 import type { ResolvedTokens, PreviewProperty, PreviewPage, CartItem } from '../types/bookingEngine';
 import { fmt, fmtDate } from '../types/bookingEngine';
 import type { BookingI18n } from '../sdk/i18n';
@@ -62,7 +62,7 @@ const BookingCartPage: React.FC<BookingCartPageProps> = ({
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 3, py: 2, maxWidth: 1100, mx: 'auto', width: '100%', boxSizing: 'border-box' }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <IconButton size="small" onClick={() => setPage('results')} sx={{ color: tk.textLabel, mr: 1 }}>
-            <ArrowBack sx={{ fontSize: 18 }} />
+            <ArrowBack size={18} strokeWidth={1.75} />
           </IconButton>
           <Typography sx={{ fontFamily: tk.headingFont, fontWeight: 700, fontSize: 18, color: tk.text, textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {i18n.t('cart.title')}
@@ -75,7 +75,7 @@ const BookingCartPage: React.FC<BookingCartPageProps> = ({
             fontSize: 11, fontWeight: 700, color: tk.text, textTransform: 'uppercase',
             '&:hover': { borderColor: tk.primary, color: tk.primary },
           }}>
-            <Delete sx={{ fontSize: 14 }} /> {i18n.t('cart.clearCart')}
+            <Delete size={14} strokeWidth={1.75} /> {i18n.t('cart.clearCart')}
           </Box>
         )}
       </Box>
@@ -254,7 +254,7 @@ const CartPropertyCard: React.FC<CartPropertyCardProps> = ({
           width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0,
         }} onError={(e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
       ) : (
-        <PhotoLibrary sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 32 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'rgba(255,255,255,0.3)' }}><PhotoLibrary size={32} strokeWidth={1.75} /></Box>
       )}
     </Box>
     <Box sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -268,7 +268,7 @@ const CartPropertyCard: React.FC<CartPropertyCardProps> = ({
           fontSize: 10, fontWeight: 700, color: tk.text, textTransform: 'uppercase',
           '&:hover': { borderColor: '#d32f2f', color: '#d32f2f' },
         }}>
-          <Delete sx={{ fontSize: 12 }} /> {i18n.t('cart.remove')}
+          <Delete size={12} strokeWidth={1.75} /> {i18n.t('cart.remove')}
         </Box>
       </Box>
       <Typography sx={{ fontFamily: tk.headingFont, fontWeight: 700, fontSize: 20, color: tk.text, mb: 0.75, lineHeight: 1.2 }}>
@@ -318,7 +318,7 @@ const SectionAccordion: React.FC<{
         <Typography sx={{ fontSize: 13, fontWeight: 700, color: tk.text, textTransform: 'uppercase', letterSpacing: 0.3 }}>
           {title}
         </Typography>
-        <ChevronRight sx={{ fontSize: 18, color: tk.textLabel, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: tk.textLabel, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}><ChevronRight size={18} strokeWidth={1.75} /></Box>
       </Box>
       {open && <Box sx={{ pb: 2 }}>{children}</Box>}
     </Box>
@@ -354,11 +354,11 @@ const ParticipantsSection: React.FC<{
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton size="small" onClick={() => g.set(Math.max(g.min, g.val - 1))} sx={{ border: `1px solid ${tk.border}`, width: 28, height: 28 }}>
-              <Remove sx={{ fontSize: 14 }} />
+              <Remove size={14} strokeWidth={1.75} />
             </IconButton>
             <Typography sx={{ fontSize: 14, fontWeight: 600, minWidth: 20, textAlign: 'center' }}>{g.val}</Typography>
             <IconButton size="small" onClick={() => g.set(g.val + 1)} sx={{ border: `1px solid ${tk.border}`, width: 28, height: 28 }}>
-              <Add sx={{ fontSize: 14 }} />
+              <Add size={14} strokeWidth={1.75} />
             </IconButton>
           </Box>
         </Box>

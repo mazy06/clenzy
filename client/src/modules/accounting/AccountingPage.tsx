@@ -32,8 +32,10 @@ import {
   FileDownload as StepExportIcon,
   Inventory as StepFormatIcon,
   Visibility as VisibilityIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
+import FilterChipRow from '../../components/FilterChipRow';
 import HelpBanner from '../../components/HelpBanner';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useSearchParams } from 'react-router-dom';
@@ -103,7 +105,7 @@ const AccountingPage: React.FC = () => {
   const tabParam = parseInt(searchParams.get('tab') || '0', 10);
   const [activeTab, setActiveTab] = useState(isNaN(tabParam) ? 0 : tabParam);
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (newValue: number) => {
     setActiveTab(newValue);
     setSearchParams(newValue === 0 ? {} : { tab: String(newValue) }, { replace: true });
   };
@@ -113,23 +115,22 @@ const AccountingPage: React.FC = () => {
       <PageHeader
         title={t('accounting.title', 'Comptabilite')}
         subtitle={t('accounting.subtitle', 'Payouts proprietaires et commissions channels')}
+        iconBadge={<StepCalcIcon />}
         showBackButton={false}
         backPath="/dashboard"
       />
 
-      <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-        <Tabs
-          value={activeTab}
-          onChange={handleTabChange}
-          sx={{ borderBottom: 1, borderColor: 'divider', minHeight: 40 }}
-        >
-          <Tab label={t('accounting.tabs.payouts', 'Payouts')} sx={TAB_SX} />
-          <Tab label={t('accounting.tabs.commissions', 'Commissions')} sx={TAB_SX} />
-          <Tab label={t('accounting.tabs.expenses', 'Depenses')} sx={TAB_SX} />
-          <Tab label={t('accounting.tabs.fiscalReport', 'Rapport fiscal')} sx={TAB_SX} />
-          <Tab label={t('accounting.tabs.exports', 'Exports')} sx={TAB_SX} />
-        </Tabs>
-      </Paper>
+      <PageTabs
+        options={[
+          { label: t('accounting.tabs.payouts', 'Payouts') },
+          { label: t('accounting.tabs.commissions', 'Commissions') },
+          { label: t('accounting.tabs.expenses', 'Depenses') },
+          { label: t('accounting.tabs.fiscalReport', 'Rapport fiscal') },
+          { label: t('accounting.tabs.exports', 'Exports') },
+        ]}
+        value={activeTab}
+        onChange={handleTabChange}
+      />
 
       {activeTab === 0 && <PayoutsTab />}
       {activeTab === 1 && <CommissionsTab />}
@@ -248,9 +249,9 @@ export const PayoutsTab: React.FC = () => {
         description={t('accounting.payouts.help.description', 'Les payouts vous permettent de calculer et suivre les reversements dus a chaque proprietaire.')}
         dismissLabel={t('accounting.payouts.help.dismiss', 'Ne plus afficher')}
         steps={[
-          { icon: <StepGenIcon sx={{ fontSize: 16 }} />, title: t('accounting.payouts.help.step1Title', 'Generer'), description: t('accounting.payouts.help.step1Desc', 'Selectionnez un proprietaire et une periode pour calculer le reversement.') },
-          { icon: <StepCalcIcon sx={{ fontSize: 16 }} />, title: t('accounting.payouts.help.step2Title', 'Verifier'), description: t('accounting.payouts.help.step2Desc', 'Le systeme calcule : revenus - commission - depenses = montant net.') },
-          { icon: <StepValidIcon sx={{ fontSize: 16 }} />, title: t('accounting.payouts.help.step3Title', 'Valider & Payer'), description: t('accounting.payouts.help.step3Desc', 'Approuvez le payout puis marquez-le comme paye apres le virement.') },
+          { icon: <StepGenIcon size={16} strokeWidth={1.75} />, title: t('accounting.payouts.help.step1Title', 'Generer'), description: t('accounting.payouts.help.step1Desc', 'Selectionnez un proprietaire et une periode pour calculer le reversement.') },
+          { icon: <StepCalcIcon size={16} strokeWidth={1.75} />, title: t('accounting.payouts.help.step2Title', 'Verifier'), description: t('accounting.payouts.help.step2Desc', 'Le systeme calcule : revenus - commission - depenses = montant net.') },
+          { icon: <StepValidIcon size={16} strokeWidth={1.75} />, title: t('accounting.payouts.help.step3Title', 'Valider & Payer'), description: t('accounting.payouts.help.step3Desc', 'Approuvez le payout puis marquez-le comme paye apres le virement.') },
         ]}
       />
 
@@ -277,24 +278,19 @@ export const PayoutsTab: React.FC = () => {
           </Select>
         </FormControl>
 
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          {PAYOUT_STATUS_VALUES.map((val) => (
-            <Chip
-              key={val}
-              label={val === '' ? t('common.all', 'Tous') : t(`accounting.payoutStatuses.${val}`, val)}
-              size="small"
-              variant={filterStatus === val ? 'filled' : 'outlined'}
-              onClick={() => setFilterStatus(val as PayoutStatus | '')}
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                ...(filterStatus === val && val !== ''
-                  ? { backgroundColor: PAYOUT_STATUS_COLORS[val as PayoutStatus], color: '#fff' }
-                  : {}),
-              }}
-            />
-          ))}
-        </Box>
+        <FilterChipRow
+          options={PAYOUT_STATUS_VALUES
+            .filter((v): v is PayoutStatus => v !== '')
+            .map((v) => ({
+              value: v,
+              label: t(`accounting.payoutStatuses.${v}`, v),
+              color: PAYOUT_STATUS_COLORS[v],
+            }))}
+          value={filterStatus}
+          onChange={(v) => setFilterStatus(v as PayoutStatus | '')}
+          allLabel={t('common.all', 'Tous')}
+          size="compact"
+        />
 
         {sepaError && (
           <Alert severity="error" sx={{ fontSize: '0.8125rem' }} onClose={() => setSepaError(null)}>
@@ -362,7 +358,7 @@ export const PayoutsTab: React.FC = () => {
         </Alert>
       ) : payouts.length === 0 ? (
         <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <AccountIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><AccountIcon size={48} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
             {t('accounting.payouts.emptyTitle', 'Aucun payout trouve')}
           </Typography>
@@ -434,7 +430,7 @@ export const PayoutsTab: React.FC = () => {
                           onClick={() => handleApprove(payout.id)}
                           disabled={approveMutation.isPending}
                         >
-                          <ApproveIcon sx={{ fontSize: '1rem' }} />
+                          <ApproveIcon size={'1rem'} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                     )}
@@ -450,7 +446,7 @@ export const PayoutsTab: React.FC = () => {
                             {executeMutation.isPending ? (
                               <CircularProgress size={14} />
                             ) : (
-                              <AccountIcon sx={{ fontSize: '1rem' }} />
+                              <AccountIcon size={'1rem'} strokeWidth={1.75} />
                             )}
                           </IconButton>
                         </Tooltip>
@@ -461,7 +457,7 @@ export const PayoutsTab: React.FC = () => {
                             onClick={() => openPayDialog(payout)}
                             disabled={markPaidMutation.isPending}
                           >
-                            <PaidIcon sx={{ fontSize: '1rem' }} />
+                            <PaidIcon size={'1rem'} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                       </>
@@ -475,7 +471,7 @@ export const PayoutsTab: React.FC = () => {
                             onClick={() => openPayDialog(payout)}
                             disabled={markPaidMutation.isPending}
                           >
-                            <PaidIcon sx={{ fontSize: '1rem' }} />
+                            <PaidIcon size={'1rem'} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                         {payout.payoutMethod === 'SEPA_TRANSFER' && (
@@ -485,7 +481,7 @@ export const PayoutsTab: React.FC = () => {
                               onClick={() => handleDownloadSepaXml([payout.id])}
                               disabled={sepaDownloading}
                             >
-                              <DownloadIcon sx={{ fontSize: '1rem' }} />
+                              <DownloadIcon size={'1rem'} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
                         )}
@@ -502,7 +498,7 @@ export const PayoutsTab: React.FC = () => {
                           {retryMutation.isPending ? (
                             <CircularProgress size={14} />
                           ) : (
-                            <BuildIcon sx={{ fontSize: '1rem' }} />
+                            <BuildIcon size={'1rem'} strokeWidth={1.75} />
                           )}
                         </IconButton>
                       </Tooltip>
@@ -524,7 +520,7 @@ export const PayoutsTab: React.FC = () => {
                           size="small"
                           onClick={() => { setDetailPayout(payout); setDetailOpen(true); }}
                         >
-                          <VisibilityIcon sx={{ fontSize: '1rem' }} />
+                          <VisibilityIcon size={'1rem'} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                     )}
@@ -595,7 +591,7 @@ export const PayoutsTab: React.FC = () => {
         PaperProps={{ sx: { borderRadius: 2 } }}
       >
         <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AccountIcon sx={{ fontSize: '1.25rem', color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AccountIcon size={'1.25rem'} strokeWidth={1.75} /></Box>
           {t('accounting.payoutDetail', 'Détail du reversement')}
         </DialogTitle>
         {detailPayout && (() => {
@@ -737,7 +733,7 @@ export const CommissionsTab: React.FC = () => {
   if (commissions.length === 0) {
     return (
       <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-        <AccountIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><AccountIcon size={48} strokeWidth={1.75} /></Box>
         <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
           {t('accounting.emptyCommissions', 'Aucune commission configuree')}
         </Typography>
@@ -753,9 +749,9 @@ export const CommissionsTab: React.FC = () => {
       description={t('accounting.commissions.help.description', 'Les commissions representent le pourcentage preleve par chaque canal de reservation (Airbnb, Booking...) sur vos revenus.')}
       dismissLabel={t('accounting.commissions.help.dismiss', 'Ne plus afficher')}
       steps={[
-        { icon: <StepRevenueIcon sx={{ fontSize: 16 }} />, title: t('accounting.commissions.help.step1Title', 'Canaux'), description: t('accounting.commissions.help.step1Desc', 'Chaque plateforme (Airbnb, Booking...) applique un taux de commission different.') },
-        { icon: <StepPercentIcon sx={{ fontSize: 16 }} />, title: t('accounting.commissions.help.step2Title', 'Configurer'), description: t('accounting.commissions.help.step2Desc', 'Ajustez le taux de commission pour chaque canal selon votre contrat.') },
-        { icon: <StepCalcIcon sx={{ fontSize: 16 }} />, title: t('accounting.commissions.help.step3Title', 'Impact'), description: t('accounting.commissions.help.step3Desc', 'Les commissions sont deduites automatiquement lors du calcul des payouts proprietaires.') },
+        { icon: <StepRevenueIcon size={16} strokeWidth={1.75} />, title: t('accounting.commissions.help.step1Title', 'Canaux'), description: t('accounting.commissions.help.step1Desc', 'Chaque plateforme (Airbnb, Booking...) applique un taux de commission different.') },
+        { icon: <StepPercentIcon size={16} strokeWidth={1.75} />, title: t('accounting.commissions.help.step2Title', 'Configurer'), description: t('accounting.commissions.help.step2Desc', 'Ajustez le taux de commission pour chaque canal selon votre contrat.') },
+        { icon: <StepCalcIcon size={16} strokeWidth={1.75} />, title: t('accounting.commissions.help.step3Title', 'Impact'), description: t('accounting.commissions.help.step3Desc', 'Les commissions sont deduites automatiquement lors du calcul des payouts proprietaires.') },
       ]}
     />
     <TableContainer component={Paper} sx={CARD_SX}>
@@ -809,7 +805,7 @@ export const CommissionsTab: React.FC = () => {
                         onClick={() => handleSave(c)}
                         disabled={saveMutation.isPending}
                       >
-                        <SaveIcon sx={{ fontSize: '1rem' }} />
+                        <SaveIcon size={'1rem'} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                   )}
@@ -986,9 +982,9 @@ export const ExpensesTab: React.FC = () => {
         description={t('accounting.expenses.help.description', 'Suivez et gerez les depenses des prestataires (menage, maintenance...) liees a vos logements.')}
         dismissLabel={t('accounting.expenses.help.dismiss', 'Ne plus afficher')}
         steps={[
-          { icon: <StepGenIcon sx={{ fontSize: 16 }} />, title: t('accounting.expenses.help.step1Title', 'Creer'), description: t('accounting.expenses.help.step1Desc', 'Ajoutez une depense avec le prestataire, le logement, le montant et la categorie.') },
-          { icon: <StepCategoryIcon sx={{ fontSize: 16 }} />, title: t('accounting.expenses.help.step2Title', 'Approuver'), description: t('accounting.expenses.help.step2Desc', 'Validez les depenses en brouillon. Joignez un justificatif (PDF, photo).') },
-          { icon: <StepCalcIcon sx={{ fontSize: 16 }} />, title: t('accounting.expenses.help.step3Title', 'Deduire'), description: t('accounting.expenses.help.step3Desc', 'Les depenses approuvees sont automatiquement deduites des payouts proprietaires.') },
+          { icon: <StepGenIcon size={16} strokeWidth={1.75} />, title: t('accounting.expenses.help.step1Title', 'Creer'), description: t('accounting.expenses.help.step1Desc', 'Ajoutez une depense avec le prestataire, le logement, le montant et la categorie.') },
+          { icon: <StepCategoryIcon size={16} strokeWidth={1.75} />, title: t('accounting.expenses.help.step2Title', 'Approuver'), description: t('accounting.expenses.help.step2Desc', 'Validez les depenses en brouillon. Joignez un justificatif (PDF, photo).') },
+          { icon: <StepCalcIcon size={16} strokeWidth={1.75} />, title: t('accounting.expenses.help.step3Title', 'Deduire'), description: t('accounting.expenses.help.step3Desc', 'Les depenses approuvees sont automatiquement deduites des payouts proprietaires.') },
         ]}
       />
 
@@ -1106,7 +1102,7 @@ export const ExpensesTab: React.FC = () => {
         </Alert>
       ) : expenses.length === 0 ? (
         <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <AccountIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><AccountIcon size={48} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
             {t('accounting.expenses.empty', 'Aucune depense prestataire')}
           </Typography>
@@ -1176,7 +1172,7 @@ export const ExpensesTab: React.FC = () => {
                             onClick={() => approveMutation.mutate(expense.id)}
                             disabled={approveMutation.isPending}
                           >
-                            <ApproveIcon sx={{ fontSize: '1rem' }} />
+                            <ApproveIcon size={'1rem'} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title={t('accounting.expenses.cancel', 'Annuler')}>
@@ -1186,7 +1182,7 @@ export const ExpensesTab: React.FC = () => {
                             onClick={() => cancelMutation.mutate(expense.id)}
                             disabled={cancelMutation.isPending}
                           >
-                            <CancelIcon sx={{ fontSize: '1rem' }} />
+                            <CancelIcon size={'1rem'} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                       </>
@@ -1199,7 +1195,7 @@ export const ExpensesTab: React.FC = () => {
                           onClick={() => openPayDialog(expense)}
                           disabled={payMutation.isPending}
                         >
-                          <PaidIcon sx={{ fontSize: '1rem' }} />
+                          <PaidIcon size={'1rem'} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                     )}
@@ -1213,7 +1209,7 @@ export const ExpensesTab: React.FC = () => {
                             href={providerExpensesApi.getReceiptDownloadUrl(expense.id)}
                             target="_blank"
                           >
-                            <ReceiptIcon sx={{ fontSize: '1rem' }} />
+                            <ReceiptIcon size={'1rem'} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title={t('accounting.expenses.deleteReceipt', 'Supprimer justificatif')}>
@@ -1223,7 +1219,7 @@ export const ExpensesTab: React.FC = () => {
                             onClick={() => deleteReceiptMutation.mutate(expense.id)}
                             disabled={deleteReceiptMutation.isPending}
                           >
-                            <DeleteReceiptIcon sx={{ fontSize: '1rem' }} />
+                            <DeleteReceiptIcon size={'1rem'} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                       </>
@@ -1235,7 +1231,7 @@ export const ExpensesTab: React.FC = () => {
                           onClick={() => handleReceiptUpload(expense.id)}
                           disabled={uploadReceiptMutation.isPending}
                         >
-                          <AttachFileIcon sx={{ fontSize: '1rem' }} />
+                          <AttachFileIcon size={'1rem'} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                     )}
@@ -1245,7 +1241,7 @@ export const ExpensesTab: React.FC = () => {
                         color="default"
                         onClick={() => handleGeneratePo(expense)}
                       >
-                        <PoIcon sx={{ fontSize: '1rem' }} />
+                        <PoIcon size={'1rem'} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                   </TableCell>
@@ -1475,7 +1471,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'fec',
     titleKey: 'accounting.exports.fec',
     descKey: 'accounting.exports.fecDesc',
-    icon: <AccountIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AccountIcon size={32} strokeWidth={1.75} /></Box>,
     format: 'txt',
     download: (from, to) => accountingExportApi.downloadFec(from, to),
     preview: (from, to) => accountingExportApi.previewFec(from, to),
@@ -1484,7 +1480,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'reservations',
     titleKey: 'accounting.exports.reservationsCsv',
     descKey: 'accounting.exports.reservationsCsvDesc',
-    icon: <ListAltIcon sx={{ fontSize: 32, color: 'success.main' }} />,
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><ListAltIcon size={32} strokeWidth={1.75} /></Box>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadReservationsCsv(from, to),
     preview: (from, to) => accountingExportApi.previewReservationsCsv(from, to),
@@ -1493,7 +1489,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'payouts',
     titleKey: 'accounting.exports.payoutsCsv',
     descKey: 'accounting.exports.payoutsCsvDesc',
-    icon: <AttachMoneyIcon sx={{ fontSize: 32, color: 'info.main' }} />,
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><AttachMoneyIcon size={32} strokeWidth={1.75} /></Box>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadPayoutsCsv(from, to),
     preview: (from, to) => accountingExportApi.previewPayoutsCsv(from, to),
@@ -1502,7 +1498,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'expenses',
     titleKey: 'accounting.exports.expensesCsv',
     descKey: 'accounting.exports.expensesCsvDesc',
-    icon: <BuildIcon sx={{ fontSize: 32, color: 'warning.main' }} />,
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><BuildIcon size={32} strokeWidth={1.75} /></Box>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadExpensesCsv(from, to),
     preview: (from, to) => accountingExportApi.previewExpensesCsv(from, to),
@@ -1511,7 +1507,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'invoices',
     titleKey: 'accounting.exports.invoicesCsv',
     descKey: 'accounting.exports.invoicesCsvDesc',
-    icon: <ArticleIcon sx={{ fontSize: 32, color: 'secondary.main' }} />,
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><ArticleIcon size={32} strokeWidth={1.75} /></Box>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadInvoicesCsv(from, to),
     preview: (from, to) => accountingExportApi.previewInvoicesCsv(from, to),
@@ -1578,9 +1574,9 @@ export const ExportsTab: React.FC = () => {
         description={t('accounting.exports.help.description', 'Exportez vos donnees comptables dans differents formats pour votre comptable ou vos declarations.')}
         dismissLabel={t('accounting.exports.help.dismiss', 'Ne plus afficher')}
         steps={[
-          { icon: <StepPeriodIcon sx={{ fontSize: 16 }} />, title: t('accounting.exports.help.step1Title', 'Periode'), description: t('accounting.exports.help.step1Desc', 'Definissez la plage de dates des donnees a exporter.') },
-          { icon: <StepFormatIcon sx={{ fontSize: 16 }} />, title: t('accounting.exports.help.step2Title', 'Format'), description: t('accounting.exports.help.step2Desc', 'FEC (norme DGFiP), CSV reservations, payouts, depenses ou factures.') },
-          { icon: <StepExportIcon sx={{ fontSize: 16 }} />, title: t('accounting.exports.help.step3Title', 'Telecharger'), description: t('accounting.exports.help.step3Desc', 'Cliquez sur Telecharger pour obtenir le fichier pret a transmettre.') },
+          { icon: <StepPeriodIcon size={16} strokeWidth={1.75} />, title: t('accounting.exports.help.step1Title', 'Periode'), description: t('accounting.exports.help.step1Desc', 'Definissez la plage de dates des donnees a exporter.') },
+          { icon: <StepFormatIcon size={16} strokeWidth={1.75} />, title: t('accounting.exports.help.step2Title', 'Format'), description: t('accounting.exports.help.step2Desc', 'FEC (norme DGFiP), CSV reservations, payouts, depenses ou factures.') },
+          { icon: <StepExportIcon size={16} strokeWidth={1.75} />, title: t('accounting.exports.help.step3Title', 'Telecharger'), description: t('accounting.exports.help.step3Desc', 'Cliquez sur Telecharger pour obtenir le fichier pret a transmettre.') },
         ]}
       />
 

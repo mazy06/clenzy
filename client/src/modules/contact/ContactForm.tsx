@@ -28,7 +28,7 @@ import {
   Message as MessageIcon,
   PriorityHigh as PriorityIcon,
   Category as CategoryIcon
-} from '@mui/icons-material';
+} from '../../icons';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
@@ -292,7 +292,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                             ...params.InputProps,
                             startAdornment: (
                               <>
-                                <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><EmailIcon  /></Box>
                                 {params.InputProps.startAdornment}
                               </>
                             ),
@@ -317,7 +317,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                       error={!!errors.subject}
                       helperText={errors.subject?.message}
                       InputProps={{
-                        startAdornment: <SubjectIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                        startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><SubjectIcon  /></Box>
                       }}
                     />
                   )}
@@ -364,7 +364,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                       <Select {...field}>
                         {categoryOptions.map((option) => (
                           <MenuItem key={option.value} value={option.value}>
-                            <CategoryIcon sx={{ mr: 1, fontSize: 16 }} />
+                            <Box component="span" sx={{ display: 'inline-flex', mr: 1 }}><CategoryIcon size={16} strokeWidth={1.75} /></Box>
                             {option.label}
                           </MenuItem>
                         ))}
@@ -395,7 +395,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                       error={!!errors.message}
                       helperText={errors.message?.message}
                       InputProps={{
-                        startAdornment: <MessageIcon sx={{ mr: 1, color: 'text.secondary', alignSelf: 'flex-start', mt: 1 }} />
+                        startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1, alignSelf: 'flex-start', mt: 1 }}><MessageIcon  /></Box>
                       }}
                     />
                   )}
@@ -407,7 +407,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                 <Paper variant="outlined" sx={{ p: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="subtitle2">
-                      <AttachFileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', mr: 1, verticalAlign: 'middle' }}><AttachFileIcon  /></Box>
                       {t('contact.attachments')}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">

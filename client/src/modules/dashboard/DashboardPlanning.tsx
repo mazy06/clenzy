@@ -16,7 +16,7 @@ import {
   AutoAwesome,
   Handyman,
   Lock as LockIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDashboardPlanning } from '../../hooks/useDashboardPlanning';
 import PlanningToolbar from './PlanningToolbar';
@@ -524,7 +524,7 @@ export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: 
         forfait?.toLowerCase() === 'essentiel' ? (
           <Paper sx={{ p: 4, textAlign: 'center', borderLeft: '4px solid', borderColor: 'primary.main', borderRadius: '12px' }}>
             <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: 'rgba(107,138,154,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-              <LockIcon sx={{ fontSize: 28, color: 'primary.main' }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><LockIcon size={28} strokeWidth={1.75} /></Box>
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem', color: 'text.primary', mb: 0.5 }}>
               {t('dashboard.planning.lockedTitle')}
@@ -535,7 +535,7 @@ export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: 
           </Paper>
         ) : (
           <Paper sx={{ p: 4, textAlign: 'center' }}>
-            <Home sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><Home size={40} strokeWidth={1.75} /></Box>
             <Typography variant="body1" color="text.secondary">
               {t('dashboard.planning.noProperties') || 'Aucun logement a afficher'}
             </Typography>
@@ -908,13 +908,13 @@ export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: 
                     {t('dashboard.planning.legendInterventions') || 'Interventions :'}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                    <AutoAwesome sx={{ fontSize: 9, color: INTERVENTION_TYPE_COLORS.cleaning }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_COLORS.cleaning }}><AutoAwesome size={9} strokeWidth={1.75} /></Box>
                     <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: 500, color: INTERVENTION_TYPE_COLORS.cleaning, letterSpacing: '0.01em' }}>
                       {INTERVENTION_TYPE_LABELS.cleaning}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                    <Handyman sx={{ fontSize: 9, color: INTERVENTION_TYPE_COLORS.maintenance }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_COLORS.maintenance }}><Handyman size={9} strokeWidth={1.75} /></Box>
                     <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: 500, color: INTERVENTION_TYPE_COLORS.maintenance, letterSpacing: '0.01em' }}>
                       {INTERVENTION_TYPE_LABELS.maintenance}
                     </Typography>
@@ -927,7 +927,7 @@ export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: 
             {totalPropertyPages > 1 ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                 <IconButton size="small" onClick={() => setPropertyPage((p) => Math.max(0, p - 1))} disabled={propertyPage === 0} sx={{ width: 24, height: 24 }}>
-                  <ChevronLeft sx={{ fontSize: 16 }} />
+                  <ChevronLeft size={16} strokeWidth={1.75} />
                 </IconButton>
                 <Typography
                   variant="caption"
@@ -942,7 +942,7 @@ export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: 
                   {propertyPage * PROPERTIES_PER_PAGE + 1}–{Math.min((propertyPage + 1) * PROPERTIES_PER_PAGE, properties.length)} / {properties.length}
                 </Typography>
                 <IconButton size="small" onClick={() => setPropertyPage((p) => Math.min(totalPropertyPages - 1, p + 1))} disabled={propertyPage >= totalPropertyPages - 1} sx={{ width: 24, height: 24 }}>
-                  <ChevronRight sx={{ fontSize: 16 }} />
+                  <ChevronRight size={16} strokeWidth={1.75} />
                 </IconButton>
               </Box>
             ) : (
@@ -1234,8 +1234,8 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
         }}
       >
         {intervention.type === 'cleaning'
-          ? <AutoAwesome sx={{ fontSize: 14, color: '#fff', flexShrink: 0 }} />
-          : <Handyman sx={{ fontSize: 14, color: '#fff', flexShrink: 0 }} />
+          ? <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0 }}><AutoAwesome size={14} strokeWidth={1.75} color='#fff' /></Box>
+          : <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0 }}><Handyman size={14} strokeWidth={1.75} color='#fff' /></Box>
         }
         {!isCompact && (
           <Typography

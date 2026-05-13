@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography, Card, CardContent, Chip, Grid } from '@mui/material';
 import {
   ErrorOutline, WarningAmber, InfoOutlined,
-} from '@mui/icons-material';
+} from '../../../icons';
 import GridSection from './GridSection';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { BusinessAlert, AlertSeverity } from '../../../hooks/useAnalyticsEngine';

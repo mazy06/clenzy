@@ -12,7 +12,7 @@ import {
   PhotoCamera as PhotoCameraIcon,
   Download as DownloadIcon,
   Delete as DeleteIcon,
-} from '@mui/icons-material';
+} from '../icons';
 import PhotoLightbox from './PhotoLightbox';
 
 // ============================================================
@@ -76,7 +76,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
           color: 'text.secondary',
         }}
       >
-        <PhotoCameraIcon sx={{ fontSize: 48, mb: 1, opacity: 0.5 }} />
+        <Box component="span" sx={{ display: 'inline-flex', mb: 1, opacity: 0.5 }}><PhotoCameraIcon size={48} strokeWidth={1.5} /></Box>
         <Typography variant="body2" color="text.secondary">
           {emptyMessage}
         </Typography>
@@ -180,7 +180,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                             onDelete(photoId);
                           }}
                         >
-                          <DeleteIcon fontSize="small" />
+                          <DeleteIcon size={20} strokeWidth={1.75} />
                         </IconButton>
                       )}
                       {showDownload && (
@@ -192,7 +192,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                             handleDownload(photoUrl, index);
                           }}
                         >
-                          <DownloadIcon fontSize="small" />
+                          <DownloadIcon size={20} strokeWidth={1.75} />
                         </IconButton>
                       )}
                     </Box>

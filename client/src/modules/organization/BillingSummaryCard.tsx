@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { organizationsApi, BillingSummaryDto } from '../../services/api/organizationsApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -88,7 +88,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        <ReceiptIcon sx={{ color: 'primary.main', fontSize: 18 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><ReceiptIcon size={18} strokeWidth={1.75} /></Box>
         <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }}>
           {t('billing.title')}
         </Typography>

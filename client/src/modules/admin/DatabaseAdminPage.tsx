@@ -22,8 +22,9 @@ import {
   Delete,
   Storage,
   Refresh,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import { databaseAdminApi, BackupInfo } from '../../services/api/databaseAdminApi';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -121,6 +122,7 @@ const DatabaseAdminPage: React.FC = () => {
       <PageHeader
         title="Base de donnees"
         subtitle="Gestion des backups PostgreSQL"
+        iconBadge={<Storage />}
         backPath="/admin"
         showBackButton={false}
         actions={
@@ -153,15 +155,12 @@ const DatabaseAdminPage: React.FC = () => {
             <CircularProgress />
           </Box>
         ) : backups.length === 0 ? (
-          <Box sx={{ p: 4, textAlign: 'center' }}>
-            <Storage sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-            <Typography variant="body1" color="text.secondary">
-              Aucun backup disponible
-            </Typography>
-            <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
-              Cliquez sur "Creer un dump" pour generer votre premier backup.
-            </Typography>
-          </Box>
+          <EmptyState
+            icon={<Storage />}
+            title="Aucun backup disponible"
+            description={'Cliquez sur "Créer un dump" pour générer votre premier backup.'}
+            variant="transparent"
+          />
         ) : (
           <TableContainer>
             <Table size="small">

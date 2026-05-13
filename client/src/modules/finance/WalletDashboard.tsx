@@ -20,7 +20,7 @@ import {
   TrendingUp,
   Lock,
   Business,
-} from '@mui/icons-material';
+} from '../../icons';
 import { walletApi } from '../../services/api/walletApi';
 import { useCurrency } from '../../hooks/useCurrency';
 import { formatCurrency } from '../../utils/currencyUtils';
@@ -117,7 +117,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
   return (
     <Box>
       {!embedded && (
-        <PageHeader title="Portefeuilles" subtitle="Vue d'ensemble des portefeuilles et transactions" backPath="/dashboard" />
+        <PageHeader title="Portefeuilles" subtitle="Vue d'ensemble des portefeuilles et transactions" iconBadge={<AccountBalanceWallet />} backPath="/dashboard" />
       )}
 
       {wallets.length === 0 ? (

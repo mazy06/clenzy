@@ -3,13 +3,13 @@ import type { ZoomLevel, ZoomConfig, DensityMode } from './types';
 // ─── Layout dimensions ──────────────────────────────────────────────────────
 
 /** Default (large screens ≥1200px) */
-export const PROPERTY_COL_WIDTH = 180;
+export const PROPERTY_COL_WIDTH = 150;
 /** Medium screens (≥900px) */
-export const PROPERTY_COL_WIDTH_MD = 150;
+export const PROPERTY_COL_WIDTH_MD = 128;
 /** Small screens (<900px) */
-export const PROPERTY_COL_WIDTH_SM = 120;
-export const DATE_HEADER_HEIGHT = 60;
-export const ACTION_PANEL_WIDTH = 420;
+export const PROPERTY_COL_WIDTH_SM = 104;
+export const DATE_HEADER_HEIGHT = 46;
+export const ACTION_PANEL_WIDTH = 380;
 
 // ─── Row dimensions by density ──────────────────────────────────────────────
 
@@ -21,26 +21,30 @@ export const ROW_CONFIG: Record<DensityMode, {
   barPadding: number;
 }> = {
   normal: {
-    rowHeight: 68,
+    rowHeight: 72,
     reservationBarHeight: 34,
     interventionBarHeight: 24,
-    interventionTop: 38,
+    interventionTop: 40,
     barPadding: 4,
   },
   compact: {
-    rowHeight: 46,
+    rowHeight: 50,
     reservationBarHeight: 26,
     interventionBarHeight: 16,
-    interventionTop: 28,
-    barPadding: 2,
+    interventionTop: 30,
+    barPadding: 3,
   },
 };
 
 // ─── Price line dimensions by density ───────────────────────────────────────
-
+//
+// Hauteur dédiée à la rangée tarifs. Doit accommoder la fonte des prix +
+// ses ascenders/descenders (~1.3x font-size) sans débordement vertical.
+// Plus Jakarta Sans à 8px → ~10-11px visuels → 16px band laisse 2-3px de
+// chaque côté pour respirer.
 export const PRICE_LINE_HEIGHT: Record<DensityMode, number> = {
-  normal: 20,
-  compact: 16,
+  normal: 16,
+  compact: 13,
 };
 
 // ─── Zoom configuration ─────────────────────────────────────────────────────
@@ -92,9 +96,9 @@ export const WEEKEND_BG_ALPHA = 0.04;
 
 // ─── Pagination ─────────────────────────────────────────────────────────────
 
-export const PAGINATION_BAR_HEIGHT = 40;
-export const TOOLBAR_HEIGHT = 48;
-export const APP_HEADER_HEIGHT = 64;
+export const PAGINATION_BAR_HEIGHT = 32;
+export const TOOLBAR_HEIGHT = 40;
+export const APP_HEADER_HEIGHT = 56;
 
 // ─── Infinite scroll ────────────────────────────────────────────────────────
 

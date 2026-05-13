@@ -14,7 +14,7 @@ import {
   Assignment,
   Build,
   AccountBalance,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { NavigateFunction } from 'react-router-dom';
 import type { AlertItem, DashboardStats } from '../../types/dashboard';
 
@@ -116,7 +116,7 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
         key: 'urgencies',
         label: t('dashboard.actionCounters.urgencies'),
         value: urgentAlert?.count ?? 0,
-        icon: <Warning sx={{ fontSize: 16, color: '#C97A7A' }} />,
+        icon: <Warning size={16} strokeWidth={1.75} color='#C97A7A' />,
         color: '#C97A7A',
         route: urgentAlert?.route ?? '/interventions?priority=URGENT',
       },
@@ -124,7 +124,7 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
         key: 'payments',
         label: t('dashboard.actionCounters.pendingPayments'),
         value: pendingPaymentsCount,
-        icon: <Payment sx={{ fontSize: 16, color: '#D4A574' }} />,
+        icon: <Payment size={16} strokeWidth={1.75} color='#D4A574' />,
         color: '#D4A574',
         route: '/billing',
       },
@@ -132,7 +132,7 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
         key: 'payouts',
         label: t('dashboard.actionCounters.pendingPayouts'),
         value: pendingPayoutsCount,
-        icon: <AccountBalance sx={{ fontSize: 16, color: '#8B7EC8' }} />,
+        icon: <AccountBalance size={16} strokeWidth={1.75} color='#8B7EC8' />,
         color: '#8B7EC8',
         route: '/billing',
       },
@@ -140,7 +140,7 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
         key: 'requests',
         label: t('dashboard.actionCounters.pendingRequests'),
         value: stats?.serviceRequests.pending ?? 0,
-        icon: <Assignment sx={{ fontSize: 16, color: '#6B8A9A' }} />,
+        icon: <Assignment size={16} strokeWidth={1.75} color='#6B8A9A' />,
         color: '#6B8A9A',
         route: '/service-requests',
       },
@@ -148,7 +148,7 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
         key: 'interventions',
         label: t('dashboard.actionCounters.todayInterventions'),
         value: stats?.interventions.today ?? 0,
-        icon: <Build sx={{ fontSize: 16, color: '#7BA3C2' }} />,
+        icon: <Build size={16} strokeWidth={1.75} color='#7BA3C2' />,
         color: '#7BA3C2',
         route: '/interventions',
       },

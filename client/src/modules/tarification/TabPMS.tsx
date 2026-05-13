@@ -7,7 +7,7 @@ import {
   InputAdornment,
   Divider,
 } from '@mui/material';
-import { Devices, Computer, People } from '@mui/icons-material';
+import { Devices, Computer, People } from '../../icons';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -25,7 +25,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
     <Box sx={{ pt: 2 }}>
       {/* ─── Abonnement PMS ─────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Devices sx={{ color: 'info.main', fontSize: 20 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Devices size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600}>
           {t('tarification.pms.title')}
         </Typography>
@@ -73,7 +73,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
 
       {/* ─── Tarification par utilisateur ────────────────────────────── */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <People sx={{ color: 'success.main', fontSize: 20 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><People size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600}>
           {t('tarification.pms.perSeatTitle')}
         </Typography>
@@ -120,7 +120,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
 
       {/* ─── Surcharges automatisation ──────────────────────────────── */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Computer sx={{ color: 'warning.main', fontSize: 20 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Computer size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600}>
           {t('tarification.automation.title')}
         </Typography>

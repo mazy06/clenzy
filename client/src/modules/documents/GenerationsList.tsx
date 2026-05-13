@@ -16,7 +16,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { Download, Lock, VerifiedUser, Fingerprint } from '@mui/icons-material';
+import { Download, Lock, VerifiedUser, Fingerprint } from '../../icons';
 import { documentsApi, DocumentGeneration } from '../../services/api/documentsApi';
 import { useGenerations, useVerifyDocumentIntegrity } from './hooks/useDocuments';
 import GenerateDialog from './GenerateDialog';
@@ -159,7 +159,7 @@ const GenerationsList = forwardRef<GenerationsListRef>((_, ref) => {
                           <Tooltip title={gen.locked ? `Verrouillé${gen.documentHash ? ' — SHA-256: ' + gen.documentHash.substring(0, 16) + '...' : ''}` : 'Non verrouillé'}>
                             {(() => { const c = gen.locked ? '#ED6C02' : '#757575'; return (
                             <Chip
-                              icon={gen.locked ? <Lock sx={{ fontSize: 14, color: `${c} !important` }} /> : undefined}
+                              icon={gen.locked ? <Lock size={14} strokeWidth={1.75} color={c} /> : undefined}
                               label={gen.legalNumber}
                               size="small"
                               sx={{ fontFamily: 'monospace', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
@@ -228,7 +228,7 @@ const GenerationsList = forwardRef<GenerationsListRef>((_, ref) => {
                           )}
                           {gen.correctsId && (
                             <Tooltip title={`Correction du document #${gen.correctsId}`}>
-                              <VerifiedUser sx={{ fontSize: 18, color: 'text.secondary', mt: 0.5 }} />
+                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.5 }}><VerifiedUser size={18} strokeWidth={1.75} /></Box>
                             </Tooltip>
                           )}
                           {gen.status === 'FAILED' && (

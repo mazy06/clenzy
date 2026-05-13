@@ -18,7 +18,7 @@ import {
   ErrorOutline,
   LockOutlined as LockIcon,
   Login as LoginIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import lightTheme from '../../theme/theme';
 import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
@@ -305,9 +305,10 @@ export default function InscriptionConfirm() {
           {/* Succes */}
           {status === 'success' && (
             <Box sx={{ py: 3 }}>
-              <CheckCircleIcon
+              <Box
+                component="span"
                 sx={{
-                  fontSize: 72,
+                  display: 'inline-flex',
                   color: 'success.main',
                   mb: 2,
                   animation: 'scaleIn 0.4s ease-out',
@@ -317,7 +318,9 @@ export default function InscriptionConfirm() {
                     '100%': { transform: 'scale(1)', opacity: 1 },
                   },
                 }}
-              />
+              >
+                <CheckCircleIcon size={72} strokeWidth={1.75} />
+              </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
                 Inscription finalisee !
               </Typography>
@@ -331,7 +334,7 @@ export default function InscriptionConfirm() {
           {/* Deja finalise */}
           {status === 'already_completed' && (
             <Box sx={{ py: 3 }}>
-              <CheckCircleIcon sx={{ fontSize: 64, color: '#6B8A9A', mb: 2 }} />
+              <Box component="span" sx={{ display: 'inline-flex', mb: 2 }}><CheckCircleIcon size={64} strokeWidth={1.75} color='#6B8A9A' /></Box>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                 Inscription deja finalisee
               </Typography>
@@ -358,7 +361,7 @@ export default function InscriptionConfirm() {
           {/* Token expire */}
           {status === 'expired' && (
             <Box sx={{ py: 3 }}>
-              <ErrorOutline sx={{ fontSize: 64, color: 'warning.main', mb: 2 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                 Lien expire
               </Typography>
@@ -382,7 +385,7 @@ export default function InscriptionConfirm() {
           {/* Erreur generique */}
           {status === 'error' && (
             <Box sx={{ py: 3 }}>
-              <ErrorOutline sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'error.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                 Lien invalide
               </Typography>

@@ -1,20 +1,20 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   Box,
-  Typography,
   Chip,
   IconButton,
   Badge,
   Alert,
   Snackbar,
 } from '@mui/material';
-import { ShoppingCartOutlined, Memory } from '@mui/icons-material';
+import { ShoppingCartOutlined, Memory } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import apiClient from '../../services/apiClient';
 import { SHOP_PRODUCTS, CATEGORIES } from './shopProducts';
 import type { ProductCategory } from './shopProducts';
 import ProductCard from './ProductCard';
 import CartDrawer from './CartDrawer';
+import PageHeader from '../../components/PageHeader';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -118,45 +118,40 @@ const ShopPage: React.FC = () => {
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       {/* Page header */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 3 }}>
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-            <Memory sx={{ color: '#4A9B8E', fontSize: 24 }} />
-            <Typography variant="h5" fontWeight={700} sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
-              {t('shop.title')}
-            </Typography>
-          </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-            {t('shop.subtitle')}
-          </Typography>
-        </Box>
-
-        {/* Cart icon */}
-        <IconButton
-          onClick={() => setDrawerOpen(true)}
-          sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1.5,
-            p: 1,
-          }}
-        >
-          <Badge
-            badgeContent={cartCount}
-            color="primary"
+      <PageHeader
+        title={t('shop.title')}
+        subtitle={t('shop.subtitle')}
+        iconBadge={<Memory />}
+        iconBadgeColor="#4A9B8E"
+        backPath="/dashboard"
+        showBackButton={false}
+        actions={(
+          <IconButton
+            onClick={() => setDrawerOpen(true)}
             sx={{
-              '& .MuiBadge-badge': {
-                fontSize: '0.6875rem',
-                height: 18,
-                minWidth: 18,
-                fontWeight: 700,
-              },
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1.5,
+              p: 1,
             }}
           >
-            <ShoppingCartOutlined sx={{ fontSize: 22, color: 'text.primary' }} />
-          </Badge>
-        </IconButton>
-      </Box>
+            <Badge
+              badgeContent={cartCount}
+              color="primary"
+              sx={{
+                '& .MuiBadge-badge': {
+                  fontSize: '0.6875rem',
+                  height: 18,
+                  minWidth: 18,
+                  fontWeight: 700,
+                },
+              }}
+            >
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.primary' }}><ShoppingCartOutlined size={22} strokeWidth={1.75} /></Box>
+            </Badge>
+          </IconButton>
+        )}
+      />
 
       {/* Info banner */}
       <Alert

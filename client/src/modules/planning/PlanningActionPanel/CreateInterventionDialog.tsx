@@ -14,7 +14,7 @@ import {
   Alert,
   ListSubheader,
 } from '@mui/material';
-import { Close, Add, Person, Groups } from '@mui/icons-material';
+import { Close, Add, Person, Groups } from '../../../icons';
 import { useQuery } from '@tanstack/react-query';
 import { managersApi } from '../../../services/api';
 import type { PortfolioTeam, OperationalUser } from '../../../services/api';
@@ -196,13 +196,13 @@ const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Add sx={{ fontSize: 22, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Add size={22} strokeWidth={1.75} /></Box>
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
             Nouvelle intervention
           </Typography>
         </Box>
         <IconButton size="small" onClick={handleClose}>
-          <Close sx={{ fontSize: 18 }} />
+          <Close size={18} strokeWidth={1.75} />
         </IconButton>
       </DialogTitle>
 
@@ -258,7 +258,7 @@ const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
             {userOptions.map((opt) => (
               <MenuItem key={makeKey(opt)} value={makeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
                   <Box>
                     <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
                       {opt.label}
@@ -280,7 +280,7 @@ const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
             {teamOptions.map((opt) => (
               <MenuItem key={makeKey(opt)} value={makeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Groups sx={{ fontSize: 16, color: 'primary.main' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Groups size={16} strokeWidth={1.75} /></Box>
                   <Box>
                     <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
                       {opt.label}
@@ -395,7 +395,7 @@ const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
           variant="contained"
           size="small"
           disabled={loading}
-          startIcon={loading ? <CircularProgress size={14} /> : <Add sx={{ fontSize: 16 }} />}
+          startIcon={loading ? <CircularProgress size={14} /> : <Add size={16} strokeWidth={1.75} />}
           sx={{ fontSize: '0.75rem', textTransform: 'none' }}
         >
           Creer l'intervention

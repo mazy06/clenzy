@@ -7,7 +7,7 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import { ContentCopy as CopyIcon } from '@mui/icons-material';
+import { ContentCopy as CopyIcon } from '../icons';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -226,7 +226,7 @@ export function OpeningHoursEditor({
                 {idx === 0 && hasMultipleActive && (
                   <Tooltip title="Appliquer ces horaires aux autres jours" arrow>
                     <IconButton size="small" onClick={copyToAll} sx={{ ml: 0.5 }}>
-                      <CopyIcon sx={{ fontSize: '1rem' }} />
+                      <CopyIcon size={16} strokeWidth={1.75} />
                     </IconButton>
                   </Tooltip>
                 )}

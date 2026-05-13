@@ -9,9 +9,9 @@ import {
   Chip,
   Stack,
 } from '@mui/material';
-import AutoFixHighRounded from '@mui/icons-material/AutoFixHighRounded';
-import CheckCircleOutlineRounded from '@mui/icons-material/CheckCircleOutlineRounded';
-import SettingsRounded from '@mui/icons-material/SettingsRounded';
+import { AutoFixHighRounded } from '../../icons';
+import { CheckCircleOutlineRounded } from '../../icons';
+import { SettingsRounded } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAnalyzeWebsiteDesign } from '../../hooks/useBookingEngineConfig';

@@ -19,7 +19,7 @@ import {
   TrendingUp,
   Groups,
   Receipt,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -47,7 +47,7 @@ interface Tip {
 const ALL_TIPS: Tip[] = [
   {
     id: 'automate-cleaning',
-    icon: <AutoAwesome sx={{ fontSize: 18 }} />,
+    icon: <AutoAwesome size={18} strokeWidth={1.75} />,
     color: C.success,
     titleKey: 'dashboard.tips.automateCleaning.title',
     descKey: 'dashboard.tips.automateCleaning.desc',
@@ -57,7 +57,7 @@ const ALL_TIPS: Tip[] = [
   },
   {
     id: 'contracts-commission',
-    icon: <Handshake sx={{ fontSize: 18 }} />,
+    icon: <Handshake size={18} strokeWidth={1.75} />,
     color: C.warm,
     titleKey: 'dashboard.tips.contracts.title',
     descKey: 'dashboard.tips.contracts.desc',
@@ -67,7 +67,7 @@ const ALL_TIPS: Tip[] = [
   },
   {
     id: 'planning-ical',
-    icon: <CalendarMonth sx={{ fontSize: 18 }} />,
+    icon: <CalendarMonth size={18} strokeWidth={1.75} />,
     color: C.primary,
     titleKey: 'dashboard.tips.planning.title',
     descKey: 'dashboard.tips.planning.desc',
@@ -77,7 +77,7 @@ const ALL_TIPS: Tip[] = [
   },
   {
     id: 'channels-sync',
-    icon: <Campaign sx={{ fontSize: 18 }} />,
+    icon: <Campaign size={18} strokeWidth={1.75} />,
     color: '#FF5A5F',
     titleKey: 'dashboard.tips.channels.title',
     descKey: 'dashboard.tips.channels.desc',
@@ -87,7 +87,7 @@ const ALL_TIPS: Tip[] = [
   },
   {
     id: 'noise-monitoring',
-    icon: <VolumeUp sx={{ fontSize: 18 }} />,
+    icon: <VolumeUp size={18} strokeWidth={1.75} />,
     color: '#4FC3F7',
     titleKey: 'dashboard.tips.noise.title',
     descKey: 'dashboard.tips.noise.desc',
@@ -97,7 +97,7 @@ const ALL_TIPS: Tip[] = [
   },
   {
     id: 'smart-locks',
-    icon: <LockOutlined sx={{ fontSize: 18 }} />,
+    icon: <LockOutlined size={18} strokeWidth={1.75} />,
     color: '#AB47BC',
     titleKey: 'dashboard.tips.smartLocks.title',
     descKey: 'dashboard.tips.smartLocks.desc',
@@ -107,7 +107,7 @@ const ALL_TIPS: Tip[] = [
   },
   {
     id: 'reports-analytics',
-    icon: <TrendingUp sx={{ fontSize: 18 }} />,
+    icon: <TrendingUp size={18} strokeWidth={1.75} />,
     color: C.success,
     titleKey: 'dashboard.tips.reports.title',
     descKey: 'dashboard.tips.reports.desc',
@@ -117,7 +117,7 @@ const ALL_TIPS: Tip[] = [
   },
   {
     id: 'team-management',
-    icon: <Groups sx={{ fontSize: 18 }} />,
+    icon: <Groups size={18} strokeWidth={1.75} />,
     color: C.primary,
     titleKey: 'dashboard.tips.teams.title',
     descKey: 'dashboard.tips.teams.desc',
@@ -127,7 +127,7 @@ const ALL_TIPS: Tip[] = [
   },
   {
     id: 'billing-invoices',
-    icon: <Receipt sx={{ fontSize: 18 }} />,
+    icon: <Receipt size={18} strokeWidth={1.75} />,
     color: C.warm,
     titleKey: 'dashboard.tips.billing.title',
     descKey: 'dashboard.tips.billing.desc',
@@ -220,7 +220,7 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
       {/* ── Header ──────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Lightbulb sx={{ fontSize: 16, color: C.warm }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: C.warm }}><Lightbulb size={16} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
             {t('dashboard.tips.title')}
           </Typography>
@@ -290,7 +290,7 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
         {/* Navigation */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
           <IconButton size="small" onClick={goPrev} sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: 'text.secondary' } }}>
-            <NavigateBefore sx={{ fontSize: 18 }} />
+            <NavigateBefore size={18} strokeWidth={1.75} />
           </IconButton>
           {/* Dots */}
           <Box sx={{ display: 'flex', gap: 0.5, mx: 0.5 }}>
@@ -311,7 +311,7 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
             )}
           </Box>
           <IconButton size="small" onClick={goNext} sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: 'text.secondary' } }}>
-            <NavigateNext sx={{ fontSize: 18 }} />
+            <NavigateNext size={18} strokeWidth={1.75} />
           </IconButton>
         </Box>
 

@@ -191,6 +191,136 @@ public class PricingConfigService {
         return dto.getMinPrice() != null ? dto.getMinPrice() : DEFAULT_MIN_PRICE;
     }
 
+    // ─── Devis pricing computation (used by TagResolverService) ────────────
+
+    /** Remise standard sur l'engagement annuel (paiement en une fois). */
+    public static final int ANNUAL_DISCOUNT_PERCENT = 17; // ≈ 2 mois offerts
+
+    /**
+     * Resultat detaille du calcul de devis pour un prospect.
+     * Toutes les valeurs sont en EUR (entiers).
+     */
+    public record DevisQuoteBreakdown(
+            String forfaitId,
+            String forfaitLabel,
+            int interventionPrice,
+            int interventionsPerMonth,
+            int monthlyCleaningCost,
+            int annualCleaningCost,
+            int monthlySubscriptionPrice,
+            int annualSubscriptionWithoutDiscount,
+            int annualSubscriptionWithDiscount,
+            int annualSubscriptionSavings,
+            int annualDiscountPercent,
+            int monthlyTotal,
+            int annualTotalWithDiscount
+    ) {}
+
+    /**
+     * Calcule un devis complet a partir des champs bruts du formulaire de contact.
+     * Couvre :
+     *   - Recommandation de forfait (essentiel/confort/premium)
+     *   - Prix par intervention de menage
+     *   - Estimation mensuelle / annuelle du menage selon la frequence
+     *   - Abonnement mensuel et annuel (avec remise paiement annuel)
+     *   - Totaux mensuel et annuel
+     */
+    public DevisQuoteBreakdown computeDevisQuote(
+            String propertyType,
+            String propertyCount,
+            String guestCapacity,
+            int surface,
+            java.util.List<String> services,
+            String calendarSync,
+            String bookingFrequency
+    ) {
+        // 1. Forfait recommande (logique miroir de QuoteController.computeRecommendedPackage)
+        String pkg = computeRecommendedForfait(propertyType, propertyCount, guestCapacity,
+                surface, services, calendarSync);
+
+        // 2. Prix par intervention (logique miroir de QuoteController.computePrice)
+        int interventionPrice = computeInterventionPrice(pkg, propertyType, propertyCount,
+                guestCapacity, surface, bookingFrequency);
+
+        // 3. Nombre estimatif d'interventions / mois selon la frequence
+        int interventionsPerMonth = switch (bookingFrequency != null ? bookingFrequency : "") {
+            case "tres-frequent" -> 8;   // ~2 par semaine
+            case "frequent"      -> 4;   // ~1 par semaine
+            case "regulier"      -> 3;
+            case "occasionnel"   -> 2;
+            case "rare"          -> 1;
+            default              -> 4;
+        };
+        int monthlyCleaningCost = interventionPrice * interventionsPerMonth;
+        int annualCleaningCost = monthlyCleaningCost * 12;
+
+        // 4. Abonnement
+        int monthlySubscription = getBasePrices().getOrDefault(pkg, DEFAULT_BASE_ESSENTIEL);
+        int annualWithout = monthlySubscription * 12;
+        int discountPct = ANNUAL_DISCOUNT_PERCENT;
+        int annualWith = (int) Math.round(annualWithout * (1.0 - discountPct / 100.0));
+        int savings = annualWithout - annualWith;
+
+        // 5. Totaux
+        int totalMonthly = monthlySubscription + monthlyCleaningCost;
+        int totalAnnualWithDiscount = annualWith + annualCleaningCost;
+
+        return new DevisQuoteBreakdown(
+                pkg,
+                forfaitLabel(pkg),
+                interventionPrice,
+                interventionsPerMonth,
+                monthlyCleaningCost,
+                annualCleaningCost,
+                monthlySubscription,
+                annualWithout,
+                annualWith,
+                savings,
+                discountPct,
+                totalMonthly,
+                totalAnnualWithDiscount
+        );
+    }
+
+    private String computeRecommendedForfait(String propertyType, String propertyCount,
+                                              String guestCapacity, int surface,
+                                              java.util.List<String> services, String calendarSync) {
+        int serviceCount = services != null ? services.size() : 0;
+        // Premium
+        if ("sync".equals(calendarSync)) return "premium";
+        if (serviceCount >= 5) return "premium";
+        if (surface >= 100 && "7+".equals(guestCapacity)) return "premium";
+        if ("3-5".equals(propertyCount) || "6+".equals(propertyCount)) return "premium";
+        // Confort
+        if ("2".equals(propertyCount)) return "confort";
+        if (serviceCount >= 3) return "confort";
+        if (surface >= 60) return "confort";
+        if ("5-6".equals(guestCapacity) || "7+".equals(guestCapacity)) return "confort";
+        // Essentiel
+        return "essentiel";
+    }
+
+    private int computeInterventionPrice(String pkg, String propertyType, String propertyCount,
+                                          String guestCapacity, int surface, String bookingFrequency) {
+        int base = getBasePrices().getOrDefault(pkg, DEFAULT_BASE_ESSENTIEL);
+        double typeCoeff = getPropertyTypeCoeffs().getOrDefault(propertyType, 1.0);
+        double countCoeff = getPropertyCountCoeffs().getOrDefault(propertyCount, 1.0);
+        double guestCoeff = getGuestCapacityCoeffs().getOrDefault(guestCapacity, 1.0);
+        double surfaceCoeff = getSurfaceCoeff(surface);
+        double freqCoeff = getFrequencyCoeffs().getOrDefault(bookingFrequency, 1.0);
+        double raw = base * typeCoeff * countCoeff * guestCoeff * surfaceCoeff * freqCoeff;
+        return Math.max(getMinPrice(), (int) (Math.round(raw / 5.0) * 5));
+    }
+
+    private String forfaitLabel(String pkg) {
+        return switch (pkg) {
+            case "essentiel" -> "Essentiel";
+            case "confort"   -> "Confort";
+            case "premium"   -> "Premium";
+            default          -> pkg;
+        };
+    }
+
     public int getPmsMonthlyPriceCents() {
         PricingConfigDto dto = getCurrentConfig();
         return dto.getPmsMonthlyPriceCents() != null ? dto.getPmsMonthlyPriceCents() : DEFAULT_PMS_MONTHLY_CENTS;

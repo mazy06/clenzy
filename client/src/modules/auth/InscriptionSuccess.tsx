@@ -10,7 +10,7 @@ import {
   ThemeProvider,
   CssBaseline,
 } from '@mui/material';
-import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '@mui/icons-material';
+import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '../../icons';
 import lightTheme from '../../theme/theme';
 import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient from '../../services/apiClient';
@@ -97,8 +97,8 @@ export default function InscriptionSuccess() {
 
           {status === 'success' && (
             <Box sx={{ py: 3 }}>
-              <MarkEmailRead sx={{
-                fontSize: 72,
+              <Box component="span" sx={{
+                display: 'inline-flex',
                 color: '#6B8A9A',
                 mb: 2,
                 animation: 'scaleIn 0.4s ease-out',
@@ -107,7 +107,9 @@ export default function InscriptionSuccess() {
                   '60%': { transform: 'scale(1.15)' },
                   '100%': { transform: 'scale(1)', opacity: 1 },
                 },
-              }} />
+              }}>
+                <MarkEmailRead size={72} strokeWidth={1.75} />
+              </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
                 Verifiez votre boite email
               </Typography>
@@ -155,7 +157,7 @@ export default function InscriptionSuccess() {
 
           {status === 'error' && (
             <Box sx={{ py: 3 }}>
-              <ErrorOutline sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'error.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                 Session introuvable
               </Typography>

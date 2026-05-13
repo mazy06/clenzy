@@ -6,12 +6,13 @@ import {
   TextField,
   MenuItem,
 } from '@mui/material';
-import { LocationOn } from '@mui/icons-material';
+import { LocationOn } from '../../icons';
 import { Controller, useWatch } from 'react-hook-form';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import { AddressAutocomplete } from '../../components/AddressAutocomplete';
 import { CityAutocomplete } from '../../components/CityAutocomplete';
+import { PropertyLocationPicker } from '../../components/PropertyLocationPicker';
 import type { GeocodedAddress } from '../../services/geocoderApi';
 import { COUNTRIES, COUNTRY_BY_CODE } from '../../constants/countries';
 import type { PropertyFormValues } from '../../schemas';
@@ -46,6 +47,17 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
 
     // Reactive country code drives the geocoder used by AddressAutocomplete
     const countryCode = useWatch({ control, name: 'countryCode' }) || 'FR';
+    // Coordonnées GPS surveillées en live pour le picker sur la carte
+    const latitude = useWatch({ control, name: 'latitude' });
+    const longitude = useWatch({ control, name: 'longitude' });
+
+    const handleMapChange = useCallback(
+      (lat: number, lng: number) => {
+        setValue('latitude', lat, { shouldDirty: true });
+        setValue('longitude', lng, { shouldDirty: true });
+      },
+      [setValue],
+    );
 
     const handleAddressSelect = useCallback(
       (address: GeocodedAddress) => {
@@ -76,7 +88,7 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
     return (
       <Box>
         <Typography sx={SECTION_TITLE_SX}>
-          <LocationOn sx={{ fontSize: 14 }} />
+          <LocationOn size={14} strokeWidth={1.75} />
           {t('properties.address')}
         </Typography>
 
@@ -194,6 +206,51 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                   helperText={fieldState.error?.message}
                 />
               )}
+            />
+          </Grid>
+
+          {/* ─── Position GPS sur la carte ────────────────────────────── */}
+          <Grid item xs={12}>
+            <Typography
+              sx={{
+                fontSize: '0.6875rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'text.secondary',
+                mt: 0.5,
+                mb: 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+              }}
+            >
+              <LocationOn size={14} strokeWidth={1.75} />
+              Position GPS
+              {latitude != null && longitude != null && (
+                <Box
+                  component="span"
+                  sx={{
+                    ml: 0.5,
+                    px: 0.75,
+                    py: 0.1,
+                    borderRadius: 0.75,
+                    bgcolor: 'success.main',
+                    color: 'success.contrastText',
+                    fontSize: '0.5625rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  ✓ DÉFINIE
+                </Box>
+              )}
+            </Typography>
+            <PropertyLocationPicker
+              latitude={latitude}
+              longitude={longitude}
+              onChange={handleMapChange}
+              height={260}
+              helperText="Aucune coordonnée GPS n'a été trouvée. Cliquez sur la carte ou faites glisser le pin pour positionner manuellement le logement."
             />
           </Grid>
         </Grid>

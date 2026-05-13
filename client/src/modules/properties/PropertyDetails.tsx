@@ -55,7 +55,7 @@ import {
   PhotoLibrary,
   Inventory2,
   Settings as SettingsIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { usePropertyDetails } from '../../hooks/usePropertyDetails';
@@ -68,6 +68,7 @@ import CheckInInstructionsForm from '../channels/CheckInInstructionsForm';
 import PropertyPhotosTab from './PropertyPhotosTab';
 import PropertyInventoryTab from './PropertyInventoryTab';
 import PropertySettingsTab from './PropertySettingsTab';
+import PropertyInterventionsTab from './PropertyInterventionsTab';
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
 import hotelsComLogo from '../../assets/logo/hotels-com-logo-small.svg';
@@ -421,13 +422,14 @@ const PropertyDetails: React.FC = () => {
         <PageHeader
           title={property.name}
           subtitle={`${getPropertyTypeLabel(property.propertyType, t)} · ${property.city}`}
+          iconBadge={<Home />}
           backPath="/properties"
           actions={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
               {canEdit && (
                 <Button
                   variant="outlined"
-                  startIcon={<Edit />}
+                  startIcon={<Edit size={16} strokeWidth={1.75} />}
                   onClick={() => navigate(`/properties/${id}/edit`)}
                   size="small"
                   sx={EDIT_BUTTON_SX}
@@ -450,44 +452,44 @@ const PropertyDetails: React.FC = () => {
           sx={TABS_SX}
         >
           <Tab
-            icon={<Info sx={{ fontSize: 16 }} />}
+            icon={<Info size={16} strokeWidth={1.75} />}
             iconPosition="start"
             label={t('properties.tabs.overview')}
             {...a11yProps(0)}
           />
           <Tab
-            icon={<Build sx={{ fontSize: 16 }} />}
+            icon={<Build size={16} strokeWidth={1.75} />}
             iconPosition="start"
             label={`${t('properties.tabs.interventions')} (${interventions.length})`}
             {...a11yProps(1)}
           />
           <Tab
-            icon={<Hub sx={{ fontSize: 16 }} />}
+            icon={<Hub size={16} strokeWidth={1.75} />}
             iconPosition="start"
             label={t('channels.title')}
             {...a11yProps(2)}
           />
           <Tab
-            icon={<FlightLand sx={{ fontSize: 16 }} />}
+            icon={<FlightLand size={16} strokeWidth={1.75} />}
             iconPosition="start"
             label={t('channels.checkIn.title')}
             {...a11yProps(3)}
           />
           <Tab
-            icon={<PhotoLibrary sx={{ fontSize: 16 }} />}
+            icon={<PhotoLibrary size={16} strokeWidth={1.75} />}
             iconPosition="start"
             label={t('properties.tabs.photos')}
             {...a11yProps(4)}
           />
           <Tab
-            icon={<Inventory2 sx={{ fontSize: 16 }} />}
+            icon={<Inventory2 size={16} strokeWidth={1.75} />}
             iconPosition="start"
             label="Inventaire"
             {...a11yProps(5)}
           />
           {canEdit && (
             <Tab
-              icon={<SettingsIcon sx={{ fontSize: 16 }} />}
+              icon={<SettingsIcon size={16} strokeWidth={1.75} />}
               iconPosition="start"
               label="Parametres"
               {...a11yProps(6)}
@@ -509,7 +511,7 @@ const PropertyDetails: React.FC = () => {
             <Grid item xs={6} sm={4} md={2}>
               <Tooltip title={t('properties.cleaningEstimateTooltip')} arrow placement="top">
                 <Box sx={{ ...METRIC_CARD_SX, borderColor: 'primary.main', bgcolor: 'primary.50', cursor: 'help' }}>
-                  <Payments sx={{ ...METRIC_ICON_SX, color: 'primary.main' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mb: 0.25 }}><Payments size={18} strokeWidth={1.75} /></Box>
                   <Typography sx={{ ...METRIC_VALUE_SX, color: 'primary.main' }}>
                     {cleaningEstimate ? `${cleaningEstimate.min}€` : '—'}
                   </Typography>
@@ -519,35 +521,35 @@ const PropertyDetails: React.FC = () => {
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={METRIC_CARD_SX}>
-                <Bed sx={METRIC_ICON_SX} />
+                <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><Bed size={18} strokeWidth={1.75} /></Box>
                 <Typography sx={METRIC_VALUE_SX}>{property.bedrooms}</Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.bedrooms')}</Typography>
               </Box>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={METRIC_CARD_SX}>
-                <Bathroom sx={METRIC_ICON_SX} />
+                <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><Bathroom size={18} strokeWidth={1.75} /></Box>
                 <Typography sx={METRIC_VALUE_SX}>{property.bathrooms}</Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.bathroomCount')}</Typography>
               </Box>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={METRIC_CARD_SX}>
-                <SquareFoot sx={METRIC_ICON_SX} />
+                <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><SquareFoot size={18} strokeWidth={1.75} /></Box>
                 <Typography sx={METRIC_VALUE_SX}>{property.surfaceArea} m²</Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.surface')}</Typography>
               </Box>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={METRIC_CARD_SX}>
-                <Group sx={METRIC_ICON_SX} />
+                <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><Group size={18} strokeWidth={1.75} /></Box>
                 <Typography sx={METRIC_VALUE_SX}>{property.maxGuests}</Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.maxCapacity')}</Typography>
               </Box>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={METRIC_CARD_SX}>
-                <CleaningServices sx={METRIC_ICON_SX} />
+                <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><CleaningServices size={18} strokeWidth={1.75} /></Box>
                 <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '0.75rem' }}>
                   {getCleaningFrequencyLabel(property.cleaningFrequency, t)}
                 </Typography>
@@ -636,7 +638,7 @@ const PropertyDetails: React.FC = () => {
                   {t('properties.informationsGeneral')}
                 </Typography>
                 <Box sx={INFO_ROW_SX}>
-                  <LocationOn sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LocationOn size={16} strokeWidth={1.75} /></Box>
                   <Box sx={{ flex: 1 }}>
                     <Typography sx={INFO_LABEL_SX}>{t('properties.address')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>
@@ -648,7 +650,7 @@ const PropertyDetails: React.FC = () => {
                   <>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={INFO_ROW_SX}>
-                      <Flag sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Flag size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.country')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{property.country}</Typography>
@@ -658,7 +660,7 @@ const PropertyDetails: React.FC = () => {
                 )}
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
-                  <Home sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Home size={16} strokeWidth={1.75} /></Box>
                   <Box sx={{ flex: 1 }}>
                     <Typography sx={INFO_LABEL_SX}>{t('properties.type')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{getPropertyTypeLabel(property.propertyType, t)}</Typography>
@@ -668,7 +670,7 @@ const PropertyDetails: React.FC = () => {
                   <>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={INFO_ROW_SX}>
-                      <CalendarMonth sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.createdAt')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{formatDate(property.createdAt)}</Typography>
@@ -683,7 +685,7 @@ const PropertyDetails: React.FC = () => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
                   {property.cleaningBasePrice != null && property.cleaningBasePrice > 0 && (
                     <Box sx={INFO_ROW_SX}>
-                      <Payments sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Payments size={16} strokeWidth={1.75} /></Box>
                       <Box>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningBasePrice')}</Typography>
                         <Typography sx={{ ...INFO_VALUE_SX, fontWeight: 700, color: 'primary.main' }}>{property.cleaningBasePrice}€</Typography>
@@ -692,7 +694,7 @@ const PropertyDetails: React.FC = () => {
                   )}
                   {property.cleaningDurationMinutes != null && property.cleaningDurationMinutes > 0 && (
                     <Box sx={INFO_ROW_SX}>
-                      <Timer sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Timer size={16} strokeWidth={1.75} /></Box>
                       <Box>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningDuration')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>
@@ -705,7 +707,7 @@ const PropertyDetails: React.FC = () => {
                   )}
                   {property.numberOfFloors != null && property.numberOfFloors > 0 && (
                     <Box sx={INFO_ROW_SX}>
-                      <Stairs sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Stairs size={16} strokeWidth={1.75} /></Box>
                       <Box>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.numberOfFloors')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{property.numberOfFloors}</Typography>
@@ -714,13 +716,13 @@ const PropertyDetails: React.FC = () => {
                   )}
                   {property.hasExterior && (
                     <Box sx={INFO_ROW_SX}>
-                      <Deck sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Deck size={16} strokeWidth={1.75} /></Box>
                       <Typography sx={INFO_VALUE_SX}>{t('properties.hasExterior')}</Typography>
                     </Box>
                   )}
                   {property.hasLaundry && (
                     <Box sx={INFO_ROW_SX}>
-                      <LocalLaundryService sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LocalLaundryService size={16} strokeWidth={1.75} /></Box>
                       <Typography sx={INFO_VALUE_SX}>{t('properties.hasLaundry')}</Typography>
                     </Box>
                   )}
@@ -747,7 +749,7 @@ const PropertyDetails: React.FC = () => {
                   <>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={INFO_ROW_SX}>
-                      <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.owner')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{property.ownerName}</Typography>
@@ -761,7 +763,7 @@ const PropertyDetails: React.FC = () => {
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                       {property.defaultCheckInTime && (
                         <Box sx={INFO_ROW_SX}>
-                          <Login sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Login size={16} strokeWidth={1.75} /></Box>
                           <Box>
                             <Typography sx={INFO_LABEL_SX}>{t('properties.checkInTime')}</Typography>
                             <Typography sx={INFO_VALUE_SX}>{formatTime(property.defaultCheckInTime)}</Typography>
@@ -770,7 +772,7 @@ const PropertyDetails: React.FC = () => {
                       )}
                       {property.defaultCheckOutTime && (
                         <Box sx={INFO_ROW_SX}>
-                          <Logout sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Logout size={16} strokeWidth={1.75} /></Box>
                           <Box>
                             <Typography sx={INFO_LABEL_SX}>{t('properties.checkOutTime')}</Typography>
                             <Typography sx={INFO_VALUE_SX}>{formatTime(property.defaultCheckOutTime)}</Typography>
@@ -782,7 +784,7 @@ const PropertyDetails: React.FC = () => {
                 )}
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
-                  <CleaningServices sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CleaningServices size={16} strokeWidth={1.75} /></Box>
                   <Box sx={{ flex: 1 }}>
                     <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningFrequency')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Typography>
@@ -792,7 +794,7 @@ const PropertyDetails: React.FC = () => {
                   <>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={INFO_ROW_SX}>
-                      <Schedule sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.lastCleaning')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{formatDate(property.lastCleaning)}</Typography>
@@ -845,14 +847,14 @@ const PropertyDetails: React.FC = () => {
               if (!hasAnyField) return null;
 
               const fields: { icon: React.ReactNode; label: string; value: string | null }[] = [
-                { icon: <VpnKey sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.accessCode'), value: ci.accessCode },
-                { icon: <Wifi sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.wifiName'), value: ci.wifiName },
-                { icon: <Wifi sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.wifiPassword'), value: ci.wifiPassword },
-                { icon: <LocalParking sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.parkingInfo'), value: ci.parkingInfo },
-                { icon: <Login sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.arrivalInstructions'), value: ci.arrivalInstructions },
-                { icon: <Logout sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.departureInstructions'), value: ci.departureInstructions },
-                { icon: <Gavel sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.houseRules'), value: ci.houseRules },
-                { icon: <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.emergencyContact'), value: ci.emergencyContact },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><VpnKey size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.accessCode'), value: ci.accessCode },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Wifi size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.wifiName'), value: ci.wifiName },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Wifi size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.wifiPassword'), value: ci.wifiPassword },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LocalParking size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.parkingInfo'), value: ci.parkingInfo },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Login size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.arrivalInstructions'), value: ci.arrivalInstructions },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Logout size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.departureInstructions'), value: ci.departureInstructions },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Gavel size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.houseRules'), value: ci.houseRules },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Phone size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.emergencyContact'), value: ci.emergencyContact },
               ];
 
               // Split: first 4 fields in 2-col grid, rest full-width
@@ -870,7 +872,7 @@ const PropertyDetails: React.FC = () => {
                       </Typography>
                       <Button
                         size="small"
-                        endIcon={<OpenInNew sx={{ fontSize: 12 }} />}
+                        endIcon={<OpenInNew size={12} strokeWidth={1.75} />}
                         onClick={() => setTabValue(3)}
                         sx={{ fontSize: '0.625rem', textTransform: 'none', fontWeight: 600, minWidth: 0, px: 1, py: 0.25 }}
                       >
@@ -922,74 +924,7 @@ const PropertyDetails: React.FC = () => {
           aria-labelledby="property-tab-1"
           sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
         >
-          {interventions.length > 0 ? (
-            <Grid container spacing={1}>
-              {interventions.map((intervention) => (
-                <Grid item xs={12} sm={6} md={4} key={intervention.id}>
-                  <Card
-                    sx={INTERVENTION_CARD_SX}
-                    onClick={() => navigate(`/interventions/${intervention.id}`)}
-                  >
-                    <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                      {/* Type + Status row */}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
-                        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary' }}>
-                          {getInterventionTypeLabel(intervention.type, t)}
-                        </Typography>
-                        {(() => { const c = getInterventionStatusHex(intervention.status); return (
-                          <Chip
-                            label={getInterventionStatusLabel(intervention.status, t)}
-                            size="small"
-                            sx={{ ...STATUS_CHIP_SX, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
-                          />
-                        ); })()}
-                      </Box>
-
-                      {/* Description */}
-                      {intervention.description && (
-                        <Typography
-                          sx={{
-                            fontSize: '0.75rem',
-                            color: 'text.secondary',
-                            mb: 0.75,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {intervention.description}
-                        </Typography>
-                      )}
-
-                      {/* Footer: date + cost */}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <CalendarMonth sx={{ fontSize: 12, color: 'text.disabled' }} />
-                          <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-                            {formatDate(intervention.scheduledDate)}
-                          </Typography>
-                        </Box>
-                        {intervention.cost != null && intervention.cost > 0 && (
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'primary.main' }}>
-                            {intervention.cost}€
-                          </Typography>
-                        )}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          ) : (
-            <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 3, textAlign: 'center' }}>
-              <Build sx={{ fontSize: 32, color: 'text.disabled', mb: 0.5 }} />
-              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', fontWeight: 500 }}>
-                {t('properties.noInterventions')}
-              </Typography>
-            </Paper>
-          )}
+          <PropertyInterventionsTab interventions={interventions} propertyId={String(id)} />
         </Box>
       )}
 
@@ -1016,7 +951,7 @@ const PropertyDetails: React.FC = () => {
               {channelStatus?.airbnb?.linked ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   <Box sx={INFO_ROW_SX}>
-                    <Sync sx={{ fontSize: 16, color: channelStatus.airbnb.syncEnabled ? '#4A9B8E' : '#9e9e9e' }} />
+                    <Sync size={16} strokeWidth={1.75} color={channelStatus.airbnb.syncEnabled ? '#4A9B8E' : '#9e9e9e'} />
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.title')}</Typography>
                       <Typography sx={INFO_VALUE_SX}>
@@ -1026,7 +961,7 @@ const PropertyDetails: React.FC = () => {
                   </Box>
                   {channelStatus.airbnb.lastSyncAt && (
                     <Box sx={INFO_ROW_SX}>
-                      <Schedule sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.lastSync')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{new Date(channelStatus.airbnb.lastSyncAt).toLocaleString('fr-FR')}</Typography>
@@ -1035,7 +970,7 @@ const PropertyDetails: React.FC = () => {
                   )}
                 </Box>
               ) : (
-                <Button size="small" variant="outlined" startIcon={<Hub sx={{ fontSize: 14 }} />} onClick={() => navigate('/channels')} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+                <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
                   {t('channels.listings.linkProperty')}
                 </Button>
               )}
@@ -1060,7 +995,7 @@ const PropertyDetails: React.FC = () => {
                     sx={{ ml: 'auto', fontSize: '0.625rem', height: 20, backgroundColor: '#9e9e9e18', color: '#9e9e9e', border: '1px solid #9e9e9e40', borderRadius: '6px' }}
                   />
                 </Box>
-                <Button size="small" variant="outlined" startIcon={<Hub sx={{ fontSize: 14 }} />} onClick={() => navigate('/channels')} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+                <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
                   {t('channels.listings.linkProperty')}
                 </Button>
               </Paper>

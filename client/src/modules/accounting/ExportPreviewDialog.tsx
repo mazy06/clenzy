@@ -17,7 +17,7 @@ import {
   TableRow,
   IconButton,
 } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
+import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from 'react-i18next';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -131,7 +131,7 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5, px: 2 }}>
         <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>{title}</Typography>
         <IconButton size="small" onClick={onClose} sx={{ ml: 1 }}>
-          <CloseIcon sx={{ fontSize: 18 }} />
+          <CloseIcon size={18} strokeWidth={1.75} />
         </IconButton>
       </DialogTitle>
 

@@ -5,7 +5,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button,
   Skeleton, Alert, alpha,
 } from '@mui/material';
-import { Edit, Delete, VpnKey, ContentCopy, Add } from '@mui/icons-material';
+import { Edit, Delete, VpnKey, ContentCopy, Add } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -83,7 +83,7 @@ const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
             width: 64, height: 64, borderRadius: '50%', bgcolor: 'primary.50',
             display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2,
           }}>
-            <VpnKey sx={{ fontSize: 28, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><VpnKey size={28} strokeWidth={1.75} /></Box>
           </Box>
           <Typography variant="h6" fontWeight={700} gutterBottom>
             {t('bookingEngine.list.empty')}
@@ -158,7 +158,7 @@ const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
                       </Typography>
                       <Tooltip title={t('bookingEngine.fields.copyKey')}>
                         <IconButton size="small" onClick={() => handleCopyKey(config.apiKey)} sx={{ p: 0.25 }}>
-                          <ContentCopy sx={{ fontSize: 12 }} />
+                          <ContentCopy size={12} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                     </Box>
@@ -180,12 +180,12 @@ const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
                     <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
                       <Tooltip title={t('bookingEngine.actions.editTemplate')}>
                         <IconButton size="small" onClick={() => onEdit(config)}>
-                          <Edit sx={{ fontSize: 16 }} />
+                          <Edit size={16} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title={t('bookingEngine.actions.deleteTemplate')}>
                         <IconButton size="small" onClick={() => setDeleteTarget(config)} color="error">
-                          <Delete sx={{ fontSize: 16 }} />
+                          <Delete size={16} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                     </Box>

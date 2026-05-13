@@ -9,7 +9,7 @@ import {
   Card,
   CardContent,
 } from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon } from '../icons';
 
 /**
  * Wrapper réutilisable pour le rendu conditionnel basé sur l'état de chargement/erreur.
@@ -109,7 +109,7 @@ const ErrorDisplay: React.FC<{
           color="inherit"
           size="small"
           onClick={onRetry}
-          startIcon={<RefreshIcon sx={{ fontSize: 16 }} />}
+          startIcon={<RefreshIcon size={16} strokeWidth={1.75} />}
         >
           Réessayer
         </Button>

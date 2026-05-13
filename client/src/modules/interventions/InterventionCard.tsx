@@ -25,7 +25,7 @@ import {
   Yard,
   BugReport,
   AutoFixHigh,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import LiveDashboardPulse from './LiveDashboardPulse';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -65,7 +65,7 @@ interface InterventionCardProps {
 
 // Icône de type en arrière-plan
 const getTypeIcon = (type: string, size: number = 48) => {
-  const iconProps = { sx: { fontSize: size, color: 'rgba(255,255,255,0.18)' } };
+  const iconProps = { size, color: "rgba(255,255,255,0.18)", strokeWidth: 1.5 };
   const cleaningTypes = [
     'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
     'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
@@ -87,7 +87,7 @@ const getTypeIcon = (type: string, size: number = 48) => {
 
 // Petite icône de type pour le header
 const getTypeSmallIcon = (type: string) => {
-  const iconProps = { sx: { fontSize: 16, color: 'rgba(255,255,255,0.85)' } };
+  const iconProps = { size: 16, strokeWidth: 1.75, color: 'rgba(255,255,255,0.85)' };
   const cleaningTypes = [
     'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
     'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
@@ -301,7 +301,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
           onClick={(e) => { e.stopPropagation(); onMenuOpen(e, intervention); }}
           sx={styles.menuButton}
         >
-          <MoreVert sx={{ fontSize: 16 }} />
+          <MoreVert size={16} strokeWidth={1.75} />
         </IconButton>
       </LiveDashboardPulse>
 
@@ -327,7 +327,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
 
         {/* Droite : date planifiée (short + heure) */}
         <Box sx={styles.dateBox}>
-          <Schedule sx={{ fontSize: 13, color: 'text.secondary' }} />
+          <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Schedule size={13} strokeWidth={1.75} /></Box>
           <Typography variant="caption" sx={styles.dateText}>
             {formatShortDate(intervention.scheduledDate)}
             {formatTimeFromDate(intervention.scheduledDate) && ` · ${formatTimeFromDate(intervention.scheduledDate)}`}
@@ -372,7 +372,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
 
         {/* Propriété */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-          <LocationOn sx={{ fontSize: 14, color: 'text.secondary', flexShrink: 0 }} />
+          <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", flexShrink: 0 }}><LocationOn size={14} strokeWidth={1.75} /></Box>
           <Typography
             variant="caption"
             color="text.secondary"
@@ -388,9 +388,9 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
           {/* Assignation */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, minWidth: 0 }}>
             {intervention.assignedToType === 'team' ? (
-              <GroupIcon sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }} />
+              <Box component="span" sx={{ display: "inline-flex", color: "text.disabled", flexShrink: 0 }}><GroupIcon size={12} strokeWidth={1.75} /></Box>
             ) : (
-              <PersonIcon sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }} />
+              <Box component="span" sx={{ display: "inline-flex", color: "text.disabled", flexShrink: 0 }}><PersonIcon size={12} strokeWidth={1.75} /></Box>
             )}
             <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.62rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {intervention.assignedToName || 'Non assigné'}
@@ -401,7 +401,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
 
           {/* Demandeur */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, minWidth: 0 }}>
-            <PersonIcon sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }} />
+            <Box component="span" sx={{ display: "inline-flex", color: "text.disabled", flexShrink: 0 }}><PersonIcon size={12} strokeWidth={1.75} /></Box>
             <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.62rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {intervention.requestorName}
             </Typography>
@@ -412,7 +412,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
 
           {/* Durée — chip style ServiceRequestCard */}
           <Chip
-            icon={<AccessTime sx={{ fontSize: 12 }} />}
+            icon={<AccessTime size={12} strokeWidth={1.75} />}
             label={`~${formatDuration(intervention.estimatedDurationHours)}`}
             size="small"
             color="info"
@@ -427,7 +427,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
         <Button
           fullWidth
           size="small"
-          startIcon={<Visibility sx={{ fontSize: 15 }} />}
+          startIcon={<Visibility size={15} strokeWidth={1.75} />}
           onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
           variant="outlined"
           sx={styles.detailsButton}
@@ -438,7 +438,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
           <Button
             fullWidth
             size="small"
-            startIcon={<Edit sx={{ fontSize: 15 }} />}
+            startIcon={<Edit size={15} strokeWidth={1.75} />}
             onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}/edit`); }}
             variant="outlined"
             color="primary"

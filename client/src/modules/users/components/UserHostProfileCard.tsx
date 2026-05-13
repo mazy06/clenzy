@@ -24,7 +24,7 @@ import {
   ExpandMore,
   ExpandLess,
   ContentCopy,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { HostBalanceSummary } from '../../../services/api';
 import type { UserDetailsData } from './userDetailsTypes';
 
@@ -287,12 +287,12 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
           <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Payment sx={{ fontSize: 20, color: 'text.secondary' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Payment size={20} strokeWidth={1.75} /></Box>
                 <Typography variant="body1" fontWeight={600}>Solde impaye</Typography>
               </Box>
               {balance && balance.totalUnpaid > 0 && (
                 <Chip
-                  icon={<Warning sx={{ fontSize: 14 }} />}
+                  icon={<Warning size={14} strokeWidth={1.75} />}
                   label={`${balance.totalUnpaid.toFixed(2)} EUR`}
                   color="error"
                   size="small"
@@ -339,8 +339,8 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                                 )}
                               >
                                 {expandedProperty === prop.propertyId
-                                  ? <ExpandLess sx={{ fontSize: 18 }} />
-                                  : <ExpandMore sx={{ fontSize: 18 }} />}
+                                  ? <ExpandLess size={18} strokeWidth={1.75} />
+                                  : <ExpandMore size={18} strokeWidth={1.75} />}
                               </IconButton>
                             </TableCell>
                           </TableRow>
@@ -375,7 +375,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                     <Button
                       variant="contained"
                       size="small"
-                      startIcon={<ContentCopy sx={{ fontSize: 16 }} />}
+                      startIcon={<ContentCopy size={16} strokeWidth={1.75} />}
                       onClick={onSendPaymentLink}
                       disabled={paymentLinkLoading || balance.totalUnpaid === 0}
                       sx={{ fontSize: '0.8rem' }}

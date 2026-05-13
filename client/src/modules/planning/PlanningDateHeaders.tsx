@@ -65,7 +65,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
       }}
     >
       {/* Month row */}
-      <Box sx={{ display: 'flex', height: 28 }}>
+      <Box sx={{ display: 'flex', height: 20 }}>
         <Box
           sx={{
             width: propertyColWidth,
@@ -80,14 +80,14 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
             borderColor: 'divider',
             display: 'flex',
             alignItems: 'center',
-            px: 1.5,
+            px: 1,
           }}
         >
           <Typography
             variant="caption"
             sx={{
               fontWeight: 700,
-              fontSize: propertyColWidth < 150 ? '0.5625rem' : '0.6875rem',
+              fontSize: propertyColWidth < 130 ? '0.4375rem' : '0.5rem',
               color: 'text.secondary',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
@@ -108,7 +108,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                 minWidth: sep.count * dayWidth,
                 display: 'flex',
                 alignItems: 'center',
-                px: 1,
+                px: 0.75,
                 borderRight: '1px solid',
                 borderBottom: '1px solid',
                 borderColor: 'divider',
@@ -117,7 +117,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
             >
               <Typography
                 sx={{
-                  fontSize: '0.6875rem',
+                  fontSize: '0.5rem',
                   fontWeight: 700,
                   textTransform: 'capitalize',
                   color: 'text.primary',
@@ -136,7 +136,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
 
       {/* Day row */}
       {showDayNumbers && (
-        <Box sx={{ display: 'flex', height: DATE_HEADER_HEIGHT - 28 }}>
+        <Box sx={{ display: 'flex', height: DATE_HEADER_HEIGHT - 20 }}>
           <Box
             sx={{
               width: propertyColWidth,
@@ -178,7 +178,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                   {showDayNames && dayWidth >= 30 && (
                     <Typography
                       sx={{
-                        fontSize: dayWidth >= 60 ? '0.5625rem' : '0.5rem',
+                        fontSize: '0.4375rem',
                         fontWeight: today ? 700 : 400,
                         color: today ? 'error.main' : weekend ? 'text.disabled' : 'text.secondary',
                         lineHeight: 1,
@@ -190,7 +190,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                   )}
                   <Typography
                     sx={{
-                      fontSize: dayWidth >= 60 ? '0.75rem' : '0.625rem',
+                      fontSize: dayWidth >= 60 ? '0.625rem' : '0.5rem',
                       fontWeight: today ? 800 : 600,
                       color: today ? 'error.main' : weekend ? 'text.disabled' : 'text.primary',
                       lineHeight: 1.2,

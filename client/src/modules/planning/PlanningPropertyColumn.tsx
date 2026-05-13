@@ -1,8 +1,350 @@
-import React from 'react';
-import { Box, Typography, useTheme } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, Tooltip, useTheme, Chip, Divider } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import type { PlanningProperty, DensityMode } from './types';
 import { ROW_CONFIG } from './constants';
 import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
+import { useTranslation } from '../../hooks/useTranslation';
+import { getCleaningFrequencyLabel } from '../../utils/statusUtils';
+import {
+  LocationOn,
+  People,
+  Bed,
+  Euro,
+  AccessTime,
+  CleaningServices,
+  Person,
+  CalendarMonth,
+  ChevronRight,
+} from '../../icons';
+
+// ─── Static map URL helper (Mapbox Static Images API) ───────────────────────
+
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+
+function buildStaticMapUrl(
+  lat: number | undefined,
+  lng: number | undefined,
+  width: number,
+  height: number,
+  dark: boolean,
+): string | null {
+  if (!MAPBOX_TOKEN || lat == null || lng == null) return null;
+  const style = dark ? 'dark-v11' : 'streets-v12';
+  // Pin couleur ambrée pour être visible sur les deux fonds
+  const marker = `pin-s+f59e0b(${lng},${lat})`;
+  // Plafonner pour éviter de payer plus que nécessaire (Mapbox max 1280)
+  const w = Math.min(1280, Math.max(60, Math.round(width)));
+  const h = Math.min(1280, Math.max(60, Math.round(height)));
+  return `https://api.mapbox.com/styles/v1/mapbox/${style}/static/${marker}/${lng},${lat},13,0/${w}x${h}@2x?access_token=${MAPBOX_TOKEN}`;
+}
+
+// ─── Rich tooltip content ────────────────────────────────────────────────────
+//
+// Echelle typo coherente (4 paliers uniquement) :
+//   TITLE_FS  = 0.8125rem (13px) — nom de la propriete (h6 like)
+//   BODY_FS   = 0.6875rem (11px) — texte body (adresse, owner, check-in, valeur stat)
+//   LABEL_FS  = 0.5625rem  (9px) — label uppercase (stat label, chip type, footer)
+//   ICON_SIZE = 11px              — toutes les icones (sauf header pin = 10)
+//
+// Spacing aéré (Phase 2) : padding outer 1.5, photo height 100, gap stat
+// grid 1, divider my 1.25. Plus de respiration entre les sections sans
+// alourdir le tooltip total.
+
+const TITLE_FS = '0.8125rem';
+const BODY_FS  = '0.6875rem';
+const LABEL_FS = '0.5625rem';
+const ICON_SIZE = 11;
+const TOOLTIP_WIDTH = 264;
+const HEADER_HEIGHT = 100;
+
+function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
+  const theme = useTheme();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const currency = property.currency || 'EUR';
+  const fmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 });
+  const rawPhoto = property.photoUrls?.[0];
+  const photo = rawPhoto && rawPhoto.trim().length > 0 ? rawPhoto : undefined;
+  // Pre-build map URL si coords + token dispo (fallback OU header alternatif)
+  const mapUrl = buildStaticMapUrl(
+    property.latitude,
+    property.longitude,
+    TOOLTIP_WIDTH,
+    HEADER_HEIGHT,
+    theme.palette.mode === 'dark',
+  );
+  // Si la photo echoue (URL cassée, 404, CORS), on bascule sur la carte
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const showPhoto = photo && !photoFailed;
+  const showMap = !showPhoto && Boolean(mapUrl);
+  const hasHeader = Boolean(showPhoto || showMap);
+
+  return (
+    <Box sx={{ width: TOOLTIP_WIDTH }}>
+      {showPhoto && (
+        <Box
+          sx={{
+            width: '100%',
+            height: HEADER_HEIGHT,
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+            overflow: 'hidden',
+            mb: 1.25,
+            bgcolor: 'action.hover',
+          }}
+        >
+          <Box
+            component="img"
+            src={photo}
+            alt={property.name}
+            onError={() => setPhotoFailed(true)}
+            sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              display: 'block',
+            }}
+          />
+        </Box>
+      )}
+      {showMap && (
+        <Box
+          sx={{
+            position: 'relative',
+            width: '100%',
+            height: HEADER_HEIGHT,
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+            overflow: 'hidden',
+            mb: 1.25,
+            bgcolor: 'action.hover',
+          }}
+        >
+          <Box
+            component="img"
+            src={mapUrl ?? undefined}
+            alt={`Carte ${property.city || property.name}`}
+            loading="lazy"
+            sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              display: 'block',
+            }}
+          />
+          <Chip
+            size="small"
+            icon={<LocationOn size={10} strokeWidth={2} />}
+            label="Localisation"
+            sx={{
+              position: 'absolute',
+              top: 5,
+              left: 5,
+              height: 16,
+              fontSize: LABEL_FS,
+              fontWeight: 600,
+              bgcolor: 'background.paper',
+              color: 'text.primary',
+              border: '1px solid',
+              borderColor: 'divider',
+              '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: 'warning.main' },
+              '& .MuiChip-label': { px: 0.5 },
+            }}
+          />
+        </Box>
+      )}
+      <Box sx={{ px: 1.5, pb: 1.5, pt: hasHeader ? 0.25 : 1.5 }}>
+        <Typography sx={{ fontSize: TITLE_FS, fontWeight: 600, lineHeight: 1.3, color: 'text.primary' }}>
+          {property.name}
+        </Typography>
+        {property.type && (
+          <Chip
+            label={property.type}
+            size="small"
+            sx={{
+              mt: 0.75,
+              height: 18,
+              fontSize: LABEL_FS,
+              fontWeight: 600,
+              bgcolor: (theme) =>
+                theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(107,138,154,0.12)',
+              color: 'primary.main',
+              textTransform: 'capitalize',
+              '& .MuiChip-label': { px: 0.625 },
+            }}
+          />
+        )}
+
+        {(property.address || property.city) && (
+          <Box sx={{ display: 'flex', gap: 0.625, mt: 1, alignItems: 'flex-start' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.15 }}>
+              <LocationOn size={ICON_SIZE} strokeWidth={1.75} />
+            </Box>
+            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', lineHeight: 1.4 }}>
+              {[property.address, property.city].filter(Boolean).join(', ')}
+            </Typography>
+          </Box>
+        )}
+
+        {property.ownerName && (
+          <Box sx={{ display: 'flex', gap: 0.625, mt: 0.625, alignItems: 'center' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+              <Person size={ICON_SIZE} strokeWidth={1.75} />
+            </Box>
+            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
+              {property.ownerName}
+            </Typography>
+          </Box>
+        )}
+
+        <Divider sx={{ my: 1.25 }} />
+
+        {/* Stats grid */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 1 }}>
+          <StatPill
+            icon={<People size={ICON_SIZE} strokeWidth={1.75} />}
+            label="Voyageurs max"
+            value={`${property.maxGuests}`}
+          />
+          {property.minimumNights != null && property.minimumNights > 0 && (
+            <StatPill
+              icon={<Bed size={ICON_SIZE} strokeWidth={1.75} />}
+              label="Nuits min."
+              value={`${property.minimumNights}`}
+            />
+          )}
+          {property.nightlyPrice != null && property.nightlyPrice > 0 && (
+            <StatPill
+              icon={<Euro size={ICON_SIZE} strokeWidth={1.75} />}
+              label="Prix / nuit"
+              value={fmt.format(property.nightlyPrice)}
+              highlight
+            />
+          )}
+          {property.cleaningBasePrice != null && property.cleaningBasePrice > 0 && (
+            <StatPill
+              icon={<CleaningServices size={ICON_SIZE} strokeWidth={1.75} />}
+              label="Ménage"
+              value={fmt.format(property.cleaningBasePrice)}
+            />
+          )}
+        </Box>
+
+        {/* Check-in / check-out times */}
+        {(property.defaultCheckInTime || property.defaultCheckOutTime) && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mt: 0.75, flexWrap: 'wrap' }}>
+            {property.defaultCheckInTime && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}>
+                  <AccessTime size={ICON_SIZE} strokeWidth={1.75} />
+                </Box>
+                <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
+                  Check-in <Box component="strong" sx={{ color: 'text.primary' }}>{property.defaultCheckInTime.slice(0, 5)}</Box>
+                </Typography>
+              </Box>
+            )}
+            {property.defaultCheckOutTime && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}>
+                  <AccessTime size={ICON_SIZE} strokeWidth={1.75} />
+                </Box>
+                <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
+                  Check-out <Box component="strong" sx={{ color: 'text.primary' }}>{property.defaultCheckOutTime.slice(0, 5)}</Box>
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {property.cleaningFrequency && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mt: 0.75 }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+              <CalendarMonth size={ICON_SIZE} strokeWidth={1.75} />
+            </Box>
+            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
+              Fréquence ménage : <Box component="strong" sx={{ color: 'text.primary' }}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Box>
+            </Typography>
+          </Box>
+        )}
+
+        {/* CTA navigable vers la fiche complète. Tooltip rendu dans un portail
+            → cet element est cliquable directement (les clicks ne bubblent pas
+            au Box parent dans le planning, donc on declenche la nav ici). */}
+        <Box
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/properties/${property.id}`);
+          }}
+          sx={{
+            mt: 1.25,
+            pt: 1,
+            borderTop: '1px dashed',
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            color: 'primary.main',
+            transition: 'color 150ms',
+            '&:hover': { color: 'primary.dark' },
+          }}
+        >
+          <Typography sx={{ fontSize: LABEL_FS, fontWeight: 600, color: 'inherit' }}>
+            Ouvrir la fiche complète
+          </Typography>
+          <ChevronRight size={ICON_SIZE} strokeWidth={2} />
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+function StatPill({
+  icon,
+  label,
+  value,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <Box
+      sx={{
+        p: 0.875,
+        borderRadius: 1,
+        bgcolor: (theme) => {
+          if (highlight) {
+            return theme.palette.mode === 'dark'
+              ? 'rgba(16,185,129,0.18)'
+              : 'rgba(16,185,129,0.10)';
+          }
+          return theme.palette.mode === 'dark'
+            ? 'rgba(255,255,255,0.04)'
+            : 'rgba(0,0,0,0.025)';
+        },
+        border: '1px solid',
+        borderColor: highlight ? 'success.main' : 'divider',
+        minWidth: 0,
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, color: highlight ? 'success.main' : 'text.secondary', mb: 0.375 }}>
+        {icon}
+        <Typography sx={{ fontSize: LABEL_FS, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, color: 'inherit', lineHeight: 1 }}>
+          {label}
+        </Typography>
+      </Box>
+      <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: highlight ? 'success.main' : 'text.primary', lineHeight: 1.2 }}>
+        {value}
+      </Typography>
+    </Box>
+  );
+}
 
 interface PlanningPropertyColumnProps {
   properties: PlanningProperty[];
@@ -42,64 +384,138 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
     >
       {properties.map((property, idx) => {
         const showCarousel = colWidth >= 100;
-        const nameHeight = density === 'compact' ? 14 : 18;
-        const verticalPadding = 6;
+        const nameHeight = density === 'compact' ? 12 : 16;
+        const verticalPadding = 4;
         const carouselHeight = Math.max(
           24,
           effectiveRowHeight - nameHeight - verticalPadding,
         );
         return (
-          <Box
+          <Tooltip
             key={property.id}
-            onClick={() => onPropertyClick?.(property.id)}
-            sx={{
-              height: effectiveRowHeight,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'stretch',
-              justifyContent: 'flex-start',
-              gap: 0.25,
-              p: 0,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              cursor: onPropertyClick ? 'pointer' : 'default',
-              backgroundColor: selectedPropertyId === property.id
-                ? theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.1)' : 'rgba(107, 138, 154, 0.05)'
-                : idx % 2 === 0
-                  ? 'transparent'
-                  : theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
-              transition: 'background-color 0.15s ease',
-              '&:hover': onPropertyClick ? {
-                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.15)' : 'rgba(107, 138, 154, 0.08)',
-              } : {},
+            title={<PropertyTooltipContent property={property} />}
+            placement="right"
+            arrow
+            enterDelay={350}
+            enterNextDelay={200}
+            leaveDelay={100}
+            slotProps={{
+              tooltip: {
+                sx: (theme) => ({
+                  bgcolor: 'background.paper',
+                  color: 'text.primary',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  p: 0,
+                  maxWidth: 'none',
+                  boxShadow:
+                    theme.palette.mode === 'dark'
+                      ? '0 12px 32px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35)'
+                      : '0 12px 32px rgba(15,23,42,0.18), 0 2px 6px rgba(15,23,42,0.08)',
+                  '& .MuiTooltip-arrow': {
+                    color: theme.palette.background.paper,
+                    '&::before': {
+                      border: '1px solid',
+                      borderColor: theme.palette.divider,
+                      backgroundColor: theme.palette.background.paper,
+                    },
+                  },
+                }),
+              },
+              popper: {
+                modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],
+              },
             }}
           >
-            {showCarousel && (
-              <PropertyImageCarousel
-                photoUrls={property.photoUrls}
-                alt={property.name}
-                width="100%"
-                height={carouselHeight}
-                sx={{ width: '100%' }}
-              />
-            )}
-            <Typography
+            <Box
+              onClick={() => onPropertyClick?.(property.id)}
               sx={{
-                fontSize: density === 'compact' ? '0.6875rem' : '0.75rem',
-                fontWeight: 400,
-                color: 'text.secondary',
-                lineHeight: 1.2,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                letterSpacing: '-0.01em',
-                px: 0.75,
-                pb: 0.5,
+                height: effectiveRowHeight,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'stretch',
+                justifyContent: 'flex-start',
+                gap: 0.25,
+                p: 0,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                cursor: onPropertyClick ? 'pointer' : 'default',
+                backgroundColor: selectedPropertyId === property.id
+                  ? theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.1)' : 'rgba(107, 138, 154, 0.05)'
+                  : idx % 2 === 0
+                    ? 'transparent'
+                    : theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
+                transition: 'background-color 0.15s ease',
+                '&:hover': onPropertyClick ? {
+                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.15)' : 'rgba(107, 138, 154, 0.08)',
+                } : {},
               }}
             >
-              {property.name}
-            </Typography>
-          </Box>
+              {showCarousel && (() => {
+                const hasPhoto = (property.photoUrls?.length ?? 0) > 0;
+                if (hasPhoto) {
+                  return (
+                    <PropertyImageCarousel
+                      photoUrls={property.photoUrls}
+                      alt={property.name}
+                      width="100%"
+                      height={carouselHeight}
+                      sx={{ width: '100%' }}
+                    />
+                  );
+                }
+                // Pas de photo → on tente la carte statique
+                const mapUrl = buildStaticMapUrl(
+                  property.latitude,
+                  property.longitude,
+                  Math.max(60, colWidth),
+                  carouselHeight,
+                  theme.palette.mode === 'dark',
+                );
+                if (mapUrl) {
+                  return (
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: carouselHeight,
+                        backgroundImage: `url(${mapUrl})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        flexShrink: 0,
+                      }}
+                    />
+                  );
+                }
+                // Aucun fallback dispo → placeholder du carousel
+                return (
+                  <PropertyImageCarousel
+                    photoUrls={property.photoUrls}
+                    alt={property.name}
+                    width="100%"
+                    height={carouselHeight}
+                    sx={{ width: '100%' }}
+                  />
+                );
+              })()}
+              <Typography
+                sx={{
+                  fontSize: density === 'compact' ? '0.5rem' : '0.5625rem',
+                  fontWeight: 500,
+                  color: 'text.secondary',
+                  lineHeight: 1.2,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  letterSpacing: '-0.01em',
+                  px: 0.5,
+                  pb: 0.25,
+                }}
+              >
+                {property.name}
+              </Typography>
+            </Box>
+          </Tooltip>
         );
       })}
       {/* Empty filler rows */}

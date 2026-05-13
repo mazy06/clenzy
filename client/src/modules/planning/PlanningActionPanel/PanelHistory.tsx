@@ -16,7 +16,7 @@ import {
   Handyman,
   CheckCircle,
   History,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { PlanningEvent } from '../types';
 
 interface PanelHistoryProps {
@@ -31,20 +31,20 @@ const PanelHistory: React.FC<PanelHistoryProps> = ({ event }) => {
 
   if (reservation) {
     timelineItems.push({
-      icon: <FlightLand sx={{ fontSize: 16 }} />,
+      icon: <FlightLand size={16} strokeWidth={1.75} />,
       label: 'Check-in',
       date: `${reservation.checkIn}${reservation.checkInTime ? ` ${reservation.checkInTime}` : ''}`,
       color: '#6B8A9A',
     });
     timelineItems.push({
-      icon: <FlightTakeoff sx={{ fontSize: 16 }} />,
+      icon: <FlightTakeoff size={16} strokeWidth={1.75} />,
       label: 'Check-out',
       date: `${reservation.checkOut}${reservation.checkOutTime ? ` ${reservation.checkOutTime}` : ''}`,
       color: '#757575',
     });
     // Auto-cleaning placeholder
     timelineItems.push({
-      icon: <AutoAwesome sx={{ fontSize: 16 }} />,
+      icon: <AutoAwesome size={16} strokeWidth={1.75} />,
       label: 'Menage prevu',
       date: reservation.checkOut,
       color: '#9B7FC4',
@@ -54,8 +54,8 @@ const PanelHistory: React.FC<PanelHistoryProps> = ({ event }) => {
   if (event.intervention) {
     timelineItems.push({
       icon: event.type === 'cleaning'
-        ? <AutoAwesome sx={{ fontSize: 16 }} />
-        : <Handyman sx={{ fontSize: 16 }} />,
+        ? <AutoAwesome size={16} strokeWidth={1.75} />
+        : <Handyman size={16} strokeWidth={1.75} />,
       label: event.intervention.title,
       date: `${event.intervention.startDate}${event.intervention.startTime ? ` ${event.intervention.startTime}` : ''}`,
       color: event.color,
@@ -67,7 +67,7 @@ const PanelHistory: React.FC<PanelHistoryProps> = ({ event }) => {
       {/* Stay timeline */}
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Timeline sx={{ fontSize: 18, color: 'text.secondary' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Timeline size={18} strokeWidth={1.75} /></Box>
           <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
             Timeline du sejour
           </Typography>
@@ -94,7 +94,7 @@ const PanelHistory: React.FC<PanelHistoryProps> = ({ event }) => {
       {/* Modification history placeholder */}
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <History sx={{ fontSize: 18, color: 'text.secondary' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><History size={18} strokeWidth={1.75} /></Box>
           <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
             Historique des modifications
           </Typography>

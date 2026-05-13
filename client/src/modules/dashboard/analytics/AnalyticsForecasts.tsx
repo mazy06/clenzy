@@ -3,7 +3,7 @@ import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart,
 } from 'recharts';
-import { Timeline, TrendingUp as TrendIcon } from '@mui/icons-material';
+import { Timeline, TrendingUp as TrendIcon } from '../../../icons';
 import GridSection from './GridSection';
 import AnalyticsWidgetCard from './AnalyticsWidgetCard';
 import { useTranslation } from '../../../hooks/useTranslation';

@@ -3,7 +3,7 @@ import { Box, Typography, IconButton } from '@mui/material';
 import {
   Close, ChevronLeft, ChevronRight, People, SquareFoot,
   KingBed, Bathtub, PhotoLibrary, AccessTime, CheckCircle,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { ResolvedTokens, PreviewProperty } from '../types/bookingEngine';
 import type { BookingI18n } from '../sdk/i18n';
 
@@ -38,10 +38,10 @@ const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({ property, tk,
   const hasMultiple = photoUrls.length > 1;
 
   const infoItems = [
-    { icon: <People sx={{ fontSize: 18 }} />, value: property.maxGuests, suffix: ` ${i18n.t('detail.guests')}` },
-    { icon: <SquareFoot sx={{ fontSize: 18 }} />, value: property.squareMeters, suffix: ` ${i18n.t('detail.surface')}` },
-    { icon: <KingBed sx={{ fontSize: 18 }} />, value: property.bedroomCount, suffix: ` ${i18n.t('detail.bedrooms')}` },
-    { icon: <Bathtub sx={{ fontSize: 18 }} />, value: property.bathroomCount, suffix: ` ${i18n.t('detail.bathrooms')}` },
+    { icon: <People size={18} strokeWidth={1.75} />, value: property.maxGuests, suffix: ` ${i18n.t('detail.guests')}` },
+    { icon: <SquareFoot size={18} strokeWidth={1.75} />, value: property.squareMeters, suffix: ` ${i18n.t('detail.surface')}` },
+    { icon: <KingBed size={18} strokeWidth={1.75} />, value: property.bedroomCount, suffix: ` ${i18n.t('detail.bedrooms')}` },
+    { icon: <Bathtub size={18} strokeWidth={1.75} />, value: property.bathroomCount, suffix: ` ${i18n.t('detail.bathrooms')}` },
   ].filter(item => item.value != null && item.value > 0);
 
   return (
@@ -93,7 +93,7 @@ const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({ property, tk,
             }} onError={(e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
           ) : (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-              <PhotoLibrary sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 48 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'rgba(255,255,255,0.3)' }}><PhotoLibrary size={48} strokeWidth={1.75} /></Box>
             </Box>
           )}
           {hasMultiple && (
@@ -102,13 +102,13 @@ const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({ property, tk,
                 position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
                 bgcolor: 'rgba(255,255,255,0.85)', width: 32, height: 32, '&:hover': { bgcolor: '#fff' },
               }}>
-                <ChevronLeft sx={{ fontSize: 20 }} />
+                <ChevronLeft size={20} strokeWidth={1.75} />
               </IconButton>
               <IconButton size="small" onClick={() => setPhotoIdx(i => i >= photoUrls.length - 1 ? 0 : i + 1)} sx={{
                 position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
                 bgcolor: 'rgba(255,255,255,0.85)', width: 32, height: 32, '&:hover': { bgcolor: '#fff' },
               }}>
-                <ChevronRight sx={{ fontSize: 20 }} />
+                <ChevronRight size={20} strokeWidth={1.75} />
               </IconButton>
               <Box sx={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 0.5 }}>
                 {photoUrls.map((_, i) => (
@@ -146,7 +146,7 @@ const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({ property, tk,
           <Box sx={{ display: 'flex', gap: 3, px: 3, py: 2, borderBottom: `1px solid ${tk.border}` }}>
             {property.checkInTime && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <AccessTime sx={{ fontSize: 16, color: tk.primary }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: tk.primary }}><AccessTime size={16} strokeWidth={1.75} /></Box>
                 <Typography sx={{ fontSize: 12, color: tk.textLabel }}>
                   {i18n.t('detail.checkIn')}: <Box component="span" sx={{ fontWeight: 600, color: tk.text }}>{property.checkInTime}</Box>
                 </Typography>
@@ -154,7 +154,7 @@ const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({ property, tk,
             )}
             {property.checkOutTime && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <AccessTime sx={{ fontSize: 16, color: tk.primary }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: tk.primary }}><AccessTime size={16} strokeWidth={1.75} /></Box>
                 <Typography sx={{ fontSize: 12, color: tk.textLabel }}>
                   {i18n.t('detail.checkOut')}: <Box component="span" sx={{ fontWeight: 600, color: tk.text }}>{property.checkOutTime}</Box>
                 </Typography>
@@ -186,7 +186,7 @@ const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({ property, tk,
                   px: 1.5, py: 0.5, borderRadius: tk.radiusSm,
                   border: `1px solid ${tk.border}`, fontSize: 12, color: tk.text,
                 }}>
-                  <CheckCircle sx={{ fontSize: 14, color: tk.primary }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: tk.primary }}><CheckCircle size={14} strokeWidth={1.75} /></Box>
                   {formatAmenity(amenity)}
                 </Box>
               ))}
@@ -236,14 +236,14 @@ const PropertyDetailPanel: React.FC<PropertyDetailPanelProps> = ({ property, tk,
                 color: '#fff', bgcolor: 'rgba(255,255,255,0.15)', width: 44, height: 44,
                 '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
               }}>
-                <ChevronLeft sx={{ fontSize: 28 }} />
+                <ChevronLeft size={28} strokeWidth={1.75} />
               </IconButton>
               <IconButton onClick={(e) => { e.stopPropagation(); setPhotoIdx(i => i >= photoUrls.length - 1 ? 0 : i + 1); }} sx={{
                 position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
                 color: '#fff', bgcolor: 'rgba(255,255,255,0.15)', width: 44, height: 44,
                 '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
               }}>
-                <ChevronRight sx={{ fontSize: 28 }} />
+                <ChevronRight size={28} strokeWidth={1.75} />
               </IconButton>
             </>
           )}

@@ -13,7 +13,7 @@ import {
   ThemeProvider,
   CssBaseline,
 } from '@mui/material';
-import { ArrowBack, CheckCircle } from '@mui/icons-material';
+import { ArrowBack, CheckCircle } from '../../icons';
 import lightTheme from '../../theme/theme';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
 import apiClient from '../../services/apiClient';
@@ -109,7 +109,7 @@ export default function Support() {
         {submitted ? (
           /* Message de confirmation */
           <Box sx={{ textAlign: 'center', py: 3 }}>
-            <CheckCircle sx={{ fontSize: 56, color: 'success.main', mb: 1.5 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 1.5 }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: '1rem' }}>
               Message envoy&eacute; !
             </Typography>
@@ -243,7 +243,7 @@ export default function Support() {
             <Button
               variant="text"
               size="small"
-              startIcon={<ArrowBack sx={{ fontSize: '0.9rem' }} />}
+              startIcon={<ArrowBack size={'0.9rem'} strokeWidth={1.75} />}
               onClick={() => navigate('/login')}
               sx={{
                 color: 'secondary.main',

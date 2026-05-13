@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Box, Paper, Typography, IconButton } from '@mui/material';
-import { InfoOutlined as InfoIcon, Close as CloseIcon } from '@mui/icons-material';
+import { InfoOutlined as InfoIcon, Close as CloseIcon } from '../icons';
 
 export interface HelpStep {
   icon: React.ReactNode;
@@ -53,11 +53,11 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
         sx={{ position: 'absolute', top: 6, right: 6, color: 'info.main' }}
         aria-label={dismissLabel}
       >
-        <CloseIcon sx={{ fontSize: '1rem' }} />
+        <CloseIcon size={16} strokeWidth={1.75} />
       </IconButton>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        <InfoIcon sx={{ fontSize: 20, color: 'info.main' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><InfoIcon size={20} strokeWidth={1.75} /></Box>
         <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'info.main' }}>
           {title}
         </Typography>

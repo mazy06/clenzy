@@ -33,7 +33,7 @@ import {
   Map as MapIcon,
   DeleteOutlined,
   Add,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
@@ -237,9 +237,9 @@ const TeamEdit: React.FC = () => {
   };
 
   const teamServiceCategories = [
-    { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome sx={{ fontSize: 18 }} /> },
-    { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build sx={{ fontSize: 18 }} /> },
-    { value: 'OTHER', label: 'Autre', icon: <Category sx={{ fontSize: 18 }} /> },
+    { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome size={18} strokeWidth={1.75} /> },
+    { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build size={18} strokeWidth={1.75} /> },
+    { value: 'OTHER', label: 'Autre', icon: <Category size={18} strokeWidth={1.75} /> },
   ];
 
   const roleOptions = [
@@ -376,7 +376,7 @@ const TeamEdit: React.FC = () => {
             {/* ─── Coverage Zones ─────────────────────────────────────── */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="h6" sx={{ color: 'primary.main', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <MapIcon sx={{ fontSize: 20 }} />
+                <MapIcon size={20} strokeWidth={1.75} />
                 Zones de couverture
               </Typography>
               <Button
@@ -391,7 +391,7 @@ const TeamEdit: React.FC = () => {
 
             {formData.coverageZones.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 3, mb: 4, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
-                <MapIcon sx={{ fontSize: 32, color: 'text.disabled', mb: 1 }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><MapIcon size={32} strokeWidth={1.75} /></Box>
                 <Typography variant="body2" color="text.secondary">
                   Aucune zone de couverture definie
                 </Typography>
@@ -494,7 +494,7 @@ const TeamEdit: React.FC = () => {
                           color="error"
                           onClick={() => removeCoverageZone(index)}
                         >
-                          <DeleteOutlined sx={{ fontSize: 18 }} />
+                          <DeleteOutlined size={18} strokeWidth={1.75} />
                         </IconButton>
                       </Grid>
                     </Grid>

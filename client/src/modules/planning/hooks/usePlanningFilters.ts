@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { getParsedAccessToken } from '../../../keycloak';
 import type { ReservationStatus, PlanningInterventionType } from '../../../services/api';
 import type { PlanningEvent, PlanningFilters, PlanningProperty } from '../types';
 
@@ -10,6 +11,58 @@ const DEFAULT_FILTERS: PlanningFilters = {
   showInterventions: true,
   showPrices: true,
 };
+
+// ─── localStorage persistence (per-user) ────────────────────────────────────
+
+const STORAGE_KEY_PREFIX = 'clenzy.planning.filters';
+
+/** Champs de PlanningFilters qui sont persistés. searchQuery / propertyIds
+ *  restent éphémères (typés à chaque session). */
+type PersistedFilters = Pick<
+  PlanningFilters,
+  'statuses' | 'interventionTypes' | 'showInterventions' | 'showPrices'
+>;
+
+function storageKey(): string {
+  const sub = getParsedAccessToken()?.sub ?? 'anon';
+  return `${STORAGE_KEY_PREFIX}.${sub}`;
+}
+
+function loadPersistedFilters(): Partial<PersistedFilters> {
+  try {
+    const raw = window.localStorage.getItem(storageKey());
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return {};
+    // Validation light — only known fields, correct types
+    const out: Partial<PersistedFilters> = {};
+    if (Array.isArray(parsed.statuses)) out.statuses = parsed.statuses as ReservationStatus[];
+    if (Array.isArray(parsed.interventionTypes)) out.interventionTypes = parsed.interventionTypes as PlanningInterventionType[];
+    if (typeof parsed.showInterventions === 'boolean') out.showInterventions = parsed.showInterventions;
+    if (typeof parsed.showPrices === 'boolean') out.showPrices = parsed.showPrices;
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function savePersistedFilters(filters: PlanningFilters): void {
+  try {
+    const toSave: PersistedFilters = {
+      statuses: filters.statuses,
+      interventionTypes: filters.interventionTypes,
+      showInterventions: filters.showInterventions,
+      showPrices: filters.showPrices,
+    };
+    window.localStorage.setItem(storageKey(), JSON.stringify(toSave));
+  } catch {
+    // ignore (quota, private mode)
+  }
+}
+
+function buildInitialFilters(): PlanningFilters {
+  return { ...DEFAULT_FILTERS, ...loadPersistedFilters() };
+}
 
 export interface UsePlanningFiltersReturn {
   filters: PlanningFilters;
@@ -29,7 +82,12 @@ export function usePlanningFilters(
   events: PlanningEvent[],
   properties: PlanningProperty[],
 ): UsePlanningFiltersReturn {
-  const [filters, setFilters] = useState<PlanningFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<PlanningFilters>(() => buildInitialFilters());
+
+  // Persiste a chaque changement (champs persistés uniquement — voir PersistedFilters).
+  useEffect(() => {
+    savePersistedFilters(filters);
+  }, [filters.statuses, filters.interventionTypes, filters.showInterventions, filters.showPrices]);
 
   const setStatusFilter = useCallback((statuses: ReservationStatus[]) => {
     setFilters((prev) => ({ ...prev, statuses }));

@@ -31,12 +31,13 @@ import {
   Visibility,
   Edit,
   LocationOn,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import { PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
 import ExportButton from '../../components/ExportButton';
@@ -310,7 +311,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           onClick={() => navigate('/properties/new')}
           sx={{ ...ICON_BUTTON_SX, color: 'primary.main', borderColor: 'primary.main', bgcolor: 'rgba(107,138,154,0.06)' }}
         >
-          <Add />
+          <Add size={20} strokeWidth={1.75} />
         </IconButton>
       </Tooltip>
     </Box>
@@ -362,6 +363,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           <PageHeader
             title={t('properties.title')}
             subtitle={t('properties.subtitle')}
+            iconBadge={<Home />}
             backPath="/dashboard"
             showBackButton={false}
             actions={actionButtons}
@@ -372,49 +374,28 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
 
       {/* Liste des propriétés */}
       {filteredProperties.length === 0 ? (
-        <Card sx={{ textAlign: 'center', py: 2, px: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
-          <CardContent sx={{ py: 1.5 }}>
-            <Box sx={{ mb: 1 }}>
-              <Home sx={EMPTY_STATE_ICON_SX} />
-            </Box>
-            <Typography
-              variant="h6"
-              color="text.secondary"
-              sx={{ fontSize: '0.875rem', fontWeight: 600, mb: 0.5 }}
+        <EmptyState
+          icon={<Home />}
+          title={t('properties.noPropertyFound')}
+          description={`${
+            isAdmin() || isManager()
+              ? t('properties.noPropertyCreated')
+              : t('properties.noPropertyAssigned')
+          } — ${t('properties.propertiesDescription')}`}
+          action={(isAdmin() || isManager() || isHost()) && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Add size={16} strokeWidth={1.75} />}
+              onClick={() => navigate('/properties/new')}
             >
-              {t('properties.noPropertyFound')}
-            </Typography>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ fontSize: '0.75rem', mb: 0.5 }}
-            >
-              {isAdmin() || isManager()
-                ? t('properties.noPropertyCreated')
-                : t('properties.noPropertyAssigned')}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontSize: '0.6875rem', mb: 1.5, display: 'block' }}
-            >
-              {t('properties.propertiesDescription')}
-            </Typography>
-            {(isAdmin() || isManager() || isHost()) && (
-              <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                <Button
-                  variant="contained"
-                  startIcon={<Add />}
-                  onClick={() => navigate('/properties/new')}
-                  size="small"
-                  sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-                >
-                  {t('properties.createFirst')}
-                </Button>
-              </Box>
-            )}
-          </CardContent>
-        </Card>
+              {t('properties.createFirst')}
+            </Button>
+          )}
+          tip={(isAdmin() || isManager() || isHost())
+            ? 'Astuce : une fois une propriété créée, branche son lien iCal pour synchroniser automatiquement les réservations Airbnb.'
+            : undefined}
+        />
       ) : viewMode === 'map' ? (
         /* ─── Vue carte (sticky) + liste viewport (scrollable) ─── */
         <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 140px)', minHeight: 500 }}>
@@ -431,7 +412,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
               />
             ) : (
               <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                <Home sx={EMPTY_STATE_ICON_SX} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', opacity: 0.5 }}><Home size={36} strokeWidth={1.5} /></Box>
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
                   Aucune propriété avec coordonnées GPS
                 </Typography>
@@ -490,7 +471,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                               {property.name}
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                              <LocationOn sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }} />
+                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
@@ -549,7 +530,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                                 onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}`); }}
                                 sx={{ p: 0.5 }}
                               >
-                                <Visibility sx={{ fontSize: 16 }} />
+                                <Visibility size={16} strokeWidth={1.75} />
                               </IconButton>
                             </Tooltip>
                           </Box>
@@ -823,7 +804,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                             size="small"
                             onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}`); }}
                           >
-                            <Visibility sx={{ fontSize: 18 }} />
+                            <Visibility size={18} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Modifier">
@@ -831,7 +812,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                             size="small"
                             onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}/edit`); }}
                           >
-                            <Edit sx={{ fontSize: 18 }} />
+                            <Edit size={18} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                       </TableCell>
@@ -910,7 +891,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           }}
           onClick={() => navigate('/properties/new')}
         >
-          <Add />
+          <Add size={20} strokeWidth={1.75} />
         </Fab>
       )}
     </Box>

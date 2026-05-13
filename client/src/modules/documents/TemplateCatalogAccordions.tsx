@@ -23,7 +23,7 @@ import {
   CheckCircle,
   Warning,
   Code,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import type { DocumentTemplate } from '../../services/api/documentsApi';
 
@@ -443,7 +443,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                     {item.variables && item.variables.length > 0 && (
                       <Box sx={{ mt: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                          <Code sx={{ fontSize: 14, color: 'text.secondary' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Code size={14} strokeWidth={1.75} /></Box>
                           <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
                             Variables disponibles :
                           </Typography>
@@ -484,7 +484,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                     >
                       {item.templateKind === 'document' && linkedTemplate && (
                         <>
-                          <CheckCircle sx={{ fontSize: 18, color: 'success.main' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>
                           <Box sx={{ flex: 1 }}>
                             <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
                               {linkedTemplate.originalFilename}
@@ -495,7 +495,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                           </Box>
                           <Button
                             size="small"
-                            startIcon={<Visibility sx={{ fontSize: 14 }} />}
+                            startIcon={<Visibility size={14} strokeWidth={1.75} />}
                             onClick={() => navigate(`/documents/templates/${linkedTemplate.id}`)}
                             sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
                           >
@@ -506,14 +506,14 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
 
                       {item.templateKind === 'document' && !linkedTemplate && (
                         <>
-                          <Warning sx={{ fontSize: 18, color: 'warning.main' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Warning size={18} strokeWidth={1.75} /></Box>
                           <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
                             Aucun template uploade
                           </Typography>
                           <Button
                             size="small"
                             variant="outlined"
-                            startIcon={<CloudUpload sx={{ fontSize: 14 }} />}
+                            startIcon={<CloudUpload size={14} strokeWidth={1.75} />}
                             onClick={onOpenUpload}
                             sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
                           >
@@ -524,7 +524,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
 
                       {item.templateKind === 'message' && (
                         <>
-                          <CheckCircle sx={{ fontSize: 18, color: 'info.main' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>
                           <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
                             Template de messagerie — configurable dans l'onglet "Templates messages"
                           </Typography>
@@ -532,7 +532,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                             <Button
                               size="small"
                               variant="outlined"
-                              startIcon={<OpenInNew sx={{ fontSize: 14 }} />}
+                              startIcon={<OpenInNew size={14} strokeWidth={1.75} />}
                               onClick={onSwitchToMessagingTab}
                               sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
                             >
@@ -544,7 +544,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
 
                       {item.templateKind === 'hardcoded' && (
                         <>
-                          <CheckCircle sx={{ fontSize: 18, color: 'success.main' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>
                           <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
                             Template integre au systeme — non modifiable
                           </Typography>

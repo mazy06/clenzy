@@ -1,6 +1,6 @@
 import React from 'react';
 import { Autocomplete, TextField, CircularProgress, Typography, Box } from '@mui/material';
-import { LocationCity as LocationCityIcon } from '@mui/icons-material';
+import { LocationCity as LocationCityIcon } from '../icons';
 import { useCityAutocomplete } from '../hooks/useCityAutocomplete';
 import type { GeocodedAddress } from '../services/geocoderApi';
 
@@ -68,7 +68,7 @@ export function CityAutocomplete({
       renderOption={(props, option) => (
         <li {...props} key={`${option.label}-${option.latitude}-${option.longitude}`}>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-            <LocationCityIcon sx={{ color: 'text.secondary', fontSize: '1.1rem', mt: 0.3 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.3 }}><LocationCityIcon size={18} strokeWidth={1.75} /></Box>
             <Box>
               <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                 {option.city || option.label}

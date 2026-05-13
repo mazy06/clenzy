@@ -13,7 +13,7 @@ import {
   ShoppingCart,
   Payment,
   CheckCircle,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { UsePanelPaymentReturn } from './usePanelPayment';
 import { useCurrency } from '../../../hooks/useCurrency';
 
@@ -51,7 +51,7 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <ShoppingCart sx={{ fontSize: 16, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><ShoppingCart size={16} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
             Panier ({cartItems.length})
           </Typography>
@@ -119,7 +119,7 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
         <Alert severity="error" sx={{ fontSize: '0.6875rem', mb: 1 }}>{paymentError}</Alert>
       )}
       {paymentSuccess && (
-        <Alert severity="success" icon={<CheckCircle sx={{ fontSize: 18 }} />} sx={{ fontSize: '0.6875rem', mb: 1 }}>
+        <Alert severity="success" icon={<CheckCircle size={18} strokeWidth={1.75} />} sx={{ fontSize: '0.6875rem', mb: 1 }}>
           Paiement effectué avec succès !
         </Alert>
       )}
@@ -129,7 +129,7 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
         variant="contained"
         fullWidth
         size="small"
-        startIcon={paying ? <CircularProgress size={14} color="inherit" /> : <Payment sx={{ fontSize: 16 }} />}
+        startIcon={paying ? <CircularProgress size={14} color="inherit" /> : <Payment size={16} strokeWidth={1.75} />}
         onClick={initiatePayment}
         disabled={paying || selectedIds.length === 0}
         sx={{ textTransform: 'none', fontSize: '0.75rem' }}

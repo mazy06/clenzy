@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { Box, IconButton } from '@mui/material';
-import { Menu as MenuIcon } from '@mui/icons-material';
+import { Menu as MenuIcon } from '../../icons';
 import { useLayoutState } from '../../hooks/useLayoutState';
 import { useNavigationMenu } from '../../hooks/useNavigationMenu';
 import { useSidebarState } from '../../hooks/useSidebarState';

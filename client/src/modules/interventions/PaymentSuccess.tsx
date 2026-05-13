@@ -10,7 +10,7 @@ import {
   Alert,
   LinearProgress,
 } from '@mui/material';
-import { CheckCircle, ArrowBack, HourglassTop, ErrorOutline } from '@mui/icons-material';
+import { CheckCircle, ArrowBack, HourglassTop, ErrorOutline } from "../../icons";
 import { paymentsApi } from '../../services/api';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -85,7 +85,9 @@ const PaymentSuccess: React.FC = () => {
       <Box sx={{ maxWidth: 500, mx: 'auto', mt: 6 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center', p: 4 }}>
-            <HourglassTop sx={{ fontSize: 56, color: 'primary.main', mb: 2, animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mb: 2, animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }}>
+              <HourglassTop size={56} strokeWidth={1.75} />
+            </Box>
             <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
               Verification du paiement...
             </Typography>
@@ -109,11 +111,11 @@ const PaymentSuccess: React.FC = () => {
         <CardContent sx={{ textAlign: 'center', p: 4 }}>
           {error ? (
             <>
-              <ErrorOutline sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
+              <Box component="span" sx={{ display: "inline-flex", color: "error.main", mb: 2 }}><ErrorOutline size={64} strokeWidth={1.5} /></Box>
               <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
               <Button
                 variant="contained"
-                startIcon={<ArrowBack />}
+                startIcon={<ArrowBack size={18} strokeWidth={1.75} />}
                 onClick={() => navigate('/billing')}
               >
                 Retour a la facturation
@@ -121,7 +123,7 @@ const PaymentSuccess: React.FC = () => {
             </>
           ) : paymentConfirmed ? (
             <>
-              <CheckCircle sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
+              <Box component="span" sx={{ display: "inline-flex", color: "success.main", mb: 2 }}><CheckCircle size={80} strokeWidth={1.5} /></Box>
               <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
                 Paiement reussi !
               </Typography>
@@ -138,7 +140,7 @@ const PaymentSuccess: React.FC = () => {
             </>
           ) : (
             <>
-              <CheckCircle sx={{ fontSize: 80, color: 'warning.main', mb: 2 }} />
+              <Box component="span" sx={{ display: "inline-flex", color: "warning.main", mb: 2 }}><CheckCircle size={80} strokeWidth={1.5} /></Box>
               <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
                 Paiement en cours de traitement
               </Typography>

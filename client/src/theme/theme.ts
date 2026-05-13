@@ -112,75 +112,121 @@ const theme = createTheme({
       focusOpacity: 0.12,
       activatedOpacity: 0.12,
     },
+    // Fonds et textes : teintés vers la primary (#6B8A9A bleu-gris) au lieu
+    // de neutres purs. Aucun #fff, aucun slate brut — chroma 0.005-0.01 vers
+    // le hue brand pour la cohésion subtile (Impeccable shared design laws).
     background: {
-      default: '#F8FAFC', // Fond très clair harmonisé
-      paper: '#ffffff',
+      default: '#F4F7F9', // canvas — pointe de bleu-gris
+      paper: '#FBFCFD',   // surface paper — pas blanc pur
     },
     text: {
-      primary: '#1E293B', // Texte principal foncé
-      secondary: '#64748B', // Texte secondaire harmonisé
+      primary: '#1B2A35',   // ex slate-900 teinté vers la primary
+      secondary: '#5F7382', // ex slate-500 teinté
     },
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    // Plus Jakarta Sans en primary — humaniste, terminaisons rondes, B2B
+    // ready, distinct d'Inter (anti-pattern "Inter everywhere" Taste).
+    // Inter conservé en fallback pour les surfaces legacy.
+    fontFamily: '"Plus Jakarta Sans", "Inter", "Helvetica", "Arial", sans-serif',
+    // ─── Typography responsive ──────────────────────────────────────────────
+    // 3 paliers : sm (laptop 13"-15") / md (1200+) / xl (1536+). La valeur de
+    // base est la plus petite ; les paliers superieurs sont opt-in via media
+    // queries pour eviter d'agrandir trop tot sur un ecran cible (laptop).
+    // Tous les composants qui utilisent <Typography variant="..."> heritent
+    // automatiquement de cette echelle — aucun changement consommateur.
+    // Hierarchy : contraste de scale + weight (ratio ≥ 1.25 entre paliers
+    // de titres) + tracking négatif sur les gros titres. textWrap: balance
+    // pour éviter les orphans (Taste recommendation).
     h1: {
       fontWeight: 700,
-      fontSize: '1.75rem',
-      lineHeight: 1.2,
-      letterSpacing: '-0.01em',
+      fontSize: '1.5rem',
+      lineHeight: 1.15,
+      letterSpacing: '-0.025em',
+      textWrap: 'balance' as const,
+      '@media (min-width:1200px)': { fontSize: '1.75rem' },
+      '@media (min-width:1536px)': { fontSize: '2rem' },
     },
     h2: {
       fontWeight: 700,
-      fontSize: '1.5rem',
-      lineHeight: 1.25,
-      letterSpacing: '-0.01em',
+      fontSize: '1.1875rem',
+      lineHeight: 1.2,
+      letterSpacing: '-0.02em',
+      textWrap: 'balance' as const,
+      '@media (min-width:1200px)': { fontSize: '1.375rem' },
+      '@media (min-width:1536px)': { fontSize: '1.5rem' },
     },
     h3: {
       fontWeight: 600,
-      fontSize: '1.25rem', // 1.75rem → 1.25rem
-      lineHeight: 1.3,
+      fontSize: '1rem',
+      lineHeight: 1.25,
+      letterSpacing: '-0.015em',
+      textWrap: 'balance' as const,
+      '@media (min-width:1200px)': { fontSize: '1.125rem' },
+      '@media (min-width:1536px)': { fontSize: '1.25rem' },
     },
     h4: {
       fontWeight: 600,
-      fontSize: '1.125rem', // 1.5rem → 1.125rem
-      lineHeight: 1.35,
+      fontSize: '0.9375rem',
+      lineHeight: 1.3,
+      letterSpacing: '-0.01em',
+      textWrap: 'balance' as const,
+      '@media (min-width:1200px)': { fontSize: '1rem' },
+      '@media (min-width:1536px)': { fontSize: '1.0625rem' },
     },
     h5: {
       fontWeight: 600,
-      fontSize: '1rem', // 1.25rem → 1rem
-      lineHeight: 1.4,
+      fontSize: '0.875rem',
+      lineHeight: 1.35,
+      letterSpacing: '-0.005em',
+      '@media (min-width:1200px)': { fontSize: '0.9375rem' },
+      '@media (min-width:1536px)': { fontSize: '1rem' },
     },
     h6: {
       fontWeight: 600,
-      fontSize: '0.875rem', // 1.125rem → 0.875rem
+      fontSize: '0.8125rem',
       lineHeight: 1.4,
+      '@media (min-width:1200px)': { fontSize: '0.875rem' },
+      '@media (min-width:1536px)': { fontSize: '0.9375rem' },
     },
     subtitle1: {
-      fontSize: '0.875rem',
+      fontSize: '0.75rem',
       lineHeight: 1.5,
       fontWeight: 500,
+      '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+      '@media (min-width:1536px)': { fontSize: '0.875rem' },
     },
     subtitle2: {
-      fontSize: '0.8125rem',
+      fontSize: '0.6875rem',
       lineHeight: 1.5,
       fontWeight: 500,
+      '@media (min-width:1200px)': { fontSize: '0.75rem' },
+      '@media (min-width:1536px)': { fontSize: '0.8125rem' },
     },
     body1: {
-      fontSize: '0.875rem', // 1rem → 0.875rem
-      lineHeight: 1.5, // 1.6 → 1.5
+      fontSize: '0.75rem',
+      lineHeight: 1.5,
+      '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+      '@media (min-width:1536px)': { fontSize: '0.875rem' },
     },
     body2: {
-      fontSize: '0.8125rem', // 0.875rem → 0.8125rem
-      lineHeight: 1.5, // 1.6 → 1.5
+      fontSize: '0.6875rem',
+      lineHeight: 1.5,
+      '@media (min-width:1200px)': { fontSize: '0.75rem' },
+      '@media (min-width:1536px)': { fontSize: '0.8125rem' },
     },
     caption: {
-      fontSize: '0.6875rem', // 0.75rem → 0.6875rem
+      fontSize: '0.625rem',
       lineHeight: 1.4,
+      '@media (min-width:1200px)': { fontSize: '0.6875rem' },
+      '@media (min-width:1536px)': { fontSize: '0.6875rem' },
     },
     button: {
       fontWeight: 600,
       textTransform: 'none',
-      fontSize: '0.8125rem', // Ajout taille de police pour boutons
+      fontSize: '0.6875rem',
+      '@media (min-width:1200px)': { fontSize: '0.75rem' },
+      '@media (min-width:1536px)': { fontSize: '0.8125rem' },
     },
   },
   shape: {
@@ -188,28 +234,97 @@ const theme = createTheme({
   },
   spacing: 6, // Réduire l'espacement de base (8px → 6px)
   components: {
+    // Baseline globale : tabular-nums sur les nombres pour alignement
+    // vertical des prix/KPI/dates, optical-sizing auto, font smoothing
+    // cohérent macOS/Chrome.
+    MuiCssBaseline: {
+      styleOverrides: {
+        html: {
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          fontVariantNumeric: 'tabular-nums',
+          textRendering: 'optimizeLegibility' as const,
+        },
+        body: {
+          fontVariantNumeric: 'tabular-nums',
+          // Grain de fond imperceptible (~1.5% opacity) pour briser la flatness
+          // du fond plat. Un seul SVG noise inline (~200 bytes après gzip),
+          // fixed pour ne pas être paint au scroll, pointer-events:none.
+          // Anti-pattern Taste : *"Flat design with zero texture. Pure flat
+          // vectors feel sterile."*
+          position: 'relative',
+          '&::before': {
+            content: '""',
+            position: 'fixed',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 0,
+            opacity: 0.025,
+            backgroundImage:
+              `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+            mixBlendMode: 'multiply' as const,
+          },
+        },
+        // Keyframes globales pour les entrées en stagger.
+        // Exponential ease (ease-out-quart-ish) — Impeccable motion law.
+        '@keyframes clz-fade-in-up': {
+          '0%':   { opacity: 0, transform: 'translateY(8px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+        '@keyframes clz-fade-in': {
+          '0%':   { opacity: 0 },
+          '100%': { opacity: 1 },
+        },
+        // Reduced-motion : pas d'entrée animée.
+        '@media (prefers-reduced-motion: reduce)': {
+          '*, *::before, *::after': {
+            animationDuration: '0.01ms !important',
+            animationIterationCount: '1 !important',
+            transitionDuration: '0.01ms !important',
+            scrollBehavior: 'auto !important',
+          },
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {
           borderRadius: 6,
-          padding: '6px 16px',
-          fontSize: '0.8125rem',
+          padding: '5px 12px',
+          fontSize: '0.6875rem',
+          '@media (min-width:1200px)': { fontSize: '0.75rem' },
+          '@media (min-width:1536px)': { fontSize: '0.8125rem' },
           fontWeight: 600,
-          minHeight: 36,
+          minHeight: 28,
           boxShadow: 'none',
+          // Transition transform + bg uniquement (pas layout properties)
+          transition: 'transform 120ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms, border-color 200ms, color 200ms',
           '&:hover': {
             boxShadow: 'none',
           },
+          // Tactile feedback : scale subtle au press, sans layout shift (transform GPU)
+          '&:active': {
+            transform: 'scale(0.97)',
+          },
+          // Respect prefers-reduced-motion
+          '@media (prefers-reduced-motion: reduce)': {
+            transition: 'background-color 200ms, border-color 200ms, color 200ms',
+            '&:active': { transform: 'none' },
+          },
         },
         sizeSmall: {
-          padding: '4px 12px',
-          fontSize: '0.75rem',
-          minHeight: 32,
+          padding: '3px 10px',
+          fontSize: '0.625rem',
+          '@media (min-width:1200px)': { fontSize: '0.6875rem' },
+          '@media (min-width:1536px)': { fontSize: '0.75rem' },
+          minHeight: 24,
         },
         sizeLarge: {
-          padding: '8px 20px',
-          fontSize: '0.875rem',
-          minHeight: 40,
+          padding: '6px 16px',
+          fontSize: '0.75rem',
+          '@media (min-width:1200px)': { fontSize: '0.8125rem' },
+          '@media (min-width:1536px)': { fontSize: '0.875rem' },
+          minHeight: 34,
         },
         contained: {
           '&:hover': {
@@ -227,7 +342,7 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 10, // Container — softer than interior (4-6) but tighter than modals (12)
           boxShadow: 'none',
           border: '1px solid',
           borderColor: '#E2E8F0',
@@ -240,9 +355,9 @@ const theme = createTheme({
     MuiCardContent: {
       styleOverrides: {
         root: {
-          padding: '16px', // Padding par défaut réduit
+          padding: '12px',
           '&:last-child': {
-            paddingBottom: '16px',
+            paddingBottom: '12px',
           },
         },
       },
@@ -250,7 +365,7 @@ const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 10,
         },
         elevation0: {
           boxShadow: 'none',
@@ -261,39 +376,63 @@ const theme = createTheme({
           borderColor: '#E2E8F0',
         },
         elevation2: {
-          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          // Shadow teintée vers la primary plutôt que noir pur (Taste rule).
+          boxShadow: '0 1px 3px rgba(27, 42, 53, 0.08)',
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: 14, // Modals: softer container, signature surface
+          boxShadow: '0 24px 48px rgba(27, 42, 53, 0.18), 0 4px 12px rgba(27, 42, 53, 0.08)',
         },
       },
     },
     MuiTextField: {
+      // Tous les TextField sont 'small' par défaut — plus de Form geant sur laptop.
+      // Override possible localement via size="medium" si necessaire.
+      defaultProps: {
+        size: 'small',
+      },
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
             borderRadius: 6,
-            fontSize: '0.875rem',
-            '& input': {
-              padding: '10px 14px', // Réduire le padding pour hauteur 48px
-              height: '1.4375em',
-            },
+            // Echelle responsive serrée : 11px laptop → 12px md → 13px xl
+            fontSize: '0.6875rem',
+            '@media (min-width:1200px)': { fontSize: '0.75rem' },
+            '@media (min-width:1536px)': { fontSize: '0.8125rem' },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#6B8A9A', // Couleur primary Clenzy
+              borderColor: '#6B8A9A',
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#6B8A9A', // Couleur primary Clenzy
-              borderWidth: '1.5px', // 2px → 1.5px
+              borderColor: '#6B8A9A',
+              borderWidth: '1.5px',
             },
           },
           '& .MuiInputLabel-root': {
-            fontSize: '0.875rem',
+            fontSize: '0.6875rem',
+            '@media (min-width:1200px)': { fontSize: '0.75rem' },
+            '@media (min-width:1536px)': { fontSize: '0.8125rem' },
           },
           '& .MuiFormHelperText-root': {
-            fontSize: '0.75rem',
-            marginTop: '4px',
+            fontSize: '0.625rem',
+            marginTop: '2px',
+            '@media (min-width:1536px)': { fontSize: '0.6875rem' },
           },
         },
       },
     },
+    // Selects et Autocomplete suivent la meme echelle responsive.
+    MuiFormControl: {
+      defaultProps: { size: 'small' },
+    },
+    MuiAutocomplete: {
+      defaultProps: { size: 'small' },
+    },
     MuiSelect: {
+      defaultProps: { size: 'small' },
       styleOverrides: {
         root: {
           borderRadius: 8,
@@ -303,20 +442,20 @@ const theme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 12, // 16 → 12
+          borderRadius: 10,
           fontWeight: 500,
-          height: 24, // Hauteur réduite
-          fontSize: '0.75rem',
+          height: 20,
+          fontSize: '0.6875rem',
           '& .MuiChip-label': {
-            padding: '0 8px',
+            padding: '0 6px',
           },
         },
         sizeSmall: {
-          height: 20,
-          fontSize: '0.6875rem',
+          height: 18,
+          fontSize: '0.625rem',
         },
         outlined: {
-          borderWidth: '1px', // 1.5px → 1px
+          borderWidth: '1px',
         },
       },
     },
@@ -341,17 +480,17 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 6,
-          margin: '1px 6px', // 2px 8px → 1px 6px
-          minHeight: 40, // Hauteur réduite
-          padding: '8px 12px', // Padding réduit
+          margin: '1px 6px',
+          minHeight: 32,
+          padding: '4px 10px',
           '&:hover': {
-            backgroundColor: 'rgba(107, 138, 154, 0.08)', // Primary Clenzy avec opacité
+            backgroundColor: 'rgba(107, 138, 154, 0.08)',
           },
           '&.Mui-selected': {
-            backgroundColor: '#6B8A9A', // Primary Clenzy
+            backgroundColor: '#6B8A9A',
             color: '#ffffff',
             '&:hover': {
-              backgroundColor: '#5A7684', // Primary dark Clenzy
+              backgroundColor: '#5A7684',
             },
             '& .MuiListItemIcon-root': {
               color: '#ffffff',
@@ -363,9 +502,10 @@ const theme = createTheme({
     MuiMenuItem: {
       styleOverrides: {
         root: {
-          fontSize: '0.875rem',
-          minHeight: 40, // Hauteur réduite
-          padding: '8px 16px', // Padding réduit
+          fontSize: '0.75rem',
+          minHeight: 30,
+          padding: '4px 12px',
+          '@media (min-width:1536px)': { fontSize: '0.8125rem' },
         },
       },
     },
@@ -381,22 +521,26 @@ const theme = createTheme({
     MuiTableCell: {
       styleOverrides: {
         root: {
-          padding: '12px 16px', // Padding réduit
-          fontSize: '0.875rem',
+          padding: '8px 12px',
+          fontSize: '0.75rem',
+          '@media (min-width:1536px)': { fontSize: '0.8125rem' },
         },
         head: {
-          fontSize: '0.8125rem',
+          fontSize: '0.6875rem',
           fontWeight: 600,
-          padding: '10px 16px',
+          padding: '6px 12px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.03em',
         },
       },
     },
     MuiFab: {
       styleOverrides: {
         root: {
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          // Shadow teintée vers la primary brand (vs noir pur générique)
+          boxShadow: '0 4px 12px rgba(107, 138, 154, 0.22)',
           '&:hover': {
-            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+            boxShadow: '0 6px 16px rgba(107, 138, 154, 0.28)',
           },
         },
       },

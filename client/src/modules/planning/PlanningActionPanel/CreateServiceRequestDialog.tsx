@@ -40,7 +40,7 @@ import {
   Warning as WarningIcon,
   Timer,
   Euro,
-} from '@mui/icons-material';
+} from '../../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -542,34 +542,34 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     const tags: { icon: React.ReactElement; label: string }[] = [];
 
     if (selectedProperty.type) {
-      tags.push({ icon: <Category sx={{ fontSize: 12 }} />, label: getPropertyTypeLabel(selectedProperty.type, t) });
+      tags.push({ icon: <Category size={12} strokeWidth={1.75} />, label: getPropertyTypeLabel(selectedProperty.type, t) });
     }
     if (selectedProperty.squareMeters && selectedProperty.squareMeters > 0) {
-      tags.push({ icon: <SquareFoot sx={{ fontSize: 12 }} />, label: `${selectedProperty.squareMeters} m²` });
+      tags.push({ icon: <SquareFoot size={12} strokeWidth={1.75} />, label: `${selectedProperty.squareMeters} m²` });
     }
     if (selectedProperty.bedroomCount && selectedProperty.bedroomCount > 0) {
-      tags.push({ icon: <Bed sx={{ fontSize: 12 }} />, label: `${selectedProperty.bedroomCount} ${selectedProperty.bedroomCount > 1 ? 'chambres' : 'chambre'}` });
+      tags.push({ icon: <Bed size={12} strokeWidth={1.75} />, label: `${selectedProperty.bedroomCount} ${selectedProperty.bedroomCount > 1 ? 'chambres' : 'chambre'}` });
     }
     if (selectedProperty.bathroomCount && selectedProperty.bathroomCount > 0) {
-      tags.push({ icon: <Bathtub sx={{ fontSize: 12 }} />, label: `${selectedProperty.bathroomCount} SDB` });
+      tags.push({ icon: <Bathtub size={12} strokeWidth={1.75} />, label: `${selectedProperty.bathroomCount} SDB` });
     }
     if (selectedProperty.maxGuests && selectedProperty.maxGuests > 0) {
-      tags.push({ icon: <People sx={{ fontSize: 12 }} />, label: `${selectedProperty.maxGuests} voyageurs` });
+      tags.push({ icon: <People size={12} strokeWidth={1.75} />, label: `${selectedProperty.maxGuests} voyageurs` });
     }
     if (selectedProperty.hasExterior) {
-      tags.push({ icon: <Deck sx={{ fontSize: 12 }} />, label: 'Extérieur' });
+      tags.push({ icon: <Deck size={12} strokeWidth={1.75} />, label: 'Extérieur' });
     }
     if (selectedProperty.hasLaundry) {
-      tags.push({ icon: <LocalLaundryService sx={{ fontSize: 12 }} />, label: 'Linge' });
+      tags.push({ icon: <LocalLaundryService size={12} strokeWidth={1.75} />, label: 'Linge' });
     }
     if (selectedProperty.windowCount && selectedProperty.windowCount > 0) {
-      tags.push({ icon: <Window sx={{ fontSize: 12 }} />, label: `${selectedProperty.windowCount} fenêtres` });
+      tags.push({ icon: <Window size={12} strokeWidth={1.75} />, label: `${selectedProperty.windowCount} fenêtres` });
     }
     if (selectedProperty.frenchDoorCount && selectedProperty.frenchDoorCount > 0) {
-      tags.push({ icon: <DoorSliding sx={{ fontSize: 12 }} />, label: `${selectedProperty.frenchDoorCount} portes-fenêtres` });
+      tags.push({ icon: <DoorSliding size={12} strokeWidth={1.75} />, label: `${selectedProperty.frenchDoorCount} portes-fenêtres` });
     }
     if (selectedProperty.slidingDoorCount && selectedProperty.slidingDoorCount > 0) {
-      tags.push({ icon: <DoorSliding sx={{ fontSize: 12 }} />, label: `${selectedProperty.slidingDoorCount} baies vitrées` });
+      tags.push({ icon: <DoorSliding size={12} strokeWidth={1.75} />, label: `${selectedProperty.slidingDoorCount} baies vitrées` });
     }
 
     return tags;
@@ -648,13 +648,13 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
       {/* ── Title ── */}
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Send sx={{ fontSize: 20, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Send size={20} strokeWidth={1.75} /></Box>
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
             Nouvelle demande de service
           </Typography>
         </Box>
         <IconButton size="small" onClick={onClose}>
-          <Close sx={{ fontSize: 18 }} />
+          <Close size={18} strokeWidth={1.75} />
         </IconButton>
       </DialogTitle>
 
@@ -663,7 +663,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
           {/* Property name + address */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-            <Home sx={{ fontSize: 16, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Home size={16} strokeWidth={1.75} /></Box>
             <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary' }}>
               {propertyName}
             </Typography>
@@ -723,7 +723,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                 borderColor: 'grey.200',
                 minHeight: 40,
               }}>
-                <Person sx={{ fontSize: 16, color: 'primary.main' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Person size={16} strokeWidth={1.75} /></Box>
                 <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary', flex: 1 }}>
                   {currentUserLabel}
                 </Typography>
@@ -801,7 +801,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                   }}>
                     {/* Durée estimée */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1 }}>
-                      <Timer sx={{ fontSize: 18, color: 'primary.main' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Timer size={18} strokeWidth={1.75} /></Box>
                       <Box>
                         <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
                           Durée estimée
@@ -817,7 +817,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
                     {/* Prix estimé */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1 }}>
-                      <Euro sx={{ fontSize: 18, color: 'primary.main' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Euro size={18} strokeWidth={1.75} /></Box>
                       <Box>
                         <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
                           Prix estimé
@@ -905,7 +905,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                 {!conflictLoading && hasConflict && conflictInfo && watchedAssignedToType === 'team' && (
                   <Alert
                     severity="error"
-                    icon={<WarningIcon sx={{ fontSize: 20 }} />}
+                    icon={<WarningIcon size={20} strokeWidth={1.75} />}
                     sx={{
                       mt: 1.5,
                       fontSize: '0.75rem',
@@ -926,7 +926,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                       <Box sx={{ mt: 0.5, pl: 0.5 }}>
                         {conflictMembers.map((member) => (
                           <Box key={member.userId} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
-                            <Person sx={{ fontSize: 12, color: member.available ? 'success.main' : 'error.main' }} />
+                            <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'success.main' : 'error.main' }}><Person size={12} strokeWidth={1.75} /></Box>
                             <Typography sx={{ fontSize: '0.6875rem' }}>
                               {member.firstName} {member.lastName}
                               {!member.available && (
@@ -955,7 +955,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                 {!conflictLoading && hasConflict && userConflictInfo && watchedAssignedToType === 'user' && (
                   <Alert
                     severity="error"
-                    icon={<WarningIcon sx={{ fontSize: 20 }} />}
+                    icon={<WarningIcon size={20} strokeWidth={1.75} />}
                     sx={{
                       mt: 1.5,
                       fontSize: '0.75rem',
@@ -1019,7 +1019,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
             <Button
               onClick={handleBack}
               size="small"
-              startIcon={<ArrowBack sx={{ fontSize: 14 }} />}
+              startIcon={<ArrowBack size={14} strokeWidth={1.75} />}
               sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >
               Retour
@@ -1032,7 +1032,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
               variant="contained"
               size="small"
               disabled={!canGoNext()}
-              endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+              endIcon={<ArrowForward size={14} strokeWidth={1.75} />}
               sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >
               Suivant
@@ -1043,7 +1043,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
               variant="contained"
               size="small"
               disabled={saving || hasConflict || conflictLoading}
-              startIcon={saving ? <CircularProgress size={14} /> : hasConflict ? <WarningIcon sx={{ fontSize: 16 }} /> : <Send sx={{ fontSize: 16 }} />}
+              startIcon={saving ? <CircularProgress size={14} /> : hasConflict ? <WarningIcon size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
               color={hasConflict ? 'error' : 'primary'}
               sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >

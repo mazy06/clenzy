@@ -15,7 +15,7 @@ import {
   IconButton,
   alpha,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
 import MiniDateRangePicker from '../../components/MiniDateRangePicker';
@@ -124,7 +124,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
         </Typography>
         {editingPlan && (
           <IconButton size="small" onClick={onCancel} sx={{ p: 0.25 }}>
-            <CloseIcon sx={{ fontSize: 16 }} />
+            <CloseIcon size={16} strokeWidth={1.75} />
           </IconButton>
         )}
       </Box>

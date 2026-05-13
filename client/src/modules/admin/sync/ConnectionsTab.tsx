@@ -14,7 +14,7 @@ import {
   Alert,
   Typography,
 } from '@mui/material';
-import { Refresh } from '@mui/icons-material';
+import { Refresh } from '../../../icons';
 import { syncAdminApi, ConnectionSummary } from '../../../services/api/syncAdminApi';
 
 const statusColor = (status: string): 'success' | 'default' => {

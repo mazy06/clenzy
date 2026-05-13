@@ -3,8 +3,6 @@ import {
   Box,
   Typography,
   Grid,
-  Card,
-  CardContent,
   CircularProgress,
   Paper,
   List,
@@ -21,56 +19,21 @@ import {
   Group,
   Assignment,
   Schedule,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { portfoliosApi, portfoliosKeys } from '../../services/api';
 import { useTranslation } from '../../hooks/useTranslation';
+import StatTile from '../../components/StatTile';
 
-// ─── Stat Card ───────────────────────────────────────────────────────────────
+// ─── Couleurs d'accent des stat tiles (hex pour StatTile color prop) ─────────
 
-interface StatCardProps {
-  icon: React.ReactNode;
-  value: number;
-  label: string;
-  color: string;
-}
-
-function StatCard({ icon, value, label, color }: StatCardProps) {
-  return (
-    <Card
-      variant="outlined"
-      sx={{
-        borderRadius: 2,
-        transition: 'all 0.2s ease-in-out',
-        '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(107, 138, 154, 0.1)' },
-      }}
-    >
-      <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar
-            sx={{
-              bgcolor: `${color}`,
-              width: 44,
-              height: 44,
-              opacity: 0.9,
-            }}
-          >
-            {icon}
-          </Avatar>
-          <Box>
-            <Typography variant="h4" component="div" sx={{ fontWeight: 700, fontSize: '1.8rem', lineHeight: 1 }}>
-              {value}
-            </Typography>
-            <Typography color="text.secondary" sx={{ fontSize: '0.78rem', mt: 0.25 }}>
-              {label}
-            </Typography>
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-}
+const STAT_COLORS = {
+  portfolios: '#6B8A9A',  // primary — bleu-gris
+  clients:    '#10b981',  // success — vert
+  properties: '#0288d1',  // info — bleu
+  members:    '#f59e0b',  // warning — orange
+} as const;
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
@@ -130,38 +93,38 @@ const PortfolioStatsTab: React.FC = () => {
         {t('portfolios.subtitle')}
       </Typography>
 
-      {/* Stat cards */}
+      {/* Stat tiles (primitive partagée) */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            icon={<Business sx={{ fontSize: 22 }} />}
+          <StatTile
+            icon={<Business />}
             value={stats.totalPortfolios}
             label={t('portfolios.statistics.portfolios')}
-            color="primary.main"
+            color={STAT_COLORS.portfolios}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            icon={<People sx={{ fontSize: 22 }} />}
+          <StatTile
+            icon={<People />}
             value={stats.totalClients}
             label={t('portfolios.statistics.clients')}
-            color="success.main"
+            color={STAT_COLORS.clients}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            icon={<Assignment sx={{ fontSize: 22 }} />}
+          <StatTile
+            icon={<Assignment />}
             value={stats.totalProperties}
             label={t('portfolios.statistics.properties')}
-            color="info.main"
+            color={STAT_COLORS.properties}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            icon={<Group sx={{ fontSize: 22 }} />}
+          <StatTile
+            icon={<Group />}
             value={stats.totalTeamMembers}
             label={t('teams.members')}
-            color="warning.main"
+            color={STAT_COLORS.members}
           />
         </Grid>
       </Grid>
@@ -187,7 +150,7 @@ const PortfolioStatsTab: React.FC = () => {
                             bgcolor: portfolio.isActive ? 'primary.main' : 'grey.400',
                           }}
                         >
-                          <Business sx={{ fontSize: 14 }} />
+                          <Business size={14} strokeWidth={1.75} />
                         </Avatar>
                       </ListItemIcon>
                       <ListItemText
@@ -246,9 +209,9 @@ const PortfolioStatsTab: React.FC = () => {
                           }}
                         >
                           {assignment.type === 'CLIENT' ? (
-                            <People sx={{ fontSize: 14 }} />
+                            <People size={14} strokeWidth={1.75} />
                           ) : (
-                            <Group sx={{ fontSize: 14 }} />
+                            <Group size={14} strokeWidth={1.75} />
                           )}
                         </Avatar>
                       </ListItemIcon>
@@ -264,7 +227,7 @@ const PortfolioStatsTab: React.FC = () => {
                               {assignment.portfolioName}
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                              <Schedule sx={{ fontSize: 12, color: 'text.secondary' }} />
+                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={12} strokeWidth={1.75} /></Box>
                               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
                                 {formatDate(assignment.assignedAt)}
                               </Typography>

@@ -521,8 +521,12 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             display: 'flex',
             pointerEvents: 'none',
             borderTop: '1px dashed',
-            borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-            backgroundColor: isDark ? 'rgba(76, 175, 80, 0.03)' : 'rgba(76, 175, 80, 0.02)',
+            // Refonte : brand-tinted neutral (au lieu du vert générique).
+            // Border dashed + bg très subtil, tous deux teintés primary.
+            borderColor: isDark ? 'rgba(127, 160, 180, 0.18)' : 'rgba(107, 138, 154, 0.20)',
+            backgroundColor: isDark ? 'rgba(127, 160, 180, 0.05)' : 'rgba(107, 138, 154, 0.035)',
+            // Containment : aucun texte ne peut déborder verticalement
+            overflow: 'hidden',
           }}
         >
           {days.map((day, idx) => {
@@ -531,6 +535,15 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             const price = pricing?.nightlyPrice;
             // At month zoom, cells are too narrow (38px) — hide text
             const tooNarrow = dayWidth < 40;
+
+            // Change detection : on emphasize seulement les jours où le prix
+            // bascule (1er jour avec un prix, ou prix différent du précédent).
+            // Les jours "même prix qu'hier" passent en muted → moins de
+            // répétition visuelle dans la rangée.
+            const prevPrice = idx > 0
+              ? propertyPricing?.get(toDateStr(days[idx - 1]))?.nightlyPrice
+              : undefined;
+            const isPriceChange = price != null && price !== prevPrice;
 
             return (
               <Box
@@ -542,23 +555,42 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
+                  overflow: 'hidden',
+                  px: 0.25,
                   borderRight: '1px solid',
                   borderColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
+                  // Inset border à gauche pour marquer la frontière d'un
+                  // changement de prix (signal subtil pour les yeux attentifs).
+                  ...(isPriceChange && idx > 0 && {
+                    boxShadow: isDark
+                      ? 'inset 1px 0 0 rgba(127, 160, 180, 0.35)'
+                      : 'inset 1px 0 0 rgba(107, 138, 154, 0.30)',
+                  }),
                 }}
               >
                 {!tooNarrow && (
                   <Typography
                     component="span"
                     sx={{
-                      fontSize: dayWidth < 60 ? '0.5rem' : '0.5625rem',
-                      fontWeight: price != null ? 600 : 400,
-                      color: price != null
-                        ? isDark ? 'rgba(76, 175, 80, 0.85)' : 'rgba(46, 125, 50, 0.8)'
-                        : 'text.disabled',
+                      // Taille adaptée à la bande dédiée (16px normal /
+                      // 13px compact) sans débordement vertical.
+                      fontSize: dayWidth < 60 ? '0.4375rem' : '0.5rem',
+                      fontWeight: isPriceChange ? 600 : 400,
+                      color: price == null
+                        ? 'text.disabled'
+                        : isPriceChange
+                          ? 'text.primary'
+                          : 'text.secondary',
+                      opacity: price == null ? 0.6 : isPriceChange ? 1 : 0.55,
+                      // lineHeight: 1 garantit que le texte ne contribue
+                      // pas à un débordement vertical au-delà de sa cap-height.
                       lineHeight: 1,
+                      display: 'block',
+                      maxWidth: '100%',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
+                      fontVariantNumeric: 'tabular-nums',
                     }}
                   >
                     {price != null ? convertAndFormat(price, property.currency ?? 'EUR') : '\u2014'}

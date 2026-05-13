@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Box, Typography, IconButton, Button, alpha } from '@mui/material';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '../icons';
 
 // ─── Calendar Helpers ───────────────────────────────────────────────────────
 
@@ -198,7 +197,7 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
           onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
           sx={{ p: 0.25 }}
         >
-          <ChevronLeftIcon sx={{ fontSize: 16 }} />
+          <ChevronLeftIcon size={16} strokeWidth={1.75} />
         </IconButton>
         <Typography
           variant="caption"
@@ -212,7 +211,7 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
           onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
           sx={{ p: 0.25 }}
         >
-          <ChevronRightIcon sx={{ fontSize: 16 }} />
+          <ChevronRightIcon size={16} strokeWidth={1.75} />
         </IconButton>
       </Box>
 

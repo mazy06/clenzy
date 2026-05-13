@@ -15,7 +15,7 @@ import {
   AutoFixHigh,
   Send as SendIcon,
   Settings as SettingsIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAiDetectIntent, useAiSuggestResponse } from '../../hooks/useAi';
@@ -118,7 +118,7 @@ const AiMessagingControls: React.FC = React.memo(() => {
   return (
     <Paper sx={CARD_SX}>
       <Box sx={HEADER_SX}>
-        <Psychology sx={{ fontSize: 18, color: 'primary.main' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Psychology size={18} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
           {t('bookingEngine.ai.guidance.messaging.title')}
         </Typography>
@@ -133,7 +133,7 @@ const AiMessagingControls: React.FC = React.memo(() => {
           <Button
             size="small"
             variant="outlined"
-            startIcon={<SettingsIcon sx={{ fontSize: 14 }} />}
+            startIcon={<SettingsIcon size={14} strokeWidth={1.75} />}
             onClick={() => navigate('/settings')}
             sx={{ textTransform: 'none', fontSize: '0.7rem' }}
           >
@@ -191,7 +191,7 @@ const AiMessagingControls: React.FC = React.memo(() => {
               detectIntent.isPending ? (
                 <CircularProgress size={14} />
               ) : (
-                <Psychology sx={{ fontSize: 16 }} />
+                <Psychology size={16} strokeWidth={1.75} />
               )
             }
             onClick={handleDetectIntent}
@@ -207,7 +207,7 @@ const AiMessagingControls: React.FC = React.memo(() => {
               suggestResponse.isPending ? (
                 <CircularProgress size={14} color="inherit" />
               ) : (
-                <AutoFixHigh sx={{ fontSize: 16 }} />
+                <AutoFixHigh size={16} strokeWidth={1.75} />
               )
             }
             onClick={handleSuggestResponse}

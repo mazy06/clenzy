@@ -33,7 +33,7 @@ import {
   BarChart,
   StarRate,
   CheckCircle,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -449,17 +449,17 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
       {/* Validated indicator */}
       {model.lastValidatedAt && (
         <Tooltip title={`Valide le ${new Date(model.lastValidatedAt).toLocaleDateString()}`}>
-          <CheckCircle sx={{ fontSize: 16, color: providerColor, flexShrink: 0 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: providerColor, flexShrink: 0 }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
         </Tooltip>
       )}
 
       {/* Actions */}
       <Box sx={{ display: 'flex', gap: 0.25, flexShrink: 0 }}>
         <IconButton size="small" onClick={() => onEdit(model)}>
-          <Edit sx={{ fontSize: 16 }} />
+          <Edit size={16} strokeWidth={1.75} />
         </IconButton>
         <IconButton size="small" onClick={() => onDelete(model.id)} disabled={isDeleting} color="error">
-          {isDeleting ? <CircularProgress size={14} /> : <Delete sx={{ fontSize: 16 }} />}
+          {isDeleting ? <CircularProgress size={14} /> : <Delete size={16} strokeWidth={1.75} />}
         </IconButton>
       </Box>
     </Box>

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Box, Typography, CircularProgress } from '@mui/material';
-import { Map as MapIcon, DirectionsWalk } from '@mui/icons-material';
+import { MapIcon, DirectionsWalk } from '../icons';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useThemeMode } from '../hooks/useThemeMode';
@@ -168,7 +168,7 @@ export function MapboxDirections({
           gap: 1,
         }}
       >
-        <MapIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><MapIcon size={48} strokeWidth={1.5} /></Box>
         <Typography variant="body2" color="text.secondary">
           Carte indisponible : token Mapbox non configure (VITE_MAPBOX_TOKEN)
         </Typography>
@@ -246,7 +246,7 @@ export function MapboxDirections({
             gap: 1,
           }}
         >
-          <DirectionsWalk sx={{ fontSize: 20, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><DirectionsWalk size={20} strokeWidth={1.75} /></Box>
           <Typography variant="body2">
             {routeInfo.distanceKm.toFixed(1)} km &middot;{' '}
             {formatDuration(routeInfo.durationMin)}

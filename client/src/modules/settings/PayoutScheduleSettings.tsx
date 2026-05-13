@@ -13,7 +13,7 @@ import {
   Chip,
   Stack,
 } from '@mui/material';
-import { Save, CalendarMonth } from '@mui/icons-material';
+import { Save, CalendarMonth } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePayoutSchedule, useUpdatePayoutSchedule } from '../../hooks/usePayoutSchedule';
 
@@ -79,7 +79,7 @@ export default function PayoutScheduleSettings() {
     <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, height: '100%' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <CalendarMonth sx={{ color: '#A6C0CE', fontSize: 20 }} />
+        <CalendarMonth size={20} strokeWidth={1.75} color='#A6C0CE' />
         <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
           {t('settings.payoutSchedule.title')}
         </Typography>

@@ -4,7 +4,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Chip,
 } from '@mui/material';
-import { Add, DeleteOutline, LocalLaundryService, Save, Close } from '@mui/icons-material';
+import { Add, DeleteOutline, LocalLaundryService, Save, Close } from '../../../icons';
 import type { PropertyLaundryItem, BlanchisserieCatalogItem } from '../../../services/api/propertyInventoryApi';
 
 interface Props {
@@ -63,7 +63,7 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <LocalLaundryService sx={{ color: 'info.main', fontSize: 22 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><LocalLaundryService size={22} strokeWidth={1.75} /></Box>
           <Box>
             <Typography variant="subtitle1" fontWeight={600}>Linge de maison</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
@@ -74,7 +74,7 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
         {canEdit && (
           <Button
             size="small"
-            startIcon={<Add />}
+            startIcon={<Add size={18} strokeWidth={1.75} />}
             onClick={openAdd}
             variant="outlined"
             disabled={availableCatalog.length === 0}
@@ -86,7 +86,7 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
 
       {items.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <LocalLaundryService sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><LocalLaundryService size={40} strokeWidth={1.5} /></Box>
           <Typography color="text.secondary">Aucun article de linge configure</Typography>
           {catalog.length === 0 && (
             <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
@@ -94,7 +94,7 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
             </Typography>
           )}
           {canEdit && catalog.length > 0 && (
-            <Button size="small" startIcon={<Add />} onClick={openAdd} sx={{ mt: 1 }}>
+            <Button size="small" startIcon={<Add size={18} strokeWidth={1.75} />} onClick={openAdd} sx={{ mt: 1 }}>
               Ajouter un article
             </Button>
           )}
@@ -143,7 +143,7 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
                         <TableCell align="right">
                           <Tooltip title="Supprimer">
                             <IconButton size="small" color="error" onClick={() => onDelete(item.id)}>
-                              <DeleteOutline sx={{ fontSize: 16 }} />
+                              <DeleteOutline size={16} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
                         </TableCell>
@@ -196,8 +196,8 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} startIcon={<Close />}>Annuler</Button>
-          <Button onClick={handleAdd} variant="contained" startIcon={<Save />} disabled={!selectedKey}>
+          <Button onClick={() => setDialogOpen(false)} startIcon={<Close size={18} strokeWidth={1.75} />}>Annuler</Button>
+          <Button onClick={handleAdd} variant="contained" startIcon={<Save size={18} strokeWidth={1.75} />} disabled={!selectedKey}>
             Ajouter
           </Button>
         </DialogActions>

@@ -16,7 +16,7 @@ import {
   Schedule as ScheduleIcon,
   CalendarToday as CalendarIcon,
   Assignment as AssignmentIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { Intervention } from '../../services/api';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -124,7 +124,7 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
 
         {/* Property */}
         <Box display="flex" alignItems="center" mb={1.5}>
-          <LocationIcon sx={{ fontSize: 18, mr: 1, color: 'text.secondary' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><LocationIcon size={18} strokeWidth={1.75} /></Box>
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 500 }}>
               {intervention.propertyName}
@@ -139,7 +139,7 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
 
         {/* Scheduled date */}
         <Box display="flex" alignItems="center" mb={1.5}>
-          <CalendarIcon sx={{ fontSize: 18, mr: 1, color: 'text.secondary' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>
           <Typography variant="body2">
             {formatDate(intervention.scheduledDate)}
           </Typography>
@@ -147,7 +147,7 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
 
         {/* Duration */}
         <Box display="flex" alignItems="center" mb={1.5}>
-          <ScheduleIcon sx={{ fontSize: 18, mr: 1, color: 'text.secondary' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><ScheduleIcon size={18} strokeWidth={1.75} /></Box>
           <Typography variant="body2">
             {formatDuration(intervention.estimatedDurationHours)}
           </Typography>
@@ -156,7 +156,7 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
         {/* Assigned to */}
         {intervention.assignedToName && (
           <Box display="flex" alignItems="center" mb={1.5}>
-            <PersonIcon sx={{ fontSize: 18, mr: 1, color: 'text.secondary' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><PersonIcon size={18} strokeWidth={1.75} /></Box>
             <Typography variant="body2">
               {intervention.assignedToName}
             </Typography>
@@ -168,7 +168,7 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
           <>
             <Divider sx={{ my: 1.5 }} />
             <Box display="flex" alignItems="flex-start" mb={1}>
-              <AssignmentIcon sx={{ fontSize: 18, mr: 1, mt: 0.25, color: 'text.secondary' }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1, mt: 0.25 }}><AssignmentIcon size={18} strokeWidth={1.75} /></Box>
               <Typography
                 variant="body2"
                 color="text.secondary"

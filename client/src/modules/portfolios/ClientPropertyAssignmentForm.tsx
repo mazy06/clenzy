@@ -32,7 +32,7 @@ import {
   ArrowBack,
   Home,
   LocationOn,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useClientPropertyAssignment } from './useClientPropertyAssignment';
 
@@ -232,13 +232,13 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                             size="small"
                             sx={{ p: 0.25, mr: 0.75 }}
                           />
-                          <Home sx={{ fontSize: 18, mr: 0.75, color: 'info.main' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'info.main', mr: 0.75 }}><Home size={18} strokeWidth={1.75} /></Box>
                           <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }} noWrap>
                             {property.name}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', ml: 3.5 }}>
-                          <LocationOn sx={{ fontSize: 13, mr: 0.5, color: 'text.secondary' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
                           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }} noWrap>
                             {property.address}, {property.city}
                           </Typography>
@@ -282,7 +282,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
 
             <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
               <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <People sx={{ fontSize: 16 }} />
+                <People size={16} strokeWidth={1.75} />
                 {t('portfolios.fields.selectedManager')}
               </Typography>
               {selectedManagerData ? (
@@ -310,14 +310,14 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <People sx={{ fontSize: 16 }} />
+                    <People size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedClients')} ({selectedClientsData.length})
                   </Typography>
                   <List dense disablePadding>
                     {selectedClientsData.map((client) => (
                       <ListItem key={client.id} disableGutters sx={{ py: 0.5 }}>
                         <ListItemIcon sx={{ minWidth: 28 }}>
-                          <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
                         </ListItemIcon>
                         <ListItemText
                           primary={<Typography sx={{ fontSize: '0.82rem' }}>{client.firstName} {client.lastName}</Typography>}
@@ -332,14 +332,14 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Assignment sx={{ fontSize: 16 }} />
+                    <Assignment size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedProperties')} ({selectedPropertiesData.length})
                   </Typography>
                   <List dense disablePadding>
                     {selectedPropertiesData.map((property) => (
                       <ListItem key={property.id} disableGutters sx={{ py: 0.5 }}>
                         <ListItemIcon sx={{ minWidth: 28 }}>
-                          <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
                         </ListItemIcon>
                         <ListItemText
                           primary={<Typography sx={{ fontSize: '0.82rem' }}>{property.name}</Typography>}
@@ -392,7 +392,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
           <Button
             disabled={activeStep === 0}
             onClick={handleBack}
-            startIcon={<ArrowBack sx={{ fontSize: 16 }} />}
+            startIcon={<ArrowBack size={16} strokeWidth={1.75} />}
             size="small"
             sx={{ fontSize: '0.82rem' }}
           >
@@ -404,7 +404,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               variant="contained"
               onClick={handleSubmit}
               disabled={submitting || !selectedManager || selectedClients.length === 0 || selectedProperties.length === 0}
-              startIcon={submitting ? <CircularProgress size={16} /> : <CheckCircle sx={{ fontSize: 16 }} />}
+              startIcon={submitting ? <CircularProgress size={16} /> : <CheckCircle size={16} strokeWidth={1.75} />}
               size="small"
               sx={{ fontSize: '0.82rem' }}
             >
@@ -415,7 +415,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               variant="contained"
               onClick={handleNext}
               disabled={!canGoNext}
-              endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
+              endIcon={<ArrowForward size={16} strokeWidth={1.75} />}
               size="small"
               sx={{ fontSize: '0.82rem' }}
             >

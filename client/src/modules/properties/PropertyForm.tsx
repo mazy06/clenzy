@@ -13,7 +13,7 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { Person } from '@mui/icons-material';
+import { Person } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { usersApi } from '../../services/api';
@@ -243,7 +243,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
       <Dialog open={showOwnerDialog} onClose={() => setShowOwnerDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ pb: 0.5 }}>
           <Typography sx={DIALOG_TITLE_SX}>
-            <Person color="primary" sx={{ fontSize: 16 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Person size={16} strokeWidth={1.75} /></Box>
             {t('properties.newOwnerDialog')}
           </Typography>
         </DialogTitle>

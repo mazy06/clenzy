@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, IconButton, Checkbox } from '@mui/material';
-import { Remove, Add, ChevronRight } from '@mui/icons-material';
+import { Remove, Add, ChevronRight } from '../../../icons';
 import type { ResolvedTokens } from '../types/bookingEngine';
 import { fmt } from '../types/bookingEngine';
 import type { BookingI18n } from '../sdk/i18n';
@@ -64,7 +64,7 @@ const CategoryAccordion: React.FC<{
         <Typography sx={{ fontSize: 13, fontWeight: 700, color: tk.text, textTransform: 'uppercase', letterSpacing: 0.3 }}>
           {title}
         </Typography>
-        <ChevronRight sx={{ fontSize: 18, color: tk.textLabel, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: tk.textLabel, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}><ChevronRight size={18} strokeWidth={1.75} /></Box>
       </Box>
       {open && <Box sx={{ pb: 2 }}>{children}</Box>}
     </Box>
@@ -132,7 +132,7 @@ const BookingServiceOptionsSection: React.FC<BookingServiceOptionsSectionProps> 
                       onClick={() => onOptionChange(setQuantity(selectedOptions, item.id, Math.max(item.mandatory ? 1 : 0, qty - 1)))}
                       sx={{ border: `1px solid ${tk.border}`, width: 26, height: 26 }}
                     >
-                      <Remove sx={{ fontSize: 14 }} />
+                      <Remove size={14} strokeWidth={1.75} />
                     </IconButton>
                     <Typography sx={{ fontSize: 13, fontWeight: 600, minWidth: 18, textAlign: 'center' }}>{qty}</Typography>
                     <IconButton
@@ -140,7 +140,7 @@ const BookingServiceOptionsSection: React.FC<BookingServiceOptionsSectionProps> 
                       onClick={() => onOptionChange(setQuantity(selectedOptions, item.id, Math.min(item.maxQuantity ?? 99, qty + 1)))}
                       sx={{ border: `1px solid ${tk.border}`, width: 26, height: 26 }}
                     >
-                      <Add sx={{ fontSize: 14 }} />
+                      <Add size={14} strokeWidth={1.75} />
                     </IconButton>
                   </Box>
                 )}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Card, CardContent, Typography, Button, useTheme } from '@mui/material';
-import { Home, Add } from '@mui/icons-material';
+import { Home, Add } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -40,7 +40,7 @@ const DashboardEmptyState: React.FC = React.memo(() => {
             boxShadow: '0 4px 16px rgba(107,138,154,0.25)',
           }}
         >
-          <Home sx={{ fontSize: 32, color: '#fff' }} />
+          <Home size={32} strokeWidth={1.75} color='#fff' />
         </Box>
 
         {/* Title */}

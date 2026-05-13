@@ -20,7 +20,7 @@ import {
   Person,
   CheckCircle,
   SwapHoriz,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import type { Reservation } from '../../../services/api';
 
@@ -138,13 +138,13 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <SwapHoriz sx={{ fontSize: 22, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><SwapHoriz size={22} strokeWidth={1.75} /></Box>
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
             Changer de logement
           </Typography>
         </Box>
         <IconButton size="small" onClick={handleClose}>
-          <Close sx={{ fontSize: 18 }} />
+          <Close size={18} strokeWidth={1.75} />
         </IconButton>
       </DialogTitle>
 
@@ -162,7 +162,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
             Reservation actuelle
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
             <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
               {reservation.guestName}
             </Typography>
@@ -174,13 +174,13 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
             />
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Home sx={{ fontSize: 16, color: 'text.secondary' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Home size={16} strokeWidth={1.75} /></Box>
             <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
               {reservation.propertyName}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <CalendarMonth sx={{ fontSize: 16, color: 'text.secondary' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
             <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
               {reservation.checkIn} &rarr; {reservation.checkOut}
             </Typography>
@@ -234,13 +234,13 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Home sx={{ fontSize: 18, color: isSelected ? 'primary.main' : 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: isSelected ? 'primary.main' : 'text.secondary' }}><Home size={18} strokeWidth={1.75} /></Box>
                       <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
                         {property.name}
                       </Typography>
                     </Box>
                     {isSelected && (
-                      <CheckCircle sx={{ fontSize: 18, color: 'primary.main' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>
                     )}
                   </Box>
                   <Box sx={{ display: 'flex', gap: 0.75, mt: 0.75, ml: 3.5 }}>
@@ -301,7 +301,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
           variant="contained"
           size="small"
           disabled={!selectedProperty || loading}
-          startIcon={loading ? <CircularProgress size={14} /> : <SwapHoriz sx={{ fontSize: 16 }} />}
+          startIcon={loading ? <CircularProgress size={14} /> : <SwapHoriz size={16} strokeWidth={1.75} />}
           sx={{ fontSize: '0.75rem', textTransform: 'none' }}
         >
           Confirmer le changement

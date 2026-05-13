@@ -21,7 +21,7 @@ import {
   Security,
   Wifi,
   BugReport,
-} from '@mui/icons-material';
+} from '../icons';
 import { monitoringApi } from '../services/api/monitoringApi';
 import type { KeycloakMetricsResponse, TestCoverageMetrics } from '../services/api/monitoringApi';
 
@@ -110,7 +110,7 @@ const KeycloakMetrics: React.FC = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-          <Speed sx={{ mr: 1, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><Speed size={20} strokeWidth={1.75} /></Box>
           Métriques Plateforme
         </Typography>
         <Box display="flex" alignItems="center" gap={1}>
@@ -121,7 +121,7 @@ const KeycloakMetrics: React.FC = () => {
           )}
           <Tooltip title="Actualiser les métriques">
             <IconButton onClick={handleRefresh} size="small">
-              <Refresh />
+              <Refresh size={20} strokeWidth={1.75} />
             </IconButton>
           </Tooltip>
         </Box>
@@ -133,7 +133,7 @@ const KeycloakMetrics: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Group sx={{ mr: 1, color: 'primary.main' }} />
+                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><Group size={20} strokeWidth={1.75} /></Box>
                 Utilisateurs
               </Typography>
               <Grid container spacing={2}>
@@ -163,7 +163,7 @@ const KeycloakMetrics: React.FC = () => {
                       label={`${metrics.users.newThisWeek} nouveaux`}
                       color="info"
                       size="small"
-                      icon={<TrendingUp />}
+                      icon={<TrendingUp size={16} strokeWidth={1.75} />}
                     />
                     <Chip
                       label={`${metrics.users.inactive} inactifs`}
@@ -182,7 +182,7 @@ const KeycloakMetrics: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Wifi sx={{ mr: 1, color: 'primary.main' }} />
+                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><Wifi size={20} strokeWidth={1.75} /></Box>
                 Tokens JWT
               </Typography>
               <Grid container spacing={2}>
@@ -230,7 +230,7 @@ const KeycloakMetrics: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <TrendingUp sx={{ mr: 1, color: 'primary.main' }} />
+                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><TrendingUp size={20} strokeWidth={1.75} /></Box>
                 Performance API
               </Typography>
               <Grid container spacing={2}>
@@ -278,7 +278,7 @@ const KeycloakMetrics: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Security sx={{ mr: 1, color: 'primary.main' }} />
+                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><Security size={20} strokeWidth={1.75} /></Box>
                 Sécurité (7 derniers jours)
               </Typography>
               <Grid container spacing={2}>
@@ -328,7 +328,7 @@ const KeycloakMetrics: React.FC = () => {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                  <BugReport sx={{ mr: 1, color: 'primary.main' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><BugReport size={20} strokeWidth={1.75} /></Box>
                   Couverture de Tests
                   {coverage.reportDate && (
                     <Chip
@@ -481,7 +481,7 @@ const KeycloakMetrics: React.FC = () => {
         {/* Message si couverture non disponible */}
         {coverage && !coverage.available && (
           <Grid item xs={12}>
-            <Alert severity="info" icon={<BugReport />}>
+            <Alert severity="info" icon={<BugReport size={20} strokeWidth={1.75} />}>
               {coverage.message || 'Rapport de couverture non disponible. Lancez les tests pour le générer.'}
             </Alert>
           </Grid>

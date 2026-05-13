@@ -11,7 +11,7 @@ import {
 import {
   CloudUpload as CloudUploadIcon,
   Close as CloseIcon,
-} from '@mui/icons-material';
+} from '../icons';
 
 // ============================================================
 // PhotoUploader — Composant réutilisable d'upload de photos
@@ -235,13 +235,16 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
               },
         }}
       >
-        <CloudUploadIcon
+        <Box
+          component="span"
           sx={{
-            fontSize: 40,
+            display: 'inline-flex',
             color: isDragOver ? 'primary.main' : 'text.secondary',
             mb: 1,
           }}
-        />
+        >
+          <CloudUploadIcon size={40} strokeWidth={1.5} />
+        </Box>
         <Typography variant="body2" color="text.secondary">
           Glissez-déposez vos photos ici
         </Typography>
@@ -324,7 +327,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                         }}
                         disabled={disabled}
                       >
-                        <CloseIcon fontSize="small" />
+                        <CloseIcon size={16} strokeWidth={1.75} />
                       </IconButton>
                     }
                   />
@@ -372,7 +375,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                       }}
                       disabled={disabled}
                     >
-                      <CloseIcon fontSize="small" />
+                      <CloseIcon size={16} strokeWidth={1.75} />
                     </IconButton>
                   }
                 />

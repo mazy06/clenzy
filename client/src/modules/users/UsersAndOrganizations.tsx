@@ -10,7 +10,7 @@ import {
   Business,
   Add,
   Sync,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
@@ -92,7 +92,7 @@ const UsersAndOrganizations: React.FC = () => {
             variant="outlined"
             color="secondary"
             size="small"
-            startIcon={<Sync sx={{ fontSize: 18 }} />}
+            startIcon={<Sync size={18} strokeWidth={1.75} />}
             onClick={() => handle?.sync()}
             disabled={handle?.syncing}
             sx={{ fontSize: '0.8125rem' }}
@@ -104,7 +104,7 @@ const UsersAndOrganizations: React.FC = () => {
             variant="contained"
             color="primary"
             size="small"
-            startIcon={<Add sx={{ fontSize: 18 }} />}
+            startIcon={<Add size={18} strokeWidth={1.75} />}
             onClick={() => navigate('/users/new')}
             sx={{ fontSize: '0.8125rem' }}
             title="Nouvel utilisateur"
@@ -124,7 +124,7 @@ const UsersAndOrganizations: React.FC = () => {
               variant="contained"
               color="primary"
               size="small"
-              startIcon={<Add sx={{ fontSize: 18 }} />}
+              startIcon={<Add size={18} strokeWidth={1.75} />}
               onClick={() => orgsRef.current?.create()}
               sx={{ fontSize: '0.8125rem' }}
             >
@@ -143,6 +143,7 @@ const UsersAndOrganizations: React.FC = () => {
       <PageHeader
         title="Utilisateurs et Organisations"
         subtitle="Gestion des utilisateurs et des organisations de la plateforme"
+        iconBadge={<People />}
         backPath="/dashboard"
         showBackButton={false}
         actions={renderActions()}
@@ -164,13 +165,13 @@ const UsersAndOrganizations: React.FC = () => {
           }}
         >
           <Tab
-            icon={<People sx={{ fontSize: 18 }} />}
+            icon={<People size={18} strokeWidth={1.75} />}
             iconPosition="start"
             label="Utilisateurs"
             {...a11yProps(0)}
           />
           <Tab
-            icon={<Business sx={{ fontSize: 18 }} />}
+            icon={<Business size={18} strokeWidth={1.75} />}
             iconPosition="start"
             label="Organisations"
             {...a11yProps(1)}

@@ -14,7 +14,7 @@ import {
   Paper,
   Divider,
 } from '@mui/material';
-import { Send } from '@mui/icons-material';
+import { Send } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   guestMessagingApi,

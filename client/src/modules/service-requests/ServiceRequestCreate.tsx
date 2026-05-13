@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Box } from '@mui/material';
-import { Cancel, Save } from '@mui/icons-material';
+import { Cancel, Save } from "../../icons";
 import ServiceRequestForm from './ServiceRequestForm';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
@@ -59,7 +59,7 @@ const ServiceRequestCreate: React.FC = () => {
               <Button
                 variant="outlined"
                 onClick={handleClose}
-                startIcon={<Cancel />}
+                startIcon={<Cancel size={18} strokeWidth={1.75} />}
                 size="small"
                 disabled={loading}
                 sx={ACTION_BUTTON_SX}
@@ -70,7 +70,7 @@ const ServiceRequestCreate: React.FC = () => {
               <Button
                 variant="contained"
                 onClick={() => submitRef.current?.()}
-                startIcon={<Save />}
+                startIcon={<Save size={18} strokeWidth={1.75} />}
                 size="small"
                 disabled={loading}
                 sx={ACTION_BUTTON_SX}

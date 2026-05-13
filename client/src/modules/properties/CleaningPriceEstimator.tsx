@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Box, Typography, Chip } from '@mui/material';
-import { CleaningServices, TrendingUp, Timer, CheckCircle } from '@mui/icons-material';
+import { CleaningServices, TrendingUp, Timer, CheckCircle } from '../../icons';
 import { useWatch } from 'react-hook-form';
 import type { Control, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -436,7 +436,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       {/* Header */}
       <Box sx={HEADER_SX}>
         <Box sx={TITLE_ROW_SX}>
-          <CleaningServices sx={ICON_SX} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><CleaningServices size={20} strokeWidth={1.75} /></Box>
           <Typography sx={TITLE_SX}>
             {t('properties.priceEstimation.title')}
           </Typography>
@@ -444,7 +444,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
 
         {estimates && (
           <Box sx={BADGE_SX}>
-            <TrendingUp sx={{ fontSize: 13, color: 'text.disabled' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><TrendingUp size={13} strokeWidth={1.75} /></Box>
             <Typography sx={PER_LABEL_SX}>
               {t('properties.priceEstimation.basedOn')}
             </Typography>
@@ -455,7 +455,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       {/* Duration banner */}
       {estimatedDuration != null && (
         <Box sx={DURATION_BANNER_SX}>
-          <Timer sx={{ fontSize: 20, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Timer size={20} strokeWidth={1.75} /></Box>
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
             <Typography sx={DURATION_VALUE_SX}>
               {formatDuration(estimatedDuration)}
@@ -490,7 +490,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
                 }}
                 sx={isSelected ? PRICE_CARD_SELECTED_SX : PRICE_CARD_SX}
               >
-                {isSelected && <CheckCircle sx={SELECTED_BADGE_SX} />}
+                {isSelected && <Box component="span" sx={{ position: 'absolute', top: 6, right: 6, display: 'inline-flex', color: 'primary.main' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>}
                 <Chip
                   label={t(`properties.priceEstimation.cleaningTypes.${type}`)}
                   size="small"

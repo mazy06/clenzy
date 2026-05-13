@@ -11,7 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   PhotoLibrary,
-} from '@mui/icons-material';
+} from '../../../icons';
 
 interface PanelPhotoGalleryProps {
   photos: string[];
@@ -30,7 +30,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
   if (photos.length === 0) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, py: 1 }}>
-        <PhotoLibrary sx={{ fontSize: 14, color: 'text.disabled' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><PhotoLibrary size={14} strokeWidth={1.75} /></Box>
         <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
           Aucune photo — {label}
         </Typography>
@@ -44,7 +44,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
-        <PhotoLibrary sx={{ fontSize: 14, color: 'primary.main' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><PhotoLibrary size={14} strokeWidth={1.75} /></Box>
         <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
           {label}
         </Typography>

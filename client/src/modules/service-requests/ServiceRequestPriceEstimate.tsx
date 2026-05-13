@@ -7,7 +7,7 @@ import {
   Info,
   InfoOutlined,
   Star,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { ForfaitConfig } from '../../services/api/pricingConfigApi';
 import { useCurrency } from '../../hooks/useCurrency';
 
@@ -260,20 +260,20 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
         {/* Header */}
         <Box sx={HEADER_SX}>
           <Box sx={TITLE_ROW_SX}>
-            <AutoAwesome sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
             <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
               Estimation du prix
             </Typography>
           </Box>
           <Tooltip title="Estimation indicative basée sur les caractéristiques du logement. Le tarif définitif est soumis à l'acceptation du prestataire." arrow>
-            <Info sx={{ fontSize: 14, color: 'text.disabled', cursor: 'help' }} />
+            <Box component="span" sx={{ display: "inline-flex", color: "text.disabled", cursor: "help" }}><Info size={14} strokeWidth={1.75} /></Box>
           </Tooltip>
         </Box>
 
         {/* Aucune propriété sélectionnée */}
         {!property && (
           <Box sx={NO_DATA_SX}>
-            <InfoOutlined sx={{ fontSize: 16, color: 'text.disabled' }} />
+            <Box component="span" sx={{ display: "inline-flex", color: "text.disabled" }}><InfoOutlined size={16} strokeWidth={1.75} /></Box>
             <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', lineHeight: 1.3 }}>
               Sélectionnez une propriété pour afficher l'estimation du prix et de la durée.
             </Typography>
@@ -283,7 +283,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
         {/* Avertissement données minimales (propriété sélectionnée mais données incomplètes) */}
         {property && !hasRichData && (
           <Box sx={NO_DATA_SX}>
-            <InfoOutlined sx={{ fontSize: 16, color: 'text.disabled' }} />
+            <Box component="span" sx={{ display: "inline-flex", color: "text.disabled" }}><InfoOutlined size={16} strokeWidth={1.75} /></Box>
             <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', lineHeight: 1.3 }}>
               {canEstimate
                 ? 'Estimation approximative — renseignez la surface et le tarif de base dans la fiche logement pour une estimation plus précise.'
@@ -295,7 +295,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
         {/* Duration banner */}
         {property && (
           <Box sx={{ ...DURATION_BANNER_SX, mt: !hasRichData ? 1.5 : 0 }}>
-            <Timer sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><Timer size={18} strokeWidth={1.75} /></Box>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
               <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'primary.main', lineHeight: 1.2 }}>
                 {formatDuration(estimatedDuration)}
@@ -321,7 +321,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                 <Box key={key} sx={isHighlighted ? PRICE_CARD_PRIMARY_SX : PRICE_CARD_SX}>
                   {isSelected && (
                     <Box sx={RECOMMENDED_BADGE_SX}>
-                      <Star sx={{ fontSize: 8 }} />
+                      <Star size={8} strokeWidth={1.75} fill="currentColor" />
                       Recommandé
                     </Box>
                   )}
@@ -383,7 +383,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
 
         {/* Base note */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
-          <TrendingUp sx={{ fontSize: 11, color: 'text.disabled' }} />
+          <Box component="span" sx={{ display: "inline-flex", color: "text.disabled" }}><TrendingUp size={11} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', fontStyle: 'italic' }}>
             Basé sur les caractéristiques du logement
           </Typography>
