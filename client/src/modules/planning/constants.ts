@@ -21,18 +21,18 @@ export const ROW_CONFIG: Record<DensityMode, {
   barPadding: number;
 }> = {
   normal: {
-    rowHeight: 56,
-    reservationBarHeight: 28,
-    interventionBarHeight: 20,
-    interventionTop: 32,
-    barPadding: 3,
+    rowHeight: 72,
+    reservationBarHeight: 34,
+    interventionBarHeight: 24,
+    interventionTop: 40,
+    barPadding: 4,
   },
   compact: {
-    rowHeight: 38,
-    reservationBarHeight: 22,
-    interventionBarHeight: 14,
-    interventionTop: 24,
-    barPadding: 2,
+    rowHeight: 50,
+    reservationBarHeight: 26,
+    interventionBarHeight: 16,
+    interventionTop: 30,
+    barPadding: 3,
   },
 };
 
