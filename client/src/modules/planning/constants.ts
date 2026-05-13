@@ -37,10 +37,14 @@ export const ROW_CONFIG: Record<DensityMode, {
 };
 
 // ─── Price line dimensions by density ───────────────────────────────────────
-
+//
+// Hauteur dédiée à la rangée tarifs. Doit accommoder la fonte des prix +
+// ses ascenders/descenders (~1.3x font-size) sans débordement vertical.
+// Plus Jakarta Sans à 8px → ~10-11px visuels → 16px band laisse 2-3px de
+// chaque côté pour respirer.
 export const PRICE_LINE_HEIGHT: Record<DensityMode, number> = {
-  normal: 12,
-  compact: 10,
+  normal: 16,
+  compact: 13,
 };
 
 // ─── Zoom configuration ─────────────────────────────────────────────────────

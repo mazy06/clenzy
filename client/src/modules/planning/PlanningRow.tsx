@@ -525,6 +525,8 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             // Border dashed + bg très subtil, tous deux teintés primary.
             borderColor: isDark ? 'rgba(127, 160, 180, 0.18)' : 'rgba(107, 138, 154, 0.20)',
             backgroundColor: isDark ? 'rgba(127, 160, 180, 0.05)' : 'rgba(107, 138, 154, 0.035)',
+            // Containment : aucun texte ne peut déborder verticalement
+            overflow: 'hidden',
           }}
         >
           {days.map((day, idx) => {
@@ -553,6 +555,8 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
+                  overflow: 'hidden',
+                  px: 0.25,
                   borderRight: '1px solid',
                   borderColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
                   // Inset border à gauche pour marquer la frontière d'un
@@ -568,6 +572,8 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
                   <Typography
                     component="span"
                     sx={{
+                      // Taille adaptée à la bande dédiée (16px normal /
+                      // 13px compact) sans débordement vertical.
                       fontSize: dayWidth < 60 ? '0.4375rem' : '0.5rem',
                       fontWeight: isPriceChange ? 600 : 400,
                       color: price == null
@@ -576,7 +582,11 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
                           ? 'text.primary'
                           : 'text.secondary',
                       opacity: price == null ? 0.6 : isPriceChange ? 1 : 0.55,
+                      // lineHeight: 1 garantit que le texte ne contribue
+                      // pas à un débordement vertical au-delà de sa cap-height.
                       lineHeight: 1,
+                      display: 'block',
+                      maxWidth: '100%',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
