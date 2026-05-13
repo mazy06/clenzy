@@ -438,7 +438,6 @@ export default function Settings() {
         ]}
         value={tabValue}
         onChange={handleTabChange}
-        paper={false}
         ariaLabel="settings-tabs"
       />
 

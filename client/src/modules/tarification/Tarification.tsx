@@ -5,9 +5,6 @@ import {
   Snackbar,
   CircularProgress,
   Button,
-  Tabs,
-  Tab,
-  Paper,
 } from '@mui/material';
 import {
   Save,
@@ -23,6 +20,7 @@ import {
 import { useTranslation } from '../../hooks/useTranslation';
 import { useTarification } from '../../hooks/useTarification';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
 import TabPMS from './TabPMS';
 import TabEntretien from './TabEntretien';
 import TabTravaux from './TabTravaux';
@@ -33,12 +31,12 @@ import TabMonitoring from './TabMonitoring';
 // ─── Tab config ──────────────────────────────────────────────────────────────
 
 const TAB_DEFS = [
-  { key: 'pms',           icon: <Devices fontSize="small" /> },
-  { key: 'entretien',     icon: <CleaningServices fontSize="small" /> },
-  { key: 'travaux',       icon: <Build fontSize="small" /> },
-  { key: 'exterieur',     icon: <Yard fontSize="small" /> },
-  { key: 'blanchisserie', icon: <LocalLaundryService fontSize="small" /> },
-  { key: 'monitoring',    icon: <VolumeUp fontSize="small" /> },
+  { key: 'pms',           icon: <Devices /> },
+  { key: 'entretien',     icon: <CleaningServices /> },
+  { key: 'travaux',       icon: <Build /> },
+  { key: 'exterieur',     icon: <Yard /> },
+  { key: 'blanchisserie', icon: <LocalLaundryService /> },
+  { key: 'monitoring',    icon: <VolumeUp /> },
 ] as const;
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -113,55 +111,36 @@ export default function Tarification() {
       )}
 
       {/* ─── Tabs ──────────────────────────────────────────────────── */}
-      <Paper sx={{ mb: 2 }}>
-        <Tabs
-          value={activeTab}
-          onChange={(_, newValue) => setActiveTab(newValue)}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            borderBottom: 1,
-            borderColor: 'divider',
-            '& .MuiTab-root': {
-              textTransform: 'none',
-              fontWeight: 500,
-              minHeight: 48,
-              fontSize: '0.85rem',
-            },
-          }}
-        >
-          {TAB_DEFS.map((tab) => (
-            <Tab
-              key={tab.key}
-              icon={tab.icon}
-              iconPosition="start"
-              label={t(`tarification.tabs.${tab.key}`)}
-            />
-          ))}
-        </Tabs>
+      <PageTabs
+        options={TAB_DEFS.map((tab) => ({
+          label: t(`tarification.tabs.${tab.key}`),
+          icon: tab.icon,
+        }))}
+        value={activeTab}
+        onChange={setActiveTab}
+      />
 
-        {/* ─── Tab Content ───────────────────────────────────────────── */}
-        <Box sx={{ p: 2 }}>
-          {activeTab === 0 && (
-            <TabPMS config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
-          )}
-          {activeTab === 1 && (
-            <TabEntretien config={config} teams={teams} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
-          )}
-          {activeTab === 2 && (
-            <TabTravaux config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
-          )}
-          {activeTab === 3 && (
-            <TabExterieur config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
-          )}
-          {activeTab === 4 && (
-            <TabBlanchisserie config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
-          )}
-          {activeTab === 5 && (
-            <TabMonitoring config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
-          )}
-        </Box>
-      </Paper>
+      {/* ─── Tab Content ───────────────────────────────────────────── */}
+      <Box sx={{ pt: 1 }}>
+        {activeTab === 0 && (
+          <TabPMS config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
+        )}
+        {activeTab === 1 && (
+          <TabEntretien config={config} teams={teams} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
+        )}
+        {activeTab === 2 && (
+          <TabTravaux config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
+        )}
+        {activeTab === 3 && (
+          <TabExterieur config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
+        )}
+        {activeTab === 4 && (
+          <TabBlanchisserie config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
+        )}
+        {activeTab === 5 && (
+          <TabMonitoring config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
+        )}
+      </Box>
 
       {/* ─── Snackbar ────────────────────────────────────────────────── */}
       <Snackbar
