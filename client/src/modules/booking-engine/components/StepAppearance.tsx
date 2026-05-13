@@ -3,7 +3,7 @@ import { Box, Typography, Button, TextField, MenuItem, IconButton, alpha } from 
 import {
   Css, Code, Delete, UploadFile,
   BrushRounded, AutoFixHighRounded,
-} from '@mui/icons-material';
+} from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { BookingEngineConfigUpdate, DesignTokens } from '../../../services/api/bookingEngineApi';
 import AiDesignMatcher from '../AiDesignMatcher';
@@ -101,7 +101,7 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       {/* ── Section 1 : Analyse IA ──────────────────────────────────── */}
       {isDesignAiEnabled && (
-        <SectionPaper icon={<AutoFixHighRounded sx={{ fontSize: 20, color: '#7C4DFF' }} />} titleKey="bookingEngine.sections.aiDesign">
+        <SectionPaper icon={<AutoFixHighRounded size={20} strokeWidth={1.75} color='#7C4DFF' />} titleKey="bookingEngine.sections.aiDesign">
           <AiDesignMatcher
             configId={configId}
             sourceWebsiteUrl={form.sourceWebsiteUrl ?? ''}
@@ -115,7 +115,7 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
 
       {/* ── Section 2 : Templates + Tokens de design (fusionnes) ──── */}
       {showTemplates && (
-      <SectionPaper icon={<BrushRounded sx={{ fontSize: 20, color: '#E91E63' }} />} titleKey="bookingEngine.sections.designPresets">
+      <SectionPaper icon={<BrushRounded size={20} strokeWidth={1.75} color='#E91E63' />} titleKey="bookingEngine.sections.designPresets">
         {/* Preset selector row */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
           <TextField
@@ -187,7 +187,7 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
           <CodeToggleButton
             label="CSS"
             hasValue={!!form.customCss}
-            icon={<Css sx={{ fontSize: 14 }} />}
+            icon={<Css size={14} strokeWidth={1.75} />}
             isOpen={showCssEditor}
             onToggle={() => setShowCssEditor((v) => !v)}
           />
@@ -196,7 +196,7 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
           <CodeToggleButton
             label="JS"
             hasValue={!!form.customJs}
-            icon={<Code sx={{ fontSize: 14 }} />}
+            icon={<Code size={14} strokeWidth={1.75} />}
             isOpen={showJsEditor}
             onToggle={() => setShowJsEditor((v) => !v)}
           />
@@ -296,7 +296,7 @@ const CodeEditorSection: React.FC<CodeEditorSectionProps> = ({
         <Button
           variant="text"
           size="small"
-          startIcon={<UploadFile sx={{ fontSize: 14 }} />}
+          startIcon={<UploadFile size={14} strokeWidth={1.75} />}
           component="label"
           sx={{ textTransform: 'none', fontSize: '0.7rem', minHeight: 26, px: 1 }}
         >
@@ -314,7 +314,7 @@ const CodeEditorSection: React.FC<CodeEditorSectionProps> = ({
         </Button>
         {value && (
           <IconButton size="small" onClick={onClear} sx={{ p: 0.25 }} title="Supprimer">
-            <Delete sx={{ fontSize: 14, color: 'text.disabled' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Delete size={14} strokeWidth={1.75} /></Box>
           </IconButton>
         )}
       </Box>

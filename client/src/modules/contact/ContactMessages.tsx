@@ -29,7 +29,7 @@ import {
   Email as EmailIcon,
   AttachFile as AttachFileIcon,
   Download as DownloadIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { contactApi } from '../../services/api';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -318,7 +318,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
           placeholder="Rechercher..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{ startAdornment: <SearchIcon sx={{ mr: 0.5, fontSize: 18, color: 'text.secondary' }} /> }}
+          InputProps={{ startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><SearchIcon size={18} strokeWidth={1.75} /></Box> }}
           sx={{
             minWidth: 180, flex: 1,
             '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', borderRadius: '8px' },
@@ -349,7 +349,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
         })}
         <Tooltip title="Rafraichir">
           <IconButton size="small" onClick={() => refetch()}>
-            <RefreshIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><RefreshIcon size={18} strokeWidth={1.75} /></Box>
           </IconButton>
         </Tooltip>
       </Box>
@@ -376,7 +376,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
               variant="outlined"
               onClick={handleBulkMarkAsRead}
               disabled={bulkUpdateStatusMutation.isPending}
-              startIcon={<MarkAsReadIcon sx={{ fontSize: 14 }} />}
+              startIcon={<MarkAsReadIcon size={14} strokeWidth={1.75} />}
               sx={{
                 textTransform: 'none', fontSize: '0.75rem', fontWeight: 500,
                 borderRadius: '6px',
@@ -391,7 +391,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
             color="error"
             onClick={handleBulkDelete}
             disabled={bulkDeleteMutation.isPending}
-            startIcon={<DeleteIcon sx={{ fontSize: 14 }} />}
+            startIcon={<DeleteIcon size={14} strokeWidth={1.75} />}
             sx={{
               textTransform: 'none', fontSize: '0.75rem', fontWeight: 500,
               borderRadius: '6px',
@@ -410,7 +410,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
       ) : filteredMessages.length === 0 ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 1.5 }}>
           <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: 'action.selected', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <InboxIcon sx={{ fontSize: 28, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><InboxIcon size={28} strokeWidth={1.75} /></Box>
           </Box>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary' }}>
             {t('contact.noMessages')}
@@ -446,9 +446,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                       cursor: 'pointer',
                       borderBottom: 1, borderColor: 'divider',
                       bgcolor: isSelected ? 'action.selected' : 'transparent',
-                      borderLeft: isSelected ? 3 : 3,
-                      borderLeftColor: isSelected ? 'primary.main' : 'transparent',
-                      transition: 'all 0.15s ease',
+                      transition: 'background-color 0.15s ease',
                       '&:hover': { bgcolor: 'action.hover' },
                     }}
                   >
@@ -525,7 +523,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                         />
                       )}
                       {message.attachments && message.attachments.length > 0 && (
-                        <AttachFileIcon sx={{ fontSize: 12, color: 'text.secondary', ml: 0.25 }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', ml: 0.25 }}><AttachFileIcon size={12} strokeWidth={1.75} /></Box>
                       )}
                     </Box>
                   </Box>
@@ -604,7 +602,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                   {/* Infos contact */}
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <EmailIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><EmailIcon size={14} strokeWidth={1.75} /></Box>
                       <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.primary' }}>
                         {type === 'sent'
                           ? `${selectedMessage.recipient.firstName} ${selectedMessage.recipient.lastName} (${selectedMessage.recipient.email})`
@@ -614,7 +612,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                     </Box>
                     {type !== 'sent' && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <SendIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SendIcon size={14} strokeWidth={1.75} /></Box>
                         <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
                           Vers : {selectedMessage.recipient.firstName} {selectedMessage.recipient.lastName}
                         </Typography>
@@ -704,13 +702,13 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                           {fileAtts.map(att => (
                             <Chip
                               key={att.id}
-                              icon={<AttachFileIcon sx={{ fontSize: 14 }} />}
+                              icon={<AttachFileIcon size={14} strokeWidth={1.75} />}
                               label={att.originalName}
                               size="small"
                               variant="outlined"
                               clickable
                               onClick={() => contactApi.downloadAttachment(Number(selectedMessage.id), att.id, att.originalName)}
-                              deleteIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
+                              deleteIcon={<DownloadIcon size={16} strokeWidth={1.75} />}
                               onDelete={() => contactApi.downloadAttachment(Number(selectedMessage.id), att.id, att.originalName)}
                               sx={{
                                 fontSize: '0.75rem', borderWidth: 1.5,
@@ -740,7 +738,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                   <Button
                     size="small"
                     variant="contained"
-                    startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
+                    startIcon={<VisibilityIcon size={16} strokeWidth={1.75} />}
                     onClick={handleViewThread}
                     sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, borderRadius: '8px' }}
                   >
@@ -751,7 +749,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                   <Button
                     size="small"
                     variant="outlined"
-                    startIcon={<ReplyIcon sx={{ fontSize: 16 }} />}
+                    startIcon={<ReplyIcon size={16} strokeWidth={1.75} />}
                     onClick={() => setThreadDialogOpen(true)}
                     sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                   >
@@ -765,7 +763,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                       variant="outlined"
                       color="success"
                       disabled={updateStatusMutation.isPending}
-                      startIcon={<MarkAsReadIcon sx={{ fontSize: 16 }} />}
+                      startIcon={<MarkAsReadIcon size={16} strokeWidth={1.75} />}
                       onClick={handleMarkAsRead}
                       sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                     >
@@ -779,7 +777,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                       size="small"
                       variant="outlined"
                       disabled={archiveMutation.isPending}
-                      startIcon={<ArchiveIcon sx={{ fontSize: 16 }} />}
+                      startIcon={<ArchiveIcon size={16} strokeWidth={1.75} />}
                       onClick={handleArchive}
                       sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                     >
@@ -790,7 +788,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                       size="small"
                       variant="outlined"
                       disabled={unarchiveMutation.isPending}
-                      startIcon={<UnarchiveIcon sx={{ fontSize: 16 }} />}
+                      startIcon={<UnarchiveIcon size={16} strokeWidth={1.75} />}
                       onClick={handleUnarchive}
                       sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                     >
@@ -804,7 +802,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                     variant="outlined"
                     color="error"
                     disabled={deleteMutation.isPending}
-                    startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                    startIcon={<DeleteIcon size={16} strokeWidth={1.75} />}
                     onClick={handleDelete}
                     sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                   >
@@ -814,7 +812,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 1 }}>
-                <EmailIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><EmailIcon size={48} strokeWidth={1.75} /></Box>
                 <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
                   Selectionnez un message pour voir son contenu
                 </Typography>

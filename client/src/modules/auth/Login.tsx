@@ -15,7 +15,7 @@ import {
   ThemeProvider,
   CssBaseline
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { Visibility, VisibilityOff } from '../../icons';
 import keycloak from '../../keycloak';
 import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient, { ApiError } from '../../services/apiClient';

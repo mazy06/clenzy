@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import {
   Add, Edit, Delete, ExpandMore, ExpandLess,
-} from '@mui/icons-material';
+} from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
   useServiceCategories, useCreateCategory, useUpdateCategory,
@@ -56,7 +56,7 @@ const StepOptions: React.FC<StepOptionsProps> = ({ configId: _configId }) => {
           {t('serviceOptions.title')}
         </Typography>
         <Chip
-          icon={<Add sx={{ fontSize: 16 }} />}
+          icon={<Add size={16} strokeWidth={1.75} />}
           label={t('serviceOptions.addCategory')}
           size="small"
           onClick={() => setCatDialog({ open: true })}
@@ -75,7 +75,7 @@ const StepOptions: React.FC<StepOptionsProps> = ({ configId: _configId }) => {
           {/* Category header */}
           <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1.5, bgcolor: 'action.hover', gap: 1 }}>
             <IconButton size="small" onClick={() => toggle(cat.id)}>
-              {expanded[cat.id] ? <ExpandLess sx={{ fontSize: 18 }} /> : <ExpandMore sx={{ fontSize: 18 }} />}
+              {expanded[cat.id] ? <ExpandLess size={18} strokeWidth={1.75} /> : <ExpandMore size={18} strokeWidth={1.75} />}
             </IconButton>
             <Box sx={{ flex: 1 }}>
               <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{cat.name}</Typography>
@@ -88,10 +88,10 @@ const StepOptions: React.FC<StepOptionsProps> = ({ configId: _configId }) => {
               onChange={(e) => updateCat.mutate({ id: cat.id, data: { name: cat.name, description: cat.description, active: e.target.checked } })}
             />
             <IconButton size="small" onClick={() => setCatDialog({ open: true, category: cat })}>
-              <Edit sx={{ fontSize: 16 }} />
+              <Edit size={16} strokeWidth={1.75} />
             </IconButton>
             <IconButton size="small" onClick={() => { if (confirm(t('serviceOptions.deleteCategoryConfirm'))) deleteCat.mutate(cat.id); }}>
-              <Delete sx={{ fontSize: 16 }} />
+              <Delete size={16} strokeWidth={1.75} />
             </IconButton>
           </Box>
 
@@ -114,15 +114,15 @@ const StepOptions: React.FC<StepOptionsProps> = ({ configId: _configId }) => {
                     onChange={(e) => updateItem.mutate({ id: item.id, data: { ...item, active: e.target.checked } })}
                   />
                   <IconButton size="small" onClick={() => setItemDialog({ open: true, categoryId: cat.id, item })}>
-                    <Edit sx={{ fontSize: 16 }} />
+                    <Edit size={16} strokeWidth={1.75} />
                   </IconButton>
                   <IconButton size="small" onClick={() => { if (confirm(t('serviceOptions.deleteItemConfirm'))) deleteItem.mutate(item.id); }}>
-                    <Delete sx={{ fontSize: 16 }} />
+                    <Delete size={16} strokeWidth={1.75} />
                   </IconButton>
                 </Box>
               ))}
               <Chip
-                icon={<Add sx={{ fontSize: 14 }} />}
+                icon={<Add size={14} strokeWidth={1.75} />}
                 label={t('serviceOptions.addItem')}
                 size="small" variant="outlined" sx={{ mt: 1.5, cursor: 'pointer' }}
                 onClick={() => setItemDialog({ open: true, categoryId: cat.id })}

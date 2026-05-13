@@ -9,12 +9,12 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
-import PaletteRounded from '@mui/icons-material/PaletteRounded';
-import TextFieldsRounded from '@mui/icons-material/TextFieldsRounded';
-import SpaceBarRounded from '@mui/icons-material/SpaceBarRounded';
-import FilterDramaRounded from '@mui/icons-material/FilterDramaRounded';
-import SmartButtonRounded from '@mui/icons-material/SmartButtonRounded';
+import { ExpandMoreRounded } from '../../icons';
+import { PaletteRounded } from '../../icons';
+import { TextFieldsRounded } from '../../icons';
+import { SpaceBarRounded } from '../../icons';
+import { FilterDramaRounded } from '../../icons';
+import { SmartButtonRounded } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { DesignTokens } from '../../services/api/bookingEngineApi';
 
@@ -117,7 +117,7 @@ export default function DesignTokenEditor({
       {/* ─── Section 1: Colors ──────────────────────────────────────── */}
       <Accordion defaultExpanded>
         <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-          <PaletteRounded sx={{ mr: 1, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mr: 1 }}><PaletteRounded  /></Box>
           <Typography fontWeight={600}>{t('bookingEngine.designTokens.colors')}</Typography>
         </AccordionSummary>
         <AccordionDetails>
@@ -138,7 +138,7 @@ export default function DesignTokenEditor({
       {/* ─── Section 2: Typography ──────────────────────────────────── */}
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-          <TextFieldsRounded sx={{ mr: 1, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mr: 1 }}><TextFieldsRounded  /></Box>
           <Typography fontWeight={600}>{t('bookingEngine.designTokens.typography')}</Typography>
         </AccordionSummary>
         <AccordionDetails>
@@ -160,7 +160,7 @@ export default function DesignTokenEditor({
       {/* ─── Section 3: Spacing & Borders ──────────────────────────── */}
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-          <SpaceBarRounded sx={{ mr: 1, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mr: 1 }}><SpaceBarRounded  /></Box>
           <Typography fontWeight={600}>{t('bookingEngine.designTokens.spacing')}</Typography>
         </AccordionSummary>
         <AccordionDetails>
@@ -176,7 +176,7 @@ export default function DesignTokenEditor({
       {/* ─── Section 4: Shadows ─────────────────────────────────────── */}
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-          <FilterDramaRounded sx={{ mr: 1, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mr: 1 }}><FilterDramaRounded  /></Box>
           <Typography fontWeight={600}>{t('bookingEngine.designTokens.shadows')}</Typography>
         </AccordionSummary>
         <AccordionDetails>
@@ -200,7 +200,7 @@ export default function DesignTokenEditor({
       {/* ─── Section 5: Buttons ─────────────────────────────────────── */}
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-          <SmartButtonRounded sx={{ mr: 1, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mr: 1 }}><SmartButtonRounded  /></Box>
           <Typography fontWeight={600}>{t('bookingEngine.designTokens.buttons')}</Typography>
         </AccordionSummary>
         <AccordionDetails>

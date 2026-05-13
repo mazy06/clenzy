@@ -28,7 +28,7 @@ import {
   CheckCircle as CheckCircleIcon,
   PersonOutline as PersonIcon,
   Payment as PaymentIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import lightTheme from '../../theme/theme';
@@ -154,7 +154,7 @@ function CustomStepIcon(props: StepIconProps) {
         '& .MuiSvgIcon-root': { fontSize: 18 },
       }}
     >
-      {completed ? <CheckCircleIcon sx={{ fontSize: 20 }} /> : STEP_ICONS[icon as number]}
+      {completed ? <CheckCircleIcon size={20} strokeWidth={1.75} /> : STEP_ICONS[icon as number]}
     </Box>
   );
 }
@@ -619,7 +619,7 @@ export default function Inscription() {
                       bgcolor: 'rgba(166,192,206,0.15)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <CartIcon sx={{ fontSize: 18, color: '#6B8A9A' }} />
+                      <CartIcon size={18} strokeWidth={1.75} color='#6B8A9A' />
                     </Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                       Recapitulatif
@@ -691,7 +691,7 @@ export default function Inscription() {
                   </Stack>
 
                   <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <CheckCircleIcon sx={{ fontSize: 14, color: 'success.main' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleIcon size={14} strokeWidth={1.75} /></Box>
                     <Typography variant="caption" color="text.secondary">
                       Paiement securise via Stripe
                     </Typography>
@@ -715,7 +715,7 @@ export default function Inscription() {
                       bgcolor: 'rgba(107,138,154,0.12)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <CreditCardIcon sx={{ fontSize: 18, color: '#6B8A9A' }} />
+                      <CreditCardIcon size={18} strokeWidth={1.75} color='#6B8A9A' />
                     </Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                       Paiement

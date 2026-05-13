@@ -16,7 +16,7 @@ import {
   CheckCircleOutline,
   OpenInNew,
   SettingsRemote,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Feature list helper ────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 function FeatureItem({ text }: { text: string }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
-      <CheckCircleOutline sx={{ fontSize: 16, color: 'success.main' }} />
+      <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleOutline size={16} strokeWidth={1.75} /></Box>
       <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
         {text}
       </Typography>
@@ -48,7 +48,7 @@ const NoiseProductDetail: React.FC<NoiseProductDetailProps> = ({ type, onSubscri
 
   const config = isMinut
     ? {
-        icon: <Handshake sx={{ color: '#6B8A9A', fontSize: 48 }} />,
+        icon: <Handshake size={48} strokeWidth={1.75} color='#6B8A9A' />,
         title: t('dashboard.noise.minut.detailTitle') || 'Minut - Monitoring sonore professionnel',
         badge: t('tarification.monitoring.minut.badge') || 'Partenaire',
         badgeColor: 'primary' as const,
@@ -71,7 +71,7 @@ const NoiseProductDetail: React.FC<NoiseProductDetailProps> = ({ type, onSubscri
         accentColor: '#6B8A9A',
       }
     : {
-        icon: <Memory sx={{ color: '#4A9B8E', fontSize: 48 }} />,
+        icon: <Memory size={48} strokeWidth={1.75} color='#4A9B8E' />,
         title: t('dashboard.noise.clenzy.detailTitle') || 'Clenzy Hardware - Solution proprietaire',
         badge: t('tarification.monitoring.clenzy.badge') || 'Proprietaire',
         badgeColor: 'success' as const,
@@ -99,7 +99,7 @@ const NoiseProductDetail: React.FC<NoiseProductDetailProps> = ({ type, onSubscri
       {/* Back button */}
       <Button
         size="small"
-        startIcon={<ArrowBack sx={{ fontSize: 16 }} />}
+        startIcon={<ArrowBack size={16} strokeWidth={1.75} />}
         onClick={onBack}
         sx={{
           textTransform: 'none',
@@ -235,7 +235,7 @@ const NoiseProductDetail: React.FC<NoiseProductDetailProps> = ({ type, onSubscri
               <Button
                 variant="outlined"
                 size="small"
-                endIcon={<OpenInNew sx={{ fontSize: 14 }} />}
+                endIcon={<OpenInNew size={14} strokeWidth={1.75} />}
                 onClick={() => navigate(config.externalUrl)}
                 sx={{
                   textTransform: 'none',
@@ -258,7 +258,7 @@ const NoiseProductDetail: React.FC<NoiseProductDetailProps> = ({ type, onSubscri
                 <Button
                   variant="outlined"
                   size="small"
-                  endIcon={<OpenInNew sx={{ fontSize: 14 }} />}
+                  endIcon={<OpenInNew size={14} strokeWidth={1.75} />}
                   sx={{
                     textTransform: 'none',
                     fontSize: '0.8125rem',
@@ -276,7 +276,7 @@ const NoiseProductDetail: React.FC<NoiseProductDetailProps> = ({ type, onSubscri
             <Button
               variant="contained"
               size="small"
-              startIcon={<SettingsRemote sx={{ fontSize: 16 }} />}
+              startIcon={<SettingsRemote size={16} strokeWidth={1.75} />}
               onClick={onSubscribe}
               sx={{
                 textTransform: 'none',

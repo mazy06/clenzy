@@ -13,7 +13,7 @@ import {
   Speed,
   AccountBalanceWallet,
   CalendarMonth,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';

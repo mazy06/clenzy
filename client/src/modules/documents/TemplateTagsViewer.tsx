@@ -12,7 +12,7 @@ import {
   TableCell,
   TableRow,
 } from '@mui/material';
-import { ExpandMore } from '@mui/icons-material';
+import { ExpandMore } from '../../icons';
 import { DocumentTemplateTag } from '../../services/api/documentsApi';
 
 interface TemplateTagsViewerProps {

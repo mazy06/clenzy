@@ -292,7 +292,7 @@
       "activeInterventionsDesc": "Interventions planifiées ou en cours d'exécution",
       "alerts": "Alertes business",
       "alertsDesc": "Points d'attention nécessitant une action",
-      "noAlerts": "Aucune alerte — tout va bien !",
+      "noAlerts": "Aucune alerte — tout va bien.",
       "subTabs": {
         "overview": "Vue d'ensemble",
         "revenueAndPricing": "Revenus & Tarifs",
@@ -1695,7 +1695,7 @@
       "reassignConnectionError": "Erreur de connexion lors de la réassignation",
       "unassignError": "Erreur lors de la désassignation",
       "assignmentError": "Erreur lors de l'assignation",
-      "assignmentSuccess": "Assignation réussie !"
+      "assignmentSuccess": "Assignation enregistrée."
     },
     "notifications": {
       "clientReassigned": "Le client a été réassigné avec succès.",
@@ -1789,7 +1789,7 @@
       "requiredFields": "Veuillez remplir tous les champs obligatoires"
     },
     "success": {
-      "messageSent": "Message envoyé avec succès !"
+      "messageSent": "Message envoyé."
     },
     "info": {
       "restrictedUser": "En tant qu'utilisateur restreint, vous ne pouvez envoyer des messages qu'aux managers de votre portefeuille."
@@ -2079,7 +2079,7 @@
   "permissions": {
     "title": "Gestion des permissions",
     "subtitle": "Configurer les permissions par rôle",
-    "saveSuccess": "Permissions sauvegardées avec succès !",
+    "saveSuccess": "Permissions sauvegardées.",
     "saveError": "Erreur lors de la sauvegarde des permissions",
     "reset": "Réinitialiser",
     "resetToDefault": "Réinitialiser aux valeurs par défaut"

@@ -1,11 +1,19 @@
 import React from 'react';
 import { Box, Typography, Button, Tooltip, useTheme, useMediaQuery } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon } from '../icons';
 import { useNavigate } from 'react-router-dom';
+import { useIconSize } from '../hooks/useResponsiveSize';
 
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
+  /**
+   * Icone optionnelle affichee dans un badge carre arrondi a gauche du titre.
+   * Conserve les memes proportions que les autres badges (32x32, primary bg).
+   */
+  iconBadge?: React.ReactNode;
+  /** Couleur du badge icone. Default : primary. */
+  iconBadgeColor?: string;
   backPath?: string;
   backLabel?: string;
   /** Callback invoked when the back button is clicked. Takes priority over backPath. */
@@ -14,21 +22,40 @@ interface PageHeaderProps {
   /** Slot for search / filter elements rendered inline with actions on the title row */
   filters?: React.ReactNode;
   showBackButton?: boolean;
-  showBackButtonWithActions?: boolean; // Nouvelle prop pour afficher retour + actions
+  showBackButtonWithActions?: boolean;
 }
 
+/**
+ * Header de page standardise pour le PMS.
+ *
+ * Structure :
+ *   [iconBadge] Titre h5 (responsive)        [filters] [actions] [backButton]
+ *               Sous-titre body2 (responsive)
+ *
+ * Le titre/sous-titre heritent automatiquement de la typography responsive
+ * du theme (3 paliers : sm/md/xl). L'icone badge passe par useIconSize('badge')
+ * pour rester coherente avec les autres badges du PMS.
+ *
+ * Mode compact (md-) : les boutons textuels avec icone deviennent icon-only
+ * + tooltip pour gagner de la place sur les laptops.
+ */
 export default function PageHeader({
   title,
   subtitle,
+  iconBadge,
+  iconBadgeColor,
   backPath,
   backLabel = 'Retour',
   onBack,
   actions,
   filters,
   showBackButton = true,
-  showBackButtonWithActions = false
+  showBackButtonWithActions = false,
 }: PageHeaderProps) {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isCompact = useMediaQuery(theme.breakpoints.down('md'));
+  const badgeIconSize = useIconSize('badge');
 
   const handleBack = () => {
     if (onBack) {
@@ -37,40 +64,38 @@ export default function PageHeader({
       navigate(backPath);
     }
   };
-  const theme = useTheme();
-  const isCompact = useMediaQuery(theme.breakpoints.down('md'));
 
   return (
     <Box mb={1}>
-      <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-        {/* Titre et sous-titre a gauche */}
-        <Box sx={{ minWidth: 0, flex: 1, mr: 1 }}>
-          <Typography
-            variant="h5"
-            component="h1"
-            sx={{
-              mb: 0.25,
-              fontSize: '1rem',
-              fontWeight: 700,
-              letterSpacing: '-0.01em',
-              color: 'text.primary',
-              ...(isCompact && {
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }),
-            }}
-          >
-            {title}
-          </Typography>
-          {subtitle && (
-            <Typography
-              variant="body2"
+      <Box display="flex" justifyContent="space-between" alignItems="center" gap={1} flexWrap="wrap">
+        {/* Titre et sous-titre (avec optionally iconBadge) */}
+        <Box sx={{ minWidth: 0, flex: 1, mr: 1, display: 'flex', alignItems: 'center', gap: 0.875 }}>
+          {iconBadge && (
+            <Box
               sx={{
-                fontSize: '0.75rem',
-                color: 'text.secondary',
-                fontWeight: 400,
-                letterSpacing: '0.01em',
+                width: 26, height: 26, borderRadius: 0.75,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                bgcolor: iconBadgeColor || 'primary.main',
+                color: 'primary.contrastText',
+                flexShrink: 0,
+              }}
+            >
+              {React.isValidElement(iconBadge)
+                ? React.cloneElement(iconBadge as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
+                    size: badgeIconSize,
+                    strokeWidth: 1.75,
+                  })
+                : iconBadge}
+            </Box>
+          )}
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="h5"
+              component="h1"
+              sx={{
+                letterSpacing: '-0.01em',
+                color: 'text.primary',
+                lineHeight: 1.2,
                 ...(isCompact && {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -78,9 +103,26 @@ export default function PageHeader({
                 }),
               }}
             >
-              {subtitle}
+              {title}
             </Typography>
-          )}
+            {subtitle && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  display: 'block',
+                  lineHeight: 1.3,
+                  ...(isCompact && {
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }),
+                }}
+              >
+                {subtitle}
+              </Typography>
+            )}
+          </Box>
         </Box>
 
         {/* Filters + Actions a droite */}
@@ -90,103 +132,50 @@ export default function PageHeader({
           alignItems="center"
           sx={{
             flexShrink: 0,
-            // Force compact styling on ALL MuiButton children (including nested)
-            '& .MuiButton-root': {
-              fontSize: '0.8125rem',
-              py: 0.5,
-              px: 1.5,
-              minHeight: 32,
-              textTransform: 'none',
-              borderWidth: 1.5,
-              lineHeight: 1.4,
-              whiteSpace: 'nowrap',
-            },
-            '& .MuiButton-outlined': {
-              borderWidth: 1.5,
-              '&:hover': { borderWidth: 1.5 },
-            },
-            // Mode compact : masquer le texte des boutons avec icone, garder les icones
+            // En mode compact, les boutons avec icone deviennent icon-only + tooltip.
             ...(isCompact && {
-              '& .MuiButton-root': {
-                py: 0.5,
-                px: 1,
-                minHeight: 32,
-                textTransform: 'none',
-                borderWidth: 1.5,
-                lineHeight: 1.4,
-                whiteSpace: 'nowrap',
-                fontSize: '0.75rem',
-              },
-              // Boutons AVEC icone : masquer le texte, garder uniquement l'icone
               '& .MuiButton-root:has(.MuiButton-startIcon), & .MuiButton-root:has(.MuiButton-endIcon)': {
                 fontSize: 0,
-                minWidth: 36,
-                '& .MuiButton-startIcon': {
-                  margin: 0,
-                  fontSize: '1.125rem',
-                  '& > *': { fontSize: '1.125rem !important' },
-                },
-                '& .MuiButton-endIcon': {
-                  margin: 0,
-                  fontSize: '1.125rem',
-                  '& > *': { fontSize: '1.125rem !important' },
-                },
-                '& .MuiCircularProgress-root': {
-                  width: '16px !important',
-                  height: '16px !important',
-                },
-              },
-              '& .MuiButton-outlined': {
-                borderWidth: 1.5,
-                '&:hover': { borderWidth: 1.5 },
+                minWidth: 30,
+                '& .MuiButton-startIcon': { margin: 0 },
+                '& .MuiButton-endIcon':   { margin: 0 },
               },
             }),
           }}
         >
-          {/* Filtres inline (meme ligne que les actions) */}
           {filters}
-
-          {/* Actions personnalisees (boutons, etc.) */}
           {actions}
 
-          {/* Bouton retour (optionnel) */}
           {showBackButton && (
             <Tooltip title={isCompact ? backLabel : ''} arrow>
               <Button
                 variant="outlined"
                 size="small"
-                startIcon={isCompact ? undefined : <ArrowBackIcon sx={{ fontSize: '18px' }} />}
+                startIcon={isCompact ? undefined : <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} />}
                 onClick={handleBack}
                 title={backLabel}
                 sx={{
-                  borderWidth: 1.5,
-                  fontSize: '0.8125rem',
-                  py: 0.5,
-                  ...(isCompact && { minWidth: 36, px: 1 }),
+                  ...(isCompact && { minWidth: 30, px: 0.75 }),
                 }}
               >
-                {isCompact ? <ArrowBackIcon sx={{ fontSize: '18px' }} /> : backLabel}
+                {isCompact ? <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} /> : backLabel}
               </Button>
             </Tooltip>
           )}
 
-          {/* Bouton retour avec actions (nouveau mode) */}
           {showBackButtonWithActions && (
             <Tooltip title={isCompact ? backLabel : ''} arrow>
               <Button
                 variant="outlined"
                 size="small"
-                startIcon={isCompact ? undefined : <ArrowBackIcon sx={{ fontSize: '18px' }} />}
+                startIcon={isCompact ? undefined : <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} />}
                 onClick={handleBack}
                 title={backLabel}
                 sx={{
-                  borderWidth: 1.5,
-                  fontSize: '0.8125rem',
-                  py: 0.5,
-                  ...(isCompact && { minWidth: 36, px: 1 }),
+                  ...(isCompact && { minWidth: 30, px: 0.75 }),
                 }}
               >
-                {isCompact ? <ArrowBackIcon sx={{ fontSize: '18px' }} /> : backLabel}
+                {isCompact ? <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} /> : backLabel}
               </Button>
             </Tooltip>
           )}

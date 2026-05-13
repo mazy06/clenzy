@@ -11,7 +11,7 @@ import {
   TrendingUp,
   TrendingDown,
   Remove,
-} from '@mui/icons-material';
+} from '../../../icons';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -156,11 +156,11 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
             {trend && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mt: 0.25 }}>
                 {trend.value > 0 ? (
-                  <TrendingUp color="success" sx={{ fontSize: 11 }} />
+                  <TrendingUp color="success" size={11} strokeWidth={1.75} />
                 ) : trend.value < 0 ? (
-                  <TrendingDown color="error" sx={{ fontSize: 11 }} />
+                  <TrendingDown color="error" size={11} strokeWidth={1.75} />
                 ) : (
-                  <Remove sx={{ fontSize: 11, color: 'text.disabled' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Remove size={11} strokeWidth={1.75} /></Box>
                 )}
                 <Typography
                   variant="caption"

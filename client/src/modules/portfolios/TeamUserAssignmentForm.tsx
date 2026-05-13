@@ -37,7 +37,7 @@ import {
   CleaningServices,
   SupervisorAccount,
   Search,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTeamUserAssignment } from './useTeamUserAssignment';
 
@@ -45,12 +45,12 @@ import { useTeamUserAssignment } from './useTeamUserAssignment';
 
 function getRoleIcon(role: string) {
   switch (role) {
-    case 'HOUSEKEEPER': return <CleaningServices sx={{ fontSize: 16 }} />;
-    case 'TECHNICIAN': return <Build sx={{ fontSize: 16 }} />;
-    case 'LAUNDRY': return <CleaningServices sx={{ fontSize: 16 }} />;
-    case 'EXTERIOR_TECH': return <Build sx={{ fontSize: 16 }} />;
-    case 'SUPERVISOR': return <SupervisorAccount sx={{ fontSize: 16 }} />;
-    default: return <Person sx={{ fontSize: 16 }} />;
+    case 'HOUSEKEEPER': return <CleaningServices size={16} strokeWidth={1.75} />;
+    case 'TECHNICIAN': return <Build size={16} strokeWidth={1.75} />;
+    case 'LAUNDRY': return <CleaningServices size={16} strokeWidth={1.75} />;
+    case 'EXTERIOR_TECH': return <Build size={16} strokeWidth={1.75} />;
+    case 'SUPERVISOR': return <SupervisorAccount size={16} strokeWidth={1.75} />;
+    default: return <Person size={16} strokeWidth={1.75} />;
   }
 }
 
@@ -172,7 +172,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                           size="small"
                           sx={{ p: 0.25, mr: 0.75 }}
                         />
-                        <Group sx={{ fontSize: 18, mr: 0.75, color: 'primary.main' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mr: 0.75 }}><Group size={18} strokeWidth={1.75} /></Box>
                         <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
                           {team.name}
                         </Typography>
@@ -228,7 +228,7 @@ const TeamUserAssignmentForm: React.FC = () => {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Search sx={{ fontSize: 18, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={18} strokeWidth={1.75} /></Box>
                   </InputAdornment>
                 ),
               }}
@@ -243,7 +243,7 @@ const TeamUserAssignmentForm: React.FC = () => {
 
             {filteredUsers.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4 }}>
-                <People sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><People size={40} strokeWidth={1.75} /></Box>
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
                   {userSearchTerm ? t('portfolios.fields.noUserFound') : t('portfolios.fields.noUserAvailable')}
                 </Typography>
@@ -329,7 +329,7 @@ const TeamUserAssignmentForm: React.FC = () => {
             {/* Manager */}
             <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
               <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <People sx={{ fontSize: 16 }} />
+                <People size={16} strokeWidth={1.75} />
                 {t('portfolios.fields.selectedManager')}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
@@ -351,7 +351,7 @@ const TeamUserAssignmentForm: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Group sx={{ fontSize: 16 }} />
+                    <Group size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedTeams')} ({selectedTeamsData.length})
                   </Typography>
                   {selectedTeamsData.length > 0 ? (
@@ -359,7 +359,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                       {selectedTeamsData.map((team) => (
                         <ListItem key={team.id} disableGutters sx={{ py: 0.5 }}>
                           <ListItemIcon sx={{ minWidth: 28 }}>
-                            <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
                           </ListItemIcon>
                           <ListItemText
                             primary={<Typography sx={{ fontSize: '0.82rem' }}>{team.name}</Typography>}
@@ -383,7 +383,7 @@ const TeamUserAssignmentForm: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <People sx={{ fontSize: 16 }} />
+                    <People size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedUsers')} ({selectedUsersData.length})
                   </Typography>
                   {selectedUsersData.length > 0 ? (
@@ -391,7 +391,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                       {selectedUsersData.map((userItem) => (
                         <ListItem key={userItem.id} disableGutters sx={{ py: 0.5 }}>
                           <ListItemIcon sx={{ minWidth: 28 }}>
-                            <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
                           </ListItemIcon>
                           <ListItemText
                             primary={<Typography sx={{ fontSize: '0.82rem' }}>{userItem.firstName} {userItem.lastName}</Typography>}
@@ -453,7 +453,7 @@ const TeamUserAssignmentForm: React.FC = () => {
           <Button
             disabled={activeStep === 0}
             onClick={handleBack}
-            startIcon={<ArrowBack sx={{ fontSize: 16 }} />}
+            startIcon={<ArrowBack size={16} strokeWidth={1.75} />}
             size="small"
             sx={{ fontSize: '0.82rem' }}
           >
@@ -465,7 +465,7 @@ const TeamUserAssignmentForm: React.FC = () => {
               variant="contained"
               onClick={handleSubmit}
               disabled={submitting || !selectedManager || (selectedTeams.length === 0 && selectedUsers.length === 0)}
-              startIcon={submitting ? <CircularProgress size={16} /> : <CheckCircle sx={{ fontSize: 16 }} />}
+              startIcon={submitting ? <CircularProgress size={16} /> : <CheckCircle size={16} strokeWidth={1.75} />}
               size="small"
               sx={{ fontSize: '0.82rem' }}
             >
@@ -476,7 +476,7 @@ const TeamUserAssignmentForm: React.FC = () => {
               variant="contained"
               onClick={handleNext}
               disabled={!canGoNext}
-              endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
+              endIcon={<ArrowForward size={16} strokeWidth={1.75} />}
               size="small"
               sx={{ fontSize: '0.82rem' }}
             >

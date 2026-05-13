@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Box, Typography, Card, CardContent, Slider, Grid } from '@mui/material';
-import { Calculate, Euro, Percent, ShowChart } from '@mui/icons-material';
+import { Calculate, Euro, Percent, ShowChart } from '../../../icons';
 import GridSection from './GridSection';
 import AnalyticsWidgetCard from './AnalyticsWidgetCard';
 import { useTranslation } from '../../../hooks/useTranslation';

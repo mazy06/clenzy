@@ -22,7 +22,7 @@ import {
   Error as ErrorIcon,
   Receipt as ReceiptIcon,
   ShoppingCart as ShoppingCartIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { pennylaneApi } from '../../services/api/pennylaneApi';
 import type { PennylaneStatus, PennylaneSyncStatus } from '../../services/api/pennylaneApi';
 import { useTranslation } from '../../hooks/useTranslation';

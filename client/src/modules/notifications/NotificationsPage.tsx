@@ -2,8 +2,6 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
-  Tabs,
-  Tab,
   Button,
   IconButton,
   Tooltip,
@@ -20,13 +18,15 @@ import {
   Circle,
   NotificationsNone,
   EventNote,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAsync } from '../../hooks/useAsync';
 import { notificationsApi } from '../../services/api';
 import type { Notification } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
+import EmptyState from '../../components/EmptyState';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -34,14 +34,14 @@ import DataFetchWrapper from '../../components/DataFetchWrapper';
 type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'payment' | 'reservation' | 'system' | 'contact' | 'document';
 
 const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
-  intervention: <Build sx={{ fontSize: 18, color: 'primary.main' }} />,
-  service_request: <Description sx={{ fontSize: 18, color: 'warning.main' }} />,
-  payment: <Payment sx={{ fontSize: 18, color: 'success.main' }} />,
-  system: <Info sx={{ fontSize: 18, color: 'secondary.main' }} />,
-  team: <Groups sx={{ fontSize: 18, color: 'info.main' }} />,
-  contact: <Email sx={{ fontSize: 18, color: 'error.main' }} />,
-  document: <Description sx={{ fontSize: 18, color: 'warning.dark' }} />,
-  reservation: <EventNote sx={{ fontSize: 18, color: 'info.main' }} />,
+  intervention: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Build size={18} strokeWidth={1.75} /></Box>,
+  service_request: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Description size={18} strokeWidth={1.75} /></Box>,
+  payment: <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Payment size={18} strokeWidth={1.75} /></Box>,
+  system: <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Info size={18} strokeWidth={1.75} /></Box>,
+  team: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Groups size={18} strokeWidth={1.75} /></Box>,
+  contact: <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Email size={18} strokeWidth={1.75} /></Box>,
+  document: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.dark' }}><Description size={18} strokeWidth={1.75} /></Box>,
+  reservation: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><EventNote size={18} strokeWidth={1.75} /></Box>,
 };
 
 function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string, lang = 'fr'): string {
@@ -150,6 +150,7 @@ export default function NotificationsPage() {
             ? `${unreadCount} ${t('notifications.unread')}`
             : t('notifications.allRead')
         }
+        iconBadge={<NotificationsNone />}
         backPath="/dashboard"
         backLabel={t('common.back')}
         actions={
@@ -157,7 +158,7 @@ export default function NotificationsPage() {
             <Button
               variant="outlined"
               size="small"
-              startIcon={<DoneAll sx={{ fontSize: 18 }} />}
+              startIcon={<DoneAll size={18} strokeWidth={1.75} />}
               onClick={handleMarkAllRead}
               sx={{ fontSize: '0.8125rem', py: 0.5 }}
               title={t('notifications.markAllRead')}
@@ -170,21 +171,14 @@ export default function NotificationsPage() {
 
       <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 1, sm: 2 } }}>
       {/* Filter Tabs */}
-      <Tabs
+      <PageTabs
+        options={tabs.map((tab) => ({ value: tab.value, label: tab.label }))}
         value={activeTab}
-        onChange={(_, v) => setActiveTab(v)}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={{
-          mb: 1,
-          minHeight: 36,
-          '& .MuiTab-root': { minHeight: 36, py: 0.5, fontSize: '0.8125rem', textTransform: 'none' },
-        }}
-      >
-        {tabs.map((tab) => (
-          <Tab key={tab.value} value={tab.value} label={tab.label} />
-        ))}
-      </Tabs>
+        onChange={(v) => setActiveTab(v as typeof activeTab)}
+        size="compact"
+        paper={false}
+        mb={1}
+      />
 
       {/* Content */}
       <DataFetchWrapper
@@ -193,17 +187,16 @@ export default function NotificationsPage() {
         onRetry={retry}
         isEmpty={filtered.length === 0}
         emptyState={
-          <Box sx={{ textAlign: 'center', py: 6 }}>
-            <NotificationsNone sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-            <Typography variant="h6" color="text.secondary" sx={{ fontSize: '1rem' }}>
-              {t('notifications.empty')}
-            </Typography>
-            <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
-              {activeTab !== 'all'
+          <EmptyState
+            icon={<NotificationsNone />}
+            title={t('notifications.empty')}
+            description={
+              activeTab !== 'all'
                 ? t('notifications.emptyFilter')
-                : t('notifications.emptyAll')}
-            </Typography>
-          </Box>
+                : t('notifications.emptyAll')
+            }
+            variant="transparent"
+          />
         }
       >
         <Box>
@@ -244,14 +237,14 @@ export default function NotificationsPage() {
                   flexShrink: 0,
                 }}
               >
-                {CATEGORY_ICONS[notification.category] ?? <Info sx={{ fontSize: 18 }} />}
+                {CATEGORY_ICONS[notification.category] ?? <Info size={18} strokeWidth={1.75} />}
               </Box>
 
               {/* Text */}
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                   {!notification.read && (
-                    <Circle sx={{ fontSize: 7, color: 'primary.main', flexShrink: 0 }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', flexShrink: 0 }}><Circle size={7} strokeWidth={1.75} /></Box>
                   )}
                   <Typography
                     variant="body2"
@@ -311,7 +304,7 @@ export default function NotificationsPage() {
                     '&:hover': { color: 'error.main' },
                   }}
                 >
-                  <DeleteOutline sx={{ fontSize: 17 }} />
+                  <DeleteOutline size={17} strokeWidth={1.75} />
                 </IconButton>
               </Tooltip>
             </Box>

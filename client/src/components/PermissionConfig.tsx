@@ -10,8 +10,6 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  Tabs,
-  Tab,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -47,13 +45,52 @@ import {
   Speed as SpeedIcon,
   StorageRounded as DatabaseIcon,
   Receipt as TarificationIcon,
-} from '@mui/icons-material';
+} from '../icons';
 import PageHeader from './PageHeader';
+import PageTabs from './PageTabs';
 import { useAuth } from '../hooks/useAuth';
 import { useRolePermissions } from '../hooks/useRolePermissions';
 import { usePermissionRefresh } from '../hooks/usePermissionRefresh';
 import PermissionEffectsDemo from './PermissionEffectsDemo';
 import { permissionsApi } from '../services/api';
+
+// ─── Role tabs config ────────────────────────────────────────────────────────
+
+/** Ordre canonique des rôles (du plus privilégié au plus restreint). */
+const ROLE_ORDER: string[] = [
+  'SUPER_ADMIN',
+  'SUPER_MANAGER',
+  'SUPERVISOR',
+  'TECHNICIAN',
+  'HOUSEKEEPER',
+  'HOST',
+  'LAUNDRY',
+  'EXTERIOR_TECH',
+];
+
+/** Trie une liste de rôles selon l'ordre canonique (rôles inconnus en dernier, alphabétique). */
+function sortRoles(roles: string[]): string[] {
+  return [...roles].sort((a, b) => {
+    const ia = ROLE_ORDER.indexOf(a);
+    const ib = ROLE_ORDER.indexOf(b);
+    if (ia >= 0 && ib >= 0) return ia - ib;
+    if (ia >= 0) return -1;
+    if (ib >= 0) return 1;
+    return a.localeCompare(b);
+  });
+}
+
+/** Icône associée à chaque rôle (fallback PersonIcon si non listé). */
+const ROLE_ICONS: Record<string, React.ReactElement> = {
+  SUPER_ADMIN:    <SecurityIcon />,
+  SUPER_MANAGER:  <BusinessIcon />,
+  SUPERVISOR:     <GroupIcon />,
+  TECHNICIAN:     <BuildIcon />,
+  HOUSEKEEPER:    <AssignmentIcon />,
+  HOST:           <HomeIcon />,
+  LAUNDRY:        <PersonIcon />,
+  EXTERIOR_TECH:  <BuildIcon />,
+};
 
 const PermissionConfig: React.FC = () => {
   const { user } = useAuth();
@@ -87,11 +124,6 @@ const PermissionConfig: React.FC = () => {
 
   // État pour l'onglet actif
   const [activeTab, setActiveTab] = useState(0);
-
-  // Fonction pour gérer le changement d'onglet
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  };
 
   // État pour toutes les permissions disponibles
   const [allPermissions, setAllPermissions] = useState<string[]>([]);
@@ -213,29 +245,29 @@ const PermissionConfig: React.FC = () => {
   // Fonction pour obtenir l'icône appropriée pour chaque module
   const getModuleIcon = (moduleName: string) => {
     const iconMap: { [key: string]: React.ReactNode } = {
-      'Dashboard': <DashboardIcon sx={{ color: 'text.secondary' }} />,
-      'Propriétés': <HomeIcon sx={{ color: 'text.secondary' }} />,
-      'Demandes de Service': <AssignmentIcon sx={{ color: 'text.secondary' }} />,
-      'Interventions': <BuildIcon sx={{ color: 'text.secondary' }} />,
-      'Équipes': <GroupIcon sx={{ color: 'text.secondary' }} />,
-      'Portefeuilles': <BusinessIcon sx={{ color: 'text.secondary' }} />,
-      'Contact': <NotificationsIcon sx={{ color: 'text.secondary' }} />,
-      'Utilisateurs': <PersonIcon sx={{ color: 'text.secondary' }} />,
-      'Paramètres': <SettingsIcon sx={{ color: 'text.secondary' }} />,
-      'Rapports': <AssessmentIcon sx={{ color: 'text.secondary' }} />,
-      'Documents': <DescriptionIcon sx={{ color: 'text.secondary' }} />,
-      'Réservations': <EventNoteIcon sx={{ color: 'text.secondary' }} />,
-      'Prix Dynamiques': <TrendingUpIcon sx={{ color: 'text.secondary' }} />,
-      'Tarification': <TarificationIcon sx={{ color: 'text.secondary' }} />,
-      'Paiements': <PaymentIcon sx={{ color: 'text.secondary' }} />,
-      'Canaux': <ChannelsIcon sx={{ color: 'text.secondary' }} />,
-      'Messagerie': <ChatIcon sx={{ color: 'text.secondary' }} />,
-      'Monitoring': <MonitorIcon sx={{ color: 'text.secondary' }} />,
-      'Synchronisation': <SyncIcon sx={{ color: 'text.secondary' }} />,
-      'KPI Readiness': <SpeedIcon sx={{ color: 'text.secondary' }} />,
-      'Base de Données': <DatabaseIcon sx={{ color: 'text.secondary' }} />,
+      'Dashboard': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DashboardIcon size={20} strokeWidth={1.75} /></Box>,
+      'Propriétés': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><HomeIcon size={20} strokeWidth={1.75} /></Box>,
+      'Demandes de Service': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AssignmentIcon size={20} strokeWidth={1.75} /></Box>,
+      'Interventions': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BuildIcon size={20} strokeWidth={1.75} /></Box>,
+      'Équipes': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><GroupIcon size={20} strokeWidth={1.75} /></Box>,
+      'Portefeuilles': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BusinessIcon size={20} strokeWidth={1.75} /></Box>,
+      'Contact': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><NotificationsIcon size={20} strokeWidth={1.75} /></Box>,
+      'Utilisateurs': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PersonIcon size={20} strokeWidth={1.75} /></Box>,
+      'Paramètres': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SettingsIcon size={20} strokeWidth={1.75} /></Box>,
+      'Rapports': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AssessmentIcon size={20} strokeWidth={1.75} /></Box>,
+      'Documents': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DescriptionIcon size={20} strokeWidth={1.75} /></Box>,
+      'Réservations': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><EventNoteIcon size={20} strokeWidth={1.75} /></Box>,
+      'Prix Dynamiques': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><TrendingUpIcon size={20} strokeWidth={1.75} /></Box>,
+      'Tarification': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><TarificationIcon size={20} strokeWidth={1.75} /></Box>,
+      'Paiements': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PaymentIcon size={20} strokeWidth={1.75} /></Box>,
+      'Canaux': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ChannelsIcon size={20} strokeWidth={1.75} /></Box>,
+      'Messagerie': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ChatIcon size={20} strokeWidth={1.75} /></Box>,
+      'Monitoring': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><MonitorIcon size={20} strokeWidth={1.75} /></Box>,
+      'Synchronisation': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SyncIcon size={20} strokeWidth={1.75} /></Box>,
+      'KPI Readiness': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SpeedIcon size={20} strokeWidth={1.75} /></Box>,
+      'Base de Données': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DatabaseIcon size={20} strokeWidth={1.75} /></Box>,
     };
-    return iconMap[moduleName] || <InfoIcon sx={{ color: 'text.secondary' }} />;
+    return iconMap[moduleName] || <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><InfoIcon size={20} strokeWidth={1.75} /></Box>;
   };
 
   if (!user) {
@@ -280,7 +312,7 @@ const PermissionConfig: React.FC = () => {
                 variant="outlined"
                 size="small"
                 color="warning"
-                startIcon={<RefreshIcon sx={{ color: 'text.secondary' }} />}
+                startIcon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><RefreshIcon size={20} strokeWidth={1.75} /></Box>}
                 onClick={async () => {
                   await resetRolePermissions(selectedRole);
                   triggerGlobalRefresh();
@@ -294,14 +326,14 @@ const PermissionConfig: React.FC = () => {
                 variant="outlined"
                 size="small"
                 color="error"
-                startIcon={<StorageIcon sx={{ color: 'text.secondary' }} />}
+                startIcon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><StorageIcon size={20} strokeWidth={1.75} /></Box>}
                 onClick={async () => {
                   try {
                     await resetToInitialPermissions(selectedRole);
                     triggerGlobalRefresh();
                     setSaveNotification({
                       open: true,
-                      message: 'Permissions réinitialisées aux valeurs initiales !',
+                      message: 'Permissions réinitialisées aux valeurs initiales.',
                       severity: 'success'
                     });
                   } catch (error) {
@@ -321,7 +353,7 @@ const PermissionConfig: React.FC = () => {
                 variant="contained"
                 size="small"
                 color="primary"
-                startIcon={<SaveIcon sx={{ color: 'text.secondary' }} />}
+                startIcon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SaveIcon size={20} strokeWidth={1.75} /></Box>}
                 onClick={async () => {
                   try {
                     await applyLocalChanges(selectedRole);
@@ -332,7 +364,7 @@ const PermissionConfig: React.FC = () => {
                     window.dispatchEvent(new CustomEvent('force-user-reload'));
                     setSaveNotification({
                       open: true,
-                      message: 'Permissions sauvegardées avec succès !',
+                      message: 'Permissions sauvegardées.',
                       severity: 'success'
                     });
                   } catch (error) {
@@ -353,85 +385,49 @@ const PermissionConfig: React.FC = () => {
         }
       />
 
-      {/* Sélection du rôle et résumé des permissions */}
-      <Card sx={{ mb: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
-        <CardContent sx={{ p: 3 }}>
-          {/* Section des rôles */}
-          <Box sx={{ mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                Rôles disponibles ({roles.length})
+      {/* Sélection du rôle via tabs */}
+      <PageTabs
+        options={sortRoles(roles).map((role) => ({
+          value: role,
+          label: role,
+          icon: ROLE_ICONS[role] ?? <PersonIcon />,
+        }))}
+        value={selectedRole ?? ''}
+        onChange={(v) => setSelectedRole(v as string)}
+        ariaLabel="Sélection du rôle"
+      />
+
+      {/* Résumé du rôle sélectionné */}
+      {selectedRole && (
+        <Card sx={{ mb: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+          <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Typography variant="body2" color="text.secondary">
+                Rôle sélectionné : <strong>{selectedRole}</strong>
               </Typography>
-            </Box>
-            
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-              {roles
-                .sort((a, b) => {
-                  // Ordre spécifique des rôles
-                  const roleOrder = ['SUPER_ADMIN', 'SUPER_MANAGER', 'SUPERVISOR', 'TECHNICIAN', 'HOUSEKEEPER', 'HOST', 'LAUNDRY', 'EXTERIOR_TECH'];
-                  const indexA = roleOrder.indexOf(a);
-                  const indexB = roleOrder.indexOf(b);
-                  return indexA - indexB;
-                })
-                .map((role) => (
-                  <Chip
-                    key={role}
-                    label={role}
-                    color={selectedRole === role ? 'primary' : 'default'}
-                    variant={selectedRole === role ? 'filled' : 'outlined'}
-                    onClick={() => setSelectedRole(role)}
-                    size="small"
-                    sx={{ 
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      fontWeight: selectedRole === role ? 600 : 400,
-                      transition: 'all 0.2s ease-in-out',
-                      '&:hover': {
-                        transform: 'translateY(-1px)',
-                        boxShadow: 1
-                      }
-                    }}
-                  />
-                ))}
-            </Box>
-
-            {selectedRole && (
-              <Box sx={{ 
-                p: 2, 
-                bgcolor: 'grey.50', 
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'divider'
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              {rolePermissions && (
+                <>
                   <Typography variant="body2" color="text.secondary">
-                    Rôle sélectionné : <strong>{selectedRole}</strong>
+                    • {rolePermissions.permissions.length} permissions actives
                   </Typography>
-                  {rolePermissions && (
-                    <>
-                      <Typography variant="body2" color="text.secondary">
-                        • {rolePermissions.permissions.length} permissions actives
-                      </Typography>
-                      <Chip 
-                        label={rolePermissions.isDefault ? 'Par défaut' : 'Modifié'} 
-                        size="small" 
-                        color={rolePermissions.isDefault ? 'success' : 'warning'}
-                        variant="outlined"
-                      />
-                    </>
-                  )}
-                </Box>
-              </Box>
-            )}
-          </Box>
+                  <Chip
+                    label={rolePermissions.isDefault ? 'Par défaut' : 'Modifié'}
+                    size="small"
+                    color={rolePermissions.isDefault ? 'success' : 'warning'}
+                    variant="outlined"
+                  />
+                </>
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Section du résumé des permissions */}
-          {selectedRole && rolePermissions && (
-            <Box sx={{ 
-              pt: 1, 
-              borderTop: '1px solid', 
-              borderColor: 'divider'
-            }}>
+      {/* Résumé des permissions (chiffres clés) */}
+      {selectedRole && rolePermissions && (
+        <Card sx={{ mb: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+          <CardContent sx={{ p: 3 }}>
+            <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 500 }}>
                   Résumé des permissions
@@ -487,32 +483,25 @@ const PermissionConfig: React.FC = () => {
                 </Grid>
               </Grid>
             </Box>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Onglets pour la configuration et la démonstration */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-            <Tabs value={activeTab} onChange={handleTabChange} aria-label="Configuration des permissions">
-              <Tab 
-                label="Édition des Permissions" 
-                id="tab-0" 
-                aria-controls="tabpanel-0"
-                disabled={!selectedRole || !rolePermissions}
-                icon={<SettingsIcon sx={{ color: 'text.secondary' }} />}
-                iconPosition="start"
-              />
-              <Tab 
-                label="Démonstration des Effets" 
-                id="tab-1" 
-                aria-controls="tabpanel-1"
-                disabled={!selectedRole || !rolePermissions}
-                icon={<SecurityIcon sx={{ color: 'text.secondary' }} />}
-                iconPosition="start"
-              />
-            </Tabs>
+          <Box sx={{ mb: 2 }}>
+            <PageTabs
+              options={[
+                { label: 'Édition des Permissions', icon: <SettingsIcon />, disabled: !selectedRole || !rolePermissions },
+                { label: 'Démonstration des Effets', icon: <SecurityIcon />, disabled: !selectedRole || !rolePermissions },
+              ]}
+              value={activeTab}
+              onChange={setActiveTab}
+              paper={false}
+              mb={0}
+              ariaLabel="Configuration des permissions"
+            />
           </Box>
 
           {/* Contenu de l'onglet Édition des Permissions */}
@@ -630,9 +619,9 @@ const PermissionConfig: React.FC = () => {
                                   />
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
                                     {isActive ? (
-                                      <CheckCircleIcon sx={{ fontSize: '1rem', color: 'text.secondary' }} />
+                                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CheckCircleIcon size={16} strokeWidth={1.75} /></Box>
                                     ) : (
-                                      <ErrorIcon sx={{ fontSize: '1rem', color: 'text.secondary' }} />
+                                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ErrorIcon size={16} strokeWidth={1.75} /></Box>
                                     )}
                                     <Typography
                                       variant="caption"

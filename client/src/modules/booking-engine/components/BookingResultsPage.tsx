@@ -3,7 +3,7 @@ import { Box, Typography, IconButton, Divider } from '@mui/material';
 import {
   ArrowBack, ChevronLeft, ChevronRight, Star, Hotel,
   PhotoLibrary, CheckCircle, Delete,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { ResolvedTokens, PreviewProperty, PreviewPage, CartItem } from '../types/bookingEngine';
 import { fmt, fmtDate } from '../types/bookingEngine';
 import type { BookingI18n } from '../sdk/i18n';
@@ -46,7 +46,7 @@ const BookingResultsPage: React.FC<BookingResultsPageProps> = ({
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', px: 3, py: 2, maxWidth: 1100, mx: 'auto', width: '100%', boxSizing: 'border-box' }}>
         <IconButton size="small" onClick={() => setPage('search')} sx={{ color: tk.textLabel, mr: 1 }}>
-          <ArrowBack sx={{ fontSize: 18 }} />
+          <ArrowBack size={18} strokeWidth={1.75} />
         </IconButton>
         <Typography sx={{ fontFamily: tk.headingFont, fontWeight: 700, fontSize: 18, color: tk.text, flex: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
           {i18n.t('results.title')}
@@ -78,7 +78,7 @@ const BookingResultsPage: React.FC<BookingResultsPageProps> = ({
             </Box>
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 6 }}>
-              <Hotel sx={{ fontSize: 40, color: tk.border, mb: 1.5 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: tk.border, mb: 1.5 }}><Hotel size={40} strokeWidth={1.75} /></Box>
               <Typography sx={{ fontSize: 13, color: tk.textLabel, textAlign: 'center' }}>
                 {i18n.t('results.noResults')}
               </Typography>
@@ -155,7 +155,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           }} onError={(e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
         ) : (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-            <PhotoLibrary sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 32 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'rgba(255,255,255,0.3)' }}><PhotoLibrary size={32} strokeWidth={1.75} /></Box>
           </Box>
         )}
         {hasMultiple && (
@@ -164,13 +164,13 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
               position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)',
               bgcolor: 'rgba(255,255,255,0.85)', width: 28, height: 28, '&:hover': { bgcolor: '#fff' },
             }}>
-              <ChevronLeft sx={{ fontSize: 18 }} />
+              <ChevronLeft size={18} strokeWidth={1.75} />
             </IconButton>
             <IconButton size="small" onClick={(e) => { e.stopPropagation(); setPhotoIdx(i => i >= photoUrls.length - 1 ? 0 : i + 1); }} sx={{
               position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
               bgcolor: 'rgba(255,255,255,0.85)', width: 28, height: 28, '&:hover': { bgcolor: '#fff' },
             }}>
-              <ChevronRight sx={{ fontSize: 18 }} />
+              <ChevronRight size={18} strokeWidth={1.75} />
             </IconButton>
             <Box sx={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 0.5 }}>
               {photoUrls.map((_, i) => (
@@ -188,7 +188,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             position: 'absolute', top: 8, left: 8, display: 'flex', alignItems: 'center',
             gap: 0.5, bgcolor: 'rgba(255,255,255,0.9)', borderRadius: '12px', px: 1, py: 0.25,
           }}>
-            <Star sx={{ fontSize: 12, color: '#F5A623' }} />
+            <Star size={12} strokeWidth={1.75} color='#F5A623' />
             <Typography sx={{ fontSize: 11, fontWeight: 700 }}>{stats.avg.toFixed(1)}</Typography>
             <Typography sx={{ fontSize: 10, color: tk.textLabel }}>({stats.count})</Typography>
           </Box>
@@ -212,7 +212,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             fontSize: 11, fontWeight: 700, textTransform: tk.btnTransform, display: 'inline-flex',
             alignItems: 'center', gap: 0.5, flexShrink: 0,
           }}>
-            {inCart && <CheckCircle sx={{ fontSize: 14 }} />}
+            {inCart && <CheckCircle size={14} strokeWidth={1.75} />}
             {inCart ? i18n.t('results.selected') : i18n.t('results.select')}
           </Box>
         </Box>
@@ -328,7 +328,7 @@ const ResultsSidebar: React.FC<ResultsSidebarProps> = ({
             <IconButton size="small" onClick={() => setCart(prev => prev.filter((_, i) => i !== idx))} sx={{
               position: 'absolute', top: 0, right: 0, color: tk.textLabel, p: 0.25,
             }}>
-              <Delete sx={{ fontSize: 14 }} />
+              <Delete size={14} strokeWidth={1.75} />
             </IconButton>
             {idx < cart.length - 1 && <Divider sx={{ mt: 2, borderColor: tk.border }} />}
           </Box>

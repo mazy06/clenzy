@@ -9,6 +9,8 @@ export interface PropertyInventoryItem {
   category: string | null;
   quantity: number;
   notes: string | null;
+  /** Photo facultative (data URL base64 ou URL distante) */
+  photoUrl: string | null;
 }
 
 export interface PropertyLaundryItem {

@@ -11,7 +11,7 @@ import {
   Chip,
   alpha,
 } from '@mui/material';
-import { Person, Group, BlockOutlined } from '@mui/icons-material';
+import { Person, Group, BlockOutlined } from '../../icons';
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -57,9 +57,9 @@ interface AssignmentTypeDef {
 }
 
 const ASSIGNMENT_TYPES: AssignmentTypeDef[] = [
-  { value: '', label: 'Aucune', icon: <BlockOutlined sx={{ fontSize: 14 }} />, color: '#94A3B8' },
-  { value: 'user', label: 'Individuel', icon: <Person sx={{ fontSize: 14 }} />, color: '#6B8A9A' },
-  { value: 'team', label: 'Équipe', icon: <Group sx={{ fontSize: 14 }} />, color: '#6B8A9A' },
+  { value: '', label: 'Aucune', icon: <BlockOutlined size={14} strokeWidth={1.75} />, color: '#94A3B8' },
+  { value: 'user', label: 'Individuel', icon: <Person size={14} strokeWidth={1.75} />, color: '#6B8A9A' },
+  { value: 'team', label: 'Équipe', icon: <Group size={14} strokeWidth={1.75} />, color: '#6B8A9A' },
 ];
 
 /** Shared Select sx for consistent styling */
@@ -261,9 +261,9 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                       renderValue={() => (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                           {watchedAssignedToType === 'user' ? (
-                            <Person sx={{ fontSize: 16, color: hasValue ? 'primary.main' : 'grey.400' }} />
+                            <Box component="span" sx={{ display: "inline-flex", color: hasValue ? "primary.main" : "grey.400" }}><Person size={16} strokeWidth={1.75} /></Box>
                           ) : (
-                            <Group sx={{ fontSize: 16, color: hasValue ? 'primary.main' : 'grey.400' }} />
+                            <Box component="span" sx={{ display: "inline-flex", color: hasValue ? "primary.main" : "grey.400" }}><Group size={16} strokeWidth={1.75} /></Box>
                           )}
                           <Typography sx={{ fontSize: '0.8125rem', color: hasValue ? 'text.secondary' : 'grey.400' }}>
                             {hasValue
@@ -279,7 +279,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                         ? getAssignableUsers().map((user) => (
                             <MenuItem key={user.id} value={user.id}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                <Person sx={{ fontSize: 16, color: 'primary.main' }} />
+                                <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><Person size={16} strokeWidth={1.75} /></Box>
                                 <Box>
                                   <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
                                     {user.firstName} {user.lastName}
@@ -294,7 +294,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                         : filteredTeams.map((team) => (
                             <MenuItem key={team.id} value={team.id}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                <Group sx={{ fontSize: 16, color: 'primary.main' }} />
+                                <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><Group size={16} strokeWidth={1.75} /></Box>
                                 <Box>
                                   <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', fontWeight: 500 }}>
                                     {team.name}

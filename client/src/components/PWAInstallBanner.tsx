@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Paper, Typography, Button, Box, Slide, IconButton } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import GetAppIcon from '@mui/icons-material/GetApp';
+import { Close as CloseIcon, GetApp as GetAppIcon } from '../icons';
 import { usePWA } from '../hooks/usePWA';
 
 const DISMISS_KEY = 'pwa-banner-dismissed-at';
@@ -60,7 +59,7 @@ export default function PWAInstallBanner() {
           mx: 'auto',
         }}
       >
-        <GetAppIcon sx={{ fontSize: 32, flexShrink: 0 }} />
+        <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0 }}><GetAppIcon size={32} strokeWidth={1.75} /></Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={600} noWrap>
             Installer Clenzy PMS
@@ -92,7 +91,7 @@ export default function PWAInstallBanner() {
           sx={{ color: 'white', flexShrink: 0 }}
           aria-label="Fermer"
         >
-          <CloseIcon fontSize="small" />
+          <CloseIcon size={20} strokeWidth={1.75} />
         </IconButton>
       </Paper>
     </Slide>

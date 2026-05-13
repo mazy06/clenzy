@@ -134,7 +134,7 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                           return (
                             <MenuItem key={type.value} value={type.value}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                {IconComponent && <IconComponent sx={{ fontSize: 18 }} />}
+                                {IconComponent && <IconComponent size={18} strokeWidth={1.75} />}
                                 <Typography variant="body2">{type.label}</Typography>
                               </Box>
                             </MenuItem>

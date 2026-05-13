@@ -9,7 +9,7 @@ import {
   Gavel as StepTvaIcon,
   Assessment as StepReportIcon,
   DateRange as StepPeriodIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import HelpBanner from '../../components/HelpBanner';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useMonthlyVatSummary, useQuarterlyVatSummary, useAnnualVatSummary } from '../../hooks/useFiscalReporting';
@@ -69,9 +69,9 @@ const FiscalReportSection: React.FC = () => {
         description={t('accounting.fiscal.help.description', 'Consultez la synthese TVA de vos factures par periode pour preparer vos declarations fiscales.')}
         dismissLabel={t('accounting.fiscal.help.dismiss', 'Ne plus afficher')}
         steps={[
-          { icon: <StepPeriodIcon sx={{ fontSize: 16 }} />, title: t('accounting.fiscal.help.step1Title', 'Periode'), description: t('accounting.fiscal.help.step1Desc', 'Choisissez la granularite (mensuel, trimestriel, annuel) et la periode souhaitee.') },
-          { icon: <StepTvaIcon sx={{ fontSize: 16 }} />, title: t('accounting.fiscal.help.step2Title', 'Ventilation TVA'), description: t('accounting.fiscal.help.step2Desc', 'Le rapport ventile automatiquement la TVA par taux (20%, 10%, 5.5%) et categorie.') },
-          { icon: <StepReportIcon sx={{ fontSize: 16 }} />, title: t('accounting.fiscal.help.step3Title', 'Declaration'), description: t('accounting.fiscal.help.step3Desc', 'Utilisez les totaux HT/TVA/TTC pour completer votre declaration de TVA.') },
+          { icon: <StepPeriodIcon size={16} strokeWidth={1.75} />, title: t('accounting.fiscal.help.step1Title', 'Periode'), description: t('accounting.fiscal.help.step1Desc', 'Choisissez la granularite (mensuel, trimestriel, annuel) et la periode souhaitee.') },
+          { icon: <StepTvaIcon size={16} strokeWidth={1.75} />, title: t('accounting.fiscal.help.step2Title', 'Ventilation TVA'), description: t('accounting.fiscal.help.step2Desc', 'Le rapport ventile automatiquement la TVA par taux (20%, 10%, 5.5%) et categorie.') },
+          { icon: <StepReportIcon size={16} strokeWidth={1.75} />, title: t('accounting.fiscal.help.step3Title', 'Declaration'), description: t('accounting.fiscal.help.step3Desc', 'Utilisez les totaux HT/TVA/TTC pour completer votre declaration de TVA.') },
         ]}
       />
 
@@ -147,7 +147,7 @@ const FiscalReportSection: React.FC = () => {
         </Alert>
       ) : !summary ? (
         <Paper sx={{ p: 4, textAlign: 'center', border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5 }}>
-          <AccountBalance sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><AccountBalance size={48} strokeWidth={1.75} /></Box>
           <Typography color="text.secondary">
             Aucune donnee fiscale pour cette periode
           </Typography>

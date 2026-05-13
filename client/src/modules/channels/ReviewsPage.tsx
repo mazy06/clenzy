@@ -19,8 +19,9 @@ import {
   Star as StarIcon,
   Reply as ReplyIcon,
   ExpandMore as ExpandMoreIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { SPACING } from '../../theme/spacing';
 import { airbnbApi } from '../../services/api/airbnbApi';
@@ -120,6 +121,7 @@ const ReviewsPage: React.FC = () => {
       <PageHeader
         title={t('channels.reviews.title')}
         subtitle={t('channels.reviews.subtitle')}
+        iconBadge={<StarIcon />}
         backPath="/channels"
         showBackButton
       />
@@ -133,7 +135,7 @@ const ReviewsPage: React.FC = () => {
             {t('channels.reviews.avgRating')}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
-            <StarIcon sx={{ fontSize: '1.25rem', color: '#D4A574' }} />
+            <StarIcon size={'1.25rem'} strokeWidth={1.75} color='#D4A574' />
             <Typography sx={{ fontSize: '1.5rem', fontWeight: 700 }}>
               {avgRating > 0 ? avgRating.toFixed(1) : '—'}
             </Typography>
@@ -146,7 +148,7 @@ const ReviewsPage: React.FC = () => {
           <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, mt: 0.5 }}>{reviews.length}</Typography>
         </Paper>
         {Object.entries(reviewsByRating).map(([cat, count]) => (
-          <Paper key={cat} sx={{ ...CARD_SX, flex: 1, minWidth: 100, textAlign: 'center', p: 1.5, borderLeft: `3px solid ${RATING_COLORS[cat]}` }}>
+          <Paper key={cat} sx={{ ...CARD_SX, flex: 1, minWidth: 100, textAlign: 'center', p: 1.5 }}>
             <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary', textTransform: 'uppercase', fontWeight: 500 }}>
               {t(`channels.reviews.${cat}`)}
             </Typography>
@@ -179,11 +181,10 @@ const ReviewsPage: React.FC = () => {
           <CircularProgress size={28} />
         </Box>
       ) : reviews.length === 0 ? (
-        <Paper sx={{ ...CARD_SX, textAlign: 'center', py: 4 }}>
-          <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-            {t('channels.reviews.noReviews')}
-          </Typography>
-        </Paper>
+        <EmptyState
+          icon={<StarIcon />}
+          title={t('channels.reviews.noReviews')}
+        />
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {reviews.map((review) => (
@@ -233,7 +234,7 @@ function ReviewCard({
   const color = RATING_COLORS[category];
 
   return (
-    <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 1.5, borderLeft: `3px solid ${color}` }}>
+    <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 1.5 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.75 }}>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
@@ -301,7 +302,7 @@ function ReviewCard({
           {!isReplying && (
             <Button
               size="small"
-              startIcon={<ReplyIcon sx={{ fontSize: '0.75rem' }} />}
+              startIcon={<ReplyIcon size={'0.75rem'} strokeWidth={1.75} />}
               onClick={onStartReply}
               sx={{ fontSize: '0.6875rem', mt: 0.25 }}
             >

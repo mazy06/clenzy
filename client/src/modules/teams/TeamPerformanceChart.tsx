@@ -11,7 +11,7 @@ import {
   TrendingUp,
   CalendarMonth,
   Speed,
-} from '@mui/icons-material';
+} from '../../icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { interventionsApi } from '../../services/api';
@@ -92,19 +92,19 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
     {
       label: t('teams.performance.totalCompleted'),
       value: totalCompleted.toString(),
-      icon: <TrendingUp sx={{ fontSize: 22, color: 'success.main' }} />,
+      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><TrendingUp size={22} strokeWidth={1.75} /></Box>,
       color: 'success.main',
     },
     {
       label: t('teams.performance.averagePerMonth'),
       value: averagePerMonth.toString(),
-      icon: <CalendarMonth sx={{ fontSize: 22, color: 'info.main' }} />,
+      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><CalendarMonth size={22} strokeWidth={1.75} /></Box>,
       color: 'info.main',
     },
     {
       label: t('teams.performance.completionRate'),
       value: `${completionRate}%`,
-      icon: <Speed sx={{ fontSize: 22, color: 'primary.main' }} />,
+      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Speed size={22} strokeWidth={1.75} /></Box>,
       color: 'primary.main',
     },
   ];

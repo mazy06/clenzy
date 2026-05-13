@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
-import { Remove, Add } from '@mui/icons-material';
+import { Remove, Add } from '../../../icons';
 import type { ResolvedTokens } from '../types/bookingEngine';
 import type { BookingI18n } from '../sdk/i18n';
 import iconAdultsUrl from '../assets/default/icon-adults.svg';
@@ -28,13 +28,13 @@ const Counter: React.FC<{
     <IconButton size="small" disabled={value <= min} onClick={() => onChange(value - 1)}
       sx={{ bgcolor: tk.surfaceMuted, width: 24, height: 24, borderRadius: '2px', color: tk.text, border: 'none',
         '&:hover': { bgcolor: tk.border }, '&.Mui-disabled': { bgcolor: tk.surfaceMuted, opacity: 0.4 } }}>
-      <Remove sx={{ fontSize: 14 }} />
+      <Remove size={14} strokeWidth={1.75} />
     </IconButton>
     <Typography sx={{ minWidth: 24, textAlign: 'center', fontSize: 18, fontWeight: 500, color: tk.primary }}>{value}</Typography>
     <IconButton size="small" disabled={value >= max} onClick={() => onChange(value + 1)}
       sx={{ bgcolor: tk.surfaceMuted, width: 24, height: 24, borderRadius: '2px', color: tk.text, border: 'none',
         '&:hover': { bgcolor: tk.border }, '&.Mui-disabled': { bgcolor: tk.surfaceMuted, opacity: 0.4 } }}>
-      <Add sx={{ fontSize: 14 }} />
+      <Add size={14} strokeWidth={1.75} />
     </IconButton>
   </Box>
 );

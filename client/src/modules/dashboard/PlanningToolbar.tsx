@@ -16,7 +16,7 @@ import {
   Visibility,
   VisibilityOff,
   FilterList,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ReservationStatus, PlanningInterventionType } from '../../services/api';
 
@@ -119,11 +119,11 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
         {/* ─── Navigation: prev / today / next ───────────────────────── */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
           <IconButton size="small" onClick={onGoPrev} sx={NAV_ICON_SX}>
-            <ChevronLeft sx={{ fontSize: 16 }} />
+            <ChevronLeft size={16} strokeWidth={1.75} />
           </IconButton>
 
           <Chip
-            icon={<TodayOutlined sx={{ fontSize: 13 }} />}
+            icon={<TodayOutlined size={13} strokeWidth={1.75} />}
             label={t('dashboard.planning.today') || "Aujourd'hui"}
             size="small"
             variant="outlined"
@@ -142,7 +142,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           />
 
           <IconButton size="small" onClick={onGoNext} sx={NAV_ICON_SX}>
-            <ChevronRight sx={{ fontSize: 16 }} />
+            <ChevronRight size={16} strokeWidth={1.75} />
           </IconButton>
         </Box>
 
@@ -167,7 +167,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
 
           {/* Intervention toggle chip */}
           <Chip
-            icon={showInterventions ? <Visibility sx={{ fontSize: 13 }} /> : <VisibilityOff sx={{ fontSize: 13 }} />}
+            icon={showInterventions ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
             label={t('dashboard.planning.interventions') || 'Interventions'}
             size="small"
             variant={showInterventions ? 'filled' : 'outlined'}
@@ -200,7 +200,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                   const opt = interventionFilterOptions.find((o) => o.value === val);
                   return (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <FilterList sx={{ fontSize: 12, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><FilterList size={12} strokeWidth={1.75} /></Box>
                       <span>{opt?.label || 'Type'}</span>
                     </Box>
                   );
@@ -225,7 +225,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                 const opt = statusFilterOptions.find((o) => o.value === val);
                 return (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <FilterList sx={{ fontSize: 12, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><FilterList size={12} strokeWidth={1.75} /></Box>
                     <span>{opt?.label || 'Statut'}</span>
                   </Box>
                 );

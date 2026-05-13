@@ -13,7 +13,7 @@ import {
 import {
   Download as DownloadIcon,
   Description as CsvIcon,
-} from '@mui/icons-material';
+} from '../icons';
 import { exportToCSV, type ExportColumn } from '../utils/exportUtils';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -112,7 +112,7 @@ export default function ExportButton({
                 '& .MuiSvgIcon-root': { fontSize: 18 },
               }}
             >
-              <DownloadIcon />
+              <DownloadIcon size={18} strokeWidth={1.75} />
             </IconButton>
           </span>
         </Tooltip>
@@ -129,7 +129,7 @@ export default function ExportButton({
             <Button
               variant="outlined"
               size="small"
-              startIcon={<DownloadIcon />}
+              startIcon={<DownloadIcon size={18} strokeWidth={1.75} />}
               onClick={handleMenuOpen}
               disabled={isDisabled}
               sx={BUTTON_SX}
@@ -146,7 +146,7 @@ export default function ExportButton({
           {formats.includes('csv') && (
             <MenuItem onClick={handleExportCSV} sx={MENU_ITEM_SX}>
               <ListItemIcon>
-                <CsvIcon sx={{ fontSize: 16 }} />
+                <CsvIcon size={16} strokeWidth={1.75} />
               </ListItemIcon>
               <ListItemText primaryTypographyProps={{ fontSize: '0.8125rem' }}>{t('export.csv')}</ListItemText>
             </MenuItem>
@@ -165,7 +165,7 @@ export default function ExportButton({
           <Button
             variant="outlined"
             size="small"
-            startIcon={<DownloadIcon />}
+            startIcon={<DownloadIcon size={18} strokeWidth={1.75} />}
             onClick={handleExportCSV}
             disabled={isDisabled}
             sx={BUTTON_SX}

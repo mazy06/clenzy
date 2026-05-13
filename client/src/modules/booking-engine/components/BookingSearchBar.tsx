@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, IconButton, Divider } from '@mui/material';
-import { Search, ChevronLeft } from '@mui/icons-material';
+import { Search, ChevronLeft } from '../../../icons';
 import type { ResolvedTokens, PanelType, PreviewPropertyType, PreviewAvailabilityDay } from '../types/bookingEngine';
 import { fmtDate, fmtDateShort } from '../types/bookingEngine';
 import type { BookingI18n } from '../sdk/i18n';
@@ -216,7 +216,7 @@ const SearchBarItems: React.FC<SearchBarItemsProps> = ({
       width: isCompact ? '100%' : 36, height: 36, flexShrink: 0,
       opacity: checkIn && checkOut ? 1 : 0.5,
     }}>
-      <Search sx={{ fontSize: 16 }} />
+      <Search size={16} strokeWidth={1.75} />
     </IconButton>
   </Box>
 );
@@ -252,7 +252,7 @@ const MobilePanel: React.FC<MobilePanelProps> = ({
         {panelTitle}
       </Typography>
       <IconButton size="small" onClick={() => togglePanel(null)} sx={{ color: tk.textLabel }}>
-        <ChevronLeft sx={{ fontSize: 18, transform: 'rotate(-90deg)' }} />
+        <Box component="span" sx={{ display: 'inline-flex', transform: 'rotate(-90deg)' }}><ChevronLeft size={18} strokeWidth={1.75} /></Box>
       </IconButton>
     </Box>
     <Divider sx={{ borderColor: tk.border, mx: 2 }} />
@@ -309,7 +309,7 @@ const DesktopPanel: React.FC<DesktopPanelProps> = ({
           {panelTitle}
         </Typography>
         <IconButton size="small" onClick={() => togglePanel(null)} sx={{ color: tk.textLabel }}>
-          <ChevronLeft sx={{ fontSize: 18, transform: 'rotate(-90deg)' }} />
+          <Box component="span" sx={{ display: 'inline-flex', transform: 'rotate(-90deg)' }}><ChevronLeft size={18} strokeWidth={1.75} /></Box>
         </IconButton>
       </Box>
       <Divider sx={{ borderColor: tk.border, mx: '24px' }} />

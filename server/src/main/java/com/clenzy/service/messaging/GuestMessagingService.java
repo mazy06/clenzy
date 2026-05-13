@@ -94,6 +94,11 @@ public class GuestMessagingService {
 
     /**
      * Envoi manuel via un canal specifique.
+     * <p>
+     * Verifie la presence d'un destinataire AVANT d'engager le pipeline d'envoi pour
+     * eviter de creer un log FAILED previsible quand la reservation provient d'un
+     * iCal anonymise (Airbnb / Booking.com) — l'historique reste propre et l'UI
+     * peut afficher un message clair via le 400 renvoye par le controller.
      */
     @Transactional
     public GuestMessageLog sendMessage(Long reservationId, Long templateId, Long orgId,
@@ -104,7 +109,41 @@ public class GuestMessagingService {
         MessageTemplate template = templateRepository.findByIdAndOrganizationId(templateId, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Template introuvable: " + templateId));
 
+        ensureRecipientResolvable(reservation, channelType);
+
         return sendForReservationViaChannel(reservation, template, orgId, channelType, Map.of());
+    }
+
+    /**
+     * Verifie qu'un destinataire valide existe pour le canal demande.
+     * Si non, leve une {@link MessagingRecipientMissingException} (HTTP 400) — pas de log cree.
+     */
+    private void ensureRecipientResolvable(Reservation reservation, MessageChannelType channelType) {
+        Guest guest = reservation.getGuest();
+        String emailValue = guest != null ? guest.getEmail() : null;
+        String phoneValue = guest != null ? guest.getPhone() : null;
+
+        String missing = switch (channelType) {
+            case EMAIL -> (emailValue == null || emailValue.isBlank()) ? "email" : null;
+            case SMS, WHATSAPP -> (phoneValue == null || phoneValue.isBlank()) ? "telephone" : null;
+            default -> null;
+        };
+
+        if (missing == null) return;
+
+        String source = reservation.getSource() != null ? reservation.getSource() : "";
+        boolean anonymizedIcal = source.equalsIgnoreCase("airbnb")
+                || source.equalsIgnoreCase("booking")
+                || source.toLowerCase().contains("ical");
+
+        String hint = anonymizedIcal
+                ? "Réservation importée via iCal (" + source + ") — l'email du voyageur n'est pas exposé. "
+                + "Ajoute les coordonnées manuellement dans la fiche guest pour activer l'envoi."
+                : "Renseigne d'abord les coordonnées du voyageur dans la fiche guest.";
+
+        String message = "Aucun " + missing + " n'est associé au voyageur de cette réservation. " + hint;
+        throw new com.clenzy.exception.MessagingRecipientMissingException(
+                reservation.getId(), channelType.name(), message);
     }
 
     /**

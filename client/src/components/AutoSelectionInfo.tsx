@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, Chip } from '@mui/material';
-import { Info } from '@mui/icons-material';
+import { Info } from '../icons';
 
 interface AutoSelectionInfoProps {
   fieldName: string;
@@ -29,7 +29,7 @@ const AutoSelectionInfo: React.FC<AutoSelectionInfoProps> = ({
       border: '1px solid',
       borderColor: 'info.200'
     }}>
-      <Info color="info" sx={{ fontSize: '1em' }} />
+      <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Info size={14} strokeWidth={1.75} /></Box>
       <Typography variant="caption" color="info.main">
         {fieldName} automatiquement sélectionné : {userEmail} ({userRole})
       </Typography>

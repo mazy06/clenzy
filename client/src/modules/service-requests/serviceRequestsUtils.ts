@@ -3,7 +3,7 @@ import {
   AutoAwesome,
   Build,
   Category,
-} from '@mui/icons-material';
+} from '../../icons';
 import { RequestStatus, REQUEST_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
 
 // ============================================================================

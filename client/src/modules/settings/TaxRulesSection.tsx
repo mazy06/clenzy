@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import {
   Add, Edit, Delete, Gavel, Info as InfoIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTaxRules, useCreateTaxRule, useUpdateTaxRule, useDeleteTaxRule } from '../../hooks/useTaxRules';
 import { useFiscalProfile } from '../../hooks/useFiscalProfile';
 import { useAuth } from '../../hooks/useAuth';
@@ -191,7 +191,7 @@ const TaxRulesSection: React.FC = () => {
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Gavel sx={{ color: 'primary.main', fontSize: 20 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Gavel size={20} strokeWidth={1.75} /></Box>
             <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
               {t('fiscal.taxRules.title')}
             </Typography>

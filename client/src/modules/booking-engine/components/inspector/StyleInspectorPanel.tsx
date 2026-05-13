@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
-import { ContentCopy, Mouse } from '@mui/icons-material';
+import { ContentCopy, Mouse } from '../../../../icons';
 import { SelectedElementInfo } from './types';
 
 // ─── StyleRow ───────────────────────────────────────────────────────────────
@@ -85,7 +85,7 @@ const StyleRow: React.FC<StyleRowProps> = React.memo(({ property, value, isOverr
           onClick={() => navigator.clipboard.writeText(`${property}: ${value};`).catch(() => {})}
           sx={{ p: 0.25, color: '#8b8fa3', opacity: 0, transition: 'opacity 0.15s', flexShrink: 0 }}
         >
-          <ContentCopy sx={{ fontSize: 10 }} />
+          <ContentCopy size={10} strokeWidth={1.75} />
         </IconButton>
       </Tooltip>
     </Box>
@@ -150,7 +150,7 @@ const StyleInspectorPanel: React.FC<StyleInspectorPanelProps> = ({
                   }}
                   sx={{ p: 0.25, color: '#8b8fa3' }}
                 >
-                  <ContentCopy sx={{ fontSize: 12 }} />
+                  <ContentCopy size={12} strokeWidth={1.75} />
                 </IconButton>
               </Tooltip>
             </Box>
@@ -170,7 +170,7 @@ const StyleInspectorPanel: React.FC<StyleInspectorPanelProps> = ({
                   onClick={() => navigator.clipboard.writeText(selectedInfo.path).catch(() => {})}
                   sx={{ p: 0.25, color: '#8b8fa3', opacity: 0, transition: 'opacity 0.15s', flexShrink: 0 }}
                 >
-                  <ContentCopy sx={{ fontSize: 10 }} />
+                  <ContentCopy size={10} strokeWidth={1.75} />
                 </IconButton>
               </Tooltip>
             </Box>
@@ -227,7 +227,7 @@ const StyleInspectorPanel: React.FC<StyleInspectorPanelProps> = ({
         </>
       ) : (
         <Box sx={{ p: 3, textAlign: 'center' }}>
-          <Mouse sx={{ fontSize: 24, color: '#2a2d3a', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', mb: 1 }}><Mouse size={24} strokeWidth={1.75} color='#2a2d3a' /></Box>
           <Typography sx={{ fontSize: 11, color: '#8b8fa3' }}>
             Sélectionnez un élément
           </Typography>

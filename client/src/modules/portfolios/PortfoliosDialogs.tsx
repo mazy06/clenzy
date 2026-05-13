@@ -20,7 +20,7 @@ import {
   SwapHoriz as SwapHorizIcon,
   Close as CloseIcon,
   Person,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { PortfolioClient, Manager } from './usePortfoliosPage';
 
@@ -83,7 +83,7 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
         }}
       >
         <Box display="flex" alignItems="center" gap={1}>
-          <SwapHorizIcon color="primary" sx={{ fontSize: 22 }} />
+          <SwapHorizIcon color="primary" size={22} strokeWidth={1.75} />
           <Typography variant="h6" component="div" sx={{ fontSize: '1rem', fontWeight: 600 }}>
             {t('portfolios.fields.reassignClient')}
           </Typography>
@@ -135,7 +135,7 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
             {managers.map((manager) => (
               <MenuItem key={manager.id} value={manager.id}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
                   <Typography sx={{ fontSize: '0.85rem' }}>
                     {manager.firstName} {manager.lastName}
                   </Typography>
@@ -178,7 +178,7 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
           variant="contained"
           size="small"
           disabled={!selectedManagerId || loading}
-          startIcon={loading ? <CircularProgress size={14} /> : <SwapHorizIcon sx={{ fontSize: 16 }} />}
+          startIcon={loading ? <CircularProgress size={14} /> : <SwapHorizIcon size={16} strokeWidth={1.75} />}
           sx={{ minWidth: 120, fontSize: '0.82rem' }}
         >
           {loading ? t('portfolios.dialogs.reassigning') : t('portfolios.dialogs.reassign')}

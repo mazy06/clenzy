@@ -22,7 +22,7 @@ import {
   NotificationsNone,
   Language as LanguageIcon,
   Check as CheckIcon,
-} from '@mui/icons-material';
+} from '../icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from '../hooks/useTranslation';
@@ -97,16 +97,16 @@ export default function Sidebar({
   const collapsed = isCollapsed && !isMobile;
 
   // Responsive sizes — comfortable on xl+, compact on lg
-  const logoHeight = collapsed ? 24 : isXl ? 28 : 24;
-  const logoMaxWidth = collapsed ? 40 : isXl ? 140 : 120;
-  const headerHeight = isXl ? 56 : 48;
-  const avatarSize = collapsed ? 32 : isXl ? 36 : 32;
-  const avatarFontSize = collapsed ? '0.75rem' : isXl ? '0.875rem' : '0.75rem';
-  const userNameFontSize = isXl ? '0.8125rem' : '0.75rem';
-  const userEmailFontSize = isXl ? '0.6875rem' : '0.625rem';
-  const userRoleFontSize = isXl ? '0.625rem' : '0.5625rem';
-  const groupLabelFontSize = isXl ? '0.6875rem' : '0.625rem';
-  const actionIconSize = isXl ? 18 : 16;
+  const logoHeight = collapsed ? 20 : isXl ? 24 : 20;
+  const logoMaxWidth = collapsed ? 36 : isXl ? 120 : 104;
+  const headerHeight = isXl ? 48 : 40;
+  const avatarSize = collapsed ? 26 : isXl ? 30 : 26;
+  const avatarFontSize = collapsed ? '0.6875rem' : isXl ? '0.75rem' : '0.6875rem';
+  const userNameFontSize = isXl ? '0.75rem' : '0.6875rem';
+  const userEmailFontSize = isXl ? '0.625rem' : '0.5625rem';
+  const userRoleFontSize = isXl ? '0.5625rem' : '0.5rem';
+  const groupLabelFontSize = isXl ? '0.625rem' : '0.5625rem';
+  const actionIconSize = isXl ? 15 : 14;
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -359,7 +359,7 @@ export default function Sidebar({
                 '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
               }}
             >
-              <LanguageIcon sx={{ fontSize: actionIconSize }} />
+              <LanguageIcon size={actionIconSize} strokeWidth={1.75} />
             </IconButton>
           </Tooltip>
 
@@ -387,9 +387,9 @@ export default function Sidebar({
                 }}
               >
                 {unreadCount > 0 ? (
-                  <Notifications sx={{ fontSize: actionIconSize }} />
+                  <Notifications size={actionIconSize} strokeWidth={1.75} />
                 ) : (
-                  <NotificationsNone sx={{ fontSize: actionIconSize }} />
+                  <NotificationsNone size={actionIconSize} strokeWidth={1.75} />
                 )}
               </Badge>
             </IconButton>
@@ -405,9 +405,31 @@ export default function Sidebar({
                 '&:hover': { backgroundColor: 'rgba(201, 122, 122, 0.08)' },
               }}
             >
-              <Logout sx={{ fontSize: actionIconSize }} />
+              <Logout size={actionIconSize} strokeWidth={1.75} />
             </IconButton>
           </Tooltip>
+
+          {/* Collapse toggle (desktop only) — inline avec les autres icones d'action */}
+          {!isMobile && (
+            <Tooltip
+              title={collapsed ? t('common.expandMenu') : t('common.collapseMenu')}
+              placement={collapsed ? 'right' : 'top'}
+            >
+              <IconButton
+                size="small"
+                onClick={onToggleCollapsed}
+                sx={{
+                  color: 'text.secondary',
+                  '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
+                }}
+              >
+                {collapsed
+                  ? (isRtl ? <ChevronLeft size={actionIconSize} strokeWidth={1.75} /> : <ChevronRight size={actionIconSize} strokeWidth={1.75} />)
+                  : (isRtl ? <ChevronRight size={actionIconSize} strokeWidth={1.75} /> : <ChevronLeft size={actionIconSize} strokeWidth={1.75} />)
+                }
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
 
         {/* Language & Currency unified menu */}
@@ -458,7 +480,7 @@ export default function Sidebar({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <span>{t('navigation.languages.fr')}</span>
-              {currentLanguage === 'fr' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+              {currentLanguage === 'fr' && <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', ml: 1 }}><CheckIcon size={16} strokeWidth={2} /></Box>}
             </Box>
           </MuiMenuItem>
           <MuiMenuItem
@@ -468,7 +490,7 @@ export default function Sidebar({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <span>{t('navigation.languages.en')}</span>
-              {currentLanguage === 'en' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+              {currentLanguage === 'en' && <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', ml: 1 }}><CheckIcon size={16} strokeWidth={2} /></Box>}
             </Box>
           </MuiMenuItem>
           <MuiMenuItem
@@ -478,7 +500,7 @@ export default function Sidebar({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <span>{t('navigation.languages.ar')}</span>
-              {currentLanguage === 'ar' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+              {currentLanguage === 'ar' && <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', ml: 1 }}><CheckIcon size={16} strokeWidth={2} /></Box>}
             </Box>
           </MuiMenuItem>
 
@@ -519,7 +541,7 @@ export default function Sidebar({
                   </Typography>
                   <span>{opt.label}</span>
                 </Box>
-                {currency === opt.code && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+                {currency === opt.code && <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', ml: 1 }}><CheckIcon size={16} strokeWidth={2} /></Box>}
               </Box>
             </MuiMenuItem>
           ))}
@@ -538,37 +560,6 @@ export default function Sidebar({
           )}
         </Menu>
 
-        {/* ── Collapse toggle (desktop only) ─────────────────────────── */}
-        {!isMobile && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: collapsed ? 'center' : 'flex-end',
-              px: 1,
-              pb: 1,
-            }}
-          >
-            <Tooltip
-              title={collapsed ? t('common.expandMenu') : t('common.collapseMenu')}
-              placement="right"
-            >
-              <IconButton
-                onClick={onToggleCollapsed}
-                size="small"
-                sx={{
-                  color: 'text.secondary',
-                  '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
-                }}
-              >
-                {collapsed
-                  ? (isRtl ? <ChevronLeft fontSize="small" /> : <ChevronRight fontSize="small" />)
-                  : (isRtl ? <ChevronRight fontSize="small" /> : <ChevronLeft fontSize="small" />)
-                }
-              </IconButton>
-            </Tooltip>
-          </Box>
-        )}
       </Box>
     </Box>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Box, IconButton, Dialog, Typography } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
-import { ChevronLeft, ChevronRight, Close, Fullscreen, ImageNotSupported } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, Close, Fullscreen, ImageNotSupported } from '../icons';
 import { API_CONFIG } from '../config/api';
 
 type ResponsiveSize = number | string | { [key: string]: number | string };
@@ -110,7 +110,7 @@ export function PropertyImageCarousel({
               color: 'text.disabled',
             }}
           >
-            <ImageNotSupported sx={{ fontSize: alwaysShowNav ? 48 : 24 }} />
+            <ImageNotSupported size={alwaysShowNav ? 48 : 24} strokeWidth={1.5} />
             {alwaysShowNav && (
               <Typography sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
                 Aucune photo
@@ -155,7 +155,7 @@ export function PropertyImageCarousel({
                 '&:hover': { bgcolor: '#fff' },
               }}
             >
-              <ChevronLeft sx={{ fontSize: navIconSize }} />
+              <ChevronLeft size={navIconSize} strokeWidth={1.75} />
             </IconButton>
             <IconButton
               size="small"
@@ -175,7 +175,7 @@ export function PropertyImageCarousel({
                 '&:hover': { bgcolor: '#fff' },
               }}
             >
-              <ChevronRight sx={{ fontSize: navIconSize }} />
+              <ChevronRight size={navIconSize} strokeWidth={1.75} />
             </IconButton>
             <Box
               sx={{
@@ -244,7 +244,7 @@ export function PropertyImageCarousel({
               pointerEvents: 'none',
             }}
           >
-            <Fullscreen sx={{ fontSize: 20 }} />
+            <Fullscreen size={20} strokeWidth={1.75} />
           </Box>
         )}
       </Box>
@@ -270,7 +270,7 @@ export function PropertyImageCarousel({
               '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
             }}
           >
-            <Close />
+            <Close size={24} strokeWidth={1.75} />
           </IconButton>
 
           <Box
@@ -314,7 +314,7 @@ export function PropertyImageCarousel({
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
                   }}
                 >
-                  <ChevronLeft sx={{ fontSize: 36 }} />
+                  <ChevronLeft size={36} strokeWidth={1.75} />
                 </IconButton>
                 <IconButton
                   onClick={next}
@@ -330,7 +330,7 @@ export function PropertyImageCarousel({
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
                   }}
                 >
-                  <ChevronRight sx={{ fontSize: 36 }} />
+                  <ChevronRight size={36} strokeWidth={1.75} />
                 </IconButton>
                 <Box
                   sx={{

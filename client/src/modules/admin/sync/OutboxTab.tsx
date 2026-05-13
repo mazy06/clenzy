@@ -24,7 +24,7 @@ import {
   InputLabel,
   TablePagination,
 } from '@mui/material';
-import { Replay } from '@mui/icons-material';
+import { Replay } from '../../../icons';
 import { syncAdminApi, OutboxEvent, OutboxStats } from '../../../services/api/syncAdminApi';
 
 const STATUSES = ['', 'PENDING', 'SENT', 'FAILED'] as const;

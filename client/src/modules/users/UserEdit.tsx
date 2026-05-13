@@ -34,7 +34,7 @@ import {
   Visibility,
   VisibilityOff,
   Business,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { usersApi, type User, type UserFormData } from '../../services/api';
@@ -311,7 +311,7 @@ const UserEdit: React.FC = () => {
               variant="outlined"
               size="small"
               onClick={() => navigate(`/users/${id}`)}
-              startIcon={<Cancel sx={{ fontSize: 16 }} />}
+              startIcon={<Cancel size={16} strokeWidth={1.75} />}
               disabled={saving}
               sx={{ fontSize: '0.8125rem' }}
               title="Annuler"
@@ -322,7 +322,7 @@ const UserEdit: React.FC = () => {
               variant="contained"
               size="small"
               onClick={handleSubmit}
-              startIcon={<Save sx={{ fontSize: 16 }} />}
+              startIcon={<Save size={16} strokeWidth={1.75} />}
               disabled={saving}
               sx={{ ml: 1, fontSize: '0.8125rem' }}
               title="Sauvegarder"
@@ -366,7 +366,7 @@ const UserEdit: React.FC = () => {
                   required
                   placeholder="Ex: Jean"
                   InputProps={{
-                    startAdornment: <Person sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Person size={18} strokeWidth={1.75} /></Box>,
                   }}
                 />
               </Grid>
@@ -381,7 +381,7 @@ const UserEdit: React.FC = () => {
                   required
                   placeholder="Ex: Dupont"
                   InputProps={{
-                    startAdornment: <Person sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Person size={18} strokeWidth={1.75} /></Box>,
                   }}
                 />
               </Grid>
@@ -404,7 +404,7 @@ const UserEdit: React.FC = () => {
                   required
                   placeholder="Ex: jean.dupont@clenzy.fr"
                   InputProps={{
-                    startAdornment: <Email sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Email size={18} strokeWidth={1.75} /></Box>,
                   }}
                 />
               </Grid>
@@ -418,7 +418,7 @@ const UserEdit: React.FC = () => {
                   onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                   placeholder="Ex: +33 6 12 34 56 78"
                   InputProps={{
-                    startAdornment: <Phone sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Phone size={18} strokeWidth={1.75} /></Box>,
                   }}
                 />
               </Grid>
@@ -499,7 +499,7 @@ const UserEdit: React.FC = () => {
                   renderOption={(props, option) => (
                     <li {...props} key={option.id}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                        <Business sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Business size={16} strokeWidth={1.75} /></Box>
                         <Typography variant="body2" sx={{ flex: 1 }}>
                           {option.name}
                         </Typography>
@@ -572,7 +572,7 @@ const UserEdit: React.FC = () => {
                     onChange={(e) => handleInputChange('newPassword', e.target.value)}
                     placeholder="Minimum 8 caractères"
                     InputProps={{
-                      startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary' }} />,
+                      startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Lock  /></Box>,
                       endAdornment: (
                         <IconButton
                           onClick={() => setShowNewPassword(!showNewPassword)}
@@ -595,7 +595,7 @@ const UserEdit: React.FC = () => {
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                     placeholder="Répétez le mot de passe"
                     InputProps={{
-                      startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary' }} />,
+                      startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Lock  /></Box>,
                       endAdornment: (
                         <IconButton
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}

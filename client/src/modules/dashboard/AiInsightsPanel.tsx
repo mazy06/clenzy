@@ -13,7 +13,7 @@ import {
   Warning as WarningIcon,
   Lightbulb,
   BugReport,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { AiInsight } from '../../services/api/aiApi';
 
@@ -28,10 +28,10 @@ interface AiInsightsPanelProps {
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<AiInsight['type'], { icon: React.ReactNode; color: string }> = {
-  ANOMALY:        { icon: <BugReport sx={{ fontSize: 16 }} />,    color: '#E57373' },
-  TREND:          { icon: <TrendingUp sx={{ fontSize: 16 }} />,   color: '#64B5F6' },
-  RECOMMENDATION: { icon: <Lightbulb sx={{ fontSize: 16 }} />,    color: '#81C784' },
-  WARNING:        { icon: <WarningIcon sx={{ fontSize: 16 }} />,  color: '#FFB74D' },
+  ANOMALY:        { icon: <BugReport size={16} strokeWidth={1.75} />,    color: '#E57373' },
+  TREND:          { icon: <TrendingUp size={16} strokeWidth={1.75} />,   color: '#64B5F6' },
+  RECOMMENDATION: { icon: <Lightbulb size={16} strokeWidth={1.75} />,    color: '#81C784' },
+  WARNING:        { icon: <WarningIcon size={16} strokeWidth={1.75} />,  color: '#FFB74D' },
 };
 
 const SEVERITY_COLOR: Record<AiInsight['severity'], 'default' | 'warning' | 'error' | 'info'> = {
@@ -68,7 +68,7 @@ const AiInsightsPanel: React.FC<AiInsightsPanelProps> = React.memo(
       return (
         <Paper sx={CARD_SX}>
           <Box sx={HEADER_SX}>
-            <Lightbulb sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Lightbulb size={18} strokeWidth={1.75} /></Box>
             <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
               {t('bookingEngine.ai.insights.title')}
             </Typography>
@@ -87,7 +87,7 @@ const AiInsightsPanel: React.FC<AiInsightsPanelProps> = React.memo(
       return (
         <Paper sx={CARD_SX}>
           <Box sx={HEADER_SX}>
-            <Lightbulb sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Lightbulb size={18} strokeWidth={1.75} /></Box>
             <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
               {t('bookingEngine.ai.insights.title')}
             </Typography>
@@ -104,7 +104,7 @@ const AiInsightsPanel: React.FC<AiInsightsPanelProps> = React.memo(
       return (
         <Paper sx={CARD_SX}>
           <Box sx={HEADER_SX}>
-            <Lightbulb sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Lightbulb size={18} strokeWidth={1.75} /></Box>
             <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
               {t('bookingEngine.ai.insights.title')}
             </Typography>
@@ -120,7 +120,7 @@ const AiInsightsPanel: React.FC<AiInsightsPanelProps> = React.memo(
     return (
       <Paper sx={CARD_SX}>
         <Box sx={HEADER_SX}>
-          <Lightbulb sx={{ fontSize: 18, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Lightbulb size={18} strokeWidth={1.75} /></Box>
           <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
             {t('bookingEngine.ai.insights.title')}
           </Typography>

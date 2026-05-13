@@ -10,7 +10,7 @@ import {
   MenuItem,
   FormHelperText,
 } from '@mui/material';
-import { Description } from '@mui/icons-material';
+import { Description } from '../../icons';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -104,7 +104,7 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
                   minHeight: 80,
                   transition: 'border-color 0.15s ease',
                 }}>
-                  <Description sx={{ fontSize: 16, color: 'text.disabled', mt: 0.125, flexShrink: 0 }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mt: 0.125, flexShrink: 0 }}><Description size={16} strokeWidth={1.75} /></Box>
                   <Box sx={{ flex: 1 }}>
                     <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.disabled', mb: 0.5 }}>
                       {t('properties.description')}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Card, CardContent } from '@mui/material';
-import { Cancel, ArrowBack } from '@mui/icons-material';
+import { Cancel, ArrowBack } from "../../icons";
 import { useTranslation } from '../../hooks/useTranslation';
 
 const PaymentCancel: React.FC = () => {
@@ -12,7 +12,7 @@ const PaymentCancel: React.FC = () => {
     <Box sx={{ maxWidth: 600, mx: 'auto', mt: 4 }}>
       <Card>
         <CardContent sx={{ textAlign: 'center', p: 4 }}>
-          <Cancel sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
+          <Box component="span" sx={{ display: "inline-flex", color: "error.main", mb: 2 }}><Cancel size={80} strokeWidth={1.5} /></Box>
           <Typography variant="h4" gutterBottom>
             Paiement annulé
           </Typography>
@@ -22,7 +22,7 @@ const PaymentCancel: React.FC = () => {
           <Button
             variant="contained"
             color="primary"
-            startIcon={<ArrowBack />}
+            startIcon={<ArrowBack size={18} strokeWidth={1.75} />}
             onClick={() => navigate('/billing')}
           >
             Retour a la facturation

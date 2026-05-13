@@ -37,7 +37,7 @@ import {
   EventAvailable as EventIcon,
   ArrowBack as ArrowBackIcon,
   ArrowForward as ArrowForwardIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { ICalPreviewResponse, ICalImportResponse, ICalEventPreview } from '../../services/api/iCalApi';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -401,7 +401,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           borderColor: 'rgba(107, 138, 154, 0.15)',
         }}
       >
-        <InfoIcon sx={{ fontSize: 18, color: 'primary.main', mt: 0.25 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mt: 0.25 }}><InfoIcon size={18} strokeWidth={1.75} /></Box>
         <Box>
           <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary' }}>
             Collez le lien iCal de votre calendrier externe pour importer vos réservations.
@@ -425,7 +425,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         size="small"
         sx={SX_FIELD}
         InputProps={{
-          startAdornment: <CalendarIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+          startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>,
         }}
       />
 
@@ -578,7 +578,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             {preview.propertyName}
           </Typography>
           <Chip
-            icon={<EventIcon sx={{ fontSize: 14, color: '#6B8A9A' }} />}
+            icon={<EventIcon size={14} strokeWidth={1.75} color='#6B8A9A' />}
             label={`${totalCount} réservation${totalCount > 1 ? 's' : ''}`}
             size="small"
             sx={{
@@ -661,7 +661,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               borderColor: 'rgba(107, 138, 154, 0.15)',
             }}
           >
-            <SyncIcon sx={{ fontSize: 18, color: 'primary.main', mt: 0.25 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mt: 0.25 }}><SyncIcon size={18} strokeWidth={1.75} /></Box>
             <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
               {totalCount} demande{totalCount > 1 ? 's' : ''} de service de ménage
               {totalCount > 1 ? ' seront' : ' sera'} automatiquement créée{totalCount > 1 ? 's' : ''} à l'heure de départ du voyageur, le jour du checkout.
@@ -704,9 +704,9 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           }}
         >
           {!hasErrors ? (
-            <CheckCircleIcon sx={{ fontSize: 36, color: 'success.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleIcon size={36} strokeWidth={1.75} /></Box>
           ) : (
-            <ErrorIcon sx={{ fontSize: 36, color: 'warning.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><ErrorIcon size={36} strokeWidth={1.75} /></Box>
           )}
         </Box>
 
@@ -716,7 +716,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
 
         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Chip
-            icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
+            icon={<CheckCircleIcon size={14} strokeWidth={1.75} />}
             label={`${importResult.imported} importée${importResult.imported > 1 ? 's' : ''}`}
             color="success"
             variant="outlined"
@@ -731,7 +731,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           />
           {hasErrors && (
             <Chip
-              icon={<ErrorIcon sx={{ fontSize: 14 }} />}
+              icon={<ErrorIcon size={14} strokeWidth={1.75} />}
               label={`${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}
               color="error"
               variant="outlined"
@@ -767,7 +767,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             width: '100%',
           }}
         >
-          <SyncIcon sx={{ fontSize: 18, color: 'primary.main', mt: 0.25 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mt: 0.25 }}><SyncIcon size={18} strokeWidth={1.75} /></Box>
           <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
             Votre calendrier sera automatiquement re-synchronisé toutes les 3 heures.
             Les doublons sont ignorés automatiquement.
@@ -821,14 +821,14 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               backgroundColor: 'rgba(107, 138, 154, 0.08)',
             }}
           >
-            <CalendarIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>
           </Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.9375rem' }}>
             Import Calendrier iCal
           </Typography>
         </Box>
         <IconButton onClick={handleClose} size="small" sx={{ color: 'text.secondary', '&:hover': { backgroundColor: 'action.hover' } }}>
-          <CloseIcon sx={{ fontSize: 18 }} />
+          <CloseIcon size={18} strokeWidth={1.75} />
         </IconButton>
       </DialogTitle>
 
@@ -879,7 +879,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               variant="contained"
               size="small"
               disabled={loading || !hasAccess || !url.trim() || !propertyId}
-              startIcon={loading ? <CircularProgress size={16} /> : <ArrowForwardIcon sx={{ fontSize: 16 }} />}
+              startIcon={loading ? <CircularProgress size={16} /> : <ArrowForwardIcon size={16} strokeWidth={1.75} />}
               sx={{
                 borderRadius: '10px',
                 textTransform: 'none',
@@ -902,7 +902,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               variant="outlined"
               size="small"
               disabled={loading}
-              startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
+              startIcon={<ArrowBackIcon size={16} strokeWidth={1.75} />}
               sx={{
                 borderRadius: '10px',
                 textTransform: 'none',
@@ -921,7 +921,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               variant="contained"
               size="small"
               disabled={loading || !preview || totalPreviewEvents === 0}
-              startIcon={loading ? <CircularProgress size={16} /> : <ImportIcon sx={{ fontSize: 16 }} />}
+              startIcon={loading ? <CircularProgress size={16} /> : <ImportIcon size={16} strokeWidth={1.75} />}
               sx={{
                 borderRadius: '10px',
                 textTransform: 'none',

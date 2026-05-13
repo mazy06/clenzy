@@ -25,7 +25,7 @@ import {
   AutoFixHigh,
   Edit,
   Payments,
-} from '@mui/icons-material';
+} from '../icons';
 import { useNavigate } from 'react-router-dom';
 import { getServiceTypeBannerUrl } from '../utils/serviceTypeBanner';
 import { useTranslation } from '../hooks/useTranslation';
@@ -132,7 +132,7 @@ const getTypeGradient = (type: string): string => {
 
 // Icône de type en arrière-plan
 const getTypeIcon = (type: string, size: number = 48) => {
-  const iconProps = { sx: { fontSize: size, color: 'rgba(255,255,255,0.35)' } };
+  const iconProps = { size, color: 'rgba(255,255,255,0.35)', strokeWidth: 1.5 };
   const cleaningTypes = [
     'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
     'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
@@ -154,7 +154,7 @@ const getTypeIcon = (type: string, size: number = 48) => {
 
 // Petite icône de type pour le header
 const getTypeSmallIcon = (type: string) => {
-  const iconProps = { sx: { fontSize: 18, color: 'rgba(255,255,255,0.9)' } };
+  const iconProps = { size: 18, color: 'rgba(255,255,255,0.9)', strokeWidth: 1.75 };
   const cleaningTypes = [
     'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
     'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
@@ -389,7 +389,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
           onClick={(e) => { e.stopPropagation(); onMenuOpen(e, request); }}
           sx={styles.menuButton}
         >
-          <MoreVert sx={{ fontSize: 16 }} />
+          <MoreVert size={16} strokeWidth={1.75} />
         </IconButton>
       </Box>
 
@@ -430,7 +430,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
           />
           ); })()}
           <Box sx={styles.dateBox}>
-            <CalendarToday sx={{ fontSize: 13, color: 'text.secondary' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarToday size={13} strokeWidth={1.75} /></Box>
             <Typography variant="caption" sx={styles.dateText}>
               {formatShortDate(request.dueDate)}
               {formatTimeFromDate(request.dueDate) && ` · ${formatTimeFromDate(request.dueDate)}`}
@@ -489,7 +489,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
 
         {/* Propriété */}
         <Box sx={styles.propertyRow}>
-          <LocationOn sx={styles.locationIcon} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}><LocationOn size={14} strokeWidth={1.75} /></Box>
           <ThemedTooltip title={`${request.propertyName} — ${request.propertyAddress}, ${request.propertyCity}`} arrow placement="top">
             <Typography
               variant="caption"
@@ -508,9 +508,9 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
             {request.assignedToName ? (
               <Box sx={styles.personRow}>
                 {request.assignedToType === 'team' ? (
-                  <GroupIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+<Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><GroupIcon size={13} strokeWidth={1.75} /></Box>
                 ) : (
-                  <PersonIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><PersonIcon size={13} strokeWidth={1.75} /></Box>
                 )}
                 <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {request.assignedToName}
@@ -521,7 +521,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
               </Box>
             ) : (
               <Box sx={styles.personRow}>
-                <PersonIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><PersonIcon size={13} strokeWidth={1.75} /></Box>
                 <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {request.requestorName}
                 </Typography>
@@ -533,7 +533,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
           <Box sx={styles.metricsRow}>
             {request.estimatedCost != null && request.estimatedCost > 0 && (
               <Chip
-                icon={<Payments sx={{ fontSize: 12 }} />}
+                icon={<Payments size={12} strokeWidth={1.75} />}
                 label={`${request.estimatedCost}€ estimé / intervention`}
                 size="small"
                 color="primary"
@@ -542,7 +542,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
               />
             )}
             <Chip
-              icon={<Timer sx={{ fontSize: 12 }} />}
+              icon={<Timer size={12} strokeWidth={1.75} />}
               label={`~${formatDuration(request.estimatedDuration)}`}
               size="small"
               color="info"
@@ -558,7 +558,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
         <Button
           fullWidth
           size="small"
-          startIcon={<Visibility sx={{ fontSize: 15 }} />}
+          startIcon={<Visibility size={15} strokeWidth={1.75} />}
           onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
           variant="outlined"
           sx={styles.detailsButton}

@@ -27,7 +27,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Refresh as RefreshIcon,
   Visibility as VisibilityIcon
-} from '@mui/icons-material';
+} from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi } from '../../services/api';
@@ -152,7 +152,7 @@ const InterventionsPendingValidation: React.FC = () => {
           <Button
             variant="outlined"
             size="small"
-            startIcon={<RefreshIcon />}
+            startIcon={<RefreshIcon size={18} strokeWidth={1.75} />}
             onClick={loadInterventions}
             title={t('common.refresh')}
           >
@@ -217,7 +217,7 @@ const InterventionsPendingValidation: React.FC = () => {
                         size="small"
                         onClick={() => navigate(`/interventions/${intervention.id}`)}
                       >
-                        <VisibilityIcon fontSize="small" />
+                        <VisibilityIcon size={20} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title={t('interventions.pendingValidation.validate')}>
@@ -226,7 +226,7 @@ const InterventionsPendingValidation: React.FC = () => {
                         color="primary"
                         onClick={() => handleOpenValidationDialog(intervention)}
                       >
-                        <CheckCircleIcon fontSize="small" />
+                        <CheckCircleIcon size={20} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                   </TableCell>
@@ -274,7 +274,7 @@ const InterventionsPendingValidation: React.FC = () => {
             onClick={handleValidate}
             variant="contained"
             disabled={validateMutation.isPending || !estimatedCost}
-            startIcon={validateMutation.isPending ? <CircularProgress size={20} /> : <CheckCircleIcon />}
+            startIcon={validateMutation.isPending ? <CircularProgress size={20} /> : <CheckCircleIcon size={18} strokeWidth={1.75} />}
           >
             {validateMutation.isPending ? t('common.loading') : t('interventions.pendingValidation.validate')}
           </Button>

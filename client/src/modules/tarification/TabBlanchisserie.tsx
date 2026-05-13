@@ -18,7 +18,7 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { LocalLaundryService, Add, Delete } from '@mui/icons-material';
+import { LocalLaundryService, Add, Delete } from '../../icons';
 import type { PricingConfig, BlanchisserieItem, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import CommissionSection from './CommissionSection';
@@ -81,7 +81,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
   return (
     <Box sx={{ pt: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <LocalLaundryService sx={{ color: '#6B8A9A', fontSize: 20 }} />
+        <LocalLaundryService size={20} strokeWidth={1.75} color='#6B8A9A' />
         <Typography variant="subtitle1" fontWeight={600}>
           {t('tarification.blanchisserie.title')}
         </Typography>
@@ -132,7 +132,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
                 {canEdit && (
                   <TableCell align="center">
                     <IconButton size="small" onClick={() => removeItem(index)} color="error">
-                      <Delete sx={{ fontSize: 16 }} />
+                      <Delete size={16} strokeWidth={1.75} />
                     </IconButton>
                   </TableCell>
                 )}

@@ -15,7 +15,7 @@ import {
   Close as CloseIcon,
   Lock as LockIcon,
   CheckCircle as CheckCircleIcon,
-} from '@mui/icons-material';
+} from '../icons';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { useCurrency } from '../hooks/useCurrency';
@@ -175,13 +175,16 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               gap: 2,
             }}
           >
-            <CheckCircleIcon
+            <Box
+              component="span"
               sx={{
-                fontSize: 64,
+                display: 'inline-flex',
                 color: '#4A9B8E',
                 filter: 'drop-shadow(0 2px 8px rgba(74, 155, 142, 0.3))',
               }}
-            />
+            >
+              <CheckCircleIcon size={64} strokeWidth={1.5} />
+            </Box>
             <Typography
               variant="h5"
               sx={{ fontWeight: 700, fontSize: '1.25rem', textAlign: 'center' }}
@@ -235,7 +238,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <LockIcon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
+              <LockIcon size={20} strokeWidth={1.75} color={theme.palette.primary.main} />
               <Box>
                 <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 700 }}>
                   Paiement securise
@@ -263,7 +266,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                 onClick={onClose}
                 sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
               >
-                <CloseIcon fontSize="small" />
+                <CloseIcon size={20} strokeWidth={1.75} />
               </IconButton>
             </Box>
           </DialogTitle>
@@ -333,7 +336,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                   bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
                 }}
               >
-                <LockIcon sx={{ fontSize: 12, color: 'text.disabled' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><LockIcon size={12} strokeWidth={1.75} /></Box>
                 <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.6875rem' }}>
                   Paiement securise par Stripe. Vos donnees sont chiffrees.
                 </Typography>

@@ -14,7 +14,7 @@ import {
   CheckCircle,
   Store as StoreIcon,
   PersonOutline,
-} from '@mui/icons-material';
+} from '../icons';
 import { useParams } from 'react-router-dom';
 
 // ─── API base URL (no auth needed for public endpoints) ─────────────────────
@@ -120,7 +120,7 @@ const PublicKeyVerification: React.FC = () => {
       >
         {/* Header */}
         <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <VpnKey sx={{ fontSize: 40, color: '#6B8A9A', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', mb: 1 }}><VpnKey size={40} strokeWidth={1.75} color='#6B8A9A' /></Box>
           <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>
             Vérification de code
           </Typography>
@@ -174,14 +174,14 @@ const PublicKeyVerification: React.FC = () => {
                 <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, mb: 2 }}>
                   {verifyResult.guestName && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <PersonOutline sx={{ fontSize: 18, color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PersonOutline size={18} strokeWidth={1.75} /></Box>
                       <Typography sx={{ fontSize: '0.875rem' }}>
                         <strong>Voyageur :</strong> {verifyResult.guestName}
                       </Typography>
                     </Box>
                   )}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <StoreIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><StoreIcon size={18} strokeWidth={1.75} /></Box>
                     <Typography sx={{ fontSize: '0.875rem' }}>
                       <strong>Point :</strong> {verifyResult.storeName}
                     </Typography>
@@ -241,7 +241,7 @@ const PublicKeyVerification: React.FC = () => {
         {/* Confirmation */}
         {confirmed && (
           <Box sx={{ textAlign: 'center', py: 2 }}>
-            <CheckCircle sx={{ fontSize: 48, color: 'success.main', mb: 1 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 1 }}><CheckCircle size={48} strokeWidth={1.75} /></Box>
             <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1rem', mb: 1 }}>
               Mouvement confirmé
             </Typography>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Box, CircularProgress } from '@mui/material';
-import { Cancel, Save } from '@mui/icons-material';
+import { Cancel, Save } from '../../icons';
 import PropertyForm from './PropertyForm';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -40,7 +40,7 @@ const PropertyEdit: React.FC = () => {
               <Button
                 variant="outlined"
                 onClick={() => navigate(`/properties/${id}`)}
-                startIcon={<Cancel />}
+                startIcon={<Cancel size={18} strokeWidth={1.75} />}
                 size="small"
                 sx={ACTION_BUTTON_SX}
                 title={t('common.cancel')}
@@ -53,7 +53,7 @@ const PropertyEdit: React.FC = () => {
                   const submitButton = document.querySelector('[data-submit-property]') as HTMLButtonElement;
                   if (submitButton) submitButton.click();
                 }}
-                startIcon={<Save />}
+                startIcon={<Save size={18} strokeWidth={1.75} />}
                 size="small"
                 sx={ACTION_BUTTON_SX}
                 title={t('common.save')}

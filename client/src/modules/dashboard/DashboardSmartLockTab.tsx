@@ -35,7 +35,7 @@ import {
   WifiOff,
   Wifi,
   Add as AddIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import { useSmartLocks, type SmartLockView, type SmartLockFormState } from '../../hooks/useSmartLocks';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -49,7 +49,7 @@ import SmartLockAnimation from '../../components/SmartLockAnimation';
 function FeatureItem({ text }: { text: string }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
-      <CheckCircleOutline sx={{ fontSize: 16, color: 'success.main' }} />
+      <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleOutline size={16} strokeWidth={1.75} /></Box>
       <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
         {text}
       </Typography>
@@ -74,7 +74,7 @@ function SmartLockOffersView({ onConfigureTuya, onConfigureNuki }: OffersViewPro
   return (
     <Box sx={{ p: 1 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <LockIcon sx={{ color: 'primary.main', fontSize: 20 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><LockIcon size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
           {t('dashboard.smartLock.title')}
         </Typography>
@@ -104,7 +104,7 @@ function SmartLockOffersView({ onConfigureTuya, onConfigureNuki }: OffersViewPro
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <LockIcon sx={{ color: '#6B8A9A', fontSize: 22 }} />
+              <LockIcon size={22} strokeWidth={1.75} color='#6B8A9A' />
               <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
                 {t('dashboard.smartLock.offersTitle')}
               </Typography>
@@ -168,7 +168,7 @@ function SmartLockOffersView({ onConfigureTuya, onConfigureNuki }: OffersViewPro
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <LockIcon sx={{ color: '#1A1A2E', fontSize: 22 }} />
+              <LockIcon size={22} strokeWidth={1.75} color='#1A1A2E' />
               <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
                 {t('dashboard.smartLock.nuki.offersTitle')}
               </Typography>
@@ -255,7 +255,7 @@ function SmartLockConfigForm({
         return (
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.5 }}>
-              <Home sx={{ color: 'primary.main', fontSize: 18 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Home size={18} strokeWidth={1.75} /></Box>
               <Typography variant="subtitle2" fontWeight={600} sx={{ fontSize: '0.875rem' }}>
                 {t('dashboard.smartLock.config.stepProperty')}
               </Typography>
@@ -285,7 +285,7 @@ function SmartLockConfigForm({
                       <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                           {form.selectedPropertyId === prop.id && (
-                            <CheckCircle sx={{ fontSize: 16, color: 'primary.main' }} />
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
                           )}
                           <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem' }}>
                             {prop.name}
@@ -293,7 +293,7 @@ function SmartLockConfigForm({
                         </Box>
                         {prop.address && (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, mt: 0.3 }}>
-                            <LocationOn sx={{ fontSize: 12, color: 'text.disabled' }} />
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><LocationOn size={12} strokeWidth={1.75} /></Box>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
                               {prop.address}
                             </Typography>
@@ -312,7 +312,7 @@ function SmartLockConfigForm({
         return (
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.5 }}>
-              <MeetingRoom sx={{ color: 'primary.main', fontSize: 18 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><MeetingRoom size={18} strokeWidth={1.75} /></Box>
               <Typography variant="subtitle2" fontWeight={600} sx={{ fontSize: '0.875rem' }}>
                 {t('dashboard.smartLock.config.stepRoom')}
               </Typography>
@@ -359,7 +359,7 @@ function SmartLockConfigForm({
         return (
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.5 }}>
-              <LabelIcon sx={{ color: 'primary.main', fontSize: 18 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><LabelIcon size={18} strokeWidth={1.75} /></Box>
               <Typography variant="subtitle2" fontWeight={600} sx={{ fontSize: '0.875rem' }}>
                 {t('dashboard.smartLock.config.stepDevice')}
               </Typography>
@@ -407,7 +407,7 @@ function SmartLockConfigForm({
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <LockIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LockIcon size={16} strokeWidth={1.75} /></Box>
                   <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
                     <strong>Marque :</strong>{' '}
                     <Chip
@@ -425,28 +425,28 @@ function SmartLockConfigForm({
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <Home sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Home size={16} strokeWidth={1.75} /></Box>
                   <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
                     <strong>Propriete :</strong> {form.selectedPropertyName}
                   </Typography>
                 </Box>
                 {form.roomName && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <MeetingRoom sx={{ fontSize: 16, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><MeetingRoom size={16} strokeWidth={1.75} /></Box>
                     <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
                       <strong>Emplacement :</strong> {form.roomName}
                     </Typography>
                   </Box>
                 )}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <LockIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LockIcon size={16} strokeWidth={1.75} /></Box>
                   <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
                     <strong>Serrure :</strong> {form.deviceName}
                   </Typography>
                 </Box>
                 {form.externalDeviceId && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <LabelIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LabelIcon size={16} strokeWidth={1.75} /></Box>
                     <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
                       <strong>ID {form.brand === 'TUYA' ? 'Tuya' : 'Nuki'} :</strong> {form.externalDeviceId}
                     </Typography>
@@ -466,7 +466,7 @@ function SmartLockConfigForm({
     <Box sx={{ p: 1 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <LockIcon sx={{ color: 'primary.main', fontSize: 20 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><LockIcon size={20} strokeWidth={1.75} /></Box>
           <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
             Configurer une serrure
           </Typography>
@@ -499,7 +499,7 @@ function SmartLockConfigForm({
         <Button
           size="small"
           variant="outlined"
-          startIcon={<ArrowBack sx={{ fontSize: 14 }} />}
+          startIcon={<ArrowBack size={14} strokeWidth={1.75} />}
           onClick={form.activeStep === 0 ? onCancel : onBack}
           sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
         >
@@ -510,7 +510,7 @@ function SmartLockConfigForm({
           <Button
             size="small"
             variant="contained"
-            endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+            endIcon={<ArrowForward size={14} strokeWidth={1.75} />}
             onClick={onNext}
             disabled={!canGoNext}
             sx={{
@@ -528,7 +528,7 @@ function SmartLockConfigForm({
             size="small"
             variant="contained"
             color="success"
-            startIcon={<CheckCircle sx={{ fontSize: 16 }} />}
+            startIcon={<CheckCircle size={16} strokeWidth={1.75} />}
             onClick={onSubmit}
             sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 700 }}
           >
@@ -547,7 +547,7 @@ function BatteryChip({ level }: { level: number | null }) {
     return (
       <Chip
         size="small"
-        icon={<BatteryAlert sx={{ fontSize: 14 }} />}
+        icon={<BatteryAlert size={14} strokeWidth={1.75} />}
         label="N/A"
         variant="outlined"
         sx={{ fontSize: '0.6875rem', height: 22 }}
@@ -561,7 +561,7 @@ function BatteryChip({ level }: { level: number | null }) {
   return (
     <Chip
       size="small"
-      icon={<Icon sx={{ fontSize: 14 }} />}
+      icon={<Icon size={14} strokeWidth={1.75} />}
       label={`${level}%`}
       color={color}
       variant="outlined"
@@ -578,7 +578,7 @@ function LockStateChip({ lockState, t }: { lockState: string; t: (key: string) =
       return (
         <Chip
           size="small"
-          icon={<LockIcon sx={{ fontSize: 14 }} />}
+          icon={<LockIcon size={14} strokeWidth={1.75} />}
           label={t('dashboard.smartLock.locked')}
           color="success"
           variant="outlined"
@@ -589,7 +589,7 @@ function LockStateChip({ lockState, t }: { lockState: string; t: (key: string) =
       return (
         <Chip
           size="small"
-          icon={<LockOpenIcon sx={{ fontSize: 14 }} />}
+          icon={<LockOpenIcon size={14} strokeWidth={1.75} />}
           label={t('dashboard.smartLock.unlocked')}
           color="warning"
           variant="outlined"
@@ -600,7 +600,7 @@ function LockStateChip({ lockState, t }: { lockState: string; t: (key: string) =
       return (
         <Chip
           size="small"
-          icon={<WifiOff sx={{ fontSize: 14 }} />}
+          icon={<WifiOff size={14} strokeWidth={1.75} />}
           label={t('dashboard.smartLock.unknown')}
           variant="outlined"
           sx={{ fontSize: '0.6875rem', height: 22 }}
@@ -636,7 +636,7 @@ function SmartLockDevicesView({ devices, onRemoveDevice, onAddDevice, onToggleLo
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <LockIcon sx={{ color: 'primary.main', fontSize: 20 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><LockIcon size={20} strokeWidth={1.75} /></Box>
           <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
             {t('dashboard.smartLock.title')}
           </Typography>
@@ -650,7 +650,7 @@ function SmartLockDevicesView({ devices, onRemoveDevice, onAddDevice, onToggleLo
         <Button
           size="small"
           variant="outlined"
-          startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+          startIcon={<AddIcon size={14} strokeWidth={1.75} />}
           onClick={onAddDevice}
           sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
         >
@@ -706,7 +706,7 @@ function SmartLockDevicesView({ devices, onRemoveDevice, onAddDevice, onToggleLo
                           onClick={() => onRemoveDevice(device.id)}
                           sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}
                         >
-                          <DeleteIcon sx={{ fontSize: 16 }} />
+                          <DeleteIcon size={16} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                     </Box>
@@ -730,7 +730,7 @@ function SmartLockDevicesView({ devices, onRemoveDevice, onAddDevice, onToggleLo
                       {hasExternalId && (
                         <Chip
                           size="small"
-                          icon={<Wifi sx={{ fontSize: 12 }} />}
+                          icon={<Wifi size={12} strokeWidth={1.75} />}
                           label="En ligne"
                           color="info"
                           variant="outlined"
@@ -747,7 +747,7 @@ function SmartLockDevicesView({ devices, onRemoveDevice, onAddDevice, onToggleLo
                           variant="outlined"
                           color="warning"
                           fullWidth
-                          startIcon={isLocking ? <CircularProgress size={14} /> : <LockOpenIcon sx={{ fontSize: 14 }} />}
+                          startIcon={isLocking ? <CircularProgress size={14} /> : <LockOpenIcon size={14} strokeWidth={1.75} />}
                           onClick={() => onToggleLock(device.id, false)}
                           disabled={isLocking || !hasExternalId}
                           sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
@@ -760,7 +760,7 @@ function SmartLockDevicesView({ devices, onRemoveDevice, onAddDevice, onToggleLo
                           variant="contained"
                           color="success"
                           fullWidth
-                          startIcon={isLocking ? <CircularProgress size={14} color="inherit" /> : <LockIcon sx={{ fontSize: 14 }} />}
+                          startIcon={isLocking ? <CircularProgress size={14} color="inherit" /> : <LockIcon size={14} strokeWidth={1.75} />}
                           onClick={() => onToggleLock(device.id, true)}
                           disabled={isLocking || !hasExternalId}
                           sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}

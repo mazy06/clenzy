@@ -26,7 +26,7 @@ import {
   Iron,
   Kitchen,
   AutoAwesome,
-} from '@mui/icons-material';
+} from '../../icons';
 import { Controller, Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getPropertyTypeLabel } from '../../utils/statusUtils';
@@ -137,7 +137,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Type de logement
       if (selectedProperty.type) {
         tags.push({
-          icon: <Category sx={{ fontSize: 14 }} />,
+          icon: <Category size={14} strokeWidth={1.75} />,
           label: getPropertyTypeLabel(selectedProperty.type, t),
         });
       }
@@ -145,7 +145,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Surface
       if (selectedProperty.squareMeters && selectedProperty.squareMeters > 0) {
         tags.push({
-          icon: <SquareFoot sx={{ fontSize: 14 }} />,
+          icon: <SquareFoot size={14} strokeWidth={1.75} />,
           label: `${selectedProperty.squareMeters} m²`,
         });
       }
@@ -153,7 +153,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Chambres
       if (selectedProperty.bedroomCount && selectedProperty.bedroomCount > 0) {
         tags.push({
-          icon: <Bed sx={{ fontSize: 14 }} />,
+          icon: <Bed size={14} strokeWidth={1.75} />,
           label: `${selectedProperty.bedroomCount} ${selectedProperty.bedroomCount > 1 ? 'chambres' : 'chambre'}`,
         });
       }
@@ -161,7 +161,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Salles de bain
       if (selectedProperty.bathroomCount && selectedProperty.bathroomCount > 0) {
         tags.push({
-          icon: <Bathtub sx={{ fontSize: 14 }} />,
+          icon: <Bathtub size={14} strokeWidth={1.75} />,
           label: `${selectedProperty.bathroomCount} SDB`,
         });
       }
@@ -169,7 +169,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Capacité
       if (selectedProperty.maxGuests && selectedProperty.maxGuests > 0) {
         tags.push({
-          icon: <People sx={{ fontSize: 14 }} />,
+          icon: <People size={14} strokeWidth={1.75} />,
           label: `${selectedProperty.maxGuests} voyageurs`,
         });
       }
@@ -177,7 +177,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Étages
       if (selectedProperty.numberOfFloors && selectedProperty.numberOfFloors > 1) {
         tags.push({
-          icon: <Layers sx={{ fontSize: 14 }} />,
+          icon: <Layers size={14} strokeWidth={1.75} />,
           label: `${selectedProperty.numberOfFloors} étages`,
         });
       }
@@ -185,7 +185,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Extérieur
       if (selectedProperty.hasExterior) {
         tags.push({
-          icon: <Deck sx={{ fontSize: 14 }} />,
+          icon: <Deck size={14} strokeWidth={1.75} />,
           label: 'Extérieur',
         });
       }
@@ -193,7 +193,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Linge
       if (selectedProperty.hasLaundry) {
         tags.push({
-          icon: <LocalLaundryService sx={{ fontSize: 14 }} />,
+          icon: <LocalLaundryService size={14} strokeWidth={1.75} />,
           label: 'Linge',
         });
       }
@@ -201,7 +201,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Fenêtres
       if (selectedProperty.windowCount && selectedProperty.windowCount > 0) {
         tags.push({
-          icon: <Window sx={{ fontSize: 14 }} />,
+          icon: <Window size={14} strokeWidth={1.75} />,
           label: `${selectedProperty.windowCount} fenêtres`,
         });
       }
@@ -209,7 +209,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Porte-fenêtres
       if (selectedProperty.frenchDoorCount && selectedProperty.frenchDoorCount > 0) {
         tags.push({
-          icon: <DoorSliding sx={{ fontSize: 14 }} />,
+          icon: <DoorSliding size={14} strokeWidth={1.75} />,
           label: `${selectedProperty.frenchDoorCount} portes-fenêtres`,
         });
       }
@@ -217,7 +217,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Baies vitrées
       if (selectedProperty.slidingDoorCount && selectedProperty.slidingDoorCount > 0) {
         tags.push({
-          icon: <DoorSliding sx={{ fontSize: 14 }} />,
+          icon: <DoorSliding size={14} strokeWidth={1.75} />,
           label: `${selectedProperty.slidingDoorCount} baies vitrées`,
         });
       }
@@ -225,7 +225,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Repassage
       if (selectedProperty.hasIroning) {
         tags.push({
-          icon: <Iron sx={{ fontSize: 14 }} />,
+          icon: <Iron size={14} strokeWidth={1.75} />,
           label: 'Repassage',
         });
       }
@@ -233,7 +233,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Cuisine approfondie
       if (selectedProperty.hasDeepKitchen) {
         tags.push({
-          icon: <Kitchen sx={{ fontSize: 14 }} />,
+          icon: <Kitchen size={14} strokeWidth={1.75} />,
           label: 'Cuisine approfondie',
         });
       }
@@ -241,7 +241,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
       // Désinfection
       if (selectedProperty.hasDisinfection) {
         tags.push({
-          icon: <AutoAwesome sx={{ fontSize: 14 }} />,
+          icon: <AutoAwesome size={14} strokeWidth={1.75} />,
           label: 'Désinfection',
         });
       }
@@ -320,7 +320,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                       sx={SELECT_SX}
                       renderValue={() => (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Home sx={{ fontSize: 16, color: selectedProp ? 'primary.main' : 'grey.400' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: selectedProp ? 'primary.main' : 'grey.400' }}><Home size={16} strokeWidth={1.75} /></Box>
                           <Typography sx={{ fontSize: '0.8125rem', color: selectedProp ? 'text.secondary' : 'grey.400' }}>
                             {selectedProp
                               ? `${selectedProp.name} - ${selectedProp.address}, ${selectedProp.city}`
@@ -332,7 +332,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                       {properties.map((property) => (
                         <MenuItem key={property.id} value={property.id}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Home sx={{ fontSize: 16, color: 'primary.main' }} />
+                            <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><Home size={16} strokeWidth={1.75} /></Box>
                             <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
                               {property.name} - {property.address}, {property.city}
                             </Typography>
@@ -368,7 +368,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                   borderColor: 'grey.200',
                   minHeight: 40,
                 }}>
-                  <Person sx={{ fontSize: 16, color: 'primary.main' }} />
+                  <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><Person size={16} strokeWidth={1.75} /></Box>
                   <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary', flex: 1 }}>
                     {currentUser.name}
                   </Typography>
@@ -414,7 +414,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                         sx={SELECT_SX}
                         renderValue={() => (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Person sx={{ fontSize: 16, color: hasValue ? 'primary.main' : 'grey.400' }} />
+                            <Box component="span" sx={{ display: "inline-flex", color: hasValue ? "primary.main" : "grey.400" }}><Person size={16} strokeWidth={1.75} /></Box>
                             <Typography sx={{ fontSize: '0.8125rem', color: hasValue ? 'text.secondary' : 'grey.400' }}>
                               {hasValue
                                 ? `${selectedUser.firstName} ${selectedUser.lastName}`
@@ -426,7 +426,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                         {users.map((u) => (
                           <MenuItem key={u.id} value={u.id}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <Person sx={{ fontSize: 16, color: 'primary.main' }} />
+                              <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><Person size={16} strokeWidth={1.75} /></Box>
                               <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
                                 {u.firstName} {u.lastName}
                               </Typography>

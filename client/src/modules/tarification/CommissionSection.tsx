@@ -9,7 +9,7 @@ import {
   Grid,
   Divider,
 } from '@mui/material';
-import { Percent } from '@mui/icons-material';
+import { Percent } from '../../icons';
 import type { CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -26,7 +26,7 @@ export default function CommissionSection({ commission, canEdit, onChange }: Com
     <>
       <Divider sx={{ my: 2.5 }} />
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        <Percent sx={{ color: 'primary.main', fontSize: 20 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Percent size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600}>
           {t('tarification.commission.title')}
         </Typography>

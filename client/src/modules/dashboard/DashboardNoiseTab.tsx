@@ -18,7 +18,7 @@ import {
   Save,
   Settings,
   History,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import { useNoiseDevices, type NoiseView } from '../../hooks/useNoiseDevices';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -38,7 +38,7 @@ import NoiseAlertHistory from './NoiseAlertHistory';
 function FeatureItem({ text }: { text: string }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
-      <CheckCircleOutline sx={{ fontSize: 16, color: 'success.main' }} />
+      <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleOutline size={16} strokeWidth={1.75} /></Box>
       <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
         {text}
       </Typography>
@@ -59,7 +59,7 @@ function NoiseOffersView({ onSelectOffer }: NoiseOffersViewProps) {
     <Box sx={{ p: 1 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <VolumeUp sx={{ color: 'primary.main', fontSize: 20 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><VolumeUp size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
           {t('dashboard.noise.offersTitle')}
         </Typography>
@@ -92,7 +92,7 @@ function NoiseOffersView({ onSelectOffer }: NoiseOffersViewProps) {
           >
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Handshake sx={{ color: '#6B8A9A', fontSize: 22 }} />
+              <Handshake size={22} strokeWidth={1.75} color='#6B8A9A' />
               <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
                 {t('tarification.monitoring.minut.title')}
               </Typography>
@@ -140,7 +140,7 @@ function NoiseOffersView({ onSelectOffer }: NoiseOffersViewProps) {
             <Button
               variant="outlined"
               fullWidth
-              startIcon={<Handshake sx={{ fontSize: 16 }} />}
+              startIcon={<Handshake size={16} strokeWidth={1.75} />}
               onClick={() => onSelectOffer('minut')}
               sx={{
                 textTransform: 'none',
@@ -176,7 +176,7 @@ function NoiseOffersView({ onSelectOffer }: NoiseOffersViewProps) {
           >
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Memory sx={{ color: '#4A9B8E', fontSize: 22 }} />
+              <Memory size={22} strokeWidth={1.75} color='#4A9B8E' />
               <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
                 {t('tarification.monitoring.clenzy.title')}
               </Typography>
@@ -218,7 +218,7 @@ function NoiseOffersView({ onSelectOffer }: NoiseOffersViewProps) {
             <Button
               variant="contained"
               fullWidth
-              startIcon={<Memory sx={{ fontSize: 16 }} />}
+              startIcon={<Memory size={16} strokeWidth={1.75} />}
               onClick={() => onSelectOffer('clenzy')}
               sx={{
                 textTransform: 'none',
@@ -377,8 +377,8 @@ const DashboardNoiseTab: React.FC = () => {
                   '& .MuiTab-root': { minHeight: 36, textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, py: 0.5 },
                 }}
               >
-                <Tab icon={<Settings sx={{ fontSize: 16 }} />} iconPosition="start" label="Configuration" />
-                <Tab icon={<History sx={{ fontSize: 16 }} />} iconPosition="start" label="Historique" />
+                <Tab icon={<Settings size={16} strokeWidth={1.75} />} iconPosition="start" label="Configuration" />
+                <Tab icon={<History size={16} strokeWidth={1.75} />} iconPosition="start" label="Historique" />
               </Tabs>
 
               {/* Bouton Sauvegarder — visible uniquement sur l'onglet Configuration */}
@@ -401,7 +401,7 @@ const DashboardNoiseTab: React.FC = () => {
                   <Button
                     variant="contained"
                     size="small"
-                    startIcon={<Save sx={{ fontSize: 14 }} />}
+                    startIcon={<Save size={14} strokeWidth={1.75} />}
                     onClick={() => { configPanelRef.current?.save(); forceRefresh(); }}
                     disabled={!configPanelRef.current?.canSave || configPanelRef.current?.isSaving}
                     sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}

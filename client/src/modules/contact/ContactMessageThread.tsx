@@ -19,7 +19,7 @@ import {
   InsertDriveFile as FileIcon,
   ArrowBack as ArrowBackIcon,
   Download as DownloadIcon
-} from '@mui/icons-material';
+} from '../../icons';
 import { contactApi } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -350,7 +350,7 @@ const ContactMessageThread: React.FC<ContactMessageThreadProps> = ({
                             variant="outlined"
                             clickable
                             onClick={() => contactApi.downloadAttachment(Number(msg.id), attachment.id, attachment.originalName)}
-                            deleteIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
+                            deleteIcon={<DownloadIcon size={16} strokeWidth={1.75} />}
                             onDelete={() => contactApi.downloadAttachment(Number(msg.id), attachment.id, attachment.originalName)}
                             sx={{
                               maxWidth: 250, borderWidth: 1.5,

@@ -3,7 +3,7 @@ import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend,
 } from 'recharts';
-import { Compare, EmojiEvents, BarChart as BarChartIcon } from '@mui/icons-material';
+import { Compare, EmojiEvents, BarChart as BarChartIcon } from '../../../icons';
 import GridSection from './GridSection';
 import AnalyticsWidgetCard from './AnalyticsWidgetCard';
 import { useTranslation } from '../../../hooks/useTranslation';

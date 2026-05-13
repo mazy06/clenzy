@@ -22,7 +22,7 @@ import {
   CheckCircle,
   Refresh,
   Delete,
-} from '@mui/icons-material';
+} from '../../icons';
 import {
   useTemplate,
   useUpdateTemplate,
