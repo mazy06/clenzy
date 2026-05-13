@@ -10,8 +10,6 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  Tabs,
-  Tab,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -49,11 +47,50 @@ import {
   Receipt as TarificationIcon,
 } from '../icons';
 import PageHeader from './PageHeader';
+import PageTabs from './PageTabs';
 import { useAuth } from '../hooks/useAuth';
 import { useRolePermissions } from '../hooks/useRolePermissions';
 import { usePermissionRefresh } from '../hooks/usePermissionRefresh';
 import PermissionEffectsDemo from './PermissionEffectsDemo';
 import { permissionsApi } from '../services/api';
+
+// ─── Role tabs config ────────────────────────────────────────────────────────
+
+/** Ordre canonique des rôles (du plus privilégié au plus restreint). */
+const ROLE_ORDER: string[] = [
+  'SUPER_ADMIN',
+  'SUPER_MANAGER',
+  'SUPERVISOR',
+  'TECHNICIAN',
+  'HOUSEKEEPER',
+  'HOST',
+  'LAUNDRY',
+  'EXTERIOR_TECH',
+];
+
+/** Trie une liste de rôles selon l'ordre canonique (rôles inconnus en dernier, alphabétique). */
+function sortRoles(roles: string[]): string[] {
+  return [...roles].sort((a, b) => {
+    const ia = ROLE_ORDER.indexOf(a);
+    const ib = ROLE_ORDER.indexOf(b);
+    if (ia >= 0 && ib >= 0) return ia - ib;
+    if (ia >= 0) return -1;
+    if (ib >= 0) return 1;
+    return a.localeCompare(b);
+  });
+}
+
+/** Icône associée à chaque rôle (fallback PersonIcon si non listé). */
+const ROLE_ICONS: Record<string, React.ReactElement> = {
+  SUPER_ADMIN:    <SecurityIcon />,
+  SUPER_MANAGER:  <BusinessIcon />,
+  SUPERVISOR:     <GroupIcon />,
+  TECHNICIAN:     <BuildIcon />,
+  HOUSEKEEPER:    <AssignmentIcon />,
+  HOST:           <HomeIcon />,
+  LAUNDRY:        <PersonIcon />,
+  EXTERIOR_TECH:  <BuildIcon />,
+};
 
 const PermissionConfig: React.FC = () => {
   const { user } = useAuth();
@@ -87,11 +124,6 @@ const PermissionConfig: React.FC = () => {
 
   // État pour l'onglet actif
   const [activeTab, setActiveTab] = useState(0);
-
-  // Fonction pour gérer le changement d'onglet
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  };
 
   // État pour toutes les permissions disponibles
   const [allPermissions, setAllPermissions] = useState<string[]>([]);
@@ -353,85 +385,49 @@ const PermissionConfig: React.FC = () => {
         }
       />
 
-      {/* Sélection du rôle et résumé des permissions */}
-      <Card sx={{ mb: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
-        <CardContent sx={{ p: 3 }}>
-          {/* Section des rôles */}
-          <Box sx={{ mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                Rôles disponibles ({roles.length})
+      {/* Sélection du rôle via tabs */}
+      <PageTabs
+        options={sortRoles(roles).map((role) => ({
+          value: role,
+          label: role,
+          icon: ROLE_ICONS[role] ?? <PersonIcon />,
+        }))}
+        value={selectedRole ?? ''}
+        onChange={(v) => setSelectedRole(v as string)}
+        ariaLabel="Sélection du rôle"
+      />
+
+      {/* Résumé du rôle sélectionné */}
+      {selectedRole && (
+        <Card sx={{ mb: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+          <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Typography variant="body2" color="text.secondary">
+                Rôle sélectionné : <strong>{selectedRole}</strong>
               </Typography>
-            </Box>
-            
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-              {roles
-                .sort((a, b) => {
-                  // Ordre spécifique des rôles
-                  const roleOrder = ['SUPER_ADMIN', 'SUPER_MANAGER', 'SUPERVISOR', 'TECHNICIAN', 'HOUSEKEEPER', 'HOST', 'LAUNDRY', 'EXTERIOR_TECH'];
-                  const indexA = roleOrder.indexOf(a);
-                  const indexB = roleOrder.indexOf(b);
-                  return indexA - indexB;
-                })
-                .map((role) => (
-                  <Chip
-                    key={role}
-                    label={role}
-                    color={selectedRole === role ? 'primary' : 'default'}
-                    variant={selectedRole === role ? 'filled' : 'outlined'}
-                    onClick={() => setSelectedRole(role)}
-                    size="small"
-                    sx={{ 
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      fontWeight: selectedRole === role ? 600 : 400,
-                      transition: 'all 0.2s ease-in-out',
-                      '&:hover': {
-                        transform: 'translateY(-1px)',
-                        boxShadow: 1
-                      }
-                    }}
-                  />
-                ))}
-            </Box>
-
-            {selectedRole && (
-              <Box sx={{ 
-                p: 2, 
-                bgcolor: 'grey.50', 
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'divider'
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              {rolePermissions && (
+                <>
                   <Typography variant="body2" color="text.secondary">
-                    Rôle sélectionné : <strong>{selectedRole}</strong>
+                    • {rolePermissions.permissions.length} permissions actives
                   </Typography>
-                  {rolePermissions && (
-                    <>
-                      <Typography variant="body2" color="text.secondary">
-                        • {rolePermissions.permissions.length} permissions actives
-                      </Typography>
-                      <Chip 
-                        label={rolePermissions.isDefault ? 'Par défaut' : 'Modifié'} 
-                        size="small" 
-                        color={rolePermissions.isDefault ? 'success' : 'warning'}
-                        variant="outlined"
-                      />
-                    </>
-                  )}
-                </Box>
-              </Box>
-            )}
-          </Box>
+                  <Chip
+                    label={rolePermissions.isDefault ? 'Par défaut' : 'Modifié'}
+                    size="small"
+                    color={rolePermissions.isDefault ? 'success' : 'warning'}
+                    variant="outlined"
+                  />
+                </>
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Section du résumé des permissions */}
-          {selectedRole && rolePermissions && (
-            <Box sx={{ 
-              pt: 1, 
-              borderTop: '1px solid', 
-              borderColor: 'divider'
-            }}>
+      {/* Résumé des permissions (chiffres clés) */}
+      {selectedRole && rolePermissions && (
+        <Card sx={{ mb: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+          <CardContent sx={{ p: 3 }}>
+            <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 500 }}>
                   Résumé des permissions
@@ -487,32 +483,25 @@ const PermissionConfig: React.FC = () => {
                 </Grid>
               </Grid>
             </Box>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Onglets pour la configuration et la démonstration */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-            <Tabs value={activeTab} onChange={handleTabChange} aria-label="Configuration des permissions">
-              <Tab 
-                label="Édition des Permissions" 
-                id="tab-0" 
-                aria-controls="tabpanel-0"
-                disabled={!selectedRole || !rolePermissions}
-                icon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SettingsIcon size={20} strokeWidth={1.75} /></Box>}
-                iconPosition="start"
-              />
-              <Tab 
-                label="Démonstration des Effets" 
-                id="tab-1" 
-                aria-controls="tabpanel-1"
-                disabled={!selectedRole || !rolePermissions}
-                icon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SecurityIcon size={20} strokeWidth={1.75} /></Box>}
-                iconPosition="start"
-              />
-            </Tabs>
+          <Box sx={{ mb: 2 }}>
+            <PageTabs
+              options={[
+                { label: 'Édition des Permissions', icon: <SettingsIcon />, disabled: !selectedRole || !rolePermissions },
+                { label: 'Démonstration des Effets', icon: <SecurityIcon />, disabled: !selectedRole || !rolePermissions },
+              ]}
+              value={activeTab}
+              onChange={setActiveTab}
+              paper={false}
+              mb={0}
+              ariaLabel="Configuration des permissions"
+            />
           </Box>
 
           {/* Contenu de l'onglet Édition des Permissions */}
