@@ -214,7 +214,7 @@ const darkTheme = createTheme({
   // ============================================================================
   components: {
 
-    // ── Scrollbar thématisée + baseline typo (tabular-nums, font smoothing) ──
+    // ── Scrollbar thématisée + baseline typo (tabular-nums, font smoothing) + keyframes ──
     MuiCssBaseline: {
       styleOverrides: {
         html: {
@@ -234,6 +234,22 @@ const darkTheme = createTheme({
             '&:hover': { background: '#5A7589' },
           },
         },
+        '@keyframes clz-fade-in-up': {
+          '0%':   { opacity: 0, transform: 'translateY(8px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+        '@keyframes clz-fade-in': {
+          '0%':   { opacity: 0 },
+          '100%': { opacity: 1 },
+        },
+        '@media (prefers-reduced-motion: reduce)': {
+          '*, *::before, *::after': {
+            animationDuration: '0.01ms !important',
+            animationIterationCount: '1 !important',
+            transitionDuration: '0.01ms !important',
+            scrollBehavior: 'auto !important',
+          },
+        },
       },
     },
 
@@ -249,8 +265,16 @@ const darkTheme = createTheme({
           fontWeight: 600,
           minHeight: 28,
           boxShadow: 'none',
+          transition: 'transform 120ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms, border-color 200ms, color 200ms',
           '&:hover': {
             boxShadow: 'none',
+          },
+          '&:active': {
+            transform: 'scale(0.97)',
+          },
+          '@media (prefers-reduced-motion: reduce)': {
+            transition: 'background-color 200ms, border-color 200ms, color 200ms',
+            '&:active': { transform: 'none' },
           },
         },
         sizeSmall: {

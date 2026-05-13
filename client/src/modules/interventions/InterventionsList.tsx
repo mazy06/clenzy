@@ -37,6 +37,7 @@ import {
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import ListSkeleton from '../../components/ListSkeleton';
 import InterventionCard from './InterventionCard';
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
@@ -458,7 +459,9 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       {/* ─── Liste des interventions ─────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
 
-          {filteredInterventions.length === 0 ? (
+          {loading ? (
+            <ListSkeleton rows={6} variant="row" />
+          ) : filteredInterventions.length === 0 ? (
             <EmptyState
               icon={<Build />}
               title={t('interventions.noInterventionFound')}
