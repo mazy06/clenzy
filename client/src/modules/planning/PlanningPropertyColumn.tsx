@@ -3,6 +3,8 @@ import { Box, Typography, Tooltip, useTheme, Chip, Divider } from '@mui/material
 import type { PlanningProperty, DensityMode } from './types';
 import { ROW_CONFIG } from './constants';
 import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
+import { useTranslation } from '../../hooks/useTranslation';
+import { getCleaningFrequencyLabel } from '../../utils/statusUtils';
 import {
   LocationOn,
   People,
@@ -54,6 +56,7 @@ const HEADER_HEIGHT = 88;
 
 function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const currency = property.currency || 'EUR';
   const fmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 });
   const rawPhoto = property.photoUrls?.[0];
@@ -257,7 +260,7 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
               <CalendarMonth size={ICON_SIZE} strokeWidth={1.75} />
             </Box>
             <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
-              Fréquence ménage : <Box component="strong" sx={{ color: 'text.primary' }}>{property.cleaningFrequency}</Box>
+              Fréquence ménage : <Box component="strong" sx={{ color: 'text.primary' }}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Box>
             </Typography>
           </Box>
         )}
@@ -307,7 +310,7 @@ function StatPill({
           {label}
         </Typography>
       </Box>
-      <Typography sx={{ fontSize: BODY_FS, fontWeight: 700, color: highlight ? 'success.main' : 'text.primary', lineHeight: 1.2 }}>
+      <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: highlight ? 'success.main' : 'text.primary', lineHeight: 1.2 }}>
         {value}
       </Typography>
     </Box>
