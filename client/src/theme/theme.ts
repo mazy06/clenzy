@@ -248,6 +248,25 @@ const theme = createTheme({
         body: {
           fontVariantNumeric: 'tabular-nums',
         },
+        // Keyframes globales pour les entrées en stagger.
+        // Exponential ease (ease-out-quart-ish) — Impeccable motion law.
+        '@keyframes clz-fade-in-up': {
+          '0%':   { opacity: 0, transform: 'translateY(8px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+        '@keyframes clz-fade-in': {
+          '0%':   { opacity: 0 },
+          '100%': { opacity: 1 },
+        },
+        // Reduced-motion : pas d'entrée animée.
+        '@media (prefers-reduced-motion: reduce)': {
+          '*, *::before, *::after': {
+            animationDuration: '0.01ms !important',
+            animationIterationCount: '1 !important',
+            transitionDuration: '0.01ms !important',
+            scrollBehavior: 'auto !important',
+          },
+        },
       },
     },
     MuiButton: {
@@ -261,8 +280,19 @@ const theme = createTheme({
           fontWeight: 600,
           minHeight: 28,
           boxShadow: 'none',
+          // Transition transform + bg uniquement (pas layout properties)
+          transition: 'transform 120ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms, border-color 200ms, color 200ms',
           '&:hover': {
             boxShadow: 'none',
+          },
+          // Tactile feedback : scale subtle au press, sans layout shift (transform GPU)
+          '&:active': {
+            transform: 'scale(0.97)',
+          },
+          // Respect prefers-reduced-motion
+          '@media (prefers-reduced-motion: reduce)': {
+            transition: 'background-color 200ms, border-color 200ms, color 200ms',
+            '&:active': { transform: 'none' },
           },
         },
         sizeSmall: {

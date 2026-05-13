@@ -37,6 +37,7 @@ import ReservationFormDialog from './ReservationFormDialog';
 import GuestProfileDialog from '../channels/GuestProfileDialog';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import ListSkeleton from '../../components/ListSkeleton';
 import { FilterSearchBar } from '../../components/FilterSearchBar';
 
 import { useCurrency } from '../../hooks/useCurrency';
@@ -279,19 +280,18 @@ const ReservationsList: React.FC = () => {
 
       {/* Loading */}
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress size={32} />
-        </Box>
+        <ListSkeleton rows={6} variant="row" />
       ) : filteredReservations.length === 0 ? (
         <EmptyState
           icon={<EventNoteIcon />}
           title={t('reservations.noReservations')}
-          description="Ajoutez votre première réservation ou importez vos calendriers depuis le planning."
+          description="Ajoutez votre première réservation manuellement, ou laissez Clenzy importer vos calendriers Airbnb / Booking automatiquement."
           action={(
             <Button variant="outlined" size="small" startIcon={<AddIcon size={16} strokeWidth={1.75} />} onClick={handleCreate}>
               {t('reservations.create')}
             </Button>
           )}
+          tip="Astuce : configure un lien iCal une fois et les nouvelles réservations apparaissent ici dans la minute."
         />
       ) : (
         /* Data table */

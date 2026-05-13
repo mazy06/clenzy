@@ -392,6 +392,9 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
               {t('properties.createFirst')}
             </Button>
           )}
+          tip={(isAdmin() || isManager() || isHost())
+            ? 'Astuce : une fois une propriété créée, branche son lien iCal pour synchroniser automatiquement les réservations Airbnb.'
+            : undefined}
         />
       ) : viewMode === 'map' ? (
         /* ─── Vue carte (sticky) + liste viewport (scrollable) ─── */
