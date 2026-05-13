@@ -2,8 +2,6 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
-  Tabs,
-  Tab,
   Button,
   IconButton,
   Tooltip,
@@ -27,6 +25,7 @@ import { useAsync } from '../../hooks/useAsync';
 import { notificationsApi } from '../../services/api';
 import type { Notification } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
 import EmptyState from '../../components/EmptyState';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 
@@ -172,21 +171,14 @@ export default function NotificationsPage() {
 
       <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 1, sm: 2 } }}>
       {/* Filter Tabs */}
-      <Tabs
+      <PageTabs
+        options={tabs.map((tab) => ({ value: tab.value, label: tab.label }))}
         value={activeTab}
-        onChange={(_, v) => setActiveTab(v)}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={{
-          mb: 1,
-          minHeight: 36,
-          '& .MuiTab-root': { minHeight: 36, py: 0.5, fontSize: '0.8125rem', textTransform: 'none' },
-        }}
-      >
-        {tabs.map((tab) => (
-          <Tab key={tab.value} value={tab.value} label={tab.label} />
-        ))}
-      </Tabs>
+        onChange={(v) => setActiveTab(v as typeof activeTab)}
+        size="compact"
+        paper={false}
+        mb={1}
+      />
 
       {/* Content */}
       <DataFetchWrapper

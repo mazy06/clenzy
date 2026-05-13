@@ -1,10 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import {
-  Box,
-  Tabs,
-  Tab,
-  Paper,
-} from '@mui/material';
+import { Box } from '@mui/material';
 import {
   Assignment,
   Build,
@@ -13,6 +8,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
 import ServiceRequestsList from '../service-requests/ServiceRequestsList';
 import InterventionsList from '../interventions/InterventionsList';
 
@@ -53,7 +49,7 @@ const WorkOrdersPage: React.FC = () => {
   const [filtersContainer, setFiltersContainer] = useState<HTMLDivElement | null>(null);
 
   // Sync tab to URL param
-  const handleTabChange = useCallback((_: React.SyntheticEvent, v: number) => {
+  const handleTabChange = useCallback((v: number) => {
     setActiveTab(v);
     setSearchParams(v === 0 ? {} : { tab: String(v) }, { replace: true });
   }, [setSearchParams]);
@@ -88,31 +84,16 @@ const WorkOrdersPage: React.FC = () => {
           filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
         />
       </Box>
-      <Paper sx={{ mb: 1.5, flexShrink: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            sx={{
-              flex: 1,
-              '& .MuiTab-root': { minHeight: 48, textTransform: 'none', fontSize: '0.8125rem' },
-            }}
-            variant="scrollable"
-            scrollButtons="auto"
-          >
-            <Tab
-              icon={<Assignment size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              label={t('workOrders.tabs.serviceRequests')}
-            />
-            <Tab
-              icon={<Build size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              label={t('workOrders.tabs.interventions')}
-            />
-          </Tabs>
-        </Box>
-      </Paper>
+      <Box sx={{ flexShrink: 0 }}>
+        <PageTabs
+          options={[
+            { value: TAB_SERVICE_REQUESTS, label: t('workOrders.tabs.serviceRequests'), icon: <Assignment /> },
+            { value: TAB_INTERVENTIONS,    label: t('workOrders.tabs.interventions'),  icon: <Build /> },
+          ]}
+          value={activeTab}
+          onChange={handleTabChange}
+        />
+      </Box>
 
       {/* ── Tab content — fills remaining space ── */}
       {activeTab === TAB_SERVICE_REQUESTS && (
