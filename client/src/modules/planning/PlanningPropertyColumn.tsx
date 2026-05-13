@@ -47,14 +47,16 @@ function buildStaticMapUrl(
 //   LABEL_FS  = 0.5625rem  (9px) — label uppercase (stat label, chip type, footer)
 //   ICON_SIZE = 11px              — toutes les icones (sauf header pin = 10)
 //
-// Spacing uniforme : padding outer 1, photo height 88, gap stat grid 0.75.
+// Spacing aéré (Phase 2) : padding outer 1.5, photo height 100, gap stat
+// grid 1, divider my 1.25. Plus de respiration entre les sections sans
+// alourdir le tooltip total.
 
 const TITLE_FS = '0.8125rem';
 const BODY_FS  = '0.6875rem';
 const LABEL_FS = '0.5625rem';
 const ICON_SIZE = 11;
-const TOOLTIP_WIDTH = 240;
-const HEADER_HEIGHT = 88;
+const TOOLTIP_WIDTH = 264;
+const HEADER_HEIGHT = 100;
 
 function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
   const theme = useTheme();
@@ -88,7 +90,7 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
             overflow: 'hidden',
-            mb: 0.75,
+            mb: 1.25,
             bgcolor: 'action.hover',
           }}
         >
@@ -116,7 +118,7 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
             overflow: 'hidden',
-            mb: 0.75,
+            mb: 1.25,
             bgcolor: 'action.hover',
           }}
         >
@@ -154,8 +156,8 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
           />
         </Box>
       )}
-      <Box sx={{ px: 1, pb: 1, pt: hasHeader ? 0 : 1 }}>
-        <Typography sx={{ fontSize: TITLE_FS, fontWeight: 600, lineHeight: 1.25, color: 'text.primary' }}>
+      <Box sx={{ px: 1.5, pb: 1.5, pt: hasHeader ? 0.25 : 1.5 }}>
+        <Typography sx={{ fontSize: TITLE_FS, fontWeight: 600, lineHeight: 1.3, color: 'text.primary' }}>
           {property.name}
         </Typography>
         {property.type && (
@@ -163,32 +165,32 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
             label={property.type}
             size="small"
             sx={{
-              mt: 0.5,
-              height: 16,
+              mt: 0.75,
+              height: 18,
               fontSize: LABEL_FS,
               fontWeight: 600,
               bgcolor: (theme) =>
                 theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(107,138,154,0.12)',
               color: 'primary.main',
               textTransform: 'capitalize',
-              '& .MuiChip-label': { px: 0.5 },
+              '& .MuiChip-label': { px: 0.625 },
             }}
           />
         )}
 
         {(property.address || property.city) && (
-          <Box sx={{ display: 'flex', gap: 0.5, mt: 0.75, alignItems: 'flex-start' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.1 }}>
+          <Box sx={{ display: 'flex', gap: 0.625, mt: 1, alignItems: 'flex-start' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.15 }}>
               <LocationOn size={ICON_SIZE} strokeWidth={1.75} />
             </Box>
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', lineHeight: 1.35 }}>
+            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', lineHeight: 1.4 }}>
               {[property.address, property.city].filter(Boolean).join(', ')}
             </Typography>
           </Box>
         )}
 
         {property.ownerName && (
-          <Box sx={{ display: 'flex', gap: 0.5, mt: 0.375, alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', gap: 0.625, mt: 0.625, alignItems: 'center' }}>
             <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
               <Person size={ICON_SIZE} strokeWidth={1.75} />
             </Box>
@@ -198,10 +200,10 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
           </Box>
         )}
 
-        <Divider sx={{ my: 0.875 }} />
+        <Divider sx={{ my: 1.25 }} />
 
         {/* Stats grid */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75, mb: 0.75 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 1 }}>
           <StatPill
             icon={<People size={ICON_SIZE} strokeWidth={1.75} />}
             label="Voyageurs max"
@@ -233,9 +235,9 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
 
         {/* Check-in / check-out times */}
         {(property.defaultCheckInTime || property.defaultCheckOutTime) && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.375, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mt: 0.75, flexWrap: 'wrap' }}>
             {property.defaultCheckInTime && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
                 <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}>
                   <AccessTime size={ICON_SIZE} strokeWidth={1.75} />
                 </Box>
@@ -245,7 +247,7 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
               </Box>
             )}
             {property.defaultCheckOutTime && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
                 <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}>
                   <AccessTime size={ICON_SIZE} strokeWidth={1.75} />
                 </Box>
@@ -258,7 +260,7 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
         )}
 
         {property.cleaningFrequency && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mt: 0.75 }}>
             <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
               <CalendarMonth size={ICON_SIZE} strokeWidth={1.75} />
             </Box>
@@ -277,8 +279,8 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
             navigate(`/properties/${property.id}`);
           }}
           sx={{
-            mt: 0.875,
-            pt: 0.75,
+            mt: 1.25,
+            pt: 1,
             borderTop: '1px dashed',
             borderColor: 'divider',
             display: 'flex',
@@ -314,8 +316,8 @@ function StatPill({
   return (
     <Box
       sx={{
-        p: 0.5,
-        borderRadius: 0.75,
+        p: 0.875,
+        borderRadius: 1,
         bgcolor: (theme) => {
           if (highlight) {
             return theme.palette.mode === 'dark'
@@ -331,7 +333,7 @@ function StatPill({
         minWidth: 0,
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: highlight ? 'success.main' : 'text.secondary', mb: 0.125 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, color: highlight ? 'success.main' : 'text.secondary', mb: 0.375 }}>
         {icon}
         <Typography sx={{ fontSize: LABEL_FS, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, color: 'inherit', lineHeight: 1 }}>
           {label}
