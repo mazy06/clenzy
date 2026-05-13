@@ -193,7 +193,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
       <Typography
         variant="subtitle2"
         sx={{
-          fontSize: '0.75rem',
+          fontSize: '0.6875rem',
           fontWeight: 700,
           textTransform: 'capitalize',
           color: 'text.primary',
