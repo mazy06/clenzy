@@ -57,7 +57,7 @@ const PropertiesPage: React.FC = () => {
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, p: 3 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <Box sx={{ flexShrink: 0 }}>
         <PageHeader
           title={t('propertiesPage.title')}
