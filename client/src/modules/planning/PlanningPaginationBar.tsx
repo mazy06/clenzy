@@ -54,7 +54,7 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
       <Typography
         variant="body2"
         sx={{
-          fontSize: '0.625rem',
+          fontSize: '0.5625rem',
           fontWeight: 600,
           color: 'text.primary',
           userSelect: 'none',

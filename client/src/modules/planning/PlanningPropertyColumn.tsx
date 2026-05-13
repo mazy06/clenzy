@@ -498,7 +498,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
               })()}
               <Typography
                 sx={{
-                  fontSize: density === 'compact' ? '0.5625rem' : '0.625rem',
+                  fontSize: density === 'compact' ? '0.5rem' : '0.5625rem',
                   fontWeight: 500,
                   color: 'text.secondary',
                   lineHeight: 1.2,
