@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Tab, Tabs, CircularProgress, Alert } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, CircularProgress, Alert } from '@mui/material';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
@@ -8,6 +8,7 @@ import {
   BarChart as BarChartIcon,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -60,22 +61,7 @@ const REPORT_TABS: ReportTab[] = [
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
-const TABS_SX = {
-  minHeight: 42,
-  '& .MuiTab-root': {
-    minHeight: 42,
-    textTransform: 'none' as const,
-    fontWeight: 600,
-    fontSize: '0.8125rem',
-    gap: 0.75,
-  },
-  '& .MuiTabs-indicator': {
-    height: 2.5,
-    borderRadius: '2px 2px 0 0',
-  },
-} as const;
-
-const TAB_PANEL_SX = { pt: 2.5 } as const;
+const TAB_PANEL_SX = { pt: 1.5 } as const;
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -98,9 +84,6 @@ const Reports: React.FC = () => {
     checkPermissions();
   }, [hasPermissionAsync]);
 
-  const handleTabChange = useCallback((_: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  }, []);
 
   if (!permissionsLoaded) {
     return (
@@ -149,23 +132,15 @@ const Reports: React.FC = () => {
         showBackButton={false}
       />
 
-      <Tabs
+      <PageTabs
+        options={REPORT_TABS.map((tab, index) => ({
+          label: t(tab.labelKey),
+          icon: tab.icon,
+          disabled: !allowedTabs[index],
+        }))}
         value={activeTab}
-        onChange={handleTabChange}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={TABS_SX}
-      >
-        {REPORT_TABS.map((tab, index) => (
-          <Tab
-            key={tab.id}
-            icon={tab.icon}
-            iconPosition="start"
-            label={t(tab.labelKey)}
-            disabled={!allowedTabs[index]}
-          />
-        ))}
-      </Tabs>
+        onChange={setActiveTab}
+      />
 
       <Box sx={TAB_PANEL_SX}>
         {allowedTabs[activeTab] ? (
