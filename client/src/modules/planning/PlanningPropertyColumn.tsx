@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Typography, Tooltip, useTheme, Chip, Divider } from '@mui/material';
 import type { PlanningProperty, DensityMode } from './types';
 import { ROW_CONFIG } from './constants';
@@ -56,43 +56,77 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
   const theme = useTheme();
   const currency = property.currency || 'EUR';
   const fmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 });
-  const photo = property.photoUrls?.[0];
-  // Fallback : si pas de photo mais coords disponibles → carte statique Mapbox
-  const mapUrl = !photo
-    ? buildStaticMapUrl(property.latitude, property.longitude, TOOLTIP_WIDTH, HEADER_HEIGHT, theme.palette.mode === 'dark')
-    : null;
-  const hasHeader = Boolean(photo || mapUrl);
+  const rawPhoto = property.photoUrls?.[0];
+  const photo = rawPhoto && rawPhoto.trim().length > 0 ? rawPhoto : undefined;
+  // Pre-build map URL si coords + token dispo (fallback OU header alternatif)
+  const mapUrl = buildStaticMapUrl(
+    property.latitude,
+    property.longitude,
+    TOOLTIP_WIDTH,
+    HEADER_HEIGHT,
+    theme.palette.mode === 'dark',
+  );
+  // Si la photo echoue (URL cassée, 404, CORS), on bascule sur la carte
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const showPhoto = photo && !photoFailed;
+  const showMap = !showPhoto && Boolean(mapUrl);
+  const hasHeader = Boolean(showPhoto || showMap);
 
   return (
     <Box sx={{ width: TOOLTIP_WIDTH }}>
-      {photo && (
+      {showPhoto && (
         <Box
           sx={{
             width: '100%',
             height: HEADER_HEIGHT,
-            backgroundImage: `url(${photo})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
+            overflow: 'hidden',
             mb: 0.75,
+            bgcolor: 'action.hover',
           }}
-        />
+        >
+          <Box
+            component="img"
+            src={photo}
+            alt={property.name}
+            onError={() => setPhotoFailed(true)}
+            sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              display: 'block',
+            }}
+          />
+        </Box>
       )}
-      {!photo && mapUrl && (
+      {showMap && (
         <Box
           sx={{
             position: 'relative',
             width: '100%',
             height: HEADER_HEIGHT,
-            backgroundImage: `url(${mapUrl})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
+            overflow: 'hidden',
             mb: 0.75,
+            bgcolor: 'action.hover',
           }}
         >
+          <Box
+            component="img"
+            src={mapUrl ?? undefined}
+            alt={`Carte ${property.city || property.name}`}
+            loading="lazy"
+            sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              display: 'block',
+            }}
+          />
           <Chip
             size="small"
             icon={<LocationOn size={10} strokeWidth={2} />}
