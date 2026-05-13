@@ -24,36 +24,61 @@
 
 ## Frontend Design Skills (obligatoire)
 
-> Toute tâche frontend (création de composant, refonte d'écran, choix de palette/typo, audit visuel, polish, micro-interactions) DOIT s'appuyer sur les 4 skills design installés en global.
+> Toute tâche frontend (création de composant, refonte d'écran, choix de palette/typo, audit visuel, polish, micro-interactions) DOIT s'appuyer sur les skills design installés en global. Les 4 skills sont installés via le wrapper `npx skills` (multi-agents) à `~/.agents/skills/`.
 
-### Skills à invoquer systématiquement
-1. **`ui-ux-pro-max`** (`~/.claude/skills/ui-ux-pro-max/`) — base de données 67 styles / 96 palettes / 57 pairings typo / 99 règles UX. Exposée via `python3 ~/.claude/skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system | --domain <ux|color|typography|style|react|...>`.
-2. **`frontend-design`** (plugin Impeccable, `~/.claude/plugins/marketplaces/impeccable/source/skills/frontend-design/`) — vocabulaire de design + anti-patterns curés (no Inter, no rounded-icon-over-heading, no gradient text, no card-everywhere, no AI-slop palette, etc.).
-3. **`Taste`** (à installer si manquante)
-4. **`huashu-design`** (à installer si manquante)
+### Skills installés et comment les invoquer
+
+1. **`impeccable`** (`~/.agents/skills/impeccable/SKILL.md`) — framework d'audit + lois de design strictes (registers brand/product, OKLCH, color strategy, anti-patterns).
+   - Commande disponible : `npx impeccable <command>` (craft, shape, audit, polish, clarify, distill, etc.) — lire `SKILL.md` pour la liste complète.
+   - **Absolute bans** (toujours réécrire) : side-stripe borders >1px, gradient text, glassmorphism default, hero-metric template, identical card grids, modal-first-thought.
+   - Lire systématiquement `reference/product.md` (Clenzy est un product register, pas un brand register).
+
+2. **`redesign-existing-projects`** (skill Taste, `~/.agents/skills/redesign-existing-projects/SKILL.md`) — audit AI-slop + checklist 7 catégories (Typography / Color & Surfaces / Layout / Interactivity / Content / Component patterns / Iconography / Code quality / Strategic omissions). Ordre de fix : Font swap → Color cleanup → Hover/active states → Layout & spacing → Replace generic components → Loading/empty/error states → Typo polish.
+
+3. **`huashu-design`** (`~/.agents/skills/huashu-design/SKILL.md`) — prototypage HTML hi-fi, animations, exports MP4/GIF, voiceover. Réservé aux démos/onboarding, pas aux écrans en prod.
+
+4. **`ui-ux-pro-max`** (`~/.claude/skills/ui-ux-pro-max/`) — base de données 67 styles / 96 palettes / 57 pairings typo / 99 règles UX. CLI Python : `python3 ~/.claude/skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system | --domain <ux|color|typography|style|react|...>`.
 
 ### Workflow obligatoire avant tout code frontend
+
 1. **Cadrer l'intention** : type de surface (dashboard, liste, formulaire, panneau), audience (host, super-admin, technicien), priorité UX (densité info vs. orientation, scan vs. lecture).
-2. **Consulter UI UX Pro Max** : lancer `--design-system` ou un domaine ciblé (`ux`, `color`, `typography`, `react`) selon le besoin.
-3. **Appliquer les anti-patterns Impeccable** : vérifier qu'on n'ajoute pas un *icon-badge-on-everything*, des cartes empilées sans nécessité, des dégradés "WAOUH" non justifiés, des shadows génériques.
-4. **Respecter l'identité Clenzy** : primary `#6B8A9A` (bleu-gris), palette accents validée (`#4A9B8E`, `#D4A574`, `#C97A7A`, `#7BA3C2`), typo responsive 3 paliers déjà au thème, échelle d'icônes via `useIconSize`, primitives partagées (`PageHeader`, `PageTabs`, `StatTile`, `EmptyState`, `FilterChipRow`).
-5. **Pre-delivery checklist** (skills) :
-   - [ ] Aucun emoji utilisé comme icône (SVG/lucide uniquement)
+2. **Charger le contexte Impeccable** : lire `PRODUCT.md` et `DESIGN.md` à la racine si présents (à créer une fois — voir `docs/`). Identifier le register (Clenzy = **product**, sauf landing/marketing = brand).
+3. **Vérifier les absolute bans Impeccable** avant d'écrire le moindre style : pas de side-stripe color, pas de gradient text, pas de glassmorphism par défaut, pas de hero-metric template, pas d'identical card grid, pas de modal en premier réflexe.
+4. **Consulter UI UX Pro Max** si la décision est ouverte (couleur, typo, pattern) : `--design-system` ou domaine ciblé.
+5. **Respecter l'identité Clenzy** : primary `#6B8A9A` (bleu-gris), palette accents validée (`#4A9B8E`, `#D4A574`, `#C97A7A`, `#7BA3C2`), typo responsive 3 paliers, échelle d'icônes via `useIconSize`, primitives partagées (`PageHeader`, `PageTabs`, `StatTile`, `EmptyState`, `FilterChipRow`).
+6. **Pre-delivery checklist** :
+   - [ ] Aucun emoji comme icône (lucide-react uniquement)
    - [ ] `cursor: pointer` sur tout ce qui est cliquable
-   - [ ] Hover transitions 150-300ms
+   - [ ] Hover transitions 150-300ms, easing exponentiel (`ease-out-quart/quint`)
    - [ ] Contraste texte ≥ 4.5:1 (light + dark)
    - [ ] Focus visible au clavier
    - [ ] `prefers-reduced-motion` respecté
    - [ ] Responsive testé 375 / 768 / 1024 / 1440
-   - [ ] Pas de scale-transform sur hover (cause layout shift)
+   - [ ] Pas de scale-transform sur hover (layout shift)
+   - [ ] `tabular-nums` sur les valeurs numériques (KPI, prix, dates)
+   - [ ] Pas de `#000` ni `#fff` purs (tinter vers le brand hue)
 
 ### Red flags design (s'arrêter et reconsidérer)
-- Tout ce qui ressemble à du "AI slop" : cyan-on-dark, gradients purple→blue, glow neon, glassmorphism partout, sparklines décoratifs, hero metric template, identical card grids.
-- Ajout d'une couleur hors palette sans justification documentée.
-- `box-shadow` générique au lieu d'une ombre intentionnelle.
-- Centre tout au lieu d'alignements asymétriques signifiants.
-- Cartes imbriquées dans des cartes (aplatir).
-- "Tout en variant primary contained" — la hiérarchie doit aussi exister entre les boutons.
+
+**Niveau 1 — AI slop évident** : cyan-on-dark, gradients purple→blue, glow neon, glassmorphism par décoration, sparklines déco, "Elevate / Seamless / Unleash" dans la copy, em dashes (—), pure black/white.
+
+**Niveau 2 — patterns "templated"** :
+- Side-stripe coloré >1px (interdit absolu Impeccable)
+- 3 cards égales en rang (le layout AI le plus générique)
+- Icon-badge rounded au-dessus de chaque heading (effet template)
+- Toutes les valeurs en `fontWeight: 600` sans contraste de poids
+- `box-shadow` générique noir au lieu d'une ombre teintée
+- Tout centré au lieu d'alignements asymétriques
+- Cartes dans des cartes (aplatir)
+- Tous les boutons en `variant="contained" color="primary"` — la hiérarchie passe aussi par les variants
+
+**Niveau 3 — détails qui trahissent** :
+- `border-radius` uniforme sur tout
+- Numbers en proportional font (use `font-variant-numeric: tabular-nums`)
+- Pas de `text-wrap: balance` sur les headings (orphans)
+- Animations sur `width`/`height` au lieu de `transform`/`opacity`
+- Pas de skeleton loaders (juste un spinner)
+- "Lucide partout" — varier avec Phosphor / Heroicons / icônes custom pour les surfaces signature
 
 ## Production Fix Rules
 
