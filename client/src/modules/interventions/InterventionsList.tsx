@@ -82,6 +82,20 @@ const paginationSx = {
 const LIST_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
 const LIST_DEFAULT_ROWS = 10;
 
+/**
+ * Retire le suffixe " — {propertyName}" ou " - {propertyName}" du titre.
+ * Evite la redondance quand le nom de propriete est deja affiche dans sa
+ * propre colonne.
+ */
+function stripPropertySuffix(title: string, propertyName?: string): string {
+  if (!propertyName) return title;
+  const patterns = [` — ${propertyName}`, ` - ${propertyName}`, ` -- ${propertyName}`];
+  for (const p of patterns) {
+    if (title.endsWith(p)) return title.slice(0, -p.length).trim();
+  }
+  return title;
+}
+
 const LIST_PAPER_SX = {
   border: '1px solid',
   borderColor: 'divider',
@@ -527,7 +541,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
                                   fontWeight={600}
                                   sx={{ fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                 >
-                                  {intervention.title}
+                                  {stripPropertySuffix(intervention.title, intervention.propertyName)}
                                 </Typography>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
                                   <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
@@ -717,7 +731,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
                         >
                           <TableCell>
                             <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
-                              {intervention.title}
+                              {stripPropertySuffix(intervention.title, intervention.propertyName)}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
                               {intervention.requestorName}
