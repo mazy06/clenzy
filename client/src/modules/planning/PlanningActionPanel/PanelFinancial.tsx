@@ -145,9 +145,9 @@ const SectionCard: React.FC<{
 }> = ({ borderColor, bgColor, icon, title, badge, badgeColor, children }) => (
   <Box
     sx={{
-      borderLeft: `3px solid ${borderColor}`,
+      border: `1px solid ${borderColor}`,
       backgroundColor: bgColor,
-      borderRadius: '0 8px 8px 0',
+      borderRadius: 1,
       p: 1.5,
     }}
   >

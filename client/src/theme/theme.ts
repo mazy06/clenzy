@@ -112,13 +112,16 @@ const theme = createTheme({
       focusOpacity: 0.12,
       activatedOpacity: 0.12,
     },
+    // Fonds et textes : teintés vers la primary (#6B8A9A bleu-gris) au lieu
+    // de neutres purs. Aucun #fff, aucun slate brut — chroma 0.005-0.01 vers
+    // le hue brand pour la cohésion subtile (Impeccable shared design laws).
     background: {
-      default: '#F8FAFC', // Fond très clair harmonisé
-      paper: '#ffffff',
+      default: '#F4F7F9', // canvas — pointe de bleu-gris
+      paper: '#FBFCFD',   // surface paper — pas blanc pur
     },
     text: {
-      primary: '#1E293B', // Texte principal foncé
-      secondary: '#64748B', // Texte secondaire harmonisé
+      primary: '#1B2A35',   // ex slate-900 teinté vers la primary
+      secondary: '#5F7382', // ex slate-500 teinté
     },
   },
   typography: {

@@ -403,15 +403,12 @@ const InternalChatTab: React.FC = () => {
                       py: 1.25,
                       cursor: 'pointer',
                       bgcolor: isSelected
-                        ? alpha(theme.palette.primary.main, 0.08)
+                        ? alpha(theme.palette.primary.main, 0.10)
                         : 'transparent',
-                      borderLeft: isSelected
-                        ? `3px solid ${theme.palette.primary.main}`
-                        : '3px solid transparent',
-                      transition: 'all 0.15s',
+                      transition: 'background-color 0.15s',
                       '&:hover': {
                         bgcolor: isSelected
-                          ? alpha(theme.palette.primary.main, 0.12)
+                          ? alpha(theme.palette.primary.main, 0.14)
                           : 'action.hover',
                       },
                     }}

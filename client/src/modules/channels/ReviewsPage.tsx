@@ -148,7 +148,7 @@ const ReviewsPage: React.FC = () => {
           <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, mt: 0.5 }}>{reviews.length}</Typography>
         </Paper>
         {Object.entries(reviewsByRating).map(([cat, count]) => (
-          <Paper key={cat} sx={{ ...CARD_SX, flex: 1, minWidth: 100, textAlign: 'center', p: 1.5, borderLeft: `3px solid ${RATING_COLORS[cat]}` }}>
+          <Paper key={cat} sx={{ ...CARD_SX, flex: 1, minWidth: 100, textAlign: 'center', p: 1.5 }}>
             <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary', textTransform: 'uppercase', fontWeight: 500 }}>
               {t(`channels.reviews.${cat}`)}
             </Typography>
@@ -234,7 +234,7 @@ function ReviewCard({
   const color = RATING_COLORS[category];
 
   return (
-    <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 1.5, borderLeft: `3px solid ${color}` }}>
+    <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 1.5 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.75 }}>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>

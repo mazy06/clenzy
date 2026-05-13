@@ -393,7 +393,6 @@ function MaintenanceDetails({ data }: { data: Record<string, unknown> }) {
             sx={{
               p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider',
               bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
-              borderLeftWidth: 3, borderLeftColor: '#546E7A',
             }}
           >
             <Typography sx={{ fontSize: '0.875rem', color: 'text.primary', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
@@ -427,7 +426,6 @@ function SupportDetails({ data }: { data: Record<string, unknown> }) {
             sx={{
               p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider',
               bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
-              borderLeftWidth: 3, borderLeftColor: '#546E7A',
             }}
           >
             <Typography sx={{ fontSize: '0.875rem', color: 'text.primary', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
@@ -699,14 +697,12 @@ const ReceivedFormsTab: React.FC = () => {
                       cursor: 'pointer',
                       borderBottom: 1, borderColor: 'divider',
                       bgcolor: isSelected
-                        ? alpha(typeConf.color, theme.palette.mode === 'dark' ? 0.1 : 0.04)
+                        ? alpha(typeConf.color, theme.palette.mode === 'dark' ? 0.12 : 0.06)
                         : 'transparent',
-                      borderLeft: 3,
-                      borderLeftColor: isSelected ? typeConf.color : 'transparent',
-                      transition: 'all 0.15s ease',
+                      transition: 'background-color 0.15s ease',
                       '&:hover': {
                         bgcolor: isSelected
-                          ? alpha(typeConf.color, theme.palette.mode === 'dark' ? 0.12 : 0.06)
+                          ? alpha(typeConf.color, theme.palette.mode === 'dark' ? 0.16 : 0.09)
                           : 'action.hover',
                       },
                     }}

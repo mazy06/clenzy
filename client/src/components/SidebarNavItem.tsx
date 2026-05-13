@@ -42,8 +42,8 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
         mx: 0.75,
         borderRadius: '8px',
         justifyContent: isCollapsed ? 'center' : 'flex-start',
-        borderLeft: isActive ? '3px solid' : '3px solid transparent',
-        borderLeftColor: isActive ? 'primary.main' : 'transparent',
+        // L'état actif est porté par le fond teinté + l'icône colorée +
+        // le poids du texte. Pas de side-stripe (Impeccable absolute ban).
         backgroundColor: isActive ? 'rgba(107, 138, 154, 0.14)' : 'transparent',
         '&:hover': {
           backgroundColor: isActive
@@ -56,7 +56,7 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
             backgroundColor: 'rgba(107, 138, 154, 0.18)',
           },
         },
-        transition: 'background-color 150ms, border-color 150ms',
+        transition: 'background-color 150ms',
       }}
     >
       <ListItemIcon
