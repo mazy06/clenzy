@@ -39,8 +39,8 @@ export const ROW_CONFIG: Record<DensityMode, {
 // ─── Price line dimensions by density ───────────────────────────────────────
 
 export const PRICE_LINE_HEIGHT: Record<DensityMode, number> = {
-  normal: 16,
-  compact: 14,
+  normal: 12,
+  compact: 10,
 };
 
 // ─── Zoom configuration ─────────────────────────────────────────────────────
