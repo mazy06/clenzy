@@ -226,12 +226,25 @@ const darkTheme = createTheme({
         body: {
           fontVariantNumeric: 'tabular-nums',
           scrollbarColor: '#3D5468 #0F1923',
+          position: 'relative',
           '&::-webkit-scrollbar': { width: 8, height: 8 },
           '&::-webkit-scrollbar-track': { background: '#0F1923' },
           '&::-webkit-scrollbar-thumb': {
             background: '#3D5468',
             borderRadius: 4,
             '&:hover': { background: '#5A7589' },
+          },
+          // Grain de fond (mode sombre : screen blend, opacity légèrement plus haute)
+          '&::before': {
+            content: '""',
+            position: 'fixed',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 0,
+            opacity: 0.035,
+            backgroundImage:
+              `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+            mixBlendMode: 'screen' as const,
           },
         },
         '@keyframes clz-fade-in-up': {

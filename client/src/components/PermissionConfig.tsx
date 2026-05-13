@@ -333,7 +333,7 @@ const PermissionConfig: React.FC = () => {
                     triggerGlobalRefresh();
                     setSaveNotification({
                       open: true,
-                      message: 'Permissions réinitialisées aux valeurs initiales !',
+                      message: 'Permissions réinitialisées aux valeurs initiales.',
                       severity: 'success'
                     });
                   } catch (error) {
@@ -364,7 +364,7 @@ const PermissionConfig: React.FC = () => {
                     window.dispatchEvent(new CustomEvent('force-user-reload'));
                     setSaveNotification({
                       open: true,
-                      message: 'Permissions sauvegardées avec succès !',
+                      message: 'Permissions sauvegardées.',
                       severity: 'success'
                     });
                   } catch (error) {

@@ -247,6 +247,23 @@ const theme = createTheme({
         },
         body: {
           fontVariantNumeric: 'tabular-nums',
+          // Grain de fond imperceptible (~1.5% opacity) pour briser la flatness
+          // du fond plat. Un seul SVG noise inline (~200 bytes après gzip),
+          // fixed pour ne pas être paint au scroll, pointer-events:none.
+          // Anti-pattern Taste : *"Flat design with zero texture. Pure flat
+          // vectors feel sterile."*
+          position: 'relative',
+          '&::before': {
+            content: '""',
+            position: 'fixed',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 0,
+            opacity: 0.025,
+            backgroundImage:
+              `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+            mixBlendMode: 'multiply' as const,
+          },
         },
         // Keyframes globales pour les entrées en stagger.
         // Exponential ease (ease-out-quart-ish) — Impeccable motion law.
