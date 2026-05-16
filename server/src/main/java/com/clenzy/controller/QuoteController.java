@@ -116,15 +116,9 @@ public class QuoteController {
         String recommendedPackage = computeRecommendedPackage(dto);
         int recommendedRate = computePrice(dto, recommendedPackage);
 
-        // 4. Envoi de l'email de notification (non-bloquant en cas d'erreur)
-        try {
-            emailService.sendQuoteRequestNotification(dto, recommendedPackage, recommendedRate);
-        } catch (Exception e) {
-            // On ne bloque pas la réponse au prospect même si l'email échoue
-            log.error("Erreur d'envoi email mais réponse OK pour : {} — {}", dto.getFullName(), e.getMessage());
-        }
-
-        // 4b. Sauvegarde en BDD (double écriture)
+        // 4. Sauvegarde en BDD (PRIORITAIRE — si ca echoue, on remonte une 500
+        //    pour que le prospect retente plutot que de perdre sa demande).
+        ReceivedForm savedForm;
         try {
             ReceivedForm form = new ReceivedForm();
             form.setFormType("DEVIS");
@@ -136,12 +130,29 @@ public class QuoteController {
             form.setSubject("Demande de devis — " + dto.getFullName() + " — " + dto.getCity());
             form.setPayload(objectMapper.writeValueAsString(dto));
             form.setIpAddress(clientIp);
-            receivedFormRepository.save(form);
+            savedForm = receivedFormRepository.save(form);
+            log.info("ReceivedForm DEVIS saved id={} for {} ({})", savedForm.getId(), dto.getFullName(), dto.getEmail());
         } catch (Exception e) {
-            log.error("Erreur sauvegarde formulaire devis : {}", e.getMessage());
+            log.error("Erreur CRITIQUE sauvegarde formulaire devis pour {} : {}",
+                    dto.getFullName(), e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "status", "error",
+                            "message", "Impossible d'enregistrer votre demande. Reessayez ou contactez-nous au 07 66 72 91 09."
+                    ));
         }
 
-        // 4c. Notification aux admins/managers
+        // 5. Envoi de l'email de notification (non-bloquant : la demande est deja en BDD)
+        try {
+            emailService.sendQuoteRequestNotification(dto, recommendedPackage, recommendedRate);
+        } catch (Exception e) {
+            // On ne bloque pas la reponse au prospect : la demande est sauvee en BDD,
+            // les admins la verront via le PMS. L'email est un nice-to-have.
+            log.error("Email envoi KO mais demande #{} sauvegardee en BDD pour {} — {}",
+                    savedForm.getId(), dto.getFullName(), e.getMessage());
+        }
+
+        // 6. Notification aux admins/managers (non-bloquant)
         try {
             notificationService.notifyAdminsAndManagers(
                     NotificationKey.CONTACT_FORM_RECEIVED,
@@ -150,7 +161,8 @@ public class QuoteController {
                     "/contact?tab=2"
             );
         } catch (Exception e) {
-            log.error("Erreur notification formulaire devis : {}", e.getMessage());
+            log.error("Notification admins KO mais demande #{} sauvegardee en BDD : {}",
+                    savedForm.getId(), e.getMessage());
         }
 
         log.info("Demande de devis traitée : {} ({}) — Forfait : {} ({}€/intervention)",
