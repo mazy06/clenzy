@@ -35,52 +35,38 @@ export interface ReceivedFormsStats {
   supportCount: number;
 }
 
+/**
+ * Service API pour les formulaires recus (DEVIS / MAINTENANCE / SUPPORT).
+ *
+ * Note : les erreurs sont propagees telles quelles (pas de catch silencieux).
+ * React Query gere l'etat d'erreur via `error` dans useReceivedForms /
+ * useFormsStats, et les composants doivent afficher un message d'erreur
+ * approprie au lieu d'un tableau vide trompeur.
+ */
 export const receivedFormsApi = {
-  _endpointAvailable: true,
-
   async list(params: { page?: number; size?: number; type?: string } = {}): Promise<ReceivedFormsPage> {
-    if (!this._endpointAvailable) {
-      return { content: [], totalElements: 0, totalPages: 0, number: 0, size: params.size ?? 20 };
-    }
-    try {
-      return await apiClient.get<ReceivedFormsPage>('/admin/received-forms', { params });
-    } catch {
-      this._endpointAvailable = false;
-      return { content: [], totalElements: 0, totalPages: 0, number: 0, size: params.size ?? 20 };
-    }
+    return apiClient.get<ReceivedFormsPage>('/admin/received-forms', { params });
   },
 
-  async getById(id: number): Promise<ReceivedForm | null> {
-    try {
-      return await apiClient.get<ReceivedForm>(`/admin/received-forms/${id}`);
-    } catch {
-      return null;
-    }
+  async getById(id: number): Promise<ReceivedForm> {
+    return apiClient.get<ReceivedForm>(`/admin/received-forms/${id}`);
   },
 
-  async updateStatus(id: number, status: string): Promise<ReceivedForm | null> {
-    try {
-      return await apiClient.put<ReceivedForm>(`/admin/received-forms/${id}/status`, undefined, {
-        params: { status },
-      });
-    } catch {
-      return null;
-    }
+  async updateStatus(id: number, status: string): Promise<ReceivedForm> {
+    return apiClient.put<ReceivedForm>(`/admin/received-forms/${id}/status`, undefined, {
+      params: { status },
+    });
   },
 
   async getStats(): Promise<ReceivedFormsStats> {
-    if (!this._endpointAvailable) {
-      return { totalNew: 0, totalRead: 0, totalProcessed: 0, totalArchived: 0, devisCount: 0, maintenanceCount: 0, supportCount: 0 };
-    }
-    try {
-      return await apiClient.get<ReceivedFormsStats>('/admin/received-forms/stats');
-    } catch {
-      this._endpointAvailable = false;
-      return { totalNew: 0, totalRead: 0, totalProcessed: 0, totalArchived: 0, devisCount: 0, maintenanceCount: 0, supportCount: 0 };
-    }
+    return apiClient.get<ReceivedFormsStats>('/admin/received-forms/stats');
   },
 
+  /**
+   * @deprecated No-op conserve pour compat avec useResetFormsAvailability.
+   * Le flag _endpointAvailable a ete retire (anti-pattern qui masquait les erreurs).
+   */
   resetAvailability() {
-    this._endpointAvailable = true;
+    // intentionally empty
   },
 };
