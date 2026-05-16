@@ -2,6 +2,8 @@ package com.clenzy.controller;
 
 import com.clenzy.model.ReceivedForm;
 import com.clenzy.repository.ReceivedFormRepository;
+import jakarta.persistence.EntityManager;
+import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -29,9 +31,28 @@ public class ReceivedFormController {
     private static final Logger log = LoggerFactory.getLogger(ReceivedFormController.class);
 
     private final ReceivedFormRepository receivedFormRepository;
+    private final EntityManager entityManager;
 
-    public ReceivedFormController(ReceivedFormRepository receivedFormRepository) {
+    public ReceivedFormController(ReceivedFormRepository receivedFormRepository,
+                                  EntityManager entityManager) {
         this.receivedFormRepository = receivedFormRepository;
+        this.entityManager = entityManager;
+    }
+
+    /**
+     * Desactive le filter Hibernate "organizationFilter" pour cette requete.
+     *
+     * Les formulaires recus sont par nature inter-tenant :
+     * - DEVIS : soumis depuis la landing publique → organization_id = NULL
+     * - MAINTENANCE / SUPPORT : peuvent etre soumis depuis differentes orgs
+     *
+     * Le filter applique automatiquement par TenantFilter (pour les non-staff)
+     * masque les formulaires NULL et ceux des autres orgs. Or, le controle d'acces
+     * a deja ete fait via @PreAuthorize + hasAnyRole(SUPER_ADMIN, SUPER_MANAGER, ADMIN)
+     * → on assume que le caller a le droit de voir tous les formulaires recus.
+     */
+    private void disableTenantFilter() {
+        entityManager.unwrap(Session.class).disableFilter("organizationFilter");
     }
 
     /**
@@ -48,6 +69,7 @@ public class ReceivedFormController {
         if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER", "ADMIN")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
+        disableTenantFilter();
 
         PageRequest pageable = PageRequest.of(page, size);
         Page<ReceivedForm> result;
@@ -76,6 +98,7 @@ public class ReceivedFormController {
         if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER", "ADMIN")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
+        disableTenantFilter();
 
         return receivedFormRepository.findById(id)
                 .map(ResponseEntity::ok)
@@ -95,6 +118,7 @@ public class ReceivedFormController {
         if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER", "ADMIN")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
+        disableTenantFilter();
 
         String normalizedStatus = status.toUpperCase();
         if (!List.of("NEW", "READ", "PROCESSED", "ARCHIVED").contains(normalizedStatus)) {
@@ -124,6 +148,7 @@ public class ReceivedFormController {
         if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER", "ADMIN")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
+        disableTenantFilter();
 
         return ResponseEntity.ok(Map.of(
                 "totalNew", receivedFormRepository.countByStatus("NEW"),
