@@ -223,7 +223,10 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.addAllowedOrigin("http://localhost:3000");
         config.addAllowedOrigin("http://localhost:3001");
-        config.addAllowedOrigin("http://localhost:8080"); // Landing page (Vite dev)
+        config.addAllowedOrigin("http://localhost:8080"); // Landing page (Vite dev — port par défaut config projet)
+        config.addAllowedOrigin("http://localhost:5173"); // Landing page (Vite dev — port par défaut Vite)
+        config.addAllowedOrigin("http://localhost:5174"); // Landing page (Vite dev — autoPort fallback)
+        config.addAllowedOrigin("http://localhost:4173"); // Landing page (Vite preview)
         config.addAllowedMethod("GET");
         config.addAllowedMethod("POST");
         config.addAllowedMethod("PUT");
