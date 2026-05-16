@@ -2,6 +2,8 @@ package com.clenzy.controller;
 
 import com.clenzy.model.ReceivedForm;
 import com.clenzy.repository.ReceivedFormRepository;
+import jakarta.persistence.EntityManager;
+import org.hibernate.Session;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -25,6 +27,8 @@ import static org.mockito.Mockito.*;
 class ReceivedFormControllerTest {
 
     @Mock private ReceivedFormRepository receivedFormRepository;
+    @Mock private EntityManager entityManager;
+    @Mock private Session hibernateSession;
 
     private ReceivedFormController controller;
 
@@ -40,7 +44,11 @@ class ReceivedFormControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new ReceivedFormController(receivedFormRepository);
+        // Stub la chaine entityManager.unwrap(Session.class) → session.disableFilter(...)
+        // utilisee par disableTenantFilter() dans le controleur. Lenient car certains
+        // tests (UNAUTHORIZED, FORBIDDEN) court-circuitent avant ce code.
+        lenient().when(entityManager.unwrap(Session.class)).thenReturn(hibernateSession);
+        controller = new ReceivedFormController(receivedFormRepository, entityManager);
     }
 
     @Nested
