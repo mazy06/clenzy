@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.QuoteRequestDto;
+import com.clenzy.model.ReceivedForm;
 import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
@@ -89,6 +90,14 @@ class QuoteControllerTest {
             when(pricingConfigService.getSurfaceCoeff(50)).thenReturn(1.0);
             when(pricingConfigService.getFrequencyCoeffs()).thenReturn(Map.of("weekly", 1.0));
             when(pricingConfigService.getMinPrice()).thenReturn(25);
+
+            // ReceivedForm save retourne maintenant un form persiste (le controleur
+            // utilise l'id du form sauve pour les logs des etapes suivantes)
+            when(receivedFormRepository.save(any(ReceivedForm.class))).thenAnswer(invocation -> {
+                ReceivedForm form = invocation.getArgument(0);
+                form.setId(42L);
+                return form;
+            });
 
             ResponseEntity<?> response = controller.submitQuoteRequest(dto, httpRequest);
 
