@@ -286,25 +286,30 @@ public class DocumentGeneratorService {
             template.setFilePath(null);
         }
 
-        // ── Update fichier + filename (auto-flushed au commit @Transactional) ──
+        // ── Update fichier + filename (auto-flush au commit @Transactional) ──
         template.setFileContent(fileContent);
         template.setOriginalFilename(filename);
 
-        // ── Suppression explicite + FLUSH des anciens tags ──
-        // Critique : avec cascade=ALL + orphanRemoval=true sur l'entite, Hibernate
-        // ordonne mal les operations (INSERT avant DELETE) lors d'un save cascade,
-        // ce qui viole la contrainte unique (template_id, tag_name).
-        // On force l'ordre : (1) detache in-memory, (2) DELETE JPQL, (3) flush.
+        // ── Remplacement des tags par MUTATION pure de la collection managee ──
+        // L'entite DocumentTemplate a @OneToMany(cascade=ALL, orphanRemoval=true)
+        // sur tags. Hibernate IMPOSE :
+        //  - Muter la collection existante (clear/add), JAMAIS setTags(newList).
+        //    Sinon → "A collection with cascade=all-delete-orphan was no longer
+        //    referenced by the owning entity instance".
+        //  - Pas de tagRepository.deleteByTemplateId/saveAll en parallele : ca
+        //    cree des conflits d'ordre INSERT/DELETE → violation de contrainte
+        //    unique (template_id, tag_name).
+        //
+        // Solution : clear() + flush() (force le DELETE des orphans en SQL) puis
+        // add() + auto-flush au commit (emet les INSERTs). Hibernate s'occupe de
+        // tout, dans le bon ordre.
         template.getTags().clear();
-        tagRepository.deleteByTemplateId(id);
-        tagRepository.flush();  // SQL DELETE commit immediat
+        templateRepository.flush();  // emet les DELETE des orphans avant les INSERT
 
-        // ── Insertion des nouveaux tags ──
         for (DocumentTemplateTag tag : newTags) {
             tag.setTemplate(template);
+            template.getTags().add(tag);
         }
-        tagRepository.saveAll(newTags);
-        template.setTags(newTags);
 
         auditLogService.logUpdate("DocumentTemplate", String.valueOf(id),
                 oldFilename, filename,
