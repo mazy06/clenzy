@@ -300,9 +300,9 @@ public class DocumentGeneratorService {
 
     /**
      * Construit un contexte avec des valeurs factices pour chacun des tags
-     * declares sur le template. La valeur est choisie par heuristique sur le
-     * nom du champ (email, date, montant, telephone, etc.) pour rester
-     * realiste sans dependre de donnees reelles.
+     * declares sur le template. La valeur est choisie selon le TagType
+     * (LIST, CONDITIONAL, DATE, MONEY, IMAGE, SIMPLE) puis par heuristique
+     * sur le nom du champ pour rester realiste.
      */
     @SuppressWarnings("unchecked")
     private Map<String, Object> buildSampleContext(DocumentTemplate template) {
@@ -316,18 +316,117 @@ public class DocumentGeneratorService {
             int dotIndex = tagName.indexOf('.');
             String group = tagName.substring(0, dotIndex);
             String field = tagName.substring(dotIndex + 1);
+            TagType type = tag.getTagType() != null ? tag.getTagType() : TagType.SIMPLE;
 
             Map<String, Object> groupMap = (Map<String, Object>) context.computeIfAbsent(group, k -> new HashMap<String, Object>());
-            groupMap.put(field, sampleValueFor(group, field));
+            groupMap.put(field, sampleValueFor(group, field, type));
         }
         return context;
+    }
+
+    /**
+     * Genere une valeur factice selon le TagType puis, pour SIMPLE, applique
+     * une heuristique basee sur le nom du champ.
+     */
+    private Object sampleValueFor(String group, String field, TagType type) {
+        switch (type) {
+            case LIST:
+                return buildSampleList(group, field);
+            case CONDITIONAL:
+                return Boolean.TRUE;
+            case DATE:
+                return "12/03/2026";
+            case MONEY:
+                return "1 234,56 €";
+            case IMAGE:
+                // XDocReport gere les images via un FieldsMetadata. En preview,
+                // on retourne un placeholder texte — l'image ne sera pas rendue
+                // mais le template ne plantera pas.
+                return "[image]";
+            case SIMPLE:
+            default:
+                return sampleSimpleValue(group, field);
+        }
+    }
+
+    /**
+     * Construit une liste factice de 3 lignes avec des champs frequents
+     * (libelle, description, designation, quantite, prix, total, tva, etc.).
+     * Utilise une Map permissive qui retourne un placeholder pour toute clef
+     * inconnue, evitant le crash Freemarker sur ${ligne.unknown_field}.
+     */
+    private List<Map<String, Object>> buildSampleList(String group, String field) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        String[][] samples = new String[][] {
+                {"Ménage hôtelier — studio", "1", "75,00 €", "75,00 €"},
+                {"Linge de lit & toilette", "2", "18,00 €", "36,00 €"},
+                {"Réassort produits d'accueil", "1", "12,50 €", "12,50 €"},
+        };
+        for (int i = 0; i < samples.length; i++) {
+            Map<String, Object> row = new SampleRowMap();
+            row.put("index", String.valueOf(i + 1));
+            row.put("numero", String.valueOf(i + 1));
+            row.put("reference", "REF-" + String.format("%03d", i + 1));
+            row.put("libelle", samples[i][0]);
+            row.put("designation", samples[i][0]);
+            row.put("description", samples[i][0]);
+            row.put("nom", samples[i][0]);
+            row.put("name", samples[i][0]);
+            row.put("title", samples[i][0]);
+            row.put("titre", samples[i][0]);
+            row.put("quantite", samples[i][1]);
+            row.put("quantity", samples[i][1]);
+            row.put("qty", samples[i][1]);
+            row.put("nombre", samples[i][1]);
+            row.put("prix_unitaire", samples[i][2]);
+            row.put("prixUnitaire", samples[i][2]);
+            row.put("unit_price", samples[i][2]);
+            row.put("unitPrice", samples[i][2]);
+            row.put("prix", samples[i][2]);
+            row.put("price", samples[i][2]);
+            row.put("total", samples[i][3]);
+            row.put("montant", samples[i][3]);
+            row.put("amount", samples[i][3]);
+            row.put("montant_ht", samples[i][3]);
+            row.put("montantHt", samples[i][3]);
+            row.put("ht", samples[i][3]);
+            row.put("ttc", samples[i][3]);
+            row.put("taux_tva", "20 %");
+            row.put("tauxTva", "20 %");
+            row.put("tva", "20 %");
+            row.put("vat", "20 %");
+            row.put("unite", "u");
+            row.put("unit", "u");
+            row.put("date", "12/03/2026");
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    /**
+     * Map qui retourne un placeholder pour toute clef inconnue, afin que
+     * Freemarker ne plante pas si le template lit un champ non prevu dans
+     * la donnee factice (ex: ${ligne.champ_inexistant}).
+     */
+    private static final class SampleRowMap extends HashMap<String, Object> {
+        @Override
+        public Object get(Object key) {
+            Object v = super.get(key);
+            if (v != null) return v;
+            return "[" + key + "]";
+        }
+
+        @Override
+        public boolean containsKey(Object key) {
+            return true;
+        }
     }
 
     /**
      * Heuristique simple pour generer une valeur factice realiste selon le
      * nom du champ. Pas exhaustif — couvre les patterns frequents.
      */
-    private String sampleValueFor(String group, String field) {
+    private String sampleSimpleValue(String group, String field) {
         String f = field.toLowerCase();
         // Valeurs liees au numero legal / NF
         if ("nf".equalsIgnoreCase(group)) {
