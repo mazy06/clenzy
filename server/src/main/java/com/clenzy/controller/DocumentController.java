@@ -167,6 +167,45 @@ public class DocumentController {
         return ResponseEntity.ok(DocumentTemplateDto.fromEntity(generatorService.reparseTemplate(id)));
     }
 
+    @GetMapping("/templates/{id}/download")
+    @Operation(summary = "Telecharger le fichier original du template (.odt source)")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> downloadTemplateOriginal(@PathVariable Long id) {
+        DocumentTemplate template = generatorService.getTemplate(id);
+        byte[] content = generatorService.getTemplateOriginalContent(id);
+        String filename = template.getOriginalFilename() != null ? template.getOriginalFilename() : "template.odt";
+        String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+
+        return ResponseEntity.ok()
+                .header("Content-Type", "application/vnd.oasis.opendocument.text")
+                .header("Content-Disposition", "attachment; filename=\"" + filename + "\"; "
+                        + "filename*=UTF-8''" + encodedFilename)
+                .header("Cache-Control", "private, max-age=300")
+                .body(content);
+    }
+
+    @GetMapping("/templates/{id}/preview")
+    @Operation(summary = "Apercu PDF du template rempli avec des donnees factices")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> previewTemplate(@PathVariable Long id) {
+        DocumentTemplate template = generatorService.getTemplate(id);
+        byte[] pdf = generatorService.generateTemplatePreview(id);
+        String baseName = template.getName() != null ? template.getName().replaceAll("[^a-zA-Z0-9_-]+", "_") : "template";
+        String filename = baseName + "_preview.pdf";
+        String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+
+        // Content-Disposition inline pour que le navigateur affiche le PDF
+        // au lieu de declencher un telechargement (le frontend ouvre dans un nouvel onglet).
+        return ResponseEntity.ok()
+                .header("Content-Type", "application/pdf")
+                .header("Content-Disposition", "inline; filename=\"" + filename + "\"; "
+                        + "filename*=UTF-8''" + encodedFilename)
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .body(pdf);
+    }
+
     // ─── Generation ─────────────────────────────────────────────────────────
 
     @PostMapping("/generate")
