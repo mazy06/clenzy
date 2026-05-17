@@ -63,6 +63,60 @@ const SECTION_TITLE_SX = {
   mb: 0.75,
 };
 
+// ─── Amenity categorization & color palette ──────────────────────────────────
+//
+// Mapping amenity → categorie semantique (aligne sur i18n properties.amenities.categories)
+// + couleur sobre par categorie. Les chips restent discrets (background 8-10%
+// + border 30%) — pas du "rainbow slop", chaque couleur a un sens.
+
+type AmenityCategory = 'comfort' | 'kitchen' | 'appliances' | 'outdoor' | 'safetyFamily';
+
+const AMENITY_TO_CATEGORY: Record<string, AmenityCategory> = {
+  WIFI: 'comfort',
+  TV: 'comfort',
+  AIR_CONDITIONING: 'comfort',
+  HEATING: 'comfort',
+  EQUIPPED_KITCHEN: 'kitchen',
+  DISHWASHER: 'kitchen',
+  MICROWAVE: 'kitchen',
+  OVEN: 'kitchen',
+  WASHING_MACHINE: 'appliances',
+  DRYER: 'appliances',
+  IRON: 'appliances',
+  HAIR_DRYER: 'appliances',
+  PARKING: 'outdoor',
+  POOL: 'outdoor',
+  JACUZZI: 'outdoor',
+  GARDEN_TERRACE: 'outdoor',
+  BARBECUE: 'outdoor',
+  SAFE: 'safetyFamily',
+  BABY_BED: 'safetyFamily',
+  HIGH_CHAIR: 'safetyFamily',
+};
+
+const CATEGORY_PALETTE: Record<AmenityCategory, { color: string; bgAlpha: number; borderAlpha: number }> = {
+  comfort:       { color: '#0288D1', bgAlpha: 0.10, borderAlpha: 0.32 }, // bleu — connectivite / climat
+  kitchen:       { color: '#4A9B8E', bgAlpha: 0.12, borderAlpha: 0.35 }, // sage — cuisine
+  appliances:    { color: '#ED6C02', bgAlpha: 0.10, borderAlpha: 0.32 }, // orange — electromenager
+  outdoor:       { color: '#6B8A4F', bgAlpha: 0.12, borderAlpha: 0.35 }, // olive — exterieur
+  safetyFamily:  { color: '#7B5EA7', bgAlpha: 0.10, borderAlpha: 0.32 }, // purple — securite / famille
+};
+
+const FALLBACK_PALETTE = { color: '#6B8A9A', bgAlpha: 0.08, borderAlpha: 0.30 };
+
+function getAmenityChipStyle(amenity: string) {
+  const cat = AMENITY_TO_CATEGORY[amenity];
+  return cat ? CATEGORY_PALETTE[cat] : FALLBACK_PALETTE;
+}
+
+function hexToRgbaTuple(hex: string, alpha: number): string {
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Format un datetime ISO en "25 juil. · 11h" / "25 juil." si pas d'heure. */
@@ -238,33 +292,36 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         />
       </Box>
 
-      {/* ─── ÉQUIPEMENTS : chips uniformisés (un seul registre couleur) ── */}
+      {/* ─── ÉQUIPEMENTS : chips colores par categorie semantique ────────
+            5 categories (comfort / kitchen / appliances / outdoor / safetyFamily),
+            chaque chip prend la couleur de sa categorie avec un background tres
+            leger (10-12% opacite) et une bordure 30-35% : distinction visuelle
+            par categorie sans surcharge "rainbow". */}
       {property.amenities.length > 0 && (
         <Box sx={{ mb: 1.5 }}>
           <Typography sx={SECTION_TITLE_SX}>Équipements</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-            {property.amenities.map((a) => (
-              <Chip
-                key={a}
-                label={t(`properties.amenities.items.${a}`)}
-                size="small"
-                sx={{
-                  // Couleur neutre uniforme — anti-pattern AI-slop "rainbow chips".
-                  // L'info "amenité présente" est binaire : l'affichage suffit.
-                  backgroundColor: (th) => th.palette.mode === 'dark'
-                    ? 'rgba(255,255,255,0.06)'
-                    : 'rgba(107,138,154,0.08)',
-                  color: 'text.primary',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: '6px',
-                  fontWeight: 500,
-                  fontSize: MICRO_FS,
-                  height: 20,
-                  '& .MuiChip-label': { px: 0.75 },
-                }}
-              />
-            ))}
+            {property.amenities.map((a) => {
+              const palette = getAmenityChipStyle(a);
+              return (
+                <Chip
+                  key={a}
+                  label={t(`properties.amenities.items.${a}`)}
+                  size="small"
+                  sx={{
+                    backgroundColor: hexToRgbaTuple(palette.color, palette.bgAlpha),
+                    color: palette.color,
+                    border: '1px solid',
+                    borderColor: hexToRgbaTuple(palette.color, palette.borderAlpha),
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    fontSize: MICRO_FS,
+                    height: 20,
+                    '& .MuiChip-label': { px: 0.75 },
+                  }}
+                />
+              );
+            })}
           </Box>
         </Box>
       )}
