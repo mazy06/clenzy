@@ -85,6 +85,18 @@ export function useReparseTemplate() {
   });
 }
 
+export function useReplaceTemplateFile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, file }: { id: number; file: File }) =>
+      documentsApi.replaceTemplateFile(id, file),
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: documentKeys.template(id) });
+      queryClient.invalidateQueries({ queryKey: documentKeys.templates() });
+    },
+  });
+}
+
 // ─── Generations ────────────────────────────────────────────────────────────
 
 export function useGenerations(page: number, size: number) {

@@ -24,6 +24,7 @@ import {
   Delete,
   Download,
   Visibility,
+  Upload,
 } from '../../icons';
 import {
   useTemplate,
@@ -31,6 +32,7 @@ import {
   useActivateTemplate,
   useReparseTemplate,
   useDeleteTemplate,
+  useReplaceTemplateFile,
 } from './hooks/useDocuments';
 import TemplateTagsViewer from './TemplateTagsViewer';
 import { documentsApi } from '../../services/api/documentsApi';
@@ -45,6 +47,9 @@ const TemplateDetails: React.FC = () => {
   const activateMutation = useActivateTemplate();
   const reparseMutation = useReparseTemplate();
   const deleteMutation = useDeleteTemplate();
+  const replaceFileMutation = useReplaceTemplateFile();
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [editing, setEditing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -173,6 +178,36 @@ const TemplateDetails: React.FC = () => {
     }
   };
 
+  // Remplacer le fichier .odt source du template tout en gardant le meme id /
+  // les memes metadata. Re-parse les tags et regenere l'apercu apres succes.
+  const handleReplaceFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleReplaceFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.odt')) {
+      setActionError('Seuls les fichiers .odt sont acceptes');
+      e.target.value = '';
+      return;
+    }
+    if (!window.confirm(`Remplacer le fichier actuel par "${file.name}" ? Les tags seront re-scannes.`)) {
+      e.target.value = '';
+      return;
+    }
+    setActionError(null);
+    try {
+      await replaceFileMutation.mutateAsync({ id: templateId, file });
+      // Regenere l'apercu PDF avec le nouveau contenu
+      await loadPreview();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Erreur lors du remplacement du fichier');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -231,6 +266,26 @@ const TemplateDetails: React.FC = () => {
               </Button>
             </span>
           </Tooltip>
+          <Tooltip title="Remplacer le fichier .odt par une nouvelle version (les tags seront re-scannes)">
+            <span>
+              <Button
+                startIcon={replaceFileMutation.isPending ? <CircularProgress size={14} /> : <Upload />}
+                onClick={handleReplaceFileClick}
+                variant="outlined"
+                size="small"
+                disabled={replaceFileMutation.isPending}
+              >
+                {replaceFileMutation.isPending ? 'Remplacement...' : 'Remplacer le fichier'}
+              </Button>
+            </span>
+          </Tooltip>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".odt,application/vnd.oasis.opendocument.text"
+            style={{ display: 'none' }}
+            onChange={handleReplaceFileChange}
+          />
           <Button startIcon={<Refresh />} onClick={handleReparse} variant="outlined" size="small">
             Re-scanner tags
           </Button>
