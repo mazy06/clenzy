@@ -160,6 +160,17 @@ public class DocumentController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping(value = "/templates/{id}/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Remplacer le fichier .odt d'un template existant (re-parse automatique des tags)")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<DocumentTemplateDto> replaceTemplateFile(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file
+    ) {
+        var template = generatorService.replaceTemplateFile(id, file);
+        return ResponseEntity.ok(DocumentTemplateDto.fromEntity(template));
+    }
+
     @PostMapping("/templates/{id}/reparse")
     @Operation(summary = "Re-scanner les tags d'un template")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
