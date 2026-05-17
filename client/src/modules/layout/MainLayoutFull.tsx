@@ -4,6 +4,8 @@ import { Menu as MenuIcon } from '../../icons';
 import { useLayoutState } from '../../hooks/useLayoutState';
 import { useNavigationMenu } from '../../hooks/useNavigationMenu';
 import { useSidebarState } from '../../hooks/useSidebarState';
+import { useFormsStats } from '../../hooks/useReceivedForms';
+import { useAuth } from '../../hooks/useAuth';
 import Sidebar from '../../components/Sidebar';
 import { LoadingStates } from '../../components/LoadingStates';
 import OfflineBanner from '../../components/OfflineBanner';
@@ -16,6 +18,22 @@ interface MainLayoutFullProps {
 export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   const layoutState = useLayoutState();
   const { menuItems, loading: menuLoading, error: menuError, refreshMenu } = useNavigationMenu();
+
+  // Compteur global de formulaires recus en attente (NEW) — injecte sur l'item /contact
+  const { user } = useAuth();
+  const isAdminOrManager = user?.roles?.some((r) => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ?? false;
+  const { data: formsStats } = useFormsStats(isAdminOrManager);
+  const newFormsCount = formsStats?.totalNew ?? 0;
+
+  // Enrichit les menuItems avec le badge sur /contact si pertinent
+  const decoratedMenuItems = useMemo(() => {
+    if (!isAdminOrManager || newFormsCount === 0) return menuItems;
+    return menuItems.map((item) =>
+      item.path === '/contact'
+        ? { ...item, badge: newFormsCount, badgeColor: 'warning' as const }
+        : item,
+    );
+  }, [menuItems, isAdminOrManager, newFormsCount]);
   const {
     isCollapsed,
     isMobileOpen,
@@ -65,7 +83,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
 
       {/* Sidebar */}
       <Sidebar
-        menuItems={menuItems}
+        menuItems={decoratedMenuItems}
         isCollapsed={isCollapsed}
         isMobileOpen={isMobileOpen}
         isMobile={isMobile}

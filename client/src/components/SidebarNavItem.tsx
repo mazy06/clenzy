@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Badge,
   ListItemButton,
   ListItemIcon,
   ListItemText,
@@ -69,12 +70,44 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
           transition: 'color 150ms',
         }}
       >
-        {React.isValidElement(item.icon)
-          ? React.cloneElement(item.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
-              size: iconSize,
-              strokeWidth: isActive ? 2 : 1.75,
-            })
-          : item.icon}
+        {/* Wrap l'icone dans un Badge si un compteur est defini.
+             Position decalee (top-right) pour ne pas couvrir l'icone. */}
+        {item.badge != null && item.badge > 0 ? (
+          <Badge
+            badgeContent={item.badge}
+            color={item.badgeColor ?? 'warning'}
+            max={99}
+            overlap="circular"
+            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            sx={{
+              '& .MuiBadge-badge': {
+                fontSize: '0.5625rem',
+                fontWeight: 700,
+                height: 14,
+                minWidth: 14,
+                padding: '0 4px',
+                borderRadius: '7px',
+                top: -2,
+                right: -2,
+                boxShadow: (theme) => `0 0 0 1.5px ${theme.palette.background.paper}`,
+              },
+            }}
+          >
+            {React.isValidElement(item.icon)
+              ? React.cloneElement(item.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
+                  size: iconSize,
+                  strokeWidth: isActive ? 2 : 1.75,
+                })
+              : item.icon}
+          </Badge>
+        ) : (
+          React.isValidElement(item.icon)
+            ? React.cloneElement(item.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
+                size: iconSize,
+                strokeWidth: isActive ? 2 : 1.75,
+              })
+            : item.icon
+        )}
       </ListItemIcon>
       <ListItemText
         primary={item.text}

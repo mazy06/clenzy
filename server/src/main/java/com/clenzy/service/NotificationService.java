@@ -296,4 +296,39 @@ public class NotificationService {
             log.error("Erreur notification admins/managers pour {} (org={}): {}", key, orgId, e.getMessage());
         }
     }
+
+    /**
+     * Notifie tous les SUPER_ADMIN et SUPER_MANAGER de la plateforme,
+     * SANS contrainte d'organisation. Utile pour les evenements publics qui
+     * n'ont pas de TenantContext (ex : reception d'un formulaire de devis
+     * depuis la landing publique, ou contact public depuis un visiteur
+     * non-authentifie).
+     *
+     * Chaque destinataire recoit la notification dans son propre orgId
+     * (recupere depuis son entite User) pour rester compatible avec le filtre
+     * Hibernate organizationFilter cote lecture.
+     */
+    public void notifyAllPlatformStaff(NotificationKey key, String title,
+                                       String message, String actionUrl) {
+        try {
+            List<User> staff = userRepository.findByStatusAndRoleInAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(
+                    UserStatus.ACTIVE,
+                    Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER)
+            );
+            log.info("notifyAllPlatformStaff: notifying {} platform staff for key={}", staff.size(), key);
+            for (User user : staff) {
+                if (user.getKeycloakId() == null) continue;
+                Long orgId = user.getOrganizationId();
+                if (orgId == null) {
+                    // Fallback : envoyer sans orgId — la notification sera attachee mais
+                    // potentiellement masquee par le filter Hibernate cote lecture.
+                    send(user.getKeycloakId(), key, title, message, actionUrl);
+                } else {
+                    sendByOrgId(user.getKeycloakId(), key, title, message, actionUrl, orgId);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Erreur notifyAllPlatformStaff pour {} : {}", key, e.getMessage(), e);
+        }
+    }
 }
