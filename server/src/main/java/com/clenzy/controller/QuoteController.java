@@ -152,9 +152,12 @@ public class QuoteController {
                     savedForm.getId(), dto.getFullName(), e.getMessage());
         }
 
-        // 6. Notification aux admins/managers (non-bloquant)
+        // 6. Notification a tous les SUPER_ADMIN et SUPER_MANAGER de la plateforme
+        //    (non-bloquant). On utilise notifyAllPlatformStaff car cet endpoint est
+        //    public (pas de JWT, pas de TenantContext) — notifyAdminsAndManagers
+        //    qui lit le TenantContext planterait silencieusement.
         try {
-            notificationService.notifyAdminsAndManagers(
+            notificationService.notifyAllPlatformStaff(
                     NotificationKey.CONTACT_FORM_RECEIVED,
                     "Nouveau devis — " + dto.getFullName(),
                     "Demande de devis de " + dto.getFullName() + " (" + dto.getCity() + ") — Forfait : " + recommendedPackage,

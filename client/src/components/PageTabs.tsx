@@ -123,7 +123,8 @@ export default function PageTabs<T extends string | number = number>({
               })
             : opt.icon;
 
-          // Label with optional badge.
+          // Label with optional badge — pastille inline a droite du texte,
+          // taille discrete mais lisible, halo subtil pour suggerer un etat "nouveau".
           const labelNode = opt.badge != null && opt.badge > 0
             ? (
               <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
@@ -136,10 +137,14 @@ export default function PageTabs<T extends string | number = number>({
                     '& .MuiBadge-badge': {
                       position: 'static',
                       transform: 'none',
-                      fontSize: '0.5625rem',
-                      height: 14,
-                      minWidth: 14,
-                      padding: '0 4px',
+                      fontSize: '0.625rem',
+                      fontWeight: 600,
+                      letterSpacing: '0.01em',
+                      height: 18,
+                      minWidth: 18,
+                      padding: '0 6px',
+                      borderRadius: '9px',
+                      boxShadow: (theme) => `0 0 0 2px ${theme.palette.background.paper}, 0 1px 4px ${theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.12)'}`,
                     },
                   }}
                 />
