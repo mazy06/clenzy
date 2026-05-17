@@ -277,7 +277,7 @@ public class DocumentGeneratorService {
 
         String oldFilename = template.getOriginalFilename();
 
-        // ── Parse les tags AVANT de toucher l'entité (validation precoce) ──
+        // ── Parse les tags AVANT de toucher l'entite (validation precoce) ──
         List<DocumentTemplateTag> newTags = templateParserService.parseTemplate(fileContent);
 
         // ── Libere l'ancien storage disque si necessaire ──
@@ -286,22 +286,25 @@ public class DocumentGeneratorService {
             template.setFilePath(null);
         }
 
-        // ── Update fichier + filename ──
+        // ── Update fichier + filename (auto-flushed au commit @Transactional) ──
         template.setFileContent(fileContent);
         template.setOriginalFilename(filename);
 
-        // ── Remplacement des tags via cascade ──
-        // L'entite DocumentTemplate a @OneToMany(cascade=ALL, orphanRemoval=true)
-        // sur tags. On vide la collection in-memory + on ajoute les nouveaux :
-        // Hibernate genere automatiquement les DELETE (orphans) + INSERT au flush.
-        // Pas besoin de tagRepository.deleteByTemplateId + saveAll en parallèle.
+        // ── Suppression explicite + FLUSH des anciens tags ──
+        // Critique : avec cascade=ALL + orphanRemoval=true sur l'entite, Hibernate
+        // ordonne mal les operations (INSERT avant DELETE) lors d'un save cascade,
+        // ce qui viole la contrainte unique (template_id, tag_name).
+        // On force l'ordre : (1) detache in-memory, (2) DELETE JPQL, (3) flush.
         template.getTags().clear();
+        tagRepository.deleteByTemplateId(id);
+        tagRepository.flush();  // SQL DELETE commit immediat
+
+        // ── Insertion des nouveaux tags ──
         for (DocumentTemplateTag tag : newTags) {
             tag.setTemplate(template);
-            template.getTags().add(tag);
         }
-
-        template = templateRepository.save(template);
+        tagRepository.saveAll(newTags);
+        template.setTags(newTags);
 
         auditLogService.logUpdate("DocumentTemplate", String.valueOf(id),
                 oldFilename, filename,
