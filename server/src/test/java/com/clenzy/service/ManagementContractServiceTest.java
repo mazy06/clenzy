@@ -26,6 +26,7 @@ import static org.mockito.Mockito.*;
 class ManagementContractServiceTest {
 
     @Mock private ManagementContractRepository contractRepository;
+    @Mock private DocumentGeneratorService documentGeneratorService;
     @InjectMocks private ManagementContractService service;
 
     private static final Long ORG_ID = 1L;

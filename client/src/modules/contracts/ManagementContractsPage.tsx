@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import {
   Add, Edit, CheckCircle, Pause, Cancel, Close, Save, Check,
-  Handshake, Home, Person, Euro,
+  Handshake, Home, Person, Euro, PictureAsPdf,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -17,6 +17,7 @@ import {
   type ContractStatus,
   type ContractType,
 } from '../../services/api/managementContractsApi';
+import { documentsApi } from '../../services/api/documentsApi';
 import { splitConfigApi } from '../../services/api/splitConfigApi';
 import type { SplitRatios } from '../../types/payment';
 import apiClient from '../../services/apiClient';
@@ -258,6 +259,42 @@ const ManagementContractsPage: React.FC = () => {
       loadContracts();
     } catch {
       showError(t('contracts.errorAction'));
+    }
+  };
+
+  // ─── Mandat de gestion ──────────────────────────────────────────────────
+  // Ouvre (ou genere puis ouvre) le mandat PDF associe au contrat.
+  // Cherche d'abord les generations existantes ; si aucune, declenche la
+  // generation cote serveur via POST /documents/generate.
+
+  const handleViewMandate = async (contractId: number) => {
+    try {
+      const existing = await documentsApi.getGenerationsByReference('MANAGEMENT_CONTRACT', contractId);
+      // Prend la plus recente MANDAT_GESTION terminée
+      const latest = existing
+        ?.filter((g) => g.documentType === 'MANDAT_GESTION' && g.status === 'COMPLETED')
+        ?.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))?.[0];
+
+      if (latest) {
+        await documentsApi.viewGeneration(latest.id);
+        return;
+      }
+
+      // Aucune generation existante : on tente la generation a la volee
+      const generated = await documentsApi.generateDocument({
+        documentType: 'MANDAT_GESTION',
+        referenceId: contractId,
+        referenceType: 'MANAGEMENT_CONTRACT',
+        sendEmail: false,
+      });
+      if (generated?.id) {
+        showSuccess('Mandat généré');
+        await documentsApi.viewGeneration(generated.id);
+      } else {
+        showError("Impossible de générer le mandat — aucun template actif pour MANDAT_GESTION.");
+      }
+    } catch (err) {
+      showError("Impossible d'ouvrir le mandat. Vérifie qu'un template MANDAT_GESTION actif existe.");
     }
   };
 
@@ -532,6 +569,7 @@ const ManagementContractsPage: React.FC = () => {
               onActivate={handleActivate}
               onSuspend={handleSuspend}
               onEdit={startEdit}
+              onViewMandate={handleViewMandate}
               onTerminateStart={startTerminate}
               onTerminateCancel={cancelTerminate}
               onTerminateConfirm={confirmTerminate}
@@ -550,6 +588,7 @@ const ManagementContractsPage: React.FC = () => {
               onActivate={handleActivate}
               onSuspend={handleSuspend}
               onEdit={startEdit}
+              onViewMandate={handleViewMandate}
               onTerminateStart={startTerminate}
               onTerminateCancel={cancelTerminate}
               onTerminateConfirm={confirmTerminate}
@@ -587,6 +626,7 @@ interface ContractsTableSectionProps {
   onActivate: (id: number) => void;
   onSuspend: (id: number) => void;
   onEdit: (c: ManagementContract) => void;
+  onViewMandate: (id: number) => void;
   onTerminateStart: (id: number) => void;
   onTerminateCancel: () => void;
   onTerminateConfirm: () => void;
@@ -597,7 +637,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
   title, accentColor, contracts,
   terminatingId, terminateReason, setTerminateReason,
   getPropertyName, getOwnerName,
-  onActivate, onSuspend, onEdit,
+  onActivate, onSuspend, onEdit, onViewMandate,
   onTerminateStart, onTerminateCancel, onTerminateConfirm,
   muted,
 }) => {
@@ -769,6 +809,11 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                   </TableCell>
                   <TableCell align="right">
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.25 }}>
+                      <Tooltip title="Voir le mandat de gestion">
+                        <IconButton size="small" color="primary" onClick={() => onViewMandate(c.id)}>
+                          <PictureAsPdf size={16} strokeWidth={1.75} />
+                        </IconButton>
+                      </Tooltip>
                       {(c.status === 'DRAFT' || c.status === 'SUSPENDED') && (
                         <Tooltip title={t('contracts.activate')}>
                           <IconButton size="small" color="success" onClick={() => onActivate(c.id)}>
