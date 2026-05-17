@@ -259,11 +259,12 @@ public class DocumentGeneratorService {
     public DocumentTemplate replaceTemplateFile(Long id, MultipartFile file) {
         DocumentTemplate template = getTemplate(id);
 
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".odt")) {
+        // ── Validation ──
+        String filename = file.getOriginalFilename();
+        if (filename == null || !filename.toLowerCase().endsWith(".odt")) {
             throw new DocumentValidationException("Seuls les fichiers .odt sont acceptes");
         }
-        if (originalFilename.contains("..") || originalFilename.contains("/") || originalFilename.contains("\\")) {
+        if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
             throw new DocumentValidationException("Nom de fichier invalide");
         }
 
@@ -274,32 +275,39 @@ public class DocumentGeneratorService {
             throw new DocumentStorageException("Failed to read uploaded file", e);
         }
 
-        // Si le template etait stocke sur disque (filePath), on supprime l'ancien
-        // fichier et on bascule sur le storage inline (fileContent en BDD) pour
-        // simplifier la mise a jour. Le service garde ainsi un comportement uniforme.
+        String oldFilename = template.getOriginalFilename();
+
+        // ── Parse les tags AVANT de toucher l'entité (validation precoce) ──
+        List<DocumentTemplateTag> newTags = templateParserService.parseTemplate(fileContent);
+
+        // ── Libere l'ancien storage disque si necessaire ──
         if (template.getFilePath() != null && !template.getFilePath().isBlank()) {
             templateStorageService.delete(template.getFilePath());
             template.setFilePath(null);
         }
 
+        // ── Update fichier + filename ──
         template.setFileContent(fileContent);
-        template.setOriginalFilename(originalFilename);
+        template.setOriginalFilename(filename);
+
+        // ── Remplacement des tags via cascade ──
+        // L'entite DocumentTemplate a @OneToMany(cascade=ALL, orphanRemoval=true)
+        // sur tags. On vide la collection in-memory + on ajoute les nouveaux :
+        // Hibernate genere automatiquement les DELETE (orphans) + INSERT au flush.
+        // Pas besoin de tagRepository.deleteByTemplateId + saveAll en parallèle.
+        template.getTags().clear();
+        for (DocumentTemplateTag tag : newTags) {
+            tag.setTemplate(template);
+            template.getTags().add(tag);
+        }
+
         template = templateRepository.save(template);
 
-        // Re-parse les tags du nouveau contenu
-        tagRepository.deleteByTemplateId(id);
-        List<DocumentTemplateTag> tags = templateParserService.parseTemplate(fileContent);
-        for (DocumentTemplateTag tag : tags) {
-            tag.setTemplate(template);
-        }
-        tagRepository.saveAll(tags);
-        template.setTags(tags);
-
         auditLogService.logUpdate("DocumentTemplate", String.valueOf(id),
-                template.getOriginalFilename(), originalFilename,
-                "Replace template file: " + originalFilename + " (" + tags.size() + " tags)");
-        log.info("Template file replaced: {} (id={}, new file={}, {} tags)",
-                template.getName(), id, originalFilename, tags.size());
+                oldFilename, filename,
+                "Replace template file: " + filename + " (" + newTags.size() + " tags)");
+        log.info("Template file replaced: {} (id={}, file={}, {} tags)",
+                template.getName(), id, filename, newTags.size());
         return template;
     }
 
