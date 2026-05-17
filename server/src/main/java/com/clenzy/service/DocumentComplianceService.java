@@ -267,6 +267,26 @@ public class DocumentComplianceService {
         tags.put("mentions", mentions);
         tags.put("compliance_standard", strategy.getStandardName());
 
+        // ── Alias backward-compatibles ────────────────────────────────────
+        // Les strategies pays mettent `numero_legal` et `date_emission`,
+        // mais beaucoup de templates utilisent les noms courts (`numero`,
+        // `date`, `validite`, `conditions_paiement`). On les expose comme
+        // alias avec des defaults safe pour eviter les "tag manquant" sur
+        // des champs simples au comportement universel (un devis a un
+        // numero et une date, peu importe le pays).
+        if (tags.get("numero_legal") != null) {
+            tags.putIfAbsent("numero", tags.get("numero_legal"));
+        }
+        if (tags.get("date_emission") != null) {
+            tags.putIfAbsent("date", tags.get("date_emission"));
+        }
+        if (tags.get("duree_validite") != null) {
+            tags.putIfAbsent("validite", tags.get("duree_validite"));
+        } else {
+            tags.putIfAbsent("validite", "30 jours");
+        }
+        tags.putIfAbsent("conditions_paiement", "Paiement a reception de facture.");
+
         return tags;
     }
 
