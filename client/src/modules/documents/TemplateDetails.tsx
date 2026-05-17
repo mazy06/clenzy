@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -22,6 +22,8 @@ import {
   CheckCircle,
   Refresh,
   Delete,
+  Download,
+  Visibility,
 } from '../../icons';
 import {
   useTemplate,
@@ -31,6 +33,7 @@ import {
   useDeleteTemplate,
 } from './hooks/useDocuments';
 import TemplateTagsViewer from './TemplateTagsViewer';
+import { documentsApi } from '../../services/api/documentsApi';
 
 const TemplateDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,6 +55,36 @@ const TemplateDetails: React.FC = () => {
     emailBody: '',
   });
 
+  // Apercu PDF du template avec donnees factices.
+  // L'URL est un blob local cree au load, libere quand le composant unmount
+  // ou quand on regenere l'apercu apres un re-scan / une edition.
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const currentBlobUrl = useRef<string | null>(null);
+
+  const releaseBlobUrl = () => {
+    if (currentBlobUrl.current) {
+      window.URL.revokeObjectURL(currentBlobUrl.current);
+      currentBlobUrl.current = null;
+    }
+  };
+
+  const loadPreview = async () => {
+    setPreviewError(null);
+    setPreviewLoading(true);
+    try {
+      const blobUrl = await documentsApi.fetchTemplatePreviewBlobUrl(templateId);
+      releaseBlobUrl();
+      currentBlobUrl.current = blobUrl;
+      setPreviewUrl(blobUrl);
+    } catch (e) {
+      setPreviewError(e instanceof Error ? e.message : 'Erreur lors de la generation de l\'apercu');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (template) {
       setEditData({
@@ -62,6 +95,18 @@ const TemplateDetails: React.FC = () => {
       });
     }
   }, [template]);
+
+  // Charge l'apercu PDF des le premier load du template, et libere
+  // l'URL blob lorsque le composant unmount.
+  useEffect(() => {
+    if (template?.id) {
+      loadPreview();
+    }
+    return () => {
+      releaseBlobUrl();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template?.id]);
 
   const handleSave = async () => {
     setActionError(null);
@@ -99,6 +144,32 @@ const TemplateDetails: React.FC = () => {
       navigate('/documents');
     } catch {
       setActionError('Erreur lors de la suppression');
+    }
+  };
+
+  const handleDownloadOriginal = async () => {
+    setActionError(null);
+    try {
+      const filename = template?.originalFilename || 'template.odt';
+      await documentsApi.downloadTemplateOriginal(templateId, filename);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Erreur lors du telechargement');
+    }
+  };
+
+  const handleDownloadPreview = async () => {
+    setActionError(null);
+    try {
+      const baseName = (template?.name || 'template').replace(/[^a-zA-Z0-9_-]+/g, '_');
+      await documentsApi.downloadTemplatePreview(templateId, `${baseName}_apercu.pdf`);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Erreur lors du telechargement de l\'apercu');
+    }
+  };
+
+  const handleOpenPreviewInNewTab = () => {
+    if (previewUrl) {
+      window.open(previewUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -146,6 +217,20 @@ const TemplateDetails: React.FC = () => {
               Activer
             </Button>
           )}
+          <Tooltip title="Telecharger le fichier source (.odt)">
+            <span>
+              <Button startIcon={<Download />} onClick={handleDownloadOriginal} variant="outlined" size="small">
+                Telecharger
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title="Telecharger l'apercu PDF (donnees factices)">
+            <span>
+              <Button startIcon={<Visibility />} onClick={handleDownloadPreview} variant="outlined" size="small">
+                Telecharger l'apercu
+              </Button>
+            </span>
+          </Tooltip>
           <Button startIcon={<Refresh />} onClick={handleReparse} variant="outlined" size="small">
             Re-scanner tags
           </Button>
@@ -202,6 +287,100 @@ const TemplateDetails: React.FC = () => {
         {/* Tags */}
         <Grid item xs={12} md={6}>
           <TemplateTagsViewer tags={template.tags || []} />
+        </Grid>
+
+        {/* Apercu PDF avec donnees factices */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+              <Box>
+                <Typography variant="h6">Apercu</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Previsualisation generee avec des donnees factices pour valider la mise en page.
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Tooltip title="Regenerer l'apercu">
+                  <span>
+                    <IconButton onClick={loadPreview} disabled={previewLoading} size="small">
+                      <Refresh />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Ouvrir dans un nouvel onglet">
+                  <span>
+                    <IconButton onClick={handleOpenPreviewInNewTab} disabled={!previewUrl || previewLoading} size="small">
+                      <Visibility />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Telecharger en PDF">
+                  <span>
+                    <IconButton onClick={handleDownloadPreview} disabled={previewLoading} size="small">
+                      <Download />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </Box>
+            </Box>
+
+            {previewError && (
+              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPreviewError(null)}>
+                {previewError}
+              </Alert>
+            )}
+
+            <Box
+              sx={{
+                position: 'relative',
+                width: '100%',
+                height: { xs: 480, md: 720 },
+                backgroundColor: 'rgba(0,0,0,0.04)',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                overflow: 'hidden',
+              }}
+            >
+              {previewLoading && (
+                <Box sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 1.5,
+                  backgroundColor: 'rgba(255,255,255,0.6)',
+                  zIndex: 1,
+                }}>
+                  <CircularProgress size={28} />
+                  <Typography variant="caption" color="text.secondary">
+                    Generation de l'apercu en cours...
+                  </Typography>
+                </Box>
+              )}
+              {previewUrl ? (
+                <iframe
+                  title="Apercu PDF du template"
+                  src={previewUrl}
+                  style={{ width: '100%', height: '100%', border: 0 }}
+                />
+              ) : !previewLoading && (
+                <Box sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Apercu non disponible.
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Paper>
         </Grid>
       </Grid>
     </Box>
