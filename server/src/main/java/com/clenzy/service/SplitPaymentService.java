@@ -177,12 +177,13 @@ public class SplitPaymentService {
      * Used when a reservationId is available to look up the property's ManagementContract.
      *
      * Priority:
-     *   1. ManagementContract.commissionRate for the reservation's property
-     *   2. SplitConfiguration for the organization (SUPER_ADMIN configurable)
-     *   3. System defaults
+     *   1. ManagementContract.commissionRate for the reservation's property (3-way split spécifique)
+     *   2. SplitConfiguration for the organization (Paramètres → Paiement → Répartition des revenus)
+     *   3. System defaults (SplitRatios.DEFAULT)
      *
-     * KEY RULE: If no ManagementContract exists for the property, there is no concierge
-     * involved. In that case, the concierge share is redirected to the owner.
+     * KEY RULE: Si aucun contrat de gestion n'existe pour la propriété, on utilise la
+     * répartition par défaut de l'organisation telle que configurée par le SUPER_ADMIN
+     * (peut être 3 parts si la part conciergerie est non nulle).
      */
     public SplitRatios resolveSplitRatios(Long orgId, Long reservationId) {
         if (reservationId != null) {
@@ -196,7 +197,7 @@ public class SplitPaymentService {
                             managementContractService.getActiveContract(propertyId, orgId);
 
                         if (contractOpt.isPresent()) {
-                            // ManagementContract found → 3-way split with concierge
+                            // ManagementContract found → 3-way split spécifique
                             ManagementContract contract = contractOpt.get();
                             BigDecimal commissionRate = contract.getCommissionRate();
                             if (commissionRate != null && commissionRate.compareTo(BigDecimal.ZERO) > 0) {
@@ -213,9 +214,9 @@ public class SplitPaymentService {
                                 return contractRatios;
                             }
                         } else {
-                            // No ManagementContract → owner manages directly, no concierge
-                            log.info("No ManagementContract for property {} — 2-way split (no concierge)", propertyId);
-                            return resolveNoConciergeRatios(orgId);
+                            // Pas de contrat → on utilise la répartition par défaut de l'org
+                            // (configurable via Paramètres → Paiement → Répartition des revenus)
+                            log.info("No ManagementContract for property {} — falling back to org default split", propertyId);
                         }
                     }
                 }
@@ -225,18 +226,18 @@ public class SplitPaymentService {
             }
         }
 
-        // Fallback to org-level SplitConfiguration (includes concierge by default)
+        // Fallback to org-level SplitConfiguration (peut inclure une part conciergerie)
         return resolveSplitRatios(orgId);
     }
 
     /**
      * Resolve split ratios for a specific property (non-reservation context).
-     * Checks if the property has an active ManagementContract to determine
-     * whether a concierge is involved.
+     * Si la propriété a un contrat de gestion actif, utilise sa commissionRate.
+     * Sinon, retombe sur la répartition par défaut de l'organisation.
      *
      * @param orgId      organization ID
      * @param propertyId property ID (nullable — if null, uses org defaults)
-     * @return split ratios, with concierge=0 if no ManagementContract
+     * @return split ratios résolus
      */
     public SplitRatios resolveSplitRatiosForProperty(Long orgId, Long propertyId) {
         if (propertyId != null) {
@@ -258,29 +259,15 @@ public class SplitPaymentService {
                     }
                 }
 
-                // Property exists but no ManagementContract → no concierge
-                log.info("No ManagementContract for property {} — 2-way split (no concierge)", propertyId);
-                return resolveNoConciergeRatios(orgId);
+                // Pas de contrat → on utilise la répartition par défaut de l'org
+                log.info("No ManagementContract for property {} — falling back to org default split", propertyId);
             } catch (Exception e) {
                 log.warn("Failed to check ManagementContract for property {}: {}", propertyId, e.getMessage());
             }
         }
 
-        // No property context → use org defaults (may include concierge)
+        // No property context OR no contract → use org defaults
         return resolveSplitRatios(orgId);
-    }
-
-    /**
-     * Returns split ratios with concierge=0.
-     * The concierge share from org config (or defaults) is redirected to the owner.
-     */
-    private SplitRatios resolveNoConciergeRatios(Long orgId) {
-        SplitRatios base = resolveSplitRatios(orgId);
-        // Concierge share goes to owner
-        BigDecimal ownerShare = base.ownerShare().add(base.conciergeShare());
-        SplitRatios noConcierge = new SplitRatios(ownerShare, base.platformShare(), BigDecimal.ZERO);
-        log.info("No-concierge ratios: owner={}, platform={}, concierge=0", ownerShare, base.platformShare());
-        return noConcierge;
     }
 
     /**
