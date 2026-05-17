@@ -151,6 +151,29 @@ export const documentsApi = {
     return apiClient.post<DocumentTemplate>(`/documents/templates/${id}/reparse`);
   },
 
+  /**
+   * Remplace le fichier .odt du template existant (PUT multipart).
+   * Le serveur re-parse automatiquement les tags du nouveau contenu.
+   * Les metadata (nom, description, documentType, active) sont preservees.
+   */
+  async replaceTemplateFile(id: number, file: File): Promise<DocumentTemplate> {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/documents/templates/${id}/file`;
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = getAccessToken();
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+      body: formData,
+    });
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => '');
+      throw new Error(`Erreur ${response.status} lors du remplacement du fichier${errorBody ? ' : ' + errorBody : ''}`);
+    }
+    return response.json() as Promise<DocumentTemplate>;
+  },
+
   /** Telecharger le fichier .odt source du template (avec balises non substituees). */
   async downloadTemplateOriginal(id: number, filename: string) {
     const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/documents/templates/${id}/download`;
