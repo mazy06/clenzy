@@ -26,7 +26,16 @@ interface ConfirmationModalProps {
   cancelText?: string;
   severity?: 'warning' | 'error' | 'info';
   loading?: boolean;
+  /** Icone affichee en titre. Par defaut : icone de la severite. */
   icon?: React.ReactNode;
+  /**
+   * Icone affichee dans le bouton Confirmer. Par defaut : icone Delete
+   * (heritage des cas d'usage suppression). Passer null pour ne pas
+   * afficher d'icone. Idee : passer un Upload, Save, etc. selon l'action.
+   */
+  confirmIcon?: React.ReactNode | null;
+  /** Couleur du bouton Confirmer. Par defaut : 'error' si severity=error, sinon 'primary'. */
+  confirmColor?: 'primary' | 'error' | 'warning' | 'success' | 'info';
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -40,6 +49,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   severity = 'warning',
   loading = false,
   icon,
+  confirmIcon,
+  confirmColor,
 }) => {
   const getSeverityColor = () => {
     switch (severity) {
@@ -140,9 +151,15 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <Button
           onClick={onConfirm}
           variant="contained"
-          color={severity === 'error' ? 'error' : 'primary'}
+          color={confirmColor ?? (severity === 'error' ? 'error' : 'primary')}
           disabled={loading}
-          startIcon={loading ? undefined : <DeleteIcon size={18} strokeWidth={1.75} />}
+          startIcon={
+            loading
+              ? undefined
+              : confirmIcon === null
+                ? undefined
+                : confirmIcon ?? <DeleteIcon size={18} strokeWidth={1.75} />
+          }
           sx={{ minWidth: 100 }}
         >
           {loading ? 'Traitement...' : confirmText}
