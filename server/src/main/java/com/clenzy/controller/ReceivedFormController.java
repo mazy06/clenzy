@@ -48,8 +48,9 @@ public class ReceivedFormController {
      *
      * Le filter applique automatiquement par TenantFilter (pour les non-staff)
      * masque les formulaires NULL et ceux des autres orgs. Or, le controle d'acces
-     * a deja ete fait via @PreAuthorize + hasAnyRole(SUPER_ADMIN, SUPER_MANAGER, ADMIN)
-     * → on assume que le caller a le droit de voir tous les formulaires recus.
+     * a deja ete fait via @PreAuthorize + hasAnyRole(SUPER_ADMIN, SUPER_MANAGER)
+     * → on assume que le caller (staff plateforme) a le droit de voir tous les
+     * formulaires recus, peu importe l'org d'origine.
      */
     private void disableTenantFilter() {
         entityManager.unwrap(Session.class).disableFilter("organizationFilter");
@@ -66,7 +67,7 @@ public class ReceivedFormController {
             @RequestParam(required = false) String type) {
 
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER", "ADMIN")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         disableTenantFilter();
@@ -95,7 +96,7 @@ public class ReceivedFormController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getForm(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER", "ADMIN")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         disableTenantFilter();
@@ -115,7 +116,7 @@ public class ReceivedFormController {
             @RequestParam String status) {
 
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER", "ADMIN")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         disableTenantFilter();
@@ -145,7 +146,7 @@ public class ReceivedFormController {
     @GetMapping("/stats")
     public ResponseEntity<?> getStats(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER", "ADMIN")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         disableTenantFilter();
