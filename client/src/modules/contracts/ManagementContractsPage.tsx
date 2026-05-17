@@ -54,7 +54,7 @@ const EMPTY_FORM: CreateManagementContractRequest = {
   contractType: 'FULL_MANAGEMENT',
   startDate: new Date().toISOString().split('T')[0],
   endDate: null,
-  commissionRate: 0.20,
+  commissionRate: 0,
   minimumStayNights: null,
   autoRenew: false,
   noticePeriodDays: 30,
@@ -472,9 +472,10 @@ const ManagementContractsPage: React.FC = () => {
           <FieldGroup label="Commission" span={{ md: 2 }}>
             <TextField
               label="Taux" type="number"
-              value={Math.round(form.commissionRate * 100)}
-              onChange={e => setForm(prev => ({ ...prev, commissionRate: Number(e.target.value) / 100 }))}
+              value={form.commissionRate > 0 ? Math.round(form.commissionRate * 100) : ''}
+              onChange={e => setForm(prev => ({ ...prev, commissionRate: e.target.value ? Number(e.target.value) / 100 : 0 }))}
               size="small" fullWidth
+              placeholder="—"
               InputProps={{
                 startAdornment: <InputAdornment position="start"><Euro size={12} strokeWidth={1.75} /></InputAdornment>,
                 endAdornment: <InputAdornment position="end">%</InputAdornment>,
@@ -905,10 +906,37 @@ interface SplitPreviewBarProps {
 /**
  * Barre visuelle qui montre la répartition réelle d'un paiement :
  *  propriétaire (gris bleuté) · plateforme (or) · conciergerie (vert).
- * Beaucoup plus parlant qu'un chip "80 % propriétaire" en bout de ligne.
+ *
+ * Si aucune commission n'est encore définie (rate <= 0), affiche un placeholder
+ * neutre au lieu de pourcentages calculés sur des valeurs non saisies.
+ * La barre est entièrement réactive à `commissionRate` (mise à jour instantanée
+ * dès que l'utilisateur tape).
  */
 const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, splitRatios }) => {
-  const commissionPct = commissionRate * 100;
+  const commissionPct = (commissionRate ?? 0) * 100;
+  const hasCommission = commissionPct > 0;
+
+  // État vide : aucune commission saisie → pas de calcul, juste un repère visuel.
+  if (!hasCommission) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+        <Box
+          sx={{
+            height: 8,
+            borderRadius: 0.75,
+            border: '1px dashed',
+            borderColor: 'divider',
+            bgcolor: 'transparent',
+          }}
+          aria-label="Aucune commission définie"
+        />
+        <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', fontStyle: 'italic' }}>
+          Saisis un taux de commission pour voir la répartition appliquée à ce contrat.
+        </Typography>
+      </Box>
+    );
+  }
+
   const ownerPct = 100 - commissionPct;
   const platformBase = splitRatios?.platformShare ?? 0.05;
   const conciergeBase = splitRatios?.conciergeShare ?? 0.15;
@@ -950,7 +978,7 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
               sx={{
                 width: `${seg.pct}%`,
                 bgcolor: seg.color,
-                transition: 'width 200ms ease',
+                transition: 'width 200ms cubic-bezier(0.22, 1, 0.36, 1)',
               }}
             />
           </Tooltip>
