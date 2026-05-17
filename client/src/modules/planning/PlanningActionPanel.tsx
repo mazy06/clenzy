@@ -315,7 +315,18 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
         position: 'relative',
         zIndex: theme.zIndex.drawer + 1,
         '& .MuiDrawer-paper': {
-          width: ACTION_PANEL_WIDTH,
+          // Largeur responsive : full-screen sur mobile, generale sur tablette,
+          // plus large sur desktop pour exploiter l'espace ecran.
+          // ACTION_PANEL_WIDTH (=380) reste la valeur historique de base (sm).
+          width: {
+            xs: '100vw',
+            sm: ACTION_PANEL_WIDTH,
+            md: 440,
+            lg: 520,
+            xl: 600,
+          },
+          // Empeche le panel de prendre plus de 40% de la largeur sur tres grand ecran
+          maxWidth: { xs: '100vw', sm: '90vw', md: '50vw', lg: '40vw' },
           position: 'fixed',
           borderLeft: '1px solid',
           borderColor: 'divider',
