@@ -319,50 +319,47 @@ const ManagementContractsPage: React.FC = () => {
       <Paper
         variant="outlined"
         sx={{
-          p: { xs: 1.5, md: 2 },
+          p: { xs: 1.25, md: 1.5 },
           borderRadius: 2,
           borderColor: editingContract ? 'warning.light' : 'divider',
           borderLeftWidth: 3,
           borderLeftColor: editingContract ? 'warning.main' : 'primary.main',
           bgcolor: 'background.paper',
-          backgroundImage: (theme) => theme.palette.mode === 'dark'
-            ? 'linear-gradient(180deg, rgba(107,138,154,0.04) 0%, rgba(107,138,154,0.00) 60%)'
-            : 'linear-gradient(180deg, rgba(107,138,154,0.04) 0%, rgba(107,138,154,0.00) 60%)',
           // Compact form sizing — fields, labels, helper text scaled down to match the sidebar density.
-          '& .MuiInputBase-input': { fontSize: '0.8125rem', py: '7px' },
-          '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
-          '& .MuiOutlinedInput-root': { borderRadius: 1.25 },
-          '& .MuiSelect-select': { py: '7px' },
+          '& .MuiInputBase-input': { fontSize: '0.75rem', py: '5px' },
+          '& .MuiInputLabel-root': { fontSize: '0.75rem' },
+          '& .MuiOutlinedInput-root': { borderRadius: 1 },
+          '& .MuiSelect-select': { py: '5px' },
           '& .MuiFormHelperText-root': { fontSize: '0.625rem', mt: 0.25 },
-          '& .MuiInputAdornment-root': { '& > *': { fontSize: '0.875rem' } },
-          '& .MuiFormControlLabel-label': { fontSize: '0.75rem' },
-          '& .MuiSwitch-root': { transform: 'scale(0.85)' },
+          '& .MuiInputAdornment-root': { '& > *': { fontSize: '0.8125rem' } },
+          '& .MuiFormControlLabel-label': { fontSize: '0.6875rem' },
+          '& .MuiSwitch-root': { transform: 'scale(0.75)' },
         }}
       >
         {/* Bandeau de mode */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.25 }}>
           <Box
             component="span"
             sx={{
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 24, height: 24,
+              width: 18, height: 18,
               borderRadius: '50%',
               bgcolor: editingContract ? 'warning.main' : 'primary.main',
               color: '#fff',
             }}
           >
-            {editingContract ? <Edit size={13} strokeWidth={2} /> : <Add size={14} strokeWidth={2.25} />}
+            {editingContract ? <Edit size={10} strokeWidth={2} /> : <Add size={11} strokeWidth={2.25} />}
           </Box>
-          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: editingContract ? 'warning.main' : 'primary.main' }}>
+          <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7, color: editingContract ? 'warning.main' : 'primary.main' }}>
             {editingContract ? `Modification · ${editingContract.contractNumber}` : 'Nouveau contrat'}
           </Typography>
           <Box sx={{ flex: 1 }} />
           {editingContract && (
             <Tooltip title="Annuler la modification">
               <IconButton size="small" onClick={resetForm} sx={{ p: 0.25 }}>
-                <Close size={14} strokeWidth={1.75} />
+                <Close size={13} strokeWidth={1.75} />
               </IconButton>
             </Tooltip>
           )}
@@ -372,7 +369,7 @@ const ManagementContractsPage: React.FC = () => {
         <Box sx={{
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', md: 'repeat(12, 1fr)' },
-          gap: { xs: 1.25, md: 1.5 },
+          gap: { xs: 1, md: 1.25 },
           alignItems: 'flex-start',
         }}>
           {/* ── Logement ── */}
@@ -833,16 +830,16 @@ const FieldGroup: React.FC<FieldGroupProps> = ({ label, span, children }) => (
     sx={{
       display: 'flex',
       flexDirection: 'column',
-      gap: 0.5,
+      gap: 0.375,
       gridColumn: { xs: 'span 1', md: `span ${span?.md ?? 12}` },
     }}
   >
     <Typography
       sx={{
-        fontSize: '0.625rem',
+        fontSize: '0.5625rem',
         fontWeight: 700,
         textTransform: 'uppercase',
-        letterSpacing: 0.7,
+        letterSpacing: 0.6,
         color: 'text.disabled',
         ml: 0.25,
       }}
@@ -887,13 +884,13 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
   ];
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
       {/* Barre segmentée */}
       <Box
         sx={{
           display: 'flex',
-          height: 14,
-          borderRadius: 1,
+          height: 8,
+          borderRadius: 0.75,
           overflow: 'hidden',
           border: '1px solid',
           borderColor: 'divider',
@@ -915,19 +912,19 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
         ))}
       </Box>
       {/* Légende */}
-      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', gap: 1.25, flexWrap: 'wrap' }}>
         {segments.map((seg) => (
           <Box key={seg.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Box
               sx={{
-                width: 8, height: 8, borderRadius: '2px',
+                width: 6, height: 6, borderRadius: '50%',
                 bgcolor: seg.color,
               }}
             />
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 500 }}>
+            <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', fontWeight: 500 }}>
               {seg.label}
             </Typography>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.primary', fontWeight: 700 }}>
+            <Typography sx={{ fontSize: '0.625rem', color: 'text.primary', fontWeight: 600 }}>
               {seg.pct.toFixed(seg.pct >= 10 ? 0 : 1)} %
             </Typography>
           </Box>
