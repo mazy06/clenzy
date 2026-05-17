@@ -551,8 +551,8 @@ const ManagementContractsPage: React.FC = () => {
         <EmptyState
           icon={<Handshake />}
           title={t('contracts.noContracts')}
-          description="Sans contrat actif, les paiements sont répartis en 2 parts seulement (propriétaire / plateforme), sans rémunération conciergerie."
-          tip="Crée ton premier contrat via le formulaire ci-dessus pour activer la répartition à 3 parts (propriétaire · plateforme · conciergerie)."
+          description="Sans contrat actif, les paiements suivent la répartition par défaut de l'organisation (Paramètres → Paiement → Répartition des revenus)."
+          tip="Crée un contrat ici pour appliquer une commission spécifique à un bien (au lieu de la répartition globale)."
         />
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
