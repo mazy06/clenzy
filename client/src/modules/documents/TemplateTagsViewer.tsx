@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Paper,
   Typography,
@@ -63,6 +63,26 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
 
   const categories = Object.keys(groupedTags).sort();
 
+  // Comportement single-open : un seul accordeon ouvert a la fois.
+  // Par defaut, le premier accordeon (ordre alphabetique) est ouvert.
+  // Si l'utilisateur clique sur celui deja ouvert, il se referme (false).
+  const [expanded, setExpanded] = useState<string | false>(false);
+
+  useEffect(() => {
+    if (categories.length > 0 && expanded === false) {
+      setExpanded(categories[0]);
+    }
+    // Si la categorie ouverte n'existe plus (re-scan), retomber sur la 1ere
+    if (typeof expanded === 'string' && !categories.includes(expanded) && categories.length > 0) {
+      setExpanded(categories[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories.join('|')]);
+
+  const handleChange = (cat: string) => (_e: React.SyntheticEvent, isExpanded: boolean) => {
+    setExpanded(isExpanded ? cat : false);
+  };
+
   return (
     <Paper sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -76,7 +96,11 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
         </Typography>
       ) : (
         categories.map((cat) => (
-          <Accordion key={cat} defaultExpanded={categories.length <= 4}>
+          <Accordion
+            key={cat}
+            expanded={expanded === cat}
+            onChange={handleChange(cat)}
+          >
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box sx={{
