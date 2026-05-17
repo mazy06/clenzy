@@ -35,6 +35,7 @@ import {
   useReplaceTemplateFile,
 } from './hooks/useDocuments';
 import TemplateTagsViewer from './TemplateTagsViewer';
+import ConfirmationModal from '../../components/ConfirmationModal';
 import { documentsApi } from '../../services/api/documentsApi';
 
 const TemplateDetails: React.FC = () => {
@@ -50,6 +51,8 @@ const TemplateDetails: React.FC = () => {
   const replaceFileMutation = useReplaceTemplateFile();
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Modal de confirmation pour le remplacement du fichier (remplace window.confirm)
+  const [pendingReplaceFile, setPendingReplaceFile] = useState<File | null>(null);
 
   const [editing, setEditing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -180,32 +183,42 @@ const TemplateDetails: React.FC = () => {
 
   // Remplacer le fichier .odt source du template tout en gardant le meme id /
   // les memes metadata. Re-parse les tags et regenere l'apercu apres succes.
+  // Workflow : clic → input file → selection → ouvre modal de confirmation
+  // (ConfirmationModal) → onConfirm → mutation + reload preview.
   const handleReplaceFileClick = () => {
     fileInputRef.current?.click();
   };
 
-  const handleReplaceFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReplaceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Reset l'input pour permettre de re-selectionner le meme fichier plus tard
+    e.target.value = '';
     if (!file) return;
     if (!file.name.toLowerCase().endsWith('.odt')) {
       setActionError('Seuls les fichiers .odt sont acceptes');
-      e.target.value = '';
-      return;
-    }
-    if (!window.confirm(`Remplacer le fichier actuel par "${file.name}" ? Les tags seront re-scannes.`)) {
-      e.target.value = '';
       return;
     }
     setActionError(null);
+    setPendingReplaceFile(file);
+  };
+
+  const handleConfirmReplace = async () => {
+    if (!pendingReplaceFile) return;
+    const file = pendingReplaceFile;
+    setActionError(null);
     try {
       await replaceFileMutation.mutateAsync({ id: templateId, file });
+      setPendingReplaceFile(null);
       // Regenere l'apercu PDF avec le nouveau contenu
       await loadPreview();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Erreur lors du remplacement du fichier');
-    } finally {
-      e.target.value = '';
+      setPendingReplaceFile(null);
     }
+  };
+
+  const handleCancelReplace = () => {
+    setPendingReplaceFile(null);
   };
 
   if (isLoading) {
@@ -447,6 +460,26 @@ const TemplateDetails: React.FC = () => {
           </Box>
         </Grid>
       </Grid>
+
+      {/* ── Modal de confirmation du remplacement de fichier ─────────── */}
+      <ConfirmationModal
+        open={Boolean(pendingReplaceFile)}
+        onClose={handleCancelReplace}
+        onConfirm={handleConfirmReplace}
+        title="Remplacer le fichier du template ?"
+        message={
+          pendingReplaceFile
+            ? `Le contenu actuel sera remplacé par « ${pendingReplaceFile.name} » et les tags seront re-scannés. Le nom, le type et le statut actif du template restent inchangés.`
+            : ''
+        }
+        confirmText="Remplacer"
+        cancelText="Annuler"
+        severity="info"
+        loading={replaceFileMutation.isPending}
+        icon={<Upload size={22} strokeWidth={1.75} />}
+        confirmIcon={<Upload size={18} strokeWidth={1.75} />}
+        confirmColor="primary"
+      />
     </Box>
   );
 };
