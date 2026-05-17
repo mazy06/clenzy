@@ -151,6 +151,59 @@ export const documentsApi = {
     return apiClient.post<DocumentTemplate>(`/documents/templates/${id}/reparse`);
   },
 
+  /** Telecharger le fichier .odt source du template (avec balises non substituees). */
+  async downloadTemplateOriginal(id: number, filename: string) {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/documents/templates/${id}/download`;
+    const token = getAccessToken();
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status} lors du telechargement du template`);
+    }
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename || 'template.odt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  },
+
+  /**
+   * Recupere l'apercu PDF d'un template rempli avec des donnees factices
+   * et retourne une object URL (Blob) prete a etre affichee dans une balise
+   * <iframe> ou un viewer PDF. L'appelant doit liberer l'URL via revokeObjectURL.
+   */
+  async fetchTemplatePreviewBlobUrl(id: number): Promise<string> {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/documents/templates/${id}/preview`;
+    const token = getAccessToken();
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status} lors de la generation de l'apercu`);
+    }
+    const blob = await response.blob();
+    return window.URL.createObjectURL(blob);
+  },
+
+  /** Telecharger directement l'apercu PDF (fichier _preview.pdf). */
+  async downloadTemplatePreview(id: number, filename: string) {
+    const blobUrl = await this.fetchTemplatePreviewBlobUrl(id);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename || 'template_preview.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  },
+
   // ─── Generation ─────────────────────────────────────────────────────────
 
   generateDocument(request: GenerateDocumentRequest) {

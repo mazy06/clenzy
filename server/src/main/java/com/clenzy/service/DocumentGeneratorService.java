@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -260,6 +261,150 @@ public class DocumentGeneratorService {
 
         log.info("Template re-parsed: {} ({} tags)", template.getName(), tags.size());
         return template;
+    }
+
+    // ─── Download / Preview ─────────────────────────────────────────────────
+
+    /**
+     * Retourne le contenu binaire du fichier source du template (.odt).
+     * Utile pour exposer le template d'origine au PMS (telechargement,
+     * inspection, archivage).
+     */
+    @Transactional(readOnly = true)
+    public byte[] getTemplateOriginalContent(Long id) {
+        DocumentTemplate template = getTemplate(id);
+        return resolveTemplateContent(template);
+    }
+
+    /**
+     * Genere un PDF de previsualisation d'un template en utilisant des donnees
+     * factices coherentes (sample data). Ne persiste rien en BDD (aucun
+     * DocumentGeneration cree), n'envoie pas de mail. Utile pour visualiser
+     * un template avant son activation.
+     *
+     * @return bytes PDF prets a etre servis au client
+     */
+    @Transactional(readOnly = true)
+    public byte[] generateTemplatePreview(Long id) {
+        DocumentTemplate template = getTemplate(id);
+        try {
+            byte[] templateContent = resolveTemplateContent(template);
+            Map<String, Object> context = buildSampleContext(template);
+            byte[] filledOdt = fillTemplate(templateContent, context);
+            return conversionService.convertToPdf(filledOdt, template.getOriginalFilename());
+        } catch (Exception e) {
+            log.error("Erreur preview template id={}: {}", id, e.getMessage(), e);
+            throw new DocumentGenerationException("Impossible de generer la previsualisation : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Construit un contexte avec des valeurs factices pour chacun des tags
+     * declares sur le template. La valeur est choisie par heuristique sur le
+     * nom du champ (email, date, montant, telephone, etc.) pour rester
+     * realiste sans dependre de donnees reelles.
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> buildSampleContext(DocumentTemplate template) {
+        Map<String, Object> context = new HashMap<>();
+        List<DocumentTemplateTag> tags = template.getTags();
+        if (tags == null) return context;
+
+        for (DocumentTemplateTag tag : tags) {
+            String tagName = tag.getTagName();
+            if (tagName == null || !tagName.contains(".")) continue;
+            int dotIndex = tagName.indexOf('.');
+            String group = tagName.substring(0, dotIndex);
+            String field = tagName.substring(dotIndex + 1);
+
+            Map<String, Object> groupMap = (Map<String, Object>) context.computeIfAbsent(group, k -> new HashMap<String, Object>());
+            groupMap.put(field, sampleValueFor(group, field));
+        }
+        return context;
+    }
+
+    /**
+     * Heuristique simple pour generer une valeur factice realiste selon le
+     * nom du champ. Pas exhaustif — couvre les patterns frequents.
+     */
+    private String sampleValueFor(String group, String field) {
+        String f = field.toLowerCase();
+        // Valeurs liees au numero legal / NF
+        if ("nf".equalsIgnoreCase(group)) {
+            if (f.contains("numero") || f.contains("number")) return "DEVIS-2026-0001";
+            if (f.contains("date")) return "12/03/2026";
+            if (f.contains("mention")) return "TVA non applicable, art. 293 B du CGI.";
+        }
+        // Emails
+        if (f.contains("email") || f.contains("mail")) {
+            if ("entreprise".equalsIgnoreCase(group) || "company".equalsIgnoreCase(group)) return "contact@clenzy.fr";
+            return "jean.dupont@example.com";
+        }
+        // Telephones
+        if (f.contains("phone") || f.contains("tel") || f.contains("mobile")) return "+33 6 12 34 56 78";
+        // Dates
+        if (f.contains("date") || f.endsWith("at") || f.startsWith("date")) return "12/03/2026";
+        // Montants / prix
+        if (f.contains("price") || f.contains("amount") || f.contains("total")
+                || f.contains("montant") || f.contains("ht") || f.contains("ttc") || f.contains("tva")) {
+            return "1 234,56 €";
+        }
+        // Pourcentages / taux
+        if (f.contains("rate") || f.contains("taux") || f.contains("percent")) return "20 %";
+        // Codes postaux
+        if (f.contains("postal") || f.contains("zip") || f.contains("cp")) return "75003";
+        // Ville / pays
+        if (f.contains("city") || f.contains("ville")) return "Paris";
+        if (f.contains("country") || f.contains("pays")) return "France";
+        // Adresses
+        if (f.contains("street") || f.contains("rue") || f.contains("adresse") || f.contains("address")) {
+            return "12 rue de Turenne";
+        }
+        // Surface
+        if (f.contains("surface") || f.contains("area")) return "45 m²";
+        // SIRET / TVA num
+        if (f.contains("siret")) return "123 456 789 00012";
+        if (f.contains("vat") || f.contains("tva") && f.contains("num")) return "FR12345678901";
+        if (f.contains("iban")) return "FR76 1234 5678 9012 3456 7890 123";
+        // Noms / prenoms
+        if (f.contains("firstname") || f.contains("prenom")) return "Jean";
+        if (f.contains("lastname") || f.contains("nom")) return "Dupont";
+        if (f.contains("fullname") || f.equals("name")) {
+            switch (group.toLowerCase()) {
+                case "entreprise":
+                case "company":
+                    return "Clenzy SAS";
+                case "intervention":
+                    return "Ménage hôtelier";
+                case "bien":
+                case "property":
+                    return "Studio Le Marais";
+                default:
+                    return "Jean Dupont";
+            }
+        }
+        // Identifiants
+        if (f.equals("id") || f.endsWith("id")) return "42";
+        // Description / commentaire
+        if (f.contains("description") || f.contains("comment") || f.contains("note") || f.contains("remarque")) {
+            return "Lorem ipsum dolor sit amet — donnée d'exemple pour prévisualisation.";
+        }
+        // Quantite
+        if (f.contains("quantity") || f.contains("quantite") || f.contains("count") || f.contains("nombre")) return "3";
+        // Reference / numero
+        if (f.contains("ref") || f.contains("numero") || f.contains("number")) return "REF-001";
+        // Fallback generique selon le groupe
+        switch (group.toLowerCase()) {
+            case "client":     return "[Client " + field + "]";
+            case "entreprise":
+            case "company":    return "[Entreprise " + field + "]";
+            case "intervention": return "[Intervention " + field + "]";
+            case "bien":
+            case "property":   return "[Bien " + field + "]";
+            case "system":
+            case "systeme":    return "[" + field + "]";
+            default:           return "[" + group + "." + field + "]";
+        }
     }
 
     // ─── Generation de documents ────────────────────────────────────────────
