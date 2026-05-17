@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import {
   Add, Edit, CheckCircle, Pause, Cancel, Close, Save, Check,
-  Handshake, Home, Person, Euro, CalendarMonth,
+  Handshake, Home, Person, Euro,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -315,33 +315,47 @@ const ManagementContractsPage: React.FC = () => {
         )}
       />
 
-      {/* ─── Inline create/edit form — toujours visible, 2 lignes max ─ */}
+      {/* ─── Inline create/edit form — organisé en 4 groupes visuels ───── */}
       <Paper
         variant="outlined"
         sx={{
-          p: 1.25,
-          borderRadius: 1.5,
-          borderColor: editingContract ? 'warning.main' : 'primary.main',
+          p: { xs: 1.5, md: 2 },
+          borderRadius: 2,
+          borderColor: editingContract ? 'warning.light' : 'divider',
           borderLeftWidth: 3,
           borderLeftColor: editingContract ? 'warning.main' : 'primary.main',
-          bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(107,138,154,0.06)' : 'rgba(107,138,154,0.03)',
+          bgcolor: 'background.paper',
+          backgroundImage: (theme) => theme.palette.mode === 'dark'
+            ? 'linear-gradient(180deg, rgba(107,138,154,0.04) 0%, rgba(107,138,154,0.00) 60%)'
+            : 'linear-gradient(180deg, rgba(107,138,154,0.04) 0%, rgba(107,138,154,0.00) 60%)',
           // Compact form sizing — fields, labels, helper text scaled down to match the sidebar density.
-          '& .MuiInputBase-input': { fontSize: '0.75rem', py: '6px' },
-          '& .MuiInputLabel-root': { fontSize: '0.75rem' },
-          '& .MuiOutlinedInput-root': { borderRadius: 1 },
-          '& .MuiSelect-select': { py: '6px' },
+          '& .MuiInputBase-input': { fontSize: '0.8125rem', py: '7px' },
+          '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+          '& .MuiOutlinedInput-root': { borderRadius: 1.25 },
+          '& .MuiSelect-select': { py: '7px' },
           '& .MuiFormHelperText-root': { fontSize: '0.625rem', mt: 0.25 },
           '& .MuiInputAdornment-root': { '& > *': { fontSize: '0.875rem' } },
-          '& .MuiFormControlLabel-label': { fontSize: '0.6875rem' },
-          '& .MuiSwitch-root': { transform: 'scale(0.8)' },
+          '& .MuiFormControlLabel-label': { fontSize: '0.75rem' },
+          '& .MuiSwitch-root': { transform: 'scale(0.85)' },
         }}
       >
         {/* Bandeau de mode */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: editingContract ? 'warning.main' : 'primary.main' }}>
-            {editingContract ? <Edit size={12} strokeWidth={1.75} /> : <Add size={12} strokeWidth={1.75} />}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+          <Box
+            component="span"
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 24, height: 24,
+              borderRadius: '50%',
+              bgcolor: editingContract ? 'warning.main' : 'primary.main',
+              color: '#fff',
+            }}
+          >
+            {editingContract ? <Edit size={13} strokeWidth={2} /> : <Add size={14} strokeWidth={2.25} />}
           </Box>
-          <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: editingContract ? 'warning.main' : 'primary.main' }}>
+          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: editingContract ? 'warning.main' : 'primary.main' }}>
             {editingContract ? `Modification · ${editingContract.contractNumber}` : 'Nouveau contrat'}
           </Typography>
           <Box sx={{ flex: 1 }} />
@@ -354,127 +368,133 @@ const ManagementContractsPage: React.FC = () => {
           )}
         </Box>
 
-        {/* Ligne 1 — champs principaux */}
+        {/* Grid 12-col à 4 groupes */}
         <Box sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1.6fr 1.3fr 0.8fr 1fr 1fr 0.8fr 0.8fr' },
-          gap: 1.25,
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(12, 1fr)' },
+          gap: { xs: 1.25, md: 1.5 },
           alignItems: 'flex-start',
-          mb: 1.25,
         }}>
-          <TextField
-            select label={t('contracts.property')} value={form.propertyId || ''}
-            onChange={e => handlePropertyChange(Number(e.target.value))}
-            size="small" fullWidth
-            InputProps={{ startAdornment: <InputAdornment position="start"><Home size={14} strokeWidth={1.75} /></InputAdornment> }}
-          >
-            {properties.map(p => (
-              <MenuItem key={p.id} value={p.id}>
-                {p.name}{p.ownerName ? ` (${p.ownerName})` : ''}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select label={t('contracts.type')} value={form.contractType}
-            onChange={e => setForm(prev => ({ ...prev, contractType: e.target.value as ContractType }))}
-            size="small" fullWidth
-          >
-            {(Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(([key, label]) => (
-              <MenuItem key={key} value={key}>{label}</MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            label="Commission" type="number"
-            value={Math.round(form.commissionRate * 100)}
-            onChange={e => setForm(prev => ({ ...prev, commissionRate: Number(e.target.value) / 100 }))}
-            size="small" fullWidth
-            InputProps={{
-              startAdornment: <InputAdornment position="start"><Euro size={12} strokeWidth={1.75} /></InputAdornment>,
-              endAdornment: <InputAdornment position="end">%</InputAdornment>,
-            }}
-            inputProps={{ min: 1, max: 50, step: 1 }}
-          />
-          <TextField
-            label={t('contracts.startDate')} type="date" value={form.startDate}
-            onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
-            size="small" fullWidth
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label={t('contracts.endDate')} type="date" value={form.endDate ?? ''}
-            onChange={e => setForm(prev => ({ ...prev, endDate: e.target.value || null }))}
-            size="small" fullWidth
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="Nuits min." type="number"
-            value={form.minimumStayNights ?? ''}
-            onChange={e => setForm(prev => ({ ...prev, minimumStayNights: e.target.value ? Number(e.target.value) : null }))}
-            size="small" fullWidth
-            inputProps={{ min: 1 }}
-          />
-          <TextField
-            label="Préavis" type="number"
-            value={form.noticePeriodDays ?? 30}
-            onChange={e => setForm(prev => ({ ...prev, noticePeriodDays: Number(e.target.value) }))}
-            size="small" fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end">j</InputAdornment> }}
-          />
+          {/* ── Logement ── */}
+          <FieldGroup label="Logement" span={{ md: 5 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 1 }}>
+              <TextField
+                select label={t('contracts.property')} value={form.propertyId || ''}
+                onChange={e => handlePropertyChange(Number(e.target.value))}
+                size="small" fullWidth
+                InputProps={{ startAdornment: <InputAdornment position="start"><Home size={14} strokeWidth={1.75} /></InputAdornment> }}
+              >
+                {properties.map(p => (
+                  <MenuItem key={p.id} value={p.id}>
+                    {p.name}{p.ownerName ? ` (${p.ownerName})` : ''}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                select label={t('contracts.type')} value={form.contractType}
+                onChange={e => setForm(prev => ({ ...prev, contractType: e.target.value as ContractType }))}
+                size="small" fullWidth
+              >
+                {(Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(([key, label]) => (
+                  <MenuItem key={key} value={key}>{label}</MenuItem>
+                ))}
+              </TextField>
+            </Box>
+          </FieldGroup>
+
+          {/* ── Période ── */}
+          <FieldGroup label="Période" span={{ md: 5 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.65fr 0.65fr', gap: 1 }}>
+              <TextField
+                label={t('contracts.startDate')} type="date" value={form.startDate}
+                onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
+                size="small" fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label={t('contracts.endDate')} type="date" value={form.endDate ?? ''}
+                onChange={e => setForm(prev => ({ ...prev, endDate: e.target.value || null }))}
+                size="small" fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="Nuits min." type="number"
+                value={form.minimumStayNights ?? ''}
+                onChange={e => setForm(prev => ({ ...prev, minimumStayNights: e.target.value ? Number(e.target.value) : null }))}
+                size="small" fullWidth
+                inputProps={{ min: 1 }}
+              />
+              <TextField
+                label="Préavis" type="number"
+                value={form.noticePeriodDays ?? 30}
+                onChange={e => setForm(prev => ({ ...prev, noticePeriodDays: Number(e.target.value) }))}
+                size="small" fullWidth
+                InputProps={{ endAdornment: <InputAdornment position="end">j</InputAdornment> }}
+              />
+            </Box>
+          </FieldGroup>
+
+          {/* ── Commission ── */}
+          <FieldGroup label="Commission" span={{ md: 2 }}>
+            <TextField
+              label="Taux" type="number"
+              value={Math.round(form.commissionRate * 100)}
+              onChange={e => setForm(prev => ({ ...prev, commissionRate: Number(e.target.value) / 100 }))}
+              size="small" fullWidth
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><Euro size={12} strokeWidth={1.75} /></InputAdornment>,
+                endAdornment: <InputAdornment position="end">%</InputAdornment>,
+              }}
+              inputProps={{ min: 1, max: 50, step: 1 }}
+            />
+          </FieldGroup>
+
+          {/* ── Inclusions ── */}
+          <FieldGroup label="Inclusions" span={{ md: 6 }}>
+            <Box sx={{
+              display: 'flex',
+              gap: 0.5,
+              flexWrap: 'wrap',
+              minHeight: 36,
+              alignItems: 'center',
+              pl: 0.5,
+            }}>
+              <FormControlLabel
+                control={<Switch size="small" checked={form.autoRenew ?? false} onChange={e => setForm(prev => ({ ...prev, autoRenew: e.target.checked }))} />}
+                label="Renouvellement auto"
+                sx={{ mr: 1.5 }}
+              />
+              <FormControlLabel
+                control={<Switch size="small" checked={form.cleaningFeeIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, cleaningFeeIncluded: e.target.checked }))} />}
+                label="Ménage inclus"
+                sx={{ mr: 1.5 }}
+              />
+              <FormControlLabel
+                control={<Switch size="small" checked={form.maintenanceIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, maintenanceIncluded: e.target.checked }))} />}
+                label="Maintenance incluse"
+              />
+            </Box>
+          </FieldGroup>
+
+          {/* ── Répartition (split bar) ── */}
+          <FieldGroup label="Répartition des paiements" span={{ md: 6 }}>
+            <SplitPreviewBar commissionRate={form.commissionRate} splitRatios={splitRatios} />
+          </FieldGroup>
+
+          {/* ── Notes ── */}
+          <FieldGroup label="Notes" span={{ md: 12 }}>
+            <TextField
+              value={form.notes ?? ''}
+              onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
+              size="small"
+              fullWidth
+              placeholder="Détails complémentaires, conditions particulières… (optionnel)"
+            />
+          </FieldGroup>
         </Box>
 
-        {/* Ligne 2 — options, notes, actions */}
-        <Box sx={{
-          display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap',
-        }}>
-          <Box sx={{ display: 'flex', gap: 0.25, flexWrap: 'wrap' }}>
-            <FormControlLabel
-              control={<Switch size="small" checked={form.autoRenew ?? false} onChange={e => setForm(prev => ({ ...prev, autoRenew: e.target.checked }))} />}
-              label={<Typography sx={{ fontSize: '0.75rem' }}>Renouvellement auto</Typography>}
-              sx={{ mr: 1 }}
-            />
-            <FormControlLabel
-              control={<Switch size="small" checked={form.cleaningFeeIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, cleaningFeeIncluded: e.target.checked }))} />}
-              label={<Typography sx={{ fontSize: '0.75rem' }}>Ménage inclus</Typography>}
-              sx={{ mr: 1 }}
-            />
-            <FormControlLabel
-              control={<Switch size="small" checked={form.maintenanceIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, maintenanceIncluded: e.target.checked }))} />}
-              label={<Typography sx={{ fontSize: '0.75rem' }}>Maintenance incluse</Typography>}
-            />
-          </Box>
-          <TextField
-            label="Notes" value={form.notes ?? ''}
-            onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
-            size="small"
-            placeholder="Optionnel"
-            sx={{ flex: 1, minWidth: 200 }}
-          />
-          {/* Split preview compact */}
-          <Tooltip
-            title={(() => {
-              const commissionPct = form.commissionRate * 100;
-              const ownerPct = 100 - commissionPct;
-              const platformBase = splitRatios?.platformShare ?? 0.05;
-              const conciergeBase = splitRatios?.conciergeShare ?? 0.15;
-              const commissionTotal = platformBase + conciergeBase;
-              const platformRatio = commissionTotal > 0 ? platformBase / commissionTotal : 0.25;
-              const conciergeRatio = commissionTotal > 0 ? conciergeBase / commissionTotal : 0.75;
-              return `${t('contracts.ownerGets')}: ${ownerPct.toFixed(0)}% · ${t('contracts.platformGets')}: ${(commissionPct * platformRatio).toFixed(1)}% · ${t('contracts.conciergeGets')}: ${(commissionPct * conciergeRatio).toFixed(1)}%`;
-            })()}
-          >
-            <Chip
-              size="small"
-              icon={<Euro size={12} strokeWidth={1.75} />}
-              label={`${(100 - form.commissionRate * 100).toFixed(0)}% propriétaire`}
-              sx={{
-                fontSize: '0.6875rem', fontWeight: 600,
-                bgcolor: '#6B8A9A20', color: '#6B8A9A',
-                border: '1px solid #6B8A9A40',
-                '& .MuiChip-icon': { color: '#6B8A9A' },
-              }}
-            />
-          </Tooltip>
-          {editingContract && (
+        {editingContract && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
             <Button
               onClick={resetForm}
               size="small"
@@ -483,9 +503,9 @@ const ManagementContractsPage: React.FC = () => {
             >
               {t('contracts.cancel')}
             </Button>
-          )}
-          {/* Submit button is in the page header (top-right) to avoid duplication. */}
-        </Box>
+          </Box>
+        )}
+        {/* Submit button is in the page header (top-right) to avoid duplication. */}
       </Paper>
 
       {/* ─── Body ──────────────────────────────────────────────────── */}
@@ -497,7 +517,8 @@ const ManagementContractsPage: React.FC = () => {
         <EmptyState
           icon={<Handshake />}
           title={t('contracts.noContracts')}
-          description="Les paiements seront répartis en 2 parts (propriétaire / plateforme). Remplis le formulaire ci-dessus pour créer ton premier contrat."
+          description="Sans contrat actif, les paiements sont répartis en 2 parts seulement (propriétaire / plateforme), sans rémunération conciergerie."
+          tip="Crée ton premier contrat via le formulaire ci-dessus pour activer la répartition à 3 parts (propriétaire · plateforme · conciergerie)."
         />
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -792,3 +813,126 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
 };
 
 export default ManagementContractsPage;
+
+// ─── Form helpers ────────────────────────────────────────────────────────────
+
+interface FieldGroupProps {
+  /** Étiquette du groupe (capitales discrètes au-dessus des champs). */
+  label: string;
+  /** Largeur du groupe en colonnes (sur 12). Par défaut : pleine largeur. */
+  span?: { md?: number };
+  children: React.ReactNode;
+}
+
+/**
+ * Conteneur visuel pour grouper des champs liés sous une même étiquette.
+ * Donne une lecture hiérarchique au formulaire sans alourdir le DOM.
+ */
+const FieldGroup: React.FC<FieldGroupProps> = ({ label, span, children }) => (
+  <Box
+    sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 0.5,
+      gridColumn: { xs: 'span 1', md: `span ${span?.md ?? 12}` },
+    }}
+  >
+    <Typography
+      sx={{
+        fontSize: '0.625rem',
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: 0.7,
+        color: 'text.disabled',
+        ml: 0.25,
+      }}
+    >
+      {label}
+    </Typography>
+    {children}
+  </Box>
+);
+
+// ─── Split preview bar ───────────────────────────────────────────────────────
+
+interface SplitPreviewBarProps {
+  commissionRate: number;
+  splitRatios: SplitRatios | null;
+}
+
+/**
+ * Barre visuelle qui montre la répartition réelle d'un paiement :
+ *  propriétaire (gris bleuté) · plateforme (or) · conciergerie (vert).
+ * Beaucoup plus parlant qu'un chip "80 % propriétaire" en bout de ligne.
+ */
+const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, splitRatios }) => {
+  const commissionPct = commissionRate * 100;
+  const ownerPct = 100 - commissionPct;
+  const platformBase = splitRatios?.platformShare ?? 0.05;
+  const conciergeBase = splitRatios?.conciergeShare ?? 0.15;
+  const commissionTotal = platformBase + conciergeBase;
+  const platformRatio = commissionTotal > 0 ? platformBase / commissionTotal : 0.25;
+  const conciergeRatio = commissionTotal > 0 ? conciergeBase / commissionTotal : 0.75;
+  const platformPct = commissionPct * platformRatio;
+  const conciergePct = commissionPct * conciergeRatio;
+
+  const OWNER_COLOR = '#6B8A9A';
+  const PLATFORM_COLOR = '#D4A574';
+  const CONCIERGE_COLOR = '#10b981';
+
+  const segments = [
+    { label: 'Propriétaire', pct: ownerPct, color: OWNER_COLOR },
+    { label: 'Plateforme',   pct: platformPct, color: PLATFORM_COLOR },
+    { label: 'Conciergerie', pct: conciergePct, color: CONCIERGE_COLOR },
+  ];
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+      {/* Barre segmentée */}
+      <Box
+        sx={{
+          display: 'flex',
+          height: 14,
+          borderRadius: 1,
+          overflow: 'hidden',
+          border: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.default',
+        }}
+        role="img"
+        aria-label={`Répartition : propriétaire ${ownerPct.toFixed(0)}%, plateforme ${platformPct.toFixed(1)}%, conciergerie ${conciergePct.toFixed(1)}%`}
+      >
+        {segments.map((seg) => (
+          <Tooltip key={seg.label} title={`${seg.label} : ${seg.pct.toFixed(1)} %`} arrow>
+            <Box
+              sx={{
+                width: `${seg.pct}%`,
+                bgcolor: seg.color,
+                transition: 'width 200ms ease',
+              }}
+            />
+          </Tooltip>
+        ))}
+      </Box>
+      {/* Légende */}
+      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+        {segments.map((seg) => (
+          <Box key={seg.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box
+              sx={{
+                width: 8, height: 8, borderRadius: '2px',
+                bgcolor: seg.color,
+              }}
+            />
+            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 500 }}>
+              {seg.label}
+            </Typography>
+            <Typography sx={{ fontSize: '0.6875rem', color: 'text.primary', fontWeight: 700 }}>
+              {seg.pct.toFixed(seg.pct >= 10 ? 0 : 1)} %
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+};
