@@ -182,16 +182,20 @@ function getCookieDomain(): string {
  * En prod : partagé entre tous les sous-domaines de clenzy.fr.
  *
  * SECURITE: Ce cookie est cree via document.cookie (client-side), donc
- * le flag HttpOnly n'est PAS possible ici (serveur-only). SameSite=Strict
- * reduit le risque de CSRF. Le max-age est reduit a 1h (au lieu de 24h)
- * pour limiter la fenetre d'attaque en cas de XSS.
+ * le flag HttpOnly n'est PAS possible ici (serveur-only). SameSite=Lax
+ * (au lieu de Strict) permet au cookie d'etre lu apres une navigation
+ * top-level depuis un autre site ou sous-domaine — necessaire pour que
+ * la landing (clenzy.fr) detecte la session etablie sur app.clenzy.fr
+ * sans forcer un refresh dur. Lax bloque toujours les requetes
+ * cross-site non top-level, ce qui couvre le CSRF classique.
+ * max-age=28800 (8h) aligne sur la duree de vie typique d'un access token.
  * TODO: Migrer vers un cookie HttpOnly emis par le serveur (AUTH-VULN-02/03).
  */
 export function setSessionCookie(accessToken: string): void {
   try {
     const domain = getCookieDomain();
     const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(accessToken)}; path=/${domain}; max-age=3600; SameSite=Strict${secure}`;
+    document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(accessToken)}; path=/${domain}; max-age=28800; SameSite=Lax${secure}`;
   } catch {
     // Silent fail
   }
