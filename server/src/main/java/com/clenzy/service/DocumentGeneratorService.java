@@ -246,6 +246,63 @@ public class DocumentGeneratorService {
         log.info("Template deleted: {} (id={})", template.getName(), id);
     }
 
+    /**
+     * Remplace le fichier source d'un template existant par un nouveau .odt,
+     * sans changer son ID ni ses metadata (nom, description, documentType...).
+     * Re-parse automatiquement les tags du nouveau fichier.
+     *
+     * Cas d'usage : iterer sur un template (mise a jour de la mise en page,
+     * correction d'un tag) sans casser les references existantes (active flag,
+     * generations passees, etc.).
+     */
+    @Transactional
+    public DocumentTemplate replaceTemplateFile(Long id, MultipartFile file) {
+        DocumentTemplate template = getTemplate(id);
+
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".odt")) {
+            throw new DocumentValidationException("Seuls les fichiers .odt sont acceptes");
+        }
+        if (originalFilename.contains("..") || originalFilename.contains("/") || originalFilename.contains("\\")) {
+            throw new DocumentValidationException("Nom de fichier invalide");
+        }
+
+        byte[] fileContent;
+        try {
+            fileContent = file.getBytes();
+        } catch (java.io.IOException e) {
+            throw new DocumentStorageException("Failed to read uploaded file", e);
+        }
+
+        // Si le template etait stocke sur disque (filePath), on supprime l'ancien
+        // fichier et on bascule sur le storage inline (fileContent en BDD) pour
+        // simplifier la mise a jour. Le service garde ainsi un comportement uniforme.
+        if (template.getFilePath() != null && !template.getFilePath().isBlank()) {
+            templateStorageService.delete(template.getFilePath());
+            template.setFilePath(null);
+        }
+
+        template.setFileContent(fileContent);
+        template.setOriginalFilename(originalFilename);
+        template = templateRepository.save(template);
+
+        // Re-parse les tags du nouveau contenu
+        tagRepository.deleteByTemplateId(id);
+        List<DocumentTemplateTag> tags = templateParserService.parseTemplate(fileContent);
+        for (DocumentTemplateTag tag : tags) {
+            tag.setTemplate(template);
+        }
+        tagRepository.saveAll(tags);
+        template.setTags(tags);
+
+        auditLogService.logUpdate("DocumentTemplate", String.valueOf(id),
+                template.getOriginalFilename(), originalFilename,
+                "Replace template file: " + originalFilename + " (" + tags.size() + " tags)");
+        log.info("Template file replaced: {} (id={}, new file={}, {} tags)",
+                template.getName(), id, originalFilename, tags.size());
+        return template;
+    }
+
     @Transactional
     public DocumentTemplate reparseTemplate(Long id) {
         DocumentTemplate template = getTemplate(id);
