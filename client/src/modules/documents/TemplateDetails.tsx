@@ -252,135 +252,144 @@ const TemplateDetails: React.FC = () => {
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{error}</Alert>}
 
-      <Grid container spacing={3}>
-        {/* Infos generales */}
+      <Grid container spacing={3} alignItems="flex-start">
+        {/* Colonne gauche : Informations + Apercu PDF empiles */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>Informations</Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Informations */}
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>Informations</Typography>
 
-            {editing ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField label="Nom" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} fullWidth size="small" />
-                <TextField label="Description" value={editData.description} onChange={(e) => setEditData({ ...editData, description: e.target.value })} fullWidth size="small" multiline rows={2} />
-                <Divider />
-                <TextField label="Objet email" value={editData.emailSubject} onChange={(e) => setEditData({ ...editData, emailSubject: e.target.value })} fullWidth size="small" />
-                <TextField label="Corps email" value={editData.emailBody} onChange={(e) => setEditData({ ...editData, emailBody: e.target.value })} fullWidth size="small" multiline rows={3} />
+              {editing ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField label="Nom" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} fullWidth size="small" />
+                  <TextField label="Description" value={editData.description} onChange={(e) => setEditData({ ...editData, description: e.target.value })} fullWidth size="small" multiline rows={2} />
+                  <Divider />
+                  <TextField label="Objet email" value={editData.emailSubject} onChange={(e) => setEditData({ ...editData, emailSubject: e.target.value })} fullWidth size="small" />
+                  <TextField label="Corps email" value={editData.emailBody} onChange={(e) => setEditData({ ...editData, emailBody: e.target.value })} fullWidth size="small" multiline rows={3} />
+                </Box>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <InfoRow label="Type de document" value={template.documentType} />
+                  <InfoRow label="Fichier original" value={template.originalFilename} />
+                  <InfoRow label="Version" value={`v${template.version}`} />
+                  <InfoRow label="Créé par" value={template.createdBy || '—'} />
+                  <InfoRow label="Créé le" value={template.createdAt ? new Date(template.createdAt).toLocaleDateString('fr-FR') : '—'} />
+                  {template.emailSubject && (
+                    <>
+                      <Divider sx={{ my: 1 }} />
+                      <InfoRow label="Objet email" value={template.emailSubject} />
+                    </>
+                  )}
+                </Box>
+              )}
+            </Paper>
+
+            {/* Apercu PDF — affiche systematiquement sous les Informations */}
+            <Paper sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                <Box>
+                  <Typography variant="h6">Aperçu</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Prévisualisation générée avec des données factices.
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  <Tooltip title="Regénérer l'aperçu">
+                    <span>
+                      <IconButton onClick={loadPreview} disabled={previewLoading} size="small">
+                        <Refresh />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                  <Tooltip title="Ouvrir dans un nouvel onglet">
+                    <span>
+                      <IconButton onClick={handleOpenPreviewInNewTab} disabled={!previewUrl || previewLoading} size="small">
+                        <Visibility />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                  <Tooltip title="Télécharger en PDF">
+                    <span>
+                      <IconButton onClick={handleDownloadPreview} disabled={previewLoading} size="small">
+                        <Download />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                </Box>
               </Box>
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <InfoRow label="Type de document" value={template.documentType} />
-                <InfoRow label="Fichier original" value={template.originalFilename} />
-                <InfoRow label="Version" value={`v${template.version}`} />
-                <InfoRow label="Créé par" value={template.createdBy || '—'} />
-                <InfoRow label="Créé le" value={template.createdAt ? new Date(template.createdAt).toLocaleDateString('fr-FR') : '—'} />
-                {template.emailSubject && (
-                  <>
-                    <Divider sx={{ my: 1 }} />
-                    <InfoRow label="Objet email" value={template.emailSubject} />
-                  </>
+
+              {previewError && (
+                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPreviewError(null)}>
+                  {previewError}
+                </Alert>
+              )}
+
+              {/* Hauteur calee sur le ratio A4 portrait : la largeur du panneau
+                  est ~50vw sur desktop md+, donc 1.4x cette largeur donne un
+                  rendu equilibre. Min/max evitent les extremes. */}
+              <Box
+                sx={{
+                  position: 'relative',
+                  width: '100%',
+                  height: { xs: 520, sm: 640, md: 780, lg: 880 },
+                  backgroundColor: 'rgba(0,0,0,0.04)',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  overflow: 'hidden',
+                }}
+              >
+                {previewLoading && (
+                  <Box sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 1.5,
+                    backgroundColor: (th) => th.palette.mode === 'dark'
+                      ? 'rgba(0,0,0,0.4)'
+                      : 'rgba(255,255,255,0.6)',
+                    zIndex: 1,
+                  }}>
+                    <CircularProgress size={28} />
+                    <Typography variant="caption" color="text.secondary">
+                      Génération de l'aperçu en cours...
+                    </Typography>
+                  </Box>
+                )}
+                {previewUrl ? (
+                  <iframe
+                    title="Aperçu PDF du template"
+                    src={previewUrl}
+                    style={{ width: '100%', height: '100%', border: 0 }}
+                  />
+                ) : !previewLoading && (
+                  <Box sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Aperçu non disponible.
+                    </Typography>
+                  </Box>
                 )}
               </Box>
-            )}
-          </Paper>
+            </Paper>
+          </Box>
         </Grid>
 
-        {/* Tags */}
+        {/* Colonne droite : Tags detectes (sticky sur grand ecran pour rester
+            visible quand on scrolle l'apercu). */}
         <Grid item xs={12} md={6}>
-          <TemplateTagsViewer tags={template.tags || []} />
-        </Grid>
-
-        {/* Apercu PDF avec donnees factices */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-              <Box>
-                <Typography variant="h6">Apercu</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Previsualisation generee avec des donnees factices pour valider la mise en page.
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Tooltip title="Regenerer l'apercu">
-                  <span>
-                    <IconButton onClick={loadPreview} disabled={previewLoading} size="small">
-                      <Refresh />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-                <Tooltip title="Ouvrir dans un nouvel onglet">
-                  <span>
-                    <IconButton onClick={handleOpenPreviewInNewTab} disabled={!previewUrl || previewLoading} size="small">
-                      <Visibility />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-                <Tooltip title="Telecharger en PDF">
-                  <span>
-                    <IconButton onClick={handleDownloadPreview} disabled={previewLoading} size="small">
-                      <Download />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </Box>
-            </Box>
-
-            {previewError && (
-              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPreviewError(null)}>
-                {previewError}
-              </Alert>
-            )}
-
-            <Box
-              sx={{
-                position: 'relative',
-                width: '100%',
-                height: { xs: 480, md: 720 },
-                backgroundColor: 'rgba(0,0,0,0.04)',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-                overflow: 'hidden',
-              }}
-            >
-              {previewLoading && (
-                <Box sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1.5,
-                  backgroundColor: 'rgba(255,255,255,0.6)',
-                  zIndex: 1,
-                }}>
-                  <CircularProgress size={28} />
-                  <Typography variant="caption" color="text.secondary">
-                    Generation de l'apercu en cours...
-                  </Typography>
-                </Box>
-              )}
-              {previewUrl ? (
-                <iframe
-                  title="Apercu PDF du template"
-                  src={previewUrl}
-                  style={{ width: '100%', height: '100%', border: 0 }}
-                />
-              ) : !previewLoading && (
-                <Box sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Apercu non disponible.
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          </Paper>
+          <Box sx={{ position: { md: 'sticky' }, top: { md: 16 } }}>
+            <TemplateTagsViewer tags={template.tags || []} />
+          </Box>
         </Grid>
       </Grid>
     </Box>
