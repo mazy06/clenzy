@@ -2,11 +2,14 @@ package com.clenzy.service;
 
 import com.clenzy.dto.CreateManagementContractRequest;
 import com.clenzy.dto.ManagementContractDto;
+import com.clenzy.model.DocumentType;
 import com.clenzy.model.ManagementContract;
 import com.clenzy.model.ManagementContract.ContractStatus;
+import com.clenzy.model.ReferenceType;
 import com.clenzy.repository.ManagementContractRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,9 +25,14 @@ public class ManagementContractService {
     private static final Logger log = LoggerFactory.getLogger(ManagementContractService.class);
 
     private final ManagementContractRepository contractRepository;
+    private final DocumentGeneratorService documentGeneratorService;
 
-    public ManagementContractService(ManagementContractRepository contractRepository) {
+    public ManagementContractService(
+            ManagementContractRepository contractRepository,
+            @Lazy DocumentGeneratorService documentGeneratorService
+    ) {
         this.contractRepository = contractRepository;
+        this.documentGeneratorService = documentGeneratorService;
     }
 
     public List<ManagementContractDto> getAllContracts(Long orgId) {
@@ -92,6 +100,20 @@ public class ManagementContractService {
 
         ManagementContract saved = contractRepository.save(contract);
         log.info("Created management contract {} for property {}", saved.getContractNumber(), request.propertyId());
+
+        // Auto-generation du Mandat de gestion (best-effort, ne fait pas echouer la creation
+        // du contrat si aucun template actif n'existe ou si la generation echoue).
+        try {
+            documentGeneratorService.generateFromEvent(
+                    DocumentType.MANDAT_GESTION,
+                    saved.getId(),
+                    ReferenceType.MANAGEMENT_CONTRACT,
+                    null,
+                    orgId);
+        } catch (Exception e) {
+            log.warn("Auto-generation du mandat pour contrat {} echouee : {}", saved.getContractNumber(), e.getMessage());
+        }
+
         return ManagementContractDto.from(saved);
     }
 

@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.model.*;
 import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.ManagementContractRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReceivedFormRepository;
@@ -54,6 +55,7 @@ public class TagResolverService {
     private final ProviderExpenseRepository providerExpenseRepository;
     private final CheckInInstructionsRepository checkInInstructionsRepository;
     private final ReceivedFormRepository receivedFormRepository;
+    private final ManagementContractRepository managementContractRepository;
     private final PricingConfigService pricingConfigService;
 
     @Value("${clenzy.company.name:Clenzy}")
@@ -80,6 +82,7 @@ public class TagResolverService {
             ProviderExpenseRepository providerExpenseRepository,
             CheckInInstructionsRepository checkInInstructionsRepository,
             ReceivedFormRepository receivedFormRepository,
+            ManagementContractRepository managementContractRepository,
             PricingConfigService pricingConfigService
     ) {
         this.userRepository = userRepository;
@@ -90,6 +93,7 @@ public class TagResolverService {
         this.providerExpenseRepository = providerExpenseRepository;
         this.checkInInstructionsRepository = checkInInstructionsRepository;
         this.receivedFormRepository = receivedFormRepository;
+        this.managementContractRepository = managementContractRepository;
         this.pricingConfigService = pricingConfigService;
     }
 
@@ -119,6 +123,7 @@ public class TagResolverService {
             case "user" -> resolveFromUser(referenceId, context);
             case "provider_expense" -> resolveFromProviderExpense(referenceId, context);
             case "received_form" -> resolveFromReceivedForm(referenceId, context);
+            case "management_contract" -> resolveFromManagementContract(referenceId, context);
             default -> log.warn("Unknown reference type: {}", referenceType);
         }
 
@@ -434,6 +439,81 @@ public class TagResolverService {
             intervention.put("cout_reel", quote != null ? formatEur(quote.monthlyTotal()) : "Sur demande");
             context.put("intervention", intervention);
         });
+    }
+
+    /**
+     * Resout les tags pour un contrat de gestion (MANDAT_GESTION).
+     * Renseigne les groupes :
+     *  - contrat.*  (numero, type, dates, taux, options, statut)
+     *  - bien.* / property.*  (rempli en plus via resolvePropertyTags si dispo)
+     *  - proprietaire.* / client.*  (rempli en plus via resolveClientTags si dispo)
+     *  - commission.*  (taux + repartition propriétaire / plateforme / conciergerie)
+     */
+    private void resolveFromManagementContract(Long contractId, Map<String, Object> context) {
+        if (contractId == null) return;
+
+        managementContractRepository.findById(contractId).ifPresent(contract -> {
+            // ── Tags contrat.* ──
+            Map<String, Object> c = new LinkedHashMap<>();
+            c.put("id", String.valueOf(contract.getId()));
+            c.put("numero", safeStr(contract.getContractNumber()));
+            c.put("type", contract.getContractType() != null ? contract.getContractType().name() : "");
+            c.put("type_label", contract.getContractType() != null ? contractTypeLabel(contract.getContractType().name()) : "");
+            c.put("statut", contract.getStatus() != null ? contract.getStatus().name() : "");
+            c.put("date_debut", contract.getStartDate() != null ? contract.getStartDate().format(DATE_FORMAT) : "");
+            c.put("date_fin", contract.getEndDate() != null ? contract.getEndDate().format(DATE_FORMAT) : "Indéterminée");
+            double taux = contract.getCommissionRate() != null ? contract.getCommissionRate().doubleValue() * 100 : 0;
+            c.put("taux_commission", String.format(Locale.FRANCE, "%.2f %%", taux));
+            c.put("nuits_minimum", contract.getMinimumStayNights() != null ? contract.getMinimumStayNights().toString() : "Aucun");
+            c.put("preavis_jours", contract.getNoticePeriodDays() != null ? contract.getNoticePeriodDays() + " jours" : "30 jours");
+            c.put("renouvellement_auto", Boolean.TRUE.equals(contract.getAutoRenew()) ? "Oui" : "Non");
+            c.put("menage_inclus", Boolean.TRUE.equals(contract.getCleaningFeeIncluded()) ? "Oui" : "Non");
+            c.put("maintenance_incluse", Boolean.TRUE.equals(contract.getMaintenanceIncluded()) ? "Oui" : "Non");
+            c.put("notes", safeStr(contract.getNotes()));
+            c.put("date_signature", contract.getSignedAt() != null ? formatDateTime(LocalDateTime.ofInstant(contract.getSignedAt(), java.time.ZoneId.systemDefault())) : "");
+            context.put("contrat", c);
+            // Alias FR/EN pour les templates qui utiliseraient un autre nom
+            context.put("mandat", c);
+
+            // ── Tags commission.* (repartition complete) ──
+            double commissionPct = taux;
+            double ownerPct = 100 - commissionPct;
+            double platformPct = commissionPct * 0.25; // 25% de la commission par défaut
+            double conciergePct = commissionPct * 0.75; // 75% de la commission par défaut
+            Map<String, Object> com = new LinkedHashMap<>();
+            com.put("taux", String.format(Locale.FRANCE, "%.2f %%", commissionPct));
+            com.put("part_proprietaire", String.format(Locale.FRANCE, "%.2f %%", ownerPct));
+            com.put("part_plateforme", String.format(Locale.FRANCE, "%.2f %%", platformPct));
+            com.put("part_conciergerie", String.format(Locale.FRANCE, "%.2f %%", conciergePct));
+            context.put("commission", com);
+
+            // ── Tags bien.* / property.* (depuis Property) ──
+            if (contract.getPropertyId() != null) {
+                propertyRepository.findById(contract.getPropertyId()).ifPresent(property -> {
+                    context.put("property", resolvePropertyTags(property));
+                    context.put("bien", resolvePropertyTags(property));
+                });
+            }
+
+            // ── Tags proprietaire.* / client.* (depuis User) ──
+            if (contract.getOwnerId() != null) {
+                userRepository.findById(contract.getOwnerId()).ifPresent(owner -> {
+                    Map<String, Object> ownerTags = resolveClientTags(owner);
+                    context.put("client", ownerTags);
+                    context.put("proprietaire", ownerTags);
+                });
+            }
+        });
+    }
+
+    private String contractTypeLabel(String type) {
+        return switch (type) {
+            case "FULL_MANAGEMENT" -> "Gestion complète";
+            case "BOOKING_ONLY" -> "Réservations uniquement";
+            case "MAINTENANCE_ONLY" -> "Maintenance uniquement";
+            case "CUSTOM" -> "Personnalisé";
+            default -> type;
+        };
     }
 
     /**
