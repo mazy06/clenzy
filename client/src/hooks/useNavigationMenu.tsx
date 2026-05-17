@@ -50,6 +50,10 @@ export interface MenuItem {
   permission?: string;
   translationKey?: string;
   group: NavGroup;
+  /** Badge counter affiche sur l'icone (notifications, demandes en attente, etc.) */
+  badge?: number;
+  /** Couleur du badge — defaut: warning (orange) pour les leads/demandes. */
+  badgeColor?: 'error' | 'warning' | 'primary' | 'info' | 'success';
 }
 
 interface UseNavigationMenuReturn {
