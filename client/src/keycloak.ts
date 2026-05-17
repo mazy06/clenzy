@@ -1,6 +1,6 @@
 import Keycloak, { KeycloakTokenParsed } from 'keycloak-js'
 import { KEYCLOAK_CONFIG } from './config/api'
-import { setItem, removeItem, getItem, getAccessToken as storageGetAccessToken, STORAGE_KEYS } from './services/storageService'
+import { setItem, removeItem, getItem, getAccessToken as storageGetAccessToken, STORAGE_KEYS, setSessionCookie, clearSessionCookie } from './services/storageService'
 
 // Singleton Keycloak instance for the whole app
 const keycloak = new Keycloak({
@@ -9,13 +9,35 @@ const keycloak = new Keycloak({
   clientId: KEYCLOAK_CONFIG.CLIENT_ID,
 })
 
-// Configuration Keycloak
+// Synchroniser le cookie clenzy_session quand Keycloak rafraichit le token
+// en arriere-plan. useAuth.ts pose son propre onAuthSuccess pour la logique
+// utilisateur, donc on n'utilise pas onAuthSuccess ici pour eviter le conflit.
+keycloak.onAuthRefreshSuccess = () => {
+  if (keycloak.token) setSessionCookie(keycloak.token)
+}
+
+keycloak.onAuthLogout = () => {
+  clearSessionCookie()
+}
+
+// Configuration Keycloak.
+// Apres l'init, si l'utilisateur est authentifie (via SSO check ou cookie KC),
+// on synchronise le cookie clenzy_session — sans cela, un reload de la page PMS
+// restaure la session Keycloak mais ne re-pose pas le cookie partage avec la
+// landing, qui pense alors que l'utilisateur n'est pas connecte.
 keycloak.init({
   onLoad: 'check-sso',
   silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
   checkLoginIframe: false,
   enableLogging: true,
   pkceMethod: 'S256'
+}).then((authenticated) => {
+  if (authenticated && keycloak.token) {
+    setSessionCookie(keycloak.token)
+  }
+}).catch(() => {
+  // Silent — l'init peut echouer si Keycloak n'est pas joignable ;
+  // l'app gere ce cas via les guards habituels.
 })
 
 function decodeJwt(token?: string): KeycloakTokenParsed | undefined {
