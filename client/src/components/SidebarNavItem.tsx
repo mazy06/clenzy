@@ -109,21 +109,21 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
             : item.icon
         )}
       </ListItemIcon>
-      <ListItemText
-        primary={item.text}
-        primaryTypographyProps={{
-          fontSize,
-          fontWeight: isActive ? 600 : 400,
-          color: isActive ? 'primary.main' : 'text.secondary',
-          noWrap: true,
-        }}
-        sx={{
-          opacity: isCollapsed ? 0 : 1,
-          width: isCollapsed ? 0 : 'auto',
-          transition: 'opacity 200ms, color 150ms',
-          overflow: 'hidden',
-        }}
-      />
+      {!isCollapsed && (
+        <ListItemText
+          primary={item.text}
+          primaryTypographyProps={{
+            fontSize,
+            fontWeight: isActive ? 600 : 400,
+            color: isActive ? 'primary.main' : 'text.secondary',
+            noWrap: true,
+          }}
+          sx={{
+            transition: 'color 150ms',
+            overflow: 'hidden',
+          }}
+        />
+      )}
     </ListItemButton>
   );
 

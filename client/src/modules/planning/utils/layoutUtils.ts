@@ -2,6 +2,14 @@ import type { PlanningEvent, BarLayout, DensityMode } from '../types';
 import { ROW_CONFIG, BAR_MIN_WIDTH, INTERVENTION_LANE_GAP, INTERVENTION_BOTTOM_PAD } from '../constants';
 import { toDate, daysBetween, getHourOffsetPx } from './dateUtils';
 
+// Largeur minimum d'une intervention pour afficher le label de type en
+// entier (MENAGE / MAINTENANCE en uppercase bold ~8-9px + padding).
+// Calcul approximatif : nbChars * 7.4px + 16px padding.
+const INTERVENTION_TYPE_MIN_WIDTH: Record<string, number> = {
+  cleaning: 64,     // "MÉNAGE" (6 chars) + padding
+  maintenance: 104, // "MAINTENANCE" (11 chars) + padding
+};
+
 /**
  * Compute the pixel position and size of a bar within a row.
  */
@@ -57,10 +65,21 @@ export function computeBarLayout(
     width -= getHourOffsetPx(event.startTime, dayWidth);
   }
 
+  const isIntervention = event.type === 'cleaning' || event.type === 'maintenance';
+
+  // Interventions : occuper AU MINIMUM la largeur necessaire pour afficher
+  // le type de prestation en entier (MENAGE / MAINTENANCE). Sans ca, le bar
+  // tombe a BAR_MIN_WIDTH (28px) et le texte est tronque. On ne va PAS
+  // jusqu'a une cellule jour complete pour ne pas masquer le voisin.
+  if (isIntervention) {
+    const minTypeWidth = INTERVENTION_TYPE_MIN_WIDTH[event.type] ?? 64;
+    if (width < minTypeWidth) {
+      width = minTypeWidth;
+    }
+  }
+
   // Ensure minimum width
   width = Math.max(BAR_MIN_WIDTH, width);
-
-  const isIntervention = event.type === 'cleaning' || event.type === 'maintenance';
   const layer = isIntervention ? 'secondary' as const : 'primary' as const;
 
   return {

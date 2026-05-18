@@ -21,7 +21,9 @@ import { useReservationUpdate } from './hooks/useReservationUpdate';
 import { useInterventionActions } from './hooks/useInterventionActions';
 import { usePlanningPagination } from './hooks/usePlanningPagination';
 import { usePlanningPricing } from './hooks/usePlanningPricing';
-import { usePropertyColWidth } from './hooks/usePropertyColWidth';
+import { usePlanningMinNights } from './hooks/usePlanningMinNights';
+import { usePlanningChannelSync } from './hooks/usePlanningChannelSync';
+import { useResizablePropertyColWidth } from './hooks/useResizablePropertyColWidth';
 import { ACTION_PANEL_WIDTH } from './constants';
 import type { PlanningEvent } from './types';
 
@@ -37,8 +39,9 @@ const PlanningPage: React.FC = () => {
   // Navigation (dates, zoom, density)
   const nav = usePlanningNavigation();
 
-  // Responsive property column width
-  const propertyColWidth = usePropertyColWidth();
+  // Largeur de la colonne logements : breakpoint-based + redimensionnable
+  // par l'utilisateur (persiste dans localStorage).
+  const { width: propertyColWidth, setWidth: setPropertyColWidth } = useResizablePropertyColWidth();
 
   // Infinite horizontal timeline (buffer, days, scroll)
   const timeline = useInfiniteTimeline({
@@ -81,6 +84,22 @@ const PlanningPage: React.FC = () => {
     timeline.bufferStart,
     timeline.bufferEnd,
     filters.showPrices,
+  );
+
+  // Min-nights overrides (toujours fetch quand showPrices est ON, meme
+  // indicateur que pour les prix : info contextuelle a la cellule)
+  const { minNightsMap } = usePlanningMinNights(
+    filteredProperties.map((p) => p.id),
+    timeline.bufferStart,
+    timeline.bufferEnd,
+    filters.showPrices,
+  );
+
+  // Channel sync health : "X/Y canaux OK" agrege par propriete (current state,
+  // pas per-date). Affiche dans la colonne logements a cote du tag count.
+  const { channelSyncMap } = usePlanningChannelSync(
+    filteredProperties.map((p) => p.id),
+    true,
   );
 
   // Layout (bar positions)
@@ -340,6 +359,7 @@ const PlanningPage: React.FC = () => {
           onClearFilters={clearFilters}
           onImportICal={() => setIcalModalOpen(true)}
           onBlockPeriod={() => setBlockDialogOpen(true)}
+          leftOffset={propertyColWidth}
         />
       </Box>
 
@@ -398,9 +418,12 @@ const PlanningPage: React.FC = () => {
             scrollRef={timeline.scrollRef}
             onScroll={timeline.handleScroll}
             propertyColWidth={propertyColWidth}
+            onPropertyColWidthChange={setPropertyColWidth}
             showPrices={filters.showPrices}
             showInterventions={filters.showInterventions}
             pricingMap={pricingMap}
+            minNightsMap={minNightsMap}
+            channelSyncMap={channelSyncMap}
             pageSize={pagination.pageSize}
             onPropertyClick={handlePropertyClick}
           />
