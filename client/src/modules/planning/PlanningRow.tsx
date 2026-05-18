@@ -2,16 +2,29 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { alpha, Box, Typography, useTheme } from '@mui/material';
 import PlanningBar from './PlanningBar';
 import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, PlanningDragState } from './types';
-import { ROW_CONFIG, PRICE_LINE_HEIGHT, BAR_BORDER_RADIUS } from './constants';
+import { ROW_CONFIG, BAR_BORDER_RADIUS } from './constants';
 import { isWeekend, isToday, toDateStr, getHourOffsetPx } from './utils/dateUtils';
 import type { PricingMap } from './hooks/usePlanningPricing';
+import type { MinNightsMap } from './hooks/usePlanningMinNights';
 import { useCurrency } from '../../hooks/useCurrency';
+import { NightsStay } from '../../icons';
 
 // ─── Price formatter ────────────────────────────────────────────────────────
 
 function formatPrice(price: number, symbol: string): string {
   if (Number.isInteger(price)) return `${price}${symbol}`;
   return `${price.toFixed(1)}${symbol}`;
+}
+
+/** Post-traite le rendu de `convertAndFormat` :
+ *  - supprime les decimales ("85,00 €" → "85 €")
+ *  - remplace "≈" (conversion de devise) par "~" plus discret (matches
+ *    l'exemple multi-canaux : "~340 €")
+ */
+function compactPriceLabel(formatted: string): string {
+  return formatted
+    .replace(/[.,]\d+/g, '')
+    .replace(/^≈\s*/, '~');
 }
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -36,6 +49,7 @@ interface PlanningRowProps {
   showPrices: boolean;
   showInterventions: boolean;
   pricingMap: PricingMap;
+  minNightsMap?: MinNightsMap;
   effectiveRowHeight: number;
   /** All events (unfiltered) for conflict detection on range selection */
   allEvents: PlanningEvent[];
@@ -63,6 +77,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   showPrices,
   showInterventions,
   pricingMap,
+  minNightsMap,
   effectiveRowHeight,
   allEvents,
 }) => {
@@ -70,8 +85,8 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   const { convertAndFormat } = useCurrency();
   const config = ROW_CONFIG[density];
   const isDark = theme.palette.mode === 'dark';
-  const priceLineHeight = PRICE_LINE_HEIGHT[density];
   const propertyPricing = showPrices ? pricingMap.get(property.id) : undefined;
+  const propertyMinNights = showPrices ? minNightsMap?.get(property.id) : undefined;
   const activeRowHeight = showInterventions ? config.rowHeight : config.interventionTop + 2;
 
   // ── Drag-to-select state ──────────────────────────────────────────────────
@@ -384,8 +399,6 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         position: 'relative',
         height: effectiveRowHeight,
         width: totalGridWidth,
-        borderBottom: '1px solid',
-        borderColor: 'divider',
         backgroundColor: rowIndex % 2 === 0
           ? 'transparent'
           : isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
@@ -410,8 +423,6 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
                 : weekend
                   ? isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'
                   : 'transparent',
-              borderRight: '1px solid',
-              borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
               pointerEvents: 'none',
             }}
           />
@@ -509,98 +520,85 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         );
       })}
 
-      {/* Price line — below reservation/intervention bars */}
-      {showPrices && (
-        <Box
-          sx={{
-            position: 'absolute',
-            left: 0,
-            top: activeRowHeight,
-            width: totalGridWidth,
-            height: priceLineHeight,
-            display: 'flex',
-            pointerEvents: 'none',
-            borderTop: '1px dashed',
-            // Refonte : brand-tinted neutral (au lieu du vert générique).
-            // Border dashed + bg très subtil, tous deux teintés primary.
-            borderColor: isDark ? 'rgba(127, 160, 180, 0.18)' : 'rgba(107, 138, 154, 0.20)',
-            backgroundColor: isDark ? 'rgba(127, 160, 180, 0.05)' : 'rgba(107, 138, 154, 0.035)',
-            // Containment : aucun texte ne peut déborder verticalement
-            overflow: 'hidden',
-          }}
-        >
-          {days.map((day, idx) => {
-            const dateStr = toDateStr(day);
-            const pricing = propertyPricing?.get(dateStr);
-            const price = pricing?.nightlyPrice;
-            // At month zoom, cells are too narrow (38px) — hide text
-            const tooNarrow = dayWidth < 40;
+      {/* Prix + min-nights par cellule — centres dans chaque case de jour.
+          Toujours rendus, masques visuellement par les bars (z-index inferieur).
+          Sur cellule libre : prix au centre, badge min-nights en bas-droite. */}
+      {showPrices && days.map((day, idx) => {
+        const dateStr = toDateStr(day);
+        const pricing = propertyPricing?.get(dateStr);
+        const price = pricing?.nightlyPrice;
+        const minNights = propertyMinNights?.get(dateStr);
+        if (price == null && minNights == null) return null;
+        if (dayWidth < 30) return null;
 
-            // Change detection : on emphasize seulement les jours où le prix
-            // bascule (1er jour avec un prix, ou prix différent du précédent).
-            // Les jours "même prix qu'hier" passent en muted → moins de
-            // répétition visuelle dans la rangée.
-            const prevPrice = idx > 0
-              ? propertyPricing?.get(toDateStr(days[idx - 1]))?.nightlyPrice
-              : undefined;
-            const isPriceChange = price != null && price !== prevPrice;
-
-            return (
+        return (
+          <Box
+            key={`cell-info-${idx}`}
+            sx={{
+              position: 'absolute',
+              left: idx * dayWidth,
+              top: 0,
+              width: dayWidth,
+              height: activeRowHeight,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none',
+              // z-index 0 : passe DERRIERE les bars (reservation z=3, intervention z=2)
+              zIndex: 0,
+              px: 0.25,
+              overflow: 'hidden',
+            }}
+          >
+            {price != null && (
               <Box
-                key={idx}
+                component="span"
                 sx={{
-                  width: dayWidth,
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
+                  fontSize: dayWidth < 60 ? '0.625rem' : '0.6875rem',
+                  fontWeight: 500,
+                  color: 'text.secondary',
+                  opacity: 0.7,
+                  lineHeight: 1,
+                  whiteSpace: 'nowrap',
                   overflow: 'hidden',
-                  px: 0.25,
-                  borderRight: '1px solid',
-                  borderColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
-                  // Inset border à gauche pour marquer la frontière d'un
-                  // changement de prix (signal subtil pour les yeux attentifs).
-                  ...(isPriceChange && idx > 0 && {
-                    boxShadow: isDark
-                      ? 'inset 1px 0 0 rgba(127, 160, 180, 0.35)'
-                      : 'inset 1px 0 0 rgba(107, 138, 154, 0.30)',
-                  }),
+                  textOverflow: 'ellipsis',
+                  maxWidth: '100%',
+                  fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                {!tooNarrow && (
-                  <Typography
-                    component="span"
-                    sx={{
-                      // Taille adaptée à la bande dédiée (16px normal /
-                      // 13px compact) sans débordement vertical.
-                      fontSize: dayWidth < 60 ? '0.4375rem' : '0.5rem',
-                      fontWeight: isPriceChange ? 600 : 400,
-                      color: price == null
-                        ? 'text.disabled'
-                        : isPriceChange
-                          ? 'text.primary'
-                          : 'text.secondary',
-                      opacity: price == null ? 0.6 : isPriceChange ? 1 : 0.55,
-                      // lineHeight: 1 garantit que le texte ne contribue
-                      // pas à un débordement vertical au-delà de sa cap-height.
-                      lineHeight: 1,
-                      display: 'block',
-                      maxWidth: '100%',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    {price != null ? convertAndFormat(price, property.currency ?? 'EUR') : '\u2014'}
-                  </Typography>
-                )}
+                {compactPriceLabel(convertAndFormat(price, property.currency ?? 'EUR'))}
               </Box>
-            );
-          })}
-        </Box>
-      )}
+            )}
+            {minNights != null && dayWidth >= 38 && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: 2,
+                  right: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.125,
+                  color: 'text.secondary',
+                  opacity: 0.85,
+                }}
+              >
+                <NightsStay size={8} strokeWidth={1.75} />
+                <Box
+                  component="span"
+                  sx={{
+                    fontSize: '0.5rem',
+                    fontWeight: 600,
+                    lineHeight: 1,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {minNights}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        );
+      })}
     </Box>
   );
 });

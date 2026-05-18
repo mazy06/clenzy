@@ -8,9 +8,9 @@ import {
 /**
  * Returns a responsive property-column width based on viewport breakpoints.
  *
- * ≥ 1200px → 180px  (full: name + owner + city)
- * ≥  900px → 150px  (name + city, slightly tighter)
- * <  900px → 120px  (name only, compact)
+ * ≥ 1200px → 280px  (carousel + nom complet + sous-titre + tag count, large)
+ * ≥  900px → 240px  (carousel + nom complet + sous-titre + tag count)
+ * <  900px → 200px  (carousel + nom 2 lignes + sous-titre + tag count)
  */
 export function usePropertyColWidth(): number {
   const theme = useTheme();

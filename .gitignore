@@ -29,6 +29,9 @@ target/
 *.swp
 *.swo
 
+# Claude Code worktrees (locaux, gérés par Claude Code, ne pas commiter)
+.claude/worktrees/
+
 # OS
 .DS_Store
 Thumbs.db

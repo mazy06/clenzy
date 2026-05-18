@@ -44,6 +44,11 @@ export function formatMonthYear(date: Date): string {
   return format(date, 'MMMM yyyy', { locale: fr });
 }
 
+/** Format complet pour tooltips : "Lundi 18 mai 2026". */
+export function formatFullDate(date: Date): string {
+  return format(date, 'EEEE d MMMM yyyy', { locale: fr });
+}
+
 export function formatMonthShort(date: Date): string {
   return format(date, 'MMM', { locale: fr });
 }
