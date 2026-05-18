@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { PlanningProperty, DensityMode } from '../types';
 import {
   ROW_CONFIG,
-  PRICE_LINE_HEIGHT,
   DATE_HEADER_HEIGHT,
   PAGINATION_BAR_HEIGHT,
   TOOLBAR_HEIGHT,
@@ -39,9 +38,9 @@ function computePageSize(
   viewportHeight: number,
   density: DensityMode,
   isFullscreen: boolean,
-  showPrices: boolean,
+  _showPrices: boolean, // conserve pour la signature, plus utilise (prix in-cell)
 ): number {
-  const rowHeight = ROW_CONFIG[density].rowHeight + (showPrices ? PRICE_LINE_HEIGHT[density] : 0);
+  const rowHeight = ROW_CONFIG[density].rowHeight;
   // The page container height is already `100vh - APP_HEADER_HEIGHT` (or 100vh in fullscreen),
   // so we only subtract the chrome elements *inside* the planning page.
   const chrome =

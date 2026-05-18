@@ -61,6 +61,8 @@ interface PlanningToolbarProps {
   onClearFilters: () => void;
   onImportICal?: () => void;
   onBlockPeriod?: () => void;
+  /** Decalage gauche (px) pour aligner les controles avec la grille de dates. */
+  leftOffset?: number;
 }
 
 const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
@@ -128,6 +130,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   onClearFilters,
   onImportICal,
   onBlockPeriod,
+  leftOffset = 0,
 }) => {
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('lg'));
@@ -152,53 +155,58 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
-        gap: 0.75,
-        py: 0.5,
-        px: 1,
-        borderBottom: '1px solid',
-        borderColor: 'divider',
+        gap: 0.875,
+        py: 0.875,
+        px: 1.25,
         backgroundColor: 'background.paper',
         flexShrink: 0,
       }}
     >
+      {/* Spacer : aligne nav + mois + zoom sur la grille de dates (apres
+          la colonne logements). Compensation = padding left du toolbar (px:1.25 = 10px).
+          Disparait si leftOffset = 0. */}
+      {leftOffset > 0 && (
+        <Box sx={{ width: leftOffset - 10, flexShrink: 0 }} aria-hidden />
+      )}
+
       {/* Navigation */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-        <IconButton size="small" onClick={onGoPrev} sx={{ width: 22, height: 22 }}>
-          <ChevronLeft size={14} strokeWidth={1.75} />
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.375 }}>
+        <IconButton size="small" onClick={onGoPrev} sx={{ width: 26, height: 26 }}>
+          <ChevronLeft size={15} strokeWidth={1.75} />
         </IconButton>
 
         <Chip
-          icon={<TodayOutlined size={12} strokeWidth={1.75} />}
+          icon={<TodayOutlined size={13} strokeWidth={1.75} />}
           label="Aujourd'hui"
           size="small"
           variant="outlined"
           onClick={onGoToday}
           sx={{
-            fontSize: '0.625rem',
-            fontWeight: 600,
-            height: 22,
+            fontSize: '0.6875rem',
+            fontWeight: 500,
+            height: 26,
             cursor: 'pointer',
             borderColor: 'divider',
             '&:hover': { backgroundColor: 'action.hover', borderColor: 'text.secondary' },
-            '& .MuiChip-icon': { fontSize: 12, color: 'primary.main' },
+            '& .MuiChip-icon': { fontSize: 13, color: 'primary.main' },
           }}
         />
 
-        <IconButton size="small" onClick={onGoNext} sx={{ width: 22, height: 22 }}>
-          <ChevronRight size={14} strokeWidth={1.75} />
+        <IconButton size="small" onClick={onGoNext} sx={{ width: 26, height: 26 }}>
+          <ChevronRight size={15} strokeWidth={1.75} />
         </IconButton>
       </Box>
 
-      {/* Month title */}
+      {/* Month title : info principale, mis en evidence par sa taille */}
       <Typography
         variant="subtitle2"
         sx={{
-          fontSize: '0.6875rem',
-          fontWeight: 700,
+          fontSize: '0.875rem',
+          fontWeight: 500,
           textTransform: 'capitalize',
           color: 'text.primary',
-          letterSpacing: '-0.02em',
-          minWidth: 96,
+          letterSpacing: '-0.01em',
+          minWidth: 110,
         }}
       >
         {formatMonthYear(currentDate)}
@@ -212,11 +220,11 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
         size="small"
         sx={{
           '& .MuiToggleButton-root': {
-            fontSize: '0.5625rem',
-            fontWeight: 600,
+            fontSize: '0.6875rem',
+            fontWeight: 500,
             py: 0.25,
-            px: 0.75,
-            height: 22,
+            px: 1,
+            height: 26,
             textTransform: 'none',
             letterSpacing: '0.01em',
           },
@@ -245,15 +253,15 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={13} strokeWidth={1.75} /></Box>
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={14} strokeWidth={1.75} /></Box>
                 </InputAdornment>
               ),
             }}
             sx={{
-              width: 140,
+              width: 180,
               '& .MuiOutlinedInput-root': {
-                height: 22,
-                fontSize: '0.625rem',
+                height: 26,
+                fontSize: '0.6875rem',
                 borderRadius: 1,
               },
               '& .MuiOutlinedInput-input': {
@@ -267,8 +275,8 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             size="small"
             onClick={(e) => setFilterAnchor(e.currentTarget)}
             sx={{
-              width: 22,
-              height: 22,
+              width: 26,
+              height: 26,
               p: 0.25,
               borderRadius: 1,
               color: filterOpen || activeFilterCount > 0 ? 'primary.main' : 'text.secondary',
@@ -288,7 +296,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                 },
               }}
             >
-              <FilterListIcon size={13} strokeWidth={1.75} />
+              <FilterListIcon size={14} strokeWidth={1.75} />
             </Badge>
           </IconButton>
 
@@ -443,23 +451,23 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           {onImportICal && (
             <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
               <Chip
-                icon={<CalendarTodayIcon size={13} strokeWidth={1.75} />}
+                icon={<CalendarTodayIcon size={14} strokeWidth={1.75} />}
                 label="Import iCal"
                 size="small"
                 variant="outlined"
                 onClick={onImportICal}
                 sx={{
-                  fontSize: '0.5625rem',
-                  fontWeight: 600,
-                  height: 22,
+                  fontSize: '0.6875rem',
+                  fontWeight: 500,
+                  height: 26,
                   borderRadius: 1,
                   cursor: 'pointer',
-                  borderColor: 'primary.main',
-                  color: 'primary.main',
-                  '& .MuiChip-icon': { fontSize: 12, color: 'primary.main' },
+                  borderColor: 'divider',
+                  color: 'text.primary',
+                  '& .MuiChip-icon': { fontSize: 14, color: 'text.secondary' },
                   '&:hover': {
-                    backgroundColor: 'rgba(107, 138, 154, 0.08)',
-                    borderColor: 'primary.dark',
+                    backgroundColor: 'action.hover',
+                    borderColor: 'text.secondary',
                   },
                 }}
               />
@@ -470,23 +478,23 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           {onBlockPeriod && (
             <Tooltip title="Bloquer une periode (indisponible)" arrow>
               <Chip
-                icon={<Lock size={13} strokeWidth={1.75} />}
+                icon={<Lock size={14} strokeWidth={1.75} />}
                 label="Bloquer"
                 size="small"
                 variant="outlined"
                 onClick={onBlockPeriod}
                 sx={{
-                  fontSize: '0.5625rem',
-                  fontWeight: 600,
-                  height: 22,
+                  fontSize: '0.6875rem',
+                  fontWeight: 500,
+                  height: 26,
                   borderRadius: 1,
                   cursor: 'pointer',
-                  borderColor: 'text.secondary',
-                  color: 'text.secondary',
-                  '& .MuiChip-icon': { fontSize: 12, color: 'text.secondary' },
+                  borderColor: 'divider',
+                  color: 'text.primary',
+                  '& .MuiChip-icon': { fontSize: 14, color: 'text.secondary' },
                   '&:hover': {
-                    backgroundColor: 'rgba(97, 97, 97, 0.08)',
-                    borderColor: 'text.primary',
+                    backgroundColor: 'action.hover',
+                    borderColor: 'text.secondary',
                   },
                 }}
               />

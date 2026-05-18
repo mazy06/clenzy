@@ -1,0 +1,17 @@
+# Dev image: Vite dev server avec HMR.
+# Le code source est monte en volume depuis l'hote (voir docker-compose.dev.yml).
+# Seul package.json + lockfile sont copies ici pour installer les deps dans
+# l'image (cache layer stable). Les node_modules vivent dans un volume anonyme
+# cote compose pour eviter que le volume host ne les ecrase.
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+
+# Fix ETXTBSY connu sur Docker + Alpine + esbuild (cf. Dockerfile prod).
+RUN npm ci --ignore-scripts \
+    && node node_modules/esbuild/install.js \
+    && npm cache clean --force
+
+EXPOSE 3000
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

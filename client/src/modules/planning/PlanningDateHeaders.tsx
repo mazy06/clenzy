@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { Box, Typography, useTheme } from '@mui/material';
-import { isToday, isWeekend, isSameMonth, formatMonthYear, formatDayNumber, formatDayShort } from './utils/dateUtils';
+import { Box, Tooltip, Typography, useTheme } from '@mui/material';
+import { isToday, isWeekend, formatMonthYear, formatDayNumber, formatFullDate } from './utils/dateUtils';
 import { DATE_HEADER_HEIGHT } from './constants';
 import type { ZoomLevel, MonthSeparator } from './types';
 
@@ -10,6 +10,7 @@ interface PlanningDateHeadersProps {
   zoom: ZoomLevel;
   totalGridWidth: number;
   propertyColWidth: number;
+  propertyCount: number;
 }
 
 function computeMonthSeparators(days: Date[]): MonthSeparator[] {
@@ -44,11 +45,10 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
   zoom,
   totalGridWidth,
   propertyColWidth,
+  propertyCount,
 }) => {
   const theme = useTheme();
   const monthSeps = useMemo(() => computeMonthSeparators(days), [days]);
-  const showDayNames = true;
-  const showDayNumbers = true;
 
   return (
     <Box
@@ -75,16 +75,13 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
             left: 0,
             zIndex: 14,
             backgroundColor: 'background.paper',
-            borderRight: '1px solid',
-            borderBottom: '1px solid',
-            borderColor: 'divider',
             display: 'flex',
             alignItems: 'center',
             px: 1,
           }}
         >
-          <Typography
-            variant="caption"
+          <Box
+            component="span"
             sx={{
               fontWeight: 700,
               fontSize: propertyColWidth < 130 ? '0.4375rem' : '0.5rem',
@@ -94,10 +91,11 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
+              fontVariantNumeric: 'tabular-nums',
             }}
           >
-            Logements
-          </Typography>
+            {propertyCount} {propertyCount > 1 ? 'logements' : 'logement'}
+          </Box>
         </Box>
         <Box sx={{ display: 'flex', width: totalGridWidth }}>
           {monthSeps.map((sep) => (
@@ -109,9 +107,6 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                 display: 'flex',
                 alignItems: 'center',
                 px: 0.75,
-                borderRight: '1px solid',
-                borderBottom: '1px solid',
-                borderColor: 'divider',
                 backgroundColor: 'background.paper',
               }}
             >
@@ -134,38 +129,45 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
         </Box>
       </Box>
 
-      {/* Day row */}
-      {showDayNumbers && (
-        <Box sx={{ display: 'flex', height: DATE_HEADER_HEIGHT - 20 }}>
-          <Box
-            sx={{
-              width: propertyColWidth,
-              minWidth: propertyColWidth,
-              flexShrink: 0,
-              position: 'sticky',
-              left: 0,
-              zIndex: 14,
-              backgroundColor: 'background.paper',
-              borderRight: '1px solid',
-              borderColor: 'divider',
-            }}
-          />
-          <Box sx={{ display: 'flex', width: totalGridWidth }}>
-            {days.map((day, idx) => {
-              const today = isToday(day);
-              const weekend = isWeekend(day);
-              return (
+      {/* Day row : uniquement le numero de jour. Le nom complet
+          (jour + numero + mois + annee) est revele au hover via Tooltip. */}
+      <Box sx={{ display: 'flex', height: DATE_HEADER_HEIGHT - 20 }}>
+        <Box
+          sx={{
+            width: propertyColWidth,
+            minWidth: propertyColWidth,
+            flexShrink: 0,
+            position: 'sticky',
+            left: 0,
+            zIndex: 14,
+            backgroundColor: 'background.paper',
+          }}
+        />
+        <Box sx={{ display: 'flex', width: totalGridWidth }}>
+          {days.map((day, idx) => {
+            const today = isToday(day);
+            const weekend = isWeekend(day);
+            return (
+              <Tooltip
+                key={idx}
+                title={formatFullDate(day)}
+                placement="top"
+                arrow
+                enterDelay={250}
+                enterNextDelay={100}
+                slotProps={{
+                  tooltip: {
+                    sx: { textTransform: 'capitalize', fontSize: '0.6875rem' },
+                  },
+                }}
+              >
                 <Box
-                  key={idx}
                   sx={{
                     width: dayWidth,
                     minWidth: dayWidth,
                     display: 'flex',
-                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderRight: '1px solid',
-                    borderColor: 'divider',
                     backgroundColor: today
                       ? theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.06)'
                       : weekend
@@ -175,35 +177,23 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                     userSelect: 'none',
                   }}
                 >
-                  {showDayNames && dayWidth >= 30 && (
-                    <Typography
-                      sx={{
-                        fontSize: '0.4375rem',
-                        fontWeight: today ? 700 : 400,
-                        color: today ? 'error.main' : weekend ? 'text.disabled' : 'text.secondary',
-                        lineHeight: 1,
-                        textTransform: 'capitalize',
-                      }}
-                    >
-                      {formatDayShort(day).slice(0, dayWidth >= 60 ? 3 : 1)}
-                    </Typography>
-                  )}
                   <Typography
                     sx={{
-                      fontSize: dayWidth >= 60 ? '0.625rem' : '0.5rem',
-                      fontWeight: today ? 800 : 600,
+                      fontSize: dayWidth >= 60 ? '0.8125rem' : '0.6875rem',
+                      fontWeight: today ? 700 : 500,
                       color: today ? 'error.main' : weekend ? 'text.disabled' : 'text.primary',
-                      lineHeight: 1.2,
+                      lineHeight: 1,
+                      fontVariantNumeric: 'tabular-nums',
                     }}
                   >
                     {formatDayNumber(day)}
                   </Typography>
                 </Box>
-              );
-            })}
-          </Box>
+              </Tooltip>
+            );
+          })}
         </Box>
-      )}
+      </Box>
     </Box>
   );
 });
