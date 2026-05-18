@@ -35,6 +35,22 @@ export interface RateOverride {
   currency?: string;
 }
 
+export interface MinNightsOverride {
+  id: number;
+  propertyId: number;
+  date: string;
+  minNights: number;
+  source?: string;
+}
+
+export interface BulkMinNightsOverrideData {
+  propertyId: number;
+  from: string;
+  to: string;
+  minNights: number;
+  source?: string;
+}
+
 export interface CreateRatePlanData {
   propertyId: number;
   name: string;
@@ -108,6 +124,21 @@ export const calendarPricingApi = {
 
   async deleteOverride(id: number): Promise<void> {
     return apiClient.delete(`/rate-overrides/${id}`);
+  },
+
+  // Min-Nights Overrides
+  async getMinNightsOverrides(propertyId: number, from: string, to: string): Promise<MinNightsOverride[]> {
+    return apiClient.get<MinNightsOverride[]>('/min-nights-overrides', {
+      params: { propertyId, from, to },
+    });
+  },
+
+  async createMinNightsOverrideBulk(data: BulkMinNightsOverrideData): Promise<void> {
+    return apiClient.post('/min-nights-overrides/bulk', data);
+  },
+
+  async deleteMinNightsOverride(id: number): Promise<void> {
+    return apiClient.delete(`/min-nights-overrides/${id}`);
   },
 
   // Push pricing to Airbnb

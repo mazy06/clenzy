@@ -94,6 +94,13 @@ export default defineConfig({
       },
     },
   },
+  // Polyfill `global` -> `window` pour les libs CommonJS qui presupposent
+  // un environnement Node (sockjs-client utilise par @stomp/stompjs).
+  // Rollup le gere automatiquement au build (prod), mais esbuild en mode
+  // dev de Vite non. Sans ca, le bundle plante avec "global is not defined".
+  define: {
+    global: 'globalThis',
+  },
   server: {
     port: 3000,
     host: true,

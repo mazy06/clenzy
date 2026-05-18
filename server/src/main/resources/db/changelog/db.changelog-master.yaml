@@ -1036,3 +1036,15 @@ databaseChangeLog:
       sqlFile:
         path: changes/0114__drop_legacy_url_from_property_photos.sql
         relativeToChangelogFile: true
+
+  # --- 0115 : Min-nights overrides per property per date ---
+  # Permet de surcharger le minimumNights de la propriete sur des dates
+  # specifiques (ex: minimum 4 nuits sur les week-ends d'ete). La logique
+  # de validation des resas check ces overrides en priorite avant le
+  # defaut de la propriete.
+  - changeSet:
+      id: "0115-create-min-nights-overrides-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0115__create_min_nights_overrides_table.sql
+        relativeToChangelogFile: true

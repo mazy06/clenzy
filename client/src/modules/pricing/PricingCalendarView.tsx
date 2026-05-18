@@ -10,10 +10,14 @@ import {
 } from '@mui/material';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
-import { CalendarMonth as CalendarMonthIcon } from '../../icons';
+import { CalendarMonth as CalendarMonthIcon, NightsStay } from '../../icons';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
+import { calendarPricingApi } from '../../services/api';
 import type { CalendarPricingDay } from '../../services/api/calendarPricingApi';
+import { minNightsKeys } from '../planning/hooks/usePlanningMinNights';
 import PricingEditDialog from './PricingEditDialog';
+import MinNightsEditDialog from './MinNightsEditDialog';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
@@ -119,7 +123,33 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
 
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [minNightsDialogOpen, setMinNightsDialogOpen] = useState(false);
   const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null);
+
+  const queryClient = useQueryClient();
+
+  // Mutation pour creer un override min-nights en lot sur les dates selectionnees.
+  // Apres succes, invalide le cache du planning pour refresh des badges 🌙.
+  const minNightsMutation = useMutation({
+    mutationFn: async (minNights: number) => {
+      if (!selectedPropertyId || selectedDates.length === 0) return;
+      const sorted = [...selectedDates].sort();
+      // L'API attend une plage [from, to) ouverte a droite → on ajoute 1 jour a `to`
+      const lastDate = new Date(sorted[sorted.length - 1]);
+      lastDate.setDate(lastDate.getDate() + 1);
+      const toExclusive = lastDate.toISOString().slice(0, 10);
+      await calendarPricingApi.createMinNightsOverrideBulk({
+        propertyId: selectedPropertyId,
+        from: sorted[0],
+        to: toExclusive,
+        minNights,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: minNightsKeys.all });
+      setSelectedDates([]);
+    },
+  });
 
   const calendarCells = useMemo(() => buildCalendarGrid(currentMonth), [currentMonth]);
 
@@ -175,6 +205,13 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
       setSelectedDates([]);
     },
     [selectedPropertyId, selectedDates, onUpdatePrice],
+  );
+
+  const handleApplyMinNights = useCallback(
+    async (minNights: number) => {
+      await minNightsMutation.mutateAsync(minNights);
+    },
+    [minNightsMutation],
   );
 
   const getSourceColor = (source: string): string => SOURCE_COLORS[source] ?? '#8BA0B3';
@@ -369,6 +406,15 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               {t('common.cancel')}
             </Button>
             <Button
+              variant="outlined"
+              size="small"
+              startIcon={<NightsStay size={14} strokeWidth={1.75} />}
+              onClick={() => setMinNightsDialogOpen(true)}
+              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+            >
+              Min-nights
+            </Button>
+            <Button
               variant="contained"
               size="small"
               onClick={() => setEditDialogOpen(true)}
@@ -388,6 +434,15 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
         selectedDates={selectedDates}
         loading={updatePriceLoading}
         currency={currency}
+      />
+
+      {/* Min-nights edit dialog */}
+      <MinNightsEditDialog
+        open={minNightsDialogOpen}
+        onClose={() => setMinNightsDialogOpen(false)}
+        onApply={handleApplyMinNights}
+        selectedDates={selectedDates}
+        loading={minNightsMutation.isPending}
       />
     </Box>
   );
