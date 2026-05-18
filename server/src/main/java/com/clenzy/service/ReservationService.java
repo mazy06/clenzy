@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.config.SyncMetrics;
 import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.model.*;
+import com.clenzy.repository.MinNightsOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
@@ -32,6 +33,7 @@ public class ReservationService {
     private final SyncMetrics syncMetrics;
     private final ServiceRequestRepository serviceRequestRepository;
     private final NotificationService notificationService;
+    private final MinNightsOverrideRepository minNightsOverrideRepository;
 
     public ReservationService(ReservationRepository reservationRepository,
                               UserRepository userRepository,
@@ -40,7 +42,8 @@ public class ReservationService {
                               GuestService guestService,
                               SyncMetrics syncMetrics,
                               ServiceRequestRepository serviceRequestRepository,
-                              NotificationService notificationService) {
+                              NotificationService notificationService,
+                              MinNightsOverrideRepository minNightsOverrideRepository) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
@@ -49,6 +52,7 @@ public class ReservationService {
         this.syncMetrics = syncMetrics;
         this.serviceRequestRepository = serviceRequestRepository;
         this.notificationService = notificationService;
+        this.minNightsOverrideRepository = minNightsOverrideRepository;
     }
 
     /**
@@ -112,6 +116,11 @@ public class ReservationService {
                 if (guest != null) {
                     reservation.setGuest(guest);
                 }
+            }
+
+            // Validation min-nights (override par date si present, sinon defaut propriete)
+            if (isNewConfirmed) {
+                validateMinimumNights(reservation, orgId);
             }
 
             // Anti-double-booking : reserver les jours dans le calendrier AVANT la sauvegarde
@@ -334,6 +343,48 @@ public class ReservationService {
                     NotificationKey.RESERVATION_CANCELLED, title, message, actionUrl);
         } catch (Exception e) {
             log.warn("Notification error reservationCancelled: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Verifie que la duree de la reservation respecte le minimum de nuits.
+     *
+     * Resolution (priorite haute → basse) :
+     *   1. Override min-nights sur la date de check-in (MinNightsOverride)
+     *   2. Defaut de la propriete (property.minimumNights)
+     *   3. Pas de contrainte si aucun des deux n'est defini
+     *
+     * On verifie sur la date de CHECK-IN parce que c'est la regle metier la
+     * plus courante : "minimum 4 nuits si on debute un sejour ce jour-la".
+     * On pourrait aussi verifier sur toutes les nuits couvertes mais ca
+     * rendrait les overrides plus difficiles a raisonner.
+     */
+    private void validateMinimumNights(Reservation reservation, Long orgId) {
+        Property property = reservation.getProperty();
+        if (property == null || reservation.getCheckIn() == null || reservation.getCheckOut() == null) {
+            return;
+        }
+
+        long actualNights = java.time.temporal.ChronoUnit.DAYS.between(
+                reservation.getCheckIn(), reservation.getCheckOut());
+        if (actualNights < 1) {
+            throw new IllegalArgumentException(
+                    "La duree de la reservation doit etre d'au moins 1 nuit (check-out apres check-in)");
+        }
+
+        Integer effectiveMinNights = minNightsOverrideRepository
+                .findByPropertyIdAndDate(property.getId(), reservation.getCheckIn(), orgId)
+                .map(o -> o.getMinNights())
+                .orElseGet(property::getMinimumNights);
+
+        if (effectiveMinNights == null || effectiveMinNights <= 1) {
+            return; // pas de contrainte
+        }
+
+        if (actualNights < effectiveMinNights) {
+            throw new IllegalArgumentException(String.format(
+                    "Minimum de %d nuits requis pour un check-in le %s (reservation soumise: %d nuits)",
+                    effectiveMinNights, reservation.getCheckIn(), actualNights));
         }
     }
 }

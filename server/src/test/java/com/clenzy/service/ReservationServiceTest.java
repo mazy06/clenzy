@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.config.SyncMetrics;
 import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.model.*;
+import com.clenzy.repository.MinNightsOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
@@ -34,6 +35,7 @@ class ReservationServiceTest {
     @Mock private SyncMetrics syncMetrics;
     @Mock private com.clenzy.repository.ServiceRequestRepository serviceRequestRepository;
     @Mock private NotificationService notificationService;
+    @Mock private MinNightsOverrideRepository minNightsOverrideRepository;
 
     private TenantContext tenantContext;
     private ReservationService reservationService;
@@ -52,8 +54,15 @@ class ReservationServiceTest {
         reservationService = new ReservationService(
                 reservationRepository, userRepository, tenantContext,
                 calendarEngine, guestService, syncMetrics,
-                serviceRequestRepository, notificationService
+                serviceRequestRepository, notificationService,
+                minNightsOverrideRepository
         );
+
+        // Pas d'override min-nights par defaut dans les tests (resolution
+        // tombe sur property.minimumNights, qui est null pour la plupart
+        // des tests existants → pas de contrainte).
+        lenient().when(minNightsOverrideRepository.findByPropertyIdAndDate(anyLong(), any(), anyLong()))
+                .thenReturn(Optional.empty());
 
         property = new Property();
         property.setId(1L);

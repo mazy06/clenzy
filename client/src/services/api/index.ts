@@ -176,6 +176,9 @@ export type {
   ReconciliationStats,
 } from './syncAdminApi';
 
+export { channelSyncHealthApi } from './channelSyncHealthApi';
+export type { ChannelSyncHealth } from './channelSyncHealthApi';
+
 export { calendarPricingApi } from './calendarPricingApi';
 export type {
   CalendarPricingDay,
@@ -183,6 +186,8 @@ export type {
   RateOverride,
   CreateRatePlanData,
   BulkRateOverrideData,
+  MinNightsOverride,
+  BulkMinNightsOverrideData,
 } from './calendarPricingApi';
 
 export { guestsApi } from './guestsApi';

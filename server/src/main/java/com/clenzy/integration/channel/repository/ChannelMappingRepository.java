@@ -38,6 +38,18 @@ public interface ChannelMappingRepository extends JpaRepository<ChannelMapping, 
             @Param("orgId") Long orgId);
 
     /**
+     * Tous les mappings actifs pour un BATCH de proprietes (planning sync health).
+     * Une seule requete au lieu d'un find par propriete.
+     */
+    @Query("SELECT cm FROM ChannelMapping cm JOIN cm.connection cc " +
+           "WHERE cm.internalId IN :propertyIds AND cm.entityType = 'PROPERTY' " +
+           "AND cm.syncEnabled = true AND cc.status = 'ACTIVE' " +
+           "AND cm.organizationId = :orgId")
+    List<ChannelMapping> findActiveByPropertyIds(
+            @Param("propertyIds") List<Long> propertyIds,
+            @Param("orgId") Long orgId);
+
+    /**
      * Tous les mappings d'une connexion.
      */
     @Query("SELECT cm FROM ChannelMapping cm WHERE cm.connection.id = :connectionId " +
