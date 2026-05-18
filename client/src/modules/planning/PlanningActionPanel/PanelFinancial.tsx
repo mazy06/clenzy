@@ -51,6 +51,7 @@ import {
 } from '../../../icons';
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
+import { RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
 import { useCurrency } from '../../../hooks/useCurrency';
 
 // ── Types for local financial state ────────────────────────────────────────
@@ -658,6 +659,20 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const isICalImport = reservation && (reservation.source === 'airbnb' || reservation.source === 'booking' || reservation.source === 'other');
   const hasTotalPrice = totalPrice > 0;
 
+  // ── OTA bookings : reservation deja payee sur le canal externe ────────
+  // Quand la reservation vient d'un canal OTA (Airbnb, Booking.com, autres
+  // canaux ICS), le voyageur a deja regle directement sur la plateforme.
+  // Le PMS doit refleter ca : reste a payer 0, statut "Paye OTA", pas de
+  // bouton "Lien paiement". Seules les interventions restent a regler.
+  const isOTABooking = !!isICalImport;
+  const otaChannelLabel = isOTABooking && reservation
+    ? RESERVATION_SOURCE_LABELS[reservation.source as keyof typeof RESERVATION_SOURCE_LABELS] || 'OTA'
+    : null;
+  const effectiveTotalPaid = isOTABooking ? grandTotal : totalPaid;
+  const effectiveBalanceDue = isOTABooking ? 0 : balanceDue;
+  const effectivePaymentStatus = isOTABooking ? `Paye ${otaChannelLabel}` : paymentStatus;
+  const effectivePaymentStatusHex = isOTABooking ? '#4A9B8E' : paymentStatusHex;
+
   // ── Render ─────────────────────────────────────────────────────────────
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -694,7 +709,11 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             </>
           )}
 
-          <FinRow label="Paye" value={fmtCurrency(totalPaid)} color="success.main" />
+          <FinRow
+            label={isOTABooking ? `Paye sur ${otaChannelLabel}` : 'Paye'}
+            value={fmtCurrency(effectiveTotalPaid)}
+            color="success.main"
+          />
 
           {totalRefunded > 0 && (
             <FinRow label="Rembourse" value={`-${fmtCurrency(totalRefunded)}`} color="error.main" />
@@ -705,16 +724,16 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               Reste a payer
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: balanceDue > 0 ? 'warning.main' : 'success.main' }}>
-                {Math.max(0, balanceDue).toFixed(2)} EUR
+              <Typography variant="body2" sx={{ fontWeight: 700, color: effectiveBalanceDue > 0 ? 'warning.main' : 'success.main' }}>
+                {Math.max(0, effectiveBalanceDue).toFixed(2)} EUR
               </Typography>
               <Chip
-                label={paymentStatus}
+                label={effectivePaymentStatus}
                 size="small"
                 sx={{
                   fontSize: '0.625rem', height: 20, fontWeight: 600,
-                  backgroundColor: `${paymentStatusHex}18`, color: paymentStatusHex,
-                  border: `1px solid ${paymentStatusHex}40`, borderRadius: '6px',
+                  backgroundColor: `${effectivePaymentStatusHex}18`, color: effectivePaymentStatusHex,
+                  border: `1px solid ${effectivePaymentStatusHex}40`, borderRadius: '6px',
                   '& .MuiChip-label': { px: 0.75 },
                 }}
               />
@@ -792,25 +811,49 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
           {/* ── Action buttons (same row) ──────────────────────────── */}
           <Box sx={{ display: 'flex', gap: 0.75, mt: 1 }}>
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={sendingLink ? <CircularProgress size={14} color="inherit" /> : <Send size={14} strokeWidth={1.75} />}
-              disabled={sendingLink || !onSendPaymentLink || !hasTotalPrice || reservation?.paymentStatus === 'PAID'}
-              onClick={() => {
-                if (reservation.guestEmail) {
-                  handleSendPaymentLink(reservation.guestEmail);
-                } else {
-                  setShowEmailInput(true);
-                }
-              }}
-              sx={{
-                flex: 1, fontSize: '0.6875rem', textTransform: 'none',
-                backgroundColor: '#0288d1', '&:hover': { backgroundColor: '#01579b' },
-              }}
-            >
-              {lastSentAt ? 'Renvoyer lien' : 'Lien paiement'}
-            </Button>
+            {isOTABooking ? (
+              // OTA : paiement deja regle sur le canal externe → pas de bouton
+              // d'envoi de lien, juste une note d'information.
+              <Box
+                sx={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 0.75,
+                  px: 1.25,
+                  py: 0.875,
+                  borderRadius: 1,
+                  backgroundColor: 'rgba(74, 155, 142, 0.08)',
+                  border: '1px solid rgba(74, 155, 142, 0.2)',
+                }}
+              >
+                <CheckCircle size={14} strokeWidth={1.75} color='#4A9B8E' />
+                <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: '#4A9B8E', fontWeight: 500 }}>
+                  Reglement effectue sur {otaChannelLabel}
+                </Typography>
+              </Box>
+            ) : (
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={sendingLink ? <CircularProgress size={14} color="inherit" /> : <Send size={14} strokeWidth={1.75} />}
+                disabled={sendingLink || !onSendPaymentLink || !hasTotalPrice || reservation?.paymentStatus === 'PAID'}
+                onClick={() => {
+                  if (reservation.guestEmail) {
+                    handleSendPaymentLink(reservation.guestEmail);
+                  } else {
+                    setShowEmailInput(true);
+                  }
+                }}
+                sx={{
+                  flex: 1, fontSize: '0.6875rem', textTransform: 'none',
+                  backgroundColor: '#0288d1', '&:hover': { backgroundColor: '#01579b' },
+                }}
+              >
+                {lastSentAt ? 'Renvoyer lien' : 'Lien paiement'}
+              </Button>
+            )}
 
             {invoices.length > 0 ? (
               <Button
