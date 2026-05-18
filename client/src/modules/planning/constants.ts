@@ -2,12 +2,15 @@ import type { ZoomLevel, ZoomConfig, DensityMode } from './types';
 
 // ─── Layout dimensions ──────────────────────────────────────────────────────
 
+// Le carousel occupe rowHeight (72px en normal, 50px en compact). Les
+// largeurs ci-dessous laissent une marge confortable pour le bloc texte
+// (nom 2 lignes + sous-titre + tag count) meme avec des noms longs.
 /** Default (large screens ≥1200px) */
-export const PROPERTY_COL_WIDTH = 150;
+export const PROPERTY_COL_WIDTH = 280;
 /** Medium screens (≥900px) */
-export const PROPERTY_COL_WIDTH_MD = 128;
+export const PROPERTY_COL_WIDTH_MD = 240;
 /** Small screens (<900px) */
-export const PROPERTY_COL_WIDTH_SM = 104;
+export const PROPERTY_COL_WIDTH_SM = 200;
 export const DATE_HEADER_HEIGHT = 46;
 export const ACTION_PANEL_WIDTH = 380;
 
@@ -20,18 +23,20 @@ export const ROW_CONFIG: Record<DensityMode, {
   interventionTop: number;
   barPadding: number;
 }> = {
+  // Bar de reservation = 2 lignes (nuits + nom). Hauteur calee pour
+  // accommoder 11px label + 13px nom + padding vertical + breathing room.
   normal: {
-    rowHeight: 72,
-    reservationBarHeight: 34,
+    rowHeight: 88,
+    reservationBarHeight: 48,
     interventionBarHeight: 24,
-    interventionTop: 40,
+    interventionTop: 56,
     barPadding: 4,
   },
   compact: {
-    rowHeight: 50,
-    reservationBarHeight: 26,
+    rowHeight: 64,
+    reservationBarHeight: 36,
     interventionBarHeight: 16,
-    interventionTop: 30,
+    interventionTop: 42,
     barPadding: 3,
   },
 };

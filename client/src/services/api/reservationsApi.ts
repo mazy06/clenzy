@@ -116,7 +116,7 @@ export const RESERVATION_STATUS_COLORS: Record<ReservationStatus, string> = {
   confirmed: '#4A9B8E',   // teal (thème success)
   pending: '#D4A574',     // ambre chaud (thème warning)
   cancelled: '#d32f2f',   // red (conservé)
-  checked_in: '#6B8A9A',  // bleu-gris (thème primary)
+  checked_in: '#5FAB7E',  // vert sauge — voyageur sur place (in house), tonalité muted cohérente avec la palette
   checked_out: '#757575', // grey (conservé)
 };
 
@@ -136,7 +136,7 @@ export const RESERVATION_SOURCE_LABELS: Record<ReservationSource, string> = {
 };
 
 export const INTERVENTION_TYPE_COLORS: Record<PlanningInterventionType, string> = {
-  cleaning: '#9B7FC4',    // violet doux — distinct du bleu-gris checked_in
+  cleaning: '#5083C9',    // bleu cobalt — distinct du bleu ciel maintenance
   maintenance: '#7EBAD0', // bleu ciel clair — distinct de pending (#D4A574)
 };
 

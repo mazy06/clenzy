@@ -9,8 +9,11 @@ import PlanningBarGhost from './PlanningBarGhost';
 import type { PlanningProperty, PlanningEvent, BarLayout, DensityMode, ZoomLevel, QuickCreateData } from './types';
 import type { UsePlanningDragReturn } from './hooks/usePlanningDrag';
 import type { PricingMap } from './hooks/usePlanningPricing';
-import { ROW_CONFIG, PRICE_LINE_HEIGHT } from './constants';
+import type { MinNightsMap } from './hooks/usePlanningMinNights';
+import type { ChannelSyncMap } from './hooks/usePlanningChannelSync';
+import { ROW_CONFIG } from './constants';
 import { detectConflicts } from './utils/conflictUtils';
+import { toDateStr } from './utils/dateUtils';
 
 interface PlanningTimelineProps {
   properties: PlanningProperty[];
@@ -30,9 +33,12 @@ interface PlanningTimelineProps {
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onScroll: () => void;
   propertyColWidth: number;
+  onPropertyColWidthChange?: (width: number) => void;
   showPrices: boolean;
   showInterventions: boolean;
   pricingMap: PricingMap;
+  minNightsMap?: MinNightsMap;
+  channelSyncMap?: ChannelSyncMap;
   pageSize?: number;
   onPropertyClick?: (propertyId: number) => void;
 }
@@ -55,23 +61,30 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   scrollRef,
   onScroll,
   propertyColWidth,
+  onPropertyColWidthChange,
   showPrices,
   showInterventions,
   pricingMap,
+  minNightsMap,
+  channelSyncMap,
   pageSize,
   onPropertyClick,
 }) => {
   const config = ROW_CONFIG[density];
-  const priceLineHeight = showPrices ? PRICE_LINE_HEIGHT[density] : 0;
+  // Plus de price line dediee : les prix sont desormais affiches dans
+  // chaque cellule de jour, centres et masques sous les bars.
   // When interventions are hidden, shrink the row to only reservation bar + padding
   const baseRowHeight = showInterventions
     ? config.rowHeight
     : config.interventionTop + 2; // reservation bar area + small bottom padding
-  const effectiveRowHeight = baseRowHeight + priceLineHeight;
+  const effectiveRowHeight = baseRowHeight;
   // Fill remaining space with empty rows
   const emptyRowCount = pageSize ? Math.max(0, pageSize - properties.length) : 0;
   const totalDisplayRows = properties.length + emptyRowCount;
   const totalRowsHeight = totalDisplayRows * effectiveRowHeight;
+  // Hauteur du today line : limitee aux lignes "vraies" (sans les empty
+  // fillers de pagination). Le trait rouge s'arrete au bas du dernier logement.
+  const todayLineHeight = properties.length * effectiveRowHeight;
 
   // Detect conflicts
   const conflictEventIds = useMemo(() => {
@@ -84,6 +97,20 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
     return ids;
   }, [events]);
 
+  // Count UPCOMING reservations per property (for the small tag indicator
+  // in the property column). Filtre les reservations passees (endDate < aujourd'hui)
+  // et les interventions — seules les reservations en cours ou a venir.
+  const reservationCountByProperty = useMemo(() => {
+    const todayStr = toDateStr(new Date());
+    const map = new Map<number, number>();
+    for (const evt of events) {
+      if (evt.type !== 'reservation') continue;
+      if (evt.endDate < todayStr) continue;
+      map.set(evt.propertyId, (map.get(evt.propertyId) ?? 0) + 1);
+    }
+    return map;
+  }, [events]);
+
   return (
     <Paper
       elevation={0}
@@ -92,8 +119,6 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
         minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
-        border: '1px solid',
-        borderColor: 'divider',
         borderRadius: 1,
         overflow: 'hidden',
       }}
@@ -128,6 +153,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
               zoom={zoom}
               totalGridWidth={totalGridWidth}
               propertyColWidth={propertyColWidth}
+              propertyCount={properties.length}
             />
 
             {/* Body: property column + grid rows */}
@@ -138,9 +164,12 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 density={density}
                 selectedPropertyId={null}
                 colWidth={propertyColWidth}
+                onColWidthChange={onPropertyColWidthChange}
                 effectiveRowHeight={effectiveRowHeight}
                 emptyRowCount={emptyRowCount}
                 onPropertyClick={onPropertyClick}
+                reservationCountByProperty={reservationCountByProperty}
+                channelSyncMap={channelSyncMap}
               />
 
               {/* Grid rows */}
@@ -149,7 +178,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 <PlanningTodayLine
                   days={days}
                   dayWidth={dayWidth}
-                  totalHeight={totalRowsHeight}
+                  totalHeight={todayLineHeight}
                 />
 
                 {/* Property rows */}
@@ -175,6 +204,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                     showPrices={showPrices}
                     showInterventions={showInterventions}
                     pricingMap={pricingMap}
+                    minNightsMap={minNightsMap}
                     effectiveRowHeight={effectiveRowHeight}
                     allEvents={events}
                   />
@@ -187,8 +217,6 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                     sx={{
                       height: effectiveRowHeight,
                       width: totalGridWidth,
-                      borderBottom: '1px solid',
-                      borderColor: 'divider',
                       backgroundColor: (properties.length + i) % 2 === 0
                         ? 'transparent'
                         : 'rgba(255,255,255,0.015)',
