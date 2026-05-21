@@ -11,6 +11,28 @@ databaseChangeLog:
   #   - ID : NNNN-description (tirets, pas underscores)
   #   - Author : prenom-nom
   #   - Si PL/pgSQL (DO $$) : utiliser splitStatements: false
+  #
+  # ----------------------------------------------------------------------------
+  # POLITIQUE D'EXECUTION (mise a jour 2026-05-21)
+  # ----------------------------------------------------------------------------
+  # Prod tourne actuellement avec SPRING_LIQUIBASE_ENABLED=false (cf
+  # incident 0111 / Option C). L'execution se fait via le workflow
+  # `Liquibase Bootstrap` sur clenzy-infra avec un sync_tag adapte.
+  #
+  # Plan de reactivation en cours (5 phases) :
+  #   1. DB Status read-only quotidien            ✓ live
+  #   2. Audit baseline                           ✓ valide (no validation errors)
+  #   3. CI Validate sur PR                       ✓ active (rulesets en place)
+  #   4. Health indicator + conventions runtime   ← cette PR
+  #   5. Activation progressive (staging → prod)  pending
+  #
+  # Reglés a respecter quand on ajoute un changeset :
+  #   - Eviter les gros changesets data (millions de lignes) → si necessaire,
+  #     les pousser via `Liquibase Bootstrap` apres deploy, pas via boot Spring.
+  #   - Toujours tester en local contre une copie du schema prod avant push.
+  #   - Ne JAMAIS modifier un changeset deja applique en prod (le CI le bloque
+  #     via le check `immutable-changesets` — bypass `[liquibase-allow-modify]`
+  #     dans le titre PR uniquement pour les cas exceptionnels documentes).
   # ============================================================================
 
   # --- 0001 : Add keycloak_id to users (ex V2a) ---
