@@ -6,6 +6,22 @@ import type { UserPreferencesDto } from '../services/api/userPreferencesApi';
 const QUERY_KEY = ['user-preferences', 'me'];
 
 /**
+ * Defaults declares en CONSTANTE (hors du hook) pour preserver la stabilite
+ * referentielle entre renders. Sans ca, le fallback `preferences ?? { ... }`
+ * recreait l'objet a chaque render → tout useEffect/useMemo en aval avec
+ * `preferences` dans son dependency array tournait en boucle infinie.
+ * (Cause d'un Maximum update depth exceeded dans Settings.tsx.)
+ */
+const DEFAULT_PREFERENCES: UserPreferencesDto = Object.freeze({
+  timezone: 'Europe/Paris',
+  currency: 'EUR',
+  language: 'fr',
+  notifyEmail: true,
+  notifyPush: false,
+  notifySms: false,
+}) as UserPreferencesDto;
+
+/**
  * Hook pour les preferences utilisateur persistees en BDD.
  * Source de verite pour timezone, devise, langue et toggles notifications.
  * Les preferences sont chargees depuis le backend et mises en cache par React Query.
@@ -33,14 +49,7 @@ export function useUserPreferences() {
   );
 
   return {
-    preferences: preferences ?? {
-      timezone: 'Europe/Paris',
-      currency: 'EUR',
-      language: 'fr',
-      notifyEmail: true,
-      notifyPush: false,
-      notifySms: false,
-    },
+    preferences: preferences ?? DEFAULT_PREFERENCES,
     isLoading,
     isSaving: updateMutation.isPending,
     updatePreferences,
