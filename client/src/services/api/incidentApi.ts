@@ -65,4 +65,13 @@ export const incidentApi = {
   retestIncident: async (id: number): Promise<RetestResult> => {
     return apiClient.post<RetestResult>(`${BASE}/${id}/retest`);
   },
+
+  /**
+   * Suppression dure d'un incident. Pour les cas où le retest ne suffit pas (incident
+   * verrouillé OPEN parce que le service n'est plus configuré localement, ou ancien
+   * incident RESOLVED dont la durée pollue la moyenne P1). SUPER_ADMIN uniquement.
+   */
+  deleteIncident: async (id: number): Promise<{ deleted: boolean; id: number }> => {
+    return apiClient.delete<{ deleted: boolean; id: number }>(`${BASE}/${id}`);
+  },
 };

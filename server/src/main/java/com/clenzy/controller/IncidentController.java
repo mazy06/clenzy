@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.IncidentDto;
 import com.clenzy.dto.RetestResultDto;
 import com.clenzy.model.Incident;
+import com.clenzy.model.Incident.IncidentSeverity;
 import com.clenzy.model.Incident.IncidentStatus;
 import com.clenzy.repository.IncidentRepository;
 import com.clenzy.service.IncidentService;
@@ -14,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -44,8 +46,12 @@ public class IncidentController {
     }
 
     @GetMapping
-    @Operation(summary = "Liste des incidents avec filtres optionnels")
+    @Operation(summary = "Liste des incidents avec filtres optionnels",
+            description = "Les incidents OPEN sont toujours retournes peu importe leur age "
+                    + "(pour ne pas masquer un incident bloque). Le filtre 'days' s'applique "
+                    + "uniquement aux incidents RESOLVED/ACKNOWLEDGED.")
     public ResponseEntity<?> listIncidents(
+            @RequestParam(required = false) IncidentSeverity severity,
             @RequestParam(required = false) IncidentStatus status,
             @RequestParam(defaultValue = "30") int days,
             @RequestParam(defaultValue = "0") int page,
@@ -58,12 +64,38 @@ public class IncidentController {
             LocalDateTime since = LocalDateTime.now().minusDays(limitedDays);
 
             List<Incident> incidents;
-            if (status != null) {
+            if (status == IncidentStatus.OPEN) {
+                // Un incident OPEN doit etre visible peu importe son age — sinon les
+                // incidents stuck (config retiree, scheduler en panne) disparaissent du
+                // tableau de bord alors qu'ils continuent a polluer les KPI.
+                incidents = incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN);
+            } else if (status != null) {
                 incidents = incidentRepository
                         .findByStatusAndOpenedAtAfterOrderByOpenedAtDesc(status, since);
             } else {
-                incidents = incidentRepository
-                        .findByOpenedAtAfterOrderByOpenedAtDesc(since);
+                // Mix : tous les OPEN (sans limite d'age) + les incidents actifs dans
+                // la fenetre. 'Actif' = ouvert OU resolu dans la periode — necessaire
+                // pour visualiser les RESOLVED qui contribuent encore a la moyenne
+                // KPI P1 alors qu'ils ont ete ouverts il y a longtemps.
+                List<Incident> openAll = incidentRepository
+                        .findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN);
+                List<Incident> activeNonOpen = incidentRepository
+                        .findActiveSince(since)
+                        .stream()
+                        .filter(i -> i.getStatus() != IncidentStatus.OPEN)
+                        .toList();
+                incidents = new ArrayList<>(openAll.size() + activeNonOpen.size());
+                incidents.addAll(openAll);
+                incidents.addAll(activeNonOpen);
+            }
+
+            if (severity != null) {
+                // Defensif : si severity en DB est null (cas legacy avant introduction du
+                // champ), on l'inclut quand meme — sinon un vieil incident polluant le KPI
+                // P1 reste invisible parce qu'il n'a pas de severity explicite.
+                incidents = incidents.stream()
+                        .filter(i -> i.getSeverity() == null || i.getSeverity() == severity)
+                        .toList();
             }
 
             final int totalElements = incidents.size();
@@ -110,6 +142,24 @@ public class IncidentController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Erreur lors de la recuperation de l'incident: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Supprimer un incident (stuck OPEN ou ancien RESOLVED polluant l'AVG KPI)",
+            description = "Pour les cas où le service auto-resolve ne fonctionne pas — par exemple "
+                    + "un incident SMTP/Stripe/Keycloak local ouvert quand la config était active, "
+                    + "puis retiree. Utilise aussi pour purger un ancien incident RESOLVED dont la "
+                    + "duree pollue la moyenne 'P1 Incident Resolution'.")
+    public ResponseEntity<?> deleteIncident(@PathVariable Long id) {
+        try {
+            boolean deleted = incidentService.deleteIncident(id);
+            if (!deleted) return ResponseEntity.notFound().build();
+            return ResponseEntity.ok(Map.of("deleted", true, "id", id));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Erreur lors de la suppression: " + e.getMessage()));
         }
     }
 

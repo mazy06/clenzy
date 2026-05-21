@@ -20,9 +20,10 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material';
-import { Close, Refresh } from '../../icons';
+import { Close, Refresh, Delete } from '../../icons';
 import type { IncidentDto, IncidentStatus } from '../../services/api/incidentApi';
 import { incidentApi } from '../../services/api/incidentApi';
+import { useAuth } from '../../hooks/useAuth';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -48,9 +49,12 @@ const formatDate = (iso: string): string => {
 
 const formatDuration = (minutes: number | null): string => {
   if (minutes === null || minutes === undefined) return '-';
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const remaining = minutes % 60;
+  // Arrondi au entier — la precision sub-minute n'a pas de valeur metier ici
+  // et provoque du bruit IEEE-754 ('4.040000000000873min') sur les longues durees.
+  const rounded = Math.round(minutes);
+  if (rounded < 60) return `${rounded} min`;
+  const hours = Math.floor(rounded / 60);
+  const remaining = rounded % 60;
   if (remaining === 0) return `${hours}h`;
   return `${hours}h ${remaining}min`;
 };
@@ -74,12 +78,47 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
   loading,
   onRefresh,
 }) => {
+  const { isSuperAdmin } = useAuth();
+  const canDelete = isSuperAdmin();
+
   const [retestingId, setRetestingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
     severity: 'success' | 'warning' | 'error';
   }>({ open: false, message: '', severity: 'success' });
+
+  const handleDelete = async (incidentId: number) => {
+    setDeletingId(incidentId);
+    try {
+      await incidentApi.deleteIncident(incidentId);
+      setSnackbar({
+        open: true,
+        message: `Incident #${incidentId} supprimé.`,
+        severity: 'success',
+      });
+      onRefresh?.();
+    } catch (err) {
+      // Diagnostic precis : distinguer 403 (role manquant) / 404 (deja supprime) / autre.
+      const apiErr = err as { status?: number; message?: string } | undefined;
+      const status = apiErr?.status;
+      let message: string;
+      if (status === 403) {
+        message = "Acces refuse — le rôle SUPER_ADMIN est requis pour cette action.";
+      } else if (status === 404) {
+        message = `Incident #${incidentId} introuvable (peut-etre deja supprime).`;
+      } else {
+        const backendMsg = apiErr?.message ?? 'erreur inconnue';
+        message = `Erreur lors de la suppression (HTTP ${status ?? '?'} — ${backendMsg}).`;
+      }
+      setSnackbar({ open: true, message, severity: 'error' });
+    } finally {
+      setDeletingId(null);
+      setConfirmDeleteId(null);
+    }
+  };
 
   const handleRetest = async (incidentId: number) => {
     setRetestingId(incidentId);
@@ -178,26 +217,46 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                           {formatDuration(incident.resolutionMinutes)}
                         </TableCell>
                         <TableCell>
-                          {incident.status === 'OPEN' ? (
-                            <Tooltip title="Retester le service">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleRetest(incident.id)}
-                                disabled={isRetesting}
+                          <Box sx={{ display: 'inline-flex', gap: 0.25 }}>
+                            {incident.status === 'OPEN' && (
+                              <Tooltip title="Retester le service — si UP, l'incident sera auto-résolu">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleRetest(incident.id)}
+                                  disabled={isRetesting || deletingId === incident.id}
+                                >
+                                  {isRetesting ? (
+                                    <CircularProgress size={18} />
+                                  ) : (
+                                    <Refresh fontSize="small" />
+                                  )}
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {canDelete && (
+                              <Tooltip
+                                title={
+                                  incident.status === 'OPEN'
+                                    ? "Supprimer définitivement (service non monitoré localement, etc.)"
+                                    : "Supprimer cet incident résolu (purge la moyenne KPI P1)"
+                                }
                               >
-                                {isRetesting ? (
-                                  <CircularProgress size={18} />
-                                ) : (
-                                  <Refresh fontSize="small" />
-                                )}
-                              </IconButton>
-                            </Tooltip>
-                          ) : (
-                            <Typography variant="body2" color="text.disabled" sx={{ fontSize: '0.75rem' }}>
-                              -
-                            </Typography>
-                          )}
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => setConfirmDeleteId(incident.id)}
+                                  disabled={deletingId === incident.id || isRetesting}
+                                >
+                                  {deletingId === incident.id ? (
+                                    <CircularProgress size={18} />
+                                  ) : (
+                                    <Delete fontSize="small" />
+                                  )}
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
                         </TableCell>
                       </TableRow>
                     );
@@ -211,6 +270,37 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
         <DialogActions>
           <Button onClick={onClose} startIcon={<Close />}>
             Fermer
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirmation de suppression — guard contre un clic accidentel sur un
+          incident encore en cours d'investigation. */}
+      <Dialog
+        open={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        maxWidth="xs"
+      >
+        <DialogTitle>Supprimer l'incident #{confirmDeleteId} ?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Cette action retire l'incident de la base. Conséquences :
+          </Typography>
+          <Typography variant="body2" component="ul" sx={{ pl: 2, color: 'text.secondary' }}>
+            <li>Décrémente le compteur d'incidents ouverts (badge).</li>
+            <li>Si l'incident était RÉSOLU, sa durée n'entre plus dans la moyenne KPI P1.</li>
+            <li>Action irréversible — pas de soft-delete.</li>
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteId(null)}>Annuler</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => confirmDeleteId !== null && handleDelete(confirmDeleteId)}
+            disabled={deletingId !== null}
+          >
+            Supprimer
           </Button>
         </DialogActions>
       </Dialog>
