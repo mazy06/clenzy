@@ -239,7 +239,7 @@ class KpiServiceTest {
 
             kpiService.captureAndPersistSnapshot("MANUAL");
 
-            verify(notificationService).notifyAdminsAndManagers(
+            verify(notificationService).notifyAllPlatformStaff(
                     eq(NotificationKey.KPI_CRITICAL_FAILURE),
                     anyString(),
                     contains("Uptime"),
@@ -264,14 +264,14 @@ class KpiServiceTest {
 
             kpiService.captureAndPersistSnapshot("SCHEDULED");
 
-            verify(notificationService).notifyAdminsAndManagers(
+            verify(notificationService).notifyAllPlatformStaff(
                     eq(NotificationKey.KPI_THRESHOLD_BREACH),
                     anyString(),
                     anyString(),
                     eq("/admin/kpi")
             );
             // Should NOT send KPI_CRITICAL_FAILURE since no critical KPI failed
-            verify(notificationService, never()).notifyAdminsAndManagers(
+            verify(notificationService, never()).notifyAllPlatformStaff(
                     eq(NotificationKey.KPI_CRITICAL_FAILURE),
                     anyString(),
                     anyString(),
@@ -917,7 +917,7 @@ class KpiServiceTest {
 
             kpiService.captureAndPersistSnapshot("MANUAL");
 
-            verify(notificationService, never()).notifyAdminsAndManagers(
+            verify(notificationService, never()).notifyAllPlatformStaff(
                     any(NotificationKey.class), anyString(), anyString(), anyString());
         }
 
@@ -931,7 +931,7 @@ class KpiServiceTest {
             when(syncLogRepository.countByStatusStr("FAILED")).thenReturn(100L);
 
             doThrow(new RuntimeException("notification error"))
-                    .when(notificationService).notifyAdminsAndManagers(
+                    .when(notificationService).notifyAllPlatformStaff(
                             any(NotificationKey.class), anyString(), anyString(), anyString());
 
             KpiSnapshot savedEntity = new KpiSnapshot();
