@@ -70,6 +70,7 @@ import MyPayoutSettings from './MyPayoutSettings';
 import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
+import { userAvatarSrc } from '../../services/api/usersApi';
 
 // ─── TabPanel ─────────────────────────────────────────────────────────────────
 
@@ -565,6 +566,14 @@ export default function Settings() {
               icon={Person}
               accent="primary"
               description="Identité, organisation et préférences régionales"
+              avatar={{
+                src: userAvatarSrc(user ?? undefined),
+                initials: [user?.firstName?.[0], user?.lastName?.[0]]
+                  .filter(Boolean)
+                  .join('')
+                  .toUpperCase() || user?.username?.[0]?.toUpperCase(),
+                alt: user?.fullName || user?.username || 'Photo de profil',
+              }}
             >
               <Grid container spacing={1.5}>
                 <Grid item xs={12} sm={6}>
