@@ -28,12 +28,16 @@
 
 name: Liquibase Validate
 
+# IMPORTANT : pas de `paths:` filter ici.
+# Le ruleset `Protect production` declare ces deux jobs comme required.
+# Si on filtre par path, les jobs ne tournent pas pour les PR sans modif
+# de changelog → checks "expected but not reported" → ruleset BLOCKED
+# → impossible de merger la moindre PR.
+# Cout : ~30s par PR (status SQL + validate sur Postgres ephemere). OK.
+
 on:
   pull_request:
     branches: [main, production]
-    paths:
-      - 'server/src/main/resources/db/changelog/**'
-      - '.github/workflows/ci-liquibase-validate.yml'
 
 permissions:
   contents: read
