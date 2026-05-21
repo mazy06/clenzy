@@ -551,7 +551,11 @@ public class KpiService {
                     .toList();
 
             try {
-                notificationService.notifyAdminsAndManagers(
+                // notifyAllPlatformStaff : pas de dependance TenantContext (request-scoped).
+                // Indispensable ici car checkAndAlert est appele depuis @Scheduled (hors
+                // HTTP context). Les KPI critiques sont des alertes platform-wide, pas
+                // attachees a une organisation specifique, donc semantiquement correct.
+                notificationService.notifyAllPlatformStaff(
                         NotificationKey.KPI_CRITICAL_FAILURE,
                         "KPI Critique en echec",
                         String.format("KPIs critiques en echec : %s. Score readiness = 0%%.",
@@ -576,7 +580,9 @@ public class KpiService {
                     .orElse("");
 
             try {
-                notificationService.notifyAdminsAndManagers(
+                // notifyAllPlatformStaff : cf. commentaire dans le bloc criticalFailed
+                // ci-dessus. Meme raison : appel depuis @Scheduled hors HTTP context.
+                notificationService.notifyAllPlatformStaff(
                         NotificationKey.KPI_THRESHOLD_BREACH,
                         "KPI sous le seuil critique",
                         String.format("KPIs en echec : %s. Score readiness = %.1f%%.",
