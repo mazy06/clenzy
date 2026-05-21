@@ -7,12 +7,18 @@ import com.clenzy.service.DeviceTokenService;
 import com.clenzy.service.LoginProtectionService;
 import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.service.UserService;
+import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.concurrent.TimeUnit;
 
 import java.util.List;
 import java.util.Map;
@@ -156,6 +162,53 @@ public class UserController {
                 "success", true,
                 "message", "Utilisateur " + user.getFirstName() + " " + user.getLastName() + " debloque avec succes"
         ));
+    }
+
+    // ─── Profile picture ────────────────────────────────────────────────────
+
+    /**
+     * Upload (or replace) a user's profile picture. Self-service OR admin.
+     */
+    @PostMapping(value = "/{id}/profile-picture", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Uploader ou remplacer la photo de profil")
+    public UserDto uploadProfilePicture(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal Jwt jwt) {
+        validateOwnershipOrAdmin(id, jwt);
+        try {
+            return userService.uploadProfilePicture(id, file);
+        } catch (IllegalArgumentException e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
+    /** Remove a user's profile picture. */
+    @DeleteMapping("/{id}/profile-picture")
+    @Operation(summary = "Supprimer la photo de profil")
+    public UserDto deleteProfilePicture(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        validateOwnershipOrAdmin(id, jwt);
+        return userService.deleteProfilePicture(id);
+    }
+
+    /**
+     * Stream the stored profile picture. Authenticated only — the photo is not public
+     * (the URL is stable per user so it caches well on the client).
+     */
+    @GetMapping("/{id}/profile-picture")
+    @Operation(summary = "Recuperer la photo de profil")
+    public ResponseEntity<Resource> getProfilePicture(@PathVariable Long id) {
+        Object[] payload = userService.streamProfilePicture(id);
+        if (payload == null) {
+            return ResponseEntity.notFound().build();
+        }
+        Resource resource = (Resource) payload[0];
+        String contentType = (String) payload[1];
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePrivate())
+                .body(resource);
     }
 
     /**

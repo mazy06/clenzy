@@ -52,6 +52,7 @@ public class AirbnbChannelAdapter implements ChannelConnector {
     private final RestTemplate restTemplate;
     private final BookingRestrictionRepository bookingRestrictionRepository;
     private final CalendarDayRepository calendarDayRepository;
+    private final HostProfileSyncSupport hostProfileSyncSupport;
 
     public AirbnbChannelAdapter(AirbnbOAuthService airbnbOAuthService,
                                 AirbnbConnectionRepository airbnbConnectionRepository,
@@ -60,7 +61,8 @@ public class AirbnbChannelAdapter implements ChannelConnector {
                                 PriceEngine priceEngine,
                                 RestTemplate restTemplate,
                                 BookingRestrictionRepository bookingRestrictionRepository,
-                                CalendarDayRepository calendarDayRepository) {
+                                CalendarDayRepository calendarDayRepository,
+                                HostProfileSyncSupport hostProfileSyncSupport) {
         this.airbnbOAuthService = airbnbOAuthService;
         this.airbnbConnectionRepository = airbnbConnectionRepository;
         this.tokenEncryptionService = tokenEncryptionService;
@@ -69,6 +71,7 @@ public class AirbnbChannelAdapter implements ChannelConnector {
         this.restTemplate = restTemplate;
         this.bookingRestrictionRepository = bookingRestrictionRepository;
         this.calendarDayRepository = calendarDayRepository;
+        this.hostProfileSyncSupport = hostProfileSyncSupport;
     }
 
     @Override
@@ -89,8 +92,35 @@ public class AirbnbChannelAdapter implements ChannelConnector {
                 ChannelCapability.OUTBOUND_RESTRICTIONS,
                 ChannelCapability.CONTENT_SYNC,
                 ChannelCapability.FEES,
-                ChannelCapability.CANCELLATION_POLICIES
+                ChannelCapability.CANCELLATION_POLICIES,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
+    }
+
+    /**
+     * Push host profile to Airbnb (OUTBOUND).
+     *
+     * <p>Delegates orchestration (connection lookup, ChannelSyncLog write, duration metrics,
+     * exception capture) to {@link HostProfileSyncSupport}. The lambda below is the only
+     * Airbnb-specific code — replace its body with the real Host Profile API call when the
+     * partner contract is in place.</p>
+     */
+    @Override
+    public SyncResult pushHostProfile(HostProfileUpdate profile, Long orgId) {
+        return hostProfileSyncSupport.dispatch(getChannelName(), profile, orgId, () -> {
+            // TODO Airbnb Host Profile API:
+            //   1. Resolve OAuth token via airbnbOAuthService for the org.
+            //   2. PUT {AIRBNB_API_BASE}/host_profiles/me with payload (firstName, lastName,
+            //      profile_picture_url) and Authorization: Bearer <token>.
+            //   3. Return SyncResult.success(...) on 200, SyncResult.failed(...) otherwise.
+            log.info("AirbnbChannelAdapter pushHostProfile pending API wire-up (userId={}, orgId={})",
+                    profile.userId(), orgId);
+            return SyncResult.success(
+                    "Host profile change recorded for Airbnb sync (API wire-up pending)",
+                    1,
+                    0L
+            );
+        });
     }
 
     @Override

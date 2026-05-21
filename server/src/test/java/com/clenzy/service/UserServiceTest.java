@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -49,6 +50,9 @@ class UserServiceTest {
     @Mock private NewUserService newUserService;
     @Mock private NotificationService notificationService;
     @Mock private EmailService emailService;
+    @Mock private UserAvatarStorageService avatarStorage;
+    @Mock private ObjectProvider<OutboxPublisher> outboxPublisherProvider;
+    @Mock private ObjectProvider<UserProfileSyncService> profileSyncProvider;
 
     private TenantContext tenantContext;
     private UserService userService;
@@ -60,10 +64,17 @@ class UserServiceTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
 
+        // ObjectProvider.getIfAvailable() returns null when not wired — the tests don't
+        // exercise outbox / OTA fan-out, so keeping these null mirrors a context without
+        // the Kafka stack (matches ContactMessageEventPublisher's pattern).
+        when(outboxPublisherProvider.getIfAvailable()).thenReturn(null);
+        when(profileSyncProvider.getIfAvailable()).thenReturn(null);
+
         userService = new UserService(
                 userRepository, organizationRepository, memberRepository,
                 organizationService, permissionService,
-                newUserService, notificationService, emailService, tenantContext);
+                newUserService, notificationService, emailService, tenantContext,
+                avatarStorage, outboxPublisherProvider, profileSyncProvider);
     }
 
     private User buildUser(Long id, String email, UserRole role) {

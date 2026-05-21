@@ -5,7 +5,6 @@ import {
   TextField,
   IconButton,
   Avatar,
-  Badge,
   Paper,
   CircularProgress,
   Alert,
@@ -24,6 +23,11 @@ import {
   Download as DownloadIcon,
   ChatBubbleOutline as EmptyIcon,
   ArrowBack as ArrowBackIcon,
+  Check as CheckIcon,
+  DoneAll as DoneAllIcon,
+  Archive as ArchiveIcon,
+  MarkAsUnread as MarkUnreadIcon,
+  Info as InfoIcon,
 } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -34,9 +38,12 @@ import {
   useMarkThreadAsRead,
 } from '../../hooks/useContactMessages';
 import { useContactWebSocket } from '../../hooks/useContactWebSocket';
+import { usePresence } from '../../hooks/usePresence';
 import { contactApi } from '../../services/api';
 import type { ContactThreadSummary, ContactAttachment } from '../../services/api/contactApi';
+import { userAvatarSrc } from '../../services/api/usersApi';
 import PhotoLightbox from '../../components/PhotoLightbox';
+import { semanticToHex, softChipSx } from '../../utils/statusUtils';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -100,6 +107,26 @@ function formatThreadTime(dateStr: string): string {
   return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
 }
 
+/** Small green/grey presence dot rendered as a sibling of the avatar. */
+const PresenceDot: React.FC<{ online: boolean; size?: number }> = ({ online, size = 10 }) => (
+  <Box
+    aria-hidden
+    sx={{
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: size,
+      height: size,
+      borderRadius: '50%',
+      bgcolor: online ? '#22C55E' : 'transparent',
+      border: '2px solid',
+      borderColor: 'background.paper',
+      pointerEvents: 'none',
+      display: online ? 'block' : 'none',
+    }}
+  />
+);
+
 function formatDateSeparator(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -160,6 +187,15 @@ const InternalChatTab: React.FC = () => {
         th.counterpartEmail.toLowerCase().includes(q),
     );
   }, [threads, search]);
+
+  // ── Presence ─────────────────────────────────────────────────────────────
+  // Watch presence for every counterpart in the list (bulk request, single subscription).
+  const presenceUserIds = useMemo(
+    () => (threads ?? []).map((t) => t.counterpartKeycloakId),
+    [threads],
+  );
+  const presence = usePresence(presenceUserIds);
+  const isUserOnline = (userId: string) => Boolean(presence[userId]?.online);
 
   // ── Image URLs for attachments ───────────────────────────────────────────
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
@@ -308,6 +344,21 @@ const InternalChatTab: React.FC = () => {
     );
   };
 
+  // ── Message grouping ─────────────────────────────────────────────────────
+  // A group is a run of consecutive messages from the same sender on the same day.
+  const isFirstInGroup = (index: number): boolean => {
+    if (!messages || index === 0) return true;
+    if (shouldShowDateSeparator(index)) return true;
+    return messages[index - 1].senderId !== messages[index].senderId;
+  };
+
+  const isLastInGroup = (index: number): boolean => {
+    if (!messages) return true;
+    if (index === messages.length - 1) return true;
+    if (shouldShowDateSeparator(index + 1)) return true;
+    return messages[index + 1].senderId !== messages[index].senderId;
+  };
+
   // ── Determine layout visibility ──────────────────────────────────────────
   const showLeftPanel = !isMobile || !selectedThread;
   const showRightPanel = !isMobile || !!selectedThread;
@@ -390,11 +441,14 @@ const InternalChatTab: React.FC = () => {
                   selectedThread?.counterpartKeycloakId === thread.counterpartKeycloakId;
                 const avatarColor = getAvatarColor(thread.counterpartKeycloakId);
                 const hasUnread = thread.unreadCount > 0;
+                const online = isUserOnline(thread.counterpartKeycloakId);
 
                 return (
                   <Box
                     key={thread.counterpartKeycloakId}
                     onClick={() => handleSelectThread(thread)}
+                    role="button"
+                    tabIndex={0}
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
@@ -402,31 +456,37 @@ const InternalChatTab: React.FC = () => {
                       px: 2,
                       py: 1.25,
                       cursor: 'pointer',
+                      position: 'relative',
                       bgcolor: isSelected
-                        ? alpha(theme.palette.primary.main, 0.10)
+                        ? alpha(theme.palette.primary.main, 0.08)
                         : 'transparent',
+                      // E12 \u2014 1px left filet on active row (respects Impeccable's max-1px rule).
+                      '&::before': isSelected
+                        ? {
+                            content: '""',
+                            position: 'absolute',
+                            left: 0, top: 0, bottom: 0,
+                            width: '1px',
+                            bgcolor: 'primary.main',
+                          }
+                        : undefined,
                       transition: 'background-color 0.15s',
+                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                       '&:hover': {
                         bgcolor: isSelected
-                          ? alpha(theme.palette.primary.main, 0.14)
+                          ? alpha(theme.palette.primary.main, 0.12)
                           : 'action.hover',
                       },
                     }}
                   >
-                    {/* Avatar */}
-                    <Badge
-                      badgeContent={hasUnread ? thread.unreadCount : 0}
-                      color="error"
-                      max={99}
-                      sx={{
-                        '& .MuiBadge-badge': {
-                          fontSize: '0.625rem',
-                          height: 18,
-                          minWidth: 18,
-                        },
-                      }}
-                    >
+                    {/* Avatar + presence dot */}
+                    <Box sx={{ position: 'relative', flexShrink: 0 }}>
                       <Avatar
+                        src={userAvatarSrc({
+                          id: thread.counterpartUserId,
+                          profilePictureUrl: thread.counterpartProfilePictureUrl,
+                          updatedAt: thread.counterpartUpdatedAt,
+                        })}
                         sx={{
                           width: 40,
                           height: 40,
@@ -437,11 +497,12 @@ const InternalChatTab: React.FC = () => {
                       >
                         {getInitials(thread.counterpartFirstName, thread.counterpartLastName)}
                       </Avatar>
-                    </Badge>
+                      <PresenceDot online={online} />
+                    </Box>
 
                     {/* Info */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
                         <Typography
                           sx={{
                             fontSize: '0.8125rem',
@@ -449,6 +510,8 @@ const InternalChatTab: React.FC = () => {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
+                            // H18 \u2014 balance long names if they wrap.
+                            textWrap: 'balance',
                           }}
                         >
                           {thread.counterpartFirstName} {thread.counterpartLastName}
@@ -459,24 +522,41 @@ const InternalChatTab: React.FC = () => {
                             color: hasUnread ? 'primary.main' : 'text.secondary',
                             fontWeight: hasUnread ? 600 : 400,
                             flexShrink: 0,
-                            ml: 1,
+                            fontVariantNumeric: 'tabular-nums',
                           }}
                         >
                           {formatThreadTime(thread.lastMessageAt)}
                         </Typography>
                       </Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.75rem',
-                          color: 'text.secondary',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          fontWeight: hasUnread ? 500 : 400,
-                        }}
-                      >
-                        {thread.lastMessagePreview || '\u2014'}
-                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, mt: 0.25 }}>
+                        <Typography
+                          sx={{
+                            fontSize: '0.75rem',
+                            color: 'text.secondary',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontWeight: hasUnread ? 500 : 400,
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          {thread.lastMessagePreview || '\u2014'}
+                        </Typography>
+                        {/* E11 \u2014 soft unread chip */}
+                        {hasUnread && (
+                          <Chip
+                            label={thread.unreadCount > 99 ? '99+' : String(thread.unreadCount)}
+                            size="small"
+                            sx={{
+                              ...softChipSx(semanticToHex('primary')),
+                              height: 18,
+                              fontSize: '0.625rem',
+                              flexShrink: 0,
+                            }}
+                          />
+                        )}
+                      </Box>
                     </Box>
                   </Box>
                 );
@@ -530,38 +610,56 @@ const InternalChatTab: React.FC = () => {
                     <ArrowBackIcon />
                   </IconButton>
                 )}
-                <Avatar
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    bgcolor: getAvatarColor(selectedThread.counterpartKeycloakId),
-                    fontSize: '0.8125rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  {getInitials(
-                    selectedThread.counterpartFirstName,
-                    selectedThread.counterpartLastName,
-                  )}
-                </Avatar>
+                {/* Avatar + presence dot */}
+                <Box sx={{ position: 'relative', flexShrink: 0 }}>
+                  <Avatar
+                    src={userAvatarSrc({
+                      id: selectedThread.counterpartUserId,
+                      profilePictureUrl: selectedThread.counterpartProfilePictureUrl,
+                      updatedAt: selectedThread.counterpartUpdatedAt,
+                    })}
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      bgcolor: getAvatarColor(selectedThread.counterpartKeycloakId),
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {getInitials(
+                      selectedThread.counterpartFirstName,
+                      selectedThread.counterpartLastName,
+                    )}
+                  </Avatar>
+                  <PresenceDot
+                    online={isUserOnline(selectedThread.counterpartKeycloakId)}
+                  />
+                </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }} noWrap>
+                  <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, textWrap: 'balance' }} noWrap>
                     {selectedThread.counterpartFirstName} {selectedThread.counterpartLastName}
                   </Typography>
                   <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }} noWrap>
-                    {selectedThread.counterpartEmail}
+                    {isUserOnline(selectedThread.counterpartKeycloakId)
+                      ? 'En ligne'
+                      : selectedThread.counterpartEmail}
                   </Typography>
                 </Box>
                 <Chip
                   label={`${selectedThread.totalMessages} msg`}
                   size="small"
-                  variant="outlined"
-                  sx={{
-                    fontSize: '0.625rem',
-                    height: 22,
-                    '& .MuiChip-label': { px: 0.75 },
-                  }}
+                  sx={softChipSx(semanticToHex('primary'))}
                 />
+                {/* D10 — quick actions: info, mark unread, archive. Not yet wired to handlers. */}
+                <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Infos contact">
+                  <InfoIcon size={'1.125rem'} strokeWidth={1.75} />
+                </IconButton>
+                <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Marquer non lu">
+                  <MarkUnreadIcon size={'1.125rem'} strokeWidth={1.75} />
+                </IconButton>
+                <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Archiver">
+                  <ArchiveIcon size={'1.125rem'} strokeWidth={1.75} />
+                </IconButton>
               </Box>
 
               {/* Messages area */}
@@ -593,28 +691,39 @@ const InternalChatTab: React.FC = () => {
                     {messages.map((msg, index) => {
                       const mine = isMe(msg.senderId);
                       const showDate = shouldShowDateSeparator(index);
+                      const firstInGroup = isFirstInGroup(index);
+                      const lastInGroup = isLastInGroup(index);
                       const imgAtts = (msg.attachments || []).filter(isImageAttachment);
                       const fileAtts = (msg.attachments || []).filter(
                         (a) => !isImageAttachment(a),
                       );
 
+                      // Asymmetric "tail" corner only on the last bubble of a group.
+                      // Earlier bubbles in the group keep uniform 12px corners so the
+                      // group reads as a single visual unit.
+                      const bubbleRadius = (() => {
+                        if (!lastInGroup) return '12px';
+                        return mine ? '12px 12px 4px 12px' : '12px 12px 12px 4px';
+                      })();
+
+                      const receivedBubbleBg = alpha(theme.palette.primary.main, 0.06);
+
                       return (
                         <React.Fragment key={msg.id}>
                           {/* Date separator */}
                           {showDate && (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, my: 2 }}>
+                              <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
                               <Chip
                                 label={formatDateSeparator(msg.createdAt)}
                                 size="small"
                                 sx={{
-                                  fontSize: '0.75rem',
-                                  fontWeight: 500,
-                                  height: 28,
-                                  bgcolor: alpha(theme.palette.primary.main, 0.08),
-                                  color: 'text.primary',
-                                  '& .MuiChip-label': { px: 1.5 },
+                                  ...softChipSx(semanticToHex('default')),
+                                  textTransform: 'capitalize',
+                                  fontVariantNumeric: 'tabular-nums',
                                 }}
                               />
+                              <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
                             </Box>
                           )}
 
@@ -624,11 +733,13 @@ const InternalChatTab: React.FC = () => {
                               display: 'flex',
                               flexDirection: 'column',
                               alignItems: mine ? 'flex-end' : 'flex-start',
-                              mb: 0.25,
+                              // Tight spacing inside a group, generous between groups.
+                              mt: firstInGroup && !showDate ? 1.5 : 0.25,
+                              mb: lastInGroup ? 0 : 0.125,
                             }}
                           >
-                            {/* Sender name (for received messages) */}
-                            {!mine && (
+                            {/* Sender name — only on the first message of a received group */}
+                            {!mine && firstInGroup && (
                               <Typography
                                 sx={{
                                   fontSize: '0.8125rem',
@@ -642,20 +753,21 @@ const InternalChatTab: React.FC = () => {
                               </Typography>
                             )}
 
-                            {/* Message bubble — text + file chips + timestamp only */}
+                            {/* Message bubble — text + file chips */}
                             <Paper
                               elevation={0}
                               sx={{
                                 maxWidth: '75%',
                                 px: 1.5,
                                 py: 1,
-                                borderRadius: mine
-                                  ? '12px 12px 4px 12px'
-                                  : '12px 12px 12px 4px',
-                                bgcolor: mine ? 'primary.main' : 'background.default',
+                                borderRadius: bubbleRadius,
+                                // A5 — sent bubbles use an 88% mix of primary on the page background,
+                                // softening the slate without losing the brand cue.
+                                bgcolor: mine ? alpha(theme.palette.primary.main, 0.88) : receivedBubbleBg,
                                 color: mine ? 'primary.contrastText' : 'text.primary',
-                                border: mine ? 'none' : '1px solid',
-                                borderColor: mine ? 'transparent' : 'divider',
+                                border: 'none',
+                                transition: 'background-color 150ms ease',
+                                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                               }}
                             >
                               <Typography
@@ -720,18 +832,6 @@ const InternalChatTab: React.FC = () => {
                                   ))}
                                 </Box>
                               )}
-
-                              {/* Timestamp */}
-                              <Typography
-                                sx={{
-                                  fontSize: '0.5625rem',
-                                  color: mine ? 'rgba(255,255,255,0.7)' : 'text.disabled',
-                                  textAlign: 'right',
-                                  mt: 0.5,
-                                }}
-                              >
-                                {formatMessageTime(msg.createdAt)}
-                              </Typography>
                             </Paper>
 
                             {/* Image attachments — displayed BELOW the bubble */}
@@ -769,20 +869,89 @@ const InternalChatTab: React.FC = () => {
                                         width: 200,
                                         height: 150,
                                         objectFit: 'cover',
-                                        borderRadius: 2,
+                                        borderRadius: '12px',
                                         cursor: 'pointer',
                                         border: 1,
                                         borderColor: 'divider',
-                                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                        transition: 'all 0.2s',
+                                        boxShadow: '0 1px 3px rgba(15,23,42,0.08)',
+                                        transform: 'translateY(0)',
+                                        transition: 'transform 200ms ease, box-shadow 200ms ease',
                                         '&:hover': {
-                                          opacity: 0.9,
-                                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                          transform: 'translateY(-2px)',
+                                          boxShadow: '0 6px 16px rgba(15,23,42,0.14)',
+                                        },
+                                        '@media (prefers-reduced-motion: reduce)': {
+                                          transition: 'none',
+                                          '&:hover': { transform: 'none' },
                                         },
                                       }}
                                     />
                                   );
                                 })}
+                              </Box>
+                            )}
+
+                            {/* Timestamp + read receipts — only under the last bubble of a group */}
+                            {lastInGroup && (
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                  mt: 0.5,
+                                  mx: 0.5,
+                                }}
+                              >
+                                <Typography
+                                  component="span"
+                                  sx={{
+                                    fontSize: '0.625rem',
+                                    lineHeight: 1.4,
+                                    color: 'text.disabled',
+                                    fontVariantNumeric: 'tabular-nums',
+                                  }}
+                                >
+                                  {formatMessageTime(msg.createdAt)}
+                                </Typography>
+                                {/* C7 — Read receipts on sent messages only.
+                                    ✓  = persisted on the server
+                                    ✓✓ = delivered (recipient WebSocket received it)
+                                    ✓✓ in primary = read by recipient */}
+                                {mine && (() => {
+                                  const read = !!msg.readAt;
+                                  const delivered = !!msg.deliveredAt;
+                                  if (read) {
+                                    return (
+                                      <Box
+                                        component="span"
+                                        sx={{ display: 'inline-flex', color: 'primary.main' }}
+                                        title="Lu"
+                                      >
+                                        <DoneAllIcon size={12} strokeWidth={2} />
+                                      </Box>
+                                    );
+                                  }
+                                  if (delivered) {
+                                    return (
+                                      <Box
+                                        component="span"
+                                        sx={{ display: 'inline-flex', color: 'text.disabled' }}
+                                        title="Délivré"
+                                      >
+                                        <DoneAllIcon size={12} strokeWidth={2} />
+                                      </Box>
+                                    );
+                                  }
+                                  return (
+                                    <Box
+                                      component="span"
+                                      sx={{ display: 'inline-flex', color: 'text.disabled' }}
+                                      title="Envoyé"
+                                    >
+                                      <CheckIcon size={12} strokeWidth={2} />
+                                    </Box>
+                                  );
+                                })()}
                               </Box>
                             )}
                           </Box>
@@ -840,7 +1009,8 @@ const InternalChatTab: React.FC = () => {
                   <TextField
                     fullWidth
                     multiline
-                    maxRows={4}
+                    minRows={1}
+                    maxRows={6}
                     size="small"
                     placeholder={t('contact.typeMessage') || 'Votre message...'}
                     value={replyText}
@@ -851,11 +1021,22 @@ const InternalChatTab: React.FC = () => {
                       '& .MuiOutlinedInput-root': {
                         borderRadius: 3,
                         bgcolor: 'action.hover',
+                        transition: 'box-shadow 150ms ease, background-color 150ms ease',
+                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                         '& fieldset': { borderColor: 'transparent' },
                         '&:hover fieldset': { borderColor: 'divider' },
+                        // F16 — visible focus ring (2px brand) without doubling MUI's outline.
+                        '&.Mui-focused': {
+                          bgcolor: 'background.paper',
+                          boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.35)}`,
+                        },
                         '&.Mui-focused fieldset': { borderColor: 'primary.main' },
                       },
-                      '& .MuiInputBase-input': { fontSize: '0.8125rem', py: 0.75 },
+                      '& .MuiInputBase-input': {
+                        fontSize: '0.8125rem',
+                        py: 0.75,
+                        '&::placeholder': { opacity: 0.6 },
+                      },
                     }}
                   />
 

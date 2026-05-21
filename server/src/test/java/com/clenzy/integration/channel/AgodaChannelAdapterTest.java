@@ -26,13 +26,14 @@ class AgodaChannelAdapterTest {
     @Mock private AgodaConnectionRepository agodaConnectionRepository;
     @Mock private AgodaApiClient agodaApiClient;
     @Mock private ChannelMappingRepository channelMappingRepository;
+    @Mock private HostProfileSyncSupport hostProfileSyncSupport;
 
     private AgodaChannelAdapter adapter;
 
     @BeforeEach
     void setUp() {
         adapter = new AgodaChannelAdapter(agodaConfig, agodaConnectionRepository,
-                agodaApiClient, channelMappingRepository);
+                agodaApiClient, channelMappingRepository, hostProfileSyncSupport);
     }
 
     @Test
@@ -45,7 +46,8 @@ class AgodaChannelAdapterTest {
         assertThat(adapter.getCapabilities()).containsExactlyInAnyOrder(
                 ChannelCapability.OUTBOUND_CALENDAR,
                 ChannelCapability.INBOUND_RESERVATIONS,
-                ChannelCapability.POLLING
+                ChannelCapability.POLLING,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 

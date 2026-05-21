@@ -100,6 +100,14 @@ public class CacheConfig {
                 .entryTtl(Duration.ofMinutes(10))
                 .prefixCacheNameWith("clenzy:site-snapshots:"));
 
+        // Cache booking-engine public property responses (10 minutes).
+        // Evicted by BookingEngineChannelAdapter on host-profile change so widgets
+        // embedded on conciergerie/proprietaire websites pick up new photos / names
+        // without waiting for the TTL.
+        cacheConfigurations.put("booking-engine-properties", defaultConfig
+                .entryTtl(Duration.ofMinutes(10))
+                .prefixCacheNameWith("clenzy:booking-engine-properties:"));
+
         RedisCacheManager redisCacheManager = RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigurations)

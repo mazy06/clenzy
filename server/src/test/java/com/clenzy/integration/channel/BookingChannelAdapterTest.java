@@ -34,6 +34,7 @@ class BookingChannelAdapterTest {
     @Mock private PriceEngine priceEngine;
     @Mock private BookingRestrictionRepository bookingRestrictionRepository;
     @Mock private CalendarDayRepository calendarDayRepository;
+    @Mock private HostProfileSyncSupport hostProfileSyncSupport;
 
     private BookingChannelAdapter adapter;
 
@@ -41,7 +42,7 @@ class BookingChannelAdapterTest {
     void setUp() {
         adapter = new BookingChannelAdapter(bookingConfig, bookingApiClient,
                 bookingConnectionRepository, channelMappingRepository, priceEngine,
-                bookingRestrictionRepository, calendarDayRepository);
+                bookingRestrictionRepository, calendarDayRepository, hostProfileSyncSupport);
     }
 
     @Test
@@ -61,7 +62,8 @@ class BookingChannelAdapterTest {
                 ChannelCapability.OUTBOUND_RESTRICTIONS,
                 ChannelCapability.CONTENT_SYNC,
                 ChannelCapability.FEES,
-                ChannelCapability.CANCELLATION_POLICIES
+                ChannelCapability.CANCELLATION_POLICIES,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 

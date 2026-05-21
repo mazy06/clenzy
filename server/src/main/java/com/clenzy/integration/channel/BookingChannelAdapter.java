@@ -50,6 +50,7 @@ public class BookingChannelAdapter implements ChannelConnector {
     private final PriceEngine priceEngine;
     private final BookingRestrictionRepository bookingRestrictionRepository;
     private final CalendarDayRepository calendarDayRepository;
+    private final HostProfileSyncSupport hostProfileSyncSupport;
 
     public BookingChannelAdapter(BookingConfig bookingConfig,
                                  BookingApiClient bookingApiClient,
@@ -57,7 +58,8 @@ public class BookingChannelAdapter implements ChannelConnector {
                                  ChannelMappingRepository channelMappingRepository,
                                  PriceEngine priceEngine,
                                  BookingRestrictionRepository bookingRestrictionRepository,
-                                 CalendarDayRepository calendarDayRepository) {
+                                 CalendarDayRepository calendarDayRepository,
+                                 HostProfileSyncSupport hostProfileSyncSupport) {
         this.bookingConfig = bookingConfig;
         this.bookingApiClient = bookingApiClient;
         this.bookingConnectionRepository = bookingConnectionRepository;
@@ -65,6 +67,7 @@ public class BookingChannelAdapter implements ChannelConnector {
         this.priceEngine = priceEngine;
         this.bookingRestrictionRepository = bookingRestrictionRepository;
         this.calendarDayRepository = calendarDayRepository;
+        this.hostProfileSyncSupport = hostProfileSyncSupport;
     }
 
     @Override
@@ -84,7 +87,8 @@ public class BookingChannelAdapter implements ChannelConnector {
                 ChannelCapability.OUTBOUND_RESTRICTIONS,
                 ChannelCapability.CONTENT_SYNC,
                 ChannelCapability.FEES,
-                ChannelCapability.CANCELLATION_POLICIES
+                ChannelCapability.CANCELLATION_POLICIES,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 
@@ -92,6 +96,20 @@ public class BookingChannelAdapter implements ChannelConnector {
     public Optional<ChannelMapping> resolveMapping(Long propertyId, Long orgId) {
         return channelMappingRepository.findByPropertyIdAndChannel(
                 propertyId, ChannelName.BOOKING, orgId);
+    }
+
+    /**
+     * Push host / property-contact profile to Booking.com.
+     *
+     * <p>Booking exposes property contact details via its Hotels API; the full host concept
+     * is more limited than Airbnb. We delegate orchestration to
+     * {@link HostProfileSyncSupport} so the Sync & Diagnostics UI tracks every attempt
+     * uniformly. Replace the lambda body with the real Booking API call once the partner
+     * contract is signed.</p>
+     */
+    @Override
+    public SyncResult pushHostProfile(HostProfileUpdate profile, Long orgId) {
+        return hostProfileSyncSupport.recordPendingWireUp(getChannelName(), profile, orgId);
     }
 
     @Override

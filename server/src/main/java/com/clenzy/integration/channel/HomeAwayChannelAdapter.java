@@ -41,19 +41,22 @@ public class HomeAwayChannelAdapter implements ChannelConnector {
     private final HomeAwayOAuthService homeAwayOAuthService;
     private final HomeAwaySyncService homeAwaySyncService;
     private final ChannelMappingRepository channelMappingRepository;
+    private final HostProfileSyncSupport hostProfileSyncSupport;
 
     public HomeAwayChannelAdapter(HomeAwayConfig homeAwayConfig,
                                   HomeAwayConnectionRepository homeAwayConnectionRepository,
                                   HomeAwayApiClient homeAwayApiClient,
                                   HomeAwayOAuthService homeAwayOAuthService,
                                   HomeAwaySyncService homeAwaySyncService,
-                                  ChannelMappingRepository channelMappingRepository) {
+                                  ChannelMappingRepository channelMappingRepository,
+                                  HostProfileSyncSupport hostProfileSyncSupport) {
         this.homeAwayConfig = homeAwayConfig;
         this.homeAwayConnectionRepository = homeAwayConnectionRepository;
         this.homeAwayApiClient = homeAwayApiClient;
         this.homeAwayOAuthService = homeAwayOAuthService;
         this.homeAwaySyncService = homeAwaySyncService;
         this.channelMappingRepository = channelMappingRepository;
+        this.hostProfileSyncSupport = hostProfileSyncSupport;
     }
 
     @Override
@@ -68,7 +71,8 @@ public class HomeAwayChannelAdapter implements ChannelConnector {
                 ChannelCapability.OUTBOUND_CALENDAR,
                 ChannelCapability.INBOUND_RESERVATIONS,
                 ChannelCapability.WEBHOOKS,
-                ChannelCapability.OAUTH
+                ChannelCapability.OAUTH,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 
@@ -76,6 +80,15 @@ public class HomeAwayChannelAdapter implements ChannelConnector {
     public Optional<ChannelMapping> resolveMapping(Long propertyId, Long orgId) {
         return channelMappingRepository.findByPropertyIdAndChannel(
                 propertyId, ChannelName.HOMEAWAY, orgId);
+    }
+
+    /**
+     * Push host profile to HomeAway. Mutualised orchestration via
+     * {@link HostProfileSyncSupport}.
+     */
+    @Override
+    public SyncResult pushHostProfile(HostProfileUpdate profile, Long orgId) {
+        return hostProfileSyncSupport.recordPendingWireUp(getChannelName(), profile, orgId);
     }
 
     /**

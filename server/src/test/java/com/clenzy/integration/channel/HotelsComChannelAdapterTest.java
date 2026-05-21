@@ -26,13 +26,14 @@ class HotelsComChannelAdapterTest {
     @Mock private HotelsComConnectionRepository hotelsComConnectionRepository;
     @Mock private HotelsComApiClient hotelsComApiClient;
     @Mock private ChannelMappingRepository channelMappingRepository;
+    @Mock private HostProfileSyncSupport hostProfileSyncSupport;
 
     private HotelsComChannelAdapter adapter;
 
     @BeforeEach
     void setUp() {
         adapter = new HotelsComChannelAdapter(hotelsComConfig, hotelsComConnectionRepository,
-                hotelsComApiClient, channelMappingRepository);
+                hotelsComApiClient, channelMappingRepository, hostProfileSyncSupport);
     }
 
     @Test
@@ -45,7 +46,8 @@ class HotelsComChannelAdapterTest {
         assertThat(adapter.getCapabilities()).containsExactlyInAnyOrder(
                 ChannelCapability.OUTBOUND_CALENDAR,
                 ChannelCapability.INBOUND_RESERVATIONS,
-                ChannelCapability.POLLING
+                ChannelCapability.POLLING,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 

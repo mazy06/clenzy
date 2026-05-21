@@ -41,17 +41,20 @@ public class ExpediaChannelAdapter implements ChannelConnector {
     private final ExpediaConnectionRepository expediaConnectionRepository;
     private final ChannelMappingRepository channelMappingRepository;
     private final BookingRestrictionRepository bookingRestrictionRepository;
+    private final HostProfileSyncSupport hostProfileSyncSupport;
 
     public ExpediaChannelAdapter(ExpediaConfig expediaConfig,
                                  ExpediaApiClient expediaApiClient,
                                  ExpediaConnectionRepository expediaConnectionRepository,
                                  ChannelMappingRepository channelMappingRepository,
-                                 BookingRestrictionRepository bookingRestrictionRepository) {
+                                 BookingRestrictionRepository bookingRestrictionRepository,
+                                 HostProfileSyncSupport hostProfileSyncSupport) {
         this.expediaConfig = expediaConfig;
         this.expediaApiClient = expediaApiClient;
         this.expediaConnectionRepository = expediaConnectionRepository;
         this.channelMappingRepository = channelMappingRepository;
         this.bookingRestrictionRepository = bookingRestrictionRepository;
+        this.hostProfileSyncSupport = hostProfileSyncSupport;
     }
 
     @Override
@@ -68,7 +71,8 @@ public class ExpediaChannelAdapter implements ChannelConnector {
                 ChannelCapability.OUTBOUND_RESERVATIONS,
                 ChannelCapability.WEBHOOKS,
                 ChannelCapability.OAUTH,
-                ChannelCapability.OUTBOUND_RESTRICTIONS
+                ChannelCapability.OUTBOUND_RESTRICTIONS,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 
@@ -76,6 +80,16 @@ public class ExpediaChannelAdapter implements ChannelConnector {
     public Optional<ChannelMapping> resolveMapping(Long propertyId, Long orgId) {
         return channelMappingRepository.findByPropertyIdAndChannel(
                 propertyId, ChannelName.VRBO, orgId);
+    }
+
+    /**
+     * Push host / property contact profile to Expedia. Orchestration mutualised via
+     * {@link HostProfileSyncSupport}; replace the support call with the real API call
+     * when the Expedia partner contract is signed.
+     */
+    @Override
+    public SyncResult pushHostProfile(HostProfileUpdate profile, Long orgId) {
+        return hostProfileSyncSupport.recordPendingWireUp(getChannelName(), profile, orgId);
     }
 
     /**
