@@ -16,6 +16,8 @@ import {
   IconButton,
   Tooltip,
   CircularProgress,
+  Card,
+  CardContent,
 } from '@mui/material';
 import {
   Star,
@@ -119,7 +121,9 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
   if (!hasHostData(user)) return null;
 
   return (
-    <>
+    <Card variant="outlined" sx={{ borderRadius: 2, borderColor: 'divider' }}>
+      <CardContent sx={{ p: 2 }}>
+        <Grid container spacing={2}>
       <Grid item xs={12}>
         <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
           Profil proprietaire
@@ -395,7 +399,9 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
           </Box>
         </Grid>
       )}
-    </>
+        </Grid>
+      </CardContent>
+    </Card>
   );
 };
 

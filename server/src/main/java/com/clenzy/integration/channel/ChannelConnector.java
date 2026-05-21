@@ -200,6 +200,22 @@ public interface ChannelConnector {
         return java.util.List.of();
     }
 
+    // ── Profil host (sync utilisateur PMS → OTA) ─────────────────────────────
+
+    /**
+     * Pousse une mise a jour du profil host vers le channel (nom, photo, email, etc.).
+     *
+     * <p>Implementation optionnelle — retourne UNSUPPORTED par defaut. Les channels qui
+     * exposent un profil utilisateur (Airbnb notamment) overrident cette methode pour
+     * appeler leur API host-profile.</p>
+     *
+     * @param profile snapshot des champs synchronisables
+     * @param orgId   organisation
+     */
+    default SyncResult pushHostProfile(HostProfileUpdate profile, Long orgId) {
+        return SyncResult.unsupported("Host profile push not supported by " + getChannelName());
+    }
+
     // ── Utilitaires ──────────────────────────────────────────────────────────
 
     /**

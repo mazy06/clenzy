@@ -124,3 +124,4 @@ clenzy:
     contact-dir: ${java.io.tmpdir}/clenzy-test/uploads/contact
     documents-dir: ${java.io.tmpdir}/clenzy-test/uploads/documents
     templates-dir: ${java.io.tmpdir}/clenzy-test/uploads/templates
+    user-avatar-dir: ${java.io.tmpdir}/clenzy-test/uploads/user-avatars

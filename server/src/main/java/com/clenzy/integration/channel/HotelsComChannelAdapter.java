@@ -35,15 +35,18 @@ public class HotelsComChannelAdapter implements ChannelConnector {
     private final HotelsComConnectionRepository hotelsComConnectionRepository;
     private final HotelsComApiClient hotelsComApiClient;
     private final ChannelMappingRepository channelMappingRepository;
+    private final HostProfileSyncSupport hostProfileSyncSupport;
 
     public HotelsComChannelAdapter(HotelsComConfig hotelsComConfig,
                                    HotelsComConnectionRepository hotelsComConnectionRepository,
                                    HotelsComApiClient hotelsComApiClient,
-                                   ChannelMappingRepository channelMappingRepository) {
+                                   ChannelMappingRepository channelMappingRepository,
+                                   HostProfileSyncSupport hostProfileSyncSupport) {
         this.hotelsComConfig = hotelsComConfig;
         this.hotelsComConnectionRepository = hotelsComConnectionRepository;
         this.hotelsComApiClient = hotelsComApiClient;
         this.channelMappingRepository = channelMappingRepository;
+        this.hostProfileSyncSupport = hostProfileSyncSupport;
     }
 
     @Override
@@ -56,7 +59,8 @@ public class HotelsComChannelAdapter implements ChannelConnector {
         return EnumSet.of(
                 ChannelCapability.OUTBOUND_CALENDAR,
                 ChannelCapability.INBOUND_RESERVATIONS,
-                ChannelCapability.POLLING
+                ChannelCapability.POLLING,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 
@@ -64,6 +68,15 @@ public class HotelsComChannelAdapter implements ChannelConnector {
     public Optional<ChannelMapping> resolveMapping(Long propertyId, Long orgId) {
         return channelMappingRepository.findByPropertyIdAndChannel(
                 propertyId, ChannelName.HOTELS_COM, orgId);
+    }
+
+    /**
+     * Push host profile to Hotels.com. Mutualised orchestration via
+     * {@link HostProfileSyncSupport}.
+     */
+    @Override
+    public SyncResult pushHostProfile(HostProfileUpdate profile, Long orgId) {
+        return hostProfileSyncSupport.recordPendingWireUp(getChannelName(), profile, orgId);
     }
 
     /**

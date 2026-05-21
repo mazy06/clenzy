@@ -44,15 +44,18 @@ import type { OrganizationDto } from '../../services/api';
 import MembersList from '../organization/MembersList';
 
 import type { ChipColor } from '../../types';
+import type { LucideIcon } from 'lucide-react';
 
 // ─── Types d'organisation ─────────────────────────────────────────────────────
 
-const orgTypes: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor; hex: string }> = [
-  { value: 'INDIVIDUAL', label: 'Particulier', icon: <Person />, color: 'info', hex: '#0288d1' },
-  { value: 'CONCIERGE', label: 'Conciergerie', icon: <Business />, color: 'primary', hex: '#1976d2' },
-  { value: 'CLEANING_COMPANY', label: 'Societe de menage', icon: <CleaningServices />, color: 'success', hex: '#4A9B8E' },
-  { value: 'SYSTEM', label: 'Systeme', icon: <Settings />, color: 'error', hex: '#d32f2f' },
+const orgTypes: Array<{ value: string; label: string; Icon: LucideIcon; color: ChipColor; hex: string }> = [
+  { value: 'INDIVIDUAL', label: 'Particulier', Icon: Person, color: 'info', hex: '#7BA3C2' },
+  { value: 'CONCIERGE', label: 'Conciergerie', Icon: Business, color: 'primary', hex: '#6B8A9A' },
+  { value: 'CLEANING_COMPANY', label: 'Societe de menage', Icon: CleaningServices, color: 'success', hex: '#4A9B8E' },
+  { value: 'SYSTEM', label: 'Systeme', Icon: Settings, color: 'error', hex: '#C97A7A' },
 ];
+
+const MEMBER_CHIP_COLOR = '#7BA3C2';
 
 const getTypeInfo = (type: string) => {
   return orgTypes.find(t => t.value === type) || orgTypes[0];
@@ -323,23 +326,74 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         ) : (
           filteredOrgs.map((org) => {
             const typeInfo = getTypeInfo(org.type);
+            const typeColor = typeInfo.hex;
+            const TypeIcon = typeInfo.Icon;
             return (
               <Grid item xs={12} sm={6} md={4} lg={3} key={org.id}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRadius: '10px',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    boxShadow: 'none',
+                    transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    '&:hover': {
+                      borderColor: 'rgba(107, 138, 154, 0.35)',
+                      boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 12px rgba(45, 55, 72, 0.06)',
+                      transform: 'translateY(-1px)',
+                    },
+                  }}
+                >
+                  <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
                     {/* Header */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Business size={28} strokeWidth={1.75} /></Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flex: 1, minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: '8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            bgcolor: `${typeColor}1F`,
+                            color: typeColor,
+                            border: `1px solid ${typeColor}33`,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <TypeIcon size={18} strokeWidth={1.75} />
+                        </Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                           <Typography
-                            variant="subtitle1"
                             fontWeight={600}
-                            sx={{ fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                            sx={{
+                              fontSize: '0.9rem',
+                              lineHeight: 1.25,
+                              color: 'text.primary',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title={org.name}
                           >
                             {org.name}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                          <Typography
+                            color="text.secondary"
+                            sx={{
+                              fontSize: '0.7rem',
+                              lineHeight: 1.3,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              display: 'block',
+                              fontVariantNumeric: 'tabular-nums',
+                            }}
+                          >
                             {org.slug}
                           </Typography>
                         </Box>
@@ -347,59 +401,134 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                       <IconButton
                         size="small"
                         onClick={(e) => handleMenuOpen(e, org)}
-                        sx={{ p: 0.5, ml: 0.5 }}
+                        sx={{ p: 0.5, ml: 0.25, color: 'text.secondary' }}
+                        aria-label="Options"
                       >
-                        <MoreVert size={18} strokeWidth={1.75} />
+                        <MoreVert size={16} strokeWidth={1.75} />
                       </IconButton>
                     </Box>
 
                     {/* Type et membres */}
-                    <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
-                      {(() => { const c = typeInfo.hex; return (
-                        <Chip
-                          icon={typeInfo.icon}
-                          label={typeInfo.label}
-                          size="small"
-                          sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-icon': { color: `${c} !important` } }}
-                        />
-                      ); })()}
+                    <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
                       <Chip
-                        icon={<People size={14} strokeWidth={1.75} color="#0288d1" />}
+                        icon={<TypeIcon size={11} strokeWidth={2} />}
+                        label={typeInfo.label}
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: '0.6875rem',
+                          fontWeight: 600,
+                          letterSpacing: '0.01em',
+                          backgroundColor: `${typeColor}14`,
+                          color: typeColor,
+                          border: `1px solid ${typeColor}33`,
+                          borderRadius: '6px',
+                          px: 0.25,
+                          '& .MuiChip-icon': {
+                            color: `${typeColor} !important`,
+                            ml: '6px',
+                            mr: '-2px',
+                          },
+                          '& .MuiChip-label': { px: 0.875 },
+                        }}
+                      />
+                      <Chip
+                        icon={<People size={11} strokeWidth={2} />}
                         label={`${org.memberCount} membre${org.memberCount !== 1 ? 's' : ''}`}
                         size="small"
                         onClick={() => setMembersDialogOrg(org)}
-                        sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+                        sx={{
+                          height: 22,
+                          fontSize: '0.6875rem',
+                          fontWeight: 600,
+                          letterSpacing: '0.01em',
+                          cursor: 'pointer',
+                          backgroundColor: `${MEMBER_CHIP_COLOR}14`,
+                          color: MEMBER_CHIP_COLOR,
+                          border: `1px solid ${MEMBER_CHIP_COLOR}33`,
+                          borderRadius: '6px',
+                          px: 0.25,
+                          fontVariantNumeric: 'tabular-nums',
+                          '& .MuiChip-icon': {
+                            color: `${MEMBER_CHIP_COLOR} !important`,
+                            ml: '6px',
+                            mr: '-2px',
+                          },
+                          '& .MuiChip-label': { px: 0.875 },
+                          '&:hover': {
+                            backgroundColor: `${MEMBER_CHIP_COLOR}22`,
+                          },
+                        }}
                       />
                     </Box>
 
                     {/* Date de creation */}
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                      Creee le {formatDate(org.createdAt)}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+                        <Person size={13} strokeWidth={1.75} />
+                      </Box>
+                      <Typography
+                        sx={{
+                          fontSize: '0.72rem',
+                          color: 'text.secondary',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        Creee le {formatDate(org.createdAt)}
+                      </Typography>
+                    </Box>
                   </CardContent>
 
                   {/* Actions */}
-                  <CardActions sx={{ pt: 0, p: 1, gap: 0.5 }}>
+                  <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5, gap: 0.75 }}>
                     <Button
                       variant="outlined"
                       size="small"
-                      startIcon={<Visibility size={16} strokeWidth={1.75} />}
+                      startIcon={<Visibility size={14} strokeWidth={1.75} />}
                       onClick={() => setMembersDialogOrg(org)}
-                      sx={{ fontSize: '0.75rem', flex: 1 }}
+                      sx={{
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        letterSpacing: '0.01em',
+                        borderRadius: '6px',
+                        borderColor: 'divider',
+                        color: 'text.primary',
+                        textTransform: 'none',
+                        py: 0.625,
+                        flex: 1,
+                        '&:hover': {
+                          borderColor: 'rgba(107, 138, 154, 0.5)',
+                          backgroundColor: 'rgba(107, 138, 154, 0.06)',
+                        },
+                      }}
                     >
                       Membres
                     </Button>
                     <Button
                       variant="outlined"
                       size="small"
-                      startIcon={<Edit size={16} strokeWidth={1.75} />}
+                      startIcon={<Edit size={14} strokeWidth={1.75} />}
                       onClick={() => {
                         setSelectedOrg(org);
                         setFormMode('edit');
                         setFormData({ name: org.name, type: org.type });
                         setFormDialogOpen(true);
                       }}
-                      sx={{ fontSize: '0.75rem', flex: 1 }}
+                      sx={{
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        letterSpacing: '0.01em',
+                        borderRadius: '6px',
+                        borderColor: 'divider',
+                        color: 'text.primary',
+                        textTransform: 'none',
+                        py: 0.625,
+                        flex: 1,
+                        '&:hover': {
+                          borderColor: 'rgba(107, 138, 154, 0.5)',
+                          backgroundColor: 'rgba(107, 138, 154, 0.06)',
+                        },
+                      }}
                     >
                       Modifier
                     </Button>
@@ -487,14 +616,19 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
                   label="Type"
                 >
-                  {orgTypes.map((t) => (
-                    <MenuItem key={t.value} value={t.value}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ fontSize: 18 }}>{t.icon}</Box>
-                        <Typography variant="body2">{t.label}</Typography>
-                      </Box>
-                    </MenuItem>
-                  ))}
+                  {orgTypes.map((t) => {
+                    const TypeIcon = t.Icon;
+                    return (
+                      <MenuItem key={t.value} value={t.value}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ display: 'inline-flex', color: t.hex }}>
+                            <TypeIcon size={16} strokeWidth={1.75} />
+                          </Box>
+                          <Typography variant="body2">{t.label}</Typography>
+                        </Box>
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </FormControl>
             </Grid>
@@ -560,7 +694,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
           <>
             <DialogTitle sx={{ pb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><People  /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><People size={20} strokeWidth={1.75} /></Box>
                 <Box>
                   <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
                     Membres de {membersDialogOrg.name}
@@ -570,13 +704,13 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                       <Chip
                         label={ti.label}
                         size="small"
-                        sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+                        sx={{ height: 22, fontSize: '0.6875rem', fontWeight: 600, backgroundColor: `${c}14`, color: c, border: `1px solid ${c}33`, borderRadius: '6px', '& .MuiChip-label': { px: 0.875 } }}
                       />
                     ); })()}
                     <Chip
                       label={`${membersDialogOrg.memberCount} membre${membersDialogOrg.memberCount !== 1 ? 's' : ''}`}
                       size="small"
-                      sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600, backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+                      sx={{ height: 22, fontSize: '0.6875rem', fontWeight: 600, backgroundColor: `${MEMBER_CHIP_COLOR}14`, color: MEMBER_CHIP_COLOR, border: `1px solid ${MEMBER_CHIP_COLOR}33`, borderRadius: '6px', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.875 } }}
                     />
                   </Box>
                 </Box>

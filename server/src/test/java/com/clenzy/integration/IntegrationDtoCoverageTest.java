@@ -533,7 +533,7 @@ class IntegrationDtoCoverageTest {
     @DisplayName("ChannelName enum")
     class ChannelNameTest {
         @Test void allValues() {
-            assertThat(ChannelName.values()).hasSize(12);
+            assertThat(ChannelName.values()).hasSize(13);
             assertThat(ChannelName.valueOf("AIRBNB")).isEqualTo(ChannelName.AIRBNB);
             assertThat(ChannelName.valueOf("BOOKING")).isEqualTo(ChannelName.BOOKING);
             assertThat(ChannelName.valueOf("EXPEDIA")).isEqualTo(ChannelName.EXPEDIA);
@@ -545,6 +545,7 @@ class IntegrationDtoCoverageTest {
             assertThat(ChannelName.valueOf("AGODA")).isEqualTo(ChannelName.AGODA);
             assertThat(ChannelName.valueOf("HOTELS_COM")).isEqualTo(ChannelName.HOTELS_COM);
             assertThat(ChannelName.valueOf("DIRECT")).isEqualTo(ChannelName.DIRECT);
+            assertThat(ChannelName.valueOf("BOOKING_ENGINE")).isEqualTo(ChannelName.BOOKING_ENGINE);
             assertThat(ChannelName.valueOf("OTHER")).isEqualTo(ChannelName.OTHER);
         }
     }

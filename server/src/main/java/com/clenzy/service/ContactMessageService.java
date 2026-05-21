@@ -478,6 +478,22 @@ public class ContactMessageService {
             byCounterpart.computeIfAbsent(counterpartId, k -> new ArrayList<>()).add(m);
         }
 
+        // Batch-load counterpart User entities so we can attach numeric id + avatar info
+        // to each thread without an N+1 query.
+        java.util.Map<String, com.clenzy.model.User> usersByKeycloak;
+        try {
+            usersByKeycloak = userRepository.findByKeycloakIdIn(byCounterpart.keySet())
+                    .stream()
+                    .filter(u -> u.getKeycloakId() != null)
+                    .collect(java.util.stream.Collectors.toMap(
+                            com.clenzy.model.User::getKeycloakId,
+                            u -> u,
+                            (a, b) -> a));
+        } catch (Exception e) {
+            log.warn("Batch user lookup failed for thread summaries: {}", e.getMessage());
+            usersByKeycloak = java.util.Map.of();
+        }
+
         List<ContactThreadSummaryDto> threads = new ArrayList<>();
         for (var entry : byCounterpart.entrySet()) {
             List<ContactMessage> msgs = entry.getValue();
@@ -507,11 +523,32 @@ public class ContactMessageService {
                 preview = preview.substring(0, 200) + "...";
             }
 
+            // Resolve counterpart profile info — null-safe when the user isn't in our DB
+            // (orphan keycloakId, deleted account, etc.).
+            com.clenzy.model.User counterpart = usersByKeycloak.get(counterpartId);
+            Long counterpartUserId = counterpart != null ? counterpart.getId() : null;
+            String counterpartAvatarUrl = null;
+            java.time.LocalDateTime counterpartUpdatedAt = null;
+            if (counterpart != null) {
+                counterpartUpdatedAt = counterpart.getUpdatedAt();
+                String stored = counterpart.getProfilePictureUrl();
+                if (stored != null && !stored.isBlank()) {
+                    if (stored.startsWith("http://") || stored.startsWith("https://")) {
+                        counterpartAvatarUrl = stored;
+                    } else {
+                        counterpartAvatarUrl = "/api/users/" + counterpart.getId() + "/profile-picture";
+                    }
+                }
+            }
+
             threads.add(new ContactThreadSummaryDto(
                     counterpartId,
+                    counterpartUserId,
                     firstName != null ? firstName : "Utilisateur",
                     lastName != null ? lastName : "",
                     email != null ? email : "",
+                    counterpartAvatarUrl,
+                    counterpartUpdatedAt,
                     preview,
                     latest.getCreatedAt(),
                     unreadCount,
