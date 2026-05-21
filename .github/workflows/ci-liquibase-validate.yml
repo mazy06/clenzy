@@ -1,0 +1,154 @@
+# ===========================================
+# Clenzy - Liquibase Validate (Phase 3 du plan re-activation)
+# ===========================================
+# Garde-fou CI : empeche tout merge sur main qui desynchroniserait
+# `databasechangelog` en prod.
+#
+# Pour chaque PR qui touche au changelog ou au workflow lui-meme :
+#   1. Spawne un Postgres 16 ephemere
+#   2. Applique TOUS les changesets depuis zero (`liquibase update`)
+#   3. Verifie l'integrite (`liquibase validate`)
+#   4. Confirme `status` = up to date
+#
+# Le job FAIL si :
+#   - syntaxe SQL invalide
+#   - changeset existant modifie de maniere incompatible
+#   - dependance entre changesets cassee
+#   - bloc PL/pgSQL sans `splitStatements: false`
+#
+# Limite : ce workflow applique les changesets sur une DB vierge, donc il ne
+# detecte PAS un changeset existant modifie *par rapport a la prod*. La
+# protection contre ce cas vient de :
+#   - revue manuelle sur PR
+#   - workflow `DB Status` cron quotidien sur clenzy-infra qui detecte la
+#     desync apres-coup
+#
+# Pour rendre ce job *required* sur main, configurer la branch protection :
+#   Settings > Branches > main > Require status checks > ajouter
+#   "Liquibase Validate / validate"
+#
+# Securite : aucun input github.event.* utilise dans les `run:`.
+
+name: Liquibase Validate
+
+on:
+  pull_request:
+    branches: [main, production]
+    paths:
+      - 'server/src/main/resources/db/changelog/**'
+      - '.github/workflows/ci-liquibase-validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'server/src/main/resources/db/changelog/**'
+      - '.github/workflows/ci-liquibase-validate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: liquibase_validate
+          POSTGRES_USER: liquibase_validate
+          POSTGRES_PASSWORD: liquibase_validate_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      LIQUIBASE_IMAGE: liquibase/liquibase:4.29.2
+      CHANGELOG_DIR: server/src/main/resources/db/changelog
+      JDBC_URL: jdbc:postgresql://localhost:5432/liquibase_validate
+      DB_USER: liquibase_validate
+      DB_PASS: liquibase_validate_ci
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pre-flight — verify changelog master exists
+        run: |
+          if [ ! -f "$CHANGELOG_DIR/db.changelog-master.yaml" ]; then
+            echo "::error::Master changelog introuvable a $CHANGELOG_DIR/db.changelog-master.yaml"
+            exit 1
+          fi
+          echo "Master changelog OK"
+
+      - name: Liquibase update (from-scratch)
+        run: |
+          docker run --rm \
+            --network host \
+            -v "$PWD/$CHANGELOG_DIR":/liquibase/changelog:ro \
+            -w /liquibase/changelog \
+            "$LIQUIBASE_IMAGE" \
+            --url="$JDBC_URL" \
+            --username="$DB_USER" \
+            --password="$DB_PASS" \
+            --changelog-file=db.changelog-master.yaml \
+            --log-level=INFO \
+            update
+
+      - name: Liquibase validate
+        run: |
+          docker run --rm \
+            --network host \
+            -v "$PWD/$CHANGELOG_DIR":/liquibase/changelog:ro \
+            -w /liquibase/changelog \
+            "$LIQUIBASE_IMAGE" \
+            --url="$JDBC_URL" \
+            --username="$DB_USER" \
+            --password="$DB_PASS" \
+            --changelog-file=db.changelog-master.yaml \
+            --log-level=INFO \
+            validate
+
+      - name: Liquibase status (confirm up-to-date)
+        run: |
+          docker run --rm \
+            --network host \
+            -v "$PWD/$CHANGELOG_DIR":/liquibase/changelog:ro \
+            -w /liquibase/changelog \
+            "$LIQUIBASE_IMAGE" \
+            --url="$JDBC_URL" \
+            --username="$DB_USER" \
+            --password="$DB_PASS" \
+            --changelog-file=db.changelog-master.yaml \
+            --log-level=INFO \
+            status --verbose
+
+      - name: Step summary
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "## Liquibase Validate"
+            echo ""
+            if [ "$JOB_STATUS" = "success" ]; then
+              echo "OK — la chaine complete de changesets s'applique sans erreur sur une DB vierge."
+              echo ""
+              echo "Verification effectuee :"
+              echo "- liquibase update : tous les changesets passent"
+              echo "- liquibase validate : integrite changelog OK"
+              echo "- liquibase status : up to date"
+            else
+              echo "ECHEC — un changeset est casse ou modifie de maniere incompatible."
+              echo ""
+              echo "Inspecter les logs des steps ci-dessus. Causes courantes :"
+              echo "- syntaxe SQL invalide"
+              echo "- ID de changeset duplique"
+              echo "- bloc PL/pgSQL sans splitStatements: false"
+              echo "- ordre des includes incorrect dans db.changelog-master.yaml"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
