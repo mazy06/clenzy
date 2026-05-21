@@ -1,33 +1,30 @@
 # ===========================================
 # Clenzy - Liquibase Validate (Phase 3 du plan re-activation)
 # ===========================================
-# Garde-fou CI : empeche tout merge sur main qui desynchroniserait
-# `databasechangelog` en prod.
+# Garde-fou CI : empeche tout merge qui desynchroniserait `databasechangelog`
+# en prod.
 #
-# Pour chaque PR qui touche au changelog ou au workflow lui-meme :
-#   1. Spawne un Postgres 16 ephemere
-#   2. Applique TOUS les changesets depuis zero (`liquibase update`)
-#   3. Verifie l'integrite (`liquibase validate`)
-#   4. Confirme `status` = up to date
+# CONTEXTE : le repo ne supporte PAS un `liquibase update` from-scratch sur DB
+# vierge, parce que les changesets 0001-0107a presupposent un schema cree par
+# Hibernate (ddl-auto=update) avant la mise en place de Liquibase. Ces
+# changesets sont marques appliques en prod via le tag `pre-liquibase-baseline`
+# sans avoir ete executes. La validation par execution from-scratch sera
+# fournie en Phase 4 via un chainage Hibernate + Liquibase contre un Postgres
+# ephemere (a faire dans une PR separee).
 #
-# Le job FAIL si :
-#   - syntaxe SQL invalide
-#   - changeset existant modifie de maniere incompatible
-#   - dependance entre changesets cassee
-#   - bloc PL/pgSQL sans `splitStatements: false`
+# CE WORKFLOW couvre le cas le plus critique : la MODIFICATION d'un changeset
+# deja applique en prod, qui provoquerait un checksum mismatch au prochain
+# boot Liquibase (= app crash-loop si SPRING_LIQUIBASE_ENABLED=true).
 #
-# Limite : ce workflow applique les changesets sur une DB vierge, donc il ne
-# detecte PAS un changeset existant modifie *par rapport a la prod*. La
-# protection contre ce cas vient de :
-#   - revue manuelle sur PR
-#   - workflow `DB Status` cron quotidien sur clenzy-infra qui detecte la
-#     desync apres-coup
+# Pour chaque PR vers main/production qui touche au changelog :
+#   1. Detecte les fichiers .sql `changes/*` modifies par rapport a la base
+#   2. FAIL si au moins un changeset existant a ete modifie
+#   3. Bypass possible via `[liquibase-allow-modify]` dans le titre de la PR
+#      (cas exceptionnel : rollback urgent, correction d'un changeset jamais
+#      applique en prod, etc.)
 #
-# Pour rendre ce job *required* sur main, configurer la branch protection :
-#   Settings > Branches > main > Require status checks > ajouter
-#   "Liquibase Validate / validate"
-#
-# Securite : aucun input github.event.* utilise dans les `run:`.
+# Securite : `github.event.pull_request.title` est passe par env: avant usage
+# (pas d'interpolation dans run:).
 
 name: Liquibase Validate
 
@@ -37,27 +34,112 @@ on:
     paths:
       - 'server/src/main/resources/db/changelog/**'
       - '.github/workflows/ci-liquibase-validate.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'server/src/main/resources/db/changelog/**'
-      - '.github/workflows/ci-liquibase-validate.yml'
 
 permissions:
   contents: read
 
 jobs:
-  validate:
-    name: validate
+  immutable-changesets:
+    name: immutable-changesets
+    runs-on: ubuntu-latest
+
+    env:
+      CHANGESETS_DIR: server/src/main/resources/db/changelog/changes
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+
+    steps:
+      - name: Checkout (full history for diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect modifications to existing changesets
+        run: |
+          set -euo pipefail
+
+          git fetch origin "$BASE_REF" --quiet
+
+          # Lister les .sql DEJA presents dans la base ET modifies dans la PR
+          # (`--diff-filter=M` exclut les ajouts et suppressions).
+          MODIFIED=$(git diff --name-only --diff-filter=M \
+            "origin/$BASE_REF...HEAD" -- "$CHANGESETS_DIR/*.sql" || true)
+
+          # Lister aussi les renommages — un changeset renomme equivaut a
+          # modifier son chemin, donc checksum mismatch garanti.
+          RENAMED=$(git diff --name-only --diff-filter=R \
+            "origin/$BASE_REF...HEAD" -- "$CHANGESETS_DIR/*.sql" || true)
+
+          # Et les suppressions — un changeset supprime provoque un
+          # "checksum no longer in changelog" au prochain boot.
+          DELETED=$(git diff --name-only --diff-filter=D \
+            "origin/$BASE_REF...HEAD" -- "$CHANGESETS_DIR/*.sql" || true)
+
+          ALL_OFFENDING=$(printf '%s\n%s\n%s\n' "$MODIFIED" "$RENAMED" "$DELETED" | grep -v '^$' || true)
+
+          if [ -z "$ALL_OFFENDING" ]; then
+            echo "OK — aucun changeset existant modifie / renomme / supprime."
+            {
+              echo "## Liquibase Validate — immutable-changesets"
+              echo ""
+              echo "OK — aucun changeset existant modifie."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "::error::Changesets modifies / renommes / supprimes detectes :"
+          printf '%s\n' "$ALL_OFFENDING" | sed 's/^/  - /'
+
+          # Bypass via titre PR (cas exceptionnel uniquement)
+          if printf '%s' "$PR_TITLE" | grep -q '\[liquibase-allow-modify\]'; then
+            echo "::warning::Bypass autorise via [liquibase-allow-modify] dans le titre de PR"
+            {
+              echo "## Liquibase Validate — immutable-changesets"
+              echo ""
+              echo "WARNING — bypass active via \`[liquibase-allow-modify]\` dans le titre de PR."
+              echo ""
+              echo "Changesets modifies :"
+              printf '%s\n' "$ALL_OFFENDING" | sed 's/^/- /'
+              echo ""
+              echo "Assurez-vous d'avoir un plan de reconciliation prod (Liquibase Bootstrap"
+              echo "avec sync_tag adapte) avant le deploy."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          {
+            echo "## Liquibase Validate — immutable-changesets"
+            echo ""
+            echo "ECHEC — un changeset deja applique en prod a ete modifie."
+            echo ""
+            echo "Files :"
+            printf '%s\n' "$ALL_OFFENDING" | sed 's/^/- /'
+            echo ""
+            echo "**Pourquoi** : modifier un changeset deja applique en prod cassera le"
+            echo "checksum stocke dans \`databasechangelog\`. Si \`SPRING_LIQUIBASE_ENABLED=true\`"
+            echo "etait actif, l'app refuserait de booter (validation failed)."
+            echo ""
+            echo "**Solution** : creer un nouveau changeset qui corrige l'effet du precedent"
+            echo "plutot que de modifier l'existant."
+            echo ""
+            echo "**Bypass exceptionnel** : ajouter \`[liquibase-allow-modify]\` dans le titre de"
+            echo "la PR. Reserve aux cas ou le changeset n'a jamais ete applique en prod"
+            echo "(ex: corriger une coquille dans un changeset poussé il y a 1h)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit 1
+
+  validate-structure:
+    name: validate-structure
     runs-on: ubuntu-latest
 
     services:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: liquibase_validate
-          POSTGRES_USER: liquibase_validate
-          POSTGRES_PASSWORD: liquibase_validate_ci
+          POSTGRES_DB: liquibase_check
+          POSTGRES_USER: liquibase_check
+          POSTGRES_PASSWORD: liquibase_check_ci
         ports:
           - 5432:5432
         options: >-
@@ -69,23 +151,19 @@ jobs:
     env:
       LIQUIBASE_IMAGE: liquibase/liquibase:4.29.2
       CHANGELOG_DIR: server/src/main/resources/db/changelog
-      JDBC_URL: jdbc:postgresql://localhost:5432/liquibase_validate
-      DB_USER: liquibase_validate
-      DB_PASS: liquibase_validate_ci
+      JDBC_URL: jdbc:postgresql://localhost:5432/liquibase_check
+      DB_USER: liquibase_check
+      DB_PASS: liquibase_check_ci
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Pre-flight — verify changelog master exists
-        run: |
-          if [ ! -f "$CHANGELOG_DIR/db.changelog-master.yaml" ]; then
-            echo "::error::Master changelog introuvable a $CHANGELOG_DIR/db.changelog-master.yaml"
-            exit 1
-          fi
-          echo "Master changelog OK"
-
-      - name: Liquibase update (from-scratch)
+      # On marque toute la chaine comme "appliquee" sans executer, puis on
+      # appelle `validate`. Cela verifie : IDs uniques, structure YAML/SQL
+      # parseable, references entre changesets coherentes. Ne valide PAS la
+      # syntaxe SQL de l'execution (couvert en Phase 4 via Hibernate + Liquibase).
+      - name: changelog-sync (mark all as applied, no execution)
         run: |
           docker run --rm \
             --network host \
@@ -97,9 +175,9 @@ jobs:
             --password="$DB_PASS" \
             --changelog-file=db.changelog-master.yaml \
             --log-level=INFO \
-            update
+            changelog-sync
 
-      - name: Liquibase validate
+      - name: liquibase validate (changelog integrity)
         run: |
           docker run --rm \
             --network host \
@@ -113,7 +191,7 @@ jobs:
             --log-level=INFO \
             validate
 
-      - name: Liquibase status (confirm up-to-date)
+      - name: liquibase status (sanity check)
         run: |
           docker run --rm \
             --network host \
@@ -133,22 +211,24 @@ jobs:
           JOB_STATUS: ${{ job.status }}
         run: |
           {
-            echo "## Liquibase Validate"
+            echo "## Liquibase Validate — validate-structure"
             echo ""
             if [ "$JOB_STATUS" = "success" ]; then
-              echo "OK — la chaine complete de changesets s'applique sans erreur sur une DB vierge."
+              echo "OK — la structure du changelog est valide."
               echo ""
-              echo "Verification effectuee :"
-              echo "- liquibase update : tous les changesets passent"
-              echo "- liquibase validate : integrite changelog OK"
-              echo "- liquibase status : up to date"
+              echo "Verifications :"
+              echo "- IDs de changesets uniques"
+              echo "- Includes \`db.changelog-master.yaml\` resolvables"
+              echo "- Pas de checksum mismatch interne"
+              echo ""
+              echo "**Limite** : ce job ne lance pas le SQL des changesets. La validation"
+              echo "syntaxe SQL viendra en Phase 4."
             else
-              echo "ECHEC — un changeset est casse ou modifie de maniere incompatible."
+              echo "ECHEC — structure du changelog invalide. Inspecter les logs."
               echo ""
-              echo "Inspecter les logs des steps ci-dessus. Causes courantes :"
-              echo "- syntaxe SQL invalide"
-              echo "- ID de changeset duplique"
-              echo "- bloc PL/pgSQL sans splitStatements: false"
-              echo "- ordre des includes incorrect dans db.changelog-master.yaml"
+              echo "Causes courantes :"
+              echo "- ID de changeset duplique entre deux fichiers"
+              echo "- Include manquant ou typo dans \`db.changelog-master.yaml\`"
+              echo "- YAML mal forme"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
