@@ -391,3 +391,37 @@ const AMENITY_HEX: Record<string, string> = {
 export function getAmenityHex(amenity: string): string {
   return AMENITY_HEX[amenity?.toUpperCase()] ?? '#757575';
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SHARED CHIP STYLING — soft-tinted, 6px radius (Clenzy product register)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** Maps MUI semantic color names to Clenzy palette hex codes. */
+const SEMANTIC_HEX: Record<string, string> = {
+  success: '#4A9B8E',
+  warning: '#D4A574',
+  error: '#C97A7A',
+  info: '#7BA3C2',
+  primary: '#6B8A9A',
+  secondary: '#7B68A8',
+  default: '#757575',
+};
+
+export function semanticToHex(semantic: string | undefined): string {
+  return SEMANTIC_HEX[semantic ?? 'default'] ?? SEMANTIC_HEX.default;
+}
+
+/** Soft-tinted chip styling — unified Clenzy pattern (no pills, 6px radius). */
+export function softChipSx(hex: string) {
+  return {
+    backgroundColor: `${hex}18`,
+    color: hex,
+    border: `1px solid ${hex}40`,
+    borderRadius: '6px',
+    fontWeight: 600,
+    fontSize: '0.6875rem',
+    height: 22,
+    '& .MuiChip-icon': { color: hex },
+    '& .MuiChip-label': { px: 0.75 },
+  } as const;
+}

@@ -1,22 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
-  Paper,
   Typography,
   Button,
   TextField,
   Grid,
-  Switch,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  ListItemSecondaryAction,
   Alert,
   Snackbar,
   CircularProgress,
-  Tabs,
-  Tab,
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material';
@@ -40,7 +31,7 @@ import {
   TrendingUp,
   AccountBalance,
   Payment,
-  AutoAwesome,
+  SmartToy,
   Extension,
   CalendarMonth,
 } from '../../icons';
@@ -67,15 +58,18 @@ import type { NotificationPreferencesHandle } from './NotificationPreferencesCar
 import OrganizationSection from '../organization/OrganizationSection';
 import MessagingAutomationSection from '../messaging/MessagingAutomationSection';
 import FiscalProfileSection from './FiscalProfileSection';
+import type { FiscalProfileHandle } from './FiscalProfileSection';
+import SepaDebtorSettings, { type SepaDebtorHandle } from './SepaDebtorSettings';
+import PayoutScheduleSettings, { type PayoutScheduleHandle } from './PayoutScheduleSettings';
 import TaxRulesSection from './TaxRulesSection';
 import PaymentSettings from './PaymentSettings';
 import AiSettingsSection from './AiSettingsSection';
 import IntegrationsSection from './IntegrationsSection';
-import PayoutScheduleSettings from './PayoutScheduleSettings';
 import OwnerPayoutSettings from './OwnerPayoutSettings';
-import SepaDebtorSettings from './SepaDebtorSettings';
 import MyPayoutSettings from './MyPayoutSettings';
 import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
+import SettingsSection from './components/SettingsSection';
+import SettingsToggleRow from './components/SettingsToggleRow';
 
 // ─── TabPanel ─────────────────────────────────────────────────────────────────
 
@@ -138,7 +132,12 @@ export default function Settings() {
 
   // Ref pour NotificationPreferencesCard
   const notifRef = useRef<NotificationPreferencesHandle>(null);
-  // Force re-render quand les notifications changent pour mettre à jour le bouton
+  // Ref pour FiscalProfileSection (bouton Sauvegarder dans le PageHeader)
+  const fiscalRef = useRef<FiscalProfileHandle>(null);
+  // Refs pour l'onglet Reversements (bouton unifié dans le PageHeader)
+  const sepaRef = useRef<SepaDebtorHandle>(null);
+  const scheduleRef = useRef<PayoutScheduleHandle>(null);
+  // Force re-render quand les sections enfants signalent un changement pour mettre à jour le bouton
   const [, forceUpdate] = useState(0);
 
   // Vérifier les permissions pour les paramètres
@@ -374,25 +373,89 @@ export default function Settings() {
     }
   };
 
+  const handleFiscalSave = async () => {
+    if (fiscalRef.current) {
+      await fiscalRef.current.save();
+      forceUpdate(n => n + 1);
+    }
+  };
+
+  // Sauvegarde unifiée Reversements : SEPA + Calendrier en parallèle (seulement ceux qui ont changé)
+  const handleReversementsSave = async () => {
+    const promises: Promise<void>[] = [];
+    if (sepaRef.current?.hasChanges() && sepaRef.current?.isValid()) {
+      promises.push(sepaRef.current.save());
+    }
+    if (scheduleRef.current?.hasChanges() && scheduleRef.current?.isValid()) {
+      promises.push(scheduleRef.current.save());
+    }
+    try {
+      await Promise.all(promises);
+    } finally {
+      forceUpdate(n => n + 1);
+    }
+  };
+
+  const reversementsHasChanges =
+    (sepaRef.current?.hasChanges() ?? false) || (scheduleRef.current?.hasChanges() ?? false);
+  const reversementsIsSaving =
+    (sepaRef.current?.isSaving ?? false) || (scheduleRef.current?.isSaving ?? false);
+  const reversementsIsValid =
+    (sepaRef.current ? !sepaRef.current.hasChanges() || sepaRef.current.isValid() : true) &&
+    (scheduleRef.current ? !scheduleRef.current.hasChanges() || scheduleRef.current.isValid() : true);
+
   // ─── Actions dynamiques selon l'onglet ────────────────────────────────────
+
+  const refinedOutlinedSx = {
+    textTransform: 'none' as const,
+    fontWeight: 600,
+    fontSize: '0.78rem',
+    letterSpacing: '0.01em',
+    borderRadius: '8px',
+    py: 0.625,
+    px: 1.5,
+    borderColor: 'divider',
+    color: 'text.primary',
+    '&:hover': {
+      borderColor: 'rgba(107, 138, 154, 0.5)',
+      backgroundColor: 'rgba(107, 138, 154, 0.06)',
+    },
+  };
+
+  const refinedContainedSx = {
+    textTransform: 'none' as const,
+    fontWeight: 600,
+    fontSize: '0.78rem',
+    letterSpacing: '0.01em',
+    borderRadius: '8px',
+    py: 0.625,
+    px: 1.5,
+    bgcolor: '#6B8A9A',
+    boxShadow: 'none',
+    '&:hover': { bgcolor: '#6B8A9A', filter: 'brightness(0.94)', boxShadow: 'none' },
+    '&.Mui-disabled': { bgcolor: 'rgba(107, 138, 154, 0.4)', color: '#fff' },
+  };
 
   const headerActions = tabValue === 0 ? (
     <>
       <Button
         variant="outlined"
-        startIcon={<Refresh />}
+        startIcon={<Refresh size={14} strokeWidth={1.75} />}
         onClick={handleReset}
         size="small"
         title="Réinitialiser"
+        sx={refinedOutlinedSx}
       >
         Réinitialiser
       </Button>
       <Button
         variant="contained"
-        startIcon={<Save />}
+        disableElevation
+        startIcon={<Save size={14} strokeWidth={1.75} />}
         onClick={handleSave}
         size="small"
         title="Sauvegarder"
+        sx={refinedContainedSx}
       >
         Sauvegarder
       </Button>
@@ -400,13 +463,63 @@ export default function Settings() {
   ) : tabValue === 1 && notifRef.current?.hasChanges() ? (
     <Button
       variant="contained"
-      startIcon={notifRef.current?.isSaving ? <CircularProgress size={16} color="inherit" /> : <Save />}
+      disableElevation
+      startIcon={
+        notifRef.current?.isSaving ? (
+          <CircularProgress size={14} color="inherit" />
+        ) : (
+          <Save size={14} strokeWidth={1.75} />
+        )
+      }
       onClick={handleNotifSave}
       disabled={notifRef.current?.isSaving}
       size="small"
       title="Sauvegarder"
+      sx={refinedContainedSx}
     >
       {notifRef.current?.isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+    </Button>
+  ) : tabValue === 4 && hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) ? (
+    <Button
+      variant="contained"
+      disableElevation
+      startIcon={
+        fiscalRef.current?.isSaving ? (
+          <CircularProgress size={14} color="inherit" />
+        ) : (
+          <Save size={14} strokeWidth={1.75} />
+        )
+      }
+      onClick={handleFiscalSave}
+      disabled={fiscalRef.current?.isSaving || !fiscalRef.current?.hasChanges()}
+      size="small"
+      title={t('fiscal.profile.save', 'Enregistrer le profil fiscal')}
+      sx={refinedContainedSx}
+    >
+      {fiscalRef.current?.isSaving
+        ? t('fiscal.profile.saving', 'Enregistrement...')
+        : t('fiscal.profile.save', 'Enregistrer le profil fiscal')}
+    </Button>
+  ) : tabValue === 8 && hasAnyRole(['SUPER_ADMIN']) ? (
+    <Button
+      variant="contained"
+      disableElevation
+      startIcon={
+        reversementsIsSaving ? (
+          <CircularProgress size={14} color="inherit" />
+        ) : (
+          <Save size={14} strokeWidth={1.75} />
+        )
+      }
+      onClick={handleReversementsSave}
+      disabled={reversementsIsSaving || !reversementsHasChanges || !reversementsIsValid}
+      size="small"
+      title={t('settings.reversements.save', 'Enregistrer les paramètres')}
+      sx={refinedContainedSx}
+    >
+      {reversementsIsSaving
+        ? t('settings.reversements.saving', 'Enregistrement...')
+        : t('settings.reversements.save', 'Enregistrer les paramètres')}
     </Button>
   ) : undefined;
 
@@ -429,7 +542,7 @@ export default function Settings() {
           { label: 'Notifications', icon: <Notifications /> },
           { label: 'Messagerie', icon: <ChatBubbleOutline /> },
           { label: t('settings.myPayout.tabLabel', 'Mes reversements'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOST']) },
-          { label: 'IA', icon: <AutoAwesome />, hidden: !canViewAi },
+          { label: 'IA', icon: <SmartToy />, hidden: !canViewAi },
           { label: 'Fiscal', icon: <AccountBalance />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
           { label: 'Organisation', icon: <GroupAdd />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
           { label: 'Paiement', icon: <Payment />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
@@ -447,19 +560,17 @@ export default function Settings() {
 
           {/* Mon compte */}
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2, height: '100%' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Person size={20} strokeWidth={1.75} /></Box>
-                <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-                  Mon compte
-                </Typography>
-              </Box>
-
-              <Grid container spacing={2}>
+            <SettingsSection
+              title="Mon compte"
+              icon={Person}
+              accent="primary"
+              description="Identité, organisation et préférences régionales"
+            >
+              <Grid container spacing={1.5}>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Prenom"
+                    label="Prénom"
                     value={user?.firstName || ''}
                     disabled
                     size="small"
@@ -492,7 +603,6 @@ export default function Settings() {
                     size="small"
                   />
                 </Grid>
-
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -502,7 +612,6 @@ export default function Settings() {
                     size="small"
                   />
                 </Grid>
-
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
@@ -519,7 +628,6 @@ export default function Settings() {
                     <option value="Asia/Tokyo">Asia/Tokyo</option>
                   </TextField>
                 </Grid>
-
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
@@ -535,7 +643,6 @@ export default function Settings() {
                     ))}
                   </TextField>
                 </Grid>
-
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -552,260 +659,202 @@ export default function Settings() {
                   </TextField>
                 </Grid>
               </Grid>
-            </Paper>
+            </SettingsSection>
           </Grid>
 
           {/* Workflow */}
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2, height: '100%' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Storage size={20} strokeWidth={1.75} /></Box>
-                <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-                  Workflow
-                </Typography>
-              </Box>
-
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="Délai d'annulation (heures)"
-                    secondary="Temps limite pour annuler une demande approuvée"
-                  />
-                  <TextField
-                    type="number"
-                    value={workflowSettings.cancellationDeadlineHours}
-                    onChange={(e) => updateWorkflowSettings({ cancellationDeadlineHours: parseInt(e.target.value) })}
-                    sx={{ width: 80 }}
-                    size="small"
-                  />
-                </ListItem>
-
-                <ListItem>
-                  <ListItemIcon>
-                    <Person />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Attribution automatique"
-                    secondary="Attribuer automatiquement les interventions"
-                  />
-                  <ListItemSecondaryAction>
-                    <Switch
-                      edge="end"
-                      checked={workflowSettings.autoAssignInterventions}
-                      onChange={(e) => updateWorkflowSettings({ autoAssignInterventions: e.target.checked })}
+            <SettingsSection
+              title="Workflow"
+              icon={Storage}
+              accent="accent"
+              description="Règles d'orchestration des interventions et des prix"
+            >
+              <SettingsToggleRow
+                title="Délai d'annulation"
+                description="Temps limite pour annuler une demande approuvée"
+                control={(
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <TextField
+                      type="number"
+                      value={workflowSettings.cancellationDeadlineHours}
+                      onChange={(e) => updateWorkflowSettings({ cancellationDeadlineHours: parseInt(e.target.value) })}
+                      sx={{
+                        width: 72,
+                        '& input': { textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 600 },
+                      }}
+                      size="small"
+                      inputProps={{ min: 0, 'aria-label': "Délai d'annulation en heures" }}
                     />
-                  </ListItemSecondaryAction>
-                </ListItem>
-
-                <ListItem>
-                  <ListItemIcon>
-                    <Security />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Approbation requise"
-                    secondary="Demander approbation pour les modifications"
-                  />
-                  <ListItemSecondaryAction>
-                    <Switch
-                      edge="end"
-                      checked={workflowSettings.requireApprovalForChanges}
-                      onChange={(e) => updateWorkflowSettings({ requireApprovalForChanges: e.target.checked })}
-                    />
-                  </ListItemSecondaryAction>
-                </ListItem>
-
-                <ListItem>
-                  <ListItemIcon>
-                    <TrendingUp />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Push automatique des prix"
-                    secondary="Pousser automatiquement les prix vers Airbnb (toutes les heures)"
-                  />
-                  <ListItemSecondaryAction>
-                    <Switch
-                      edge="end"
-                      checked={autoPushPricingEnabled}
-                      onChange={(e) => handleToggleAutoPushPricing(e.target.checked)}
-                    />
-                  </ListItemSecondaryAction>
-                </ListItem>
-              </List>
-            </Paper>
+                    <Typography
+                      sx={{ fontSize: '0.72rem', color: 'text.secondary', fontWeight: 600, letterSpacing: '0.02em' }}
+                    >
+                      h
+                    </Typography>
+                  </Box>
+                )}
+              />
+              <SettingsToggleRow
+                icon={Person}
+                iconColor="#6B8A9A"
+                title="Attribution automatique"
+                description="Attribuer automatiquement les interventions"
+                checked={workflowSettings.autoAssignInterventions}
+                onChange={(v) => updateWorkflowSettings({ autoAssignInterventions: v })}
+              />
+              <SettingsToggleRow
+                icon={Security}
+                iconColor="#7BA3C2"
+                title="Approbation requise"
+                description="Demander approbation pour les modifications"
+                checked={workflowSettings.requireApprovalForChanges}
+                onChange={(v) => updateWorkflowSettings({ requireApprovalForChanges: v })}
+              />
+              <SettingsToggleRow
+                icon={TrendingUp}
+                iconColor="#4A9B8E"
+                title="Push automatique des prix"
+                description="Pousser automatiquement les prix vers Airbnb (toutes les heures)"
+                checked={autoPushPricingEnabled}
+                onChange={handleToggleAutoPushPricing}
+                divider={false}
+              />
+            </SettingsSection>
           </Grid>
 
           {/* Affichage */}
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2, height: '100%' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Palette size={20} strokeWidth={1.75} /></Box>
-                <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-                  Affichage
+            <SettingsSection
+              title="Affichage"
+              icon={Palette}
+              accent="warm"
+              description="Apparence, densité et préférences visuelles"
+            >
+              <Box sx={{ pb: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
+                <Typography
+                  sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', mb: 0.125 }}
+                >
+                  Apparence
                 </Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 1 }}>
+                  {themeMode === 'auto'
+                    ? `Système (${isDark ? 'sombre' : 'clair'} détecté)`
+                    : themeMode === 'dark'
+                      ? 'Mode sombre'
+                      : 'Mode clair'}
+                </Typography>
+                <ToggleButtonGroup
+                  value={themeMode}
+                  exclusive
+                  onChange={(_e, newMode) => {
+                    if (newMode !== null) {
+                      handleSettingChange('display', 'theme', newMode);
+                      setThemeMode(newMode);
+                    }
+                  }}
+                  size="small"
+                  fullWidth
+                  sx={{
+                    '& .MuiToggleButton-root': {
+                      textTransform: 'none',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      gap: 0.625,
+                      py: 0.625,
+                      borderColor: 'divider',
+                      color: 'text.secondary',
+                      '&.Mui-selected': {
+                        bgcolor: '#D4A57418',
+                        color: '#8A5A22',
+                        borderColor: '#D4A57460',
+                        '&:hover': { bgcolor: '#D4A57422' },
+                      },
+                      '&:hover': { bgcolor: 'rgba(212, 165, 116, 0.06)' },
+                    },
+                  }}
+                >
+                  <ToggleButton value="light">
+                    <LightMode size={14} strokeWidth={1.75} />
+                    Clair
+                  </ToggleButton>
+                  <ToggleButton value="dark">
+                    <DarkMode size={14} strokeWidth={1.75} />
+                    Sombre
+                  </ToggleButton>
+                  <ToggleButton value="auto">
+                    <SettingsBrightness size={14} strokeWidth={1.75} />
+                    Système
+                  </ToggleButton>
+                </ToggleButtonGroup>
               </Box>
-
-              <List>
-                <ListItem sx={{ flexDirection: 'column', alignItems: 'flex-start', gap: 1.5, py: 1.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Palette size={20} strokeWidth={1.75} /></Box>
-                    <ListItemText
-                      primary="Apparence"
-                      secondary={
-                        themeMode === 'auto'
-                          ? `Système (${isDark ? 'sombre' : 'clair'} détecté)`
-                          : themeMode === 'dark'
-                            ? 'Mode sombre'
-                            : 'Mode clair'
-                      }
-                      sx={{ m: 0 }}
-                    />
-                  </Box>
-                  <ToggleButtonGroup
-                    value={themeMode}
-                    exclusive
-                    onChange={(_e, newMode) => {
-                      if (newMode !== null) {
-                        handleSettingChange('display', 'theme', newMode);
-                        setThemeMode(newMode);
-                      }
-                    }}
-                    size="small"
-                    fullWidth
-                    sx={{ '& .MuiToggleButton-root': { textTransform: 'none', fontSize: '0.8125rem', gap: 0.75, py: 0.75 } }}
-                  >
-                    <ToggleButton value="light">
-                      <LightMode size={18} strokeWidth={1.75} />
-                      Clair
-                    </ToggleButton>
-                    <ToggleButton value="dark">
-                      <DarkMode size={18} strokeWidth={1.75} />
-                      Sombre
-                    </ToggleButton>
-                    <ToggleButton value="auto">
-                      <SettingsBrightness size={18} strokeWidth={1.75} />
-                      Système
-                    </ToggleButton>
-                  </ToggleButtonGroup>
-                </ListItem>
-
-                <ListItem>
-                  <ListItemIcon>
-                    <Storage />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Mode compact"
-                    secondary="Réduire l'espacement des éléments"
-                  />
-                  <ListItemSecondaryAction>
-                    <Switch
-                      edge="end"
-                      checked={settings.display.compactMode}
-                      onChange={(e) => handleSettingChange('display', 'compactMode', e.target.checked)}
-                    />
-                  </ListItemSecondaryAction>
-                </ListItem>
-
-                <ListItem>
-                  <ListItemIcon>
-                    <Person />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Afficher les avatars"
-                    secondary="Montrer les photos de profil des utilisateurs"
-                  />
-                  <ListItemSecondaryAction>
-                    <Switch
-                      edge="end"
-                      checked={settings.display.showAvatars}
-                      onChange={(e) => handleSettingChange('display', 'showAvatars', e.target.checked)}
-                    />
-                  </ListItemSecondaryAction>
-                </ListItem>
-              </List>
-            </Paper>
+              <SettingsToggleRow
+                icon={Storage}
+                iconColor="#8A8378"
+                title="Mode compact"
+                description="Réduire l'espacement des éléments"
+                checked={settings.display.compactMode}
+                onChange={(v) => handleSettingChange('display', 'compactMode', v)}
+              />
+              <SettingsToggleRow
+                icon={Person}
+                iconColor="#6B8A9A"
+                title="Afficher les avatars"
+                description="Montrer les photos de profil des utilisateurs"
+                checked={settings.display.showAvatars}
+                onChange={(v) => handleSettingChange('display', 'showAvatars', v)}
+                divider={false}
+              />
+            </SettingsSection>
           </Grid>
 
           {/* Développement (admin only) */}
           {(user.roles.includes('SUPER_ADMIN')) && (
             <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 2, height: '100%' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><BugReport size={20} strokeWidth={1.75} /></Box>
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-                    Développement
-                  </Typography>
-                </Box>
-
-                <List>
-                  <ListItem>
-                    <ListItemIcon>
-                      <BugReport />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Données de démonstration (Planning)"
-                      secondary="Afficher des réservations et interventions fictives dans le planning"
-                    />
-                    <ListItemSecondaryAction>
-                      <Switch
-                        edge="end"
-                        checked={planningMock}
-                        onChange={(e) => {
-                          const enabled = e.target.checked;
-                          setPlanningMock(enabled);
-                          reservationsApi.setMockMode(enabled);
-                          // Invalider tout le cache planning pour refresh immédiat
-                          queryClient.invalidateQueries({ queryKey: planningKeys.all });
-                        }}
-                      />
-                    </ListItemSecondaryAction>
-                  </ListItem>
-
-                  <ListItem>
-                    <ListItemIcon>
-                      <VolumeUp />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Monitoring sonore Minut (démo)"
-                      secondary="Simuler les données de capteurs de bruit dans le dashboard Analytics"
-                    />
-                    <ListItemSecondaryAction>
-                      <Switch
-                        edge="end"
-                        checked={noiseMonitoringEnabled}
-                        onChange={(e) => setNoiseMonitoringEnabled(e.target.checked)}
-                      />
-                    </ListItemSecondaryAction>
-                  </ListItem>
-
-                  <ListItem>
-                    <ListItemIcon>
-                      <BarChart />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Données de démonstration (Analytics)"
-                      secondary="Afficher des KPIs, graphiques et recommandations avec des données fictives"
-                    />
-                    <ListItemSecondaryAction>
-                      <Switch
-                        edge="end"
-                        checked={analyticsMock}
-                        onChange={(e) => {
-                          const enabled = e.target.checked;
-                          setAnalyticsMock(enabled);
-                          reservationsApi.setAnalyticsMockMode(enabled);
-                          propertiesApi.setMockMode(enabled);
-                          // Invalider tous les caches analytics + overview + planning pour refresh immédiat
-                          queryClient.invalidateQueries({ queryKey: ['analytics-reservations'] });
-                          queryClient.invalidateQueries({ queryKey: ['analytics-properties'] });
-                          queryClient.invalidateQueries({ queryKey: ['analytics-interventions'] });
-                          queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] });
-                          queryClient.invalidateQueries({ queryKey: planningKeys.all });
-                        }}
-                      />
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                </List>
-              </Paper>
+              <SettingsSection
+                title="Développement"
+                icon={BugReport}
+                accent="danger"
+                description="Données fictives et outils de démo (admin uniquement)"
+              >
+                <SettingsToggleRow
+                  icon={BugReport}
+                  iconColor="#C97A7A"
+                  title="Données de démonstration (Planning)"
+                  description="Afficher des réservations et interventions fictives dans le planning"
+                  checked={planningMock}
+                  onChange={(enabled) => {
+                    setPlanningMock(enabled);
+                    reservationsApi.setMockMode(enabled);
+                    queryClient.invalidateQueries({ queryKey: planningKeys.all });
+                  }}
+                />
+                <SettingsToggleRow
+                  icon={VolumeUp}
+                  iconColor="#7BA3C2"
+                  title="Monitoring sonore Minut (démo)"
+                  description="Simuler les données de capteurs de bruit dans le dashboard Analytics"
+                  checked={noiseMonitoringEnabled}
+                  onChange={setNoiseMonitoringEnabled}
+                />
+                <SettingsToggleRow
+                  icon={BarChart}
+                  iconColor="#4A9B8E"
+                  title="Données de démonstration (Analytics)"
+                  description="Afficher des KPIs, graphiques et recommandations avec des données fictives"
+                  checked={analyticsMock}
+                  onChange={(enabled) => {
+                    setAnalyticsMock(enabled);
+                    reservationsApi.setAnalyticsMockMode(enabled);
+                    propertiesApi.setMockMode(enabled);
+                    queryClient.invalidateQueries({ queryKey: ['analytics-reservations'] });
+                    queryClient.invalidateQueries({ queryKey: ['analytics-properties'] });
+                    queryClient.invalidateQueries({ queryKey: ['analytics-interventions'] });
+                    queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] });
+                    queryClient.invalidateQueries({ queryKey: planningKeys.all });
+                  }}
+                  divider={false}
+                />
+              </SettingsSection>
             </Grid>
           )}
         </Grid>
@@ -841,7 +890,10 @@ export default function Settings() {
       {/* ─── Onglet Fiscal (ADMIN/MANAGER) ────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
         <TabPanel value={tabValue} index={4}>
-          <FiscalProfileSection />
+          <FiscalProfileSection
+            ref={fiscalRef}
+            onChangeState={() => forceUpdate(n => n + 1)}
+          />
           <Box sx={{ mt: 3 }} />
           <TaxRulesSection />
         </TabPanel>
@@ -874,16 +926,23 @@ export default function Settings() {
       {/* ─── Onglet Reversements (SUPER_ADMIN) ──────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN']) && (
         <TabPanel value={tabValue} index={8}>
-          <Grid container spacing={3}>
+          <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-              <SepaDebtorSettings />
+              <SepaDebtorSettings
+                ref={sepaRef}
+                onChangeState={() => forceUpdate(n => n + 1)}
+              />
             </Grid>
             <Grid item xs={12} md={6}>
-              <PayoutScheduleSettings />
+              <PayoutScheduleSettings
+                ref={scheduleRef}
+                onChangeState={() => forceUpdate(n => n + 1)}
+              />
             </Grid>
           </Grid>
-          <Box sx={{ mt: 4 }} />
-          <OwnerPayoutSettings />
+          <Box sx={{ mt: 2 }}>
+            <OwnerPayoutSettings />
+          </Box>
         </TabPanel>
       )}
 

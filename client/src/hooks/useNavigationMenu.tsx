@@ -26,7 +26,7 @@ import {
   CalendarViewWeek,
   PersonSearch,
   Contacts,
-  Language,
+  Public,
   StorefrontOutlined,
 } from '../icons';
 
@@ -174,7 +174,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     group: 'management',
   },
   {
-    icon: <Language />,
+    icon: <Public />,
     path: '/booking-engine',
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
     permission: 'settings:view',

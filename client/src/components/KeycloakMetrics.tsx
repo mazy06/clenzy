@@ -16,7 +16,6 @@ import {
 import {
   TrendingUp,
   Refresh,
-  Speed,
   Group,
   Security,
   Wifi,
@@ -24,6 +23,8 @@ import {
 } from '../icons';
 import { monitoringApi } from '../services/api/monitoringApi';
 import type { KeycloakMetricsResponse, TestCoverageMetrics } from '../services/api/monitoringApi';
+import { semanticToHex, softChipSx } from '../utils/statusUtils';
+import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 
 const KeycloakMetrics: React.FC = () => {
   const [metrics, setMetrics] = useState<KeycloakMetricsResponse | null>(null);
@@ -31,6 +32,7 @@ const KeycloakMetrics: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const { setHeaderActions, setHeaderLastUpdate } = useMonitoringHeader();
 
   const fetchMetrics = async () => {
     try {
@@ -58,6 +60,22 @@ const KeycloakMetrics: React.FC = () => {
   const handleRefresh = () => {
     fetchMetrics();
   };
+
+  // Register page-header actions and last-update timestamp.
+  useEffect(() => {
+    setHeaderActions(
+      <Tooltip title="Actualiser les métriques">
+        <IconButton onClick={handleRefresh} size="small">
+          <Refresh size={20} strokeWidth={1.75} />
+        </IconButton>
+      </Tooltip>,
+    );
+    return () => setHeaderActions(null);
+  }, [setHeaderActions]);
+
+  useEffect(() => {
+    setHeaderLastUpdate(lastUpdate);
+  }, [setHeaderLastUpdate, lastUpdate]);
 
   if (loading) {
     return (
@@ -108,25 +126,6 @@ const KeycloakMetrics: React.FC = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><Speed size={20} strokeWidth={1.75} /></Box>
-          Métriques Plateforme
-        </Typography>
-        <Box display="flex" alignItems="center" gap={1}>
-          {lastUpdate && (
-            <Typography variant="caption" color="text.secondary">
-              Dernière mise à jour: {lastUpdate.toLocaleTimeString()}
-            </Typography>
-          )}
-          <Tooltip title="Actualiser les métriques">
-            <IconButton onClick={handleRefresh} size="small">
-              <Refresh size={20} strokeWidth={1.75} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-
       <Grid container spacing={3}>
         {/* Utilisateurs */}
         <Grid item xs={12} md={6}>
@@ -161,14 +160,14 @@ const KeycloakMetrics: React.FC = () => {
                   <Box display="flex" gap={1} flexWrap="wrap">
                     <Chip
                       label={`${metrics.users.newThisWeek} nouveaux`}
-                      color="info"
                       size="small"
                       icon={<TrendingUp size={16} strokeWidth={1.75} />}
+                      sx={softChipSx(semanticToHex('info'))}
                     />
                     <Chip
                       label={`${metrics.users.inactive} inactifs`}
-                      color="default"
                       size="small"
+                      sx={softChipSx(semanticToHex('default'))}
                     />
                   </Box>
                 </Grid>
@@ -210,13 +209,13 @@ const KeycloakMetrics: React.FC = () => {
                   <Box display="flex" gap={1} flexWrap="wrap">
                     <Chip
                       label={`${metrics.sessions.cacheHits} cache hits`}
-                      color="info"
                       size="small"
+                      sx={softChipSx(semanticToHex('info'))}
                     />
                     <Chip
                       label={`${metrics.sessions.revokedTokens} révoqués`}
-                      color="default"
                       size="small"
+                      sx={softChipSx(semanticToHex('default'))}
                     />
                   </Box>
                 </Grid>
@@ -258,13 +257,13 @@ const KeycloakMetrics: React.FC = () => {
                   <Box display="flex" gap={1} flexWrap="wrap">
                     <Chip
                       label={`${metrics.performance.totalRequests} requêtes`}
-                      color="info"
                       size="small"
+                      sx={softChipSx(semanticToHex('info'))}
                     />
                     <Chip
                       label={`${metrics.performance.errorRate}% erreurs`}
-                      color={getPerformanceColor(100 - metrics.performance.errorRate)}
                       size="small"
+                      sx={softChipSx(semanticToHex(getPerformanceColor(100 - metrics.performance.errorRate)))}
                     />
                   </Box>
                 </Grid>
@@ -306,14 +305,14 @@ const KeycloakMetrics: React.FC = () => {
                   <Box display="flex" gap={1} flexWrap="wrap">
                     <Chip
                       label={`${metrics.security.suspiciousActivity} activité suspecte`}
-                      color={metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'}
                       size="small"
+                      sx={softChipSx(semanticToHex(metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'))}
                     />
                     {metrics.security.lastIncident && (
                       <Chip
                         label={`Dernier incident: ${new Date(metrics.security.lastIncident).toLocaleString()}`}
-                        color="default"
                         size="small"
+                        sx={softChipSx(semanticToHex('default'))}
                       />
                     )}
                   </Box>
@@ -334,8 +333,7 @@ const KeycloakMetrics: React.FC = () => {
                     <Chip
                       label={`Rapport du ${new Date(coverage.reportDate).toLocaleDateString()}`}
                       size="small"
-                      variant="outlined"
-                      sx={{ ml: 2 }}
+                      sx={{ ...softChipSx(semanticToHex('default')), ml: 2 }}
                     />
                   )}
                 </Typography>

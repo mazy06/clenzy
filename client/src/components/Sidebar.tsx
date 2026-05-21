@@ -30,6 +30,7 @@ import { useCurrency } from '../hooks/useCurrency';
 import { CURRENCY_OPTIONS } from '../utils/currencyUtils';
 import type { CurrencyCode } from '../hooks/useCurrency';
 import { authApi, notificationsApi } from '../services/api';
+import { userAvatarSrc } from '../services/api/usersApi';
 import keycloak from '../keycloak';
 import { clearTokens } from '../services/storageService';
 import { SIDEBAR_WIDTH_EXPANDED, SIDEBAR_WIDTH_COLLAPSED } from '../hooks/useSidebarState';
@@ -271,6 +272,7 @@ export default function Sidebar({
         >
           <Tooltip title={collapsed ? (user?.firstName || user?.username || '') : ''} placement="right">
             <Avatar
+              src={userAvatarSrc(user)}
               sx={{
                 width: avatarSize,
                 height: avatarSize,

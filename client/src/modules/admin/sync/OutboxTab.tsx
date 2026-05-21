@@ -13,23 +13,95 @@ import {
   Checkbox,
   CircularProgress,
   Alert,
+  Tooltip,
   Typography,
   Grid,
   Card,
   CardContent,
   TextField,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
   TablePagination,
 } from '@mui/material';
-import { Replay } from '../../../icons';
+import {
+  Replay,
+  InfoOutlined,
+  HourglassEmpty,
+  Send as SendIcon,
+  ErrorOutline,
+} from '../../../icons';
 import { syncAdminApi, OutboxEvent, OutboxStats } from '../../../services/api/syncAdminApi';
+import { semanticToHex, softChipSx } from '../../../utils/statusUtils';
+import FilterChipRow from '../../../components/FilterChipRow';
+import HelpBanner from '../../../components/HelpBanner';
+import { useSyncAdminHeader } from '../SyncAdminPage';
 
-const STATUSES = ['', 'PENDING', 'SENT', 'FAILED'] as const;
+// ─── Tooltip copy ────────────────────────────────────────────────────────────
+// Centralised so the same explanation surfaces in the chip, the column header,
+// the filter chip, and the stats card. Stops the copy from drifting between
+// surfaces and keeps the page truthfully consistent.
+const STATUS_HELP: Record<string, { title: string; what: string; todo: string }> = {
+  PENDING: {
+    title: 'En file',
+    what: "L'event est persisté en base, le relais Kafka va le récupérer au prochain cycle (quelques secondes).",
+    todo: 'Aucune action requise — la transition vers SENT ou FAILED est automatique.',
+  },
+  SENT: {
+    title: 'Envoyé',
+    what: "L'event a bien été publié sur le topic Kafka. Les consumers downstream peuvent maintenant le traiter.",
+    todo: 'Aucune action — bon signal.',
+  },
+  FAILED: {
+    title: 'Échec',
+    what: "La publication Kafka a échoué (topic manquant, broker indisponible, payload invalide). La colonne ERROR donne le détail.",
+    todo: 'Corriger la cause sous-jacente puis cliquer "Retry Selected" pour remettre l\'event en file.',
+  },
+};
 
-const statusColor = (status: string): 'info' | 'success' | 'error' | 'default' => {
+const renderStatusTooltip = (status: string) => {
+  const help = STATUS_HELP[status];
+  if (!help) return status;
+  return (
+    <Box sx={{ p: 0.5, maxWidth: 300 }}>
+      <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, mb: 0.5 }}>{help.title}</Typography>
+      <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.4, mb: 0.5 }}>{help.what}</Typography>
+      <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.4, fontStyle: 'italic', color: 'rgba(255,255,255,0.85)' }}>
+        → {help.todo}
+      </Typography>
+    </Box>
+  );
+};
+
+/**
+ * Small column-header helper: label + an info icon that opens a tooltip explaining
+ * the column. Keeps the table header tidy while making the data self-explanatory.
+ */
+const HeaderHint: React.FC<{ label: string; hint: string }> = ({ label, hint }) => (
+  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+    <span>{label}</span>
+    <Tooltip arrow title={hint}>
+      <Box
+        component="span"
+        sx={{
+          display: 'inline-flex',
+          color: 'text.disabled',
+          cursor: 'help',
+          '&:hover': { color: 'text.secondary' },
+        }}
+      >
+        <InfoOutlined size={13} strokeWidth={1.75} />
+      </Box>
+    </Tooltip>
+  </Box>
+);
+
+type OutboxStatus = 'PENDING' | 'SENT' | 'FAILED';
+
+const STATUS_OPTIONS: { value: OutboxStatus; label: string; color: string }[] = [
+  { value: 'PENDING', label: 'Pending', color: semanticToHex('info') },
+  { value: 'SENT',    label: 'Sent',    color: semanticToHex('success') },
+  { value: 'FAILED',  label: 'Failed',  color: semanticToHex('error') },
+];
+
+const statusSemantic = (status: string): string => {
   switch (status) {
     case 'PENDING': return 'info';
     case 'SENT': return 'success';
@@ -51,8 +123,9 @@ const OutboxTab: React.FC = () => {
   const [retrying, setRetrying] = useState(false);
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<OutboxStatus | ''>('');
   const [topic, setTopic] = useState('');
+  const { setHeaderFilters, setHeaderActions } = useSyncAdminHeader();
 
   const fetchStats = async () => {
     try {
@@ -102,30 +175,102 @@ const OutboxTab: React.FC = () => {
     });
   };
 
-  const handleSelectAllFailed = () => {
+  const handleSelectAllFailed = useCallback(() => {
     const failedIds = events.filter((e) => e.status === 'FAILED').map((e) => e.id);
     setSelectedIds(new Set(failedIds));
-  };
+  }, [events]);
 
-  const handleRetry = async () => {
+  const handleRetry = useCallback(async () => {
     if (selectedIds.size === 0) return;
     try {
       setRetrying(true);
       setRetryMessage(null);
       const result = await syncAdminApi.retryOutboxEvents(Array.from(selectedIds));
+      // "retried" means the event was re-enqueued (status → PENDING). The actual Kafka
+      // send happens on the next OutboxRelay tick — refresh shortly to see SENT/FAILED.
       setRetryMessage(
-        `Retry: ${result.retried}/${result.requested} reussis` +
-        (result.failedIds.length > 0 ? `. Echecs: ${result.failedIds.join(', ')}` : ''),
+        `${result.retried}/${result.requested} event(s) relancés. Le statut se mettra à jour dans quelques secondes.`
+        + (result.failedIds.length > 0 ? ` Échec de relance: ${result.failedIds.join(', ')}` : ''),
       );
       setSelectedIds(new Set());
       await fetchEvents();
       await fetchStats();
+      // The OutboxRelay processes pending events every few seconds. Schedule a follow-up
+      // refresh so SENT/FAILED transitions appear automatically without a manual reload.
+      window.setTimeout(() => {
+        fetchEvents();
+        fetchStats();
+      }, 4000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors du retry');
     } finally {
       setRetrying(false);
     }
-  };
+  }, [selectedIds, fetchEvents]);
+
+  // Register filters (Status + Topic) into the page header.
+  useEffect(() => {
+    setHeaderFilters(
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        <FilterChipRow
+          options={STATUS_OPTIONS}
+          value={statusFilter}
+          onChange={(v) => { setStatusFilter(v as OutboxStatus | ''); setPage(0); }}
+          allLabel="Tous"
+          size="compact"
+        />
+        <TextField
+          size="small"
+          label="Topic"
+          value={topic}
+          onChange={(e) => { setTopic(e.target.value); setPage(0); }}
+          sx={{ width: 180 }}
+        />
+      </Box>,
+    );
+    return () => setHeaderFilters(null);
+  }, [setHeaderFilters, statusFilter, topic]);
+
+  // Register actions (Select All Failed + Retry Selected) into the page header.
+  useEffect(() => {
+    setHeaderActions(
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Tooltip
+          arrow
+          title="Coche toutes les lignes en statut FAILED sur la page courante. Utile pour relancer un lot d'événements après avoir corrigé la cause (topic créé, broker remonté, etc.)."
+        >
+          <span>
+            <Button size="small" variant="outlined" onClick={handleSelectAllFailed} sx={{ textTransform: 'none' }}>
+              Select All Failed
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip
+          arrow
+          title={
+            selectedIds.size === 0
+              ? "Sélectionne au moins un event FAILED pour pouvoir le relancer."
+              : "Remet les events sélectionnés en statut PENDING. Le relais Kafka va retenter l'envoi au prochain cycle (~4 s)."
+          }
+        >
+          <span>
+            <Button
+              size="small"
+              variant="contained"
+              color="warning"
+              startIcon={retrying ? <CircularProgress size={16} /> : <Replay />}
+              onClick={handleRetry}
+              disabled={selectedIds.size === 0 || retrying}
+              sx={{ textTransform: 'none', fontWeight: 600 }}
+            >
+              Retry Selected ({selectedIds.size})
+            </Button>
+          </span>
+        </Tooltip>
+      </Box>,
+    );
+    return () => setHeaderActions(null);
+  }, [setHeaderActions, handleSelectAllFailed, handleRetry, retrying, selectedIds.size]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -140,82 +285,83 @@ const OutboxTab: React.FC = () => {
 
   return (
     <Box>
+      <HelpBanner
+        storageKey="clenzy_outbox_help_dismissed"
+        title="Comment fonctionne l'Outbox ?"
+        description={
+          'Chaque mutation métier (réservation, profil utilisateur, calendrier...) écrit un event '
+          + 'dans la table outbox dans la MÊME transaction que la donnée. Le relais Kafka lit ensuite ces events '
+          + 'et les publie sur le topic correspondant. Garantie : at-least-once, pas de perte.'
+        }
+        dismissLabel="J'ai compris"
+        steps={[
+          {
+            icon: <HourglassEmpty size={14} strokeWidth={1.75} />,
+            title: 'PENDING — en attente',
+            description: "L'event est en file. Le relais Kafka va le récupérer au prochain cycle (~quelques secondes).",
+            accent: 'info',
+          },
+          {
+            icon: <SendIcon size={14} strokeWidth={1.75} />,
+            title: 'SENT — envoyé',
+            description: "L'event a été publié dans Kafka. Les consumers downstream peuvent maintenant le traiter.",
+            accent: 'success',
+          },
+          {
+            icon: <ErrorOutline size={14} strokeWidth={1.75} />,
+            title: 'FAILED — à investiguer',
+            description: "L'envoi a échoué (topic manquant, broker indisponible, payload invalide). Voir la colonne Error, "
+              + 'corriger la cause, puis cliquer "Retry Selected" pour remettre l\'event en file.',
+            accent: 'error',
+          },
+        ]}
+      />
+
       {/* Stats Cards */}
       {stats && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={6} sm={3}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Pending</Typography>
-                <Typography variant="h4" color="info.main">{stats.pending}</Typography>
-              </CardContent>
-            </Card>
+            <Tooltip arrow title="Events qui attendent d'être publiés vers Kafka. Le relais les traite par paquets toutes les quelques secondes.">
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="subtitle2" color="text.secondary">Pending</Typography>
+                  <Typography variant="h4" color="info.main">{stats.pending}</Typography>
+                </CardContent>
+              </Card>
+            </Tooltip>
           </Grid>
           <Grid item xs={6} sm={3}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Sent</Typography>
-                <Typography variant="h4" color="success.main">{stats.sent}</Typography>
-              </CardContent>
-            </Card>
+            <Tooltip arrow title="Events publiés avec succès dans Kafka. Aucune action requise.">
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="subtitle2" color="text.secondary">Sent</Typography>
+                  <Typography variant="h4" color="success.main">{stats.sent}</Typography>
+                </CardContent>
+              </Card>
+            </Tooltip>
           </Grid>
           <Grid item xs={6} sm={3}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Failed</Typography>
-                <Typography variant="h4" color="error.main">{stats.failed}</Typography>
-              </CardContent>
-            </Card>
+            <Tooltip arrow title="Events dont la publication Kafka a échoué. Sélectionnez-les + bouton Retry après avoir corrigé la cause (voir colonne Error).">
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="subtitle2" color="text.secondary">Failed</Typography>
+                  <Typography variant="h4" color="error.main">{stats.failed}</Typography>
+                </CardContent>
+              </Card>
+            </Tooltip>
           </Grid>
           <Grid item xs={6} sm={3}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Total</Typography>
-                <Typography variant="h4">{stats.total}</Typography>
-              </CardContent>
-            </Card>
+            <Tooltip arrow title="Total cumulé d'events écrits dans l'outbox depuis sa création.">
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="subtitle2" color="text.secondary">Total</Typography>
+                  <Typography variant="h4">{stats.total}</Typography>
+                </CardContent>
+              </Card>
+            </Tooltip>
           </Grid>
         </Grid>
       )}
-
-      {/* Filters + Actions */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={statusFilter}
-            label="Status"
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-          >
-            {STATUSES.map((s) => (
-              <MenuItem key={s} value={s}>{s || 'Tous'}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <TextField
-          size="small"
-          label="Topic"
-          value={topic}
-          onChange={(e) => { setTopic(e.target.value); setPage(0); }}
-        />
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={handleSelectAllFailed}
-        >
-          Select All Failed
-        </Button>
-        <Button
-          size="small"
-          variant="contained"
-          color="warning"
-          startIcon={retrying ? <CircularProgress size={16} /> : <Replay />}
-          onClick={handleRetry}
-          disabled={selectedIds.size === 0 || retrying}
-        >
-          Retry Selected ({selectedIds.size})
-        </Button>
-      </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {retryMessage && <Alert severity="info" sx={{ mb: 2 }}>{retryMessage}</Alert>}
@@ -230,16 +376,58 @@ const OutboxTab: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell padding="checkbox" />
-                  <TableCell>ID</TableCell>
-                  <TableCell>Aggregate</TableCell>
-                  <TableCell>Event Type</TableCell>
-                  <TableCell>Topic</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Retry</TableCell>
-                  <TableCell>Error</TableCell>
-                  <TableCell>Created At</TableCell>
-                  <TableCell>Sent At</TableCell>
+                  <TableCell padding="checkbox">
+                    <Tooltip arrow title="Une case n'apparaît que sur les lignes FAILED. Cochez puis cliquez 'Retry Selected'.">
+                      <Box component="span" sx={{ display: 'inline-flex', cursor: 'help' }}>
+                        <InfoOutlined size={14} strokeWidth={1.75} />
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>
+                    <HeaderHint label="ID" hint="Identifiant interne de l'event dans la table outbox." />
+                  </TableCell>
+                  <TableCell>
+                    <HeaderHint
+                      label="Aggregate"
+                      hint="Entité métier source. Format type#id. Ex: USER#42 = changement de profil utilisateur 42."
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <HeaderHint
+                      label="Event Type"
+                      hint="Nature de la mutation. Ex: USER_PROFILE_UPDATED, RESERVATION_CREATED, CALENDAR_BOOKED."
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <HeaderHint
+                      label="Topic"
+                      hint="Topic Kafka cible. Si un topic n'existe pas côté broker, les envois finissent en FAILED."
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <HeaderHint
+                      label="Status"
+                      hint="PENDING = en file, SENT = publié OK, FAILED = échec. Survolez le chip pour le détail + action recommandée."
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <HeaderHint
+                      label="Retry"
+                      hint="Nombre de tentatives déjà effectuées. Incrémenté à chaque échec du relais."
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <HeaderHint
+                      label="Error"
+                      hint="Message d'erreur de la dernière tentative. Survolez la ligne pour voir le message complet."
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <HeaderHint label="Created At" hint="Moment où l'event a été persisté dans l'outbox (= moment de la mutation métier)." />
+                  </TableCell>
+                  <TableCell>
+                    <HeaderHint label="Sent At" hint="Moment où l'event a été publié avec succès dans Kafka. Vide tant qu'il n'est pas SENT." />
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -263,13 +451,29 @@ const OutboxTab: React.FC = () => {
                       <TableCell>{evt.eventType}</TableCell>
                       <TableCell>{evt.topic}</TableCell>
                       <TableCell>
-                        <Chip
-                          label={evt.status}
-                          color={statusColor(evt.status)}
-                          size="small"
-                        />
+                        <Tooltip arrow placement="right" title={renderStatusTooltip(evt.status)}>
+                          <Chip
+                            label={evt.status}
+                            size="small"
+                            sx={{
+                              ...softChipSx(semanticToHex(statusSemantic(evt.status))),
+                              cursor: 'help',
+                            }}
+                          />
+                        </Tooltip>
                       </TableCell>
-                      <TableCell>{evt.retryCount}</TableCell>
+                      <TableCell>
+                        <Tooltip
+                          arrow
+                          title={
+                            evt.retryCount === 0
+                              ? "Aucune tentative supplémentaire — c'est encore le premier essai."
+                              : `${evt.retryCount} tentative(s) après échec(s) précédent(s).`
+                          }
+                        >
+                          <Box component="span" sx={{ cursor: 'help' }}>{evt.retryCount}</Box>
+                        </Tooltip>
+                      </TableCell>
                       <TableCell>
                         <Typography
                           variant="body2"

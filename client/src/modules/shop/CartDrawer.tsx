@@ -13,12 +13,15 @@ import {
   Remove,
   Delete,
   ShoppingCartOutlined,
+  CheckCircleOutline,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
 import { SHOP_PRODUCTS } from './shopProducts';
+import ProductHero from './ProductHero';
 
-// ─── Props ───────────────────────────────────────────────────────────────────
+const ACCENT = '#4A9B8E';
+const PRIMARY = '#6B8A9A';
 
 interface CartDrawerProps {
   open: boolean;
@@ -28,8 +31,6 @@ interface CartDrawerProps {
   onRemoveItem: (productId: string) => void;
   onCheckout: () => void;
 }
-
-// ─── Component ───────────────────────────────────────────────────────────────
 
 const CartDrawer: React.FC<CartDrawerProps> = ({
   open,
@@ -52,6 +53,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
     .filter(Boolean) as { product: (typeof SHOP_PRODUCTS)[number]; quantity: number }[];
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const isEmpty = cartItems.length === 0;
 
   return (
@@ -60,7 +62,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
       open={open}
       onClose={onClose}
       PaperProps={{
-        sx: { width: { xs: '100%', sm: 400 }, maxWidth: '100vw' },
+        sx: { width: { xs: '100%', sm: 420 }, maxWidth: '100vw' },
       }}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -76,11 +78,38 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
             borderColor: 'divider',
           }}
         >
-          <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>
-            {t('shop.cart')}
-          </Typography>
-          <IconButton onClick={onClose} size="small">
-            <Close size={20} strokeWidth={1.75} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
+              {t('shop.cart')}
+            </Typography>
+            {totalItems > 0 && (
+              <Box
+                sx={{
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                  px: 0.875,
+                  py: 0.125,
+                  borderRadius: '5px',
+                  backgroundColor: `${ACCENT}14`,
+                  color: ACCENT,
+                  fontVariantNumeric: 'tabular-nums',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {totalItems}
+              </Box>
+            )}
+          </Box>
+          <IconButton
+            onClick={onClose}
+            size="small"
+            aria-label="Fermer"
+            sx={{
+              color: 'text.secondary',
+              '&:hover': { color: 'text.primary' },
+            }}
+          >
+            <Close size={18} strokeWidth={1.75} />
           </IconButton>
         </Box>
 
@@ -88,73 +117,190 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
         <Box sx={{ flex: 1, overflowY: 'auto', px: 2.5, py: 2 }}>
           {isEmpty ? (
             <Box sx={{ textAlign: 'center', py: 6 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1.5 }}><ShoppingCartOutlined size={48} strokeWidth={1.75} /></Box>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
+              <Box
+                sx={{
+                  width: 64,
+                  height: 64,
+                  mx: 'auto',
+                  mb: 2,
+                  borderRadius: '14px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: `${PRIMARY}0F`,
+                  color: PRIMARY,
+                }}
+              >
+                <ShoppingCartOutlined size={28} strokeWidth={1.5} />
+              </Box>
+              <Typography fontWeight={600} sx={{ fontSize: '0.95rem', mb: 0.5 }}>
                 {t('shop.cartEmpty')}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+              <Typography
+                sx={{
+                  fontSize: '0.78rem',
+                  color: 'text.secondary',
+                  lineHeight: 1.5,
+                  maxWidth: 240,
+                  mx: 'auto',
+                }}
+              >
                 {t('shop.cartEmptyDesc')}
               </Typography>
             </Box>
           ) : (
-            cartItems.map(({ product, quantity }) => (
-              <Box key={product.id} sx={{ mb: 2 }}>
-                <Box sx={{ display: 'flex', gap: 1.5 }}>
-                  {/* Product info */}
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.875rem' }}>
-                      {product.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                      {formatPrice(product.price)} {t('shop.perUnit')}
-                    </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+              {cartItems.map(({ product, quantity }) => (
+                <Box
+                  key={product.id}
+                  sx={{
+                    display: 'flex',
+                    gap: 1.25,
+                    p: 1,
+                    borderRadius: '10px',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    '&:hover': { borderColor: `${PRIMARY}66` },
+                  }}
+                >
+                  {/* Thumbnail */}
+                  <Box
+                    sx={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                    }}
+                  >
+                    <ProductHero product={product} height={62} />
                   </Box>
 
-                  {/* Quantity controls */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-                    <IconButton
-                      size="small"
-                      onClick={() => onUpdateQuantity(product.id, -1)}
-                      sx={{ border: '1px solid', borderColor: 'divider', width: 28, height: 28 }}
-                    >
-                      <Remove size={14} strokeWidth={1.75} />
-                    </IconButton>
-                    <Typography
-                      fontWeight={700}
-                      sx={{ minWidth: 20, textAlign: 'center', fontSize: '0.8125rem' }}
-                    >
-                      {quantity}
-                    </Typography>
-                    <IconButton
-                      size="small"
-                      onClick={() => onUpdateQuantity(product.id, 1)}
-                      sx={{ border: '1px solid', borderColor: 'divider', width: 28, height: 28 }}
-                    >
-                      <Add size={14} strokeWidth={1.75} />
-                    </IconButton>
-                  </Box>
+                  {/* Info + controls */}
+                  <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          fontWeight={600}
+                          sx={{
+                            fontSize: '0.82rem',
+                            lineHeight: 1.25,
+                            color: 'text.primary',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title={product.name}
+                        >
+                          {product.name}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: '0.6875rem',
+                            color: 'text.disabled',
+                            letterSpacing: '0.04em',
+                            fontVariantNumeric: 'tabular-nums',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {product.sku}
+                        </Typography>
+                      </Box>
+                      <IconButton
+                        size="small"
+                        onClick={() => onRemoveItem(product.id)}
+                        aria-label="Retirer du panier"
+                        sx={{
+                          color: 'text.disabled',
+                          p: 0.25,
+                          '&:hover': { color: '#C97A7A', backgroundColor: '#C97A7A0F' },
+                        }}
+                      >
+                        <Delete size={14} strokeWidth={1.75} />
+                      </IconButton>
+                    </Box>
 
-                  {/* Line total + delete */}
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
-                    <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
-                      {formatPrice(product.price * quantity)}
-                    </Typography>
-                    <IconButton
-                      size="small"
-                      onClick={() => onRemoveItem(product.id)}
-                      sx={{ color: 'error.main', mt: 0.25, p: 0.25 }}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        mt: 'auto',
+                        pt: 0.5,
+                      }}
                     >
-                      <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
+                      {/* Quantity controls */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => onUpdateQuantity(product.id, -1)}
+                          aria-label="Diminuer"
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            borderRadius: '6px',
+                            color: 'text.primary',
+                            '&:hover': { borderColor: `${PRIMARY}66`, backgroundColor: `${PRIMARY}0A` },
+                          }}
+                        >
+                          <Remove size={12} strokeWidth={2} />
+                        </IconButton>
+                        <Typography
+                          fontWeight={700}
+                          sx={{
+                            minWidth: 22,
+                            textAlign: 'center',
+                            fontSize: '0.78rem',
+                            color: 'text.primary',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {quantity}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => onUpdateQuantity(product.id, 1)}
+                          aria-label="Augmenter"
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            borderRadius: '6px',
+                            color: 'text.primary',
+                            '&:hover': { borderColor: `${PRIMARY}66`, backgroundColor: `${PRIMARY}0A` },
+                          }}
+                        >
+                          <Add size={12} strokeWidth={2} />
+                        </IconButton>
+                      </Box>
+
+                      {/* Line total */}
+                      <Typography
+                        fontWeight={700}
+                        sx={{
+                          fontSize: '0.85rem',
+                          color: 'text.primary',
+                          fontVariantNumeric: 'tabular-nums',
+                          letterSpacing: '-0.01em',
+                        }}
+                      >
+                        {formatPrice(product.price * quantity)}
+                      </Typography>
+                    </Box>
                   </Box>
                 </Box>
-                <Divider sx={{ mt: 1.5 }} />
-              </Box>
-            ))
+              ))}
+            </Box>
           )}
         </Box>
 
-        {/* Footer: totals + checkout */}
+        {/* Footer */}
         {!isEmpty && (
           <Box
             sx={{
@@ -162,49 +308,83 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
               borderColor: 'divider',
               px: 2.5,
               py: 2,
+              backgroundColor: 'background.paper',
             }}
           >
-            {/* Subtotal */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2" color="text.secondary">
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+              <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
                 {t('shop.subtotal')}
               </Typography>
-              <Typography variant="body2" fontWeight={600}>
+              <Typography
+                sx={{
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: 'text.primary',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
                 {formatPrice(subtotal)}
               </Typography>
             </Box>
 
-            {/* Shipping info */}
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', display: 'block', mb: 0.25 }}>
-              {t('shop.shipping')}
-            </Typography>
-            <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.625rem', display: 'block', mb: 1.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.25 }}>
+              <Box sx={{ color: ACCENT, display: 'inline-flex' }}>
+                <CheckCircleOutline size={12} strokeWidth={2} />
+              </Box>
+              <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+                {t('shop.shipping')}
+              </Typography>
+            </Box>
+            <Typography
+              sx={{
+                fontSize: '0.66rem',
+                color: 'text.disabled',
+                display: 'block',
+                mb: 1.5,
+                ml: 2.25,
+              }}
+            >
               {t('shop.shippingIntl')}
             </Typography>
 
-            <Divider sx={{ mb: 1.5 }} />
+            <Divider sx={{ mb: 1.25, borderColor: 'divider' }} />
 
-            {/* Total */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="subtitle1" fontWeight={700}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 2 }}>
+              <Typography fontWeight={700} sx={{ fontSize: '0.95rem' }}>
                 {t('shop.total')}
               </Typography>
-              <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#4A9B8E' }}>
+              <Typography
+                fontWeight={700}
+                sx={{
+                  fontSize: '1.15rem',
+                  color: ACCENT,
+                  fontVariantNumeric: 'tabular-nums',
+                  letterSpacing: '-0.01em',
+                }}
+              >
                 {formatPrice(subtotal)}
               </Typography>
             </Box>
 
-            {/* Checkout button */}
             <Button
               variant="contained"
               fullWidth
+              disableElevation
               onClick={onCheckout}
               sx={{
                 textTransform: 'none',
                 fontWeight: 600,
-                py: 1.2,
-                bgcolor: '#4A9B8E',
-                '&:hover': { bgcolor: '#4A9B8E', filter: 'brightness(0.9)' },
+                fontSize: '0.85rem',
+                letterSpacing: '0.01em',
+                borderRadius: '8px',
+                py: 1.1,
+                bgcolor: ACCENT,
+                boxShadow: 'none',
+                '&:hover': {
+                  bgcolor: ACCENT,
+                  filter: 'brightness(0.94)',
+                  boxShadow: 'none',
+                },
               }}
             >
               {t('shop.checkout')}

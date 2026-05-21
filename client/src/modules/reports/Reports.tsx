@@ -17,15 +17,25 @@ import {
   TeamsReport,
   PropertiesReport,
 } from './ReportDetails';
+import DashboardDateFilter, {
+  type DashboardPeriod,
+  type DateFilterOption,
+} from '../dashboard/DashboardDateFilter';
 
 // ─── Tab configuration ──────────────────────────────────────────────────────
+
+interface ReportTabComponentProps {
+  period: DashboardPeriod;
+  onPeriodChange: (period: DashboardPeriod) => void;
+}
 
 interface ReportTab {
   id: string;
   labelKey: string;
   icon: React.ReactElement;
   permission: string;
-  Component: React.FC;
+  Component: React.FC<Partial<ReportTabComponentProps>>;
+  hasPeriodFilter: boolean;
 }
 
 const REPORT_TABS: ReportTab[] = [
@@ -35,6 +45,7 @@ const REPORT_TABS: ReportTab[] = [
     icon: <EuroIcon />,
     permission: 'reports:view',
     Component: FinancialReport,
+    hasPeriodFilter: true,
   },
   {
     id: 'interventions',
@@ -42,6 +53,7 @@ const REPORT_TABS: ReportTab[] = [
     icon: <ScheduleIcon />,
     permission: 'reports:view',
     Component: InterventionsReport,
+    hasPeriodFilter: false,
   },
   {
     id: 'teams',
@@ -49,6 +61,7 @@ const REPORT_TABS: ReportTab[] = [
     icon: <PeopleIcon />,
     permission: 'reports:view',
     Component: TeamsReport,
+    hasPeriodFilter: false,
   },
   {
     id: 'properties',
@@ -56,7 +69,15 @@ const REPORT_TABS: ReportTab[] = [
     icon: <HomeIcon />,
     permission: 'reports:view',
     Component: PropertiesReport,
+    hasPeriodFilter: true,
   },
+];
+
+const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
+  { value: 'week', label: '7j' },
+  { value: 'month', label: '30j' },
+  { value: 'quarter', label: '90j' },
+  { value: 'year', label: '1 an' },
 ];
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
@@ -71,6 +92,7 @@ const Reports: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
   const [allowedTabs, setAllowedTabs] = useState<boolean[]>([]);
+  const [period, setPeriod] = useState<DashboardPeriod>('month');
 
   // Check permissions for all tabs
   useEffect(() => {
@@ -130,6 +152,15 @@ const Reports: React.FC = () => {
         iconBadge={<BarChartIcon />}
         backPath="/dashboard"
         showBackButton={false}
+        filters={
+          currentTab.hasPeriodFilter ? (
+            <DashboardDateFilter<DashboardPeriod>
+              value={period}
+              onChange={setPeriod}
+              options={PERIOD_OPTIONS}
+            />
+          ) : undefined
+        }
       />
 
       <PageTabs
@@ -144,7 +175,11 @@ const Reports: React.FC = () => {
 
       <Box sx={TAB_PANEL_SX}>
         {allowedTabs[activeTab] ? (
-          <CurrentComponent />
+          currentTab.hasPeriodFilter ? (
+            <CurrentComponent period={period} onPeriodChange={setPeriod} />
+          ) : (
+            <CurrentComponent />
+          )
         ) : (
           <Alert severity="warning">
             {t('reports.noPermission')}

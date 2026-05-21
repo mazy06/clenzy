@@ -37,6 +37,8 @@ import {
 import type { ChipColor } from '../types';
 import { monitoringApi } from '../services/api/monitoringApi';
 import type { HealthCheckService, SystemMetrics } from '../services/api/monitoringApi';
+import { semanticToHex, softChipSx } from '../utils/statusUtils';
+import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 
 const HealthChecks: React.FC = () => {
   const [healthChecks, setHealthChecks] = useState<HealthCheckService[]>([]);
@@ -45,6 +47,7 @@ const HealthChecks: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [expandedChecks, setExpandedChecks] = useState<Set<string>>(new Set());
+  const { setHeaderActions, setHeaderLastUpdate } = useMonitoringHeader();
 
   const fetchHealthChecks = async () => {
     try {
@@ -73,6 +76,25 @@ const HealthChecks: React.FC = () => {
   const handleRefresh = () => {
     fetchHealthChecks();
   };
+
+  // Register page-header actions + last-update timestamp.
+  useEffect(() => {
+    setHeaderActions(
+      <Box display="flex" alignItems="center" gap={1}>
+        {loading && <CircularProgress size={16} />}
+        <Tooltip title="Actualiser les vérifications">
+          <IconButton onClick={handleRefresh} size="small">
+            <Refresh size={20} strokeWidth={1.75} />
+          </IconButton>
+        </Tooltip>
+      </Box>,
+    );
+    return () => setHeaderActions(null);
+  }, [setHeaderActions, loading]);
+
+  useEffect(() => {
+    setHeaderLastUpdate(lastUpdate);
+  }, [setHeaderLastUpdate, lastUpdate]);
 
   const toggleExpanded = (checkName: string) => {
     const newExpanded = new Set(expandedChecks);
@@ -179,26 +201,6 @@ const HealthChecks: React.FC = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><HealthAndSafety size={20} strokeWidth={1.75} /></Box>
-          Health Checks
-        </Typography>
-        <Box display="flex" alignItems="center" gap={1}>
-          {lastUpdate && (
-            <Typography variant="caption" color="text.secondary">
-              Dernière mise à jour: {lastUpdate.toLocaleTimeString()}
-            </Typography>
-          )}
-          {loading && <CircularProgress size={16} />}
-          <Tooltip title="Actualiser les vérifications">
-            <IconButton onClick={handleRefresh} size="small">
-              <Refresh size={20} strokeWidth={1.75} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-
       {/* Vue d'ensemble */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} md={6}>
@@ -335,21 +337,20 @@ const HealthChecks: React.FC = () => {
                         </Typography>
                         <Chip
                           label={check.status}
-                          color={getStatusColor(check.status)}
                           size="small"
+                          sx={softChipSx(semanticToHex(getStatusColor(check.status)))}
                         />
                         <Chip
                           label={check.category}
-                          variant="outlined"
                           size="small"
                           icon={getCategoryIcon(check.category)}
+                          sx={softChipSx(semanticToHex('default'))}
                         />
                         {check.critical && (
                           <Chip
                             label="CRITIQUE"
-                            color="error"
                             size="small"
-                            variant="outlined"
+                            sx={softChipSx(semanticToHex('error'))}
                           />
                         )}
                       </Box>
@@ -361,9 +362,8 @@ const HealthChecks: React.FC = () => {
                             <strong>Temps de réponse:</strong>
                             <Chip
                               label={`${check.responseTimeMs}ms`}
-                              color={getResponseTimeColor(check.responseTimeMs)}
                               size="small"
-                              sx={{ ml: 1 }}
+                              sx={{ ...softChipSx(semanticToHex(getResponseTimeColor(check.responseTimeMs))), ml: 1 }}
                             />
                           </Typography>
                           {check.lastCheck && (

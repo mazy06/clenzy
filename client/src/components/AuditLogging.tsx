@@ -28,9 +28,7 @@ import {
   Warning,
   Error as ErrorIcon,
   CheckCircle,
-  Security,
   Person,
-  Settings,
   Clear,
   Refresh,
   AdminPanelSettings,
@@ -41,6 +39,8 @@ import {
 } from '../icons';
 import { monitoringApi } from '../services/api/monitoringApi';
 import type { AuditLogEntry, AuditLogPage } from '../services/api/monitoringApi';
+import { semanticToHex, softChipSx } from '../utils/statusUtils';
+import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 
 interface AuditLogFilters {
   eventType: string;
@@ -61,6 +61,7 @@ const AuditLogging: React.FC = () => {
   });
   const [currentPage, setCurrentPage] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const { setHeaderActions, setHeaderLastUpdate } = useMonitoringHeader();
 
   const fetchAuditLogs = useCallback(async () => {
     try {
@@ -93,6 +94,25 @@ const AuditLogging: React.FC = () => {
   const handleRefresh = () => {
     fetchAuditLogs();
   };
+
+  // Register page-header actions + last-update timestamp.
+  useEffect(() => {
+    setHeaderActions(
+      <Box display="flex" alignItems="center" gap={1}>
+        {loading && <CircularProgress size={16} />}
+        <Tooltip title="Actualiser les logs">
+          <IconButton onClick={handleRefresh} size="small">
+            <Refresh size={20} strokeWidth={1.75} />
+          </IconButton>
+        </Tooltip>
+      </Box>,
+    );
+    return () => setHeaderActions(null);
+  }, [setHeaderActions, loading, fetchAuditLogs]);
+
+  useEffect(() => {
+    setHeaderLastUpdate(lastUpdate);
+  }, [setHeaderLastUpdate, lastUpdate]);
 
   const handleFilterChange = (field: keyof AuditLogFilters, value: string) => {
     setFilters(prev => ({ ...prev, [field]: value }));
@@ -185,26 +205,6 @@ const AuditLogging: React.FC = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><Security size={20} strokeWidth={1.75} /></Box>
-          Audit et Logging
-        </Typography>
-        <Box display="flex" alignItems="center" gap={1}>
-          {lastUpdate && (
-            <Typography variant="caption" color="text.secondary">
-              Dernière mise à jour: {lastUpdate.toLocaleTimeString()}
-            </Typography>
-          )}
-          {loading && <CircularProgress size={16} />}
-          <Tooltip title="Actualiser les logs">
-            <IconButton onClick={handleRefresh} size="small">
-              <Refresh size={20} strokeWidth={1.75} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-
       {/* Filtres */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -279,8 +279,8 @@ const AuditLogging: React.FC = () => {
             {totalPages > 1 && (
               <Chip
                 label={`Page ${currentPage + 1} sur ${totalPages}`}
-                color="primary"
-                variant="outlined"
+                size="small"
+                sx={softChipSx(semanticToHex('primary'))}
               />
             )}
           </Box>
@@ -303,15 +303,14 @@ const AuditLogging: React.FC = () => {
                           </Typography>
                           <Chip
                             label={formatEventType(log.eventType)}
-                            color={getEventTypeColor(log.eventType)}
                             size="small"
+                            sx={softChipSx(semanticToHex(getEventTypeColor(log.eventType)))}
                           />
                           {log.result && (
                             <Chip
                               label={log.result}
-                              color={getResultColor(log.result)}
-                              variant="outlined"
                               size="small"
+                              sx={softChipSx(semanticToHex(getResultColor(log.result)))}
                             />
                           )}
                         </Box>

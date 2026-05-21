@@ -23,6 +23,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
 import { exchangeRateApi, type ExchangeRateHistoryParams } from '../../services/api/exchangeRateApi';
 import { useCurrency } from '../../hooks/useCurrency';
+import { semanticToHex, softChipSx } from '../../utils/statusUtils';
+
+const CURRENCY_COLORS: Record<string, string> = {
+  EUR: '#4A9B8E',
+  MAD: '#D4A574',
+  SAR: '#7B68A8',
+  USD: '#6B8A9A',
+  GBP: '#C97A7A',
+};
+
+const currencyHex = (code: string): string => CURRENCY_COLORS[code] ?? semanticToHex('default');
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -230,18 +241,17 @@ export default function ExchangeRateHistoryPage() {
           {stats && (
             <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
               <Tooltip title="Minimum sur la periode">
-                <Chip label={`Min: ${formatRate(stats.min)}`} size="small" variant="outlined" />
+                <Chip label={`Min: ${formatRate(stats.min)}`} size="small" sx={softChipSx(semanticToHex('info'))} />
               </Tooltip>
               <Tooltip title="Maximum sur la periode">
-                <Chip label={`Max: ${formatRate(stats.max)}`} size="small" variant="outlined" />
+                <Chip label={`Max: ${formatRate(stats.max)}`} size="small" sx={softChipSx(semanticToHex('warning'))} />
               </Tooltip>
               <Tooltip title="Moyenne sur la periode">
                 <Chip
                   icon={<TrendingUp size={14} strokeWidth={1.75} />}
                   label={`Moy: ${formatRate(stats.avg)}`}
                   size="small"
-                  color="primary"
-                  variant="outlined"
+                  sx={softChipSx(semanticToHex('primary'))}
                 />
               </Tooltip>
             </Box>
@@ -293,16 +303,16 @@ export default function ExchangeRateHistoryPage() {
                   <TableRow key={rate.id} hover>
                     <TableCell>{formatDate(rate.rateDate)}</TableCell>
                     <TableCell>
-                      <Chip label={rate.baseCurrency} size="small" variant="outlined" />
+                      <Chip label={rate.baseCurrency} size="small" sx={softChipSx(currencyHex(rate.baseCurrency))} />
                     </TableCell>
                     <TableCell>
-                      <Chip label={rate.targetCurrency} size="small" variant="outlined" />
+                      <Chip label={rate.targetCurrency} size="small" sx={softChipSx(currencyHex(rate.targetCurrency))} />
                     </TableCell>
                     <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 500 }}>
                       {formatRate(rate.rate)}
                     </TableCell>
                     <TableCell>
-                      <Chip label={rate.source} size="small" color="default" />
+                      <Chip label={rate.source} size="small" sx={softChipSx(semanticToHex('default'))} />
                     </TableCell>
                   </TableRow>
                 ))}

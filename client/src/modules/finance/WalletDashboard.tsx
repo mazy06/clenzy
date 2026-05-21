@@ -34,14 +34,31 @@ const WALLET_TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode;
   ESCROW: { label: 'Séquestre', icon: <Lock />, color: '#9c27b0' },
 };
 
-const REF_TYPE_LABELS: Record<string, { label: string; color: 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info' }> = {
-  PAYMENT: { label: 'Paiement', color: 'primary' },
-  SPLIT: { label: 'Répartition', color: 'info' },
-  ESCROW_HOLD: { label: 'Séquestre', color: 'warning' },
-  ESCROW_RELEASE: { label: 'Libération', color: 'success' },
-  REFUND: { label: 'Remboursement', color: 'error' },
-  PAYOUT: { label: 'Versement', color: 'success' },
-  ADJUSTMENT: { label: 'Ajustement', color: 'default' },
+const REF_TYPE_LABELS: Record<string, { label: string; color: string }> = {
+  PAYMENT: { label: 'Paiement', color: '#6B8A9A' },
+  SPLIT: { label: 'Répartition', color: '#7BA3C2' },
+  ESCROW_HOLD: { label: 'Séquestre', color: '#D4A574' },
+  ESCROW_RELEASE: { label: 'Libération', color: '#4A9B8E' },
+  REFUND: { label: 'Remboursement', color: '#C97A7A' },
+  PAYOUT: { label: 'Versement', color: '#4A9B8E' },
+  ADJUSTMENT: { label: 'Ajustement', color: '#757575' },
+};
+
+/** Soft-tinted chip styling — unified across Facturation tabs. */
+const softChipSx = (hex: string) => ({
+  backgroundColor: `${hex}18`,
+  color: hex,
+  border: `1px solid ${hex}40`,
+  borderRadius: '6px',
+  fontWeight: 700,
+  fontSize: '0.625rem',
+  height: 22,
+  '& .MuiChip-label': { px: 0.75 },
+});
+
+const ENTRY_TYPE_COLORS: Record<string, string> = {
+  CREDIT: '#4A9B8E',
+  DEBIT: '#C97A7A',
 };
 
 interface WalletDashboardProps {
@@ -211,16 +228,14 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                               <Chip
                                 label={entry.entryType}
                                 size="small"
-                                color={entry.entryType === 'CREDIT' ? 'success' : 'error'}
-                                variant="outlined"
+                                sx={softChipSx(ENTRY_TYPE_COLORS[entry.entryType] ?? '#757575')}
                               />
                             </TableCell>
                             <TableCell>
                               <Chip
                                 label={REF_TYPE_LABELS[entry.referenceType]?.label ?? entry.referenceType}
                                 size="small"
-                                color={REF_TYPE_LABELS[entry.referenceType]?.color ?? 'default'}
-                                variant="outlined"
+                                sx={softChipSx(REF_TYPE_LABELS[entry.referenceType]?.color ?? '#757575')}
                               />
                             </TableCell>
                             <TableCell align="right">

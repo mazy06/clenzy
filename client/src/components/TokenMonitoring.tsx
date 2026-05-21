@@ -16,7 +16,6 @@ import {
 import {
   Refresh,
   Delete,
-  Security,
   CheckCircle,
   Warning,
   ContentCopy,
@@ -37,6 +36,7 @@ import {
   Tooltip as ChartTooltip,
 } from 'recharts';
 import TokenService, { TokenStats, TokenMetrics } from '../services/TokenService';
+import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -145,6 +145,7 @@ const TokenMonitoring: React.FC = () => {
   const [, setTick] = useState(0);
 
   const tokenService = TokenService.getInstance();
+  const { setHeaderActions } = useMonitoringHeader();
 
   const loadTokenStats = useCallback(async () => {
     try {
@@ -186,6 +187,42 @@ const TokenMonitoring: React.FC = () => {
     const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Register page-header actions (refresh + cleanup) for this tab.
+  useEffect(() => {
+    setHeaderActions(
+      <Stack direction="row" spacing={1}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={loadTokenStats}
+          disabled={isLoading}
+          startIcon={
+            isLoading ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : (
+              <Refresh size={16} strokeWidth={1.75} />
+            )
+          }
+          sx={{ textTransform: 'none', fontWeight: 600 }}
+        >
+          Actualiser
+        </Button>
+        <Button
+          variant="outlined"
+          color="warning"
+          size="small"
+          onClick={cleanupTokens}
+          disabled={isLoading}
+          startIcon={<Delete size={16} strokeWidth={1.75} />}
+          sx={{ textTransform: 'none', fontWeight: 600 }}
+        >
+          Nettoyer expirés
+        </Button>
+      </Stack>,
+    );
+    return () => setHeaderActions(null);
+  }, [setHeaderActions, isLoading, loadTokenStats, cleanupTokens]);
 
   const currentToken = tokenService.getCurrentTokenInfo();
   const timeUntilExpiry = currentToken.timeUntilExpiry ?? 0;
@@ -230,65 +267,6 @@ const TokenMonitoring: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-      {/* ─── Header bar ──────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 1.5,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'primary.main',
-              bgcolor: 'primary.main',
-              backgroundImage: (theme) =>
-                `linear-gradient(135deg, ${theme.palette.primary.main}25 0%, ${theme.palette.primary.main}10 100%)`,
-            }}
-          >
-            <Security size={18} strokeWidth={2} />
-          </Box>
-          <Box>
-            <Typography sx={{ fontSize: '1rem', fontWeight: 700, lineHeight: 1.2 }}>
-              Monitoring des Tokens
-            </Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-              Surveillance en temps réel de l'authentification Keycloak
-            </Typography>
-          </Box>
-        </Box>
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={loadTokenStats}
-            disabled={isLoading}
-            startIcon={
-              isLoading ? (
-                <CircularProgress size={14} color="inherit" />
-              ) : (
-                <Refresh size={16} strokeWidth={1.75} />
-              )
-            }
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          >
-            Actualiser
-          </Button>
-          <Button
-            variant="outlined"
-            color="warning"
-            size="small"
-            onClick={cleanupTokens}
-            disabled={isLoading}
-            startIcon={<Delete size={16} strokeWidth={1.75} />}
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          >
-            Nettoyer expirés
-          </Button>
-        </Stack>
-      </Box>
-
       {error && (
         <Alert severity="error" onClose={() => setError(null)}>
           {error}
@@ -418,14 +396,15 @@ const TokenMonitoring: React.FC = () => {
                       key={role}
                       label={role}
                       size="small"
-                      variant="outlined"
                       sx={{
                         height: 20,
                         fontSize: '0.625rem',
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         letterSpacing: 0.3,
-                        borderColor: 'primary.main',
+                        borderRadius: '6px',
+                        backgroundColor: 'rgba(107,138,154,0.12)',
+                        border: '1px solid rgba(107,138,154,0.25)',
                         color: 'primary.main',
                         '& .MuiChip-label': { px: 0.75 },
                       }}

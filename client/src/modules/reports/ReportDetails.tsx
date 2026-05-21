@@ -698,10 +698,18 @@ const TeamsReport: React.FC = () => {
 
 // ─── Report: Properties ─────────────────────────────────────────────────────
 
-const PropertiesReport: React.FC = () => {
+interface PeriodControlProps {
+  period?: DashboardPeriod;
+  onPeriodChange?: (period: DashboardPeriod) => void;
+}
+
+const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, onPeriodChange }) => {
   const { t } = useTranslation();
   const { data, loading, error, retry } = usePropertyReport();
-  const [period, setPeriod] = useState<DashboardPeriod>('month');
+  const [internalPeriod, setInternalPeriod] = useState<DashboardPeriod>('month');
+  const period = periodProp ?? internalPeriod;
+  const setPeriod = onPeriodChange ?? setInternalPeriod;
+  const showInlineFilter = periodProp === undefined;
 
   const { analytics, loading: analyticsLoading } = useAnalyticsEngine({
     period,
@@ -723,14 +731,15 @@ const PropertiesReport: React.FC = () => {
 
   return (
     <>
-      {/* ─── Period filter ─── */}
-      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-        <DashboardDateFilter<DashboardPeriod>
-          value={period}
-          onChange={setPeriod}
-          options={PERIOD_OPTIONS}
-        />
-      </Box>
+      {showInlineFilter && (
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <DashboardDateFilter<DashboardPeriod>
+            value={period}
+            onChange={setPeriod}
+            options={PERIOD_OPTIONS}
+          />
+        </Box>
+      )}
 
       {/* ─── Hero KPIs from operational data ───────────────────── */}
       <DataFetchWrapper loading={loading} error={error} onRetry={retry} loadingMessage={t('reports.charts.loadingData')}>
@@ -849,10 +858,13 @@ const PropertiesReport: React.FC = () => {
 
 // ─── Report: Financial ──────────────────────────────────────────────────────
 
-const FinancialReport: React.FC = () => {
+const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onPeriodChange }) => {
   const { t } = useTranslation();
   const { data, loading, error, retry } = useFinancialReport();
-  const [period, setPeriod] = useState<DashboardPeriod>('month');
+  const [internalPeriod, setInternalPeriod] = useState<DashboardPeriod>('month');
+  const period = periodProp ?? internalPeriod;
+  const setPeriod = onPeriodChange ?? setInternalPeriod;
+  const showInlineFilter = periodProp === undefined;
 
   const { analytics, loading: analyticsLoading } = useAnalyticsEngine({
     period,
@@ -861,14 +873,15 @@ const FinancialReport: React.FC = () => {
 
   return (
     <>
-      {/* ─── Period filter ─── */}
-      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-        <DashboardDateFilter<DashboardPeriod>
-          value={period}
-          onChange={setPeriod}
-          options={PERIOD_OPTIONS}
-        />
-      </Box>
+      {showInlineFilter && (
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <DashboardDateFilter<DashboardPeriod>
+            value={period}
+            onChange={setPeriod}
+            options={PERIOD_OPTIONS}
+          />
+        </Box>
+      )}
 
       {/* ─── Vue d'ensemble — KPIs globaux ─── */}
       <DashboardErrorBoundary widgetName="Performance Globale">

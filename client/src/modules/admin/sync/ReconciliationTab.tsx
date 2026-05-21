@@ -17,10 +17,6 @@ import {
   Card,
   CardContent,
   TextField,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
   TablePagination,
   Dialog,
   DialogTitle,
@@ -29,10 +25,20 @@ import {
 } from '@mui/material';
 import { PlayArrow } from '../../../icons';
 import { syncAdminApi, ReconciliationRun, ReconciliationStats } from '../../../services/api/syncAdminApi';
+import { semanticToHex, softChipSx } from '../../../utils/statusUtils';
+import FilterChipRow from '../../../components/FilterChipRow';
+import { useSyncAdminHeader } from '../SyncAdminPage';
 
-const STATUSES = ['', 'SUCCESS', 'FAILED', 'DIVERGENCE', 'RUNNING'] as const;
+type ReconciliationStatus = 'SUCCESS' | 'FAILED' | 'DIVERGENCE' | 'RUNNING';
 
-const statusColor = (status: string): 'info' | 'success' | 'error' | 'warning' | 'default' => {
+const STATUS_OPTIONS: { value: ReconciliationStatus; label: string; color: string }[] = [
+  { value: 'SUCCESS',    label: 'Success',    color: semanticToHex('success') },
+  { value: 'FAILED',     label: 'Failed',     color: semanticToHex('error') },
+  { value: 'DIVERGENCE', label: 'Divergence', color: semanticToHex('warning') },
+  { value: 'RUNNING',    label: 'Running',    color: semanticToHex('info') },
+];
+
+const statusSemantic = (status: string): string => {
   switch (status) {
     case 'SUCCESS': return 'success';
     case 'FAILED': return 'error';
@@ -52,8 +58,9 @@ const ReconciliationTab: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(20);
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<ReconciliationStatus | ''>('');
   const [propertyIdFilter, setPropertyIdFilter] = useState('');
+  const { setHeaderFilters, setHeaderActions } = useSyncAdminHeader();
 
   // Trigger dialog
   const [triggerDialogOpen, setTriggerDialogOpen] = useState(false);
@@ -96,6 +103,47 @@ const ReconciliationTab: React.FC = () => {
   useEffect(() => {
     fetchRuns();
   }, [fetchRuns]);
+
+  // Register Property ID + Status filters in the page header.
+  useEffect(() => {
+    setHeaderFilters(
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        <TextField
+          size="small"
+          label="Property ID"
+          value={propertyIdFilter}
+          onChange={(e) => { setPropertyIdFilter(e.target.value); setPage(0); }}
+          type="number"
+          sx={{ width: 150 }}
+        />
+        <FilterChipRow
+          options={STATUS_OPTIONS}
+          value={statusFilter}
+          onChange={(v) => { setStatusFilter(v as ReconciliationStatus | ''); setPage(0); }}
+          allLabel="Tous"
+          size="compact"
+        />
+      </Box>,
+    );
+    return () => setHeaderFilters(null);
+  }, [setHeaderFilters, propertyIdFilter, statusFilter]);
+
+  // Register Trigger Reconciliation button in the page header actions.
+  useEffect(() => {
+    setHeaderActions(
+      <Button
+        size="small"
+        variant="contained"
+        color="primary"
+        startIcon={<PlayArrow />}
+        onClick={() => setTriggerDialogOpen(true)}
+        sx={{ textTransform: 'none', fontWeight: 600 }}
+      >
+        Trigger Reconciliation
+      </Button>,
+    );
+    return () => setHeaderActions(null);
+  }, [setHeaderActions]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -192,39 +240,6 @@ const ReconciliationTab: React.FC = () => {
         </Grid>
       )}
 
-      {/* Filters + Actions */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-        <TextField
-          size="small"
-          label="Property ID"
-          value={propertyIdFilter}
-          onChange={(e) => { setPropertyIdFilter(e.target.value); setPage(0); }}
-          type="number"
-          sx={{ width: 150 }}
-        />
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={statusFilter}
-            label="Status"
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-          >
-            {STATUSES.map((s) => (
-              <MenuItem key={s} value={s}>{s || 'Tous'}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <Button
-          size="small"
-          variant="contained"
-          color="primary"
-          startIcon={<PlayArrow />}
-          onClick={() => setTriggerDialogOpen(true)}
-        >
-          Trigger Reconciliation
-        </Button>
-      </Box>
-
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {triggerMessage && <Alert severity="info" sx={{ mb: 2 }}>{triggerMessage}</Alert>}
 
@@ -262,14 +277,18 @@ const ReconciliationTab: React.FC = () => {
                     <TableRow key={run.id}>
                       <TableCell>{run.id}</TableCell>
                       <TableCell>
-                        <Chip label={run.channel} size="small" variant="outlined" />
+                        <Chip
+                          label={run.channel}
+                          size="small"
+                          sx={softChipSx(semanticToHex('default'))}
+                        />
                       </TableCell>
                       <TableCell>{run.propertyId}</TableCell>
                       <TableCell>
                         <Chip
                           label={run.status}
-                          color={statusColor(run.status)}
                           size="small"
+                          sx={softChipSx(semanticToHex(statusSemantic(run.status)))}
                         />
                       </TableCell>
                       <TableCell>{run.pmsDaysChecked}</TableCell>
