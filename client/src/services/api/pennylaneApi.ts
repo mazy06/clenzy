@@ -48,7 +48,9 @@ async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T>
   });
 
   if (!response.ok) {
-    throw new Error(`Erreur ${response.status}`);
+    const error: Error & { status?: number } = new Error(`Erreur ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
 
   // 204 No Content — pas de body a parser
