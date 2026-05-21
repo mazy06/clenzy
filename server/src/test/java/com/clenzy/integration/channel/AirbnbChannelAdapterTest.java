@@ -30,6 +30,7 @@ class AirbnbChannelAdapterTest {
     @Mock private RestTemplate restTemplate;
     @Mock private BookingRestrictionRepository bookingRestrictionRepository;
     @Mock private CalendarDayRepository calendarDayRepository;
+    @Mock private HostProfileSyncSupport hostProfileSyncSupport;
 
     private AirbnbChannelAdapter adapter;
 
@@ -37,7 +38,7 @@ class AirbnbChannelAdapterTest {
     void setUp() {
         adapter = new AirbnbChannelAdapter(airbnbOAuthService, airbnbConnectionRepository,
                 tokenEncryptionService, channelMappingRepository, priceEngine, restTemplate,
-                bookingRestrictionRepository, calendarDayRepository);
+                bookingRestrictionRepository, calendarDayRepository, hostProfileSyncSupport);
     }
 
     @Test void channelName() {

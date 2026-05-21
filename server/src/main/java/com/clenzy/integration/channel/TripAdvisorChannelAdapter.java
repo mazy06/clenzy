@@ -32,13 +32,16 @@ public class TripAdvisorChannelAdapter implements ChannelConnector {
     private final TripAdvisorConfig config;
     private final TripAdvisorSyncService syncService;
     private final ChannelMappingRepository channelMappingRepository;
+    private final HostProfileSyncSupport hostProfileSyncSupport;
 
     public TripAdvisorChannelAdapter(TripAdvisorConfig config,
                                       TripAdvisorSyncService syncService,
-                                      ChannelMappingRepository channelMappingRepository) {
+                                      ChannelMappingRepository channelMappingRepository,
+                                      HostProfileSyncSupport hostProfileSyncSupport) {
         this.config = config;
         this.syncService = syncService;
         this.channelMappingRepository = channelMappingRepository;
+        this.hostProfileSyncSupport = hostProfileSyncSupport;
     }
 
     @Override
@@ -51,7 +54,8 @@ public class TripAdvisorChannelAdapter implements ChannelConnector {
         return EnumSet.of(
                 ChannelCapability.OUTBOUND_CALENDAR,
                 ChannelCapability.INBOUND_RESERVATIONS,
-                ChannelCapability.WEBHOOKS
+                ChannelCapability.WEBHOOKS,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 
@@ -59,6 +63,15 @@ public class TripAdvisorChannelAdapter implements ChannelConnector {
     public Optional<ChannelMapping> resolveMapping(Long propertyId, Long orgId) {
         return channelMappingRepository.findByPropertyIdAndChannel(
                 propertyId, ChannelName.TRIPADVISOR, orgId);
+    }
+
+    /**
+     * Push host profile to TripAdvisor. Mutualised orchestration via
+     * {@link HostProfileSyncSupport}.
+     */
+    @Override
+    public SyncResult pushHostProfile(HostProfileUpdate profile, Long orgId) {
+        return hostProfileSyncSupport.recordPendingWireUp(getChannelName(), profile, orgId);
     }
 
     /**

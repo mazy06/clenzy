@@ -29,6 +29,7 @@ class ExpediaChannelAdapterTest {
     @Mock private ExpediaConnectionRepository expediaConnectionRepository;
     @Mock private ChannelMappingRepository channelMappingRepository;
     @Mock private BookingRestrictionRepository bookingRestrictionRepository;
+    @Mock private HostProfileSyncSupport hostProfileSyncSupport;
 
     private ExpediaChannelAdapter adapter;
 
@@ -36,7 +37,7 @@ class ExpediaChannelAdapterTest {
     void setUp() {
         adapter = new ExpediaChannelAdapter(expediaConfig, expediaApiClient,
                 expediaConnectionRepository, channelMappingRepository,
-                bookingRestrictionRepository);
+                bookingRestrictionRepository, hostProfileSyncSupport);
     }
 
     @Test
@@ -53,7 +54,8 @@ class ExpediaChannelAdapterTest {
                 ChannelCapability.OUTBOUND_RESERVATIONS,
                 ChannelCapability.WEBHOOKS,
                 ChannelCapability.OAUTH,
-                ChannelCapability.OUTBOUND_RESTRICTIONS
+                ChannelCapability.OUTBOUND_RESTRICTIONS,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 

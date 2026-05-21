@@ -30,6 +30,7 @@ class HomeAwayChannelAdapterTest {
     @Mock private HomeAwayOAuthService homeAwayOAuthService;
     @Mock private HomeAwaySyncService homeAwaySyncService;
     @Mock private ChannelMappingRepository channelMappingRepository;
+    @Mock private HostProfileSyncSupport hostProfileSyncSupport;
 
     private HomeAwayChannelAdapter adapter;
 
@@ -37,7 +38,7 @@ class HomeAwayChannelAdapterTest {
     void setUp() {
         adapter = new HomeAwayChannelAdapter(homeAwayConfig, homeAwayConnectionRepository,
                 homeAwayApiClient, homeAwayOAuthService, homeAwaySyncService,
-                channelMappingRepository);
+                channelMappingRepository, hostProfileSyncSupport);
     }
 
     @Test
@@ -52,7 +53,8 @@ class HomeAwayChannelAdapterTest {
                 ChannelCapability.OUTBOUND_CALENDAR,
                 ChannelCapability.INBOUND_RESERVATIONS,
                 ChannelCapability.WEBHOOKS,
-                ChannelCapability.OAUTH
+                ChannelCapability.OAUTH,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { alpha } from '@mui/material/styles';
 import {
   Box,
@@ -318,8 +318,26 @@ const ChannelsPage: React.FC = () => {
   const { isConnected: isOtaConnected, getStatus: getOtaStatus, isLoading: otaConnectionsLoading } = useChannelConnections();
   const disconnectChannelMutation = useDisconnectChannel();
 
-  // View mode: grid (default) or list
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  // View mode: grid (default) or list — persisted across sessions in localStorage so
+  // the user's preference survives page reloads / navigation.
+  const VIEW_MODE_STORAGE_KEY = 'clenzy_channels_view_mode';
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
+    try {
+      const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+      return stored === 'list' || stored === 'grid' ? stored : 'grid';
+    } catch {
+      // localStorage might be unavailable (private mode, SSR-like contexts) — fall back.
+      return 'grid';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
+    } catch {
+      // Ignore write errors — UX keeps working even if persistence is blocked.
+    }
+  }, [viewMode]);
 
   // Link dialog
   const [linkingPropertyId, setLinkingPropertyId] = useState<number | null>(null);

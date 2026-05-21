@@ -140,4 +140,27 @@ public class IncidentService {
     public List<Incident> getOpenIncidents() {
         return incidentRepository.findByStatus(IncidentStatus.OPEN);
     }
+
+    /**
+     * Hard-delete an incident from the DB.
+     *
+     * <p>Use case: an incident that's been stuck OPEN for hours/days due to a config
+     * change (service removed locally), or an old RESOLVED incident with a long duration
+     * polluting the {@code P1 Incident Resolution} KPI average. Once deleted, it no longer
+     * counts in the count badge or in the 30-day average.</p>
+     *
+     * <p>Safer alternative to manual SQL — keeps the operation behind the same
+     * SUPER_ADMIN authorization as the rest of the incident controller.</p>
+     *
+     * @return {@code true} if an incident was deleted, {@code false} if not found.
+     */
+    public boolean deleteIncident(Long incidentId) {
+        Optional<Incident> opt = incidentRepository.findById(incidentId);
+        if (opt.isEmpty()) return false;
+        Incident incident = opt.get();
+        incidentRepository.deleteById(incidentId);
+        log.warn("[Incident] Supprime: id={}, type={}, service={}, status={}",
+                incidentId, incident.getType(), incident.getServiceName(), incident.getStatus());
+        return true;
+    }
 }

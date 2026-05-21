@@ -15,5 +15,11 @@ public enum ChannelName {
     AGODA,
     HOTELS_COM,
     DIRECT,
+    /**
+     * White-label booking engine widgets that conciergeries / propriétaires embed on their
+     * own websites. Treated as a first-class "channel" so profile sync, KPIs, and the
+     * Sync & Diagnostics UI work uniformly with external OTAs.
+     */
+    BOOKING_ENGINE,
     OTHER
 }

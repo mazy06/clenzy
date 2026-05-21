@@ -16,8 +16,10 @@ import {
   TablePagination,
 } from '@mui/material';
 import { syncAdminApi, CalendarCommand, CalendarConflict } from '../../../services/api/syncAdminApi';
+import { semanticToHex, softChipSx } from '../../../utils/statusUtils';
+import { useSyncAdminHeader } from '../SyncAdminPage';
 
-const commandTypeColor = (type: string): 'success' | 'error' | 'warning' | 'info' | 'secondary' | 'default' => {
+const commandTypeSemantic = (type: string): string => {
   switch (type) {
     case 'BOOK': return 'success';
     case 'CANCEL': return 'error';
@@ -39,6 +41,7 @@ const CalendarAuditTab: React.FC = () => {
 
   // Filters
   const [propertyId, setPropertyId] = useState('');
+  const { setHeaderFilters } = useSyncAdminHeader();
 
   const fetchConflicts = async () => {
     try {
@@ -74,6 +77,21 @@ const CalendarAuditTab: React.FC = () => {
   useEffect(() => {
     fetchCommands();
   }, [fetchCommands]);
+
+  // Register Property ID filter into the page header.
+  useEffect(() => {
+    setHeaderFilters(
+      <TextField
+        size="small"
+        label="Property ID"
+        type="number"
+        value={propertyId}
+        onChange={(e) => { setPropertyId(e.target.value); setPage(0); }}
+        sx={{ width: 160 }}
+      />,
+    );
+    return () => setHeaderFilters(null);
+  }, [setHeaderFilters, propertyId]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -119,17 +137,6 @@ const CalendarAuditTab: React.FC = () => {
         </Alert>
       )}
 
-      {/* Filters */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-        <TextField
-          size="small"
-          label="Property ID"
-          type="number"
-          value={propertyId}
-          onChange={(e) => { setPropertyId(e.target.value); setPage(0); }}
-        />
-      </Box>
-
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
@@ -166,8 +173,8 @@ const CalendarAuditTab: React.FC = () => {
                       <TableCell>
                         <Chip
                           label={cmd.commandType}
-                          color={commandTypeColor(cmd.commandType)}
                           size="small"
+                          sx={softChipSx(semanticToHex(commandTypeSemantic(cmd.commandType)))}
                         />
                       </TableCell>
                       <TableCell>

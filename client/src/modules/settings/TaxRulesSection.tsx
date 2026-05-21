@@ -7,7 +7,9 @@ import {
 } from '@mui/material';
 import {
   Add, Edit, Delete, Gavel, Info as InfoIcon,
+  Hotel, Percent, CleaningServices, Restaurant, LocationCity,
 } from '../../icons';
+import type { LucideIcon } from 'lucide-react';
 import { useTaxRules, useCreateTaxRule, useUpdateTaxRule, useDeleteTaxRule } from '../../hooks/useTaxRules';
 import { useFiscalProfile } from '../../hooks/useFiscalProfile';
 import { useAuth } from '../../hooks/useAuth';
@@ -25,6 +27,16 @@ const CATEGORY_LABELS: Record<TaxCategoryType, string> = {
   FOOD: 'Restauration',
   TOURIST_TAX: 'Taxe de sejour',
 };
+
+const CATEGORY_STYLE: Record<TaxCategoryType, { Icon: LucideIcon; color: string }> = {
+  ACCOMMODATION: { Icon: Hotel, color: '#4A9B8E' },
+  STANDARD: { Icon: Percent, color: '#6B8A9A' },
+  CLEANING: { Icon: CleaningServices, color: '#7BA3C2' },
+  FOOD: { Icon: Restaurant, color: '#D4A574' },
+  TOURIST_TAX: { Icon: LocationCity, color: '#8A6E8A' },
+};
+
+const DEFAULT_CATEGORY_STYLE = { Icon: Percent, color: '#8A8378' };
 
 const EMPTY_FORM: TaxRuleRequest = {
   countryCode: 'FR',
@@ -215,9 +227,22 @@ const TaxRulesSection: React.FC = () => {
             {isSuperAdmin && (
               <Button
                 variant="contained"
-                startIcon={<Add />}
+                disableElevation
+                startIcon={<Add size={14} strokeWidth={2} />}
                 onClick={openCreateDialog}
                 size="small"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.78rem',
+                  letterSpacing: '0.01em',
+                  borderRadius: '8px',
+                  py: 0.625,
+                  px: 1.5,
+                  bgcolor: '#6B8A9A',
+                  boxShadow: 'none',
+                  '&:hover': { bgcolor: '#6B8A9A', filter: 'brightness(0.94)', boxShadow: 'none' },
+                }}
               >
                 {t('fiscal.taxRules.add')}
               </Button>
@@ -245,22 +270,44 @@ const TaxRulesSection: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {sortedRules.map(rule => (
+                {sortedRules.map(rule => {
+                  const catKey = rule.taxCategory as TaxCategoryType;
+                  const { Icon: CategoryIcon, color: categoryColor } =
+                    CATEGORY_STYLE[catKey] ?? DEFAULT_CATEGORY_STYLE;
+                  return (
                   <TableRow key={rule.id} hover>
                     <TableCell>
                       <Chip
-                        label={CATEGORY_LABELS[rule.taxCategory as TaxCategoryType] ?? rule.taxCategory}
+                        icon={<CategoryIcon size={11} strokeWidth={2} />}
+                        label={CATEGORY_LABELS[catKey] ?? rule.taxCategory}
                         size="small"
-                        variant="outlined"
-                        sx={{ fontSize: '0.75rem' }}
+                        sx={{
+                          height: 22,
+                          fontSize: '0.6875rem',
+                          fontWeight: 600,
+                          letterSpacing: '0.01em',
+                          backgroundColor: `${categoryColor}14`,
+                          color: categoryColor,
+                          border: `1px solid ${categoryColor}33`,
+                          borderRadius: '6px',
+                          px: 0.25,
+                          '& .MuiChip-icon': {
+                            color: `${categoryColor} !important`,
+                            ml: '6px',
+                            mr: '-2px',
+                          },
+                          '& .MuiChip-label': { px: 0.875 },
+                        }}
                       />
                     </TableCell>
                     <TableCell>{rule.taxName}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>
+                    <TableCell align="right" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                       {rateToPercent(rule.taxRate)} %
                     </TableCell>
-                    <TableCell sx={{ fontSize: '0.8rem' }}>{rule.effectiveFrom}</TableCell>
-                    <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+                    <TableCell sx={{ fontSize: '0.8rem', fontVariantNumeric: 'tabular-nums' }}>
+                      {rule.effectiveFrom}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
                       {rule.effectiveTo ?? '—'}
                     </TableCell>
                     <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary', maxWidth: 200 }}>
@@ -268,20 +315,59 @@ const TaxRulesSection: React.FC = () => {
                     </TableCell>
                     {isSuperAdmin && (
                       <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
-                        <Tooltip title={t('fiscal.taxRules.edit')}>
-                          <IconButton size="small" onClick={() => openEditDialog(rule)}>
-                            <Edit fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title={t('fiscal.taxRules.delete')}>
-                          <IconButton size="small" color="error" onClick={() => setDeleteTarget(rule)}>
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                          <Tooltip title={t('fiscal.taxRules.edit')}>
+                            <IconButton
+                              size="small"
+                              onClick={() => openEditDialog(rule)}
+                              aria-label={t('fiscal.taxRules.edit')}
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: '6px',
+                                color: 'text.secondary',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                transition: 'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                '&:hover': {
+                                  color: '#6B8A9A',
+                                  borderColor: '#6B8A9A66',
+                                  backgroundColor: '#6B8A9A0F',
+                                },
+                              }}
+                            >
+                              <Edit size={13} strokeWidth={1.75} />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title={t('fiscal.taxRules.delete')}>
+                            <IconButton
+                              size="small"
+                              onClick={() => setDeleteTarget(rule)}
+                              aria-label={t('fiscal.taxRules.delete')}
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: '6px',
+                                color: 'text.secondary',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                transition: 'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                '&:hover': {
+                                  color: '#C97A7A',
+                                  borderColor: '#C97A7A66',
+                                  backgroundColor: '#C97A7A0F',
+                                },
+                              }}
+                            >
+                              <Delete size={13} strokeWidth={1.75} />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
                       </TableCell>
                     )}
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>

@@ -12,6 +12,8 @@ export interface UserDetailsData {
   createdAt: string;
   updatedAt?: string;
   lastLoginAt?: string;
+  /** Public URL of the profile picture; null when none. Stable per user. */
+  profilePictureUrl?: string | null;
   // Profil host
   companyName?: string;
   forfait?: string;

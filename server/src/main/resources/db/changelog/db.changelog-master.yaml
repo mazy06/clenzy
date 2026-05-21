@@ -1048,3 +1048,21 @@ databaseChangeLog:
       sqlFile:
         path: changes/0115__create_min_nights_overrides_table.sql
         relativeToChangelogFile: true
+
+  # --- 0116 : Resync organization member roles after 0096 backfill bug ---
+  # La migration 0096 contient un bug : son INSERT...SELECT avec NOT EXISTS
+  # sur la table cible evalue toutes les rangees contre le snapshot pre-INSERT.
+  # Si plusieurs users avaient organization_id=X et la table etait vide,
+  # ils ont tous ete inseres comme OWNER simultanement (au lieu de 1 OWNER
+  # + le reste mappe via UserService.mapUserRoleToOrgRole).
+  # Ce changeset detecte les orgs avec >1 OWNER, garde le OWNER canonique
+  # (priorite: user.role=HOST, puis joined_at le plus ancien) et remappe
+  # les autres selon leur user.role. Idempotent.
+  - changeSet:
+      id: "0116-resync-org-member-roles"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0116__resync_org_member_roles.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

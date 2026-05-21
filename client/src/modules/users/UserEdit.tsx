@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
   Typography,
   TextField,
   Button,
-  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -16,8 +13,9 @@ import {
   IconButton,
   Alert,
   CircularProgress,
-  Box as MuiBox,
   Autocomplete,
+  alpha,
+  useTheme,
 } from '@mui/material';
 import {
   Save,
@@ -26,10 +24,6 @@ import {
   Email,
   Phone,
   AdminPanelSettings,
-  SupervisorAccount,
-  Build,
-  CleaningServices,
-  Home,
   Lock,
   Visibility,
   VisibilityOff,
@@ -41,6 +35,10 @@ import { usersApi, type User, type UserFormData } from '../../services/api';
 import { organizationsApi, OrganizationDto } from '../../services/api/organizationsApi';
 import PageHeader from '../../components/PageHeader';
 import type { ChipColor } from '../../types';
+import { semanticToHex, softChipSx } from '../../utils/statusUtils';
+import DetailSection from './components/DetailSection';
+import AvatarUploader from './components/AvatarUploader';
+import { USER_ROLES, getRoleEntry, RoleIconBadge } from './components/userRoleCatalog';
 
 // Types pour les utilisateurs
 export interface UserEditData {
@@ -55,42 +53,30 @@ export interface UserEditData {
   confirmPassword?: string;
 }
 
-const userRoles = [
-  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error' },
-  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary' },
-  { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
-  { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary' },
-  { value: 'HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default' },
-  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default' },
-  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary' },
-  { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
-];
-
 const userStatuses: Array<{ value: string; label: string; color: ChipColor }> = [
   { value: 'ACTIVE', label: 'Actif', color: 'success' },
   { value: 'INACTIVE', label: 'Inactif', color: 'default' },
   { value: 'SUSPENDED', label: 'Suspendu', color: 'error' },
-  { value: 'PENDING_VERIFICATION', label: 'En attente de vérification', color: 'warning' },
-  { value: 'BLOCKED', label: 'Bloqué', color: 'error' },
+  { value: 'PENDING_VERIFICATION', label: 'En attente de verification', color: 'warning' },
+  { value: 'BLOCKED', label: 'Bloque', color: 'error' },
 ];
 
 const UserEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const theme = useTheme();
   const { hasPermissionAsync } = useAuth();
-  
-  // Vérifier la permission de gestion des utilisateurs
+
   const [canManageUsers, setCanManageUsers] = useState(false);
-  
+
   useEffect(() => {
     const checkPermissions = async () => {
       const canManageUsersPermission = await hasPermissionAsync('users:manage');
       setCanManageUsers(canManageUsersPermission);
     };
-    
     checkPermissions();
-  }, [hasPermissionAsync]);;
-  
+  }, [hasPermissionAsync]);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +85,6 @@ const UserEdit: React.FC = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Organisations (pour le selecteur)
   const [organizations, setOrganizations] = useState<OrganizationDto[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<OrganizationDto | null>(null);
   const [orgsLoading, setOrgsLoading] = useState(false);
@@ -115,7 +100,6 @@ const UserEdit: React.FC = () => {
     confirmPassword: '',
   });
 
-  // Charger les organisations disponibles
   useEffect(() => {
     const loadOrganizations = async () => {
       setOrgsLoading(true);
@@ -131,7 +115,6 @@ const UserEdit: React.FC = () => {
     loadOrganizations();
   }, []);
 
-  // Charger les données de l'utilisateur à modifier
   useEffect(() => {
     const loadUser = async () => {
       if (!id) return;
@@ -141,7 +124,6 @@ const UserEdit: React.FC = () => {
         const userData = await usersApi.getById(Number(id));
         setUser(userData);
 
-        // Pré-remplir le formulaire avec les données existantes
         setFormData({
           firstName: userData.firstName || '',
           lastName: userData.lastName || '',
@@ -151,13 +133,12 @@ const UserEdit: React.FC = () => {
           status: userData.status?.toUpperCase() || 'ACTIVE',
         });
 
-        // Pre-selectionner l'organisation
         if (userData.organizationId && organizations.length > 0) {
           const userOrg = organizations.find((o) => o.id === userData.organizationId);
           if (userOrg) setSelectedOrg(userOrg);
         }
       } catch (err) {
-        setError('Erreur lors du chargement de l\'utilisateur');
+        setError("Erreur lors du chargement de l'utilisateur");
       } finally {
         setLoading(false);
       }
@@ -166,18 +147,15 @@ const UserEdit: React.FC = () => {
     loadUser();
   }, [id, organizations]);
 
-  // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
   if (!canManageUsers) {
     return (
       <Box sx={{ p: 2 }}>
         <Alert severity="info" sx={{ p: 2, py: 1 }}>
           <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
-            Accès non autorisé
+            Acces non autorise
           </Typography>
           <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-            Vous n'avez pas les permissions nécessaires pour modifier des utilisateurs.
-            <br />
-            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+            Vous n'avez pas les permissions necessaires pour modifier des utilisateurs.
           </Typography>
         </Alert>
       </Box>
@@ -185,30 +163,17 @@ const UserEdit: React.FC = () => {
   }
 
   const handleInputChange = (field: keyof UserEditData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const validateForm = (): string | null => {
-    if (!formData.firstName.trim()) {
-      return 'Le prénom est obligatoire';
-    }
-    if (!formData.lastName.trim()) {
-      return 'Le nom est obligatoire';
-    }
-    if (!formData.email.trim()) {
-      return 'L\'email est obligatoire';
-    }
-    if (!formData.email.includes('@')) {
-      return 'L\'email doit être valide';
-    }
-    if (!formData.role) {
-      return 'Le rôle est obligatoire';
-    }
-    if (!formData.status) {
-      return 'Le statut est obligatoire';
-    }
-    
-    // Validation des mots de passe
+    if (!formData.firstName.trim()) return 'Le prenom est obligatoire';
+    if (!formData.lastName.trim()) return 'Le nom est obligatoire';
+    if (!formData.email.trim()) return "L'email est obligatoire";
+    if (!formData.email.includes('@')) return "L'email doit etre valide";
+    if (!formData.role) return 'Le role est obligatoire';
+    if (!formData.status) return 'Le statut est obligatoire';
+
     if (formData.newPassword && !formData.confirmPassword) {
       return 'Veuillez confirmer le nouveau mot de passe';
     }
@@ -217,19 +182,19 @@ const UserEdit: React.FC = () => {
     }
     if (formData.newPassword && formData.confirmPassword) {
       if (formData.newPassword.length < 8) {
-        return 'Le mot de passe doit contenir au moins 8 caractères';
+        return 'Le mot de passe doit contenir au moins 8 caracteres';
       }
       if (formData.newPassword !== formData.confirmPassword) {
         return 'Les mots de passe ne correspondent pas';
       }
     }
-    
+
     return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
@@ -240,7 +205,6 @@ const UserEdit: React.FC = () => {
     setError(null);
 
     try {
-      // Préparer les données pour le backend
       const backendData: Partial<UserFormData> & { newPassword?: string } = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
@@ -250,12 +214,10 @@ const UserEdit: React.FC = () => {
         status: formData.status,
       };
 
-      // Ajouter l'organisation si selectionnee
       if (selectedOrg) {
         backendData.organizationId = selectedOrg.id;
       }
 
-      // Ajouter le mot de passe seulement s'il est fourni
       if (formData.newPassword && formData.confirmPassword) {
         backendData.newPassword = formData.newPassword;
       }
@@ -263,18 +225,16 @@ const UserEdit: React.FC = () => {
       await usersApi.update(Number(id), backendData);
       setSuccess(true);
 
-      // Réinitialiser les champs de mot de passe
-      setFormData(prev => ({
-        ...prev,
-        newPassword: '',
-        confirmPassword: ''
-      }));
+      setFormData((prev) => ({ ...prev, newPassword: '', confirmPassword: '' }));
 
       setTimeout(() => {
         navigate(`/users/${id}`);
       }, 1500);
     } catch (err: unknown) {
-      setError('Erreur lors de la mise à jour: ' + (err instanceof Error ? err.message : 'Erreur inconnue'));
+      setError(
+        'Erreur lors de la mise a jour: '
+          + (err instanceof Error ? err.message : 'Erreur inconnue'),
+      );
     } finally {
       setSaving(false);
     }
@@ -291,20 +251,29 @@ const UserEdit: React.FC = () => {
   if (error && !user) {
     return (
       <Box sx={{ p: 2 }}>
-        <Alert severity="error" sx={{ p: 2, py: 1 }}>
-          {error}
-        </Alert>
+        <Alert severity="error" sx={{ p: 2, py: 1 }}>{error}</Alert>
       </Box>
     );
   }
+
+  const selectedRoleInfo = getRoleEntry(formData.role);
+  const selectedStatusInfo = userStatuses.find((s) => s.value === formData.status);
+  const passwordsMatch
+    = formData.newPassword
+      && formData.confirmPassword
+      && formData.newPassword === formData.confirmPassword;
+  const passwordsMismatch
+    = formData.newPassword
+      && formData.confirmPassword
+      && formData.newPassword !== formData.confirmPassword;
 
   return (
     <Box sx={{ p: 2 }}>
       <PageHeader
         title="Modifier l'utilisateur"
-        subtitle={`Modification des informations de ${user?.firstName || ''} ${user?.lastName || ''}`}
+        subtitle={`${user?.firstName || ''} ${user?.lastName || ''}`}
         backPath={`/users/${id}`}
-        showBackButton={true}
+        showBackButton={false}
         actions={
           <>
             <Button
@@ -313,8 +282,7 @@ const UserEdit: React.FC = () => {
               onClick={() => navigate(`/users/${id}`)}
               startIcon={<Cancel size={16} strokeWidth={1.75} />}
               disabled={saving}
-              sx={{ fontSize: '0.8125rem' }}
-              title="Annuler"
+              sx={{ fontSize: '0.8125rem', textTransform: 'none' }}
             >
               Annuler
             </Button>
@@ -322,10 +290,15 @@ const UserEdit: React.FC = () => {
               variant="contained"
               size="small"
               onClick={handleSubmit}
-              startIcon={<Save size={16} strokeWidth={1.75} />}
+              startIcon={
+                saving ? (
+                  <CircularProgress size={14} color="inherit" />
+                ) : (
+                  <Save size={16} strokeWidth={1.75} />
+                )
+              }
               disabled={saving}
-              sx={{ ml: 1, fontSize: '0.8125rem' }}
-              title="Sauvegarder"
+              sx={{ ml: 1, fontSize: '0.8125rem', textTransform: 'none', fontWeight: 600 }}
             >
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
             </Button>
@@ -333,298 +306,383 @@ const UserEdit: React.FC = () => {
         }
       />
 
-      {/* Messages d'erreur/succès */}
+      {/* Messages d'erreur / succès */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
+        <Alert severity="error" sx={{ mb: 2, py: 1 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
-
       {success && (
         <Alert severity="success" sx={{ mb: 2, py: 1 }}>
-          Utilisateur modifié avec succès ! Redirection en cours...
+          Utilisateur modifie avec succes ! Redirection en cours...
         </Alert>
       )}
 
-      {/* Formulaire */}
-      <Card>
-        <CardContent sx={{ p: 2 }}>
-          <form onSubmit={handleSubmit}>
-            {/* Informations personnelles */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
-              Informations personnelles
-            </Typography>
+      <form onSubmit={handleSubmit}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {/* Photo de profil — first section, OTA-aware */}
+          {user && (
+            <DetailSection
+              title="Photo de profil"
+              accentColor="#7BA3C2"
+              icon={<Person size={14} strokeWidth={1.75} />}
+              disableGrid
+            >
+              <AvatarUploader
+                user={user}
+                onChange={(next) => setUser(next)}
+              />
+            </DetailSection>
+          )}
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Prénom *"
-                  value={formData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
-                  required
-                  placeholder="Ex: Jean"
-                  InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Person size={18} strokeWidth={1.75} /></Box>,
-                  }}
-                />
-              </Grid>
+          {/* Personnel — accent slate */}
+          <DetailSection
+            title="Informations personnelles"
+            accentColor="#6B8A9A"
+            icon={<Person size={14} strokeWidth={1.75} />}
+          >
+            <TextField
+              fullWidth
+              size="small"
+              label="Prénom"
+              value={formData.firstName}
+              onChange={(e) => handleInputChange('firstName', e.target.value)}
+              required
+              placeholder="Ex: Jean"
+            />
+            <TextField
+              fullWidth
+              size="small"
+              label="Nom"
+              value={formData.lastName}
+              onChange={(e) => handleInputChange('lastName', e.target.value)}
+              required
+              placeholder="Ex: Dupont"
+            />
+          </DetailSection>
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Nom *"
-                  value={formData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
-                  required
-                  placeholder="Ex: Dupont"
-                  InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Person size={18} strokeWidth={1.75} /></Box>,
-                  }}
-                />
-              </Grid>
-            </Grid>
+          {/* Contact — accent teal */}
+          <DetailSection
+            title="Informations de contact"
+            accentColor="#4A9B8E"
+            icon={<Email size={14} strokeWidth={1.75} />}
+          >
+            <TextField
+              fullWidth
+              size="small"
+              label="Email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              required
+              placeholder="Ex: jean.dupont@clenzy.fr"
+              InputProps={{
+                startAdornment: (
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mr: 1 }}>
+                    <Email size={16} strokeWidth={1.75} />
+                  </Box>
+                ),
+              }}
+            />
+            <TextField
+              fullWidth
+              size="small"
+              label="Téléphone"
+              value={formData.phoneNumber}
+              onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+              placeholder="Ex: +33 6 12 34 56 78"
+              InputProps={{
+                startAdornment: (
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mr: 1 }}>
+                    <Phone size={16} strokeWidth={1.75} />
+                  </Box>
+                ),
+              }}
+            />
+          </DetailSection>
 
-            {/* Informations de contact */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
-              Informations de contact
-            </Typography>
-
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={8}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Email *"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  required
-                  placeholder="Ex: jean.dupont@clenzy.fr"
-                  InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Email size={18} strokeWidth={1.75} /></Box>,
-                  }}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Téléphone"
-                  value={formData.phoneNumber}
-                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                  placeholder="Ex: +33 6 12 34 56 78"
-                  InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Phone size={18} strokeWidth={1.75} /></Box>,
-                  }}
-                />
-              </Grid>
-            </Grid>
-
-            {/* Rôle et statut */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
-              Rôle et statut
-            </Typography>
-
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required size="small">
-                  <InputLabel>Rôle *</InputLabel>
-                  <Select
-                    value={formData.role}
-                    onChange={(e) => handleInputChange('role', e.target.value)}
-                    label="Rôle *"
-                  >
-                    {userRoles.map((role) => (
-                      <MenuItem key={role.value} value={role.value}>
-                        <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ fontSize: 18 }}>{role.icon}</Box>
-                          <Typography variant="body2">{role.label}</Typography>
-                        </MuiBox>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                    Le rôle détermine les permissions de l'utilisateur
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>Statut *</InputLabel>
-                  <Select
-                    value={formData.status}
-                    onChange={(e) => handleInputChange('status', e.target.value)}
-                    label="Statut *"
-                  >
-                    {userStatuses.map((status) => (
-                      <MenuItem key={status.value} value={status.value}>
-                        <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Chip
-                            label={status.label}
-                            size="small"
-                            color={status.color}
-                            variant="outlined"
-                          />
-                        </MuiBox>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  <FormHelperText>
-                    Le statut détermine si l'utilisateur peut se connecter
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
-            </Grid>
-
-            {/* Organisation */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
-              Organisation
-            </Typography>
-
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={6}>
-                <Autocomplete
-                  size="small"
-                  options={organizations}
-                  value={selectedOrg}
-                  loading={orgsLoading}
-                  onChange={(_event, newValue) => setSelectedOrg(newValue)}
-                  getOptionLabel={(option) => option.name}
-                  isOptionEqualToValue={(option, value) => option.id === value.id}
-                  renderOption={(props, option) => (
-                    <li {...props} key={option.id}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Business size={16} strokeWidth={1.75} /></Box>
-                        <Typography variant="body2" sx={{ flex: 1 }}>
-                          {option.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
-                        </Typography>
+          {/* Rôle et statut — accent purple */}
+          <DetailSection
+            title="Rôle et statut"
+            accentColor="#7B68A8"
+            icon={<AdminPanelSettings size={14} strokeWidth={1.75} />}
+            disableGrid
+          >
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
+                gap: 2,
+              }}
+            >
+              <FormControl fullWidth required size="small">
+                <InputLabel>Rôle</InputLabel>
+                <Select
+                  value={formData.role}
+                  onChange={(e) => handleInputChange('role', e.target.value)}
+                  label="Rôle"
+                  renderValue={(value) => {
+                    const r = getRoleEntry(value as string);
+                    if (!r) return null;
+                    return (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                        <RoleIconBadge role={r.value} size={22} />
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{r.label}</Typography>
                       </Box>
-                    </li>
-                  )}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Organisation"
-                      placeholder="Selectionner une organisation"
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {orgsLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                  noOptionsText="Aucune organisation"
-                />
+                    );
+                  }}
+                >
+                  {USER_ROLES.map((role) => (
+                    <MenuItem key={role.value} value={role.value} sx={{ py: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+                        <RoleIconBadge role={role.value} size={26} />
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.2 }}>
+                            {role.label}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: '0.6875rem',
+                              color: 'text.secondary',
+                              lineHeight: 1.3,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: 320,
+                            }}
+                          >
+                            {role.description}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
                 <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                  Organisation a laquelle l'utilisateur est rattache
+                  Le rôle détermine les permissions de l'utilisateur
                 </FormHelperText>
-              </Grid>
-            </Grid>
+              </FormControl>
 
-            {/* Aperçu du rôle sélectionné */}
-            {formData.role && (
-              <Box sx={{ mb: 4, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Typography variant="subtitle2" color="primary" sx={{ mb: 1 }}>
-                  📋 Rôle sélectionné : {userRoles.find(r => r.value === formData.role)?.label}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {formData.role === 'SUPER_ADMIN' && 'Super administrateur avec accès complet multi-organisations'}
-                  {formData.role === 'SUPER_MANAGER' && 'Super manager avec gestion étendue multi-équipes'}
-                  {formData.role === 'SUPERVISOR' && 'Supervision des interventions et du personnel'}
-                  {formData.role === 'TECHNICIAN' && 'Exécution des interventions techniques'}
-                  {formData.role === 'HOUSEKEEPER' && 'Exécution des interventions de nettoyage'}
-                  {formData.role === 'HOST' && 'Gestion de ses propres propriétés'}
-                  {formData.role === 'LAUNDRY' && 'Gestion du linge et de la blanchisserie'}
-                  {formData.role === 'EXTERIOR_TECH' && 'Entretien des espaces extérieurs'}
-                </Typography>
-              </Box>
-            )}
-
-            {/* Changement de mot de passe */}
-            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-              🔐 Changement de mot de passe
-            </Typography>
-            
-            <Box sx={{ mb: 4, p: 3, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Laissez ces champs vides si vous ne souhaitez pas changer le mot de passe.
-              </Typography>
-              
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Nouveau mot de passe"
-                    type={showNewPassword ? 'text' : 'password'}
-                    value={formData.newPassword}
-                    onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                    placeholder="Minimum 8 caractères"
-                    InputProps={{
-                      startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Lock  /></Box>,
-                      endAdornment: (
-                        <IconButton
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          edge="end"
-                          size="small"
-                        >
-                          {showNewPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      ),
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Confirmer le mot de passe"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    placeholder="Répétez le mot de passe"
-                    InputProps={{
-                      startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Lock  /></Box>,
-                      endAdornment: (
-                        <IconButton
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          edge="end"
-                          size="small"
-                        >
-                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      ),
-                    }}
-                  />
-                </Grid>
-              </Grid>
-              
-              {formData.newPassword && formData.confirmPassword && (
-                <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: formData.newPassword === formData.confirmPassword ? 'success.main' : 'error.main' }}>
-                  <Typography variant="caption" color={formData.newPassword === formData.confirmPassword ? 'success.main' : 'error.main'}>
-                    {formData.newPassword === formData.confirmPassword 
-                      ? '✅ Les mots de passe correspondent' 
-                      : '❌ Les mots de passe ne correspondent pas'
-                    }
-                  </Typography>
-                </Box>
-              )}
+              <FormControl fullWidth required size="small">
+                <InputLabel>Statut</InputLabel>
+                <Select
+                  value={formData.status}
+                  onChange={(e) => handleInputChange('status', e.target.value)}
+                  label="Statut"
+                  renderValue={(value) => {
+                    const s = userStatuses.find((x) => x.value === value);
+                    if (!s) return null;
+                    return (
+                      <Chip
+                        label={s.label}
+                        size="small"
+                        sx={softChipSx(semanticToHex(s.color))}
+                      />
+                    );
+                  }}
+                >
+                  {userStatuses.map((status) => (
+                    <MenuItem key={status.value} value={status.value}>
+                      <Chip
+                        label={status.label}
+                        size="small"
+                        sx={softChipSx(semanticToHex(status.color))}
+                      />
+                    </MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText sx={{ fontSize: '0.7rem' }}>
+                  Le statut détermine si l'utilisateur peut se connecter
+                </FormHelperText>
+              </FormControl>
             </Box>
 
-          </form>
-        </CardContent>
-      </Card>
+            {/* Aperçu inline du rôle sélectionné — utilise le même badge que la liste */}
+            {selectedRoleInfo && (
+              <Box
+                sx={{
+                  mt: 2,
+                  p: 1.5,
+                  borderRadius: 1.5,
+                  bgcolor: alpha(theme.palette.primary.main, 0.04),
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.25,
+                }}
+              >
+                <RoleIconBadge role={selectedRoleInfo.value} size={32} />
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    sx={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: 'text.primary',
+                      mb: 0.125,
+                    }}
+                  >
+                    Rôle sélectionné : {selectedRoleInfo.label}
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.4 }}>
+                    {selectedRoleInfo.description}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+          </DetailSection>
+
+          {/* Organisation — accent warm */}
+          <DetailSection
+            title="Organisation"
+            accentColor="#D4A574"
+            icon={<Business size={14} strokeWidth={1.75} />}
+            disableGrid
+          >
+            <Box sx={{ maxWidth: { xs: '100%', md: '50%' } }}>
+              <Autocomplete
+                size="small"
+                options={organizations}
+                value={selectedOrg}
+                loading={orgsLoading}
+                onChange={(_event, newValue) => setSelectedOrg(newValue)}
+                getOptionLabel={(option) => option.name}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                        <Business size={16} strokeWidth={1.75} />
+                      </Box>
+                      <Typography variant="body2" sx={{ flex: 1 }}>
+                        {option.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
+                      </Typography>
+                    </Box>
+                  </li>
+                )}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Organisation"
+                    placeholder="Sélectionner une organisation"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {orgsLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+                noOptionsText="Aucune organisation"
+              />
+              <FormHelperText sx={{ fontSize: '0.7rem', mt: 0.5 }}>
+                Organisation à laquelle l'utilisateur est rattaché
+              </FormHelperText>
+            </Box>
+          </DetailSection>
+
+          {/* Changement de mot de passe — accent muted red (security cue) */}
+          <DetailSection
+            title="Changement de mot de passe"
+            accentColor="#C97A7A"
+            icon={<Lock size={14} strokeWidth={1.75} />}
+            disableGrid
+            action={
+              passwordsMatch ? (
+                <Chip
+                  label="Les mots de passe correspondent"
+                  size="small"
+                  sx={softChipSx(semanticToHex('success'))}
+                />
+              ) : passwordsMismatch ? (
+                <Chip
+                  label="Les mots de passe ne correspondent pas"
+                  size="small"
+                  sx={softChipSx(semanticToHex('error'))}
+                />
+              ) : undefined
+            }
+          >
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.75rem' }}>
+              Laissez ces champs vides si vous ne souhaitez pas changer le mot de passe.
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
+                gap: 2,
+              }}
+            >
+              <TextField
+                fullWidth
+                size="small"
+                label="Nouveau mot de passe"
+                type={showNewPassword ? 'text' : 'password'}
+                value={formData.newPassword}
+                onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                placeholder="Minimum 8 caractères"
+                InputProps={{
+                  startAdornment: (
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mr: 1 }}>
+                      <Lock size={16} strokeWidth={1.75} />
+                    </Box>
+                  ),
+                  endAdornment: (
+                    <IconButton
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      edge="end"
+                      size="small"
+                      aria-label={showNewPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    >
+                      {showNewPassword ? (
+                        <VisibilityOff size={16} strokeWidth={1.75} />
+                      ) : (
+                        <Visibility size={16} strokeWidth={1.75} />
+                      )}
+                    </IconButton>
+                  ),
+                }}
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label="Confirmer le mot de passe"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={formData.confirmPassword}
+                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                placeholder="Répétez le mot de passe"
+                InputProps={{
+                  startAdornment: (
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mr: 1 }}>
+                      <Lock size={16} strokeWidth={1.75} />
+                    </Box>
+                  ),
+                  endAdornment: (
+                    <IconButton
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      edge="end"
+                      size="small"
+                      aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    >
+                      {showConfirmPassword ? (
+                        <VisibilityOff size={16} strokeWidth={1.75} />
+                      ) : (
+                        <Visibility size={16} strokeWidth={1.75} />
+                      )}
+                    </IconButton>
+                  ),
+                }}
+              />
+            </Box>
+          </DetailSection>
+        </Box>
+      </form>
     </Box>
   );
 };

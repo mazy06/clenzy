@@ -2,12 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
-  Switch,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
   Chip,
   Alert,
   Snackbar,
@@ -25,8 +19,6 @@ import {
   IconButton,
   Tooltip,
   Grid,
-  Card,
-  CardContent,
 } from '@mui/material';
 import {
   Save,
@@ -42,6 +34,8 @@ import { PAYMENT_PROVIDER_LABELS } from '../../types/payment';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCommissions, useSaveCommission } from '../../hooks/useAccounting';
 import type { ChannelCommission } from '../../services/api/accountingApi';
+import SettingsSection from './components/SettingsSection';
+import SettingsToggleRow from './components/SettingsToggleRow';
 
 // ─── Provider metadata ───────────────────────────────────────────────────────
 
@@ -60,6 +54,30 @@ const PROVIDER_REGIONS: Record<string, string> = {
   PAYZONE: 'Maroc',
   PAYPAL: 'Global',
 };
+
+const STATUS_CHIP_SX = {
+  height: 20,
+  fontSize: '0.65rem',
+  fontWeight: 600,
+  letterSpacing: '0.02em',
+  borderRadius: '5px',
+  '& .MuiChip-label': { px: 0.75 },
+} as const;
+
+function buildStatusChipSx(color: string) {
+  return {
+    ...STATUS_CHIP_SX,
+    backgroundColor: `${color}14`,
+    color,
+    border: `1px solid ${color}33`,
+  } as const;
+}
+
+// ─── Share colors (palette Clenzy) ──────────────────────────────────────────
+
+const SHARE_OWNER = '#4A9B8E';
+const SHARE_PLATFORM = '#6B8A9A';
+const SHARE_CONCIERGE = '#D4A574';
 
 export default function PaymentSettings() {
   const { t } = useTranslation();
@@ -182,273 +200,257 @@ export default function PaymentSettings() {
 
   return (
     <Box>
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {/* ═══ LEFT COLUMN — Payment Providers ═══ */}
         <Grid item xs={12} md={6}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Payment size={22} strokeWidth={1.75} /></Box>
-                <Typography variant="subtitle1" fontWeight={700}>
-                  Fournisseurs de paiement
-                </Typography>
-              </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                Activez ou désactivez les fournisseurs pour votre organisation.
-              </Typography>
+          <SettingsSection
+            title="Fournisseurs de paiement"
+            icon={Payment}
+            accent="primary"
+            description="Activez ou désactivez les fournisseurs pour votre organisation."
+          >
+            {allProviders.map((type, index) => {
+              const config = getConfig(type);
+              const enabled = config?.enabled ?? false;
+              const isStub = type !== 'STRIPE';
+              const brandColor = PROVIDER_COLORS[type] ?? '#8A8378';
 
-              <List disablePadding>
-                {allProviders.map((type, index) => {
-                  const config = getConfig(type);
-                  const enabled = config?.enabled ?? false;
-                  const isStub = type !== 'STRIPE';
-                  const color = PROVIDER_COLORS[type] ?? '#666';
+              const statusChips = (
+                <>
+                  {isStub && (
+                    <Chip label="Bientôt" size="small" sx={buildStatusChipSx('#8A8378')} />
+                  )}
+                  {enabled && !isStub && (
+                    <Chip label="Actif" size="small" sx={buildStatusChipSx('#4A9B8E')} />
+                  )}
+                  {config?.sandboxMode && (
+                    <Chip label="Sandbox" size="small" sx={buildStatusChipSx('#D4A574')} />
+                  )}
+                </>
+              );
 
-                  return (
-                    <ListItem
-                      key={type}
-                      divider={index < allProviders.length - 1}
-                      sx={{ px: 0, py: 1.5 }}
-                    >
-                      <Box
-                        sx={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 1.5,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          bgcolor: `${color}14`,
-                          mr: 1.5,
-                          flexShrink: 0,
-                        }}
+              return (
+                <SettingsToggleRow
+                  key={type}
+                  icon={CreditCard}
+                  iconColor={brandColor}
+                  title={(
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, flexWrap: 'wrap' }}>
+                      <Typography
+                        component="span"
+                        sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'inherit' }}
                       >
-                        <Box component="span" sx={{ display: 'inline-flex', color }}>
-                          <CreditCard size={18} strokeWidth={1.75} />
-                        </Box>
-                      </Box>
-                      <ListItemText
-                        primary={
-                          <Box display="flex" alignItems="center" gap={0.75}>
-                            <Typography variant="body2" fontWeight={600}>
-                              {PAYMENT_PROVIDER_LABELS[type]}
-                            </Typography>
-                            {isStub && (
-                              <Chip
-                                label="Bientôt"
-                                size="small"
-                                sx={{
-                                  fontSize: '0.65rem',
-                                  height: 18,
-                                  bgcolor: 'action.hover',
-                                  '& .MuiChip-label': { px: 0.75 },
-                                }}
-                              />
-                            )}
-                            {enabled && !isStub && (
-                              <Chip
-                                label="Actif"
-                                size="small"
-                                sx={{
-                                  fontSize: '0.65rem',
-                                  height: 18,
-                                  bgcolor: '#4A9B8E18',
-                                  color: '#4A9B8E',
-                                  fontWeight: 600,
-                                  '& .MuiChip-label': { px: 0.75 },
-                                }}
-                              />
-                            )}
-                            {config?.sandboxMode && (
-                              <Chip
-                                label="Sandbox"
-                                size="small"
-                                color="warning"
-                                variant="outlined"
-                                sx={{ fontSize: '0.65rem', height: 18, '& .MuiChip-label': { px: 0.75 } }}
-                              />
-                            )}
-                          </Box>
-                        }
-                        secondary={PROVIDER_REGIONS[type]}
-                        secondaryTypographyProps={{ variant: 'caption' }}
-                      />
-                      <ListItemSecondaryAction>
-                        <Switch
-                          edge="end"
-                          size="small"
-                          checked={enabled}
-                          onChange={() => handleToggle(type, enabled)}
-                          disabled={isStub}
-                        />
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  );
-                })}
-              </List>
-            </CardContent>
-          </Card>
+                        {PAYMENT_PROVIDER_LABELS[type]}
+                      </Typography>
+                      {statusChips}
+                    </Box>
+                  )}
+                  description={PROVIDER_REGIONS[type]}
+                  checked={enabled}
+                  onChange={() => handleToggle(type, enabled)}
+                  disabled={isStub}
+                  divider={index < allProviders.length - 1}
+                />
+              );
+            })}
+          </SettingsSection>
         </Grid>
 
         {/* ═══ RIGHT COLUMN — Revenue Split + Commissions ═══ */}
         <Grid item xs={12} md={6}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* ─── Revenue Split ─── */}
-            <Card variant="outlined">
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                  <PieChart size={22} strokeWidth={1.75} color='#D4A574' />
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    {t('settings.split.title')}
-                  </Typography>
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                  {t('settings.split.subtitle')}
-                </Typography>
-
-                {/* Visual split bar */}
-                <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', height: 28, borderRadius: 1, overflow: 'hidden' }}>
-                    <Box
-                      sx={{
-                        width: `${parseFloat(ownerPct) || 0}%`,
-                        bgcolor: '#4A9B8E',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'width 0.3s',
-                      }}
-                    >
-                      {parseFloat(ownerPct) >= 15 && (
-                        <Typography variant="caption" color="white" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
-                          {ownerPct}%
-                        </Typography>
-                      )}
-                    </Box>
-                    <Box
-                      sx={{
-                        width: `${parseFloat(platformPct) || 0}%`,
-                        bgcolor: '#6B8A9A',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'width 0.3s',
-                      }}
-                    >
-                      {parseFloat(platformPct) >= 8 && (
-                        <Typography variant="caption" color="white" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
-                          {platformPct}%
-                        </Typography>
-                      )}
-                    </Box>
-                    <Box
-                      sx={{
-                        width: `${parseFloat(conciergePct) || 0}%`,
-                        bgcolor: '#D4A574',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'width 0.3s',
-                      }}
-                    >
-                      {parseFloat(conciergePct) >= 10 && (
-                        <Typography variant="caption" color="white" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
-                          {conciergePct}%
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 2, mt: 0.75 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#4A9B8E' }} />
-                      <Typography variant="caption" sx={{ fontSize: '0.68rem' }}>{t('settings.split.ownerShare')}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#6B8A9A' }} />
-                      <Typography variant="caption" sx={{ fontSize: '0.68rem' }}>{t('settings.split.platformShare')}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#D4A574' }} />
-                      <Typography variant="caption" sx={{ fontSize: '0.68rem' }}>{t('settings.split.conciergeShare')}</Typography>
-                    </Box>
-                  </Box>
-                </Box>
-
-                {/* Input fields */}
-                <Stack direction="row" spacing={1.5} sx={{ mb: 1.5 }}>
-                  <TextField
-                    label={t('settings.split.ownerShare')}
-                    type="number"
-                    size="small"
-                    value={ownerPct}
-                    onChange={(e) => setOwnerPct(e.target.value)}
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                      inputProps: { min: 0, max: 100, step: 0.01 },
+            <SettingsSection
+              title={t('settings.split.title')}
+              icon={PieChart}
+              accent="warm"
+              description={t('settings.split.subtitle')}
+            >
+              {/* Visual split bar */}
+              <Box sx={{ mb: 2 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    height: 30,
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: `${parseFloat(ownerPct) || 0}%`,
+                      bgcolor: SHARE_OWNER,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'width 300ms cubic-bezier(0.22, 1, 0.36, 1)',
                     }}
-                    fullWidth
-                  />
-                  <TextField
-                    label={t('settings.split.platformShare')}
-                    type="number"
-                    size="small"
-                    value={platformPct}
-                    onChange={(e) => setPlatformPct(e.target.value)}
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                      inputProps: { min: 0, max: 100, step: 0.01 },
-                    }}
-                    fullWidth
-                  />
-                  <TextField
-                    label={t('settings.split.conciergeShare')}
-                    type="number"
-                    size="small"
-                    value={conciergePct}
-                    onChange={(e) => setConciergePct(e.target.value)}
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                      inputProps: { min: 0, max: 100, step: 0.01 },
-                    }}
-                    fullWidth
-                  />
-                </Stack>
-
-                {/* Total + Save */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography
-                    variant="body2"
-                    color={isValidTotal ? 'text.secondary' : 'error'}
-                    fontWeight={isValidTotal ? 400 : 600}
                   >
-                    Total : {total}%
-                    {!isValidTotal && ` — ${t('settings.split.totalError')}`}
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<Save />}
-                    disabled={!isValidTotal || splitSaving}
-                    onClick={handleSaveSplit}
+                    {parseFloat(ownerPct) >= 15 && (
+                      <Typography
+                        sx={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.02em',
+                          color: '#fff',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {ownerPct}%
+                      </Typography>
+                    )}
+                  </Box>
+                  <Box
+                    sx={{
+                      width: `${parseFloat(platformPct) || 0}%`,
+                      bgcolor: SHARE_PLATFORM,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'width 300ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    }}
                   >
-                    {splitSaving ? <CircularProgress size={20} /> : t('settings.split.save')}
-                  </Button>
+                    {parseFloat(platformPct) >= 8 && (
+                      <Typography
+                        sx={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.02em',
+                          color: '#fff',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {platformPct}%
+                      </Typography>
+                    )}
+                  </Box>
+                  <Box
+                    sx={{
+                      width: `${parseFloat(conciergePct) || 0}%`,
+                      bgcolor: SHARE_CONCIERGE,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'width 300ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    }}
+                  >
+                    {parseFloat(conciergePct) >= 10 && (
+                      <Typography
+                        sx={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.02em',
+                          color: '#fff',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {conciergePct}%
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
+                <Box sx={{ display: 'flex', gap: 1.5, mt: 0.875, flexWrap: 'wrap' }}>
+                  <ShareLegend color={SHARE_OWNER} label={t('settings.split.ownerShare')} />
+                  <ShareLegend color={SHARE_PLATFORM} label={t('settings.split.platformShare')} />
+                  <ShareLegend color={SHARE_CONCIERGE} label={t('settings.split.conciergeShare')} />
+                </Box>
+              </Box>
 
-                {!splitConfig && (
-                  <Alert severity="info" sx={{ mt: 2 }}>
-                    {t('settings.split.defaults')}
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
+              {/* Input fields */}
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{ mb: 1.5 }}>
+                <ShareInput
+                  label={t('settings.split.ownerShare')}
+                  value={ownerPct}
+                  onChange={setOwnerPct}
+                  color={SHARE_OWNER}
+                />
+                <ShareInput
+                  label={t('settings.split.platformShare')}
+                  value={platformPct}
+                  onChange={setPlatformPct}
+                  color={SHARE_PLATFORM}
+                />
+                <ShareInput
+                  label={t('settings.split.conciergeShare')}
+                  value={conciergePct}
+                  onChange={setConciergePct}
+                  color={SHARE_CONCIERGE}
+                />
+              </Stack>
+
+              {/* Total + Save */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.875 }}>
+                  <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', fontWeight: 500 }}>
+                    Total
+                  </Typography>
+                  <Chip
+                    label={`${total}%`}
+                    size="small"
+                    sx={buildStatusChipSx(isValidTotal ? '#4A9B8E' : '#C97A7A')}
+                  />
+                  {!isValidTotal && (
+                    <Typography
+                      sx={{
+                        fontSize: '0.72rem',
+                        color: '#C97A7A',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {t('settings.split.totalError')}
+                    </Typography>
+                  )}
+                </Box>
+                <Button
+                  variant="contained"
+                  disableElevation
+                  size="small"
+                  startIcon={
+                    splitSaving ? (
+                      <CircularProgress size={14} color="inherit" />
+                    ) : (
+                      <Save size={14} strokeWidth={1.75} />
+                    )
+                  }
+                  disabled={!isValidTotal || splitSaving}
+                  onClick={handleSaveSplit}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: '0.78rem',
+                    letterSpacing: '0.01em',
+                    borderRadius: '8px',
+                    py: 0.625,
+                    px: 1.5,
+                    bgcolor: '#6B8A9A',
+                    boxShadow: 'none',
+                    transition:
+                      'background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    '&:hover': {
+                      bgcolor: '#6B8A9A',
+                      filter: 'brightness(0.94)',
+                      boxShadow: '0 1px 2px rgba(45, 55, 72, 0.06), 0 4px 10px rgba(107, 138, 154, 0.22)',
+                      transform: 'translateY(-1px)',
+                    },
+                    '&:active': { transform: 'translateY(0)', boxShadow: 'none' },
+                    '&.Mui-disabled': { bgcolor: 'rgba(107, 138, 154, 0.32)', color: '#fff' },
+                  }}
+                >
+                  {splitSaving ? t('settings.split.saving', 'Sauvegarde...') : t('settings.split.save')}
+                </Button>
+              </Box>
+
+              {!splitConfig && (
+                <Alert severity="info" sx={{ mt: 2, borderRadius: '8px' }}>
+                  {t('settings.split.defaults')}
+                </Alert>
+              )}
+            </SettingsSection>
 
             {/* ─── Channel Commissions ─── */}
-            <Card variant="outlined" sx={{ flex: 1 }}>
-              <CardContent>
-                <ChannelCommissionsSection />
-              </CardContent>
-            </Card>
+            <ChannelCommissionsSection />
           </Box>
         </Grid>
       </Grid>
@@ -458,7 +460,11 @@ export default function PaymentSettings() {
         autoHideDuration={4000}
         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
       >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}>
+        <Alert
+          severity={snackbar.severity}
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          sx={{ borderRadius: '8px' }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
@@ -466,9 +472,60 @@ export default function PaymentSettings() {
   );
 }
 
+// ─── Sub-components ─────────────────────────────────────────────────────────
+
+interface ShareLegendProps {
+  color: string;
+  label: string;
+}
+
+const ShareLegend: React.FC<ShareLegendProps> = ({ color, label }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
+    <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: color }} />
+    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 500 }}>
+      {label}
+    </Typography>
+  </Box>
+);
+
+interface ShareInputProps {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  color: string;
+}
+
+const ShareInput: React.FC<ShareInputProps> = ({ label, value, onChange, color }) => (
+  <TextField
+    label={label}
+    type="number"
+    size="small"
+    value={value}
+    onChange={(e) => onChange(e.target.value)}
+    InputProps={{
+      endAdornment: <InputAdornment position="end">%</InputAdornment>,
+      inputProps: { min: 0, max: 100, step: 0.01 },
+      sx: {
+        '& input': { fontVariantNumeric: 'tabular-nums', fontWeight: 600, color },
+      },
+    }}
+    fullWidth
+  />
+);
+
 // ─── Channel Commissions Section ────────────────────────────────────────────
 
-const CHANNEL_COLORS: Record<string, string> = { AIRBNB: '#FF5A5F', BOOKING: '#003580', DIRECT: '#4A9B8E' };
+const CHANNEL_COLORS: Record<string, string> = {
+  AIRBNB: '#FF5A5F',
+  BOOKING: '#003580',
+  DIRECT: '#4A9B8E',
+};
+
+const CHANNEL_LABELS: Record<string, string> = {
+  AIRBNB: 'Airbnb',
+  BOOKING: 'Booking.com',
+  DIRECT: 'Booking Engine',
+};
 
 const EDITABLE_CHANNELS = new Set(['DIRECT']);
 
@@ -506,106 +563,168 @@ function ChannelCommissionsSection() {
     [editRates, saveMutation],
   );
 
-  return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <AccountBalance size={22} strokeWidth={1.75} color='#6B8A9A' />
-        <Typography variant="subtitle1" fontWeight={700}>
-          {t('settings.commissions.title', 'Commissions canaux')}
-        </Typography>
-      </Box>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-        {t('settings.commissions.subtitle', 'Taux de commission par plateforme. Seul le booking engine est configurable.')}
-      </Typography>
-
-      {isLoading ? (
+  const content = (() => {
+    if (isLoading) {
+      return (
         <Box display="flex" justifyContent="center" p={3}>
           <CircularProgress size={24} />
         </Box>
-      ) : isError ? (
-        <Alert severity="error">
+      );
+    }
+    if (isError) {
+      return (
+        <Alert severity="error" sx={{ borderRadius: '8px' }}>
           {t('settings.commissions.error', 'Erreur lors du chargement des commissions')}
         </Alert>
-      ) : commissions.length === 0 ? (
-        <Alert severity="info">
+      );
+    }
+    if (commissions.length === 0) {
+      return (
+        <Alert severity="info" sx={{ borderRadius: '8px' }}>
           {t('settings.commissions.empty', 'Aucun canal de réservation configuré')}
         </Alert>
-      ) : (
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>
-                  {t('settings.commissions.channel', 'Canal')}
-                </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>
-                  {t('settings.commissions.rate', 'Taux (%)')}
-                </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.75rem', width: 80 }} />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {commissions.map((c) => {
-                const isEditable = EDITABLE_CHANNELS.has(c.channelName);
-                return (
-                  <TableRow key={c.channelName} hover>
-                    <TableCell>
-                      <Chip
-                        label={c.channelName === 'DIRECT' ? 'Booking Engine' : c.channelName}
+      );
+    }
+    return (
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary' }}>
+                {t('settings.commissions.channel', 'Canal')}
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary' }}>
+                {t('settings.commissions.rate', 'Taux (%)')}
+              </TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.7rem', width: 80 }} />
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {commissions.map((c) => {
+              const isEditable = EDITABLE_CHANNELS.has(c.channelName);
+              const color = CHANNEL_COLORS[c.channelName] ?? '#8A8378';
+              const label = CHANNEL_LABELS[c.channelName] ?? c.channelName;
+              return (
+                <TableRow key={c.channelName} hover>
+                  <TableCell>
+                    <Chip
+                      label={label}
+                      size="small"
+                      sx={{
+                        height: 22,
+                        fontSize: '0.6875rem',
+                        fontWeight: 600,
+                        letterSpacing: '0.01em',
+                        backgroundColor: `${color}14`,
+                        color,
+                        border: `1px solid ${color}33`,
+                        borderRadius: '6px',
+                        '& .MuiChip-label': { px: 0.875 },
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    {isEditable ? (
+                      <TextField
+                        type="number"
                         size="small"
-                        sx={{
-                          fontSize: '0.6875rem',
-                          fontWeight: 700,
-                          backgroundColor: CHANNEL_COLORS[c.channelName] ?? '#666',
-                          color: '#fff',
-                          height: 22,
+                        value={editRates[c.channelName] ?? c.commissionRate}
+                        onChange={(e) =>
+                          setEditRates((prev) => ({ ...prev, [c.channelName]: e.target.value }))
+                        }
+                        inputProps={{
+                          min: 0,
+                          max: 100,
+                          step: 0.5,
+                          style: {
+                            textAlign: 'center',
+                            fontVariantNumeric: 'tabular-nums',
+                            fontWeight: 600,
+                          },
                         }}
+                        sx={{ width: 96 }}
+                        InputProps={{ sx: { fontSize: '0.8125rem' } }}
                       />
-                    </TableCell>
-                    <TableCell align="center">
-                      {isEditable ? (
-                        <TextField
-                          type="number"
+                    ) : (
+                      <Typography
+                        sx={{
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          fontVariantNumeric: 'tabular-nums',
+                          color: 'text.primary',
+                        }}
+                      >
+                        {c.commissionRate}%
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="right">
+                    {isEditable && (
+                      savedChannel === c.channelName ? (
+                        <Chip
+                          label={t('common.saved', 'Sauvegardé')}
                           size="small"
-                          value={editRates[c.channelName] ?? c.commissionRate}
-                          onChange={(e) =>
-                            setEditRates((prev) => ({ ...prev, [c.channelName]: e.target.value }))
-                          }
-                          inputProps={{ min: 0, max: 100, step: 0.5, style: { textAlign: 'center' } }}
-                          sx={{ width: 100 }}
-                          InputProps={{ sx: { fontSize: '0.8125rem' } }}
+                          sx={{
+                            height: 22,
+                            fontSize: '0.6875rem',
+                            fontWeight: 600,
+                            backgroundColor: '#4A9B8E14',
+                            color: '#4A9B8E',
+                            border: '1px solid #4A9B8E33',
+                            borderRadius: '6px',
+                            '& .MuiChip-label': { px: 0.875 },
+                          }}
                         />
                       ) : (
-                        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
-                          {c.commissionRate}%
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell align="right">
-                      {isEditable && (
-                        savedChannel === c.channelName ? (
-                          <Chip label={t('common.saved', 'Sauvegardé')} size="small" color="success" sx={{ fontSize: '0.6875rem', height: 22 }} />
-                        ) : (
-                          <Tooltip title={t('common.save', 'Enregistrer')}>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleSave(c)}
-                              disabled={saveMutation.isPending}
-                            >
-                              <Save size={'1rem'} strokeWidth={1.75} />
-                            </IconButton>
-                          </Tooltip>
-                        )
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                        <Tooltip title={t('common.save', 'Enregistrer')}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleSave(c)}
+                            disabled={saveMutation.isPending}
+                            aria-label={t('common.save', 'Enregistrer')}
+                            sx={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: '7px',
+                              color: 'text.secondary',
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              transition:
+                                'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+                              '&:hover': {
+                                color: '#4A9B8E',
+                                borderColor: '#4A9B8E66',
+                                backgroundColor: '#4A9B8E0F',
+                              },
+                              '&:focus-visible': { outline: '2px solid #4A9B8E', outlineOffset: 2 },
+                            }}
+                          >
+                            <Save size={13} strokeWidth={1.75} />
+                          </IconButton>
+                        </Tooltip>
+                      )
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  })();
+
+  return (
+    <SettingsSection
+      title={t('settings.commissions.title', 'Commissions canaux')}
+      icon={AccountBalance}
+      accent="info"
+      description={t(
+        'settings.commissions.subtitle',
+        "Taux de commission prélevé par chaque plateforme de réservation. Les taux des plateformes externes ne sont pas modifiables. Seul le taux du booking engine est configurable.",
       )}
-    </Box>
+    >
+      {content}
+    </SettingsSection>
   );
 }

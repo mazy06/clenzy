@@ -14,7 +14,14 @@ export interface ShopProduct {
   protocol?: Protocol;
   badge?: 'new' | 'bestseller' | 'promo';
   kitProductIds?: string[]; // for kit products
-  icon: string; // MUI icon name
+  icon: string; // lucide-react icon name (used in SVG hero composition)
+  /**
+   * Optional self-hosted product image (e.g. `/images/shop/clenzy-nm-01.jpg`).
+   * When empty, the ProductHero component renders a bespoke SVG composition.
+   * Drop JPG/PNG files into `client/public/images/shop/` and set the path here.
+   */
+  imageUrl?: string;
+  imageAlt: string;
 }
 
 export const SHOP_PRODUCTS: ShopProduct[] = [
@@ -38,6 +45,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
       'Intégration Clenzy native',
     ],
     icon: 'VolumeUp',
+    imageAlt: 'Capteur de bruit mural Clenzy avec écran LED',
   },
   {
     id: 'clenzy-sl-01',
@@ -59,6 +67,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
       "Historique d'accès",
     ],
     icon: 'Lock',
+    imageAlt: 'Serrure connectée Clenzy avec lecteur empreinte',
   },
   {
     id: 'clenzy-th-01',
@@ -72,6 +81,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
     protocol: 'zigbee',
     features: ['Précision ±0.3°C', 'Écran LCD', 'Zigbee 3.0', 'Batterie 1 an+', 'Compact'],
     icon: 'Thermostat',
+    imageAlt: 'Capteur de température et humidité avec écran LCD',
   },
   {
     id: 'clenzy-dw-01',
@@ -90,6 +100,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
       'Installation facile',
     ],
     icon: 'SensorDoor',
+    imageAlt: 'Capteur magnétique porte et fenêtre Zigbee',
   },
   {
     id: 'clenzy-mo-01',
@@ -103,6 +114,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
     protocol: 'zigbee',
     features: ['Détection PIR', 'Occupation intelligente', 'Zigbee 3.0', 'Batterie longue durée'],
     icon: 'DirectionsWalk',
+    imageAlt: 'Capteur de mouvement PIR Zigbee',
   },
   {
     id: 'clenzy-sm-01',
@@ -116,6 +128,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
     protocol: 'wifi',
     features: ['Détection fumée', 'Détection vape', 'WiFi 2.4GHz', 'Alertes instantanées'],
     icon: 'SmokeFree',
+    imageAlt: 'Détecteur de fumée et de vapeur connecté WiFi',
   },
   {
     id: 'kit-essential',
@@ -136,6 +149,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
       'Économie de 15%',
     ],
     icon: 'Inventory2',
+    imageAlt: 'Kit Essentiel — capteurs bruit, température et porte/fenêtre',
   },
   {
     id: 'kit-security',
@@ -156,6 +170,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
       'Économie de 10%',
     ],
     icon: 'Security',
+    imageAlt: 'Kit Sécurité — serrure connectée et capteurs accès',
   },
   {
     id: 'kit-complete',
@@ -187,6 +202,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
       'Économie de 17%',
     ],
     icon: 'AllInclusive',
+    imageAlt: 'Kit Complet — tous les capteurs Clenzy pour une propriété',
   },
 ];
 

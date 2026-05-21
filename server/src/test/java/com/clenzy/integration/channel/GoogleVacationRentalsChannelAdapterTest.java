@@ -22,12 +22,14 @@ class GoogleVacationRentalsChannelAdapterTest {
     @Mock private GoogleVacationRentalsConfig config;
     @Mock private GoogleVrSyncService syncService;
     @Mock private ChannelMappingRepository channelMappingRepository;
+    @Mock private HostProfileSyncSupport hostProfileSyncSupport;
 
     private GoogleVacationRentalsChannelAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        adapter = new GoogleVacationRentalsChannelAdapter(config, syncService, channelMappingRepository);
+        adapter = new GoogleVacationRentalsChannelAdapter(config, syncService,
+                channelMappingRepository, hostProfileSyncSupport);
     }
 
     @Test
@@ -40,7 +42,8 @@ class GoogleVacationRentalsChannelAdapterTest {
         assertThat(adapter.getCapabilities()).containsExactlyInAnyOrder(
                 ChannelCapability.OUTBOUND_CALENDAR,
                 ChannelCapability.INBOUND_RESERVATIONS,
-                ChannelCapability.POLLING
+                ChannelCapability.POLLING,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 

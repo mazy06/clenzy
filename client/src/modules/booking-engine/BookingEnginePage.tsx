@@ -1,12 +1,21 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { Box, IconButton, Tooltip, CircularProgress } from '@mui/material';
-import { Add, Save, Visibility, EventNote } from '../../icons';
+import {
+  Box,
+  Chip,
+  IconButton,
+  InputAdornment,
+  TextField,
+  Tooltip,
+  CircularProgress,
+} from '@mui/material';
+import { Add, Save, Visibility, EventNote, Search as SearchIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { BookingEngineConfig } from '../../services/api/bookingEngineApi';
 import BookingEngineListTab from './BookingEngineListTab';
 import BookingEngineConfigTab from './BookingEngineConfigTab';
 import type { BookingEngineConfigTabHandle } from './BookingEngineConfigTab';
+import { semanticToHex, softChipSx } from '../../utils/statusUtils';
 
 const BookingEnginePage: React.FC = () => {
   const { t } = useTranslation();
@@ -16,6 +25,14 @@ const BookingEnginePage: React.FC = () => {
   const configTabRef = useRef<BookingEngineConfigTabHandle>(null);
 
   const isEditing = editConfig !== null || isCreateMode;
+
+  // ── List filtering — owned by the page so the search + count chip can live in the
+  // ── PageHeader `filters` slot. The list tab still owns the data fetching.
+  const [search, setSearch] = useState('');
+  const [totalCount, setTotalCount] = useState<number | null>(null);
+  const [filteredCount, setFilteredCount] = useState(0);
+
+  const showListFilters = !isEditing && totalCount != null && totalCount > 0;
 
   const handleEdit = useCallback((config: BookingEngineConfig) => {
     setEditConfig(config);
@@ -66,6 +83,30 @@ const BookingEnginePage: React.FC = () => {
     </Tooltip>
   );
 
+  const listFilters = showListFilters ? (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
+      <TextField
+        size="small"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder={t('bookingEngine.list.searchPlaceholder', 'Rechercher par nom, organisation ou clé')}
+        sx={{ width: { xs: 200, md: 320 } }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon size={16} strokeWidth={1.75} />
+            </InputAdornment>
+          ),
+        }}
+      />
+      <Chip
+        label={`${filteredCount} template${filteredCount > 1 ? 's' : ''}`}
+        size="small"
+        sx={softChipSx(semanticToHex('primary'))}
+      />
+    </Box>
+  ) : undefined;
+
   return (
     <Box>
       <PageHeader
@@ -75,6 +116,7 @@ const BookingEnginePage: React.FC = () => {
         backPath={isEditing ? undefined : '/dashboard'}
         onBack={isEditing ? handleBackToList : undefined}
         backLabel={isEditing ? t('bookingEngine.actions.backToList') : undefined}
+        filters={listFilters}
         actions={headerActions}
       />
 
@@ -86,7 +128,13 @@ const BookingEnginePage: React.FC = () => {
           onSavingChange={setIsSaving}
         />
       ) : (
-        <BookingEngineListTab onEdit={handleEdit} onCreate={handleCreate} />
+        <BookingEngineListTab
+          onEdit={handleEdit}
+          onCreate={handleCreate}
+          search={search}
+          onTotalCountChange={setTotalCount}
+          onFilteredCountChange={setFilteredCount}
+        />
       )}
     </Box>
   );

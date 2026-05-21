@@ -28,6 +28,10 @@ export interface AuthUser {
   organizationType?: string; // Type d'organisation: INDIVIDUAL, CONCIERGE, CLEANING_COMPANY, SYSTEM
   platformRole?: string;  // Role plateforme (SUPER_ADMIN, SUPER_MANAGER, HOST, etc.)
   orgRole?: string;       // Role dans l'organisation (OWNER, ADMIN, MANAGER, etc.)
+  /** Public URL of the profile picture; null when none. Stable per user. */
+  profilePictureUrl?: string | null;
+  /** Used as cache-buster on avatar URLs so a freshly uploaded photo replaces the cached blob. */
+  updatedAt?: string;
 }
 
 export const useAuth = () => {
@@ -108,6 +112,8 @@ export const useAuth = () => {
             organizationType: userData.organizationType || undefined,
             platformRole: userData.platformRole || userData.role || undefined,
             orgRole: userData.orgRole || undefined,
+            profilePictureUrl: userData.profilePictureUrl || null,
+            updatedAt: userData.updatedAt || undefined,
           };
 
           setUser(user);

@@ -21,7 +21,7 @@ import {
   PersonRemove as PersonRemoveIcon,
 } from '../../icons';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
-import { getOrgRoleLabel, getOrgRoleColor } from '../../utils/orgRoleLabels';
+import { getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
 import { useAuth } from '../../hooks/useAuth';
 import ChangeRoleDialog from './ChangeRoleDialog';
 import RemoveMemberDialog from './RemoveMemberDialog';
@@ -127,43 +127,76 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
   const paginatedMembers = members.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
   const CELL_NOWRAP_SX = { whiteSpace: 'nowrap' as const, py: 0.75, px: 1 };
+  // Membre cell : shrinkable + ellipsis. `maxWidth: 0` + `width: '100%'` est le trick CSS pour
+  // qu'une cellule <td> accepte text-overflow:ellipsis sur ses enfants tout en remplissant
+  // l'espace disponible. Sans ça, l'email long pousse la table et la colonne Actions se fait
+  // clipper par le `overflow: hidden` du SettingsSection.
+  const CELL_MEMBER_SX = { py: 0.75, px: 1, maxWidth: 0, width: '100%' };
 
   return (
     <>
-      <TableContainer>
-        <Table size="small" sx={{ tableLayout: 'auto' }}>
+      <TableContainer sx={{ overflowX: 'hidden' }}>
+        <Table size="small" sx={{ tableLayout: 'auto', width: '100%' }}>
           <TableHead>
             <TableRow>
               <TableCell sx={CELL_NOWRAP_SX}>Membre</TableCell>
               <TableCell sx={CELL_NOWRAP_SX}>Role</TableCell>
               <TableCell sx={CELL_NOWRAP_SX}>Depuis</TableCell>
-              {canManage && <TableCell align="right" sx={CELL_NOWRAP_SX}>Actions</TableCell>}
+              {canManage && <TableCell align="right" sx={{ ...CELL_NOWRAP_SX, pr: 1.25 }}>Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {paginatedMembers.map((member) => {
               const isOwner = member.roleInOrg === 'OWNER';
+              const roleColor = getOrgRoleHex(member.roleInOrg);
+              const RoleIcon = getOrgRoleIcon(member.roleInOrg);
 
               return (
                 <TableRow key={member.id} hover>
                   {/* Membre (avatar + nom + email) */}
-                  <TableCell sx={CELL_NOWRAP_SX}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <TableCell sx={CELL_MEMBER_SX}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
                       <Avatar
                         sx={{
                           width: 32,
                           height: 32,
-                          fontSize: '0.8rem',
-                          bgcolor: 'primary.main',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          letterSpacing: '0.02em',
+                          bgcolor: `${roleColor}1F`,
+                          color: roleColor,
+                          border: `1px solid ${roleColor}33`,
+                          flexShrink: 0,
                         }}
                       >
                         {getInitials(member)}
                       </Avatar>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography
+                          sx={{
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                            color: 'text.primary',
+                            lineHeight: 1.25,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title={getMemberName(member)}
+                        >
                           {getMemberName(member)}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography
+                          sx={{
+                            fontSize: '0.7rem',
+                            color: 'text.secondary',
+                            lineHeight: 1.3,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title={member.email}
+                        >
                           {member.email}
                         </Typography>
                       </Box>
@@ -173,16 +206,38 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                   {/* Role */}
                   <TableCell sx={CELL_NOWRAP_SX}>
                     <Chip
+                      icon={<RoleIcon size={11} strokeWidth={2} />}
                       label={getOrgRoleLabel(member.roleInOrg)}
                       size="small"
-                      color={getOrgRoleColor(member.roleInOrg)}
-                      variant={isOwner ? 'filled' : 'outlined'}
+                      sx={{
+                        height: 22,
+                        fontSize: '0.6875rem',
+                        fontWeight: 600,
+                        letterSpacing: '0.01em',
+                        backgroundColor: `${roleColor}14`,
+                        color: roleColor,
+                        border: `1px solid ${roleColor}33`,
+                        borderRadius: '6px',
+                        px: 0.25,
+                        '& .MuiChip-icon': {
+                          color: `${roleColor} !important`,
+                          ml: '6px',
+                          mr: '-2px',
+                        },
+                        '& .MuiChip-label': { px: 0.875 },
+                      }}
                     />
                   </TableCell>
 
                   {/* Depuis */}
                   <TableCell sx={CELL_NOWRAP_SX}>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography
+                      sx={{
+                        fontSize: '0.72rem',
+                        color: 'text.secondary',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
                       {member.joinedAt
                         ? new Date(member.joinedAt).toLocaleDateString('fr-FR')
                         : '—'}
@@ -191,24 +246,67 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
                   {/* Actions — visible uniquement pour staff plateforme ou admin org */}
                   {canManage && (
-                    <TableCell align="right" sx={CELL_NOWRAP_SX}>
+                    <TableCell align="right" sx={{ ...CELL_NOWRAP_SX, pr: 1.25 }}>
                       {!isOwner && (
-                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                          <Tooltip title="Changer le role">
+                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                          <Tooltip title="Changer le rôle">
                             <IconButton
                               size="small"
                               onClick={() => setChangeRoleMember(member)}
+                              aria-label="Changer le rôle"
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: '7px',
+                                color: 'text.secondary',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                backgroundColor: 'background.paper',
+                                transition:
+                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1), transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                '&:hover': {
+                                  color: '#6B8A9A',
+                                  borderColor: '#6B8A9A66',
+                                  backgroundColor: '#6B8A9A0F',
+                                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04)',
+                                },
+                                '&:focus-visible': {
+                                  outline: '2px solid #6B8A9A',
+                                  outlineOffset: 2,
+                                },
+                              }}
                             >
-                              <EditIcon fontSize="small" />
+                              <EditIcon size={13} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Retirer de l'organisation">
                             <IconButton
                               size="small"
-                              color="error"
                               onClick={() => setRemoveMember(member)}
+                              aria-label="Retirer de l'organisation"
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: '7px',
+                                color: 'text.secondary',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                backgroundColor: 'background.paper',
+                                transition:
+                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1), transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                '&:hover': {
+                                  color: '#C97A7A',
+                                  borderColor: '#C97A7A66',
+                                  backgroundColor: '#C97A7A0F',
+                                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04)',
+                                },
+                                '&:focus-visible': {
+                                  outline: '2px solid #C97A7A',
+                                  outlineOffset: 2,
+                                },
+                              }}
                             >
-                              <PersonRemoveIcon fontSize="small" />
+                              <PersonRemoveIcon size={13} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
                         </Box>

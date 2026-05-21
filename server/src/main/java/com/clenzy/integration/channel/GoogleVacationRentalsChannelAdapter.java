@@ -32,13 +32,16 @@ public class GoogleVacationRentalsChannelAdapter implements ChannelConnector {
     private final GoogleVacationRentalsConfig config;
     private final GoogleVrSyncService syncService;
     private final ChannelMappingRepository channelMappingRepository;
+    private final HostProfileSyncSupport hostProfileSyncSupport;
 
     public GoogleVacationRentalsChannelAdapter(GoogleVacationRentalsConfig config,
                                                 GoogleVrSyncService syncService,
-                                                ChannelMappingRepository channelMappingRepository) {
+                                                ChannelMappingRepository channelMappingRepository,
+                                                HostProfileSyncSupport hostProfileSyncSupport) {
         this.config = config;
         this.syncService = syncService;
         this.channelMappingRepository = channelMappingRepository;
+        this.hostProfileSyncSupport = hostProfileSyncSupport;
     }
 
     @Override
@@ -51,7 +54,8 @@ public class GoogleVacationRentalsChannelAdapter implements ChannelConnector {
         return EnumSet.of(
                 ChannelCapability.OUTBOUND_CALENDAR,
                 ChannelCapability.INBOUND_RESERVATIONS,
-                ChannelCapability.POLLING
+                ChannelCapability.POLLING,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 
@@ -59,6 +63,15 @@ public class GoogleVacationRentalsChannelAdapter implements ChannelConnector {
     public Optional<ChannelMapping> resolveMapping(Long propertyId, Long orgId) {
         return channelMappingRepository.findByPropertyIdAndChannel(
                 propertyId, ChannelName.GOOGLE_VACATION_RENTALS, orgId);
+    }
+
+    /**
+     * Push host profile to Google Vacation Rentals. Mutualised orchestration via
+     * {@link HostProfileSyncSupport}.
+     */
+    @Override
+    public SyncResult pushHostProfile(HostProfileUpdate profile, Long orgId) {
+        return hostProfileSyncSupport.recordPendingWireUp(getChannelName(), profile, orgId);
     }
 
     /**

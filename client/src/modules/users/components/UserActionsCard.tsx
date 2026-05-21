@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Grid, Button } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
 import { Lock, LockOpen } from '../../../icons';
 import type { LockoutStatus } from '../../../services/api';
 
@@ -20,14 +20,13 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
   if (!lockoutStatus.isLocked && lockoutStatus.failedAttempts === 0) return null;
 
   return (
-    <Grid item xs={12}>
-      <Box sx={{
-        border: '1px solid',
-        borderColor: lockoutStatus.isLocked ? 'error.main' : 'warning.main',
-        borderRadius: 1,
-        p: 2,
-        bgcolor: lockoutStatus.isLocked ? 'error.50' : 'warning.50',
-      }}>
+    <Box sx={{
+      border: '1px solid',
+      borderColor: lockoutStatus.isLocked ? 'error.main' : 'warning.main',
+      borderRadius: 2,
+      p: 2,
+      bgcolor: lockoutStatus.isLocked ? 'error.50' : 'warning.50',
+    }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box component="span" sx={{ display: 'inline-flex', color: lockoutStatus.isLocked ? 'error.main' : 'warning.main' }}><Lock size={20} strokeWidth={1.75} /></Box>
@@ -60,8 +59,7 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
             {unlocking ? 'Deblocage...' : 'Debloquer'}
           </Button>
         </Box>
-      </Box>
-    </Grid>
+    </Box>
   );
 };
 

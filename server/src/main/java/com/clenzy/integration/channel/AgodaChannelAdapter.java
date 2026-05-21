@@ -35,15 +35,18 @@ public class AgodaChannelAdapter implements ChannelConnector {
     private final AgodaConnectionRepository agodaConnectionRepository;
     private final AgodaApiClient agodaApiClient;
     private final ChannelMappingRepository channelMappingRepository;
+    private final HostProfileSyncSupport hostProfileSyncSupport;
 
     public AgodaChannelAdapter(AgodaConfig agodaConfig,
                                AgodaConnectionRepository agodaConnectionRepository,
                                AgodaApiClient agodaApiClient,
-                               ChannelMappingRepository channelMappingRepository) {
+                               ChannelMappingRepository channelMappingRepository,
+                               HostProfileSyncSupport hostProfileSyncSupport) {
         this.agodaConfig = agodaConfig;
         this.agodaConnectionRepository = agodaConnectionRepository;
         this.agodaApiClient = agodaApiClient;
         this.channelMappingRepository = channelMappingRepository;
+        this.hostProfileSyncSupport = hostProfileSyncSupport;
     }
 
     @Override
@@ -56,8 +59,18 @@ public class AgodaChannelAdapter implements ChannelConnector {
         return EnumSet.of(
                 ChannelCapability.OUTBOUND_CALENDAR,
                 ChannelCapability.INBOUND_RESERVATIONS,
-                ChannelCapability.POLLING
+                ChannelCapability.POLLING,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
+    }
+
+    /**
+     * Push host profile to Agoda. Mutualised orchestration via
+     * {@link HostProfileSyncSupport}.
+     */
+    @Override
+    public SyncResult pushHostProfile(HostProfileUpdate profile, Long orgId) {
+        return hostProfileSyncSupport.recordPendingWireUp(getChannelName(), profile, orgId);
     }
 
     @Override

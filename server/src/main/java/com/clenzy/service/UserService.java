@@ -1,17 +1,21 @@
 package com.clenzy.service;
 
+import com.clenzy.config.KafkaConfig;
 import com.clenzy.dto.UserDto;
 import com.clenzy.dto.CreateUserDto;
 import com.clenzy.dto.KeycloakUserDto;
 import com.clenzy.dto.UserProfileDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.exception.KeycloakOperationException;
+import com.clenzy.integration.channel.HostProfileUpdate;
 import com.clenzy.model.OrgMemberRole;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.UserStatus;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.tenant.TenantContext;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
 import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.repository.OrganizationRepository;
@@ -19,8 +23,11 @@ import com.clenzy.repository.UserRepository;
 import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,6 +40,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class UserService {
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
+    private static final ObjectMapper JSON = new ObjectMapper();
+
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository memberRepository;
@@ -42,6 +51,9 @@ public class UserService {
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final TenantContext tenantContext;
+    private final UserAvatarStorageService avatarStorage;
+    private final OutboxPublisher outboxPublisher;
+    private final UserProfileSyncService profileSyncService;
 
     @org.springframework.beans.factory.annotation.Value("${clenzy.app.url:https://app.clenzy.fr}")
     private String appUrl;
@@ -50,7 +62,10 @@ public class UserService {
                        OrganizationMemberRepository memberRepository, OrganizationService organizationService,
                        PermissionService permissionService, NewUserService newUserService,
                        NotificationService notificationService, EmailService emailService,
-                       TenantContext tenantContext) {
+                       TenantContext tenantContext,
+                       UserAvatarStorageService avatarStorage,
+                       ObjectProvider<OutboxPublisher> outboxPublisherProvider,
+                       ObjectProvider<UserProfileSyncService> profileSyncProvider) {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
         this.memberRepository = memberRepository;
@@ -60,6 +75,12 @@ public class UserService {
         this.notificationService = notificationService;
         this.emailService = emailService;
         this.tenantContext = tenantContext;
+        this.avatarStorage = avatarStorage;
+        // ObjectProvider keeps the dependency optional — works in test contexts where the
+        // outbox / Kafka stack isn't wired (matches the pattern used by
+        // ContactMessageEventPublisher).
+        this.outboxPublisher = outboxPublisherProvider.getIfAvailable();
+        this.profileSyncService = profileSyncProvider.getIfAvailable();
     }
 
     public UserDto create(UserDto dto) {
@@ -128,12 +149,20 @@ public class UserService {
 
     public UserDto update(Long id, UserDto dto) {
         User user = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
+        UserRole previousRole = user.getRole();
         if (dto.firstName != null) user.setFirstName(dto.firstName);
         if (dto.lastName != null) user.setLastName(dto.lastName);
         if (dto.phoneNumber != null) user.setPhoneNumber(dto.phoneNumber);
         if (dto.role != null) user.setRole(dto.role);
         if (dto.status != null) user.setStatus(dto.status);
-        if (dto.profilePictureUrl != null) user.setProfilePictureUrl(dto.profilePictureUrl);
+        // Do NOT round-trip the public URL through the entity: uploadProfilePicture /
+        // deleteProfilePicture own the storage path. Only accept external URLs
+        // (http/https) here so a UI form can still set a remote avatar.
+        if (dto.profilePictureUrl != null
+                && (dto.profilePictureUrl.startsWith("http://")
+                    || dto.profilePictureUrl.startsWith("https://"))) {
+            user.setProfilePictureUrl(dto.profilePictureUrl);
+        }
         if (dto.deferredPayment != null) user.setDeferredPayment(dto.deferredPayment);
         if (dto.organizationId != null && !dto.organizationId.equals(user.getOrganizationId())) {
             user.setOrganizationId(dto.organizationId);
@@ -146,6 +175,28 @@ public class UserService {
 
         // Sauvegarder d'abord dans la base métier
         user = userRepository.save(user);
+
+        // Sync du roleInOrg quand le role plateforme change.
+        // Ne touche pas un OWNER existant (unique par org, modifiable via changeMemberRole)
+        // et ne promeut jamais un membre vers OWNER via ce flow.
+        if (dto.role != null && dto.role != previousRole) {
+            final Long userId = user.getId();
+            final UserRole newRole = dto.role;
+            memberRepository.findByUserId(userId).ifPresent(member -> {
+                if (member.getRoleInOrg() == OrgMemberRole.OWNER) {
+                    return;
+                }
+                OrgMemberRole mapped = mapUserRoleToOrgRole(newRole);
+                OrgMemberRole nextOrgRole = (mapped == OrgMemberRole.OWNER) ? OrgMemberRole.MEMBER : mapped;
+                if (nextOrgRole != member.getRoleInOrg()) {
+                    OrgMemberRole prevOrgRole = member.getRoleInOrg();
+                    member.setRoleInOrg(nextOrgRole);
+                    memberRepository.save(member);
+                    log.info("Sync roleInOrg pour userId={}: {} -> {} (suite a changement role plateforme {} -> {})",
+                            userId, prevOrgRole, nextOrgRole, previousRole, newRole);
+                }
+            });
+        }
         
         try {
             if (user.getKeycloakId() != null) {
@@ -160,6 +211,11 @@ public class UserService {
         } catch (Exception notifEx) {
             log.warn("Erreur notification USER_UPDATED: {}", notifEx.getMessage());
         }
+
+        // OTA sync — when any of the synchronisable fields changed (name, phone, email,
+        // photo), publish an outbox event + fan-out to connected channels.
+        publishProfileChange(user, "PROFILE");
+        dispatchProfileSync(user);
 
         // Mise à jour du mot de passe dans Keycloak si fourni
         boolean passwordUpdateFailed = false;
@@ -334,7 +390,17 @@ public class UserService {
         dto.phoneNumber = user.getPhoneNumber();
         dto.role = user.getRole();
         dto.status = user.getStatus();
-        dto.profilePictureUrl = user.getProfilePictureUrl();
+        // If the stored value is a relative storage path (avatar uploaded via PMS),
+        // expose the served URL so the frontend can render it directly. External URLs
+        // (e.g. SSO profile pictures starting with http) are returned as-is.
+        String storedAvatar = user.getProfilePictureUrl();
+        if (storedAvatar == null || storedAvatar.isBlank()) {
+            dto.profilePictureUrl = null;
+        } else if (storedAvatar.startsWith("http://") || storedAvatar.startsWith("https://")) {
+            dto.profilePictureUrl = storedAvatar;
+        } else {
+            dto.profilePictureUrl = publicAvatarUrl(user.getId());
+        }
         dto.emailVerified = user.isEmailVerified() != null ? user.isEmailVerified() : false;
         dto.phoneVerified = user.isPhoneVerified() != null ? user.isPhoneVerified() : false;
         dto.lastLogin = user.getLastLogin();
@@ -363,6 +429,139 @@ public class UserService {
             );
         }
         return dto;
+    }
+
+    // ─── Profile picture management ──────────────────────────────────────────
+
+    /**
+     * Build the public URL the frontend uses to fetch the avatar. We don't expose the
+     * storage path directly — the URL is stable so it can be cached/shared safely.
+     */
+    private String publicAvatarUrl(Long userId) {
+        return "/api/users/" + userId + "/profile-picture";
+    }
+
+    /**
+     * Upload (or replace) a user's profile picture.
+     *
+     * <ol>
+     *   <li>Persist the new file via {@link UserAvatarStorageService}.</li>
+     *   <li>Delete the previous file on disk (best-effort).</li>
+     *   <li>Update {@link User#getProfilePictureUrl()} with the relative storage path.</li>
+     *   <li>Publish a {@code USER_PROFILE_UPDATED} outbox event for downstream consumers.</li>
+     *   <li>Fire the async fan-out to OTA channel adapters.</li>
+     * </ol>
+     */
+    public UserDto uploadProfilePicture(Long userId, MultipartFile file) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        String previousPath = user.getProfilePictureUrl();
+        String newRelativePath = avatarStorage.store(userId, file);
+        user.setProfilePictureUrl(newRelativePath);
+        userRepository.save(user);
+
+        if (previousPath != null && !previousPath.equals(newRelativePath) && !previousPath.startsWith("http")) {
+            avatarStorage.delete(previousPath);
+        }
+
+        publishProfileChange(user, "PHOTO");
+        dispatchProfileSync(user);
+
+        UserDto dto = toDto(user);
+        // Expose the served URL to the frontend (the entity stores the storage key).
+        dto.profilePictureUrl = publicAvatarUrl(userId);
+        return dto;
+    }
+
+    /** Remove a user's profile picture (file + URL). */
+    public UserDto deleteProfilePicture(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        String previousPath = user.getProfilePictureUrl();
+        if (previousPath != null && !previousPath.startsWith("http")) {
+            avatarStorage.delete(previousPath);
+        }
+        user.setProfilePictureUrl(null);
+        userRepository.save(user);
+
+        publishProfileChange(user, "PHOTO_DELETED");
+        dispatchProfileSync(user);
+
+        return toDto(user);
+    }
+
+    /**
+     * Stream the stored profile picture. Returns null when the user has no avatar.
+     *
+     * @return [Resource, contentType] or null
+     */
+    @Transactional(readOnly = true)
+    public Object[] streamProfilePicture(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) return null;
+        String path = user.getProfilePictureUrl();
+        if (path == null || path.isBlank() || path.startsWith("http")) {
+            // External URL or none — leave it to the frontend to use it directly.
+            return null;
+        }
+        if (!avatarStorage.exists(path)) {
+            log.warn("Avatar file missing for user {} (path={})", userId, path);
+            return null;
+        }
+        Resource resource = avatarStorage.load(path);
+        String contentType = avatarStorage.contentTypeFor(path);
+        return new Object[]{ resource, contentType };
+    }
+
+    /**
+     * Persist a user-profile-updated event in the outbox so downstream consumers
+     * (analytics, channel sync via Kafka, audit) can react with at-least-once delivery.
+     */
+    private void publishProfileChange(User user, String changeKind) {
+        if (outboxPublisher == null || user == null || user.getId() == null) return;
+        try {
+            String payload = JSON.writeValueAsString(java.util.Map.of(
+                    "userId", user.getId(),
+                    "firstName", StringUtils.firstNonBlank(user.getFirstName(), ""),
+                    "lastName", StringUtils.firstNonBlank(user.getLastName(), ""),
+                    "email", StringUtils.firstNonBlank(user.getEmail(), ""),
+                    "profilePictureUrl", user.getProfilePictureUrl() == null
+                            ? "" : publicAvatarUrl(user.getId()),
+                    "changeKind", changeKind,
+                    "organizationId", user.getOrganizationId() == null ? "" : user.getOrganizationId().toString()
+            ));
+            outboxPublisher.publish(
+                    "USER",
+                    String.valueOf(user.getId()),
+                    "USER_PROFILE_UPDATED",
+                    KafkaConfig.TOPIC_USER_PROFILE,
+                    String.valueOf(user.getId()),
+                    payload,
+                    user.getOrganizationId()
+            );
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize USER_PROFILE_UPDATED payload for user {}: {}",
+                    user.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Best-effort synchronous dispatch through the OTA fan-out service. Failures are absorbed
+     * (each channel adapter logs its own state). Reliability is provided by the outbox event.
+     */
+    private void dispatchProfileSync(User user) {
+        if (profileSyncService == null || user == null) return;
+        String publicUrl = user.getProfilePictureUrl() == null
+                ? null : publicAvatarUrl(user.getId());
+        HostProfileUpdate update = UserProfileSyncService.snapshot(user, publicUrl);
+        try {
+            profileSyncService.dispatchAsync(update, user.getOrganizationId());
+        } catch (Exception e) {
+            log.warn("Async profile sync dispatch failed for user {}: {}",
+                    user.getId(), e.getMessage());
+        }
     }
 }
 

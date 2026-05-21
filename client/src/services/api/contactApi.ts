@@ -24,7 +24,19 @@ export interface ContactMessage {
   category: string;
   status: string;
   createdAt: string;
+  deliveredAt?: string | null;
+  readAt?: string | null;
+  repliedAt?: string | null;
+  archivedAt?: string | null;
+  archived?: boolean;
   attachments?: ContactAttachment[];
+}
+
+/** Presence/online status of a user, served by /presence/{userId}. */
+export interface UserPresence {
+  userId: string;
+  online: boolean;
+  lastSeen: string | null;
 }
 
 export interface ContactFormData {
@@ -46,9 +58,15 @@ export interface Recipient {
 
 export interface ContactThreadSummary {
   counterpartKeycloakId: string;
+  /** Numeric (Long) id of the counterpart user — present when they exist in our DB. */
+  counterpartUserId?: number | null;
   counterpartFirstName: string;
   counterpartLastName: string;
   counterpartEmail: string;
+  /** Public URL of the counterpart's avatar; null when they have no photo. */
+  counterpartProfilePictureUrl?: string | null;
+  /** Used as cache-buster for the avatar URL. */
+  counterpartUpdatedAt?: string | null;
   lastMessagePreview: string | null;
   lastMessageAt: string;
   unreadCount: number;
@@ -173,6 +191,17 @@ export const contactApi = {
   /** Marquer tous les messages non-lus d'un thread comme lus */
   markThreadAsRead(counterpartKeycloakId: string): Promise<{ updatedCount: number }> {
     return apiClient.put<{ updatedCount: number }>(`/contact/threads/${counterpartKeycloakId}/mark-read`);
+  },
+
+  /** Statut de presence d'un utilisateur (en ligne / dernière connexion). */
+  getPresence(userId: string): Promise<UserPresence> {
+    return apiClient.get<UserPresence>(`/presence/${userId}`);
+  },
+
+  /** Statut de presence de plusieurs utilisateurs en une requete. */
+  getBulkPresence(userIds: string[]): Promise<UserPresence[]> {
+    if (userIds.length === 0) return Promise.resolve([]);
+    return apiClient.post<UserPresence[]>('/presence/bulk', { userIds });
   },
 
   /** Reset availability flag */
