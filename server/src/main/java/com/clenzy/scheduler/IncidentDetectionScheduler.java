@@ -124,7 +124,13 @@ public class IncidentDetectionScheduler {
 
     private void checkKeycloak() {
         final String serviceName = "keycloak";
-        if (keycloakUrl == null || keycloakUrl.isBlank()) return;
+        if (keycloakUrl == null || keycloakUrl.isBlank()) {
+            // Service is no longer configured → we cannot monitor it. Auto-resolve any
+            // incident opened in a previous configuration so it doesn't stay OPEN forever
+            // (root cause of stuck KPI "P1 Incident Resolution" in local environments).
+            resolveIfOpen(serviceName);
+            return;
+        }
         try {
             URL url = new URL(keycloakUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -148,7 +154,11 @@ public class IncidentDetectionScheduler {
 
     private void checkSmtp() {
         final String serviceName = "smtp";
-        if (mailSender == null) return;
+        if (mailSender == null) {
+            // SMTP no longer configured → auto-resolve to prevent stuck incidents.
+            resolveIfOpen(serviceName);
+            return;
+        }
         try {
             if (mailSender instanceof JavaMailSenderImpl impl) {
                 impl.testConnection();
@@ -163,7 +173,11 @@ public class IncidentDetectionScheduler {
 
     private void checkStripe() {
         final String serviceName = "stripe";
-        if (stripeSecretKey == null || stripeSecretKey.isBlank()) return;
+        if (stripeSecretKey == null || stripeSecretKey.isBlank()) {
+            // Stripe key removed → auto-resolve to prevent stuck incidents.
+            resolveIfOpen(serviceName);
+            return;
+        }
         try {
             var options = com.stripe.net.RequestOptions.builder()
                     .setApiKey(stripeSecretKey)
