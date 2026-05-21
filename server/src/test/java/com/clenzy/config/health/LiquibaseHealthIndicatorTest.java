@@ -68,10 +68,28 @@ class LiquibaseHealthIndicatorTest extends AbstractIntegrationTest {
     class WhenChangelogMissing {
 
         @Test
-        @DisplayName("reports DOWN with explicit interpretation")
-        void downWhenChangelogTableMissing() {
-            // Pas de tables Liquibase creees → etat initial du profile test
+        @DisplayName("reports UP 'not configured' when liquibase is disabled (CI/dev case)")
+        void upNotConfiguredWhenLiquibaseDisabled() {
+            // Le profile 'test' a spring.liquibase.enabled=false → l'absence de la
+            // table est attendue. L'indicator ne doit PAS faire chuter /actuator/health.
             Health health = indicator.health();
+
+            assertThat(health.getStatus().getCode()).isEqualTo("UP");
+            assertThat(health.getDetails().get("status")).isEqualTo("not configured");
+            assertThat(health.getDetails().get("interpretation"))
+                    .asString()
+                    .contains("spring.liquibase.enabled=false");
+        }
+
+        @Test
+        @DisplayName("reports DOWN when liquibase is enabled but table is missing (prod anomaly)")
+        void downWhenLiquibaseEnabledButTableMissing() throws Exception {
+            // Construction directe avec liquibaseConfigured=true pour simuler la prod
+            // Phase 5+ ou Liquibase est cense etre actif mais la table manque.
+            LiquibaseHealthIndicator strictIndicator =
+                    new LiquibaseHealthIndicator(jdbcTemplate, 300L, true);
+
+            Health health = strictIndicator.health();
 
             assertThat(health.getStatus().getCode()).isEqualTo("DOWN");
             assertThat(health.getDetails().get("reason"))

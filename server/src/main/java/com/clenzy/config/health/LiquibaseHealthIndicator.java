@@ -60,13 +60,16 @@ public class LiquibaseHealthIndicator implements HealthIndicator {
 
     private final JdbcTemplate jdbcTemplate;
     private final long staleLockThresholdSeconds;
+    private final boolean liquibaseConfigured;
 
     public LiquibaseHealthIndicator(
             JdbcTemplate jdbcTemplate,
-            @Value("${clenzy.liquibase.stale-lock-threshold-seconds:300}") long staleLockThresholdSeconds
+            @Value("${clenzy.liquibase.stale-lock-threshold-seconds:300}") long staleLockThresholdSeconds,
+            @Value("${spring.liquibase.enabled:true}") boolean liquibaseConfigured
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.staleLockThresholdSeconds = staleLockThresholdSeconds;
+        this.liquibaseConfigured = liquibaseConfigured;
     }
 
     @Override
@@ -79,10 +82,25 @@ public class LiquibaseHealthIndicator implements HealthIndicator {
                     Boolean.class
             );
             if (Boolean.FALSE.equals(dbLogExists)) {
+                // Si Liquibase est explicitement desactive (CI K6, dev avec Hibernate
+                // create-drop, etc.) l'absence de la table est attendue et NE doit PAS
+                // faire passer /actuator/health en DOWN. On reporte UP avec un
+                // detail explicite pour la transparence.
+                if (!liquibaseConfigured) {
+                    return Health.up()
+                            .withDetail("status", "not configured")
+                            .withDetail("interpretation",
+                                    "spring.liquibase.enabled=false on this environment — "
+                                            + "schema managed by another mechanism (Hibernate ddl-auto, "
+                                            + "or external Liquibase Bootstrap workflow).")
+                            .build();
+                }
+                // Sinon : Liquibase est cense etre actif (prod Phase 5+) mais la
+                // table manque → vraie anomalie.
                 return Health.down()
                         .withDetail("reason", "databasechangelog table does not exist")
                         .withDetail("interpretation",
-                                "Liquibase has never been initialized on this database. "
+                                "Liquibase is enabled but has never been initialized on this database. "
                                         + "Run the Liquibase Bootstrap workflow if this is unexpected.")
                         .build();
             }
