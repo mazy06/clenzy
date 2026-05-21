@@ -113,6 +113,13 @@ export default function IntegrationsSection() {
   const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  /**
+   * True quand le backend renvoie 404 sur /api/pennylane/status : la feature
+   * est conditionnelle (@ConditionalOnProperty clenzy.pennylane.client-id)
+   * et la propriete n'est pas definie sur cet env. On affiche alors un etat
+   * "non configure" au lieu de l'erreur generique.
+   */
+  const [notConfigured, setNotConfigured] = useState(false);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -122,8 +129,15 @@ export default function IntegrationsSection() {
       ]);
       setStatus(s);
       if (ss) setSyncStatus(ss);
-    } catch {
-      setStatus({ connected: false });
+    } catch (err) {
+      const httpStatus = (err as { status?: number } | null)?.status;
+      if (httpStatus === 404) {
+        // Feature Pennylane desactivee cote backend (env sans client-id configure).
+        // On bascule en mode "non configure" silencieux — ni erreur ni warning.
+        setNotConfigured(true);
+      } else {
+        setStatus({ connected: false });
+      }
     } finally {
       setLoading(false);
     }
@@ -202,7 +216,14 @@ export default function IntegrationsSection() {
   }
 
   const isConnected = !!status?.connected;
-  const statusChip = isConnected ? (
+  const statusChip = notConfigured ? (
+    <Chip
+      icon={<ErrorOutline size={11} strokeWidth={2} />}
+      label={t('settings.integrations.pennylane.notConfigured', 'Non configuré')}
+      size="small"
+      sx={buildStatusChipSx(NEUTRAL)}
+    />
+  ) : isConnected ? (
     <Chip
       icon={<CheckCircleIcon size={11} strokeWidth={2} />}
       label={t('settings.integrations.pennylane.connected')}
@@ -421,6 +442,22 @@ export default function IntegrationsSection() {
                 </Button>
               </Box>
             </>
+          ) : notConfigured ? (
+            <Alert
+              severity="info"
+              variant="outlined"
+              sx={{
+                mt: 0,
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                '& .MuiAlert-message': { padding: '4px 0' },
+              }}
+            >
+              {t(
+                'settings.integrations.pennylane.notConfiguredHelp',
+                "Cette intégration n'est pas activée sur cet environnement. Contactez votre administrateur pour configurer Pennylane.",
+              )}
+            </Alert>
           ) : (
             <Button
               variant="contained"
