@@ -16,17 +16,24 @@ import {
   Card,
   CardContent,
   TextField,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
   TablePagination,
 } from '@mui/material';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
+import { semanticToHex, softChipSx } from '../../../utils/statusUtils';
+import FilterChipRow from '../../../components/FilterChipRow';
+import { useSyncAdminHeader } from '../SyncAdminPage';
 
-const CHANNELS = ['', 'AIRBNB', 'BOOKING', 'VRBO', 'ICAL', 'OTHER'] as const;
+type ChannelOption = 'AIRBNB' | 'BOOKING' | 'VRBO' | 'ICAL' | 'OTHER';
 
-const directionColor = (direction: string | null): 'info' | 'warning' | 'default' => {
+const CHANNEL_OPTIONS: { value: ChannelOption; label: string; color: string }[] = [
+  { value: 'AIRBNB',  label: 'Airbnb',  color: '#FF5A5F' },
+  { value: 'BOOKING', label: 'Booking', color: '#003580' },
+  { value: 'VRBO',    label: 'Vrbo',    color: '#1E88E5' },
+  { value: 'ICAL',    label: 'iCal',    color: '#6B8A9A' },
+  { value: 'OTHER',   label: 'Autre',   color: '#757575' },
+];
+
+const directionSemantic = (direction: string | null): string => {
   switch (direction) {
     case 'INBOUND': return 'info';
     case 'OUTBOUND': return 'warning';
@@ -44,9 +51,10 @@ const EventsTab: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(20);
 
   // Filters
-  const [channel, setChannel] = useState('');
+  const [channel, setChannel] = useState<ChannelOption | ''>('');
   const [status, setStatus] = useState('');
   const [from, setFrom] = useState('');
+  const { setHeaderFilters } = useSyncAdminHeader();
 
   const fetchStats = async () => {
     try {
@@ -84,6 +92,38 @@ const EventsTab: React.FC = () => {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  // Register filters (Channel + Status + Depuis) into the page header.
+  useEffect(() => {
+    setHeaderFilters(
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        <FilterChipRow
+          options={CHANNEL_OPTIONS}
+          value={channel}
+          onChange={(v) => { setChannel(v as ChannelOption | ''); setPage(0); }}
+          allLabel="Tous"
+          size="compact"
+        />
+        <TextField
+          size="small"
+          label="Status"
+          value={status}
+          onChange={(e) => { setStatus(e.target.value); setPage(0); }}
+          sx={{ width: 140 }}
+        />
+        <TextField
+          size="small"
+          label="Depuis"
+          type="datetime-local"
+          value={from}
+          onChange={(e) => { setFrom(e.target.value); setPage(0); }}
+          InputLabelProps={{ shrink: true }}
+          sx={{ width: 200 }}
+        />
+      </Box>,
+    );
+    return () => setHeaderFilters(null);
+  }, [setHeaderFilters, channel, status, from]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -136,36 +176,6 @@ const EventsTab: React.FC = () => {
         </Grid>
       )}
 
-      {/* Filters */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Channel</InputLabel>
-          <Select
-            value={channel}
-            label="Channel"
-            onChange={(e) => { setChannel(e.target.value); setPage(0); }}
-          >
-            {CHANNELS.map((ch) => (
-              <MenuItem key={ch} value={ch}>{ch || 'Tous'}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <TextField
-          size="small"
-          label="Status"
-          value={status}
-          onChange={(e) => { setStatus(e.target.value); setPage(0); }}
-        />
-        <TextField
-          size="small"
-          label="Depuis"
-          type="datetime-local"
-          value={from}
-          onChange={(e) => { setFrom(e.target.value); setPage(0); }}
-          InputLabelProps={{ shrink: true }}
-        />
-      </Box>
-
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
@@ -202,8 +212,8 @@ const EventsTab: React.FC = () => {
                         {evt.direction ? (
                           <Chip
                             label={evt.direction}
-                            color={directionColor(evt.direction)}
                             size="small"
+                            sx={softChipSx(semanticToHex(directionSemantic(evt.direction)))}
                           />
                         ) : '—'}
                       </TableCell>

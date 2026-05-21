@@ -1,11 +1,35 @@
-import React, { useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
-  Box, Typography, IconButton, Tooltip, Switch,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button,
-  Skeleton, Alert, alpha,
+  Box,
+  Typography,
+  IconButton,
+  Tooltip,
+  Switch,
+  Card,
+  CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+  Chip,
+  Skeleton,
+  Alert,
+  alpha,
+  useTheme,
 } from '@mui/material';
-import { Edit, Delete, VpnKey, ContentCopy, Add } from '../../icons';
+import {
+  Edit,
+  Delete,
+  VpnKey,
+  ContentCopy,
+  Add,
+  Check,
+  Visibility,
+  VisibilityOff,
+  Public,
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -15,14 +39,335 @@ import {
   useToggleBookingEngine,
 } from '../../hooks/useBookingEngineConfig';
 import type { BookingEngineConfig } from '../../services/api/bookingEngineApi';
+import { semanticToHex, softChipSx } from '../../utils/statusUtils';
 
 interface BookingEngineListTabProps {
   onEdit: (config: BookingEngineConfig) => void;
   onCreate: () => void;
+  /** Search query — controlled by the parent so the search bar can live in the PageHeader. */
+  search?: string;
+  /** Reports the total number of configs (pre-filter) so the parent can decide whether
+   *  to render the search bar at all. */
+  onTotalCountChange?: (total: number) => void;
+  /** Reports the count after filtering so the parent's count chip stays in sync. */
+  onFilteredCountChange?: (count: number) => void;
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+const FALLBACK_COLOR = '#6B8A9A';
+
+/** Normalises any user-provided color to a hex string, falling back to brand slate. */
+function normalizeColor(raw: string | null | undefined): string {
+  if (!raw) return FALLBACK_COLOR;
+  if (/^#?[0-9a-f]{3,8}$/i.test(raw.replace(/^#/, ''))) {
+    return raw.startsWith('#') ? raw : `#${raw}`;
+  }
+  return raw;
+}
+
+/** Returns "8aff…42d3" — keeps the start + end so admins can match it visually. */
+function maskApiKey(key: string): string {
+  if (!key) return '';
+  if (key.length <= 12) return key;
+  return `${key.substring(0, 4)}…${key.substring(key.length - 4)}`;
+}
+
+// ─── API key chip with reveal + copy ────────────────────────────────────────
+
+const ApiKeyChip: React.FC<{ apiKey: string }> = ({ apiKey }) => {
+  const { t } = useTranslation();
+  const [revealed, setRevealed] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(apiKey).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {});
+  };
+
+  return (
+    <Box
+      onClick={(e) => e.stopPropagation()}
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.5,
+        bgcolor: 'action.hover',
+        borderRadius: 1,
+        px: 0.75,
+        py: 0.25,
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+        fontSize: '0.75rem',
+        color: 'text.secondary',
+        maxWidth: '100%',
+      }}
+    >
+      <Box
+        component="span"
+        sx={{
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          maxWidth: 180,
+        }}
+      >
+        {revealed ? apiKey : maskApiKey(apiKey)}
+      </Box>
+      <Tooltip title={revealed ? t('common.hide', 'Masquer') : t('common.show', 'Afficher')}>
+        <IconButton
+          size="small"
+          onClick={(e) => { e.stopPropagation(); setRevealed((v) => !v); }}
+          sx={{ p: 0.25, color: 'text.disabled' }}
+        >
+          {revealed
+            ? <VisibilityOff size={12} strokeWidth={1.75} />
+            : <Visibility size={12} strokeWidth={1.75} />}
+        </IconButton>
+      </Tooltip>
+      <Tooltip title={copied ? t('common.copied', 'Copié') : t('bookingEngine.fields.copyKey', 'Copier')}>
+        <IconButton
+          size="small"
+          onClick={handleCopy}
+          sx={{ p: 0.25, color: copied ? 'success.main' : 'text.disabled' }}
+        >
+          {copied
+            ? <Check size={12} strokeWidth={2} />
+            : <ContentCopy size={12} strokeWidth={1.75} />}
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+};
+
+// ─── Card component ────────────────────────────────────────────────────────
+
+interface TemplateCardProps {
+  config: BookingEngineConfig;
+  showOrg: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggle: () => void;
+  toggleDisabled: boolean;
+}
+
+const TemplateCard: React.FC<TemplateCardProps> = ({
+  config,
+  showOrg,
+  onEdit,
+  onDelete,
+  onToggle,
+  toggleDisabled,
+}) => {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const accent = normalizeColor(config.primaryColor);
+  const isActive = config.enabled;
+
+  return (
+    <Card
+      variant="outlined"
+      onClick={onEdit}
+      sx={{
+        position: 'relative',
+        borderRadius: 2,
+        borderColor: 'divider',
+        cursor: 'pointer',
+        overflow: 'hidden',
+        transition: 'border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease',
+        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+        '&:hover': {
+          borderColor: alpha(accent, 0.5),
+          boxShadow: `0 1px 3px ${alpha(accent, 0.15)}`,
+        },
+        // 1 px accent filet on top — single allowed filet (no side stripe).
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0, left: 0, right: 0,
+          height: '1px',
+          bgcolor: accent,
+        },
+      }}
+    >
+      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+        {/* Header: color swatch + name + status */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, mb: 1.5 }}>
+          {/* Color swatch — large enough to read as the template's identity */}
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 1,
+              bgcolor: accent,
+              flexShrink: 0,
+              border: '1px solid',
+              borderColor: alpha(theme.palette.divider, 0.4),
+              boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.common.white, 0.4)}`,
+            }}
+            aria-hidden
+          />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontSize: '0.9375rem',
+                fontWeight: 700,
+                color: 'text.primary',
+                lineHeight: 1.2,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                textWrap: 'balance',
+              }}
+            >
+              {config.name}
+            </Typography>
+            {showOrg && (
+              <Typography
+                sx={{
+                  fontSize: '0.75rem',
+                  color: 'text.secondary',
+                  mt: 0.125,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {config.organizationName || `Org #${config.organizationId}`}
+              </Typography>
+            )}
+          </Box>
+          <Chip
+            label={isActive
+              ? t('bookingEngine.status.active', 'Actif')
+              : t('bookingEngine.status.inactive', 'Inactif')}
+            size="small"
+            sx={softChipSx(semanticToHex(isActive ? 'success' : 'default'))}
+          />
+        </Box>
+
+        {/* Meta row: color hex + language + font family */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            flexWrap: 'wrap',
+            mb: 1.5,
+            color: 'text.secondary',
+            fontSize: '0.75rem',
+          }}
+        >
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontVariantNumeric: 'tabular-nums' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: accent }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: accent }} />
+            </Box>
+            <span>{accent.toUpperCase()}</span>
+          </Box>
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+            <Public size={12} strokeWidth={1.75} />
+            <span>{config.defaultLanguage.toUpperCase()}</span>
+            <span>·</span>
+            <span>{config.defaultCurrency}</span>
+          </Box>
+          {config.fontFamily && (
+            <Box
+              component="span"
+              sx={{
+                fontFamily: config.fontFamily,
+                fontSize: '0.75rem',
+                color: 'text.secondary',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: 160,
+              }}
+              title={config.fontFamily}
+            >
+              {config.fontFamily}
+            </Box>
+          )}
+        </Box>
+
+        {/* API key */}
+        <Box sx={{ mb: 1.5 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: '0.625rem',
+              fontWeight: 600,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: 'text.secondary',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              mb: 0.5,
+            }}
+          >
+            <VpnKey size={11} strokeWidth={1.75} />
+            <span>{t('bookingEngine.fields.apiKey', 'Clé API')}</span>
+          </Typography>
+          <ApiKeyChip apiKey={config.apiKey} />
+        </Box>
+
+        {/* Footer actions */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            pt: 1.25,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Tooltip
+            arrow
+            title={
+              isActive
+                ? t('bookingEngine.status.disableTooltip', 'Désactiver ce template')
+                : t('bookingEngine.status.enableTooltip', 'Activer ce template')
+            }
+          >
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+              <Switch
+                checked={isActive}
+                onChange={onToggle}
+                size="small"
+                color="success"
+                disabled={toggleDisabled}
+              />
+              <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                {isActive ? t('common.enabled', 'Activé') : t('common.disabled', 'Désactivé')}
+              </Typography>
+            </Box>
+          </Tooltip>
+          <Box sx={{ display: 'flex', gap: 0.25 }}>
+            <Tooltip title={t('bookingEngine.actions.editTemplate', 'Modifier')}>
+              <IconButton size="small" onClick={onEdit} sx={{ color: 'text.secondary' }}>
+                <Edit size={16} strokeWidth={1.75} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={t('bookingEngine.actions.deleteTemplate', 'Supprimer')}>
+              <IconButton size="small" onClick={onDelete} color="error">
+                <Delete size={16} strokeWidth={1.75} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+};
+
+// ─── List tab ──────────────────────────────────────────────────────────────
+
 const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
-  ({ onEdit, onCreate }) => {
+  ({ onEdit, onCreate, search = '', onTotalCountChange, onFilteredCountChange }) => {
     const { t } = useTranslation();
     const { isPlatformStaff } = useAuth();
     const showAllOrgs = isPlatformStaff();
@@ -38,6 +383,25 @@ const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
     const deleteMutation = useDeleteBookingEngineConfig();
     const toggleMutation = useToggleBookingEngine();
     const [deleteTarget, setDeleteTarget] = useState<BookingEngineConfig | null>(null);
+
+    const filteredConfigs = useMemo(() => {
+      if (!configs) return [];
+      const q = search.trim().toLowerCase();
+      if (!q) return configs;
+      return configs.filter((c) =>
+        c.name.toLowerCase().includes(q)
+        || (c.organizationName ?? '').toLowerCase().includes(q)
+        || c.apiKey.toLowerCase().includes(q),
+      );
+    }, [configs, search]);
+
+    // Push counts to the parent so the PageHeader filters slot stays in sync.
+    useEffect(() => {
+      onTotalCountChange?.(configs?.length ?? 0);
+    }, [configs?.length, onTotalCountChange]);
+    useEffect(() => {
+      onFilteredCountChange?.(filteredConfigs.length);
+    }, [filteredConfigs.length, onFilteredCountChange]);
 
     const handleToggle = useCallback(
       (config: BookingEngineConfig) => {
@@ -55,27 +419,30 @@ const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
       }
     }, [deleteTarget, deleteMutation]);
 
-    const handleCopyKey = useCallback((apiKey: string) => {
-      navigator.clipboard.writeText(apiKey).catch(() => {});
-    }, []);
-
-    // Loading
+    // ── Loading ──────────────────────────────────────────────────────────────
     if (isLoading) {
       return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+            gap: 1.5,
+            pt: 1,
+          }}
+        >
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rectangular" height={48} sx={{ borderRadius: 1 }} />
+            <Skeleton key={i} variant="rounded" height={220} sx={{ borderRadius: 2 }} />
           ))}
         </Box>
       );
     }
 
-    // Error
+    // ── Error ────────────────────────────────────────────────────────────────
     if (error) {
       return <Alert severity="error" sx={{ mt: 1 }}>{t('bookingEngine.messages.error')}</Alert>;
     }
 
-    // Empty state
+    // ── Empty (no configs at all) ────────────────────────────────────────────
     if (!configs || configs.length === 0) {
       return (
         <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -98,103 +465,36 @@ const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
       );
     }
 
+    // ── Main render — search lives in the PageHeader (controlled via props) ──
     return (
       <>
-        <TableContainer sx={{ mt: 1 }}>
-          <Table size="small" sx={{
-            '& .MuiTableCell-root': { borderColor: (theme) => alpha(theme.palette.divider, 0.6), py: 1.25 },
-            '& .MuiTableRow-root:hover': { bgcolor: (theme) => alpha(theme.palette.action.hover, 0.04) },
-          }}>
-            <TableHead>
-              <TableRow sx={{ '& .MuiTableCell-head': { fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' } }}>
-                <TableCell>{t('bookingEngine.fields.name', 'Nom')}</TableCell>
-                {showAllOrgs && <TableCell>{t('bookingEngine.fields.organization', 'Organisation')}</TableCell>}
-                <TableCell align="center">{t('bookingEngine.fields.primaryColor', 'Couleur')}</TableCell>
-                <TableCell>{t('bookingEngine.fields.defaultLanguage', 'Langue')}</TableCell>
-                <TableCell>{t('bookingEngine.fields.apiKey', 'Clé API')}</TableCell>
-                <TableCell align="center">{t('bookingEngine.fields.status', 'Statut')}</TableCell>
-                <TableCell align="right">{t('bookingEngine.fields.actions', 'Actions')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {configs.map((config) => (
-                <TableRow key={config.id} sx={{ cursor: 'pointer' }} onClick={() => onEdit(config)}>
-                  {/* Name */}
-                  <TableCell>
-                    <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{config.name}</Typography>
-                    {config.fontFamily && (
-                      <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>{config.fontFamily}</Typography>
-                    )}
-                  </TableCell>
-
-                  {/* Organization (platform staff only) */}
-                  {showAllOrgs && (
-                    <TableCell>
-                      <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
-                        {config.organizationName || `Org #${config.organizationId}`}
-                      </Typography>
-                    </TableCell>
-                  )}
-
-                  {/* Color dot */}
-                  <TableCell align="center">
-                    <Box sx={{
-                      width: 16, height: 16, borderRadius: '50%', mx: 'auto',
-                      bgcolor: config.primaryColor || '#2563eb',
-                      border: '1px solid', borderColor: (theme) => alpha(theme.palette.divider, 0.3),
-                    }} />
-                  </TableCell>
-
-                  {/* Language */}
-                  <TableCell>
-                    <Typography sx={{ fontSize: '0.8125rem' }}>{config.defaultLanguage.toUpperCase()}</Typography>
-                  </TableCell>
-
-                  {/* API Key */}
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Typography sx={{ fontSize: '0.7rem', fontFamily: 'monospace', color: 'text.secondary' }}>
-                        {config.apiKey.substring(0, 8)}...
-                      </Typography>
-                      <Tooltip title={t('bookingEngine.fields.copyKey')}>
-                        <IconButton size="small" onClick={() => handleCopyKey(config.apiKey)} sx={{ p: 0.25 }}>
-                          <ContentCopy size={12} strokeWidth={1.75} />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-
-                  {/* Status */}
-                  <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                    <Switch
-                      checked={config.enabled}
-                      onChange={() => handleToggle(config)}
-                      size="small"
-                      color="success"
-                      disabled={toggleMutation.isPending}
-                    />
-                  </TableCell>
-
-                  {/* Actions */}
-                  <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                    <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                      <Tooltip title={t('bookingEngine.actions.editTemplate')}>
-                        <IconButton size="small" onClick={() => onEdit(config)}>
-                          <Edit size={16} strokeWidth={1.75} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title={t('bookingEngine.actions.deleteTemplate')}>
-                        <IconButton size="small" onClick={() => setDeleteTarget(config)} color="error">
-                          <Delete size={16} strokeWidth={1.75} />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        {/* No results for the current search (the search bar itself is in the PageHeader) */}
+        {filteredConfigs.length === 0 ? (
+          <Alert severity="info" sx={{ mt: 1, fontSize: '0.8125rem' }}>
+            {t('bookingEngine.list.noResults', 'Aucun template ne correspond à la recherche.')}
+          </Alert>
+        ) : (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+              gap: 1.5,
+              mt: 1,
+            }}
+          >
+            {filteredConfigs.map((config) => (
+              <TemplateCard
+                key={config.id}
+                config={config}
+                showOrg={showAllOrgs}
+                onEdit={() => onEdit(config)}
+                onDelete={() => setDeleteTarget(config)}
+                onToggle={() => handleToggle(config)}
+                toggleDisabled={toggleMutation.isPending}
+              />
+            ))}
+          </Box>
+        )}
 
         {/* Delete confirmation dialog */}
         <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs">

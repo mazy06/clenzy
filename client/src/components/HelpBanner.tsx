@@ -1,11 +1,29 @@
 import React, { useState, useCallback } from 'react';
-import { Box, Paper, Typography, IconButton } from '@mui/material';
-import { InfoOutlined as InfoIcon, Close as CloseIcon } from '../icons';
+import { Box, Typography, IconButton, alpha, useTheme } from '@mui/material';
+import { Close as CloseIcon } from '../icons';
+import { semanticToHex } from '../utils/statusUtils';
+
+/**
+ * Semantic colour for a help step. Determines the icon badge tint, the title accent,
+ * and the small underline beneath the step title. Lets a single banner mix several
+ * statuses (e.g. PENDING/SENT/FAILED) without falling into the "3 identical cards"
+ * antipattern.
+ */
+export type HelpStepAccent =
+  | 'info'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'primary'
+  | 'secondary'
+  | 'default';
 
 export interface HelpStep {
   icon: React.ReactNode;
   title: string;
   description: string;
+  /** Optional — when omitted the banner cycles through a 3-tone palette so steps stay distinct. */
+  accent?: HelpStepAccent;
 }
 
 interface HelpBannerProps {
@@ -16,6 +34,25 @@ interface HelpBannerProps {
   dismissLabel?: string;
 }
 
+/** Auto-cycle palette when the caller doesn't pass an explicit accent per step. */
+const DEFAULT_ACCENT_CYCLE: HelpStepAccent[] = ['info', 'success', 'warning', 'primary', 'secondary'];
+
+/**
+ * Inline informational banner — used on admin / accounting / sync pages to teach the
+ * user what a complex feature does. Dismissable per `storageKey` via localStorage.
+ *
+ * <h2>Design rules applied</h2>
+ * <ul>
+ *   <li>Pas d'icon-badge rond au-dessus de chaque heading (Impeccable ban) — petit carré
+ *   coloré 6 px de radius à la place.</li>
+ *   <li>Pas d'identical card grid — chaque step a son propre accent sémantique (passé via
+ *   `accent` ou auto-attribué).</li>
+ *   <li>Filet 1 px en haut (single allowed accent), pas de side-stripe.</li>
+ *   <li>Soft brand wash (radial primary 4%) au lieu d'un fond cyan AI-slop.</li>
+ *   <li>Chip "AIDE" en pattern soft pour signaler la nature informationnelle.</li>
+ *   <li>`text-wrap: balance` sur les titres, `prefers-reduced-motion` sur les transitions.</li>
+ * </ul>
+ */
 const HelpBanner: React.FC<HelpBannerProps> = ({
   storageKey,
   title,
@@ -23,80 +60,200 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
   steps,
   dismissLabel = 'Ne plus afficher',
 }) => {
+  const theme = useTheme();
   const [dismissed, setDismissed] = useState(
-    () => localStorage.getItem(storageKey) === '1',
+    () => {
+      try { return localStorage.getItem(storageKey) === '1'; } catch { return false; }
+    },
   );
 
   const handleDismiss = useCallback(() => {
-    localStorage.setItem(storageKey, '1');
+    try { localStorage.setItem(storageKey, '1'); } catch { /* ignore */ }
     setDismissed(true);
   }, [storageKey]);
 
   if (dismissed) return null;
 
+  const primary = theme.palette.primary.main;
+
   return (
-    <Paper
+    <Box
+      role="region"
+      aria-label={title}
       sx={{
-        border: '1px solid',
-        borderColor: 'info.200',
-        boxShadow: 'none',
-        borderRadius: 1.5,
-        mb: 1.5,
-        p: 2,
-        bgcolor: 'info.50',
         position: 'relative',
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: 'divider',
+        mb: 1.5,
+        p: { xs: 1.75, sm: 2.25 },
+        overflow: 'hidden',
+        // Brand-wash background — radial gradient anchored top-left, very subtle.
+        // No glassmorphism, no neon, no AI-slop cyan.
+        backgroundImage: `radial-gradient(circle at top left, ${alpha(primary, 0.05)}, transparent 55%)`,
+        bgcolor: 'background.paper',
+        // Single allowed filet — 1 px top accent in primary.
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0, left: 0, right: 0,
+          height: '1px',
+          bgcolor: primary,
+          opacity: 0.5,
+        },
       }}
     >
-      <IconButton
-        size="small"
-        onClick={handleDismiss}
-        sx={{ position: 'absolute', top: 6, right: 6, color: 'info.main' }}
-        aria-label={dismissLabel}
+      {/* Header row — accent chip + title + dismiss button */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 1,
+          mb: 0.75,
+        }}
       >
-        <CloseIcon size={16} strokeWidth={1.75} />
-      </IconButton>
-
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><InfoIcon size={20} strokeWidth={1.75} /></Box>
-        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'info.main' }}>
+        <Box
+          sx={{
+            fontSize: '0.5625rem',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: primary,
+            bgcolor: alpha(primary, 0.1),
+            border: `1px solid ${alpha(primary, 0.25)}`,
+            borderRadius: 0.75,
+            px: 0.75,
+            py: 0.25,
+            mt: 0.375,
+            flexShrink: 0,
+            fontVariantNumeric: 'tabular-nums',
+          }}
+          aria-hidden
+        >
+          AIDE
+        </Box>
+        <Typography
+          sx={{
+            fontSize: '0.9375rem',
+            fontWeight: 700,
+            color: 'text.primary',
+            lineHeight: 1.3,
+            letterSpacing: '-0.005em',
+            flex: 1,
+            textWrap: 'balance',
+          }}
+        >
           {title}
         </Typography>
+        <IconButton
+          size="small"
+          onClick={handleDismiss}
+          aria-label={dismissLabel}
+          sx={{
+            color: 'text.disabled',
+            p: 0.5,
+            flexShrink: 0,
+            transition: 'color 150ms ease, background-color 150ms ease',
+            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+            '&:hover': { color: 'text.secondary', bgcolor: alpha(primary, 0.06) },
+          }}
+        >
+          <CloseIcon size={16} strokeWidth={1.75} />
+        </IconButton>
       </Box>
 
-      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 2 }}>
+      {/* Description */}
+      <Typography
+        sx={{
+          fontSize: '0.8125rem',
+          color: 'text.secondary',
+          lineHeight: 1.55,
+          mb: steps.length > 0 ? 2 : 0,
+          maxWidth: '80ch',
+        }}
+      >
         {description}
       </Typography>
 
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        {steps.map((step, i) => (
-          <Box key={i} sx={{ flex: 1, minWidth: 180, display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
-            <Box
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                bgcolor: 'info.main',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {step.icon}
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>
-                {step.title}
-              </Typography>
-              <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-                {step.description}
-              </Typography>
-            </Box>
-          </Box>
-        ))}
-      </Box>
-    </Paper>
+      {/* Steps — responsive grid, per-step accent breaks templating */}
+      {steps.length > 0 && (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: steps.length === 2 ? 'repeat(2, 1fr)' : '1fr',
+              md: `repeat(${Math.min(steps.length, 4)}, 1fr)`,
+            },
+            gap: { xs: 1.5, md: 2 },
+          }}
+        >
+          {steps.map((step, i) => {
+            const accentKey: HelpStepAccent
+              = step.accent ?? DEFAULT_ACCENT_CYCLE[i % DEFAULT_ACCENT_CYCLE.length];
+            const accentHex = semanticToHex(accentKey);
+            return (
+              <Box
+                key={i}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 1.125,
+                  minWidth: 0,
+                }}
+              >
+                {/* Small square icon — no big round badge over each heading */}
+                <Box
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 0.75,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: alpha(accentHex, 0.14),
+                    color: accentHex,
+                    flexShrink: 0,
+                    mt: 0.125,
+                  }}
+                  aria-hidden
+                >
+                  {step.icon}
+                </Box>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    sx={{
+                      fontSize: '0.8125rem',
+                      fontWeight: 700,
+                      color: 'text.primary',
+                      lineHeight: 1.25,
+                      mb: 0.25,
+                      textWrap: 'balance',
+                      // Thin colored underline keeps each step's identity without a side-stripe.
+                      display: 'inline-block',
+                      borderBottom: `2px solid ${alpha(accentHex, 0.45)}`,
+                      pb: 0.125,
+                    }}
+                  >
+                    {step.title}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: '0.75rem',
+                      color: 'text.secondary',
+                      lineHeight: 1.45,
+                      mt: 0.25,
+                    }}
+                  >
+                    {step.description}
+                  </Typography>
+                </Box>
+              </Box>
+            );
+          })}
+        </Box>
+      )}
+    </Box>
   );
 };
 

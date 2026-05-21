@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Paper,
   Box,
   Typography,
   Button,
-  Divider,
   Alert,
   Autocomplete,
   TextField,
@@ -16,6 +14,7 @@ import {
   Business,
   PersonAdd,
   InfoOutlined,
+  Email,
 } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { organizationsApi, OrganizationDto } from '../../services/api/organizationsApi';
@@ -23,8 +22,7 @@ import SendInvitationDialog from './SendInvitationDialog';
 import InvitationsList from './InvitationsList';
 import MembersList from './MembersList';
 import BillingSummaryCard from './BillingSummaryCard';
-
-// ─── Labels FR pour les types d'organisation ─────────────────────────────────
+import SettingsSection from '../settings/components/SettingsSection';
 
 const ORG_TYPE_LABELS: Record<string, string> = {
   INDIVIDUAL: 'Particulier',
@@ -36,21 +34,26 @@ function getOrgTypeLabel(type: string): string {
   return ORG_TYPE_LABELS[type] || type;
 }
 
-// ─── Props ───────────────────────────────────────────────────────────────────
+const ORG_TYPE_COLORS: Record<string, string> = {
+  INDIVIDUAL: '#7BA3C2',
+  CONCIERGE: '#6B8A9A',
+  CLEANING_COMPANY: '#4A9B8E',
+};
+
+function getOrgTypeColor(type: string): string {
+  return ORG_TYPE_COLORS[type] || '#8A8378';
+}
 
 interface Props {
   organizationId?: number;
   organizationName?: string;
 }
 
-// ─── Composant ───────────────────────────────────────────────────────────────
-
-export default function OrganizationSection({ organizationId, organizationName }: Props) {
+export default function OrganizationSection({ organizationId }: Props) {
   const { hasAnyRole } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // State pour le selecteur multi-org (staff plateforme)
   const [organizations, setOrganizations] = useState<OrganizationDto[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<OrganizationDto | null>(null);
   const [orgsLoading, setOrgsLoading] = useState(false);
@@ -58,8 +61,6 @@ export default function OrganizationSection({ organizationId, organizationName }
 
   const isPlatformStaff = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
 
-  // Charger la liste des organisations pour le staff plateforme
-  // IMPORTANT : tous les hooks doivent etre appeles avant tout early return
   useEffect(() => {
     if (!isPlatformStaff) return;
 
@@ -72,11 +73,8 @@ export default function OrganizationSection({ organizationId, organizationName }
         if (cancelled) return;
         setOrganizations(data);
 
-        // Pre-selectionner l'org de l'utilisateur, sinon la premiere
         if (data.length > 0) {
-          const userOrg = organizationId
-            ? data.find((o) => o.id === organizationId)
-            : null;
+          const userOrg = organizationId ? data.find((o) => o.id === organizationId) : null;
           setSelectedOrg(userOrg || data[0]);
         }
       } catch {
@@ -91,67 +89,84 @@ export default function OrganizationSection({ organizationId, organizationName }
     return () => { cancelled = true; };
   }, [isPlatformStaff, organizationId]);
 
-  // Early return APRES tous les hooks
   if (!isPlatformStaff) {
     return null;
   }
 
   const triggerRefresh = () => setRefreshTrigger((prev) => prev + 1);
-
-  // Org effective = celle selectionnee dans le selecteur
   const effectiveOrgId = selectedOrg?.id;
 
-  // ─── Rendu : aucune organisation dans le systeme ─────────────────────────
-
+  // ── Aucune organisation dans le système ──
   if (!orgsLoading && organizations.length === 0 && !orgsError) {
     return (
-      <Paper sx={{ p: 2, height: '100%' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Business size={20} strokeWidth={1.75} /></Box>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-            Organisations
-          </Typography>
-        </Box>
-        <Divider sx={{ mb: 2 }} />
-        <Alert severity="info" icon={<InfoOutlined />}>
+      <SettingsSection title="Organisations" icon={Business} accent="primary">
+        <Alert
+          severity="info"
+          icon={<InfoOutlined size={16} strokeWidth={1.75} />}
+          sx={{ borderRadius: '8px' }}
+        >
           Aucune organisation n'existe dans le systeme pour le moment.
         </Alert>
-      </Paper>
+      </SettingsSection>
     );
   }
 
+  const inviteAction = effectiveOrgId ? (
+    <Button
+      variant="contained"
+      disableElevation
+      size="small"
+      startIcon={<PersonAdd size={14} strokeWidth={2} />}
+      onClick={() => setDialogOpen(true)}
+      sx={{
+        textTransform: 'none',
+        fontWeight: 600,
+        fontSize: '0.75rem',
+        letterSpacing: '0.01em',
+        borderRadius: '8px',
+        py: 0.625,
+        px: 1.5,
+        bgcolor: '#6B8A9A',
+        color: '#fff',
+        boxShadow: 'none',
+        transition:
+          'background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+        '&:hover': {
+          bgcolor: '#6B8A9A',
+          filter: 'brightness(0.94)',
+          boxShadow: '0 1px 2px rgba(45, 55, 72, 0.06), 0 4px 10px rgba(107, 138, 154, 0.22)',
+          transform: 'translateY(-1px)',
+        },
+        '&:active': {
+          transform: 'translateY(0)',
+          boxShadow: 'none',
+        },
+        '&:focus-visible': {
+          outline: '2px solid #6B8A9A',
+          outlineOffset: 2,
+        },
+        '& .MuiButton-startIcon': { mr: 0.75 },
+      }}
+    >
+      Inviter
+    </Button>
+  ) : undefined;
+
   return (
     <>
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {/* ─── Colonne gauche : Organisation ─────────────────────────── */}
         <Grid item xs={12} md={5}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            {/* Header */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Business size={20} strokeWidth={1.75} /></Box>
-                <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-                  Organisations
-                </Typography>
-              </Box>
-              {effectiveOrgId && (
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<PersonAdd />}
-                  onClick={() => setDialogOpen(true)}
-                  sx={{ textTransform: 'none', fontWeight: 600 }}
-                >
-                  Inviter
-                </Button>
-              )}
-            </Box>
-
-            <Divider sx={{ mb: 1.5 }} />
-
-            {/* Selecteur d'organisation */}
+          <SettingsSection
+            title="Organisations"
+            icon={Business}
+            accent="primary"
+            action={inviteAction}
+          >
             {orgsError && (
-              <Alert severity="error" sx={{ mb: 1.5 }}>{orgsError}</Alert>
+              <Alert severity="error" sx={{ mb: 1.5, borderRadius: '8px' }}>
+                {orgsError}
+              </Alert>
             )}
 
             <Autocomplete
@@ -165,33 +180,50 @@ export default function OrganizationSection({ organizationId, organizationName }
               }}
               getOptionLabel={(option) => option.name}
               isOptionEqualToValue={(option, value) => option.id === value.id}
-              renderOption={(props, option) => (
-                <li {...props} key={option.id}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 500, flex: 1 }}>
-                      {option.name}
-                    </Typography>
-                    <Chip
-                      label={getOrgTypeLabel(option.type)}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: '0.7rem', height: 20 }}
-                    />
-                    <Typography variant="caption" color="text.secondary">
-                      {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
-                    </Typography>
-                  </Box>
-                </li>
-              )}
+              renderOption={(props, option) => {
+                const c = getOrgTypeColor(option.type);
+                return (
+                  <li {...props} key={option.id}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                      <Typography sx={{ fontWeight: 500, flex: 1, fontSize: '0.85rem' }}>
+                        {option.name}
+                      </Typography>
+                      <Chip
+                        label={getOrgTypeLabel(option.type)}
+                        size="small"
+                        sx={{
+                          height: 20,
+                          fontSize: '0.65rem',
+                          fontWeight: 600,
+                          backgroundColor: `${c}14`,
+                          color: c,
+                          border: `1px solid ${c}33`,
+                          borderRadius: '5px',
+                          '& .MuiChip-label': { px: 0.75 },
+                        }}
+                      />
+                      <Typography
+                        sx={{
+                          fontSize: '0.7rem',
+                          color: 'text.secondary',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
+                      </Typography>
+                    </Box>
+                  </li>
+                );
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Selectionner une organisation"
+                  label="Sélectionner une organisation"
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (
                       <>
-                        {orgsLoading ? <CircularProgress color="inherit" size={18} /> : null}
+                        {orgsLoading ? <CircularProgress color="inherit" size={16} /> : null}
                         {params.InputProps.endAdornment}
                       </>
                     ),
@@ -202,10 +234,18 @@ export default function OrganizationSection({ organizationId, organizationName }
               noOptionsText="Aucune organisation"
             />
 
-            {/* Contenu de l'organisation selectionnee */}
             {effectiveOrgId ? (
               <>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
+                <Typography
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: 'text.secondary',
+                    mb: 1,
+                  }}
+                >
                   Membres de l'organisation
                 </Typography>
 
@@ -216,39 +256,40 @@ export default function OrganizationSection({ organizationId, organizationName }
                 />
               </>
             ) : (
-              <Alert severity="info" icon={<InfoOutlined />}>
-                Selectionnez une organisation pour voir ses membres et invitations.
+              <Alert
+                severity="info"
+                icon={<InfoOutlined size={16} strokeWidth={1.75} />}
+                sx={{ borderRadius: '8px' }}
+              >
+                Sélectionnez une organisation pour voir ses membres et invitations.
               </Alert>
             )}
-          </Paper>
+          </SettingsSection>
         </Grid>
 
         {/* ─── Colonne droite : Facturation + Invitations ─────────── */}
         <Grid item xs={12} md={7}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {effectiveOrgId ? (
               <BillingSummaryCard
                 organizationId={effectiveOrgId}
                 refreshTrigger={refreshTrigger}
               />
             ) : (
-              <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Selectionnez une organisation pour voir la facturation.
+              <SettingsSection title="Facturation" icon={Business} accent="accent">
+                <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', textAlign: 'center', py: 2 }}>
+                  Sélectionnez une organisation pour voir la facturation.
                 </Typography>
-              </Paper>
+              </SettingsSection>
             )}
 
             {effectiveOrgId && (
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
-                  Invitations envoyees
-                </Typography>
+              <SettingsSection title="Invitations envoyées" icon={Email} accent="info">
                 <InvitationsList
                   organizationId={effectiveOrgId}
                   refreshTrigger={refreshTrigger}
                 />
-              </Paper>
+              </SettingsSection>
             )}
           </Box>
         </Grid>
