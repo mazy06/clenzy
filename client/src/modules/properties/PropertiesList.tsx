@@ -679,7 +679,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                       </TableCell>
                       <TableCell>
                         {property.amenities && property.amenities.length > 0 ? (
-                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', alignItems: 'center', overflow: 'hidden' }}>
+                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', alignItems: 'center', minWidth: 0 }}>
                             {property.amenities.slice(0, 2).map((amenity, i) => {
                               const c = getAmenityHex(amenity);
                               return (
@@ -695,7 +695,15 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                                   fontWeight: 600,
                                   fontSize: '0.62rem',
                                   height: 22,
-                                  '& .MuiChip-label': { px: 0.75 },
+                                  minWidth: 0,
+                                  flexShrink: 1,
+                                  '& .MuiChip-label': {
+                                    px: 0.75,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    display: 'block',
+                                  },
                                 }}
                               />
                               );
@@ -732,7 +740,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                                 <Chip
                                   label={`+${property.amenities.length - 2}`}
                                   size="small"
-                                  sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
+                                  sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', flexShrink: 0, '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
                                 />
                               </ThemedTooltip>
                             )}

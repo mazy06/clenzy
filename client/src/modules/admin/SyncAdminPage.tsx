@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect, createContext, useContext } from 'react';
 import { Box } from '@mui/material';
 import {
   Cable,
@@ -19,8 +19,33 @@ import MappingsTab from './sync/MappingsTab';
 import DiagnosticsTab from './sync/DiagnosticsTab';
 import ReconciliationTab from './sync/ReconciliationTab';
 
+interface SyncAdminHeaderApi {
+  setHeaderFilters: (filters: React.ReactNode) => void;
+  setHeaderActions: (actions: React.ReactNode) => void;
+}
+
+const SyncAdminHeaderContext = createContext<SyncAdminHeaderApi>({
+  setHeaderFilters: () => {},
+  setHeaderActions: () => {},
+});
+
+export const useSyncAdminHeader = (): SyncAdminHeaderApi => useContext(SyncAdminHeaderContext);
+
 const SyncAdminPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
+  const [headerFilters, setHeaderFilters] = useState<React.ReactNode>(null);
+  const [headerActions, setHeaderActions] = useState<React.ReactNode>(null);
+
+  // Reset both slots when switching tabs so a previous tab's content never leaks.
+  useEffect(() => {
+    setHeaderFilters(null);
+    setHeaderActions(null);
+  }, [tabValue]);
+
+  const headerApi = useMemo<SyncAdminHeaderApi>(
+    () => ({ setHeaderFilters, setHeaderActions }),
+    [],
+  );
 
   return (
     <Box>
@@ -30,6 +55,8 @@ const SyncAdminPage: React.FC = () => {
         iconBadge={<Sync />}
         backPath="/admin"
         showBackButton={false}
+        filters={headerFilters}
+        actions={headerActions}
       />
 
       <PageTabs
@@ -48,13 +75,15 @@ const SyncAdminPage: React.FC = () => {
       />
 
       <Box sx={{ mt: 2 }}>
-        {tabValue === 0 && <ConnectionsTab />}
-        {tabValue === 1 && <EventsTab />}
-        {tabValue === 2 && <OutboxTab />}
-        {tabValue === 3 && <CalendarAuditTab />}
-        {tabValue === 4 && <MappingsTab />}
-        {tabValue === 5 && <DiagnosticsTab />}
-        {tabValue === 6 && <ReconciliationTab />}
+        <SyncAdminHeaderContext.Provider value={headerApi}>
+          {tabValue === 0 && <ConnectionsTab />}
+          {tabValue === 1 && <EventsTab />}
+          {tabValue === 2 && <OutboxTab />}
+          {tabValue === 3 && <CalendarAuditTab />}
+          {tabValue === 4 && <MappingsTab />}
+          {tabValue === 5 && <DiagnosticsTab />}
+          {tabValue === 6 && <ReconciliationTab />}
+        </SyncAdminHeaderContext.Provider>
       </Box>
     </Box>
   );

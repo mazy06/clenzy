@@ -82,7 +82,7 @@ jobs:
         run: mvn clean package -B -q -DskipTests
 
       - name: Create upload directories
-        run: mkdir -p /tmp/clenzy-ci/uploads/{contact,templates,documents}
+        run: mkdir -p /tmp/clenzy-ci/uploads/{contact,templates,documents,user-avatars}
 
       - name: Start backend
         working-directory: server

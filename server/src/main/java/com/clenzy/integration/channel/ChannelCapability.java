@@ -32,5 +32,7 @@ public enum ChannelCapability {
     /** Le channel supporte la sync de frais supplementaires (menage, animaux, etc.) */
     FEES,
     /** Le channel supporte la sync de politiques d'annulation */
-    CANCELLATION_POLICIES
+    CANCELLATION_POLICIES,
+    /** Le channel supporte le push du profil host (nom, photo, etc.) */
+    OUTBOUND_HOST_PROFILE
 }

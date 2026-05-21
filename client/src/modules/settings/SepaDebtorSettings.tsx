@@ -1,13 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import {
-  Box, Paper, Typography, TextField, Button, Alert, CircularProgress, Chip,
+  Box, Typography, TextField, Alert, CircularProgress, Chip,
 } from '@mui/material';
-import { AccountBalance, Save } from '../../icons';
+import { AccountBalance, VerifiedUser } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingApi } from '../../services/api/accountingApi';
 import { useTranslation } from '../../hooks/useTranslation';
+import SettingsSection from './components/SettingsSection';
 
-const SepaDebtorSettings: React.FC = () => {
+export interface SepaDebtorHandle {
+  save: () => Promise<void>;
+  hasChanges: () => boolean;
+  isSaving: boolean;
+  isValid: () => boolean;
+}
+
+interface SepaDebtorSettingsProps {
+  onChangeState?: () => void;
+}
+
+const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>(function SepaDebtorSettings(
+  { onChangeState },
+  ref,
+) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -28,6 +43,11 @@ const SepaDebtorSettings: React.FC = () => {
     }
   }, [config]);
 
+  const baseline = useMemo(() => ({
+    name: config?.name ?? '',
+    bic: config?.bic ?? '',
+  }), [config]);
+
   const mutation = useMutation({
     mutationFn: () => accountingApi.updateSepaDebtorConfig({
       name: name.trim(),
@@ -40,38 +60,99 @@ const SepaDebtorSettings: React.FC = () => {
     },
   });
 
+  const hasChanges = () => {
+    return (
+      name.trim() !== baseline.name ||
+      bic.trim() !== baseline.bic ||
+      iban.trim().length > 0
+    );
+  };
+
+  const isValid = () => name.trim().length > 0 && bic.trim().length > 0;
+
+  useEffect(() => {
+    onChangeState?.();
+  }, [name, iban, bic, mutation.isPending]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useImperativeHandle(ref, () => ({
+    save: async () => {
+      await mutation.mutateAsync();
+    },
+    hasChanges,
+    isSaving: mutation.isPending,
+    isValid,
+  }));
+
   if (isLoading) {
-    return <CircularProgress size={24} />;
+    return (
+      <SettingsSection
+        title={t('settings.sepaDebtor.title', 'Compte bancaire débiteur (SEPA)')}
+        icon={AccountBalance}
+        accent="primary"
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+          <CircularProgress size={24} />
+        </Box>
+      </SettingsSection>
+    );
   }
 
+  const configuredChip = config?.configured ? (
+    <Chip
+      icon={<VerifiedUser size={11} strokeWidth={2} />}
+      label={t('settings.sepaDebtor.configured', 'Configuré')}
+      size="small"
+      sx={{
+        height: 22,
+        fontSize: '0.6875rem',
+        fontWeight: 600,
+        letterSpacing: '0.01em',
+        backgroundColor: '#4A9B8E14',
+        color: '#4A9B8E',
+        border: '1px solid #4A9B8E33',
+        borderRadius: '6px',
+        px: 0.25,
+        '& .MuiChip-icon': {
+          color: '#4A9B8E !important',
+          ml: '6px',
+          mr: '-2px',
+        },
+        '& .MuiChip-label': { px: 0.875 },
+      }}
+    />
+  ) : undefined;
+
   return (
-    <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, height: '100%' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AccountBalance size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="h6" sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
-          {t('settings.sepaDebtor.title', 'Compte bancaire debiteur (SEPA)')}
-        </Typography>
-        {config?.configured && (
-          <Chip label={t('settings.sepaDebtor.configured', 'Configure')} size="small" color="success" sx={{ fontSize: '0.625rem', height: 20 }} />
-        )}
-      </Box>
-
-      <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 2 }}>
-        {t('settings.sepaDebtor.description', 'Renseignez les coordonnees bancaires de votre organisation. Elles seront utilisees comme debiteur dans les fichiers SEPA XML (pain.001).')}
-      </Typography>
-
+    <SettingsSection
+      title={t('settings.sepaDebtor.title', 'Compte bancaire débiteur (SEPA)')}
+      icon={AccountBalance}
+      accent="primary"
+      description={t(
+        'settings.sepaDebtor.description',
+        'Renseignez les coordonnées bancaires de votre organisation. Elles seront utilisées comme débiteur dans les fichiers SEPA XML (pain.001).',
+      )}
+      action={configuredChip}
+    >
       {mutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 2, fontSize: '0.8125rem' }} onClose={() => mutation.reset()}>
-          {t('settings.sepaDebtor.saveSuccess', 'Configuration sauvegardee')}
+        <Alert
+          severity="success"
+          sx={{ mb: 2, borderRadius: '8px' }}
+          onClose={() => mutation.reset()}
+        >
+          {t('settings.sepaDebtor.saveSuccess', 'Configuration sauvegardée')}
         </Alert>
       )}
       {mutation.isError && (
-        <Alert severity="error" sx={{ mb: 2, fontSize: '0.8125rem' }} onClose={() => mutation.reset()}>
+        <Alert
+          severity="error"
+          sx={{ mb: 2, borderRadius: '8px' }}
+          onClose={() => mutation.reset()}
+        >
           {(mutation.error as Error)?.message ?? t('settings.sepaDebtor.saveError', 'Erreur lors de la sauvegarde')}
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.75 }}>
         <TextField
           label={t('settings.sepaDebtor.nameLabel', 'Nom du titulaire')}
           value={name}
@@ -79,8 +160,6 @@ const SepaDebtorSettings: React.FC = () => {
           size="small"
           fullWidth
           placeholder="Clenzy SAS"
-          InputProps={{ sx: { fontSize: '0.8125rem' } }}
-          InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
         />
         <TextField
           label={t('settings.sepaDebtor.ibanLabel', 'IBAN')}
@@ -89,10 +168,12 @@ const SepaDebtorSettings: React.FC = () => {
           size="small"
           fullWidth
           placeholder={config?.iban ?? 'FR76 3000 1007 9412 3456 7890 185'}
-          helperText={config?.configured ? t('settings.sepaDebtor.ibanMasked', 'IBAN actuel : ') + (config.iban ?? '') + t('settings.sepaDebtor.ibanChangeHint', ' — laissez vide pour conserver') : undefined}
-          InputProps={{ sx: { fontSize: '0.8125rem' } }}
-          InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          FormHelperTextProps={{ sx: { fontSize: '0.75rem' } }}
+          helperText={
+            config?.configured
+              ? `${t('settings.sepaDebtor.ibanMasked', 'IBAN actuel : ')}${config.iban ?? ''}${t('settings.sepaDebtor.ibanChangeHint', ' — laissez vide pour conserver')}`
+              : undefined
+          }
+          InputProps={{ sx: { fontVariantNumeric: 'tabular-nums', letterSpacing: '0.02em' } }}
         />
         <TextField
           label={t('settings.sepaDebtor.bicLabel', 'BIC / SWIFT')}
@@ -101,22 +182,11 @@ const SepaDebtorSettings: React.FC = () => {
           size="small"
           fullWidth
           placeholder="BNPAFRPPXXX"
-          InputProps={{ sx: { fontSize: '0.8125rem' } }}
-          InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
+          InputProps={{ sx: { fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', textTransform: 'uppercase' } }}
         />
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={mutation.isPending ? <CircularProgress size={14} /> : <Save />}
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !name.trim() || !bic.trim()}
-          sx={{ textTransform: 'none', fontSize: '0.8125rem', alignSelf: 'flex-start' }}
-        >
-          {t('common.save', 'Enregistrer')}
-        </Button>
       </Box>
-    </Paper>
+    </SettingsSection>
   );
-};
+});
 
 export default SepaDebtorSettings;

@@ -69,9 +69,9 @@ const FiscalReportSection: React.FC = () => {
         description={t('accounting.fiscal.help.description', 'Consultez la synthese TVA de vos factures par periode pour preparer vos declarations fiscales.')}
         dismissLabel={t('accounting.fiscal.help.dismiss', 'Ne plus afficher')}
         steps={[
-          { icon: <StepPeriodIcon size={16} strokeWidth={1.75} />, title: t('accounting.fiscal.help.step1Title', 'Periode'), description: t('accounting.fiscal.help.step1Desc', 'Choisissez la granularite (mensuel, trimestriel, annuel) et la periode souhaitee.') },
-          { icon: <StepTvaIcon size={16} strokeWidth={1.75} />, title: t('accounting.fiscal.help.step2Title', 'Ventilation TVA'), description: t('accounting.fiscal.help.step2Desc', 'Le rapport ventile automatiquement la TVA par taux (20%, 10%, 5.5%) et categorie.') },
-          { icon: <StepReportIcon size={16} strokeWidth={1.75} />, title: t('accounting.fiscal.help.step3Title', 'Declaration'), description: t('accounting.fiscal.help.step3Desc', 'Utilisez les totaux HT/TVA/TTC pour completer votre declaration de TVA.') },
+          { icon: <StepPeriodIcon size={14} strokeWidth={1.75} />, title: t('accounting.fiscal.help.step1Title', 'Periode'), description: t('accounting.fiscal.help.step1Desc', 'Choisissez la granularite (mensuel, trimestriel, annuel) et la periode souhaitee.'), accent: 'info' },
+          { icon: <StepTvaIcon size={14} strokeWidth={1.75} />, title: t('accounting.fiscal.help.step2Title', 'Ventilation TVA'), description: t('accounting.fiscal.help.step2Desc', 'Le rapport ventile automatiquement la TVA par taux (20%, 10%, 5.5%) et categorie.'), accent: 'primary' },
+          { icon: <StepReportIcon size={14} strokeWidth={1.75} />, title: t('accounting.fiscal.help.step3Title', 'Declaration'), description: t('accounting.fiscal.help.step3Desc', 'Utilisez les totaux HT/TVA/TTC pour completer votre declaration de TVA.'), accent: 'success' },
         ]}
       />
 

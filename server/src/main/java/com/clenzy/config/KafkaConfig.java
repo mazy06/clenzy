@@ -57,6 +57,8 @@ public class KafkaConfig {
     public static final String TOPIC_MINUT_WEBHOOKS = "minut.webhooks.incoming";
     public static final String TOPIC_MINUT_NOISE_EVENTS = "minut.noise.events";
     public static final String TOPIC_CALENDAR_UPDATES = "calendar.updates";
+    /** Outbox topic for user-profile changes that must propagate to every connected OTA. */
+    public static final String TOPIC_USER_PROFILE = "users.profile.updates";
 
     // ---- Expedia/VRBO topics ----
     public static final String TOPIC_EXPEDIA_RESERVATIONS = "expedia.reservations.sync";
@@ -224,6 +226,18 @@ public class KafkaConfig {
     @Bean
     public NewTopic calendarUpdatesTopic() {
         return TopicBuilder.name(TOPIC_CALENDAR_UPDATES)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    /**
+     * Outbox topic for user-profile changes. Partitioned by userId so each user's
+     * stream is FIFO; replicas=1 is fine for KRaft single-broker dev/preprod.
+     */
+    @Bean
+    public NewTopic userProfileTopic() {
+        return TopicBuilder.name(TOPIC_USER_PROFILE)
                 .partitions(3)
                 .replicas(1)
                 .build();

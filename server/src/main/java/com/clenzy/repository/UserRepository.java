@@ -18,6 +18,11 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     Optional<User> findByEmailHash(String emailHash);
     boolean existsByEmailHash(String emailHash);
     Optional<User> findByKeycloakId(String keycloakId);
+    /**
+     * Batch lookup by keycloakId — used to avoid N+1 queries when a DTO list needs
+     * profile info (avatar, updatedAt) for many counterparts at once.
+     */
+    List<User> findByKeycloakIdIn(java.util.Collection<String> keycloakIds);
     boolean existsByKeycloakId(String keycloakId);
     List<User> findByKeycloakIdIsNotNull();
     List<User> findByStatusAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(UserStatus status);

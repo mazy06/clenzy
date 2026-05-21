@@ -312,6 +312,17 @@ public class AuthController {
                 claims.put("role", user.getRole().name());
                 claims.put("platformRole", user.getRole().name());
                 claims.put("status", user.getStatus().name());
+                // Profile picture — exposed so the sidebar (and any other avatar surface
+                // using `useAuth().user`) can display the photo. Storage paths are converted
+                // to the served URL; external SSO URLs are passed through.
+                String avatar = user.getProfilePictureUrl();
+                if (avatar != null && !avatar.isBlank()) {
+                    if (avatar.startsWith("http://") || avatar.startsWith("https://")) {
+                        claims.put("profilePictureUrl", avatar);
+                    } else {
+                        claims.put("profilePictureUrl", "/api/users/" + user.getId() + "/profile-picture");
+                    }
+                }
                 if (user.getOrganizationId() != null) {
                     claims.put("organizationId", user.getOrganizationId());
                     organizationRepository.findById(user.getOrganizationId()).ifPresent(org -> {

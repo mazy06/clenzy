@@ -64,8 +64,18 @@ export function useContactWebSocket() {
         }
 
         // L'interlocuteur a lu nos messages → rafraichir la liste des threads
+        // ET les messages du thread concerne (pour mettre a jour les accuses de lecture).
         if (event.type === 'THREAD_READ') {
           queryClient.invalidateQueries({ queryKey: contactKeys.threads() });
+
+          // The reader is `senderKeycloakId` (the one who triggered THREAD_READ).
+          // Our own sent messages in the thread keyed by the reader need a readAt refresh.
+          const readerId = event.senderKeycloakId;
+          if (readerId) {
+            queryClient.invalidateQueries({
+              queryKey: contactKeys.threadMessages(readerId),
+            });
+          }
         }
       }
     );

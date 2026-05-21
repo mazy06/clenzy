@@ -125,6 +125,15 @@ public class PublicBookingService {
             .toList();
     }
 
+    /**
+     * Property detail served to the booking-engine widget. Cached for 10 minutes
+     * (via {@code booking-engine-properties}); invalidated by
+     * {@code BookingEngineChannelAdapter} on host-profile change so embedded widgets
+     * reflect new photos / names immediately.
+     */
+    @org.springframework.cache.annotation.Cacheable(
+            value = "booking-engine-properties",
+            key = "#ctx.orgId() + ':' + #propertyId")
     public PublicPropertyDetailDto getPropertyDetail(OrgContext ctx, Long propertyId) {
         Property property = propertyRepository.findBookingEngineProperty(propertyId, ctx.orgId())
             .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable ou non visible"));

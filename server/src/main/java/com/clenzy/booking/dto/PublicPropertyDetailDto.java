@@ -2,6 +2,7 @@ package com.clenzy.booking.dto;
 
 import com.clenzy.model.Property;
 import com.clenzy.model.PropertyPhoto;
+import com.clenzy.model.User;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -9,6 +10,11 @@ import java.util.List;
 /**
  * DTO complet pour le detail d'une propriete dans le Booking Engine public.
  * Inclut description, toutes les photos, et informations detaillees.
+ *
+ * <h2>Host info</h2>
+ * Le widget booking engine affiche un bandeau "Hôte : ..." avec photo. Seuls les champs
+ * publics sûrs sont exposés ici (prénom + initiale du nom + URL photo). Email, téléphone,
+ * adresse restent privés.
  */
 public record PublicPropertyDetailDto(
     Long id,
@@ -29,9 +35,43 @@ public record PublicPropertyDetailDto(
     List<PhotoDto> photos,
     List<String> amenities,
     String checkInTime,
-    String checkOutTime
+    String checkOutTime,
+    HostPublicDto host
 ) {
     public record PhotoDto(Long id, String url, String caption) {}
+
+    /**
+     * Public-safe representation of a host shown next to the property.
+     *
+     * @param firstName prénom complet
+     * @param lastInitial initiale du nom (Mohamed M.) — règle d'anonymisation OTA
+     * @param profilePictureUrl URL servie par le PMS, null si pas de photo
+     */
+    public record HostPublicDto(
+            String firstName,
+            String lastInitial,
+            String profilePictureUrl
+    ) {
+        public static HostPublicDto from(User u) {
+            if (u == null) return null;
+            String last = u.getLastName();
+            String initial = (last == null || last.isBlank())
+                    ? null
+                    : last.trim().substring(0, 1).toUpperCase() + ".";
+            // Public-safe URL: served by the anonymous /api/public/host-avatar endpoint
+            // (privacy gate: only HOSTs are exposed). External SSO URLs are returned as-is.
+            String avatar = u.getProfilePictureUrl();
+            String publicUrl;
+            if (avatar == null || avatar.isBlank()) {
+                publicUrl = null;
+            } else if (avatar.startsWith("http://") || avatar.startsWith("https://")) {
+                publicUrl = avatar;
+            } else {
+                publicUrl = "/api/public/host-avatar/" + u.getId();
+            }
+            return new HostPublicDto(u.getFirstName(), initial, publicUrl);
+        }
+    }
 
     public static PublicPropertyDetailDto from(Property p) {
         List<PhotoDto> photoList = p.getPhotos() != null
@@ -72,7 +112,8 @@ public record PublicPropertyDetailDto(
             photoList,
             amenityList,
             p.getDefaultCheckInTime(),
-            p.getDefaultCheckOutTime()
+            p.getDefaultCheckOutTime(),
+            HostPublicDto.from(p.getOwner())
         );
     }
 }

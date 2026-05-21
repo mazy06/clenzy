@@ -351,6 +351,28 @@ const KpiReadinessPage: React.FC = () => {
     }
   }, []);
 
+  /**
+   * Rafraichissement complet apres une action incident (delete, retest).
+   * Necessaire car la suppression d'un incident impacte 3 surfaces :
+   *  - la liste affichee dans le modal,
+   *  - le badge "X ouvert(s)" sur la carte KPI P1,
+   *  - la moyenne 'P1 Incident Resolution' (recalcul cote backend via refreshSnapshot).
+   */
+  const handleIncidentChange = useCallback(async () => {
+    try {
+      const [data, count, snap] = await Promise.all([
+        incidentApi.getIncidents({ severity: 'P1', size: 50 }),
+        incidentApi.getOpenCount(),
+        kpiApi.refreshSnapshot(),
+      ]);
+      setIncidents(data);
+      setOpenIncidentCount(count);
+      setSnapshot(snap);
+    } catch {
+      // best-effort : on n'echoue pas si une partie du refresh rate
+    }
+  }, []);
+
   const formatTimestamp = (ts: string): string => {
     try {
       return new Date(ts).toLocaleString();
@@ -537,7 +559,7 @@ const KpiReadinessPage: React.FC = () => {
         onClose={() => setIncidentDialogOpen(false)}
         incidents={incidents}
         loading={incidentsLoading}
-        onRefresh={handleOpenIncidentDialog}
+        onRefresh={handleIncidentChange}
       />
     </Box>
   );

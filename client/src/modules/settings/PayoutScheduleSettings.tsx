@@ -1,183 +1,318 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import {
   Box,
   Typography,
   Switch,
-  Paper,
   TextField,
-
-  Button,
   Alert,
   Snackbar,
   CircularProgress,
-  Chip,
-  Stack,
 } from '@mui/material';
-import { Save, CalendarMonth } from '../../icons';
+import { CalendarMonth } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePayoutSchedule, useUpdatePayoutSchedule } from '../../hooks/usePayoutSchedule';
+import SettingsSection from './components/SettingsSection';
 
 const VALID_DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
 
-export default function PayoutScheduleSettings() {
-  const { t } = useTranslation();
-  const { data: config, isLoading } = usePayoutSchedule();
-  const updateMutation = useUpdatePayoutSchedule();
+const ACCENT = '#6B8A9A';
 
-  const [selectedDays, setSelectedDays] = useState<number[]>([1, 15]);
-  const [gracePeriod, setGracePeriod] = useState(2);
-  const [autoGenerate, setAutoGenerate] = useState(true);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+export interface PayoutScheduleHandle {
+  save: () => Promise<void>;
+  hasChanges: () => boolean;
+  isSaving: boolean;
+  isValid: () => boolean;
+}
 
-  useEffect(() => {
-    if (!config) return;
-    setSelectedDays(config.payoutDaysOfMonth);
-    setGracePeriod(config.gracePeriodDays);
-    setAutoGenerate(config.autoGenerateEnabled);
-  }, [config]);
+interface PayoutScheduleSettingsProps {
+  onChangeState?: () => void;
+}
 
-  const toggleDay = (day: number) => {
-    setSelectedDays((prev) =>
-      prev.includes(day)
-        ? prev.filter((d) => d !== day)
-        : [...prev, day].sort((a, b) => a - b),
+const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSettingsProps>(
+  function PayoutScheduleSettings({ onChangeState }, ref) {
+    const { t } = useTranslation();
+    const { data: config, isLoading } = usePayoutSchedule();
+    const updateMutation = useUpdatePayoutSchedule();
+
+    const [selectedDays, setSelectedDays] = useState<number[]>([1, 15]);
+    const [gracePeriod, setGracePeriod] = useState(2);
+    const [autoGenerate, setAutoGenerate] = useState(true);
+    const [snackbar, setSnackbar] = useState({
+      open: false,
+      message: '',
+      severity: 'success' as 'success' | 'error',
+    });
+
+    useEffect(() => {
+      if (!config) return;
+      setSelectedDays(config.payoutDaysOfMonth);
+      setGracePeriod(config.gracePeriodDays);
+      setAutoGenerate(config.autoGenerateEnabled);
+    }, [config]);
+
+    const baseline = useMemo(
+      () => ({
+        days: config?.payoutDaysOfMonth ?? [],
+        gracePeriod: config?.gracePeriodDays ?? 0,
+        autoGenerate: config?.autoGenerateEnabled ?? true,
+      }),
+      [config],
     );
-  };
 
-  const handleSave = () => {
-    if (selectedDays.length === 0) {
-      setSnackbar({ open: true, message: t('settings.payoutSchedule.validationDays'), severity: 'error' });
-      return;
+    const toggleDay = (day: number) => {
+      setSelectedDays((prev) =>
+        prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort((a, b) => a - b),
+      );
+    };
+
+    const sameDays = (a: number[], b: number[]) => {
+      if (a.length !== b.length) return false;
+      const sortedA = [...a].sort((x, y) => x - y);
+      const sortedB = [...b].sort((x, y) => x - y);
+      return sortedA.every((v, i) => v === sortedB[i]);
+    };
+
+    const hasChanges = () => {
+      return (
+        !sameDays(selectedDays, baseline.days) ||
+        gracePeriod !== baseline.gracePeriod ||
+        autoGenerate !== baseline.autoGenerate
+      );
+    };
+
+    const isValid = () => selectedDays.length > 0;
+
+    const handleSave = async () => {
+      if (!isValid()) {
+        setSnackbar({
+          open: true,
+          message: t('settings.payoutSchedule.validationDays'),
+          severity: 'error',
+        });
+        throw new Error('Validation: au moins un jour requis');
+      }
+
+      try {
+        await updateMutation.mutateAsync({
+          payoutDaysOfMonth: selectedDays,
+          gracePeriodDays: gracePeriod,
+          autoGenerateEnabled: autoGenerate,
+        });
+        setSnackbar({
+          open: true,
+          message: t('settings.payoutSchedule.saved'),
+          severity: 'success',
+        });
+      } catch (err) {
+        setSnackbar({
+          open: true,
+          message: t('settings.payoutSchedule.error'),
+          severity: 'error',
+        });
+        throw err;
+      }
+    };
+
+    useEffect(() => {
+      onChangeState?.();
+    }, [selectedDays, gracePeriod, autoGenerate, updateMutation.isPending]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useImperativeHandle(ref, () => ({
+      save: handleSave,
+      hasChanges,
+      isSaving: updateMutation.isPending,
+      isValid,
+    }));
+
+    if (isLoading) {
+      return (
+        <SettingsSection
+          title={t('settings.payoutSchedule.title')}
+          icon={CalendarMonth}
+          accent="info"
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+            <CircularProgress size={24} />
+          </Box>
+        </SettingsSection>
+      );
     }
 
-    updateMutation.mutate(
-      {
-        payoutDaysOfMonth: selectedDays,
-        gracePeriodDays: gracePeriod,
-        autoGenerateEnabled: autoGenerate,
-      },
-      {
-        onSuccess: () => {
-          setSnackbar({ open: true, message: t('settings.payoutSchedule.saved'), severity: 'success' });
-        },
-        onError: () => {
-          setSnackbar({ open: true, message: t('settings.payoutSchedule.error'), severity: 'error' });
-        },
-      },
-    );
-  };
-
-  if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress size={32} />
-      </Box>
-    );
-  }
-
-  return (
-    <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, height: '100%' }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <CalendarMonth size={20} strokeWidth={1.75} color='#A6C0CE' />
-        <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-          {t('settings.payoutSchedule.title')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {t('settings.payoutSchedule.subtitle')}
-      </Typography>
-
-      {/* Auto-generate toggle */}
-      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography variant="body1" fontWeight={600}>
+      <SettingsSection
+        title={t('settings.payoutSchedule.title')}
+        icon={CalendarMonth}
+        accent="info"
+        description={t('settings.payoutSchedule.subtitle')}
+      >
+        {/* Auto-generate toggle */}
+        <Box
+          sx={{
+            p: 1.5,
+            mb: 1.5,
+            borderRadius: '8px',
+            border: '1px solid',
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 1.5,
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
+            >
               {t('settings.payoutSchedule.autoGenerate')}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography
+              sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4, mt: 0.125 }}
+            >
               {t('settings.payoutSchedule.autoGenerateHelper')}
             </Typography>
           </Box>
           <Switch
+            size="small"
             checked={autoGenerate}
             onChange={(e) => setAutoGenerate(e.target.checked)}
           />
         </Box>
-      </Paper>
 
-      {/* Days of month selector */}
-      <Paper variant="outlined" sx={{ p: 2, mb: 2, opacity: autoGenerate ? 1 : 0.5, pointerEvents: autoGenerate ? 'auto' : 'none' }}>
-        <Typography variant="body1" fontWeight={600} gutterBottom>
-          {t('settings.payoutSchedule.daysOfMonth')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-          {t('settings.payoutSchedule.daysOfMonthHelper')}
-        </Typography>
-        <Stack direction="row" flexWrap="wrap" gap={0.75}>
-          {VALID_DAYS.map((day) => (
-            <Chip
-              key={day}
-              label={day}
-              size="small"
-              onClick={() => toggleDay(day)}
-              color={selectedDays.includes(day) ? 'primary' : 'default'}
-              variant={selectedDays.includes(day) ? 'filled' : 'outlined'}
-              sx={{
-                minWidth: 36,
-                fontWeight: selectedDays.includes(day) ? 700 : 400,
-                cursor: 'pointer',
-              }}
-            />
-          ))}
-        </Stack>
-      </Paper>
-
-      {/* Grace period */}
-      <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-        <Typography variant="body1" fontWeight={600} gutterBottom>
-          {t('settings.payoutSchedule.gracePeriod')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-          {t('settings.payoutSchedule.gracePeriodHelper')}
-        </Typography>
-        <TextField
-          type="number"
-          value={gracePeriod}
-          onChange={(e) => {
-            const val = parseInt(e.target.value, 10);
-            if (!isNaN(val) && val >= 0 && val <= 30) setGracePeriod(val);
+        {/* Days of month selector */}
+        <Box
+          sx={{
+            p: 1.5,
+            mb: 1.5,
+            borderRadius: '8px',
+            border: '1px solid',
+            borderColor: 'divider',
+            opacity: autoGenerate ? 1 : 0.5,
+            pointerEvents: autoGenerate ? 'auto' : 'none',
+            transition: 'opacity 180ms cubic-bezier(0.22, 1, 0.36, 1)',
           }}
-          size="small"
-          inputProps={{ min: 0, max: 30 }}
-          sx={{ width: 120 }}
-        />
-      </Paper>
-
-      {/* Save button */}
-      <Button
-        variant="contained"
-        startIcon={<Save />}
-        onClick={handleSave}
-        disabled={updateMutation.isPending || selectedDays.length === 0}
-        sx={{ textTransform: 'none' }}
-      >
-        {updateMutation.isPending ? t('common.saving') : t('settings.payoutSchedule.save')}
-      </Button>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Paper>
-  );
-}
+          <Typography
+            sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
+          >
+            {t('settings.payoutSchedule.daysOfMonth')}
+          </Typography>
+          <Typography
+            sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4, mt: 0.125, mb: 1.25 }}
+          >
+            {t('settings.payoutSchedule.daysOfMonthHelper')}
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            {VALID_DAYS.map((day) => {
+              const active = selectedDays.includes(day);
+              return (
+                <Box
+                  key={day}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={active}
+                  onClick={() => toggleDay(day)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleDay(day);
+                    }
+                  }}
+                  sx={{
+                    minWidth: 30,
+                    height: 26,
+                    px: 1,
+                    borderRadius: '6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    fontSize: '0.72rem',
+                    fontWeight: active ? 700 : 500,
+                    fontVariantNumeric: 'tabular-nums',
+                    letterSpacing: '0.01em',
+                    border: '1px solid',
+                    borderColor: active ? ACCENT : 'divider',
+                    backgroundColor: active ? ACCENT : 'background.paper',
+                    color: active ? '#fff' : 'text.primary',
+                    transition:
+                      'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    '&:hover': {
+                      borderColor: active ? ACCENT : `${ACCENT}66`,
+                      backgroundColor: active ? ACCENT : `${ACCENT}0F`,
+                    },
+                    '&:focus-visible': {
+                      outline: `2px solid ${ACCENT}`,
+                      outlineOffset: 2,
+                    },
+                  }}
+                >
+                  {day}
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
+
+        {/* Grace period */}
+        <Box
+          sx={{
+            p: 1.5,
+            borderRadius: '8px',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Typography
+            sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
+          >
+            {t('settings.payoutSchedule.gracePeriod')}
+          </Typography>
+          <Typography
+            sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4, mt: 0.125, mb: 1 }}
+          >
+            {t('settings.payoutSchedule.gracePeriodHelper')}
+          </Typography>
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.625 }}>
+            <TextField
+              type="number"
+              value={gracePeriod}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val) && val >= 0 && val <= 30) setGracePeriod(val);
+              }}
+              size="small"
+              inputProps={{
+                min: 0,
+                max: 30,
+                style: { textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 600 },
+              }}
+              sx={{ width: 80 }}
+            />
+            <Typography
+              sx={{ fontSize: '0.72rem', color: 'text.secondary', fontWeight: 600, letterSpacing: '0.02em' }}
+            >
+              {t('common.daysShort', 'jours')}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        >
+          <Alert
+            onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+            severity={snackbar.severity}
+            sx={{ borderRadius: '8px' }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </SettingsSection>
+    );
+  },
+);
+
+export default PayoutScheduleSettings;

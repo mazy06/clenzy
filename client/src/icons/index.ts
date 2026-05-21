@@ -447,6 +447,15 @@ export {
   Upload as UploadFile,
   Wrench as BuildRounded,
   Puzzle as IntegrationInstructions,
+  // Dedicated role icons (avoid duplicate visuals across roles in selectors)
+  Crown as RoleSuperAdmin,
+  Briefcase as RoleSuperManager,
+  Eye as RoleSupervisor,
+  Wrench as RoleTechnician,
+  Sparkles as RoleHousekeeper,
+  Shirt as RoleLaundry,
+  Leaf as RoleExteriorTech,
+  Home as RoleHost,
 } from 'lucide-react';
 
 // LinkedIn — pas dans Lucide → Iconify

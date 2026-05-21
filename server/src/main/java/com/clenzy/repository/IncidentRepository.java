@@ -37,5 +37,16 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     List<Incident> findByStatusAndOpenedAtAfterOrderByOpenedAtDesc(
             Incident.IncidentStatus status, LocalDateTime since);
 
+    /**
+     * Incidents "actifs sur la periode" : ouverts ou resolus dans la fenetre.
+     * Necessaire car le KPI P1 calcule la moyenne sur 'resolvedAt' alors que le
+     * modal filtrait sur 'openedAt' — un incident ouvert il y a longtemps mais
+     * resolu recemment etait visible dans le KPI mais invisible dans le tableau.
+     */
+    @Query("SELECT i FROM Incident i " +
+           "WHERE i.openedAt >= :since OR (i.resolvedAt IS NOT NULL AND i.resolvedAt >= :since) " +
+           "ORDER BY i.openedAt DESC")
+    List<Incident> findActiveSince(@Param("since") LocalDateTime since);
+
     long countByStatus(Incident.IncidentStatus status);
 }

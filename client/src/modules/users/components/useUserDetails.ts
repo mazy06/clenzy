@@ -54,6 +54,9 @@ export function useUserDetails(id: string | undefined): UseUserDetailsReturn {
           createdAt: userData.createdAt || '',
           updatedAt: userData.updatedAt,
           lastLoginAt: userData.lastLoginAt,
+          // Without this mapping, the avatar URL never reaches UserProfileCard and the
+          // details page keeps showing initials even after a fresh upload.
+          profilePictureUrl: userData.profilePictureUrl,
           companyName: userData.companyName,
           forfait: userData.forfait,
           city: userData.city,

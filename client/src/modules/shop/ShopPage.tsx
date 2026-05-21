@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   Box,
-  Chip,
+  Typography,
   IconButton,
   Badge,
   Alert,
   Snackbar,
 } from '@mui/material';
-import { ShoppingCartOutlined, Memory } from '../../icons';
+import { ShoppingCartOutlined, Memory, CheckCircleOutline } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import apiClient from '../../services/apiClient';
 import { SHOP_PRODUCTS, CATEGORIES } from './shopProducts';
@@ -16,15 +16,13 @@ import ProductCard from './ProductCard';
 import CartDrawer from './CartDrawer';
 import PageHeader from '../../components/PageHeader';
 
-// ─── Component ───────────────────────────────────────────────────────────────
+const PRIMARY = '#6B8A9A';
+const ACCENT = '#4A9B8E';
 
 const ShopPage: React.FC = () => {
   const { t } = useTranslation();
 
-  // Category filter
   const [selectedCategory, setSelectedCategory] = useState<'all' | ProductCategory>('all');
-
-  // Cart: productId → quantity
   const [cart, setCart] = useState<Map<string, number>>(new Map());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -34,7 +32,6 @@ const ShopPage: React.FC = () => {
     [cart],
   );
 
-  // Filter products: kits first, then individual
   const filteredProducts = useMemo(() => {
     const filtered =
       selectedCategory === 'all'
@@ -46,7 +43,6 @@ const ShopPage: React.FC = () => {
     return [...kits, ...others];
   }, [selectedCategory]);
 
-  // Cart actions
   const handleAddToCart = useCallback((productId: string) => {
     setCart((prev) => {
       const next = new Map(prev);
@@ -106,7 +102,6 @@ const ShopPage: React.FC = () => {
     setDrawerOpen(false);
   }, [cart]);
 
-  // Category translation keys
   const categoryTranslationKeys: Record<string, string> = {
     all: 'shop.allProducts',
     kit: 'shop.kits',
@@ -115,24 +110,43 @@ const ShopPage: React.FC = () => {
     environment: 'shop.environment',
   };
 
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      all: SHOP_PRODUCTS.length,
+      kit: 0,
+      noise: 0,
+      lock: 0,
+      environment: 0,
+    };
+    SHOP_PRODUCTS.forEach((p) => {
+      counts[p.category] = (counts[p.category] ?? 0) + 1;
+    });
+    return counts;
+  }, []);
+
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Page header */}
       <PageHeader
         title={t('shop.title')}
         subtitle={t('shop.subtitle')}
         iconBadge={<Memory />}
-        iconBadgeColor="#4A9B8E"
+        iconBadgeColor={ACCENT}
         backPath="/dashboard"
         showBackButton={false}
         actions={(
           <IconButton
             onClick={() => setDrawerOpen(true)}
+            aria-label={t('shop.cart')}
             sx={{
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: 1.5,
+              borderRadius: '10px',
               p: 1,
+              transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+              '&:hover': {
+                borderColor: `${PRIMARY}66`,
+                backgroundColor: `${PRIMARY}0A`,
+              },
             }}
           >
             <Badge
@@ -140,62 +154,141 @@ const ShopPage: React.FC = () => {
               color="primary"
               sx={{
                 '& .MuiBadge-badge': {
-                  fontSize: '0.6875rem',
-                  height: 18,
-                  minWidth: 18,
+                  fontSize: '0.625rem',
+                  height: 16,
+                  minWidth: 16,
                   fontWeight: 700,
+                  bgcolor: ACCENT,
+                  border: '2px solid',
+                  borderColor: 'background.paper',
+                  padding: 0,
                 },
               }}
             >
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.primary' }}><ShoppingCartOutlined size={22} strokeWidth={1.75} /></Box>
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.primary' }}>
+                <ShoppingCartOutlined size={20} strokeWidth={1.75} />
+              </Box>
             </Badge>
           </IconButton>
         )}
       />
 
-      {/* Info banner */}
-      <Alert
-        severity="info"
+      {/* Info banner — restrained, no MUI Alert chrome */}
+      <Box
         sx={{
-          mb: 3,
-          '& .MuiAlert-message': { fontSize: '0.8125rem' },
-          borderRadius: 1.5,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 1.25,
+          p: 1.5,
+          mb: 2.5,
+          borderRadius: '10px',
+          border: '1px solid',
+          borderColor: `${ACCENT}33`,
+          backgroundColor: `${ACCENT}0A`,
         }}
       >
-        {t('shop.infoBanner')}
-      </Alert>
+        <Box sx={{ color: ACCENT, display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
+          <CheckCircleOutline size={16} strokeWidth={1.75} />
+        </Box>
+        <Typography
+          sx={{
+            fontSize: '0.8rem',
+            color: 'text.secondary',
+            lineHeight: 1.5,
+          }}
+        >
+          {t('shop.infoBanner')}
+        </Typography>
+      </Box>
 
-      {/* Category filter chips */}
-      <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
-        {CATEGORIES.map((cat) => (
-          <Chip
-            key={cat.id}
-            label={t(categoryTranslationKeys[cat.id]) || cat.label}
-            onClick={() => setSelectedCategory(cat.id as 'all' | ProductCategory)}
-            variant={selectedCategory === cat.id ? 'filled' : 'outlined'}
-            sx={{
-              fontWeight: 600,
-              fontSize: '0.8125rem',
-              ...(selectedCategory === cat.id
-                ? {
-                    bgcolor: '#6B8A9A',
-                    color: '#fff',
-                    '&:hover': { bgcolor: '#6B8A9A', filter: 'brightness(0.9)' },
-                  }
-                : {
-                    borderColor: 'divider',
-                    '&:hover': { borderColor: '#6B8A9A', backgroundColor: '#6B8A9A08' },
-                  }),
-            }}
-          />
-        ))}
+      {/* Category filter — pill row */}
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 0.625,
+          mb: 2.5,
+          flexWrap: 'wrap',
+        }}
+        role="tablist"
+      >
+        {CATEGORIES.map((cat) => {
+          const active = selectedCategory === cat.id;
+          const count = categoryCounts[cat.id] ?? 0;
+          return (
+            <Box
+              key={cat.id}
+              role="tab"
+              aria-selected={active}
+              tabIndex={0}
+              onClick={() => setSelectedCategory(cat.id as 'all' | ProductCategory)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelectedCategory(cat.id as 'all' | ProductCategory);
+                }
+              }}
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.75,
+                px: 1.25,
+                py: 0.625,
+                cursor: 'pointer',
+                userSelect: 'none',
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: active ? PRIMARY : 'divider',
+                backgroundColor: active ? PRIMARY : 'transparent',
+                color: active ? '#fff' : 'text.primary',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                letterSpacing: '0.01em',
+                transition:
+                  'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                '&:hover': {
+                  borderColor: active ? PRIMARY : `${PRIMARY}66`,
+                  backgroundColor: active ? PRIMARY : `${PRIMARY}0A`,
+                },
+                '&:focus-visible': {
+                  outline: `2px solid ${PRIMARY}`,
+                  outlineOffset: 2,
+                },
+              }}
+            >
+              {t(categoryTranslationKeys[cat.id]) || cat.label}
+              <Box
+                component="span"
+                sx={{
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.02em',
+                  px: 0.625,
+                  py: 0.125,
+                  borderRadius: '5px',
+                  backgroundColor: active ? 'rgba(255,255,255,0.18)' : `${PRIMARY}14`,
+                  color: active ? 'rgba(255,255,255,0.95)' : PRIMARY,
+                  fontVariantNumeric: 'tabular-nums',
+                  minWidth: 16,
+                  textAlign: 'center',
+                }}
+              >
+                {count}
+              </Box>
+            </Box>
+          );
+        })}
       </Box>
 
       {/* Product grid */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)',
+            xl: 'repeat(4, 1fr)',
+          },
           gap: 2,
         }}
       >
@@ -210,7 +303,6 @@ const ShopPage: React.FC = () => {
         ))}
       </Box>
 
-      {/* Cart drawer */}
       <CartDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -220,7 +312,6 @@ const ShopPage: React.FC = () => {
         onCheckout={handleCheckout}
       />
 
-      {/* Snackbar confirmation */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={4000}
@@ -230,7 +321,7 @@ const ShopPage: React.FC = () => {
         <Alert
           onClose={() => setSnackbarOpen(false)}
           severity="success"
-          sx={{ width: '100%' }}
+          sx={{ width: '100%', borderRadius: '8px' }}
         >
           {t('common.processing')}
         </Alert>

@@ -22,12 +22,14 @@ class TripAdvisorChannelAdapterTest {
     @Mock private TripAdvisorConfig config;
     @Mock private TripAdvisorSyncService syncService;
     @Mock private ChannelMappingRepository channelMappingRepository;
+    @Mock private HostProfileSyncSupport hostProfileSyncSupport;
 
     private TripAdvisorChannelAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        adapter = new TripAdvisorChannelAdapter(config, syncService, channelMappingRepository);
+        adapter = new TripAdvisorChannelAdapter(config, syncService, channelMappingRepository,
+                hostProfileSyncSupport);
     }
 
     @Test
@@ -40,7 +42,8 @@ class TripAdvisorChannelAdapterTest {
         assertThat(adapter.getCapabilities()).containsExactlyInAnyOrder(
                 ChannelCapability.OUTBOUND_CALENDAR,
                 ChannelCapability.INBOUND_RESERVATIONS,
-                ChannelCapability.WEBHOOKS
+                ChannelCapability.WEBHOOKS,
+                ChannelCapability.OUTBOUND_HOST_PROFILE
         );
     }
 

@@ -3,6 +3,7 @@ import {
   Box,
   Card,
   CardContent,
+  CardActions,
   Typography,
   Chip,
   IconButton,
@@ -24,10 +25,10 @@ import {
   Assignment,
   Person as PersonIcon,
 } from '../icons';
+import type { LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { INTERVENTION_TYPE_OPTIONS } from '../types/interventionTypes';
 import type { Team } from '../services/api';
-import { useTranslation } from '../hooks/useTranslation';
 import { formatShortDate } from '../utils/formatUtils';
 import type { ChipColor } from '../types';
 
@@ -38,76 +39,36 @@ interface TeamCardProps {
   canEdit?: boolean;
 }
 
-// ─── Banner gradient par catégorie de type ─────────────────────────────────────
-
-const getTypeGradient = (type: string): string => {
-  const opt = INTERVENTION_TYPE_OPTIONS.find(t => t.value === type);
-  if (!opt) return 'linear-gradient(135deg, #1e2a35 0%, #2a3a4a 50%, #243242 100%)';
-
-  switch (opt.category) {
-    case 'cleaning':
-      return 'linear-gradient(135deg, #1a3a5c 0%, #234b73 50%, #1e3d63 100%)';
-    case 'maintenance':
-      return 'linear-gradient(135deg, #3d2e10 0%, #5c4520 50%, #4a3818 100%)';
-    case 'specialized':
-      return 'linear-gradient(135deg, #1a3d35 0%, #265c4f 50%, #1f4a40 100%)';
-    case 'other':
-      return 'linear-gradient(135deg, #3d1a1a 0%, #5c2626 50%, #4a1f1f 100%)';
-    default:
-      return 'linear-gradient(135deg, #1e2a35 0%, #2a3a4a 50%, #243242 100%)';
-  }
-};
-
-// ─── Accent color par catégorie ─────────────────────────────────────────────────
+// ─── Accent color par catégorie (palette Clenzy) ─────────────────────────────
 
 const getAccentColor = (type: string): string => {
   const opt = INTERVENTION_TYPE_OPTIONS.find(t => t.value === type);
   if (!opt) return '#6B8A9A';
 
   switch (opt.category) {
-    case 'cleaning': return '#5B9BD5';
-    case 'maintenance': return '#E8A838';
-    case 'specialized': return '#4ECDC4';
-    case 'other': return '#E06060';
+    case 'cleaning': return '#7BA3C2';
+    case 'maintenance': return '#D4A574';
+    case 'specialized': return '#4A9B8E';
+    case 'other': return '#C97A7A';
     default: return '#6B8A9A';
   }
 };
 
-// ─── Icône de type pour le banner ────────────────────────────────────────────
+// ─── Type icon component ─────────────────────────────────────────────────────
 
-const getTypeIcon = (type: string, size: number = 44) => {
-  const iconProps = { size, color: 'rgba(255,255,255,0.18)', strokeWidth: 1.5 };
+const getTypeIconComponent = (type: string): LucideIcon => {
   const opt = INTERVENTION_TYPE_OPTIONS.find(t => t.value === type);
-  if (!opt) return <Category {...iconProps} />;
+  if (!opt) return Category;
 
   switch (opt.category) {
-    case 'cleaning': return <AutoAwesome {...iconProps} />;
-    case 'maintenance': return <Build {...iconProps} />;
+    case 'cleaning': return AutoAwesome;
+    case 'maintenance': return Build;
     case 'specialized':
-      if (type === 'GARDENING') return <Yard {...iconProps} />;
-      if (type === 'PEST_CONTROL') return <BugReport {...iconProps} />;
-      if (type === 'RESTORATION') return <AutoFixHigh {...iconProps} />;
-      return <Category {...iconProps} />;
-    default: return <Category {...iconProps} />;
-  }
-};
-
-// ─── Petite icône pour le label type ─────────────────────────────────────────
-
-const getTypeSmallIcon = (type: string) => {
-  const iconProps = { size: 16, color: 'rgba(255,255,255,0.85)', strokeWidth: 1.75 };
-  const opt = INTERVENTION_TYPE_OPTIONS.find(t => t.value === type);
-  if (!opt) return <Category {...iconProps} />;
-
-  switch (opt.category) {
-    case 'cleaning': return <AutoAwesome {...iconProps} />;
-    case 'maintenance': return <Build {...iconProps} />;
-    case 'specialized':
-      if (type === 'GARDENING') return <Yard {...iconProps} />;
-      if (type === 'PEST_CONTROL') return <BugReport {...iconProps} />;
-      if (type === 'RESTORATION') return <AutoFixHigh {...iconProps} />;
-      return <Category {...iconProps} />;
-    default: return <Category {...iconProps} />;
+      if (type === 'GARDENING') return Yard;
+      if (type === 'PEST_CONTROL') return BugReport;
+      if (type === 'RESTORATION') return AutoFixHigh;
+      return Category;
+    default: return Category;
   }
 };
 
@@ -127,9 +88,9 @@ const getTeamStatus = (team: Team): string => {
 const getStatusHex = (status: string): string => {
   switch (status) {
     case 'active': return '#4A9B8E';
-    case 'inactive': return '#d32f2f';
-    case 'maintenance': return '#ED6C02';
-    default: return '#757575';
+    case 'inactive': return '#C97A7A';
+    case 'maintenance': return '#D4A574';
+    default: return '#8A8378';
   }
 };
 
@@ -151,143 +112,7 @@ const getStatusLabel = (status: string): string => {
   }
 };
 
-// ─── Extracted sx styles ────────────────────────────────────────────────────
-
-const styles = {
-  cardRoot: {
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    cursor: 'pointer',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    '&:hover': {
-      transform: 'translateY(-4px)',
-      boxShadow: '0 12px 28px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08)',
-    },
-  },
-  bannerBox: {
-    position: 'relative',
-    height: 100,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  typeLabelBox: {
-    position: 'absolute',
-    top: 10,
-    left: 12,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.6,
-    bgcolor: 'rgba(255,255,255,0.08)',
-    backdropFilter: 'blur(8px)',
-    borderRadius: 1.5,
-    border: '1px solid rgba(255,255,255,0.1)',
-    px: 1,
-    py: 0.4,
-  },
-  typeLabelText: {
-    color: 'rgba(255,255,255,0.9)',
-    fontWeight: 600,
-    fontSize: '0.68rem',
-    letterSpacing: '0.5px',
-    textTransform: 'uppercase',
-  },
-  memberCountBadge: {
-    position: 'absolute',
-    bottom: 10,
-    left: 12,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.5,
-    bgcolor: 'rgba(255,255,255,0.12)',
-    backdropFilter: 'blur(8px)',
-    borderRadius: 1.5,
-    border: '1px solid rgba(255,255,255,0.1)',
-    px: 1,
-    py: 0.4,
-  },
-  menuButton: {
-    position: 'absolute',
-    top: 10,
-    right: 12,
-    color: 'rgba(255,255,255,0.6)',
-    bgcolor: 'rgba(255,255,255,0.06)',
-    backdropFilter: 'blur(8px)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', color: '#fff' },
-    width: 28,
-    height: 28,
-  },
-  badgeBar: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    px: 1.5,
-    py: 0.75,
-    bgcolor: 'grey.50',
-    borderBottom: '1px solid',
-    borderColor: 'grey.100',
-    gap: 0.75,
-    minHeight: 34,
-  },
-  statusChip: {
-    height: 22,
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    borderWidth: 1.5,
-    '& .MuiChip-label': { px: 0.75 },
-  },
-  workloadChip: {
-    height: 22,
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    borderWidth: 1.5,
-    '& .MuiChip-label': { px: 0.75 },
-    '& .MuiChip-icon': { fontSize: 12, ml: 0.5 },
-  },
-  infoContent: {
-    flexGrow: 1,
-    p: 1.75,
-    pb: '8px !important',
-  },
-  titleText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    fontSize: '0.95rem',
-    mb: 0.25,
-    color: 'text.primary',
-  },
-  descriptionText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    display: 'block',
-    fontSize: '0.7rem',
-    mb: 1,
-  },
-  actionBar: {
-    px: 1.75,
-    pb: 1.25,
-    pt: 0,
-    display: 'flex',
-    gap: 0.75,
-  },
-  detailsButton: {
-    fontSize: '0.72rem',
-    py: 0.5,
-    borderColor: 'grey.300',
-    color: 'text.secondary',
-    '&:hover': {
-      borderColor: 'primary.main',
-      color: 'primary.main',
-      bgcolor: 'rgba(107, 138, 154, 0.04)',
-    },
-  },
-} as const;
+const INTERVENTION_BLUE = '#6B8A9A';
 
 const TeamCard: React.FC<TeamCardProps> = React.memo(({
   team,
@@ -296,214 +121,278 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
   canEdit = false,
 }) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
 
   const status = getTeamStatus(team);
+  const statusHex = getStatusHex(status);
   const typeOption = INTERVENTION_TYPE_OPTIONS.find(t => t.value === team.interventionType);
   const typeLabel = typeOption?.label || team.interventionType;
   const members = team.members ?? [];
   const accent = getAccentColor(team.interventionType);
+  const TypeIcon = getTypeIconComponent(team.interventionType);
 
   const handleViewDetails = () => {
     navigate(`/teams/${team.id}`);
   };
 
+  const workloadColor = activeInterventionsCount > 5
+    ? '#C97A7A'
+    : activeInterventionsCount > 2
+      ? '#D4A574'
+      : INTERVENTION_BLUE;
+
   return (
     <Card
-      sx={styles.cardRoot}
       onClick={handleViewDetails}
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        cursor: 'pointer',
+        borderRadius: '10px',
+        border: '1px solid',
+        borderColor: 'divider',
+        boxShadow: 'none',
+        overflow: 'hidden',
+        transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+        '&:hover': {
+          borderColor: `${accent}66`,
+          boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 12px rgba(45, 55, 72, 0.06)',
+          transform: 'translateY(-1px)',
+        },
+      }}
     >
-      {/* ─── Zone visuelle : Bandeau gradient + dots ─── */}
-      <Box
-        sx={{
-          ...styles.bannerBox,
-          background: getTypeGradient(team.interventionType),
-        }}
-      >
-        {/* Dots pattern layer */}
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: `radial-gradient(circle, ${accent} 1.5px, transparent 1.5px)`,
-            backgroundSize: '24px 24px',
-            opacity: 0.2,
-          }}
-        />
-
-        {/* Glow layer */}
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            background: `radial-gradient(ellipse at 30% 50%, ${accent}30 0%, transparent 70%)`,
-            opacity: 0.7,
-          }}
-        />
-
-        {/* Large background icon */}
-        <Box sx={{ position: 'absolute', right: 16, bottom: 8, opacity: 1 }}>
-          {getTypeIcon(team.interventionType)}
-        </Box>
-
-        {/* Vignette */}
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.3) 100%)',
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* Type label — glassmorphism */}
-        <Box sx={styles.typeLabelBox}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {getTypeSmallIcon(team.interventionType)}
-          </Box>
-          <Typography variant="caption" sx={styles.typeLabelText}>
-            {typeLabel}
-          </Typography>
-        </Box>
-
-        {/* Member count badge — bottom left */}
-        <Box sx={styles.memberCountBadge}>
-          <GroupIcon size={14} strokeWidth={1.75} color="rgba(255,255,255,0.8)" />
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600, fontSize: '0.68rem' }}>
-            {members.length} {members.length > 1 ? 'membres' : 'membre'}
-          </Typography>
-        </Box>
-
-        {/* Menu contextuel — coin supérieur droit */}
-        <IconButton
-          size="small"
-          onClick={(e) => { e.stopPropagation(); onMenuOpen(e, team); }}
-          sx={styles.menuButton}
-        >
-          <MoreVert size={16} strokeWidth={1.75} />
-        </IconButton>
-      </Box>
-
-      {/* ─── Barre de badges ─── */}
-      <Box sx={styles.badgeBar}>
-        {/* Gauche : statut */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          {(() => { const c = getStatusHex(status); return (
-            <Chip
-              label={getStatusLabel(status)}
-              size="small"
-              sx={{ ...styles.statusChip, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
-            />
-          ); })()}
-        </Box>
-
-        {/* Droite : workload + date */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          {activeInterventionsCount > 0 && (() => { const c = activeInterventionsCount > 5 ? '#d32f2f' : activeInterventionsCount > 2 ? '#ED6C02' : '#0288d1'; return (
-            <Chip
-              icon={<Assignment size={12} strokeWidth={1.75} color={c} />}
-              label={`${activeInterventionsCount} active${activeInterventionsCount > 1 ? 's' : ''}`}
-              size="small"
-              sx={{ ...styles.workloadChip, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
-            />
-          ); })()}
-          {team.createdAt && (
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.68rem', lineHeight: 1 }}>
-              {formatShortDate(team.createdAt)}
-            </Typography>
-          )}
-        </Box>
-      </Box>
-
-      {/* ─── Zone info ─── */}
-      <CardContent sx={styles.infoContent}>
-        {/* Titre */}
-        <Typography
-          variant="subtitle1"
-          fontWeight={700}
-          sx={styles.titleText}
-          title={team.name}
-        >
-          {team.name}
-        </Typography>
-
-        {/* Description */}
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={styles.descriptionText}
-          title={team.description || 'Aucune description'}
-        >
-          {team.description || 'Aucune description'}
-        </Typography>
-
-        {/* Membres — AvatarGroup + stats */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          {members.length > 0 ? (
-            <AvatarGroup
-              max={4}
+      <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flex: 1, minWidth: 0 }}>
+            <Box
               sx={{
-                '& .MuiAvatar-root': {
-                  width: 24,
-                  height: 24,
-                  fontSize: '0.6rem',
-                  border: '2px solid #fff',
-                },
+                width: 38,
+                height: 38,
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: `${accent}1F`,
+                color: accent,
+                border: `1px solid ${accent}33`,
+                flexShrink: 0,
               }}
             >
-              {members.map((member) => (
-                <Avatar
-                  key={member.id}
-                  sx={{ bgcolor: 'primary.main' }}
-                >
-                  {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
-                </Avatar>
-              ))}
-            </AvatarGroup>
+              <TypeIcon size={18} strokeWidth={1.75} />
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography
+                fontWeight={600}
+                sx={{
+                  fontSize: '0.9rem',
+                  lineHeight: 1.25,
+                  color: 'text.primary',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={team.name}
+              >
+                {team.name}
+              </Typography>
+              <Typography
+                color="text.secondary"
+                sx={{
+                  fontSize: '0.7rem',
+                  lineHeight: 1.3,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  display: 'block',
+                }}
+                title={team.description || 'Aucune description'}
+              >
+                {team.description || 'Aucune description'}
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={(e) => { e.stopPropagation(); onMenuOpen(e, team); }}
+            sx={{ p: 0.5, ml: 0.25, color: 'text.secondary' }}
+            aria-label="Options"
+          >
+            <MoreVert size={16} strokeWidth={1.75} />
+          </IconButton>
+        </Box>
+
+        {/* Type, statut, charge */}
+        <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
+          <Chip
+            icon={<TypeIcon size={11} strokeWidth={2} />}
+            label={typeLabel}
+            size="small"
+            sx={{
+              height: 22,
+              fontSize: '0.6875rem',
+              fontWeight: 600,
+              letterSpacing: '0.01em',
+              backgroundColor: `${accent}14`,
+              color: accent,
+              border: `1px solid ${accent}33`,
+              borderRadius: '6px',
+              px: 0.25,
+              '& .MuiChip-icon': {
+                color: `${accent} !important`,
+                ml: '6px',
+                mr: '-2px',
+              },
+              '& .MuiChip-label': { px: 0.875 },
+            }}
+          />
+          <Chip
+            label={getStatusLabel(status)}
+            size="small"
+            sx={{
+              height: 22,
+              fontSize: '0.6875rem',
+              fontWeight: 600,
+              letterSpacing: '0.01em',
+              backgroundColor: `${statusHex}14`,
+              color: statusHex,
+              border: `1px solid ${statusHex}33`,
+              borderRadius: '6px',
+              '& .MuiChip-label': { px: 0.875 },
+            }}
+          />
+          {activeInterventionsCount > 0 && (
+            <Chip
+              icon={<Assignment size={11} strokeWidth={2} />}
+              label={`${activeInterventionsCount} active${activeInterventionsCount > 1 ? 's' : ''}`}
+              size="small"
+              sx={{
+                height: 22,
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                letterSpacing: '0.01em',
+                backgroundColor: `${workloadColor}14`,
+                color: workloadColor,
+                border: `1px solid ${workloadColor}33`,
+                borderRadius: '6px',
+                fontVariantNumeric: 'tabular-nums',
+                px: 0.25,
+                '& .MuiChip-icon': {
+                  color: `${workloadColor} !important`,
+                  ml: '6px',
+                  mr: '-2px',
+                },
+                '& .MuiChip-label': { px: 0.875 },
+              }}
+            />
+          )}
+        </Box>
+
+        {/* Membres + interventions totales */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
+          {members.length > 0 ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <AvatarGroup
+                max={4}
+                sx={{
+                  '& .MuiAvatar-root': {
+                    width: 24,
+                    height: 24,
+                    fontSize: '0.625rem',
+                    fontWeight: 600,
+                    border: '2px solid',
+                    borderColor: 'background.paper',
+                    bgcolor: `${accent}1F`,
+                    color: accent,
+                  },
+                }}
+              >
+                {members.map((member) => (
+                  <Avatar key={member.id}>
+                    {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
+                  </Avatar>
+                ))}
+              </AvatarGroup>
+              <Typography
+                sx={{
+                  fontSize: '0.7rem',
+                  color: 'text.secondary',
+                  fontVariantNumeric: 'tabular-nums',
+                  ml: 0.25,
+                }}
+              >
+                {members.length} {members.length > 1 ? 'membres' : 'membre'}
+              </Typography>
+            </Box>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><PersonIcon size={12} strokeWidth={1.75} /></Box>
-              <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.62rem' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
+              <Box sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                <PersonIcon size={13} strokeWidth={1.75} />
+              </Box>
+              <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
                 Aucun membre
               </Typography>
             </Box>
           )}
 
-          {/* Spacer */}
-          <Box sx={{ flex: 1 }} />
-
-          {/* Total interventions chip */}
           {(team.totalInterventions ?? 0) > 0 && (
-            <Chip
-              icon={<Build size={12} strokeWidth={1.75} color="#1976d2" />}
-              label={`${team.totalInterventions} interv.`}
-              size="small"
-              sx={{
-                height: 24,
-                fontSize: '0.62rem',
-                fontWeight: 600,
-                backgroundColor: '#1976d218',
-                color: '#1976d2',
-                border: '1px solid #1976d240',
-                borderRadius: '6px',
-                '& .MuiChip-label': { px: 0.75 },
-                '& .MuiChip-icon': { fontSize: 12, ml: 0.5 },
-                flexShrink: 0,
-              }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+              <Box sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+                <Build size={12} strokeWidth={1.75} />
+              </Box>
+              <Typography
+                sx={{
+                  fontSize: '0.7rem',
+                  color: 'text.secondary',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {team.totalInterventions}
+              </Typography>
+            </Box>
           )}
         </Box>
+
+        {team.createdAt && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+              <GroupIcon size={13} strokeWidth={1.75} />
+            </Box>
+            <Typography
+              sx={{
+                fontSize: '0.7rem',
+                color: 'text.secondary',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              Créée le {formatShortDate(team.createdAt)}
+            </Typography>
+          </Box>
+        )}
       </CardContent>
 
-      {/* ─── Zone actions ─── */}
-      <Box sx={styles.actionBar}>
+      {/* Actions */}
+      <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5, gap: 0.75 }}>
         <Button
           fullWidth
           size="small"
-          startIcon={<Visibility size={15} strokeWidth={1.75} />}
+          startIcon={<Visibility size={14} strokeWidth={1.75} />}
           onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
           variant="outlined"
-          sx={styles.detailsButton}
+          sx={{
+            fontSize: '0.72rem',
+            fontWeight: 600,
+            letterSpacing: '0.01em',
+            borderRadius: '6px',
+            borderColor: 'divider',
+            color: 'text.primary',
+            textTransform: 'none',
+            py: 0.625,
+            '&:hover': {
+              borderColor: `${accent}80`,
+              backgroundColor: `${accent}10`,
+            },
+          }}
         >
           Détails
         </Button>
@@ -511,16 +400,28 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
           <Button
             fullWidth
             size="small"
-            startIcon={<Edit size={15} strokeWidth={1.75} />}
+            startIcon={<Edit size={14} strokeWidth={1.75} />}
             onClick={(e) => { e.stopPropagation(); navigate(`/teams/${team.id}/edit`); }}
             variant="outlined"
-            color="primary"
-            sx={{ fontSize: '0.72rem', py: 0.5 }}
+            sx={{
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              letterSpacing: '0.01em',
+              borderRadius: '6px',
+              borderColor: 'divider',
+              color: 'text.primary',
+              textTransform: 'none',
+              py: 0.625,
+              '&:hover': {
+                borderColor: `${accent}80`,
+                backgroundColor: `${accent}10`,
+              },
+            }}
           >
             Modifier
           </Button>
         )}
-      </Box>
+      </CardActions>
     </Card>
   );
 });

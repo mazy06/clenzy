@@ -1,19 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Paper,
   Typography,
-  Switch,
   TextField,
   Alert,
   CircularProgress,
   MenuItem,
   Grid,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  ListItemIcon,
+  Collapse,
 } from '@mui/material';
 import {
   Schedule,
@@ -21,6 +15,8 @@ import {
   Login,
   Logout,
 } from '../../icons';
+import SettingsSection from '../settings/components/SettingsSection';
+import SettingsToggleRow from '../settings/components/SettingsToggleRow';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   guestMessagingApi,
@@ -117,166 +113,148 @@ export default function MessagingAutomationSection({ onSave }: MessagingAutomati
 
       {/* Check-in automatique */}
       <Grid item xs={12} md={6}>
-        <Paper sx={{ p: 2, height: '100%' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Login size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-              {t('messaging.automation.checkIn.title')}
-            </Typography>
-          </Box>
-
-          <List>
-            <ListItem>
-              <ListItemIcon>
-                <Email />
-              </ListItemIcon>
-              <ListItemText
-                primary={t('messaging.automation.checkIn.autoSend')}
-                secondary={t('messaging.automation.checkIn.autoSendDesc')}
-              />
-              <ListItemSecondaryAction>
-                <Switch
-                  edge="end"
-                  checked={config.autoSendCheckIn}
-                  onChange={(e) => handleUpdate({ autoSendCheckIn: e.target.checked })}
-                  disabled={saving}
-                />
-              </ListItemSecondaryAction>
-            </ListItem>
-
-            {config.autoSendCheckIn && (
-              <>
-                <ListItem>
-                  <ListItemIcon>
-                    <Schedule />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={t('messaging.automation.checkIn.hoursBefore')}
-                    secondary={t('messaging.automation.checkIn.hoursBeforeDesc')}
-                  />
+        <SettingsSection
+          title={t('messaging.automation.checkIn.title')}
+          icon={Login}
+          accent="accent"
+        >
+          <SettingsToggleRow
+            icon={Email}
+            iconColor="#4A9B8E"
+            title={t('messaging.automation.checkIn.autoSend')}
+            description={t('messaging.automation.checkIn.autoSendDesc')}
+            checked={config.autoSendCheckIn}
+            onChange={(v) => handleUpdate({ autoSendCheckIn: v })}
+            disabled={saving}
+            divider={config.autoSendCheckIn}
+          />
+          <Collapse in={config.autoSendCheckIn}>
+            <SettingsToggleRow
+              icon={Schedule}
+              iconColor="#7BA3C2"
+              title={t('messaging.automation.checkIn.hoursBefore')}
+              description={t('messaging.automation.checkIn.hoursBeforeDesc')}
+              control={(
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <TextField
                     type="number"
                     value={config.hoursBeforeCheckIn}
                     onChange={(e) =>
                       handleUpdate({ hoursBeforeCheckIn: Math.max(1, parseInt(e.target.value) || 24) })
                     }
-                    sx={{ width: 80 }}
+                    sx={{
+                      width: 72,
+                      '& input': { textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 600 },
+                    }}
                     size="small"
                     inputProps={{ min: 1, max: 168 }}
                     disabled={saving}
                   />
-                </ListItem>
-
-                <ListItem sx={{ display: 'block' }}>
-                  <TextField
-                    select
-                    fullWidth
-                    size="small"
-                    label={t('messaging.automation.checkIn.template')}
-                    value={config.checkInTemplateId ?? ''}
-                    onChange={(e) =>
-                      handleUpdate({
-                        checkInTemplateId: e.target.value ? Number(e.target.value) : null,
-                      })
-                    }
-                    disabled={saving}
-                  >
-                    <MenuItem value="">
-                      <em>{t('messaging.automation.noTemplate')}</em>
-                    </MenuItem>
-                    {checkInTemplates.map((tpl) => (
-                      <MenuItem key={tpl.id} value={tpl.id}>
-                        {tpl.name}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </ListItem>
-              </>
-            )}
-          </List>
-        </Paper>
+                  <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', fontWeight: 600, letterSpacing: '0.02em' }}>
+                    h
+                  </Typography>
+                </Box>
+              )}
+            />
+            <Box sx={{ pt: 1.25 }}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                label={t('messaging.automation.checkIn.template')}
+                value={config.checkInTemplateId ?? ''}
+                onChange={(e) =>
+                  handleUpdate({
+                    checkInTemplateId: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+                disabled={saving}
+              >
+                <MenuItem value="">
+                  <em>{t('messaging.automation.noTemplate')}</em>
+                </MenuItem>
+                {checkInTemplates.map((tpl) => (
+                  <MenuItem key={tpl.id} value={tpl.id}>
+                    {tpl.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+          </Collapse>
+        </SettingsSection>
       </Grid>
 
       {/* Check-out automatique */}
       <Grid item xs={12} md={6}>
-        <Paper sx={{ p: 2, height: '100%' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Logout size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-              {t('messaging.automation.checkOut.title')}
-            </Typography>
-          </Box>
-
-          <List>
-            <ListItem>
-              <ListItemIcon>
-                <Email />
-              </ListItemIcon>
-              <ListItemText
-                primary={t('messaging.automation.checkOut.autoSend')}
-                secondary={t('messaging.automation.checkOut.autoSendDesc')}
-              />
-              <ListItemSecondaryAction>
-                <Switch
-                  edge="end"
-                  checked={config.autoSendCheckOut}
-                  onChange={(e) => handleUpdate({ autoSendCheckOut: e.target.checked })}
-                  disabled={saving}
-                />
-              </ListItemSecondaryAction>
-            </ListItem>
-
-            {config.autoSendCheckOut && (
-              <>
-                <ListItem>
-                  <ListItemIcon>
-                    <Schedule />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={t('messaging.automation.checkOut.hoursBefore')}
-                    secondary={t('messaging.automation.checkOut.hoursBeforeDesc')}
-                  />
+        <SettingsSection
+          title={t('messaging.automation.checkOut.title')}
+          icon={Logout}
+          accent="warm"
+        >
+          <SettingsToggleRow
+            icon={Email}
+            iconColor="#D4A574"
+            title={t('messaging.automation.checkOut.autoSend')}
+            description={t('messaging.automation.checkOut.autoSendDesc')}
+            checked={config.autoSendCheckOut}
+            onChange={(v) => handleUpdate({ autoSendCheckOut: v })}
+            disabled={saving}
+            divider={config.autoSendCheckOut}
+          />
+          <Collapse in={config.autoSendCheckOut}>
+            <SettingsToggleRow
+              icon={Schedule}
+              iconColor="#7BA3C2"
+              title={t('messaging.automation.checkOut.hoursBefore')}
+              description={t('messaging.automation.checkOut.hoursBeforeDesc')}
+              control={(
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <TextField
                     type="number"
                     value={config.hoursBeforeCheckOut}
                     onChange={(e) =>
                       handleUpdate({ hoursBeforeCheckOut: Math.max(1, parseInt(e.target.value) || 12) })
                     }
-                    sx={{ width: 80 }}
+                    sx={{
+                      width: 72,
+                      '& input': { textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 600 },
+                    }}
                     size="small"
                     inputProps={{ min: 1, max: 168 }}
                     disabled={saving}
                   />
-                </ListItem>
-
-                <ListItem sx={{ display: 'block' }}>
-                  <TextField
-                    select
-                    fullWidth
-                    size="small"
-                    label={t('messaging.automation.checkOut.template')}
-                    value={config.checkOutTemplateId ?? ''}
-                    onChange={(e) =>
-                      handleUpdate({
-                        checkOutTemplateId: e.target.value ? Number(e.target.value) : null,
-                      })
-                    }
-                    disabled={saving}
-                  >
-                    <MenuItem value="">
-                      <em>{t('messaging.automation.noTemplate')}</em>
-                    </MenuItem>
-                    {checkOutTemplates.map((tpl) => (
-                      <MenuItem key={tpl.id} value={tpl.id}>
-                        {tpl.name}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </ListItem>
-              </>
-            )}
-          </List>
-        </Paper>
+                  <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', fontWeight: 600, letterSpacing: '0.02em' }}>
+                    h
+                  </Typography>
+                </Box>
+              )}
+            />
+            <Box sx={{ pt: 1.25 }}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                label={t('messaging.automation.checkOut.template')}
+                value={config.checkOutTemplateId ?? ''}
+                onChange={(e) =>
+                  handleUpdate({
+                    checkOutTemplateId: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+                disabled={saving}
+              >
+                <MenuItem value="">
+                  <em>{t('messaging.automation.noTemplate')}</em>
+                </MenuItem>
+                {checkOutTemplates.map((tpl) => (
+                  <MenuItem key={tpl.id} value={tpl.id}>
+                    {tpl.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+          </Collapse>
+        </SettingsSection>
       </Grid>
 
       {/* Info */}

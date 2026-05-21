@@ -19,13 +19,89 @@ import {
   LinkOff as LinkOffIcon,
   Sync as SyncIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
+  ErrorOutline,
   Receipt as ReceiptIcon,
   ShoppingCart as ShoppingCartIcon,
 } from '../../icons';
 import { pennylaneApi } from '../../services/api/pennylaneApi';
 import type { PennylaneStatus, PennylaneSyncStatus } from '../../services/api/pennylaneApi';
 import { useTranslation } from '../../hooks/useTranslation';
+
+// ─── Style helpers (Clenzy palette) ─────────────────────────────────────────
+
+const ACCENT = '#4A9B8E';
+const PRIMARY = '#6B8A9A';
+const DANGER = '#C97A7A';
+const NEUTRAL = '#8A8378';
+const WARM = '#D4A574';
+
+const refinedContainedSx = (color: string) => ({
+  textTransform: 'none' as const,
+  fontWeight: 600,
+  fontSize: '0.78rem',
+  letterSpacing: '0.01em',
+  borderRadius: '8px',
+  py: 0.625,
+  px: 1.5,
+  bgcolor: color,
+  color: '#fff',
+  boxShadow: 'none',
+  transition:
+    'background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+  '&:hover': {
+    bgcolor: color,
+    filter: 'brightness(0.94)',
+    boxShadow: `0 1px 2px rgba(45, 55, 72, 0.06), 0 4px 10px ${color}38`,
+    transform: 'translateY(-1px)',
+  },
+  '&:active': { transform: 'translateY(0)', boxShadow: 'none' },
+  '&.Mui-disabled': { bgcolor: `${color}55`, color: '#fff' },
+});
+
+const refinedOutlinedSx = (hoverColor: string) => ({
+  textTransform: 'none' as const,
+  fontWeight: 600,
+  fontSize: '0.78rem',
+  letterSpacing: '0.01em',
+  borderRadius: '8px',
+  py: 0.625,
+  px: 1.5,
+  borderColor: 'divider',
+  color: 'text.primary',
+  transition:
+    'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+  '&:hover': {
+    borderColor: `${hoverColor}66`,
+    backgroundColor: `${hoverColor}0F`,
+    color: hoverColor,
+  },
+  '&:focus-visible': { outline: `2px solid ${hoverColor}`, outlineOffset: 2 },
+});
+
+const buildStatusChipSx = (color: string) => ({
+  height: 22,
+  fontSize: '0.6875rem',
+  fontWeight: 600,
+  letterSpacing: '0.01em',
+  borderRadius: '6px',
+  px: 0.25,
+  backgroundColor: `${color}14`,
+  color,
+  border: `1px solid ${color}33`,
+  '& .MuiChip-icon': {
+    color: `${color} !important`,
+    ml: '6px',
+    mr: '-2px',
+  },
+  '& .MuiChip-label': { px: 0.875 },
+});
+
+// ─── Integration metadata ──────────────────────────────────────────────────
+
+const PENNYLANE_BRAND = '#1B2A4A';
+const PENNYLANE_INITIALS = 'PL';
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 export default function IntegrationsSection() {
   const { t } = useTranslation();
@@ -61,7 +137,6 @@ export default function IntegrationsSection() {
     try {
       const result = await pennylaneApi.connect();
       if (result.authorization_url) {
-        // Redirect dans le meme onglet pour que le callback revienne sur Settings
         window.location.href = result.authorization_url;
       }
     } catch {
@@ -109,7 +184,6 @@ export default function IntegrationsSection() {
           text: `${totalSynced} ${t('settings.integrations.pennylane.elementsSynced')}${totalFailed > 0 ? ` (${totalFailed} ${t('settings.integrations.pennylane.failed')})` : ''}`,
         });
       }
-      // Refresh sync status
       const ss = await pennylaneApi.getSyncStatus().catch(() => null);
       if (ss) setSyncStatus(ss);
     } catch {
@@ -127,171 +201,321 @@ export default function IntegrationsSection() {
     );
   }
 
+  const isConnected = !!status?.connected;
+  const statusChip = isConnected ? (
+    <Chip
+      icon={<CheckCircleIcon size={11} strokeWidth={2} />}
+      label={t('settings.integrations.pennylane.connected')}
+      size="small"
+      sx={buildStatusChipSx(ACCENT)}
+    />
+  ) : (
+    <Chip
+      icon={<ErrorOutline size={11} strokeWidth={2} />}
+      label={t('settings.integrations.pennylane.notConnected')}
+      size="small"
+      sx={buildStatusChipSx(NEUTRAL)}
+    />
+  );
+
   return (
     <Box>
-      {/* Pennylane Card */}
-      <Paper sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box
+      {/* ─── Pennylane integration card ───────────────────────────────── */}
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: '12px',
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: 'none',
+          overflow: 'hidden',
+          transition:
+            'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+          '&:hover': {
+            borderColor: `${PRIMARY}40`,
+            boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 12px rgba(45, 55, 72, 0.06)',
+          },
+        }}
+      >
+        {/* Header */}
+        <Box
+          sx={{
+            px: 2,
+            py: 1.75,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 1.5,
+            borderBottom: isConnected ? '1px solid' : undefined,
+            borderColor: 'divider',
+          }}
+        >
+          {/* Brand tile */}
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: '10px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: PENNYLANE_BRAND,
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              letterSpacing: '0.04em',
+              flexShrink: 0,
+              boxShadow: `0 1px 2px ${PENNYLANE_BRAND}1F`,
+            }}
+            aria-hidden="true"
+          >
+            {PENNYLANE_INITIALS}
+          </Box>
+          {/* Info */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              fontWeight={600}
               sx={{
-                width: 40,
-                height: 40,
-                borderRadius: 1,
-                bgcolor: '#1B2A4A',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '0.9rem',
+                fontSize: '0.95rem',
+                lineHeight: 1.25,
+                color: 'text.primary',
+                letterSpacing: '-0.005em',
               }}
             >
-              PL
-            </Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>
-                {t('settings.integrations.pennylane.title')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {t('settings.integrations.pennylane.description')}
-              </Typography>
-            </Box>
+              {t('settings.integrations.pennylane.title')}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: '0.78rem',
+                color: 'text.secondary',
+                lineHeight: 1.4,
+                mt: 0.25,
+              }}
+            >
+              {t('settings.integrations.pennylane.description')}
+            </Typography>
           </Box>
-
-          <Chip
-            icon={status?.connected ? <CheckCircleIcon /> : <ErrorIcon />}
-            label={status?.connected ? t('settings.integrations.pennylane.connected') : t('settings.integrations.pennylane.notConnected')}
-            color={status?.connected ? 'success' : 'default'}
-            size="small"
-            variant="outlined"
-          />
+          {/* Status chip */}
+          <Box sx={{ flexShrink: 0 }}>{statusChip}</Box>
         </Box>
 
-        {/* Connection info or connect button */}
-        {status?.connected ? (
-          <>
-            {/* Connection details */}
-            <Box sx={{ display: 'flex', gap: 3, mb: 2, flexWrap: 'wrap' }}>
-              {status.connectedAt && (
-                <Typography variant="caption" color="text.secondary">
-                  {t('settings.integrations.pennylane.connectedAt')}: {new Date(status.connectedAt).toLocaleDateString()}
-                </Typography>
+        {/* Body */}
+        <Box sx={{ p: 2 }}>
+          {isConnected ? (
+            <>
+              {/* Connection metadata */}
+              {(status?.connectedAt || status?.lastSyncAt) && (
+                <Box sx={{ display: 'flex', gap: 2, mb: 1.5, flexWrap: 'wrap' }}>
+                  {status.connectedAt && (
+                    <Typography
+                      sx={{
+                        fontSize: '0.72rem',
+                        color: 'text.secondary',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      <Typography component="span" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.72rem' }}>
+                        {t('settings.integrations.pennylane.connectedAt')} :
+                      </Typography>{' '}
+                      {new Date(status.connectedAt).toLocaleDateString('fr-FR')}
+                    </Typography>
+                  )}
+                  {status.lastSyncAt && (
+                    <Typography
+                      sx={{
+                        fontSize: '0.72rem',
+                        color: 'text.secondary',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      <Typography component="span" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.72rem' }}>
+                        {t('settings.integrations.pennylane.lastSync')} :
+                      </Typography>{' '}
+                      {new Date(status.lastSyncAt).toLocaleString('fr-FR')}
+                    </Typography>
+                  )}
+                </Box>
               )}
-              {status.lastSyncAt && (
-                <Typography variant="caption" color="text.secondary">
-                  {t('settings.integrations.pennylane.lastSync')}: {new Date(status.lastSyncAt).toLocaleString()}
-                </Typography>
+
+              {/* Sync stats */}
+              {syncStatus && (
+                <Box sx={{ display: 'flex', gap: 0.75, mb: 1.5, flexWrap: 'wrap' }}>
+                  <Chip
+                    icon={<ReceiptIcon size={11} strokeWidth={2} />}
+                    label={`${syncStatus.pendingInvoices} ${t('settings.integrations.pennylane.pendingInvoices')}`}
+                    size="small"
+                    sx={buildStatusChipSx(syncStatus.pendingInvoices > 0 ? WARM : NEUTRAL)}
+                  />
+                  <Chip
+                    icon={<ShoppingCartIcon size={11} strokeWidth={2} />}
+                    label={`${syncStatus.pendingExpenses} ${t('settings.integrations.pennylane.pendingExpenses')}`}
+                    size="small"
+                    sx={buildStatusChipSx(syncStatus.pendingExpenses > 0 ? WARM : NEUTRAL)}
+                  />
+                </Box>
               )}
-            </Box>
 
-            <Divider sx={{ my: 2 }} />
+              <Divider sx={{ mb: 1.5, borderColor: 'divider' }} />
 
-            {/* Sync status */}
-            {syncStatus && (
-              <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-                <Chip
-                  icon={<ReceiptIcon />}
-                  label={`${syncStatus.pendingInvoices} ${t('settings.integrations.pennylane.pendingInvoices')}`}
-                  size="small"
+              {/* Sync actions */}
+              <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Button
                   variant="outlined"
-                  color={syncStatus.pendingInvoices > 0 ? 'warning' : 'default'}
-                />
-                <Chip
-                  icon={<ShoppingCartIcon />}
-                  label={`${syncStatus.pendingExpenses} ${t('settings.integrations.pennylane.pendingExpenses')}`}
                   size="small"
+                  startIcon={
+                    syncing ? (
+                      <CircularProgress size={14} color="inherit" />
+                    ) : (
+                      <ReceiptIcon size={14} strokeWidth={1.75} />
+                    )
+                  }
+                  onClick={() => handleSync('invoices')}
+                  disabled={syncing}
+                  sx={refinedOutlinedSx(PRIMARY)}
+                >
+                  {t('settings.integrations.pennylane.syncInvoices')}
+                </Button>
+                <Button
                   variant="outlined"
-                  color={syncStatus.pendingExpenses > 0 ? 'warning' : 'default'}
-                />
+                  size="small"
+                  startIcon={
+                    syncing ? (
+                      <CircularProgress size={14} color="inherit" />
+                    ) : (
+                      <ShoppingCartIcon size={14} strokeWidth={1.75} />
+                    )
+                  }
+                  onClick={() => handleSync('expenses')}
+                  disabled={syncing}
+                  sx={refinedOutlinedSx(PRIMARY)}
+                >
+                  {t('settings.integrations.pennylane.syncExpenses')}
+                </Button>
+                <Button
+                  variant="contained"
+                  disableElevation
+                  size="small"
+                  startIcon={
+                    syncing ? (
+                      <CircularProgress size={14} color="inherit" />
+                    ) : (
+                      <SyncIcon size={14} strokeWidth={2} />
+                    )
+                  }
+                  onClick={() => handleSync('all')}
+                  disabled={syncing}
+                  sx={refinedContainedSx(ACCENT)}
+                >
+                  {syncing
+                    ? t('settings.integrations.pennylane.syncing')
+                    : t('settings.integrations.pennylane.syncAll')}
+                </Button>
+                <Box sx={{ flexGrow: 1 }} />
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<LinkOffIcon size={14} strokeWidth={1.75} />}
+                  onClick={() => setDisconnectDialogOpen(true)}
+                  sx={refinedOutlinedSx(DANGER)}
+                >
+                  {t('settings.integrations.pennylane.disconnect')}
+                </Button>
               </Box>
-            )}
+            </>
+          ) : (
+            <Button
+              variant="contained"
+              disableElevation
+              size="small"
+              startIcon={<LinkIcon size={14} strokeWidth={2} />}
+              onClick={handleConnect}
+              sx={refinedContainedSx(PRIMARY)}
+            >
+              {t('settings.integrations.pennylane.connect')}
+            </Button>
+          )}
 
-            {/* Sync actions */}
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={syncing ? <CircularProgress size={16} /> : <SyncIcon />}
-                onClick={() => handleSync('invoices')}
-                disabled={syncing}
-              >
-                {t('settings.integrations.pennylane.syncInvoices')}
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={syncing ? <CircularProgress size={16} /> : <SyncIcon />}
-                onClick={() => handleSync('expenses')}
-                disabled={syncing}
-              >
-                {t('settings.integrations.pennylane.syncExpenses')}
-              </Button>
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={syncing ? <CircularProgress size={16} color="inherit" /> : <SyncIcon />}
-                onClick={() => handleSync('all')}
-                disabled={syncing}
-              >
-                {syncing ? t('settings.integrations.pennylane.syncing') : t('settings.integrations.pennylane.syncAll')}
-              </Button>
-              <Box sx={{ flexGrow: 1 }} />
-              <Button
-                variant="outlined"
-                size="small"
-                color="error"
-                startIcon={<LinkOffIcon />}
-                onClick={() => setDisconnectDialogOpen(true)}
-              >
-                {t('settings.integrations.pennylane.disconnect')}
-              </Button>
-            </Box>
-          </>
-        ) : (
-          <Button
-            variant="contained"
-            startIcon={<LinkIcon />}
-            onClick={handleConnect}
-            sx={{ mt: 1 }}
-          >
-            {t('settings.integrations.pennylane.connect')}
-          </Button>
-        )}
-
-        {/* Sync feedback */}
-        {syncMessage && (
-          <Alert severity={syncMessage.type} sx={{ mt: 2 }} onClose={() => setSyncMessage(null)}>
-            {syncMessage.text}
-          </Alert>
-        )}
+          {/* Sync feedback */}
+          {syncMessage && (
+            <Alert
+              severity={syncMessage.type}
+              sx={{ mt: 1.75, borderRadius: '8px' }}
+              onClose={() => setSyncMessage(null)}
+            >
+              {syncMessage.text}
+            </Alert>
+          )}
+        </Box>
       </Paper>
 
-      {/* Other integrations — Coming soon */}
-      <Paper sx={{ p: 2, mt: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
-        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', fontSize: '0.85rem' }}>
+      {/* ─── Coming soon — other integrations ─────────────────────────── */}
+      <Box
+        sx={{
+          mt: 1.5,
+          p: 1.5,
+          borderRadius: '10px',
+          border: '1px dashed',
+          borderColor: 'divider',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 0.75,
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: '0.75rem',
+            color: 'text.secondary',
+            fontStyle: 'italic',
+            textAlign: 'center',
+          }}
+        >
           {t('settings.integrations.comingSoon')}
         </Typography>
-      </Paper>
+      </Box>
 
-      {/* Disconnect confirmation */}
-      <Dialog open={disconnectDialogOpen} onClose={() => setDisconnectDialogOpen(false)}>
-        <DialogTitle>{t('settings.integrations.pennylane.disconnectTitle')}</DialogTitle>
+      {/* ─── Disconnect confirmation dialog ────────────────────────────── */}
+      <Dialog
+        open={disconnectDialogOpen}
+        onClose={() => setDisconnectDialogOpen(false)}
+        PaperProps={{ sx: { borderRadius: '12px' } }}
+      >
+        <DialogTitle sx={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.005em' }}>
+          {t('settings.integrations.pennylane.disconnectTitle')}
+        </DialogTitle>
         <DialogContent>
-          <DialogContentText>
+          <DialogContentText sx={{ fontSize: '0.85rem' }}>
             {t('settings.integrations.pennylane.disconnectConfirm')}
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDisconnectDialogOpen(false)} disabled={disconnecting}>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setDisconnectDialogOpen(false)}
+            disabled={disconnecting}
+            size="small"
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              borderRadius: '8px',
+              color: 'text.secondary',
+            }}
+          >
             {t('common.cancel')}
           </Button>
           <Button
-            onClick={handleDisconnect}
-            color="error"
             variant="contained"
+            disableElevation
+            size="small"
+            onClick={handleDisconnect}
             disabled={disconnecting}
-            startIcon={disconnecting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            startIcon={
+              disconnecting ? (
+                <CircularProgress size={14} color="inherit" />
+              ) : (
+                <LinkOffIcon size={14} strokeWidth={1.75} />
+              )
+            }
+            sx={refinedContainedSx(DANGER)}
           >
             {t('settings.integrations.pennylane.disconnect')}
           </Button>

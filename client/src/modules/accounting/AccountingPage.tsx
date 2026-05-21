@@ -90,6 +90,18 @@ const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text
 
 const TAB_SX = { textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, minHeight: 40 } as const;
 
+/** Soft-tinted chip styling — unified across Facturation tabs (6px radius, no pills). */
+const softChipSx = (hex: string) => ({
+  backgroundColor: `${hex}18`,
+  color: hex,
+  border: `1px solid ${hex}40`,
+  borderRadius: '6px',
+  fontWeight: 700,
+  fontSize: '0.625rem',
+  height: 22,
+  '& .MuiChip-label': { px: 0.75 },
+});
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const fmtDate = (d: string | null) =>
@@ -249,9 +261,9 @@ export const PayoutsTab: React.FC = () => {
         description={t('accounting.payouts.help.description', 'Les payouts vous permettent de calculer et suivre les reversements dus a chaque proprietaire.')}
         dismissLabel={t('accounting.payouts.help.dismiss', 'Ne plus afficher')}
         steps={[
-          { icon: <StepGenIcon size={16} strokeWidth={1.75} />, title: t('accounting.payouts.help.step1Title', 'Generer'), description: t('accounting.payouts.help.step1Desc', 'Selectionnez un proprietaire et une periode pour calculer le reversement.') },
-          { icon: <StepCalcIcon size={16} strokeWidth={1.75} />, title: t('accounting.payouts.help.step2Title', 'Verifier'), description: t('accounting.payouts.help.step2Desc', 'Le systeme calcule : revenus - commission - depenses = montant net.') },
-          { icon: <StepValidIcon size={16} strokeWidth={1.75} />, title: t('accounting.payouts.help.step3Title', 'Valider & Payer'), description: t('accounting.payouts.help.step3Desc', 'Approuvez le payout puis marquez-le comme paye apres le virement.') },
+          { icon: <StepGenIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step1Title', 'Generer'), description: t('accounting.payouts.help.step1Desc', 'Selectionnez un proprietaire et une periode pour calculer le reversement.'), accent: 'primary' },
+          { icon: <StepCalcIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step2Title', 'Verifier'), description: t('accounting.payouts.help.step2Desc', 'Le systeme calcule : revenus - commission - depenses = montant net.'), accent: 'info' },
+          { icon: <StepValidIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step3Title', 'Valider & Payer'), description: t('accounting.payouts.help.step3Desc', 'Approuvez le payout puis marquez-le comme paye apres le virement.'), accent: 'success' },
         ]}
       />
 
@@ -411,13 +423,7 @@ export const PayoutsTab: React.FC = () => {
                     <Chip
                       label={t(`accounting.payoutStatuses.${payout.status}`, payout.status)}
                       size="small"
-                      sx={{
-                        fontSize: '0.625rem',
-                        height: 20,
-                        fontWeight: 700,
-                        backgroundColor: PAYOUT_STATUS_COLORS[payout.status] ?? '#9e9e9e',
-                        color: '#fff',
-                      }}
+                      sx={softChipSx(PAYOUT_STATUS_COLORS[payout.status] ?? '#9e9e9e')}
                     />
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
@@ -618,7 +624,7 @@ export const PayoutsTab: React.FC = () => {
                       <Chip
                         label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'}
                         size="small"
-                        sx={{ fontSize: '0.6875rem', height: 22 }}
+                        sx={softChipSx('#6B8A9A')}
                       />
                     </TableCell>
                   </TableRow>
@@ -658,7 +664,7 @@ export const PayoutsTab: React.FC = () => {
                       <Chip
                         label={detailPayout.status}
                         size="small"
-                        sx={{ fontSize: '0.6875rem', height: 22, bgcolor: PAYOUT_STATUS_COLORS[detailPayout.status], color: '#fff' }}
+                        sx={softChipSx(PAYOUT_STATUS_COLORS[detailPayout.status] ?? '#9e9e9e')}
                       />
                     </TableCell>
                   </TableRow>
@@ -749,9 +755,9 @@ export const CommissionsTab: React.FC = () => {
       description={t('accounting.commissions.help.description', 'Les commissions representent le pourcentage preleve par chaque canal de reservation (Airbnb, Booking...) sur vos revenus.')}
       dismissLabel={t('accounting.commissions.help.dismiss', 'Ne plus afficher')}
       steps={[
-        { icon: <StepRevenueIcon size={16} strokeWidth={1.75} />, title: t('accounting.commissions.help.step1Title', 'Canaux'), description: t('accounting.commissions.help.step1Desc', 'Chaque plateforme (Airbnb, Booking...) applique un taux de commission different.') },
-        { icon: <StepPercentIcon size={16} strokeWidth={1.75} />, title: t('accounting.commissions.help.step2Title', 'Configurer'), description: t('accounting.commissions.help.step2Desc', 'Ajustez le taux de commission pour chaque canal selon votre contrat.') },
-        { icon: <StepCalcIcon size={16} strokeWidth={1.75} />, title: t('accounting.commissions.help.step3Title', 'Impact'), description: t('accounting.commissions.help.step3Desc', 'Les commissions sont deduites automatiquement lors du calcul des payouts proprietaires.') },
+        { icon: <StepRevenueIcon size={14} strokeWidth={1.75} />, title: t('accounting.commissions.help.step1Title', 'Canaux'), description: t('accounting.commissions.help.step1Desc', 'Chaque plateforme (Airbnb, Booking...) applique un taux de commission different.'), accent: 'secondary' },
+        { icon: <StepPercentIcon size={14} strokeWidth={1.75} />, title: t('accounting.commissions.help.step2Title', 'Configurer'), description: t('accounting.commissions.help.step2Desc', 'Ajustez le taux de commission pour chaque canal selon votre contrat.'), accent: 'primary' },
+        { icon: <StepCalcIcon size={14} strokeWidth={1.75} />, title: t('accounting.commissions.help.step3Title', 'Impact'), description: t('accounting.commissions.help.step3Desc', 'Les commissions sont deduites automatiquement lors du calcul des payouts proprietaires.'), accent: 'info' },
       ]}
     />
     <TableContainer component={Paper} sx={CARD_SX}>
@@ -772,13 +778,7 @@ export const CommissionsTab: React.FC = () => {
                   <Chip
                     label={c.channelName}
                     size="small"
-                    sx={{
-                      fontSize: '0.6875rem',
-                      fontWeight: 700,
-                      backgroundColor: channelColors[c.channelName] ?? '#666',
-                      color: '#fff',
-                      height: 22,
-                    }}
+                    sx={softChipSx(channelColors[c.channelName] ?? '#666')}
                   />
                 </TableCell>
                 <TableCell align="center" sx={CELL_SX}>
@@ -796,7 +796,7 @@ export const CommissionsTab: React.FC = () => {
                 </TableCell>
                 <TableCell align="right" sx={CELL_SX}>
                   {savedChannel === c.channelName ? (
-                    <Chip label={t('common.saved', 'Sauvegarde')} size="small" color="success" sx={{ fontSize: '0.6875rem', height: 22 }} />
+                    <Chip label={t('common.saved', 'Sauvegarde')} size="small" sx={softChipSx('#4A9B8E')} />
                   ) : (
                     <Tooltip title={t('common.save', 'Enregistrer')}>
                       <IconButton
@@ -982,9 +982,9 @@ export const ExpensesTab: React.FC = () => {
         description={t('accounting.expenses.help.description', 'Suivez et gerez les depenses des prestataires (menage, maintenance...) liees a vos logements.')}
         dismissLabel={t('accounting.expenses.help.dismiss', 'Ne plus afficher')}
         steps={[
-          { icon: <StepGenIcon size={16} strokeWidth={1.75} />, title: t('accounting.expenses.help.step1Title', 'Creer'), description: t('accounting.expenses.help.step1Desc', 'Ajoutez une depense avec le prestataire, le logement, le montant et la categorie.') },
-          { icon: <StepCategoryIcon size={16} strokeWidth={1.75} />, title: t('accounting.expenses.help.step2Title', 'Approuver'), description: t('accounting.expenses.help.step2Desc', 'Validez les depenses en brouillon. Joignez un justificatif (PDF, photo).') },
-          { icon: <StepCalcIcon size={16} strokeWidth={1.75} />, title: t('accounting.expenses.help.step3Title', 'Deduire'), description: t('accounting.expenses.help.step3Desc', 'Les depenses approuvees sont automatiquement deduites des payouts proprietaires.') },
+          { icon: <StepGenIcon size={14} strokeWidth={1.75} />, title: t('accounting.expenses.help.step1Title', 'Creer'), description: t('accounting.expenses.help.step1Desc', 'Ajoutez une depense avec le prestataire, le logement, le montant et la categorie.'), accent: 'primary' },
+          { icon: <StepCategoryIcon size={14} strokeWidth={1.75} />, title: t('accounting.expenses.help.step2Title', 'Approuver'), description: t('accounting.expenses.help.step2Desc', 'Validez les depenses en brouillon. Joignez un justificatif (PDF, photo).'), accent: 'warning' },
+          { icon: <StepCalcIcon size={14} strokeWidth={1.75} />, title: t('accounting.expenses.help.step3Title', 'Deduire'), description: t('accounting.expenses.help.step3Desc', 'Les depenses approuvees sont automatiquement deduites des payouts proprietaires.'), accent: 'success' },
         ]}
       />
 
@@ -1027,24 +1027,19 @@ export const ExpensesTab: React.FC = () => {
 
       {/* ── Filters + Actions ── */}
       <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          {EXPENSE_STATUS_OPTIONS.map((opt) => (
-            <Chip
-              key={opt.value}
-              label={t(opt.labelKey, opt.label)}
-              size="small"
-              variant={filterStatus === opt.value ? 'filled' : 'outlined'}
-              onClick={() => setFilterStatus(opt.value as ExpenseStatus | '')}
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                ...(filterStatus === opt.value && opt.value !== ''
-                  ? { backgroundColor: EXPENSE_STATUS_COLORS[opt.value as ExpenseStatus], color: '#fff' }
-                  : {}),
-              }}
-            />
-          ))}
-        </Box>
+        <FilterChipRow
+          options={EXPENSE_STATUS_OPTIONS
+            .filter((opt) => opt.value !== '')
+            .map((opt) => ({
+              value: opt.value as ExpenseStatus,
+              label: t(opt.labelKey, opt.label),
+              color: EXPENSE_STATUS_COLORS[opt.value as ExpenseStatus] ?? '#6B7280',
+            }))}
+          value={filterStatus}
+          onChange={(v) => setFilterStatus(v as ExpenseStatus | '')}
+          allLabel={t('common.all', 'Tous')}
+          size="compact"
+        />
 
         <Box sx={{ ml: 'auto' }}>
           <Button
@@ -1137,13 +1132,7 @@ export const ExpensesTab: React.FC = () => {
                     <Chip
                       label={t(`accounting.expenses.categories.${expense.category}`, expense.category)}
                       size="small"
-                      sx={{
-                        fontSize: '0.625rem',
-                        height: 20,
-                        fontWeight: 700,
-                        backgroundColor: EXPENSE_CATEGORY_COLORS[expense.category] ?? '#666',
-                        color: '#fff',
-                      }}
+                      sx={softChipSx(EXPENSE_CATEGORY_COLORS[expense.category] ?? '#666')}
                     />
                   </TableCell>
                   <TableCell sx={{ ...CELL_SX, fontWeight: 700 }} align="right">
@@ -1153,13 +1142,7 @@ export const ExpensesTab: React.FC = () => {
                     <Chip
                       label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)}
                       size="small"
-                      sx={{
-                        fontSize: '0.625rem',
-                        height: 20,
-                        fontWeight: 700,
-                        backgroundColor: EXPENSE_STATUS_COLORS[expense.status] ?? '#9e9e9e',
-                        color: '#fff',
-                      }}
+                      sx={softChipSx(EXPENSE_STATUS_COLORS[expense.status] ?? '#9e9e9e')}
                     />
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
@@ -1574,9 +1557,9 @@ export const ExportsTab: React.FC = () => {
         description={t('accounting.exports.help.description', 'Exportez vos donnees comptables dans differents formats pour votre comptable ou vos declarations.')}
         dismissLabel={t('accounting.exports.help.dismiss', 'Ne plus afficher')}
         steps={[
-          { icon: <StepPeriodIcon size={16} strokeWidth={1.75} />, title: t('accounting.exports.help.step1Title', 'Periode'), description: t('accounting.exports.help.step1Desc', 'Definissez la plage de dates des donnees a exporter.') },
-          { icon: <StepFormatIcon size={16} strokeWidth={1.75} />, title: t('accounting.exports.help.step2Title', 'Format'), description: t('accounting.exports.help.step2Desc', 'FEC (norme DGFiP), CSV reservations, payouts, depenses ou factures.') },
-          { icon: <StepExportIcon size={16} strokeWidth={1.75} />, title: t('accounting.exports.help.step3Title', 'Telecharger'), description: t('accounting.exports.help.step3Desc', 'Cliquez sur Telecharger pour obtenir le fichier pret a transmettre.') },
+          { icon: <StepPeriodIcon size={14} strokeWidth={1.75} />, title: t('accounting.exports.help.step1Title', 'Periode'), description: t('accounting.exports.help.step1Desc', 'Definissez la plage de dates des donnees a exporter.'), accent: 'info' },
+          { icon: <StepFormatIcon size={14} strokeWidth={1.75} />, title: t('accounting.exports.help.step2Title', 'Format'), description: t('accounting.exports.help.step2Desc', 'FEC (norme DGFiP), CSV reservations, payouts, depenses ou factures.'), accent: 'secondary' },
+          { icon: <StepExportIcon size={14} strokeWidth={1.75} />, title: t('accounting.exports.help.step3Title', 'Telecharger'), description: t('accounting.exports.help.step3Desc', 'Cliquez sur Telecharger pour obtenir le fichier pret a transmettre.'), accent: 'success' },
         ]}
       />
 

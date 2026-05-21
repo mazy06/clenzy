@@ -1,27 +1,15 @@
 import React from 'react';
 import {
   Box,
-  Typography,
   CircularProgress,
   Alert,
-  IconButton,
   Button,
-  Card,
-  CardContent,
-  Grid,
+  Typography,
   Snackbar,
 } from '@mui/material';
-import {
-  ArrowBack,
-  Edit,
-  AdminPanelSettings,
-  SupervisorAccount,
-  Build,
-  CleaningServices,
-  Home,
-} from '../../icons';
+import { Edit } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { ChipColor } from '../../types';
+import PageHeader from '../../components/PageHeader';
 import type { RoleInfo, StatusInfo } from './components/userDetailsTypes';
 import { useUserDetails } from './components/useUserDetails';
 import UserProfileCard from './components/UserProfileCard';
@@ -29,17 +17,15 @@ import UserSystemInfoCard from './components/UserSystemInfoCard';
 import UserHostProfileCard from './components/UserHostProfileCard';
 import UserRoleStatusCard from './components/UserRoleStatusCard';
 import UserActionsCard from './components/UserActionsCard';
+import { USER_ROLES } from './components/userRoleCatalog';
 
-const userRoles: RoleInfo[] = [
-  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error' },
-  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary' },
-  { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
-  { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary' },
-  { value: 'HOUSEKEEPER', label: 'Agent de menage', icon: <CleaningServices />, color: 'default' },
-  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default' },
-  { value: 'EXTERIOR_TECH', label: 'Tech. Exterieur', icon: <Build />, color: 'primary' },
-  { value: 'HOST', label: 'Proprietaire', icon: <Home />, color: 'success' },
-];
+// Adapt the shared catalog to the legacy RoleInfo shape consumed by the detail cards.
+const userRoles: RoleInfo[] = USER_ROLES.map((r) => ({
+  value: r.value,
+  label: r.label,
+  icon: r.icon,
+  color: r.color,
+}));
 
 const userStatuses: StatusInfo[] = [
   { value: 'ACTIVE', label: 'Actif', color: 'success' },
@@ -116,66 +102,69 @@ const UserDetails: React.FC = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <IconButton onClick={() => navigate('/users')} sx={{ mr: 1.5 }} size="small">
-            <ArrowBack size={20} strokeWidth={1.75} />
-          </IconButton>
-          <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.25rem' }}>
-            Details de l'utilisateur
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<Edit size={16} strokeWidth={1.75} />}
-          onClick={() => navigate(`/users/${user.id}/edit`)}
-          sx={{ fontSize: '0.8125rem' }}
-        >
-          Modifier
-        </Button>
-      </Box>
+      <PageHeader
+        title="Détails de l'utilisateur"
+        subtitle={`${user.firstName} ${user.lastName}`}
+        backPath="/users"
+        showBackButton={true}
+        actions={
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<Edit size={16} strokeWidth={1.75} />}
+            onClick={() => navigate(`/users/${user.id}/edit`)}
+            sx={{ fontSize: '0.8125rem', textTransform: 'none', fontWeight: 600 }}
+          >
+            Modifier
+          </Button>
+        }
+      />
 
-      {/* Profile summary card */}
+      {/* Hero card */}
       <UserProfileCard user={user} roles={userRoles} statuses={userStatuses} />
 
-      {/* Full details card */}
-      <Card>
-        <CardContent sx={{ p: 2 }}>
-          <Grid container spacing={2}>
-            {/* Personal info + contact + system dates */}
-            <UserSystemInfoCard user={user} />
+      {/* Body — two-column on >=md to avoid a single tall column of identical cards */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 7fr) minmax(0, 5fr)' },
+          gap: 1.5,
+          alignItems: 'start',
+        }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0 }}>
+          {/* Personal + Contact + System dates */}
+          <UserSystemInfoCard user={user} />
 
-            {/* Host profile (conditional) */}
-            <UserHostProfileCard
-              user={user}
-              isAdminOrManager={canManageUsers}
-              deferredToggling={deferredToggling}
-              onToggleDeferredPayment={handleToggleDeferredPayment}
-              balance={balance}
-              balanceLoading={balanceLoading}
-              expandedProperty={expandedProperty}
-              onExpandProperty={setExpandedProperty}
-              paymentLinkLoading={paymentLinkLoading}
-              onSendPaymentLink={handleSendPaymentLink}
-            />
+          {/* Host profile — self-contained, returns null when user is not a HOST. */}
+          <UserHostProfileCard
+            user={user}
+            isAdminOrManager={canManageUsers}
+            deferredToggling={deferredToggling}
+            onToggleDeferredPayment={handleToggleDeferredPayment}
+            balance={balance}
+            balanceLoading={balanceLoading}
+            expandedProperty={expandedProperty}
+            onExpandProperty={setExpandedProperty}
+            paymentLinkLoading={paymentLinkLoading}
+            onSendPaymentLink={handleSendPaymentLink}
+          />
+        </Box>
 
-            {/* Organisation + Role & Status */}
-            <UserRoleStatusCard user={user} roles={userRoles} statuses={userStatuses} />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0 }}>
+          {/* Organisation + Role & Status */}
+          <UserRoleStatusCard user={user} roles={userRoles} statuses={userStatuses} />
 
-            {/* Lockout / brute-force protection */}
-            <UserActionsCard
-              lockoutStatus={lockoutStatus}
-              isAdminOrManager={canManageUsers}
-              unlocking={unlocking}
-              onUnlockUser={handleUnlockUser}
-            />
-          </Grid>
-        </CardContent>
-      </Card>
+          {/* Lockout — self-contained, returns null when no lockout info. */}
+          <UserActionsCard
+            lockoutStatus={lockoutStatus}
+            isAdminOrManager={canManageUsers}
+            unlocking={unlocking}
+            onUnlockUser={handleUnlockUser}
+          />
+        </Box>
+      </Box>
 
-      {/* Snackbar notifications */}
       <Snackbar
         open={!!snackMessage}
         autoHideDuration={4000}

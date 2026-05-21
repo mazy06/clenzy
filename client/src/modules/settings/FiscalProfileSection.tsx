@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import {
   Box, Paper, Typography, Button, TextField, MenuItem,
   Switch, FormControlLabel, Grid, CircularProgress, Alert, Snackbar,
   Chip,
 } from '@mui/material';
 import {
-  Save, AccountBalance, Info as InfoIcon, CheckCircle,
+  AccountBalance, Info as InfoIcon, Verified,
 } from '../../icons';
 import { useFiscalProfile, useUpdateFiscalProfile } from '../../hooks/useFiscalProfile';
 import { CURRENCY_OPTIONS, COUNTRY_OPTIONS } from '../../utils/currencyUtils';
@@ -36,9 +36,21 @@ const LANGUAGE_OPTIONS = [
   { value: 'ar', label: 'العربية' },
 ];
 
+// ─── Handle exposé au parent (pour bouton Save dans le PageHeader) ─────────
+
+export interface FiscalProfileHandle {
+  save: () => Promise<void>;
+  hasChanges: () => boolean;
+  isSaving: boolean;
+}
+
+interface FiscalProfileSectionProps {
+  onChangeState?: () => void;
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const FiscalProfileSection: React.FC = () => {
+const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectionProps>(function FiscalProfileSection({ onChangeState }, ref) {
   const { t } = useTranslation();
   const { data: profile, isLoading, error, refetch } = useFiscalProfile();
   const updateMutation = useUpdateFiscalProfile();
@@ -118,6 +130,41 @@ const FiscalProfileSection: React.FC = () => {
     }
   };
 
+  // ── Loaded baseline for change detection ─────────────────────────────────
+  const baseline = useMemo<FiscalProfileUpdate | null>(() => {
+    if (!profile) return null;
+    return {
+      countryCode: profile.countryCode ?? 'FR',
+      defaultCurrency: profile.defaultCurrency ?? 'EUR',
+      fiscalRegime: profile.fiscalRegime ?? 'STANDARD',
+      vatRegistered: profile.vatRegistered ?? true,
+      taxIdNumber: profile.taxIdNumber ?? '',
+      vatNumber: profile.vatNumber ?? '',
+      vatDeclarationFrequency: profile.vatDeclarationFrequency ?? 'QUARTERLY',
+      invoiceLanguage: profile.invoiceLanguage ?? 'fr',
+      invoicePrefix: profile.invoicePrefix ?? 'FA',
+      legalMentions: profile.legalMentions ?? '',
+      legalEntityName: profile.legalEntityName ?? '',
+      legalAddress: profile.legalAddress ?? '',
+    };
+  }, [profile]);
+
+  const hasChanges = () => {
+    if (!baseline) return false;
+    return (Object.keys(form) as Array<keyof FiscalProfileUpdate>).some((k) => form[k] !== baseline[k]);
+  };
+
+  // Notify parent when state changes (for header button rendering)
+  useEffect(() => {
+    onChangeState?.();
+  }, [form, updateMutation.isPending]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useImperativeHandle(ref, () => ({
+    save: handleSave,
+    hasChanges,
+    isSaving: updateMutation.isPending,
+  }));
+
   // ── Loading state ──
   if (isLoading) {
     return (
@@ -179,12 +226,27 @@ const FiscalProfileSection: React.FC = () => {
               </Typography>
               {!isFirstSetup && profile?.vatRegistered && (
                 <Chip
-                  icon={<CheckCircle />}
+                  icon={<Verified size={11} strokeWidth={2} />}
                   label="TVA"
                   size="small"
-                  color="success"
-                  variant="outlined"
-                  sx={{ ml: 'auto', height: 22, fontSize: '0.7rem' }}
+                  sx={{
+                    ml: 'auto',
+                    height: 22,
+                    fontSize: '0.6875rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    backgroundColor: '#4A9B8E14',
+                    color: '#4A9B8E',
+                    border: '1px solid #4A9B8E40',
+                    borderRadius: '6px',
+                    px: 0.25,
+                    '& .MuiChip-icon': {
+                      color: '#4A9B8E !important',
+                      ml: '6px',
+                      mr: '-2px',
+                    },
+                    '& .MuiChip-label': { px: 0.875 },
+                  }}
                 />
               )}
             </Box>
@@ -363,19 +425,6 @@ const FiscalProfileSection: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Save button */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-        <Button
-          variant="contained"
-          startIcon={updateMutation.isPending ? <CircularProgress size={16} color="inherit" /> : <Save />}
-          onClick={handleSave}
-          disabled={updateMutation.isPending}
-          size="small"
-        >
-          {updateMutation.isPending ? t('fiscal.profile.saving') : t('fiscal.profile.save')}
-        </Button>
-      </Box>
-
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
@@ -391,6 +440,8 @@ const FiscalProfileSection: React.FC = () => {
       </Snackbar>
     </Box>
   );
-};
+});
+
+FiscalProfileSection.displayName = 'FiscalProfileSection';
 
 export default FiscalProfileSection;

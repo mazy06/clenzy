@@ -53,11 +53,13 @@ import { useNotification } from '../../hooks/useNotification';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import ExportButton from '../../components/ExportButton';
 import { usersApi, type UserFormData } from '../../services/api';
+import { userAvatarSrc } from '../../services/api/usersApi';
 import { extractApiList } from '../../types';
 import apiClient from '../../services/apiClient';
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
 import type { ExportColumn } from '../../utils/exportUtils';
 import type { ChipColor } from '../../types';
+import type { LucideIcon } from 'lucide-react';
 
 interface User {
   id: number;
@@ -70,15 +72,15 @@ interface User {
   createdAt: string;
 }
 
-const userRoles: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor; hex: string }> = [
-  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error', hex: '#d32f2f' },
-  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary', hex: '#7B61FF' },
-  { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info', hex: '#0288d1' },
-  { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary', hex: '#1976d2' },
-  { value: 'HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default', hex: '#757575' },
-  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default', hex: '#757575' },
-  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary', hex: '#1976d2' },
-  { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success', hex: '#4A9B8E' },
+const userRoles: Array<{ value: string; label: string; Icon: LucideIcon; color: ChipColor; hex: string }> = [
+  { value: 'SUPER_ADMIN', label: 'Super Admin', Icon: AdminPanelSettings, color: 'error', hex: '#C97A7A' },
+  { value: 'SUPER_MANAGER', label: 'Super Manager', Icon: SupervisorAccount, color: 'secondary', hex: '#7B61FF' },
+  { value: 'SUPERVISOR', label: 'Superviseur', Icon: SupervisorAccount, color: 'info', hex: '#7BA3C2' },
+  { value: 'TECHNICIAN', label: 'Technicien', Icon: Build, color: 'primary', hex: '#6B8A9A' },
+  { value: 'HOUSEKEEPER', label: 'Agent de ménage', Icon: CleaningServices, color: 'default', hex: '#8A8378' },
+  { value: 'LAUNDRY', label: 'Blanchisserie', Icon: CleaningServices, color: 'default', hex: '#8A8378' },
+  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', Icon: Build, color: 'primary', hex: '#6B8A9A' },
+  { value: 'HOST', label: 'Propriétaire', Icon: Home, color: 'success', hex: '#4A9B8E' },
 ];
 
 const USER_STATUS_HEX: Record<string, string> = {
@@ -461,21 +463,75 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
             </Card>
           </Grid>
         ) : (
-          filteredUsers.map((user) => (
+          filteredUsers.map((user) => {
+            const r = getRoleInfo(user.role);
+            const s = getStatusInfo(user.status);
+            const roleColor = r.hex;
+            const statusColor = USER_STATUS_HEX[user.status] || '#8A8378';
+            const RoleIcon = r.Icon;
+            return (
             <Grid item xs={12} sm={6} md={4} lg={3} key={user.id}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderRadius: '10px',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  boxShadow: 'none',
+                  transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  '&:hover': {
+                    borderColor: 'rgba(107, 138, 154, 0.35)',
+                    boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 12px rgba(45, 55, 72, 0.06)',
+                    transform: 'translateY(-1px)',
+                  },
+                }}
+              >
+                <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
                   {/* En-tête avec avatar et menu */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
-                      <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main', fontSize: '0.875rem' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flex: 1, minWidth: 0 }}>
+                      <Avatar
+                        src={userAvatarSrc(user)}
+                        sx={{
+                          width: 38,
+                          height: 38,
+                          bgcolor: `${roleColor}1F`,
+                          color: roleColor,
+                          fontSize: '0.8125rem',
+                          fontWeight: 600,
+                          letterSpacing: '0.02em',
+                          border: `1px solid ${roleColor}33`,
+                        }}
+                      >
                         {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                       </Avatar>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+                        <Typography
+                          fontWeight={600}
+                          sx={{
+                            fontSize: '0.9rem',
+                            lineHeight: 1.25,
+                            color: 'text.primary',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
                           {user.firstName} {user.lastName}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                        <Typography
+                          color="text.secondary"
+                          sx={{
+                            fontSize: '0.7rem',
+                            lineHeight: 1.3,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            display: 'block',
+                          }}
+                        >
                           {user.email}
                         </Typography>
                       </Box>
@@ -483,81 +539,138 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                     <IconButton
                       size="small"
                       onClick={(e) => handleMenuOpen(e, user)}
-                      sx={{ p: 0.5, ml: 0.5 }}
+                      sx={{ p: 0.5, ml: 0.25, color: 'text.secondary' }}
+                      aria-label="Options"
                     >
-                      <MoreVert size={18} strokeWidth={1.75} />
+                      <MoreVert size={16} strokeWidth={1.75} />
                     </IconButton>
                   </Box>
 
                   {/* Rôle et statut */}
-                  <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
-                    {(() => { const r = getRoleInfo(user.role); const c = r.hex; return (
-                      <Chip
-                        icon={r.icon}
-                        label={r.label}
-                        size="small"
-                        sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-icon': { color: `${c} !important` } }}
-                      />
-                    ); })()}
-                    {(() => { const s = getStatusInfo(user.status); const c = USER_STATUS_HEX[user.status] || '#757575'; return (
-                      <Chip
-                        label={s.label}
-                        size="small"
-                        sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
-                      />
-                    ); })()}
+                  <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
+                    <Chip
+                      icon={<RoleIcon size={11} strokeWidth={2} />}
+                      label={r.label}
+                      size="small"
+                      sx={{
+                        height: 22,
+                        fontSize: '0.6875rem',
+                        fontWeight: 600,
+                        letterSpacing: '0.01em',
+                        backgroundColor: `${roleColor}14`,
+                        color: roleColor,
+                        border: `1px solid ${roleColor}33`,
+                        borderRadius: '6px',
+                        px: 0.25,
+                        '& .MuiChip-icon': {
+                          color: `${roleColor} !important`,
+                          ml: '6px',
+                          mr: '-2px',
+                        },
+                        '& .MuiChip-label': { px: 0.875 },
+                      }}
+                    />
+                    <Chip
+                      label={s.label}
+                      size="small"
+                      sx={{
+                        height: 22,
+                        fontSize: '0.6875rem',
+                        fontWeight: 600,
+                        letterSpacing: '0.01em',
+                        backgroundColor: `${statusColor}14`,
+                        color: statusColor,
+                        border: `1px solid ${statusColor}33`,
+                        borderRadius: '6px',
+                        '& .MuiChip-label': { px: 0.875 },
+                      }}
+                    />
                   </Box>
 
                   {/* Informations supplémentaires */}
-                  <List dense sx={{ py: 0 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.625 }}>
                     {user.phoneNumber && (
-                      <ListItem sx={{ px: 0, py: 0.5 }}>
-                        <ListItemIcon sx={{ minWidth: 28 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Phone size={14} strokeWidth={1.75} /></Box>
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={user.phoneNumber}
-                          primaryTypographyProps={{ variant: 'caption', sx: { fontSize: '0.7rem' } }}
-                        />
-                      </ListItem>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                        <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+                          <Phone size={13} strokeWidth={1.75} />
+                        </Box>
+                        <Typography
+                          sx={{
+                            fontSize: '0.72rem',
+                            color: 'text.secondary',
+                            fontVariantNumeric: 'tabular-nums',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {user.phoneNumber}
+                        </Typography>
+                      </Box>
                     )}
-                    <ListItem sx={{ px: 0, py: 0.5 }}>
-                      <ListItemIcon sx={{ minWidth: 28 }}>
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Email size={14} strokeWidth={1.75} /></Box>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={user.email}
-                        primaryTypographyProps={{ variant: 'caption', sx: { fontSize: '0.7rem' } }}
-                      />
-                    </ListItem>
-                    <ListItem sx={{ px: 0, py: 0.5 }}>
-                      <ListItemIcon sx={{ minWidth: 28 }}>
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={14} strokeWidth={1.75} /></Box>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={`Créé le ${formatDate(user.createdAt)}`}
-                        primaryTypographyProps={{ variant: 'caption', sx: { fontSize: '0.7rem', color: 'text.secondary' } }}
-                      />
-                    </ListItem>
-                  </List>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                      <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+                        <Email size={13} strokeWidth={1.75} />
+                      </Box>
+                      <Typography
+                        sx={{
+                          fontSize: '0.72rem',
+                          color: 'text.secondary',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {user.email}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                      <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+                        <Person size={13} strokeWidth={1.75} />
+                      </Box>
+                      <Typography
+                        sx={{
+                          fontSize: '0.72rem',
+                          color: 'text.secondary',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        Créé le {formatDate(user.createdAt)}
+                      </Typography>
+                    </Box>
+                  </Box>
                 </CardContent>
 
                 {/* Actions */}
-                <CardActions sx={{ pt: 0, p: 1 }}>
+                <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5 }}>
                   <Button
                     variant="outlined"
                     size="small"
-                    startIcon={<Visibility size={16} strokeWidth={1.75} />}
+                    startIcon={<Visibility size={14} strokeWidth={1.75} />}
                     onClick={() => navigate(`/users/${user.id}`)}
                     fullWidth
-                    sx={{ fontSize: '0.75rem' }}
+                    sx={{
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      letterSpacing: '0.01em',
+                      borderRadius: '6px',
+                      borderColor: 'divider',
+                      color: 'text.primary',
+                      textTransform: 'none',
+                      py: 0.625,
+                      '&:hover': {
+                        borderColor: 'rgba(107, 138, 154, 0.5)',
+                        backgroundColor: 'rgba(107, 138, 154, 0.06)',
+                      },
+                    }}
                   >
                     Voir détails
                   </Button>
                 </CardActions>
               </Card>
             </Grid>
-          ))
+            );
+          })
         )}
       </Grid>
 
@@ -648,14 +761,19 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                   onChange={(e) => setEditFormData(prev => ({ ...prev, role: e.target.value }))}
                   label="Rôle"
                 >
-                  {userRoles.map((role) => (
-                    <MenuItem key={role.value} value={role.value}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ fontSize: 18 }}>{role.icon}</Box>
-                        <Typography variant="body2">{role.label}</Typography>
-                      </Box>
-                    </MenuItem>
-                  ))}
+                  {userRoles.map((role) => {
+                    const RoleIcon = role.Icon;
+                    return (
+                      <MenuItem key={role.value} value={role.value}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ display: 'inline-flex', color: role.hex }}>
+                            <RoleIcon size={16} strokeWidth={1.75} />
+                          </Box>
+                          <Typography variant="body2">{role.label}</Typography>
+                        </Box>
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </FormControl>
             </Grid>
