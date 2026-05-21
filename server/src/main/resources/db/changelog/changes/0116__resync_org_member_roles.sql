@@ -22,6 +22,7 @@
 --      (they joined an existing org, they are not its creator).
 --
 -- Idempotent: re-running is a no-op once no org has multiple OWNERs.
+-- (Pilot test — comment-only edit to trigger ci-liquibase-validate.yml)
 -- ============================================================================
 
 WITH orgs_with_multiple_owners AS (
