@@ -14,7 +14,7 @@ function getAccessToken(): string | null {
   return getItem(STORAGE_KEYS.ACCESS_TOKEN);
 }
 
-export type PricingProvider = 'PRICELABS' | 'BEYOND';
+export type PricingProvider = 'PRICELABS' | 'BEYOND' | 'WHEELHOUSE';
 
 export interface PricingConnectionRequest {
   serverUrl: string;
@@ -108,6 +108,17 @@ export const PRICING_PROVIDER_META: Record<PricingProvider, PricingProviderMeta>
     brandInitials: 'B',
     serverUrlPlaceholder: 'https://api.beyondpricing.com',
     apiKeyHelpUrl: 'https://help.beyondpricing.com/',
+    accountIdentifierLabel: 'Account ID (optionnel)',
+  },
+  WHEELHOUSE: {
+    id: 'WHEELHOUSE',
+    label: 'Wheelhouse',
+    description:
+      'Wheelhouse — 3e acteur majeur du dynamic pricing, basé à San Francisco. Focus sur la comparaison avec les concurrents directs de votre marché géographique.',
+    brandColor: '#1A2B4A',
+    brandInitials: 'W',
+    serverUrlPlaceholder: 'https://api.usewheelhouse.com',
+    apiKeyHelpUrl: 'https://www.usewheelhouse.com/',
     accountIdentifierLabel: 'Account ID (optionnel)',
   },
 };

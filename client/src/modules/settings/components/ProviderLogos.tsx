@@ -28,7 +28,10 @@ export type ProviderId =
   | 'ODOO'
   | 'PRICELABS'
   | 'BEYOND'
-  | 'QUICKBOOKS';
+  | 'WHEELHOUSE'
+  | 'QUICKBOOKS'
+  | 'XERO'
+  | 'SAGE';
 
 interface ProviderLogoProps {
   provider: ProviderId;
@@ -63,6 +66,12 @@ const PALETTE: Record<ProviderId, BrandPalette> = {
   BEYOND:     { bg: '#0F2E3F', fg: '#FFFFFF', accent: '#2ED9C3' },
   // QuickBooks : vert Intuit
   QUICKBOOKS: { bg: '#2CA01C', fg: '#FFFFFF', accent: '#FFFFFF' },
+  // Wheelhouse : navy + jaune (data driven)
+  WHEELHOUSE: { bg: '#1A2B4A', fg: '#FFFFFF', accent: '#FFC857' },
+  // Xero : cyan + bleu signature
+  XERO:       { bg: '#13B5EA', fg: '#FFFFFF', accent: '#0078A3' },
+  // Sage : vert sapin
+  SAGE:       { bg: '#00DC00', fg: '#0D2818', accent: '#0D2818' },
 };
 
 export default function ProviderLogo({ provider, size = 48, muted = false }: ProviderLogoProps) {
@@ -297,6 +306,72 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
           >
             qb
           </text>
+        </>
+      );
+
+    case 'WHEELHOUSE':
+      // Tile navy, "W" + petits rayons (motif de roue / tableau de bord)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="24"
+            y="30"
+            textAnchor="middle"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="20"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.04em"
+          >
+            W
+          </text>
+          <circle cx="24" cy="38" r="2.5" fill={p.accent} />
+          <line x1="19" y1="38" x2="14" y2="38" stroke={p.accent} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+          <line x1="29" y1="38" x2="34" y2="38" stroke={p.accent} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+        </>
+      );
+
+    case 'XERO':
+      // Tile cyan, "X" trace en 2 lignes croisees
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <path
+            d="M14 16 L34 32 M34 16 L14 32"
+            stroke={p.fg}
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            fill="none"
+          />
+          <circle cx="24" cy="24" r="14" fill="none" stroke={p.accent} strokeWidth="1.5" opacity="0.5" />
+        </>
+      );
+
+    case 'SAGE':
+      // Tile vert, "s" minuscule avec barre/courbe inferieure
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="24"
+            y="33"
+            textAnchor="middle"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="26"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.04em"
+          >
+            s
+          </text>
+          <path
+            d="M12 39 Q24 35 36 39"
+            stroke={p.accent}
+            strokeWidth="2"
+            strokeLinecap="round"
+            fill="none"
+          />
         </>
       );
 
