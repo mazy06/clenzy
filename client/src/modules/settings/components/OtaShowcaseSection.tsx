@@ -1,18 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Paper, Typography, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { ArrowForward as ArrowRightIcon } from '../../../icons';
-import { OTA_CHANNELS } from '../../../services/channels/otaChannels';
+import { ArrowForward as ArrowRightIcon, CheckCircle as CheckCircleIcon } from '../../../icons';
+import { OTA_CHANNELS, type OtaChannel } from '../../../services/channels/otaChannels';
+import { useChannelConnections } from '../../../hooks/useChannelConnections';
+import { useAirbnbConnectionStatus } from '../../../hooks/useAirbnb';
+import { CONNECTABLE_CHANNELS, type ChannelId } from '../../../services/api/channelConnectionApi';
+import ChannelConnectDialog from '../../channels/ChannelConnectDialog';
+import OtaInfoDialog from './OtaInfoDialog';
 
 /**
- * Vitrine visuelle des OTAs (canaux de reservation) dans l'onglet Integrations.
+ * Vitrine visuelle des OTAs dans l'onglet Integrations.
  *
- * <h2>Layout uniforme avec les autres sections</h2>
- * <p>Utilise strictement le meme format de card que KYC / ChannelManager /
- * Pricing / Compliance : grille 3 cols, layout horizontal logo+texte,
- * minHeight 56px, padding 1, border-radius 10px. Seule difference fonctionnelle :
- * le click navigue vers /channels (pas de modal config) car la gestion
- * des OTAs reste dans la tab Channels dediee.</p>
+ * <h2>Routage du clic vers le bon dialog</h2>
+ * <ul>
+ *   <li>OTA <b>connecte</b> (form-based ou Airbnb) ou <b>Airbnb non connecte</b>
+ *       ou <b>coming-soon</b> → {@link OtaInfoDialog} (status + actions)</li>
+ *   <li>OTA <b>form-based</b> et <b>non connecte</b> → {@link ChannelConnectDialog}
+ *       existant qui contient deja le formulaire de credentials + test</li>
+ * </ul>
+ *
+ * Les cards conservent leur format uniforme (cf. autres sections d'integration) :
+ * grille 3 cols, layout horizontal logo+texte+chip, minHeight 56px.
  */
 
 const ACCENT = '#4A9B8E';
@@ -21,191 +30,251 @@ const SEGMENT_B2B = '#7BA3C2';
 
 export default function OtaShowcaseSection() {
   const navigate = useNavigate();
+  const { isConnected, getStatus } = useChannelConnections();
+  const { data: airbnbStatus } = useAirbnbConnectionStatus();
+
+  // State : quel dialog est ouvert pour quel OTA
+  const [otaForFormDialog, setOtaForFormDialog] = useState<OtaChannel | null>(null);
+  const [otaForInfoDialog, setOtaForInfoDialog] = useState<OtaChannel | null>(null);
+
+  const isOtaConnected = (ota: OtaChannel): boolean => {
+    if (ota.id === 'airbnb') return !!airbnbStatus?.connected;
+    if (CONNECTABLE_CHANNELS.includes(ota.id as ChannelId)) {
+      return isConnected(ota.id as ChannelId);
+    }
+    return false;
+  };
+
+  const handleCardClick = (ota: OtaChannel) => {
+    const formConnectable = CONNECTABLE_CHANNELS.includes(ota.id as ChannelId);
+    const connected = isOtaConnected(ota);
+
+    // Routage :
+    //   - Coming soon OU connecte OU Airbnb -> Info dialog
+    //   - Form-connectable non connecte -> Connect form dialog
+    if (!ota.available || connected || ota.id === 'airbnb') {
+      setOtaForInfoDialog(ota);
+    } else if (formConnectable) {
+      setOtaForFormDialog(ota);
+    } else {
+      // Non-Airbnb, non-form-connectable -> Info (cas par defaut, e.g. OTAs marketing)
+      setOtaForInfoDialog(ota);
+    }
+  };
+
+  // Depuis OtaInfoDialog ("Modifier la connexion"), on switch vers le form
+  const handleSwitchToForm = (ota: OtaChannel) => {
+    setOtaForInfoDialog(null);
+    setOtaForFormDialog(ota);
+  };
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: '12px',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
-        mt: 3,
-        mb: 2,
-        px: 2,
-        py: 1.75,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
-            Canaux de réservation (OTAs)
-          </Typography>
-          <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
-            Aperçu des plateformes de réservation supportées. La configuration des connexions se fait depuis l'onglet <strong>Channels</strong>.
-          </Typography>
-        </Box>
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={() => navigate('/channels')}
-          endIcon={<ArrowRightIcon size={14} strokeWidth={2} />}
-          sx={{
-            flexShrink: 0,
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '0.74rem',
-            borderRadius: '8px',
-            py: 0.5,
-            px: 1.25,
-            borderColor: 'divider',
-            color: 'text.primary',
-            '&:hover': { borderColor: `${ACCENT}66`, backgroundColor: `${ACCENT}0F`, color: ACCENT },
-          }}
-        >
-          Gérer dans Channels
-        </Button>
-      </Box>
-
-      <Box
+    <>
+      <Paper
+        elevation={0}
         sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-          gap: 1,
-          mt: 1,
+          borderRadius: '12px',
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: 'none',
+          mt: 3,
+          mb: 2,
+          px: 2,
+          py: 1.75,
         }}
       >
-        {OTA_CHANNELS.map((ota) => {
-          const segmentColor = ota.segment === 'B2C' ? ACCENT : SEGMENT_B2B;
-          return (
-            <Box
-              key={ota.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => navigate('/channels')}
-              onKeyDown={(e) => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                  e.preventDefault();
-                  navigate('/channels');
-                }
-              }}
-              sx={{
-                position: 'relative',
-                cursor: 'pointer',
-                p: 1,
-                borderRadius: '10px',
-                border: '1px solid',
-                borderColor: 'divider',
-                backgroundColor: 'background.paper',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                minHeight: 56,
-                opacity: ota.available ? 1 : 0.7,
-                outline: 'none',
-                transition:
-                  'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': {
-                  borderColor: `${ACCENT}66`,
-                  backgroundColor: `${ACCENT}06`,
-                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
-                },
-                '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
-              }}
-            >
-              {/* Logo : tile 32x32 — image brand OU initiales fallback */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
+              Canaux de réservation (OTAs)
+            </Typography>
+            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
+              Connectez vos OTAs ici ou depuis l'onglet <strong>Channels</strong> dédié. Les modifications sont synchronisées entre les deux vues.
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => navigate('/channels')}
+            endIcon={<ArrowRightIcon size={14} strokeWidth={2} />}
+            sx={{
+              flexShrink: 0,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.74rem',
+              borderRadius: '8px',
+              py: 0.5,
+              px: 1.25,
+              borderColor: 'divider',
+              color: 'text.primary',
+              '&:hover': { borderColor: `${ACCENT}66`, backgroundColor: `${ACCENT}0F`, color: ACCENT },
+            }}
+          >
+            Voir dans Channels
+          </Button>
+        </Box>
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 1,
+            mt: 1,
+          }}
+        >
+          {OTA_CHANNELS.map((ota) => {
+            const segmentColor = ota.segment === 'B2C' ? ACCENT : SEGMENT_B2B;
+            const connected = isOtaConnected(ota);
+
+            return (
               <Box
-                sx={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: '8px',
-                  backgroundColor: ota.logo ? 'transparent' : ota.brandColor,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
-                  flexShrink: 0,
+                key={ota.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => handleCardClick(ota)}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCardClick(ota);
+                  }
                 }}
-                aria-hidden="true"
+                sx={{
+                  position: 'relative',
+                  cursor: 'pointer',
+                  p: 1,
+                  borderRadius: '10px',
+                  border: '1px solid',
+                  borderColor: connected ? `${ACCENT}55` : 'divider',
+                  backgroundColor: connected ? `${ACCENT}05` : 'background.paper',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  minHeight: 56,
+                  opacity: ota.available ? 1 : 0.7,
+                  outline: 'none',
+                  transition:
+                    'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  '&:hover': {
+                    borderColor: `${ACCENT}66`,
+                    backgroundColor: connected ? `${ACCENT}10` : `${ACCENT}06`,
+                    boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
+                  },
+                  '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
+                }}
               >
-                {ota.logo ? (
-                  <Box
-                    component="img"
-                    src={ota.logo}
-                    alt=""
-                    sx={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain',
-                    }}
-                  />
-                ) : (
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '8px',
+                    backgroundColor: ota.logo ? 'transparent' : ota.brandColor,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                  }}
+                  aria-hidden="true"
+                >
+                  {ota.logo ? (
+                    <Box
+                      component="img"
+                      src={ota.logo}
+                      alt=""
+                      sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>
+                      {ota.name.slice(0, 2).toUpperCase()}
+                    </Typography>
+                  )}
+                </Box>
+
+                <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Typography
                     sx={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      color: '#fff',
-                      letterSpacing: '-0.02em',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      lineHeight: 1.15,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    {ota.name.slice(0, 2).toUpperCase()}
+                    {ota.name}
                   </Typography>
-                )}
-              </Box>
+                  <Typography
+                    sx={{
+                      fontSize: '0.67rem',
+                      color: 'text.secondary',
+                      lineHeight: 1.25,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {!ota.available
+                      ? `Bientôt disponible · ${ota.segment}`
+                      : connected
+                        ? `Connecté · ${ota.segment}`
+                        : `Disponible · ${ota.segment}`}
+                  </Typography>
+                </Box>
 
-              {/* Bloc texte — meme format que les autres cards d'integration */}
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography
+                {/* Chip droit : "Connecté" ou segment B2C/B2B ou "Bientôt" */}
+                <Box
+                  component="span"
                   sx={{
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    color: 'text.primary',
-                    lineHeight: 1.15,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    fontSize: '0.56rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.02em',
+                    color: connected ? ACCENT : ota.available ? segmentColor : NEUTRAL,
+                    backgroundColor: connected ? `${ACCENT}14` : ota.available ? `${segmentColor}14` : `${NEUTRAL}14`,
+                    border: `1px solid ${connected ? ACCENT : ota.available ? segmentColor : NEUTRAL}33`,
+                    borderRadius: '4px',
+                    px: 0.5,
+                    py: 0.125,
+                    lineHeight: 1.4,
+                    alignSelf: 'center',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
                   }}
                 >
-                  {ota.name}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: '0.67rem',
-                    color: 'text.secondary',
-                    lineHeight: 1.25,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {ota.available ? 'Disponible' : 'Bientôt disponible'} · {ota.segment}
-                </Typography>
+                  {connected && <CheckCircleIcon size={10} strokeWidth={2.5} />}
+                  {connected ? 'Connecté' : ota.available ? ota.segment : 'Bientôt'}
+                </Box>
               </Box>
+            );
+          })}
+        </Box>
+      </Paper>
 
-              {/* Chip discret a droite : segment B2C/B2B ou "Bientot" */}
-              <Box
-                component="span"
-                sx={{
-                  flexShrink: 0,
-                  fontSize: '0.56rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.02em',
-                  color: ota.available ? segmentColor : NEUTRAL,
-                  backgroundColor: ota.available ? `${segmentColor}14` : `${NEUTRAL}14`,
-                  border: `1px solid ${ota.available ? segmentColor : NEUTRAL}33`,
-                  borderRadius: '4px',
-                  px: 0.5,
-                  py: 0.125,
-                  lineHeight: 1.4,
-                  alignSelf: 'center',
-                }}
-              >
-                {ota.available ? ota.segment : 'Bientôt'}
-              </Box>
-            </Box>
-          );
-        })}
-      </Box>
-    </Paper>
+      {/* Dialog 1 : info / status / OAuth / coming-soon */}
+      <OtaInfoDialog
+        ota={otaForInfoDialog}
+        open={otaForInfoDialog !== null}
+        onClose={() => setOtaForInfoDialog(null)}
+        channelStatus={
+          otaForInfoDialog && CONNECTABLE_CHANNELS.includes(otaForInfoDialog.id as ChannelId)
+            ? getStatus(otaForInfoDialog.id as ChannelId) ?? null
+            : null
+        }
+        airbnbStatus={airbnbStatus ?? null}
+        onEditConnection={handleSwitchToForm}
+      />
+
+      {/* Dialog 2 : connexion via formulaire (OTAs form-based, non connectes) */}
+      {otaForFormDialog && (
+        <ChannelConnectDialog
+          open={otaForFormDialog !== null}
+          channel={otaForFormDialog}
+          onClose={() => setOtaForFormDialog(null)}
+          onConnected={() => setOtaForFormDialog(null)}
+        />
+      )}
+    </>
   );
 }
