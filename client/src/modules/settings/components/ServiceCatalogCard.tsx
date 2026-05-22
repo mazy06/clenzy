@@ -238,28 +238,50 @@ export default function ServiceCatalogCard({ service, onClick }: ServiceCatalogC
           </Typography>
         </Box>
 
-        {/* Chip droit : status / region */}
-        <Box
-          component="span"
-          sx={{
-            flexShrink: 0,
-            fontSize: '0.56rem',
-            fontWeight: 700,
-            letterSpacing: '0.02em',
-            color: service.available ? ACCENT : NEUTRAL,
-            backgroundColor: service.available ? `${ACCENT}14` : `${NEUTRAL}14`,
-            border: `1px solid ${service.available ? ACCENT : NEUTRAL}33`,
-            borderRadius: '4px',
-            px: 0.5,
-            py: 0.125,
-            lineHeight: 1.4,
-          }}
-        >
-          {service.available ? 'Configurable' : 'Bientôt'}
-        </Box>
+        {/* Chip droit : tag commercial OU status */}
+        {(() => {
+          const chip = getChipMeta(service);
+          return (
+            <Box
+              component="span"
+              sx={{
+                flexShrink: 0,
+                fontSize: '0.56rem',
+                fontWeight: 700,
+                letterSpacing: '0.02em',
+                color: chip.color,
+                backgroundColor: `${chip.color}14`,
+                border: `1px solid ${chip.color}33`,
+                borderRadius: '4px',
+                px: 0.5,
+                py: 0.125,
+                lineHeight: 1.4,
+              }}
+            >
+              {chip.label}
+            </Box>
+          );
+        })()}
       </Box>
     </Tooltip>
   );
+}
+
+/** Resout le chip a afficher : prioritise le tag commercial sur le status. */
+function getChipMeta(service: { tag?: 'proprietary' | 'free' | 'partner' | 'external'; available: boolean }): { label: string; color: string } {
+  const ACCENT_LOCAL = '#4A9B8E';
+  const NEUTRAL_LOCAL = '#8A8378';
+  const WARM_LOCAL = '#D4A574';
+  const INFO_LOCAL = '#7BA3C2';
+  const PRIMARY_LOCAL = '#6B8A9A';
+
+  if (service.tag === 'proprietary') return { label: 'Propriétaire', color: PRIMARY_LOCAL };
+  if (service.tag === 'free') return { label: 'Gratuit', color: ACCENT_LOCAL };
+  if (service.tag === 'partner') return { label: 'Partenaire', color: INFO_LOCAL };
+  if (service.tag === 'external') return { label: 'Externe', color: WARM_LOCAL };
+  return service.available
+    ? { label: 'Configurable', color: ACCENT_LOCAL }
+    : { label: 'Bientôt', color: NEUTRAL_LOCAL };
 }
 
 /** Extrait les 2 premieres lettres significatives du nom (skip parentheses). */

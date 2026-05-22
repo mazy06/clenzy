@@ -23,7 +23,18 @@ export type ServiceCategory =
   | 'smart_locks_iot'
   | 'activities_affiliate'
   | 'reviews_reputation'
-  | 'marketing_crm';
+  | 'marketing_crm'
+  | 'key_management'
+  | 'noise_monitoring';
+
+/**
+ * Tag commercial du service. Affiche comme un petit chip a cote du nom.
+ *   - proprietary : solution Clenzy native (incluse / sans abonnement)
+ *   - free        : gratuit / inclus dans l'abonnement Clenzy
+ *   - partner     : accord commercial / certifie partenaire
+ *   - external    : service tiers independant (default, pas affiche)
+ */
+export type ServiceTag = 'proprietary' | 'free' | 'partner' | 'external';
 
 export interface CatalogService {
   id: string;
@@ -45,6 +56,14 @@ export interface CatalogService {
   available: boolean;
   /** Region(s) cible(es) — affiche en chip discret. */
   region?: 'FR' | 'EU' | 'MA' | 'KSA' | 'MENA' | 'Global';
+  /** Tag commercial optionnel (proprietary/free/partner/external). */
+  tag?: ServiceTag;
+  /**
+   * Route interne Clenzy si le service est natif/proprietaire. Si presente,
+   * le modal affiche "Configurer dans Clenzy" qui navigate vers cette route
+   * (au lieu de "Visiter le site").
+   */
+  internalRoute?: string;
 }
 
 export const CATALOG_SERVICES: CatalogService[] = [
@@ -414,6 +433,89 @@ export const CATALOG_SERVICES: CatalogService[] = [
     accessModality: 'Compte Pipedrive (essai 14j, à partir de ~15 €/utilisateur/mois). API key personnelle dans Personal Preferences → API.',
     available: false,
     region: 'Global',
+  },
+
+  // ─── Gestion des cles (key handover) ─────────────────────────────────────
+  {
+    id: 'clenzy_keyvault',
+    name: 'Clenzy KeyVault',
+    category: 'key_management',
+    brandColor: '#6B8A9A',
+    brandTextColor: '#FFFFFF',
+    shortDescription: 'Réseau de gardiens propriétaire',
+    tooltipDescription:
+      'Solution native Clenzy pour gérer votre propre réseau de gardiens de clés (commerçants, particuliers du quartier). Génération de codes à 6 chiffres avec durée de validité, page de vérification web sans appli, suivi en temps réel des mouvements. Alternative gratuite à KeyNest pour les conciergeries qui ont déjà leurs partenaires locaux.',
+    websiteUrl: 'https://clenzy.fr',
+    accessModality: 'Inclus dans votre abonnement Clenzy (partenaires & codes illimités). Configuration depuis Admin → Gestion des clés → Configurer un gardien.',
+    available: true,
+    region: 'Global',
+    tag: 'free',
+    internalRoute: '/admin?tab=keys',
+  },
+  {
+    id: 'keynest',
+    name: 'KeyNest',
+    category: 'key_management',
+    brandColor: '#FF7A00',
+    brandTextColor: '#FFFFFF',
+    shortDescription: '5 500+ points de dépôt en Europe',
+    tooltipDescription:
+      'Service professionnel de gardiennage de clés via un réseau de 5 500+ commerces partenaires en Europe (Paris, Londres, Madrid, Amsterdam, etc.). Intégration automatique des codes via API, notifications en temps réel par webhooks, compatible toutes plateformes de location.',
+    websiteUrl: 'https://keynest.com',
+    accessModality: 'Compte KeyNest Pro requis. Tarification : ~7,14 €/collecte ou abonnement (23,94 €/clé/mois annuel à 29,94 €/clé/mois mensuel). API key fournie après contractualisation.',
+    available: false,
+    region: 'EU',
+    tag: 'partner',
+  },
+
+  // ─── Smart Locks complement ──────────────────────────────────────────────
+  {
+    id: 'nuki',
+    name: 'Nuki',
+    category: 'smart_locks_iot',
+    brandColor: '#FF5C00',
+    brandTextColor: '#FFFFFF',
+    shortDescription: 'Smart Lock 3.0/4.0 · Nuki Web API',
+    tooltipDescription:
+      'Fabricant autrichien leader du smart lock en Europe. Smart Lock 3.0 / 4.0 + Bridge WiFi/Bluetooth. Codes d\'accès temporaires via Nuki Web API, verrouillage automatique, logs d\'activité détaillés. Très utilisé dans les locations premium en France et UE.',
+    websiteUrl: 'https://developer.nuki.io/',
+    accessModality: 'Achat hardware (Smart Lock 4.0 ~250 € + Bridge ~100 €). Compte Nuki Web gratuit → générer un Web API token dans Settings → API. Auth par Bearer token.',
+    available: false,
+    region: 'EU',
+    tag: 'external',
+  },
+
+  // ─── Monitoring sonore (noise monitoring) ───────────────────────────────
+  {
+    id: 'minut',
+    name: 'Minut',
+    category: 'noise_monitoring',
+    brandColor: '#2D3142',
+    brandTextColor: '#FFFFFF',
+    shortDescription: 'Capteur professionnel · Airbnb partner',
+    tooltipDescription:
+      'Capteur de bruit certifié suédois, partenaire Airbnb officiel. Mesure niveau sonore, qualité air, présence et température sans enregistrer audio (respect vie privée). Alertes automatiques aux voyageurs en cas de dépassement de seuil, app mobile dédiée, support 24/7.',
+    websiteUrl: 'https://www.minut.com/',
+    accessModality: 'Capteur (~149 €/unité) + abonnement (9,90 €/capteur/mois mensuel, ou 7,90 €/capteur/mois en annuel). API key fournie via Settings → Integrations dans le dashboard Minut.',
+    available: false,
+    region: 'Global',
+    tag: 'partner',
+  },
+  {
+    id: 'clenzy_hardware',
+    name: 'Clenzy Hardware',
+    category: 'noise_monitoring',
+    brandColor: '#4A9B8E',
+    brandTextColor: '#FFFFFF',
+    shortDescription: 'Capteur OEM Tuya · sans abonnement',
+    tooltipDescription:
+      'Solution propriétaire Clenzy basée sur Tuya OEM. Capteur de bruit avec coût unique d\'achat (sans abonnement mensuel récurrent), intégration native dans la plateforme Clenzy, données en temps réel, aucune dépendance à un service externe. Alternative économique à Minut pour les conciergeries qui veulent maîtriser leur TCO.',
+    websiteUrl: 'https://clenzy.fr',
+    accessModality: 'Capteur Clenzy à acheter (coût unique, contactez le commercial pour un devis). Configuration plug-and-play depuis Admin → Nuisance sonore → Souscrire.',
+    available: true,
+    region: 'Global',
+    tag: 'proprietary',
+    internalRoute: '/admin?tab=sound',
   },
 ];
 

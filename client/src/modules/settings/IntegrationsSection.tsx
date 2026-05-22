@@ -1337,6 +1337,16 @@ export default function IntegrationsSection() {
         description="Serrures Bluetooth, thermostats, capteurs. Codes guests dynamiques, économies énergie, supervision à distance."
       />
       <ServiceCatalogSection
+        category="key_management"
+        title="Gestion des clés"
+        description="Réseaux de gardiens de clés pour les logements sans serrure connectée. Solution propriétaire Clenzy ou partenaires externes."
+      />
+      <ServiceCatalogSection
+        category="noise_monitoring"
+        title="Monitoring sonore"
+        description="Surveillez le niveau de bruit en temps réel pour prévenir les nuisances et protéger vos relations de voisinage. Hardware Clenzy ou capteur partenaire."
+      />
+      <ServiceCatalogSection
         category="activities_affiliate"
         title="Activités & affiliation"
         description="Vendez des activités à vos guests en cross-sell. Commission affiliée 8-20 % par réservation."
