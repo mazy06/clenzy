@@ -6,22 +6,18 @@ import { OTA_CHANNELS, type OtaChannel } from '../../../services/channels/otaCha
 import { useChannelConnections } from '../../../hooks/useChannelConnections';
 import { useAirbnbConnectionStatus } from '../../../hooks/useAirbnb';
 import { CONNECTABLE_CHANNELS, type ChannelId } from '../../../services/api/channelConnectionApi';
-import ChannelConnectDialog from '../../channels/ChannelConnectDialog';
 import OtaInfoDialog from './OtaInfoDialog';
 
 /**
  * Vitrine visuelle des OTAs dans l'onglet Integrations.
  *
- * <h2>Routage du clic vers le bon dialog</h2>
- * <ul>
- *   <li>OTA <b>connecte</b> (form-based ou Airbnb) ou <b>Airbnb non connecte</b>
- *       ou <b>coming-soon</b> → {@link OtaInfoDialog} (status + actions)</li>
- *   <li>OTA <b>form-based</b> et <b>non connecte</b> → {@link ChannelConnectDialog}
- *       existant qui contient deja le formulaire de credentials + test</li>
- * </ul>
+ * <h2>Modal unifie</h2>
+ * <p>Click sur n'importe quelle card -> ouvre {@link OtaInfoDialog} qui gere
+ * les 4 cas (coming-soon, connecte, Airbnb OAuth, form-based). Visuellement
+ * strictement identique aux autres modales de l'ecran Integrations.</p>
  *
- * Les cards conservent leur format uniforme (cf. autres sections d'integration) :
- * grille 3 cols, layout horizontal logo+texte+chip, minHeight 56px.
+ * <p>Les cards conservent le format uniforme : grille 3 cols, layout
+ * horizontal logo+texte+chip, minHeight 56px.</p>
  */
 
 const ACCENT = '#4A9B8E';
@@ -33,9 +29,8 @@ export default function OtaShowcaseSection() {
   const { isConnected, getStatus } = useChannelConnections();
   const { data: airbnbStatus } = useAirbnbConnectionStatus();
 
-  // State : quel dialog est ouvert pour quel OTA
-  const [otaForFormDialog, setOtaForFormDialog] = useState<OtaChannel | null>(null);
-  const [otaForInfoDialog, setOtaForInfoDialog] = useState<OtaChannel | null>(null);
+  // State : quel OTA a son modal ouvert (un seul dialog unifie pour tous les cas)
+  const [openOta, setOpenOta] = useState<OtaChannel | null>(null);
 
   const isOtaConnected = (ota: OtaChannel): boolean => {
     if (ota.id === 'airbnb') return !!airbnbStatus?.connected;
@@ -43,29 +38,6 @@ export default function OtaShowcaseSection() {
       return isConnected(ota.id as ChannelId);
     }
     return false;
-  };
-
-  const handleCardClick = (ota: OtaChannel) => {
-    const formConnectable = CONNECTABLE_CHANNELS.includes(ota.id as ChannelId);
-    const connected = isOtaConnected(ota);
-
-    // Routage :
-    //   - Coming soon OU connecte OU Airbnb -> Info dialog
-    //   - Form-connectable non connecte -> Connect form dialog
-    if (!ota.available || connected || ota.id === 'airbnb') {
-      setOtaForInfoDialog(ota);
-    } else if (formConnectable) {
-      setOtaForFormDialog(ota);
-    } else {
-      // Non-Airbnb, non-form-connectable -> Info (cas par defaut, e.g. OTAs marketing)
-      setOtaForInfoDialog(ota);
-    }
-  };
-
-  // Depuis OtaInfoDialog ("Modifier la connexion"), on switch vers le form
-  const handleSwitchToForm = (ota: OtaChannel) => {
-    setOtaForInfoDialog(null);
-    setOtaForFormDialog(ota);
   };
 
   return (
@@ -131,11 +103,11 @@ export default function OtaShowcaseSection() {
                 key={ota.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => handleCardClick(ota)}
+                onClick={() => setOpenOta(ota)}
                 onKeyDown={(e) => {
                   if (e.key === ' ' || e.key === 'Enter') {
                     e.preventDefault();
-                    handleCardClick(ota);
+                    setOpenOta(ota);
                   }
                 }}
                 sx={{
@@ -252,29 +224,20 @@ export default function OtaShowcaseSection() {
         </Box>
       </Paper>
 
-      {/* Dialog 1 : info / status / OAuth / coming-soon */}
+      {/* Modal unifie — gere les 4 cas (coming-soon, connecte, Airbnb OAuth,
+          form-based). Strictement le meme format visuel que les autres
+          modales d'integration. */}
       <OtaInfoDialog
-        ota={otaForInfoDialog}
-        open={otaForInfoDialog !== null}
-        onClose={() => setOtaForInfoDialog(null)}
+        ota={openOta}
+        open={openOta !== null}
+        onClose={() => setOpenOta(null)}
         channelStatus={
-          otaForInfoDialog && CONNECTABLE_CHANNELS.includes(otaForInfoDialog.id as ChannelId)
-            ? getStatus(otaForInfoDialog.id as ChannelId) ?? null
+          openOta && CONNECTABLE_CHANNELS.includes(openOta.id as ChannelId)
+            ? getStatus(openOta.id as ChannelId) ?? null
             : null
         }
         airbnbStatus={airbnbStatus ?? null}
-        onEditConnection={handleSwitchToForm}
       />
-
-      {/* Dialog 2 : connexion via formulaire (OTAs form-based, non connectes) */}
-      {otaForFormDialog && (
-        <ChannelConnectDialog
-          open={otaForFormDialog !== null}
-          channel={otaForFormDialog}
-          onClose={() => setOtaForFormDialog(null)}
-          onConnected={() => setOtaForFormDialog(null)}
-        />
-      )}
     </>
   );
 }
