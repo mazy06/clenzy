@@ -1102,3 +1102,17 @@ databaseChangeLog:
       sqlFile:
         path: changes/0117__create_odoo_and_integration_config_tables.sql
         relativeToChangelogFile: true
+
+  # --- 0118 : Table generique external_service_connections (QTSP francais) ---
+  # Table unique pour les connexions API key vers les providers de signature
+  # electronique (Yousign, Universign, DocaPoste, ...). Au lieu de creer une
+  # table par provider, on consolide via une colonne provider_type. Ajout
+  # d'un nouveau QTSP = juste etendre l'enum sans migration DB.
+  # Met aussi a jour le CHECK constraint de org_integration_config pour
+  # accepter les nouveaux types de signature_provider.
+  - changeSet:
+      id: "0118-create-external-service-connections"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0118__create_external_service_connections_table.sql
+        relativeToChangelogFile: true
