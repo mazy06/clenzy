@@ -30,11 +30,10 @@ import {
 } from '../../icons';
 import { pennylaneApi } from '../../services/api/pennylaneApi';
 import type { PennylaneStatus, PennylaneSyncStatus } from '../../services/api/pennylaneApi';
-import { odooApi } from '../../services/api/odooApi';
-import type { OdooStatus } from '../../services/api/odooApi';
 import { integrationsApi } from '../../services/api/integrationsApi';
 import type { SignatureProvider } from '../../services/api/integrationsApi';
 import { useTranslation } from '../../hooks/useTranslation';
+import ApiKeyProviderCard from './components/ApiKeyProviderCard';
 
 // ─── Style helpers (Clenzy palette) ─────────────────────────────────────────
 
@@ -133,18 +132,7 @@ export default function IntegrationsSection() {
   // ─── Choix radio du provider signature (cross-provider config) ─────────────
   const [signatureProvider, setSignatureProvider] = useState<SignatureProvider>(null);
   const [providerLoading, setProviderLoading] = useState(false);
-
-  // ─── Odoo state ────────────────────────────────────────────────────────────
-  const [odooStatus, setOdooStatus] = useState<OdooStatus | null>(null);
-  const [odooForm, setOdooForm] = useState({
-    serverUrl: '',
-    databaseName: '',
-    userLogin: '',
-    apiKey: '',
-  });
-  const [odooSubmitting, setOdooSubmitting] = useState(false);
-  const [odooMessage, setOdooMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [odooDisconnectOpen, setOdooDisconnectOpen] = useState(false);
+  const [providerMessage, setProviderMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -172,70 +160,27 @@ export default function IntegrationsSection() {
     loadStatus();
   }, [loadStatus]);
 
-  // Charge la config integrations (choix radio) + status Odoo au mount.
-  // Independant du chargement Pennylane, peut tourner en parallele.
+  // Charge la config integrations (choix radio) au mount.
+  // Le status de chaque provider est gere par ApiKeyProviderCard.
   useEffect(() => {
     integrationsApi.getConfig()
       .then((cfg) => setSignatureProvider(cfg.signatureProvider))
       .catch(() => { /* endpoint pas dispo, on garde null */ });
-
-    odooApi.getStatus()
-      .then(setOdooStatus)
-      .catch(() => setOdooStatus({ connected: false }));
   }, []);
 
   const handleProviderChange = useCallback(async (next: SignatureProvider) => {
     setProviderLoading(true);
+    setProviderMessage(null);
     try {
       const cfg = await integrationsApi.setSignatureProvider(next);
       setSignatureProvider(cfg.signatureProvider);
     } catch {
-      // En cas d'echec, on revert visuellement
-      setOdooMessage({
+      setProviderMessage({
         type: 'error',
         text: t('settings.integrations.providerSwitchError', 'Impossible de mettre a jour le choix.'),
       });
     } finally {
       setProviderLoading(false);
-    }
-  }, [t]);
-
-  const handleOdooConnect = useCallback(async () => {
-    setOdooSubmitting(true);
-    setOdooMessage(null);
-    try {
-      const result = await odooApi.connect(odooForm);
-      setOdooStatus(result);
-      setOdooMessage({
-        type: 'success',
-        text: t('settings.integrations.odoo.connected', 'Connexion Odoo etablie.'),
-      });
-      // Reset apiKey du form pour ne pas la laisser dans le DOM
-      setOdooForm((f) => ({ ...f, apiKey: '' }));
-    } catch (err) {
-      const msg = (err as { body?: { message?: string } } | null)?.body?.message
-        ?? t('settings.integrations.odoo.connectionError', 'Connexion Odoo echouee. Verifiez vos credentials.');
-      setOdooMessage({ type: 'error', text: msg });
-    } finally {
-      setOdooSubmitting(false);
-    }
-  }, [odooForm, t]);
-
-  const handleOdooDisconnect = useCallback(async () => {
-    try {
-      await odooApi.disconnect();
-      setOdooStatus({ connected: false });
-      setOdooMessage({
-        type: 'success',
-        text: t('settings.integrations.odoo.disconnected', 'Connexion Odoo supprimee.'),
-      });
-    } catch {
-      setOdooMessage({
-        type: 'error',
-        text: t('settings.integrations.odoo.disconnectError', 'Erreur lors de la deconnexion.'),
-      });
-    } finally {
-      setOdooDisconnectOpen(false);
     }
   }, [t]);
 
@@ -331,8 +276,6 @@ export default function IntegrationsSection() {
     />
   );
 
-  const odooConnected = !!odooStatus?.connected;
-
   return (
     <Box>
       {/* ─── Choix du provider signature (radio) ──────────────────────── */}
@@ -365,7 +308,48 @@ export default function IntegrationsSection() {
               const v = e.target.value;
               handleProviderChange(v === 'NONE' ? null : (v as SignatureProvider));
             }}
+            sx={{ rowGap: 0.25 }}
           >
+            <FormControlLabel
+              value="YOUSIGN"
+              control={<Radio size="small" sx={{ '&.Mui-checked': { color: ACCENT } }} />}
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography sx={{ fontSize: '0.82rem' }}>Yousign</Typography>
+                  <Typography sx={{ fontSize: '0.62rem', color: ACCENT, fontWeight: 600 }}>QTSP 🇫🇷</Typography>
+                </Box>
+              }
+            />
+            <FormControlLabel
+              value="UNIVERSIGN"
+              control={<Radio size="small" sx={{ '&.Mui-checked': { color: ACCENT } }} />}
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography sx={{ fontSize: '0.82rem' }}>Universign</Typography>
+                  <Typography sx={{ fontSize: '0.62rem', color: ACCENT, fontWeight: 600 }}>QTSP 🇫🇷</Typography>
+                </Box>
+              }
+            />
+            <FormControlLabel
+              value="DOCAPOSTE"
+              control={<Radio size="small" sx={{ '&.Mui-checked': { color: ACCENT } }} />}
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography sx={{ fontSize: '0.82rem' }}>DocaPoste</Typography>
+                  <Typography sx={{ fontSize: '0.62rem', color: ACCENT, fontWeight: 600 }}>QTSP 🇫🇷</Typography>
+                </Box>
+              }
+            />
+            <FormControlLabel
+              value="DOCUSIGN"
+              disabled
+              control={<Radio size="small" />}
+              label={
+                <Typography sx={{ fontSize: '0.82rem', color: 'text.disabled' }}>
+                  DocuSign <em>(OAuth — à venir)</em>
+                </Typography>
+              }
+            />
             <FormControlLabel
               value="PENNYLANE"
               control={<Radio size="small" sx={{ '&.Mui-checked': { color: PRIMARY } }} />}
@@ -648,224 +632,21 @@ export default function IntegrationsSection() {
       </Paper>
       )}
 
-      {/* ─── Odoo connection card (visible si Odoo selectionne) ─────── */}
-      {signatureProvider === 'ODOO' && (
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: '12px',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: 'none',
-            overflow: 'hidden',
-          }}
-        >
-          <Box
-            sx={{
-              px: 2,
-              py: 1.75,
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 1.5,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: '10px',
-                bgcolor: '#714B67', // Odoo brand purple
-                color: '#fff',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                letterSpacing: '0.04em',
-                flexShrink: 0,
-              }}
-            >
-              ODOO
-            </Box>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontSize: '0.92rem', fontWeight: 600 }}>Odoo</Typography>
-              <Typography sx={{ fontSize: '0.74rem', color: 'text.secondary' }}>
-                {t(
-                  'settings.integrations.odoo.description',
-                  'Connectez votre instance Odoo (SaaS ou self-hosted) pour la signature electronique et la comptabilite.',
-                )}
-              </Typography>
-            </Box>
-            <Box sx={{ flexShrink: 0 }}>
-              {odooConnected ? (
-                <Chip
-                  icon={<CheckCircleIcon size={11} strokeWidth={2} />}
-                  label={t('settings.integrations.odoo.connected', 'Connecte')}
-                  size="small"
-                  sx={buildStatusChipSx(ACCENT)}
-                />
-              ) : (
-                <Chip
-                  icon={<ErrorOutline size={11} strokeWidth={2} />}
-                  label={t('settings.integrations.odoo.notConnected', 'Non connecte')}
-                  size="small"
-                  sx={buildStatusChipSx(NEUTRAL)}
-                />
-              )}
-            </Box>
-          </Box>
+      {/* ─── QTSP français — Yousign / Universign / DocaPoste ────────── */}
+      {signatureProvider === 'YOUSIGN' && <ApiKeyProviderCard provider="YOUSIGN" />}
+      {signatureProvider === 'UNIVERSIGN' && <ApiKeyProviderCard provider="UNIVERSIGN" />}
+      {signatureProvider === 'DOCAPOSTE' && <ApiKeyProviderCard provider="DOCAPOSTE" />}
 
-          <Box sx={{ p: 2 }}>
-            {odooConnected ? (
-              <Box>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                    gap: 1.25,
-                    mb: 1.5,
-                    fontSize: '0.78rem',
-                  }}
-                >
-                  <Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Serveur</Typography>
-                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{odooStatus?.serverUrl}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Base</Typography>
-                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{odooStatus?.databaseName}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Utilisateur</Typography>
-                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{odooStatus?.userLogin}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Statut</Typography>
-                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{odooStatus?.status}</Typography>
-                  </Box>
-                </Box>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<LinkOffIcon size={14} strokeWidth={2} />}
-                  onClick={() => setOdooDisconnectOpen(true)}
-                  sx={refinedOutlinedSx(DANGER)}
-                >
-                  {t('settings.integrations.odoo.disconnect', 'Deconnecter Odoo')}
-                </Button>
-              </Box>
-            ) : (
-              <Box
-                component="form"
-                onSubmit={(e) => { e.preventDefault(); handleOdooConnect(); }}
-                sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}
-              >
-                <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-                  {t(
-                    'settings.integrations.odoo.formHelp',
-                    "Pour generer une API key : Odoo > Preferences utilisateur > Securite > Cles API. L'API key est chiffree avant stockage.",
-                  )}
-                </Typography>
-                <TextField
-                  label="URL serveur"
-                  placeholder="https://mycompany.odoo.com"
-                  size="small"
-                  fullWidth
-                  required
-                  value={odooForm.serverUrl}
-                  onChange={(e) => setOdooForm({ ...odooForm, serverUrl: e.target.value })}
-                />
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.25 }}>
-                  <TextField
-                    label="Nom de base"
-                    placeholder="mycompany"
-                    size="small"
-                    fullWidth
-                    required
-                    value={odooForm.databaseName}
-                    onChange={(e) => setOdooForm({ ...odooForm, databaseName: e.target.value })}
-                  />
-                  <TextField
-                    label="Login utilisateur"
-                    placeholder="admin@mycompany.fr"
-                    size="small"
-                    fullWidth
-                    required
-                    value={odooForm.userLogin}
-                    onChange={(e) => setOdooForm({ ...odooForm, userLogin: e.target.value })}
-                  />
-                </Box>
-                <TextField
-                  label="API key"
-                  type="password"
-                  size="small"
-                  fullWidth
-                  required
-                  value={odooForm.apiKey}
-                  onChange={(e) => setOdooForm({ ...odooForm, apiKey: e.target.value })}
-                  inputProps={{ minLength: 8 }}
-                />
-                <Box>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="small"
-                    disabled={odooSubmitting}
-                    startIcon={odooSubmitting
-                      ? <CircularProgress size={12} />
-                      : <LinkIcon size={14} strokeWidth={2} />}
-                    sx={refinedContainedSx(ACCENT)}
-                  >
-                    {odooSubmitting
-                      ? t('settings.integrations.odoo.connecting', 'Connexion...')
-                      : t('settings.integrations.odoo.connect', 'Connecter Odoo')}
-                  </Button>
-                </Box>
-                <Alert
-                  severity="info"
-                  variant="outlined"
-                  sx={{ mt: 0.5, borderRadius: '8px', fontSize: '0.76rem' }}
-                >
-                  {t(
-                    'settings.integrations.odoo.featureNote',
-                    "L'integration Odoo est en cours de developpement. La connexion permet pour l'instant de valider vos credentials ; les appels signature seront ajoutes prochainement.",
-                  )}
-                </Alert>
-              </Box>
-            )}
-            {odooMessage && (
-              <Alert
-                severity={odooMessage.type}
-                onClose={() => setOdooMessage(null)}
-                sx={{ mt: 1.5, borderRadius: '8px' }}
-              >
-                {odooMessage.text}
-              </Alert>
-            )}
-          </Box>
-        </Paper>
+      {/* ─── DocuSign (OAuth) — pas encore implemente ────────────────── */}
+      {signatureProvider === 'DOCUSIGN' && (
+        <Alert severity="warning" variant="outlined" sx={{ borderRadius: '8px', fontSize: '0.82rem' }}>
+          La connexion OAuth DocuSign sera implémentée prochainement. Pour l'instant, sélectionnez un autre fournisseur.
+        </Alert>
       )}
 
-      {/* Dialog : confirm disconnect Odoo */}
-      <Dialog open={odooDisconnectOpen} onClose={() => setOdooDisconnectOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('settings.integrations.odoo.disconnectTitle', 'Deconnecter Odoo ?')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ fontSize: '0.85rem' }}>
-            {t(
-              'settings.integrations.odoo.disconnectConfirm',
-              "Cette action supprime les credentials Odoo enregistres pour votre organisation. Vous devrez ressaisir l'API key pour vous reconnecter.",
-            )}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOdooDisconnectOpen(false)}>{t('common.cancel', 'Annuler')}</Button>
-          <Button onClick={handleOdooDisconnect} color="error" variant="contained">
-            {t('settings.integrations.odoo.confirmDisconnect', 'Deconnecter')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* ─── Odoo (utilise le composant generique unifie) ────────────── */}
+      {signatureProvider === 'ODOO' && <ApiKeyProviderCard provider="ODOO" />}
+
 
       {/* ─── Coming soon — other integrations ─────────────────────────── */}
       <Box
