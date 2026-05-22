@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Box,
   Paper,
@@ -113,26 +113,32 @@ export default function OAuthProviderCard({
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Pattern "latest callback ref" : evite la boucle de render quand le
+  // parent passe une arrow function inline (la reference change a chaque
+  // render -> effet relance -> setState -> re-render -> boucle infinie).
+  const onStatusChangeRef = useRef(onStatusChange);
+  useEffect(() => { onStatusChangeRef.current = onStatusChange; }, [onStatusChange]);
+
   const loadStatus = useCallback(async () => {
     try {
       const s = await api.getStatus();
       setStatus(s);
       setNotConfigured(false);
-      onStatusChange?.(!!s.connected);
+      onStatusChangeRef.current?.(!!s.connected);
     } catch (err) {
       const httpStatus = (err as { status?: number } | null)?.status;
       if (httpStatus === 404) {
         // Feature flag OFF — backend bean conditionnel non instancie
         setNotConfigured(true);
-        onStatusChange?.(false);
+        onStatusChangeRef.current?.(false);
       } else {
         setStatus({ connected: false });
-        onStatusChange?.(false);
+        onStatusChangeRef.current?.(false);
       }
     } finally {
       setLoading(false);
     }
-  }, [api, onStatusChange]);
+  }, [api]);
 
   useEffect(() => { loadStatus(); }, [loadStatus]);
 
@@ -158,7 +164,7 @@ export default function OAuthProviderCard({
     try {
       await api.disconnect();
       setStatus({ connected: false });
-      onStatusChange?.(false);
+      onStatusChangeRef.current?.(false);
       setDisconnectOpen(false);
       setMessage({ type: 'success', text: `${label} déconnecté.` });
     } catch {
