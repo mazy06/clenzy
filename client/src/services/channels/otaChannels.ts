@@ -172,4 +172,37 @@ export const OTA_CHANNELS: OtaChannel[] = [
     descriptionKey: 'channels.ota.mabeet.description',
     segment: 'B2B',
   },
+  // ─── OTAs MENA (Seera Group + Wego) ─────────────────────────────────
+  // Differenciants pour le marche saoudien. Aucun PMS occidental ne les
+  // integre nativement. Necessite des contrats partenaires pour activer.
+  {
+    id: 'almosafer',
+    name: 'Almosafer',
+    brandColor: '#7B2CBF',
+    brandGradient: 'linear-gradient(135deg, #7B2CBF 0%, #A06CD5 100%)',
+    logo: null,
+    available: false,
+    descriptionKey: 'channels.ota.almosafer.description',
+    segment: 'B2C',
+  },
+  {
+    id: 'tajawal',
+    name: 'Tajawal',
+    brandColor: '#F26522',
+    brandGradient: 'linear-gradient(135deg, #F26522 0%, #FF8E53 100%)',
+    logo: null,
+    available: false,
+    descriptionKey: 'channels.ota.tajawal.description',
+    segment: 'B2C',
+  },
+  {
+    id: 'wego',
+    name: 'Wego',
+    brandColor: '#0D7AAA',
+    brandGradient: 'linear-gradient(135deg, #0D7AAA 0%, #2A9FD8 100%)',
+    logo: null,
+    available: false,
+    descriptionKey: 'channels.ota.wego.description',
+    segment: 'B2C',
+  },
 ];

@@ -47,6 +47,7 @@ import KycProviderCard from './components/KycProviderCard';
 import { channelManagerConnectionApi, type ChannelManagerProvider } from '../../services/api/channelManagerConnectionApi';
 import ChannelManagerProviderCard from './components/ChannelManagerProviderCard';
 import OtaShowcaseSection from './components/OtaShowcaseSection';
+import ServiceCatalogSection from './components/ServiceCatalogSection';
 
 // ─── Style helpers (Clenzy palette) ─────────────────────────────────────────
 
@@ -1303,6 +1304,53 @@ export default function IntegrationsSection() {
 
       {/* ─── Section : OTAs (vitrine — gestion dans tab Channels) ────── */}
       <OtaShowcaseSection />
+
+      {/* ─── Sections catalogue (services informatifs avec tooltips riches) ─── */}
+      <ServiceCatalogSection
+        category="messaging"
+        title="Messagerie"
+        description="Envoyez emails, SMS et messages WhatsApp directement via les APIs natives des providers, sans intermédiaire."
+      />
+      <ServiceCatalogSection
+        category="market_intelligence"
+        title="Intelligence de marché"
+        description="Données de marché Airbnb / Vrbo : ADR, taux d'occupation, RevPAR par zone pour vos hosts."
+      />
+      <ServiceCatalogSection
+        category="tax_automation"
+        title="Fiscalité — Taxe de séjour"
+        description="Calcul, collecte et déclaration automatique de la taxe de séjour. Compatible barèmes France et international."
+      />
+      <ServiceCatalogSection
+        category="insurance"
+        title="Assurance & screening"
+        description="Vérification des guests, caution dommages, assurances annulation. Réduisez les risques et générez du revenu d'affiliation."
+      />
+      <ServiceCatalogSection
+        category="cleaning_operations"
+        title="Ménage & opérations"
+        description="Marketplaces de cleaners, checklists photo, gestion des inspections. Industrialisez les turnovers."
+      />
+      <ServiceCatalogSection
+        category="smart_locks_iot"
+        title="Serrures connectées & IoT"
+        description="Serrures Bluetooth, thermostats, capteurs. Codes guests dynamiques, économies énergie, supervision à distance."
+      />
+      <ServiceCatalogSection
+        category="activities_affiliate"
+        title="Activités & affiliation"
+        description="Vendez des activités à vos guests en cross-sell. Commission affiliée 8-20 % par réservation."
+      />
+      <ServiceCatalogSection
+        category="reviews_reputation"
+        title="Avis & réputation"
+        description="Agrégation multi-canaux, sentiment analysis, automated responses. Suivez votre réputation cross-OTA."
+      />
+      <ServiceCatalogSection
+        category="marketing_crm"
+        title="Marketing & CRM"
+        description="Email marketing, automation, CRM commercial pour acquisition de nouveaux propriétaires et campagnes guest."
+      />
 
       {/* ─── Disconnect confirmation dialog ────────────────────────────── */}
       <Dialog
