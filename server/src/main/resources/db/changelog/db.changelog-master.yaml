@@ -1116,3 +1116,15 @@ databaseChangeLog:
       sqlFile:
         path: changes/0118__create_external_service_connections_table.sql
         relativeToChangelogFile: true
+
+  # --- 0119 : Table docusign_connections (OAuth2 DocuSign) ---
+  # Structure parallele a pennylane_connections. DocuSign + Pennylane partagent
+  # la logique OAuth via le moteur OAuthFlowEngine (mutualisation cote Java),
+  # mais conservent chacun leur table pour les champs business specifiques
+  # (account_id pour DocuSign, pennylane_company_id pour Pennylane).
+  - changeSet:
+      id: "0119-create-docusign-connections"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0119__create_docusign_connections_table.sql
+        relativeToChangelogFile: true
