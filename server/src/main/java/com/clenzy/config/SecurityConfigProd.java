@@ -152,6 +152,7 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/minut/callback").permitAll()
                         .requestMatchers("/api/pennylane/callback").permitAll()
                         .requestMatchers("/api/docusign/callback").permitAll()
+                        .requestMatchers("/api/quickbooks/callback").permitAll()
                         // Actuator : health, info, prometheus et metrics sans auth (accès réseau Docker interne uniquement,
                         // non exposés par nginx). Les autres endpoints actuator restent protégés.
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus", "/actuator/metrics").permitAll()

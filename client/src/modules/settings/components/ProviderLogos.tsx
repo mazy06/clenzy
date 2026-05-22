@@ -25,7 +25,10 @@ export type ProviderId =
   | 'DOCAPOSTE'
   | 'DOCUSIGN'
   | 'PENNYLANE'
-  | 'ODOO';
+  | 'ODOO'
+  | 'PRICELABS'
+  | 'BEYOND'
+  | 'QUICKBOOKS';
 
 interface ProviderLogoProps {
   provider: ProviderId;
@@ -54,6 +57,12 @@ const PALETTE: Record<ProviderId, BrandPalette> = {
   PENNYLANE:  { bg: '#1B2A4A', fg: '#FFFFFF', accent: '#6C7FE0' },
   // Odoo : prune
   ODOO:       { bg: '#714B67', fg: '#FFFFFF', accent: '#E8B546' },
+  // PriceLabs : rouge/orange (revenue management)
+  PRICELABS:  { bg: '#E94F37', fg: '#FFFFFF', accent: '#FFC857' },
+  // Beyond : bleu nuit + teal
+  BEYOND:     { bg: '#0F2E3F', fg: '#FFFFFF', accent: '#2ED9C3' },
+  // QuickBooks : vert Intuit
+  QUICKBOOKS: { bg: '#2CA01C', fg: '#FFFFFF', accent: '#FFFFFF' },
 };
 
 export default function ProviderLogo({ provider, size = 48, muted = false }: ProviderLogoProps) {
@@ -212,6 +221,82 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
           <rect x="11" y="20" width="2.5" height="14" rx="1.25" fill={p.fg} opacity="0.55" />
           <circle cx="24" cy="27" r="7" fill="none" stroke={p.fg} strokeWidth="2.5" />
           <rect x="34.5" y="20" width="2.5" height="14" rx="1.25" fill={p.accent} />
+        </>
+      );
+
+    case 'PRICELABS':
+      // Tile rouge/orange, "PL" + petit indicateur de courbe (data viz)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="24"
+            y="29"
+            textAnchor="middle"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="16"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.04em"
+          >
+            PL
+          </text>
+          <path
+            d="M10 38 L17 33 L24 35 L31 28 L38 30"
+            stroke={p.accent}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </>
+      );
+
+    case 'BEYOND':
+      // Tile bleu nuit, "B" avec arc (au-dela)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="24"
+            y="32"
+            textAnchor="middle"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="22"
+            fontWeight="700"
+            fill={p.fg}
+            letterSpacing="-0.02em"
+          >
+            B
+          </text>
+          <path
+            d="M10 39 Q24 31 38 39"
+            stroke={p.accent}
+            strokeWidth="2"
+            strokeLinecap="round"
+            fill="none"
+          />
+        </>
+      );
+
+    case 'QUICKBOOKS':
+      // Tile vert, "qb" minuscule entoure d'un cercle (motif Intuit)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <circle cx="24" cy="24" r="14" fill="none" stroke={p.fg} strokeWidth="2" opacity="0.4" />
+          <text
+            x="24"
+            y="30"
+            textAnchor="middle"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="14"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.04em"
+          >
+            qb
+          </text>
         </>
       );
 

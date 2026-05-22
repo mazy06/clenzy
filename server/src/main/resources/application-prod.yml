@@ -195,6 +195,17 @@ clenzy:
     user-info-url: ${DOCUSIGN_USER_INFO_URL:https://account.docusign.com/oauth/userinfo}
     api-base-url: ${DOCUSIGN_API_BASE_URL:https://www.docusign.net/restapi}
     scopes: ${DOCUSIGN_SCOPES:signature}
+  # QuickBooks Online — OAuth2 Authorization Code Grant (Intuit)
+  # Sans QUICKBOOKS_CLIENT_ID, l'integration est silencieusement desactivee.
+  quickbooks:
+    client-id: ${QUICKBOOKS_CLIENT_ID:}
+    client-secret: ${QUICKBOOKS_CLIENT_SECRET:}
+    redirect-uri: ${QUICKBOOKS_REDIRECT_URI:}
+    authorization-url: ${QUICKBOOKS_AUTHORIZATION_URL:https://appcenter.intuit.com/connect/oauth2}
+    token-url: ${QUICKBOOKS_TOKEN_URL:https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer}
+    revoke-url: ${QUICKBOOKS_REVOKE_URL:https://developer.api.intuit.com/v2/oauth2/tokens/revoke}
+    api-base-url: ${QUICKBOOKS_API_BASE_URL:https://quickbooks.api.intuit.com}
+    scopes: ${QUICKBOOKS_SCOPES:com.intuit.quickbooks.accounting}
   # Webhooks — Zapier & automation
   webhooks:
     enabled: ${WEBHOOKS_ENABLED:true}

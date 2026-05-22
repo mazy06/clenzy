@@ -32,7 +32,11 @@ import { useTranslation } from '../../hooks/useTranslation';
 import ApiKeyProviderCard from './components/ApiKeyProviderCard';
 import SignatureProviderCards from './components/SignatureProviderCards';
 import OAuthProviderCard from './components/OAuthProviderCard';
+import PricingProviderCard from './components/PricingProviderCard';
+import ProviderLogo from './components/ProviderLogos';
 import { docusignApi } from '../../services/api/docusignApi';
+import { pricingConnectionApi, type PricingProvider } from '../../services/api/pricingConnectionApi';
+import { quickbooksApi } from '../../services/api/quickbooksApi';
 
 // ─── Style helpers (Clenzy palette) ─────────────────────────────────────────
 
@@ -164,6 +168,45 @@ export default function IntegrationsSection() {
       handleProviderStatusChange('PENNYLANE', !!status.connected);
     }
   }, [status, handleProviderStatusChange]);
+
+  // ─── Tarification dynamique (PriceLabs, Beyond) ───────────────────────────
+  const [activePricingProvider, setActivePricingProvider] = useState<PricingProvider | null>(null);
+  const [connectedPricing, setConnectedPricing] = useState<Set<PricingProvider>>(new Set());
+  const handlePricingStatusChange = useCallback((p: PricingProvider, connected: boolean) => {
+    setConnectedPricing((prev) => {
+      const next = new Set(prev);
+      if (connected) next.add(p); else next.delete(p);
+      return next;
+    });
+  }, []);
+
+  // ─── Comptabilite (QuickBooks) ────────────────────────────────────────────
+  const [quickbooksActive, setQuickbooksActive] = useState(false);
+  const [quickbooksConnected, setQuickbooksConnected] = useState(false);
+
+  // Au mount : detecte les connexions deja existantes pour pricing + quickbooks
+  useEffect(() => {
+    const safe = async <T extends { connected: boolean }>(p: Promise<T>): Promise<T | null> => {
+      try { return await p; } catch { return null; }
+    };
+    Promise.all([
+      safe(pricingConnectionApi.getStatus('PRICELABS')),
+      safe(pricingConnectionApi.getStatus('BEYOND')),
+      safe(quickbooksApi.getStatus()),
+    ]).then(([pl, beyond, qb]) => {
+      const configured = new Set<PricingProvider>();
+      if (pl?.connected) configured.add('PRICELABS');
+      if (beyond?.connected) configured.add('BEYOND');
+      setConnectedPricing(configured);
+      if (configured.size > 0) {
+        setActivePricingProvider(configured.values().next().value!);
+      }
+      if (qb?.connected) {
+        setQuickbooksConnected(true);
+        setQuickbooksActive(true);
+      }
+    });
+  }, []);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -640,31 +683,184 @@ export default function IntegrationsSection() {
       )}
 
 
-      {/* ─── Coming soon — other integrations ─────────────────────────── */}
-      <Box
+      {/* ─── Section : Tarification dynamique (PriceLabs, Beyond) ────── */}
+      <Paper
+        elevation={0}
         sx={{
-          mt: 1.5,
-          p: 1.5,
-          borderRadius: '10px',
-          border: '1px dashed',
+          borderRadius: '12px',
+          border: '1px solid',
           borderColor: 'divider',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 0.75,
+          boxShadow: 'none',
+          mt: 3,
+          mb: 2,
+          px: 2,
+          py: 1.75,
         }}
       >
-        <Typography
+        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
+          Tarification dynamique
+        </Typography>
+        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          Connectez un moteur de revenue management pour des recommandations de prix automatiques (saisonnalité, demande, événements).
+        </Typography>
+        <Box
           sx={{
-            fontSize: '0.75rem',
-            color: 'text.secondary',
-            fontStyle: 'italic',
-            textAlign: 'center',
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 1,
+            mt: 1,
           }}
         >
-          {t('settings.integrations.comingSoon')}
+          {(['PRICELABS', 'BEYOND'] as const).map((p) => (
+            <Box
+              key={p}
+              role="radio"
+              aria-checked={activePricingProvider === p}
+              tabIndex={0}
+              onClick={() => setActivePricingProvider(p)}
+              onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                  e.preventDefault();
+                  setActivePricingProvider(p);
+                }
+              }}
+              sx={{
+                position: 'relative',
+                cursor: 'pointer',
+                p: 1,
+                borderRadius: '10px',
+                border: '1px solid',
+                borderColor: activePricingProvider === p
+                  ? ACCENT
+                  : (connectedPricing.has(p) ? `${ACCENT}55` : 'divider'),
+                backgroundColor: activePricingProvider === p
+                  ? `${ACCENT}10`
+                  : (connectedPricing.has(p) ? `${ACCENT}05` : 'background.paper'),
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                minHeight: 56,
+                outline: 'none',
+                transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                '&:hover': {
+                  borderColor: ACCENT,
+                  backgroundColor: activePricingProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
+                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
+                },
+                '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
+              }}
+            >
+              <ProviderLogo provider={p} size={32} />
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
+                  {p === 'PRICELABS' ? 'PriceLabs' : 'Beyond'}
+                </Typography>
+                <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
+                  {p === 'PRICELABS' ? 'Revenue management · API key' : 'Algorithme propriétaire · API key'}
+                </Typography>
+              </Box>
+              {connectedPricing.has(p) && (
+                <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
+                  <CheckCircleIcon size={14} strokeWidth={2.5} />
+                </Box>
+              )}
+            </Box>
+          ))}
+        </Box>
+      </Paper>
+      {activePricingProvider && (
+        <PricingProviderCard
+          provider={activePricingProvider}
+          onStatusChange={(c) => handlePricingStatusChange(activePricingProvider, c)}
+        />
+      )}
+
+      {/* ─── Section : Comptabilité (QuickBooks) ──────────────────────── */}
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: '12px',
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: 'none',
+          mt: 3,
+          mb: 2,
+          px: 2,
+          py: 1.75,
+        }}
+      >
+        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
+          Comptabilité
         </Typography>
-      </Box>
+        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          Synchronisez factures et dépenses vers votre logiciel comptable. Pennylane est aussi disponible dans la section signature ci-dessus.
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 1,
+            mt: 1,
+          }}
+        >
+          <Box
+            role="radio"
+            aria-checked={quickbooksActive}
+            tabIndex={0}
+            onClick={() => setQuickbooksActive((v) => !v)}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                setQuickbooksActive((v) => !v);
+              }
+            }}
+            sx={{
+              position: 'relative',
+              cursor: 'pointer',
+              p: 1,
+              borderRadius: '10px',
+              border: '1px solid',
+              borderColor: quickbooksActive ? ACCENT : (quickbooksConnected ? `${ACCENT}55` : 'divider'),
+              backgroundColor: quickbooksActive ? `${ACCENT}10` : (quickbooksConnected ? `${ACCENT}05` : 'background.paper'),
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              minHeight: 56,
+              outline: 'none',
+              transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+              '&:hover': {
+                borderColor: ACCENT,
+                backgroundColor: quickbooksActive ? `${ACCENT}14` : `${ACCENT}08`,
+              },
+              '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
+            }}
+          >
+            <ProviderLogo provider="QUICKBOOKS" size={32} />
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
+                QuickBooks
+              </Typography>
+              <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
+                Intuit · OAuth2 · standard US/UK/CA
+              </Typography>
+            </Box>
+            {quickbooksConnected && (
+              <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
+                <CheckCircleIcon size={14} strokeWidth={2.5} />
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </Paper>
+      {quickbooksActive && (
+        <OAuthProviderCard
+          providerId="QUICKBOOKS"
+          label="QuickBooks"
+          description="Synchronisation comptable temps réel · OAuth2 Intuit · sandbox + production"
+          api={quickbooksApi}
+          onStatusChange={(c) => setQuickbooksConnected(c)}
+        />
+      )}
 
       {/* ─── Disconnect confirmation dialog ────────────────────────────── */}
       <Dialog
