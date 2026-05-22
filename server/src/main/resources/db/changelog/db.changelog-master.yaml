@@ -1140,3 +1140,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0120__create_pricing_and_quickbooks_tables.sql
         relativeToChangelogFile: true
+
+  # --- 0121 : Wheelhouse (pricing) + Xero & Sage (comptabilite OAuth2) ---
+  - changeSet:
+      id: "0121-add-wheelhouse-xero-sage-integrations"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0121__add_wheelhouse_xero_sage_integrations.sql
+        relativeToChangelogFile: true

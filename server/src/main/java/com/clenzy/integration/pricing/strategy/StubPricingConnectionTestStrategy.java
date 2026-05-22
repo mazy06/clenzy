@@ -37,3 +37,8 @@ class PriceLabsConnectionTestStrategy extends StubPricingConnectionTestStrategy 
 class BeyondConnectionTestStrategy extends StubPricingConnectionTestStrategy {
     @Override public PricingProviderType providerType() { return PricingProviderType.BEYOND; }
 }
+
+@Service
+class WheelhouseConnectionTestStrategy extends StubPricingConnectionTestStrategy {
+    @Override public PricingProviderType providerType() { return PricingProviderType.WHEELHOUSE; }
+}

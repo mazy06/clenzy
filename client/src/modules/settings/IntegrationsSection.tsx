@@ -37,6 +37,8 @@ import ProviderLogo from './components/ProviderLogos';
 import { docusignApi } from '../../services/api/docusignApi';
 import { pricingConnectionApi, type PricingProvider } from '../../services/api/pricingConnectionApi';
 import { quickbooksApi } from '../../services/api/quickbooksApi';
+import { xeroApi } from '../../services/api/xeroApi';
+import { sageApi } from '../../services/api/sageApi';
 
 // ─── Style helpers (Clenzy palette) ─────────────────────────────────────────
 
@@ -180,11 +182,19 @@ export default function IntegrationsSection() {
     });
   }, []);
 
-  // ─── Comptabilite (QuickBooks) ────────────────────────────────────────────
-  const [quickbooksActive, setQuickbooksActive] = useState(false);
-  const [quickbooksConnected, setQuickbooksConnected] = useState(false);
+  // ─── Comptabilite (QuickBooks / Xero / Sage) ──────────────────────────────
+  type AccountingProvider = 'QUICKBOOKS' | 'XERO' | 'SAGE';
+  const [activeAccountingProvider, setActiveAccountingProvider] = useState<AccountingProvider | null>(null);
+  const [connectedAccounting, setConnectedAccounting] = useState<Set<AccountingProvider>>(new Set());
+  const handleAccountingStatusChange = useCallback((p: AccountingProvider, connected: boolean) => {
+    setConnectedAccounting((prev) => {
+      const next = new Set(prev);
+      if (connected) next.add(p); else next.delete(p);
+      return next;
+    });
+  }, []);
 
-  // Au mount : detecte les connexions deja existantes pour pricing + quickbooks
+  // Au mount : detecte les connexions deja existantes pour pricing + accounting
   useEffect(() => {
     const safe = async <T extends { connected: boolean }>(p: Promise<T>): Promise<T | null> => {
       try { return await p; } catch { return null; }
@@ -192,18 +202,27 @@ export default function IntegrationsSection() {
     Promise.all([
       safe(pricingConnectionApi.getStatus('PRICELABS')),
       safe(pricingConnectionApi.getStatus('BEYOND')),
+      safe(pricingConnectionApi.getStatus('WHEELHOUSE')),
       safe(quickbooksApi.getStatus()),
-    ]).then(([pl, beyond, qb]) => {
-      const configured = new Set<PricingProvider>();
-      if (pl?.connected) configured.add('PRICELABS');
-      if (beyond?.connected) configured.add('BEYOND');
-      setConnectedPricing(configured);
-      if (configured.size > 0) {
-        setActivePricingProvider(configured.values().next().value!);
+      safe(xeroApi.getStatus()),
+      safe(sageApi.getStatus()),
+    ]).then(([pl, beyond, wheelhouse, qb, xero, sage]) => {
+      const configuredPricing = new Set<PricingProvider>();
+      if (pl?.connected) configuredPricing.add('PRICELABS');
+      if (beyond?.connected) configuredPricing.add('BEYOND');
+      if (wheelhouse?.connected) configuredPricing.add('WHEELHOUSE');
+      setConnectedPricing(configuredPricing);
+      if (configuredPricing.size > 0) {
+        setActivePricingProvider(configuredPricing.values().next().value!);
       }
-      if (qb?.connected) {
-        setQuickbooksConnected(true);
-        setQuickbooksActive(true);
+
+      const configuredAccounting = new Set<AccountingProvider>();
+      if (qb?.connected) configuredAccounting.add('QUICKBOOKS');
+      if (xero?.connected) configuredAccounting.add('XERO');
+      if (sage?.connected) configuredAccounting.add('SAGE');
+      setConnectedAccounting(configuredAccounting);
+      if (configuredAccounting.size > 0) {
+        setActiveAccountingProvider(configuredAccounting.values().next().value!);
       }
     });
   }, []);
@@ -711,7 +730,11 @@ export default function IntegrationsSection() {
             mt: 1,
           }}
         >
-          {(['PRICELABS', 'BEYOND'] as const).map((p) => (
+          {([
+            { id: 'PRICELABS', label: 'PriceLabs', desc: 'Revenue management · API key' },
+            { id: 'BEYOND', label: 'Beyond', desc: 'Algorithme propriétaire · API key' },
+            { id: 'WHEELHOUSE', label: 'Wheelhouse', desc: 'Market comparison · API key' },
+          ] as const).map(({ id: p, label, desc }) => (
             <Box
               key={p}
               role="radio"
@@ -753,10 +776,10 @@ export default function IntegrationsSection() {
               <ProviderLogo provider={p} size={32} />
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
-                  {p === 'PRICELABS' ? 'PriceLabs' : 'Beyond'}
+                  {label}
                 </Typography>
                 <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
-                  {p === 'PRICELABS' ? 'Revenue management · API key' : 'Algorithme propriétaire · API key'}
+                  {desc}
                 </Typography>
               </Box>
               {connectedPricing.has(p) && (
@@ -803,62 +826,92 @@ export default function IntegrationsSection() {
             mt: 1,
           }}
         >
-          <Box
-            role="radio"
-            aria-checked={quickbooksActive}
-            tabIndex={0}
-            onClick={() => setQuickbooksActive((v) => !v)}
-            onKeyDown={(e) => {
-              if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                setQuickbooksActive((v) => !v);
-              }
-            }}
-            sx={{
-              position: 'relative',
-              cursor: 'pointer',
-              p: 1,
-              borderRadius: '10px',
-              border: '1px solid',
-              borderColor: quickbooksActive ? ACCENT : (quickbooksConnected ? `${ACCENT}55` : 'divider'),
-              backgroundColor: quickbooksActive ? `${ACCENT}10` : (quickbooksConnected ? `${ACCENT}05` : 'background.paper'),
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              minHeight: 56,
-              outline: 'none',
-              transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-              '&:hover': {
-                borderColor: ACCENT,
-                backgroundColor: quickbooksActive ? `${ACCENT}14` : `${ACCENT}08`,
-              },
-              '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
-            }}
-          >
-            <ProviderLogo provider="QUICKBOOKS" size={32} />
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
-                QuickBooks
-              </Typography>
-              <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
-                Intuit · OAuth2 · standard US/UK/CA
-              </Typography>
-            </Box>
-            {quickbooksConnected && (
-              <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
-                <CheckCircleIcon size={14} strokeWidth={2.5} />
+          {([
+            { id: 'QUICKBOOKS', label: 'QuickBooks', desc: 'Intuit · OAuth2 · US/UK/CA' },
+            { id: 'XERO',       label: 'Xero',       desc: 'OAuth2 · leader UK/AU/NZ' },
+            { id: 'SAGE',       label: 'Sage',       desc: 'OAuth2 · leader FR/Europe' },
+          ] as const).map(({ id: p, label, desc }) => (
+            <Box
+              key={p}
+              role="radio"
+              aria-checked={activeAccountingProvider === p}
+              tabIndex={0}
+              onClick={() => setActiveAccountingProvider(p)}
+              onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                  e.preventDefault();
+                  setActiveAccountingProvider(p);
+                }
+              }}
+              sx={{
+                position: 'relative',
+                cursor: 'pointer',
+                p: 1,
+                borderRadius: '10px',
+                border: '1px solid',
+                borderColor: activeAccountingProvider === p
+                  ? ACCENT
+                  : (connectedAccounting.has(p) ? `${ACCENT}55` : 'divider'),
+                backgroundColor: activeAccountingProvider === p
+                  ? `${ACCENT}10`
+                  : (connectedAccounting.has(p) ? `${ACCENT}05` : 'background.paper'),
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                minHeight: 56,
+                outline: 'none',
+                transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                '&:hover': {
+                  borderColor: ACCENT,
+                  backgroundColor: activeAccountingProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
+                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
+                },
+                '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
+              }}
+            >
+              <ProviderLogo provider={p} size={32} />
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
+                  {label}
+                </Typography>
+                <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
+                  {desc}
+                </Typography>
               </Box>
-            )}
-          </Box>
+              {connectedAccounting.has(p) && (
+                <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
+                  <CheckCircleIcon size={14} strokeWidth={2.5} />
+                </Box>
+              )}
+            </Box>
+          ))}
         </Box>
       </Paper>
-      {quickbooksActive && (
+      {activeAccountingProvider === 'QUICKBOOKS' && (
         <OAuthProviderCard
           providerId="QUICKBOOKS"
           label="QuickBooks"
           description="Synchronisation comptable temps réel · OAuth2 Intuit · sandbox + production"
           api={quickbooksApi}
-          onStatusChange={(c) => setQuickbooksConnected(c)}
+          onStatusChange={(c) => handleAccountingStatusChange('QUICKBOOKS', c)}
+        />
+      )}
+      {activeAccountingProvider === 'XERO' && (
+        <OAuthProviderCard
+          providerId="XERO"
+          label="Xero"
+          description="Comptabilité cloud leader UK / Australie / Nouvelle-Zélande · OAuth2 multi-tenant"
+          api={xeroApi}
+          onStatusChange={(c) => handleAccountingStatusChange('XERO', c)}
+        />
+      )}
+      {activeAccountingProvider === 'SAGE' && (
+        <OAuthProviderCard
+          providerId="SAGE"
+          label="Sage"
+          description="Sage Business Cloud Accounting · leader France et Europe · OAuth2 multi-business"
+          api={sageApi}
+          onStatusChange={(c) => handleAccountingStatusChange('SAGE', c)}
         />
       )}
 

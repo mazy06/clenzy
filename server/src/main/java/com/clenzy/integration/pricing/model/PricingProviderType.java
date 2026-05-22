@@ -11,5 +11,8 @@ public enum PricingProviderType {
     /** PriceLabs (NYC) — leader avec ~250k listings, focus court-sejour. */
     PRICELABS,
     /** Beyond (ex-Beyond Pricing) — concurrent direct de PriceLabs. */
-    BEYOND
+    BEYOND,
+    /** Wheelhouse (San Francisco) — 3eme acteur majeur du marche, focus pricing
+     *  comparatif vs concurrents directs dans la zone geographique. */
+    WHEELHOUSE
 }

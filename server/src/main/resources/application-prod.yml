@@ -206,6 +206,29 @@ clenzy:
     revoke-url: ${QUICKBOOKS_REVOKE_URL:https://developer.api.intuit.com/v2/oauth2/tokens/revoke}
     api-base-url: ${QUICKBOOKS_API_BASE_URL:https://quickbooks.api.intuit.com}
     scopes: ${QUICKBOOKS_SCOPES:com.intuit.quickbooks.accounting}
+  # Xero — OAuth2 Authorization Code Grant (compta UK/AU/NZ + USA)
+  # Sans XERO_CLIENT_ID, l'integration est silencieusement desactivee.
+  xero:
+    client-id: ${XERO_CLIENT_ID:}
+    client-secret: ${XERO_CLIENT_SECRET:}
+    redirect-uri: ${XERO_REDIRECT_URI:}
+    authorization-url: ${XERO_AUTHORIZATION_URL:https://login.xero.com/identity/connect/authorize}
+    token-url: ${XERO_TOKEN_URL:https://identity.xero.com/connect/token}
+    revoke-url: ${XERO_REVOKE_URL:https://identity.xero.com/connect/revocation}
+    connections-url: ${XERO_CONNECTIONS_URL:https://api.xero.com/connections}
+    api-base-url: ${XERO_API_BASE_URL:https://api.xero.com}
+    scopes: ${XERO_SCOPES:accounting.transactions accounting.contacts accounting.settings offline_access}
+  # Sage Business Cloud Accounting — OAuth2 (compta France + Europe + UK)
+  sage:
+    client-id: ${SAGE_CLIENT_ID:}
+    client-secret: ${SAGE_CLIENT_SECRET:}
+    redirect-uri: ${SAGE_REDIRECT_URI:}
+    authorization-url: ${SAGE_AUTHORIZATION_URL:https://www.sageone.com/oauth2/auth/central}
+    token-url: ${SAGE_TOKEN_URL:https://oauth.accounting.sage.com/token}
+    revoke-url: ${SAGE_REVOKE_URL:https://oauth.accounting.sage.com/revoke}
+    businesses-url: ${SAGE_BUSINESSES_URL:https://api.accounting.sage.com/v3.1/businesses}
+    api-base-url: ${SAGE_API_BASE_URL:https://api.accounting.sage.com/v3.1}
+    scopes: ${SAGE_SCOPES:full_access}
   # Webhooks — Zapier & automation
   webhooks:
     enabled: ${WEBHOOKS_ENABLED:true}
