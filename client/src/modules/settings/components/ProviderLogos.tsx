@@ -31,7 +31,10 @@ export type ProviderId =
   | 'WHEELHOUSE'
   | 'QUICKBOOKS'
   | 'XERO'
-  | 'SAGE';
+  | 'SAGE'
+  | 'CHEKIN'
+  | 'POLICE_MA'
+  | 'ABSHER_KSA';
 
 interface ProviderLogoProps {
   provider: ProviderId;
@@ -72,6 +75,12 @@ const PALETTE: Record<ProviderId, BrandPalette> = {
   XERO:       { bg: '#13B5EA', fg: '#FFFFFF', accent: '#0078A3' },
   // Sage : vert sapin
   SAGE:       { bg: '#00DC00', fg: '#0D2818', accent: '#0D2818' },
+  // Chekin : bleu profond (compliance, identite officielle)
+  CHEKIN:     { bg: '#1E40AF', fg: '#FFFFFF', accent: '#60A5FA' },
+  // Police MA : rouge profond (couleur drapeau MA)
+  POLICE_MA:  { bg: '#C1272D', fg: '#FFFFFF', accent: '#006233' },
+  // Absher KSA : vert profond (couleur drapeau KSA)
+  ABSHER_KSA: { bg: '#006C35', fg: '#FFFFFF', accent: '#D4A574' },
 };
 
 export default function ProviderLogo({ provider, size = 48, muted = false }: ProviderLogoProps) {
@@ -372,6 +381,78 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
             strokeLinecap="round"
             fill="none"
           />
+        </>
+      );
+
+    case 'CHEKIN':
+      // Tile bleu profond, "ck" avec un check (validation conformite)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="14"
+            y="30"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="14"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.04em"
+          >
+            ch
+          </text>
+          <path
+            d="M28 24 L31 27 L37 19"
+            stroke={p.accent}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </>
+      );
+
+    case 'POLICE_MA':
+      // Tile rouge, etoile pentagonale (motif drapeau MA), "MA" en bas
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          {/* Etoile pentagonale stylisee (5 branches) */}
+          <path
+            d="M24 11 L26.5 19 L34.5 19 L28 24 L30.5 32 L24 27 L17.5 32 L20 24 L13.5 19 L21.5 19 Z"
+            fill="none"
+            stroke={p.accent}
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <text
+            x="24"
+            y="42"
+            textAnchor="middle"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="7"
+            fontWeight="700"
+            fill={p.fg}
+            letterSpacing="0.1em"
+          >
+            MA
+          </text>
+        </>
+      );
+
+    case 'ABSHER_KSA':
+      // Tile vert, motif palmier + epees stylise (clin d'oeil emblem KSA)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          {/* Tronc */}
+          <rect x="23" y="22" width="2" height="14" rx="1" fill={p.fg} opacity="0.85" />
+          {/* Feuilles palmier (4 arcs) */}
+          <path d="M24 22 Q14 18 12 28" stroke={p.fg} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.85" />
+          <path d="M24 22 Q34 18 36 28" stroke={p.fg} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.85" />
+          <path d="M24 22 Q17 12 14 18" stroke={p.fg} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.65" />
+          <path d="M24 22 Q31 12 34 18" stroke={p.fg} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.65" />
+          {/* Petit cartouche dore en bas */}
+          <line x1="13" y1="40" x2="35" y2="40" stroke={p.accent} strokeWidth="1.5" strokeLinecap="round" />
         </>
       );
 

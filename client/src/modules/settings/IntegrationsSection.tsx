@@ -40,6 +40,8 @@ import { pricingConnectionApi, type PricingProvider } from '../../services/api/p
 import { quickbooksApi } from '../../services/api/quickbooksApi';
 import { xeroApi } from '../../services/api/xeroApi';
 import { sageApi } from '../../services/api/sageApi';
+import { complianceConnectionApi, type ComplianceProvider } from '../../services/api/complianceConnectionApi';
+import ComplianceProviderCard from './components/ComplianceProviderCard';
 
 // ─── Style helpers (Clenzy palette) ─────────────────────────────────────────
 
@@ -195,6 +197,17 @@ export default function IntegrationsSection() {
     });
   }, []);
 
+  // ─── Conformite legale (Chekin / Police MA / Absher KSA) ─────────────────
+  const [openComplianceProvider, setOpenComplianceProvider] = useState<ComplianceProvider | null>(null);
+  const [connectedCompliance, setConnectedCompliance] = useState<Set<ComplianceProvider>>(new Set());
+  const handleComplianceStatusChange = useCallback((p: ComplianceProvider, connected: boolean) => {
+    setConnectedCompliance((prev) => {
+      const next = new Set(prev);
+      if (connected) next.add(p); else next.delete(p);
+      return next;
+    });
+  }, []);
+
   // Au mount : detecte les connexions deja existantes pour pricing + accounting
   // pour afficher les badges "Configure" sur les cards. PAS d'ouverture
   // automatique de modal — l'utilisateur clique explicitement pour configurer.
@@ -209,7 +222,10 @@ export default function IntegrationsSection() {
       safe(quickbooksApi.getStatus()),
       safe(xeroApi.getStatus()),
       safe(sageApi.getStatus()),
-    ]).then(([pl, beyond, wheelhouse, qb, xero, sage]) => {
+      safe(complianceConnectionApi.getStatus('CHEKIN')),
+      safe(complianceConnectionApi.getStatus('POLICE_MA')),
+      safe(complianceConnectionApi.getStatus('ABSHER_KSA')),
+    ]).then(([pl, beyond, wheelhouse, qb, xero, sage, chekin, policeMa, absherKsa]) => {
       const configuredPricing = new Set<PricingProvider>();
       if (pl?.connected) configuredPricing.add('PRICELABS');
       if (beyond?.connected) configuredPricing.add('BEYOND');
@@ -221,6 +237,12 @@ export default function IntegrationsSection() {
       if (xero?.connected) configuredAccounting.add('XERO');
       if (sage?.connected) configuredAccounting.add('SAGE');
       setConnectedAccounting(configuredAccounting);
+
+      const configuredCompliance = new Set<ComplianceProvider>();
+      if (chekin?.connected) configuredCompliance.add('CHEKIN');
+      if (policeMa?.connected) configuredCompliance.add('POLICE_MA');
+      if (absherKsa?.connected) configuredCompliance.add('ABSHER_KSA');
+      setConnectedCompliance(configuredCompliance);
     });
   }, []);
 
@@ -926,6 +948,109 @@ export default function IntegrationsSection() {
             description="Sage Business Cloud Accounting · leader France et Europe · OAuth2 multi-business"
             api={sageApi}
             onStatusChange={(c) => handleAccountingStatusChange('SAGE', c)}
+          />
+        )}
+      </IntegrationConfigDialog>
+
+      {/* ─── Section : Conformité légale (Chekin / Police MA / Absher KSA) ── */}
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: '12px',
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: 'none',
+          mt: 3,
+          mb: 2,
+          px: 2,
+          py: 1.75,
+        }}
+      >
+        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
+          Conformité légale
+        </Typography>
+        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          Automatisez la déclaration légale des voyageurs auprès des autorités locales (fiche police France, DGSN Maroc, Absher Arabie Saoudite). Évite les amendes et les contrôles surprises.
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 1,
+            mt: 1,
+          }}
+        >
+          {([
+            { id: 'CHEKIN',     label: 'Chekin',              desc: 'Fiche police FR · API key',     flag: '🇫🇷' },
+            { id: 'POLICE_MA',  label: 'Police Maroc',        desc: 'DGSN · déclaration voyageur',   flag: '🇲🇦' },
+            { id: 'ABSHER_KSA', label: 'Absher',              desc: 'MOI Arabie Saoudite · KYC',     flag: '🇸🇦' },
+          ] as const).map(({ id: p, label, desc, flag }) => (
+            <Box
+              key={p}
+              role="button"
+              tabIndex={0}
+              onClick={() => setOpenComplianceProvider(p)}
+              onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                  e.preventDefault();
+                  setOpenComplianceProvider(p);
+                }
+              }}
+              sx={{
+                position: 'relative',
+                cursor: 'pointer',
+                p: 1,
+                borderRadius: '10px',
+                border: '1px solid',
+                borderColor: openComplianceProvider === p
+                  ? ACCENT
+                  : (connectedCompliance.has(p) ? `${ACCENT}55` : 'divider'),
+                backgroundColor: openComplianceProvider === p
+                  ? `${ACCENT}10`
+                  : (connectedCompliance.has(p) ? `${ACCENT}05` : 'background.paper'),
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                minHeight: 56,
+                outline: 'none',
+                transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                '&:hover': {
+                  borderColor: ACCENT,
+                  backgroundColor: openComplianceProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
+                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
+                },
+                '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
+              }}
+            >
+              <ProviderLogo provider={p} size={32} />
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
+                    {label}
+                  </Typography>
+                  <span aria-hidden="true" style={{ fontSize: '0.78rem' }}>{flag}</span>
+                </Box>
+                <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
+                  {desc}
+                </Typography>
+              </Box>
+              {connectedCompliance.has(p) && (
+                <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
+                  <CheckCircleIcon size={14} strokeWidth={2.5} />
+                </Box>
+              )}
+            </Box>
+          ))}
+        </Box>
+      </Paper>
+      <IntegrationConfigDialog
+        open={openComplianceProvider !== null}
+        onClose={() => setOpenComplianceProvider(null)}
+      >
+        {openComplianceProvider && (
+          <ComplianceProviderCard
+            provider={openComplianceProvider}
+            onStatusChange={(c) => handleComplianceStatusChange(openComplianceProvider, c)}
           />
         )}
       </IntegrationConfigDialog>
