@@ -3,6 +3,7 @@ import { Box, Typography, Tooltip } from '@mui/material';
 import { CheckCircle as CheckCircleIcon } from '../../../icons';
 import ProviderLogo, { type ProviderId } from './ProviderLogos';
 import type { SignatureProvider } from '../../../services/api/integrationsApi';
+import ServiceTooltip from './ServiceTooltip';
 
 /**
  * Grille de cards pour selectionner UN provider a visualiser / configurer
@@ -108,6 +109,7 @@ function ProviderCard({ spec, active, configured, onSelect, disabled }: Provider
   };
 
   return (
+    <ServiceTooltip providerId={spec.value} name={spec.label}>
     <Box
       role="radio"
       aria-checked={active}
@@ -222,5 +224,6 @@ function ProviderCard({ spec, active, configured, onSelect, disabled }: Provider
         </Tooltip>
       )}
     </Box>
+    </ServiceTooltip>
   );
 }

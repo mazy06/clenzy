@@ -7,6 +7,7 @@ import { useChannelConnections } from '../../../hooks/useChannelConnections';
 import { useAirbnbConnectionStatus } from '../../../hooks/useAirbnb';
 import { CONNECTABLE_CHANNELS, type ChannelId } from '../../../services/api/channelConnectionApi';
 import OtaInfoDialog from './OtaInfoDialog';
+import ServiceTooltip from './ServiceTooltip';
 
 /**
  * Vitrine visuelle des OTAs dans l'onglet Integrations.
@@ -99,8 +100,8 @@ export default function OtaShowcaseSection() {
             const connected = isOtaConnected(ota);
 
             return (
+              <ServiceTooltip key={ota.id} providerId={ota.id} name={ota.name}>
               <Box
-                key={ota.id}
                 role="button"
                 tabIndex={0}
                 onClick={() => setOpenOta(ota)}
@@ -219,6 +220,7 @@ export default function OtaShowcaseSection() {
                   {connected ? 'Connecté' : ota.available ? ota.segment : 'Bientôt'}
                 </Box>
               </Box>
+              </ServiceTooltip>
             );
           })}
         </Box>

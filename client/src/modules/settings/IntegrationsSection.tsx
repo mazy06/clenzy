@@ -48,6 +48,7 @@ import { channelManagerConnectionApi, type ChannelManagerProvider } from '../../
 import ChannelManagerProviderCard from './components/ChannelManagerProviderCard';
 import OtaShowcaseSection from './components/OtaShowcaseSection';
 import ServiceCatalogSection from './components/ServiceCatalogSection';
+import ServiceTooltip from './components/ServiceTooltip';
 
 // ─── Style helpers (Clenzy palette) ─────────────────────────────────────────
 
@@ -809,8 +810,8 @@ export default function IntegrationsSection() {
             { id: 'BEYOND', label: 'Beyond', desc: 'Algorithme propriétaire · API key' },
             { id: 'WHEELHOUSE', label: 'Wheelhouse', desc: 'Market comparison · API key' },
           ] as const).map(({ id: p, label, desc }) => (
+            <ServiceTooltip key={p} providerId={p} name={label}>
             <Box
-              key={p}
               role="radio"
               aria-checked={openPricingProvider === p}
               tabIndex={0}
@@ -862,6 +863,7 @@ export default function IntegrationsSection() {
                 </Box>
               )}
             </Box>
+            </ServiceTooltip>
           ))}
         </Box>
       </Paper>
@@ -910,8 +912,8 @@ export default function IntegrationsSection() {
             { id: 'XERO',       label: 'Xero',       desc: 'OAuth2 · leader UK/AU/NZ' },
             { id: 'SAGE',       label: 'Sage',       desc: 'OAuth2 · leader FR/Europe' },
           ] as const).map(({ id: p, label, desc }) => (
+            <ServiceTooltip key={p} providerId={p} name={label}>
             <Box
-              key={p}
               role="radio"
               aria-checked={openAccountingProvider === p}
               tabIndex={0}
@@ -963,6 +965,7 @@ export default function IntegrationsSection() {
                 </Box>
               )}
             </Box>
+            </ServiceTooltip>
           ))}
         </Box>
       </Paper>
@@ -1032,8 +1035,8 @@ export default function IntegrationsSection() {
             { id: 'POLICE_MA',  label: 'Police Maroc',        desc: 'DGSN · déclaration voyageur',   flag: '🇲🇦' },
             { id: 'ABSHER_KSA', label: 'Absher',              desc: 'MOI Arabie Saoudite · KYC',     flag: '🇸🇦' },
           ] as const).map(({ id: p, label, desc, flag }) => (
+            <ServiceTooltip key={p} providerId={p} name={label}>
             <Box
-              key={p}
               role="button"
               tabIndex={0}
               onClick={() => setOpenComplianceProvider(p)}
@@ -1087,6 +1090,7 @@ export default function IntegrationsSection() {
                 </Box>
               )}
             </Box>
+            </ServiceTooltip>
           ))}
         </Box>
       </Paper>
@@ -1135,8 +1139,8 @@ export default function IntegrationsSection() {
             { id: 'VERIFF', label: 'Veriff',  desc: 'Qualité/prix · EU + MENA' },
             { id: 'ONFIDO', label: 'Onfido',  desc: 'Premium · UX exceptionnelle' },
           ] as const).map(({ id: p, label, desc }) => (
+            <ServiceTooltip key={p} providerId={p} name={label}>
             <Box
-              key={p}
               role="button"
               tabIndex={0}
               onClick={() => setOpenKycProvider(p)}
@@ -1187,6 +1191,7 @@ export default function IntegrationsSection() {
                 </Box>
               )}
             </Box>
+            </ServiceTooltip>
           ))}
         </Box>
       </Paper>
@@ -1235,8 +1240,8 @@ export default function IntegrationsSection() {
             { id: 'HOSTAWAY',       label: 'Hostaway',       desc: 'Focus STR · Airbnb natif' },
             { id: 'RENTALS_UNITED', label: 'Rentals United', desc: '60+ OTAs · EU + MENA' },
           ] as const).map(({ id: p, label, desc }) => (
+            <ServiceTooltip key={p} providerId={p} name={label}>
             <Box
-              key={p}
               role="button"
               tabIndex={0}
               onClick={() => setOpenChannelManagerProvider(p)}
@@ -1287,6 +1292,7 @@ export default function IntegrationsSection() {
                 </Box>
               )}
             </Box>
+            </ServiceTooltip>
           ))}
         </Box>
       </Paper>
