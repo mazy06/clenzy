@@ -26,8 +26,8 @@ import {
 } from '../../icons';
 import { pennylaneApi } from '../../services/api/pennylaneApi';
 import type { PennylaneStatus, PennylaneSyncStatus } from '../../services/api/pennylaneApi';
-import { integrationsApi } from '../../services/api/integrationsApi';
 import type { SignatureProvider } from '../../services/api/integrationsApi';
+import { externalConnectionApi } from '../../services/api/externalConnectionApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import ApiKeyProviderCard from './components/ApiKeyProviderCard';
 import SignatureProviderCards from './components/SignatureProviderCards';
@@ -128,8 +128,12 @@ export default function IntegrationsSection() {
    */
   const [notConfigured, setNotConfigured] = useState(false);
 
-  // ─── Choix radio du provider signature (cross-provider config) ─────────────
-  const [signatureProvider, setSignatureProvider] = useState<SignatureProvider>(null);
+  // ─── Multi-selection des providers actifs (configurables en parallele) ────
+  // Chaque provider stocke sa propre connexion (table dediee). La selection
+  // ici = "panneaux de configuration visibles". On seed depuis l'API : tous
+  // les providers avec une connexion active sont ouverts par defaut.
+  type SelectableProvider = Exclude<SignatureProvider, null>;
+  const [selectedProviders, setSelectedProviders] = useState<SelectableProvider[]>([]);
   const [providerLoading, setProviderLoading] = useState(false);
   const [providerMessage, setProviderMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -159,29 +163,33 @@ export default function IntegrationsSection() {
     loadStatus();
   }, [loadStatus]);
 
-  // Charge la config integrations (choix radio) au mount.
-  // Le status de chaque provider est gere par ApiKeyProviderCard.
+  // Au mount : on detecte tous les providers ayant deja une connexion active
+  // et on les pre-ouvre. Cela evite a l'utilisateur de tout re-cocher apres
+  // un refresh. Si un provider n'est pas configure cote backend (404), on
+  // l'ignore silencieusement.
   useEffect(() => {
-    integrationsApi.getConfig()
-      .then((cfg) => setSignatureProvider(cfg.signatureProvider))
-      .catch(() => { /* endpoint pas dispo, on garde null */ });
-  }, []);
+    const safeStatus = async <T extends { connected: boolean }>(p: Promise<T>): Promise<T | null> => {
+      try { return await p; } catch { return null; }
+    };
 
-  const handleProviderChange = useCallback(async (next: SignatureProvider) => {
-    setProviderLoading(true);
-    setProviderMessage(null);
-    try {
-      const cfg = await integrationsApi.setSignatureProvider(next);
-      setSignatureProvider(cfg.signatureProvider);
-    } catch {
-      setProviderMessage({
-        type: 'error',
-        text: t('settings.integrations.providerSwitchError', 'Impossible de mettre a jour le choix.'),
-      });
-    } finally {
-      setProviderLoading(false);
-    }
-  }, [t]);
+    Promise.all([
+      safeStatus(externalConnectionApi.getStatus('YOUSIGN')),
+      safeStatus(externalConnectionApi.getStatus('UNIVERSIGN')),
+      safeStatus(externalConnectionApi.getStatus('DOCAPOSTE')),
+      safeStatus(externalConnectionApi.getStatus('ODOO')),
+      safeStatus(pennylaneApi.getStatus()),
+      safeStatus(docusignApi.getStatus()),
+    ]).then(([yousign, universign, docaposte, odoo, pennylane, docusign]) => {
+      const configured: SelectableProvider[] = [];
+      if (yousign?.connected)    configured.push('YOUSIGN');
+      if (universign?.connected) configured.push('UNIVERSIGN');
+      if (docaposte?.connected)  configured.push('DOCAPOSTE');
+      if (odoo?.connected)       configured.push('ODOO');
+      if (pennylane?.connected)  configured.push('PENNYLANE');
+      if (docusign?.connected)   configured.push('DOCUSIGN');
+      if (configured.length > 0) setSelectedProviders(configured);
+    });
+  }, []);
 
   const handleConnect = async () => {
     try {
@@ -296,12 +304,12 @@ export default function IntegrationsSection() {
         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
           {t(
             'settings.integrations.signatureProvider.description',
-            'Choisissez le fournisseur a utiliser pour les demandes de signature electronique. Un seul fournisseur actif a la fois.',
+            'Activez et configurez plusieurs fournisseurs en parallele. Chaque connexion est independante.',
           )}
         </Typography>
         <SignatureProviderCards
-          value={signatureProvider}
-          onChange={(next) => handleProviderChange(next)}
+          value={selectedProviders}
+          onChange={(next) => setSelectedProviders(next)}
           disabled={providerLoading}
         />
         {providerMessage && (
@@ -315,22 +323,8 @@ export default function IntegrationsSection() {
         )}
       </Paper>
 
-      {/* ─── Aucun fournisseur selectionne ───────────────────────────── */}
-      {signatureProvider === null && (
-        <Alert
-          severity="info"
-          variant="outlined"
-          sx={{ borderRadius: '8px', fontSize: '0.8rem' }}
-        >
-          {t(
-            'settings.integrations.signatureProvider.noneHelp',
-            "Aucun fournisseur de signature electronique n'est selectionne. Choisissez Pennylane ou Odoo ci-dessus pour configurer la connexion.",
-          )}
-        </Alert>
-      )}
-
       {/* ─── Pennylane integration card (visible si selectionne) ─────── */}
-      {signatureProvider === 'PENNYLANE' && (
+      {selectedProviders.includes('PENNYLANE') && (
       <Paper
         elevation={0}
         sx={{
@@ -575,12 +569,12 @@ export default function IntegrationsSection() {
       )}
 
       {/* ─── QTSP français — Yousign / Universign / DocaPoste ────────── */}
-      {signatureProvider === 'YOUSIGN' && <ApiKeyProviderCard provider="YOUSIGN" />}
-      {signatureProvider === 'UNIVERSIGN' && <ApiKeyProviderCard provider="UNIVERSIGN" />}
-      {signatureProvider === 'DOCAPOSTE' && <ApiKeyProviderCard provider="DOCAPOSTE" />}
+      {selectedProviders.includes('YOUSIGN') && <ApiKeyProviderCard provider="YOUSIGN" />}
+      {selectedProviders.includes('UNIVERSIGN') && <ApiKeyProviderCard provider="UNIVERSIGN" />}
+      {selectedProviders.includes('DOCAPOSTE') && <ApiKeyProviderCard provider="DOCAPOSTE" />}
 
       {/* ─── DocuSign (OAuth — meme moteur partage que Pennylane) ────── */}
-      {signatureProvider === 'DOCUSIGN' && (
+      {selectedProviders.includes('DOCUSIGN') && (
         <OAuthProviderCard
           providerId="DOCUSIGN"
           label="DocuSign"
@@ -590,7 +584,7 @@ export default function IntegrationsSection() {
       )}
 
       {/* ─── Odoo (utilise le composant generique unifie) ────────────── */}
-      {signatureProvider === 'ODOO' && <ApiKeyProviderCard provider="ODOO" />}
+      {selectedProviders.includes('ODOO') && <ApiKeyProviderCard provider="ODOO" />}
 
 
       {/* ─── Coming soon — other integrations ─────────────────────────── */}
