@@ -46,6 +46,7 @@ import { kycConnectionApi, type KycProvider } from '../../services/api/kycConnec
 import KycProviderCard from './components/KycProviderCard';
 import { channelManagerConnectionApi, type ChannelManagerProvider } from '../../services/api/channelManagerConnectionApi';
 import ChannelManagerProviderCard from './components/ChannelManagerProviderCard';
+import OtaShowcaseSection from './components/OtaShowcaseSection';
 
 // ─── Style helpers (Clenzy palette) ─────────────────────────────────────────
 
@@ -1299,6 +1300,9 @@ export default function IntegrationsSection() {
           />
         )}
       </IntegrationConfigDialog>
+
+      {/* ─── Section : OTAs (vitrine — gestion dans tab Channels) ────── */}
+      <OtaShowcaseSection />
 
       {/* ─── Disconnect confirmation dialog ────────────────────────────── */}
       <Dialog
