@@ -35,11 +35,17 @@ export default function ServiceCatalogCard({ service, onClick }: ServiceCatalogC
       placement="top"
       enterDelay={300}
       leaveDelay={100}
-      // Tooltip riche : description + lien + modalites
+      // Tooltip riche : description + modalites + lien. Le styling
+      // (background, border, color) vient du theme global (MuiTooltip
+      // override dans darkTheme.ts) — on n'override PAS ici pour rester
+      // strictement aligne avec le reste des tooltips du PMS.
       title={
-        <Box sx={{ p: 0.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mb: 0.75 }}>
-            <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'inherit' }}>
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mb: 0.5 }}>
+            <Typography
+              component="span"
+              sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'inherit' }}
+            >
               {service.name}
             </Typography>
             {service.region && (
@@ -52,11 +58,8 @@ export default function ServiceCatalogCard({ service, onClick }: ServiceCatalogC
                   px: 0.5,
                   py: 0.125,
                   borderRadius: '3px',
-                  // Bordure et fg adaptes au theme du tooltip (clair sur fond sombre,
-                  // sombre sur fond clair — gere via opacity sur la couleur d'heritage)
                   border: '1px solid currentColor',
                   opacity: 0.7,
-                  color: 'inherit',
                 }}
               >
                 {service.region}
@@ -65,25 +68,37 @@ export default function ServiceCatalogCard({ service, onClick }: ServiceCatalogC
           </Box>
 
           <Typography
+            component="span"
             sx={{
-              fontSize: '0.72rem',
+              display: 'block',
+              fontSize: '0.7rem',
               color: 'inherit',
               opacity: 0.92,
-              lineHeight: 1.4,
-              mb: 1,
+              lineHeight: 1.45,
+              mb: 0.75,
             }}
           >
             {service.tooltipDescription}
           </Typography>
 
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, mb: 0.625 }}>
-            <Box sx={{ flexShrink: 0, mt: '2px', opacity: 0.7 }}>
-              <InfoIcon size={11} strokeWidth={2} />
-            </Box>
-            <Typography sx={{ fontSize: '0.68rem', color: 'inherit', opacity: 0.85, lineHeight: 1.35 }}>
-              <strong style={{ fontWeight: 700 }}>Modalités d'accès :</strong> {service.accessModality}
-            </Typography>
-          </Box>
+          <Typography
+            component="span"
+            sx={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 0.5,
+              fontSize: '0.68rem',
+              color: 'inherit',
+              opacity: 0.85,
+              lineHeight: 1.4,
+              mb: 0.5,
+            }}
+          >
+            <InfoIcon size={11} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1, opacity: 0.7 }} />
+            <span>
+              <strong style={{ fontWeight: 700 }}>Modalités :</strong> {service.accessModality}
+            </span>
+          </Typography>
 
           <Link
             href={service.websiteUrl}
@@ -91,7 +106,7 @@ export default function ServiceCatalogCard({ service, onClick }: ServiceCatalogC
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
             sx={{
-              fontSize: '0.7rem',
+              fontSize: '0.68rem',
               color: 'inherit',
               fontWeight: 600,
               display: 'inline-flex',
@@ -109,29 +124,10 @@ export default function ServiceCatalogCard({ service, onClick }: ServiceCatalogC
           </Link>
         </Box>
       }
-      // Theme-aware : utilise theme.palette refs -> auto-switch light/dark
-      componentsProps={{
-        tooltip: {
-          sx: {
-            // Fond inverse de l'app : sombre en mode clair, clair en mode sombre
-            // pour un bon contraste visuel "tooltip surnage"
-            backgroundColor: (t) =>
-              t.palette.mode === 'light' ? t.palette.grey[900] : t.palette.grey[50],
-            color: (t) =>
-              t.palette.mode === 'light' ? t.palette.common.white : t.palette.grey[900],
-            maxWidth: 340,
-            p: 1.5,
-            borderRadius: '10px',
-            border: (t) => `1px solid ${t.palette.mode === 'light' ? t.palette.grey[800] : t.palette.grey[300]}`,
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
-          },
-        },
-        arrow: {
-          sx: {
-            color: (t) =>
-              t.palette.mode === 'light' ? t.palette.grey[900] : t.palette.grey[50],
-          },
-        },
+      // Seul override : maxWidth pour permettre au contenu riche de respirer.
+      // Le background / border / color / fontSize viennent du theme global.
+      slotProps={{
+        tooltip: { sx: { maxWidth: 320 } },
       }}
     >
       <Box
