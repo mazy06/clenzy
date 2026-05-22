@@ -7,7 +7,12 @@ import {
   Alert,
   Chip,
 } from '@mui/material';
-import { OpenInNew as ExternalLinkIcon, ErrorOutline } from '../../../icons';
+import { useNavigate } from 'react-router-dom';
+import {
+  OpenInNew as ExternalLinkIcon,
+  ArrowForward as ArrowRightIcon,
+  ErrorOutline,
+} from '../../../icons';
 import ServiceCatalogCard from './ServiceCatalogCard';
 import IntegrationConfigDialog from './IntegrationConfigDialog';
 import {
@@ -49,7 +54,17 @@ export default function ServiceCatalogSection({
   description,
 }: ServiceCatalogSectionProps) {
   const services = getServicesByCategory(category);
+  const navigate = useNavigate();
   const [openService, setOpenService] = useState<CatalogService | null>(null);
+
+  const handleAction = (service: CatalogService) => {
+    if (service.internalRoute) {
+      navigate(service.internalRoute);
+      setOpenService(null);
+    } else {
+      window.open(service.websiteUrl, '_blank', 'noreferrer,noopener');
+    }
+  };
 
   if (services.length === 0) return null;
 
@@ -198,7 +213,7 @@ export default function ServiceCatalogSection({
                 <strong>Modalités d'accès :</strong> {openService.accessModality}
               </Alert>
 
-              {!openService.available && (
+              {!openService.available && !openService.internalRoute && (
                 <Alert
                   severity="warning"
                   variant="outlined"
@@ -209,14 +224,16 @@ export default function ServiceCatalogSection({
               )}
 
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {/* Bouton primaire : Configurer (internal) ou Visiter le site (external) */}
                 <Button
                   variant="contained"
                   size="small"
-                  endIcon={<ExternalLinkIcon size={14} strokeWidth={2} />}
-                  component="a"
-                  href={openService.websiteUrl}
-                  target="_blank"
-                  rel="noreferrer noopener"
+                  endIcon={
+                    openService.internalRoute
+                      ? <ArrowRightIcon size={14} strokeWidth={2} />
+                      : <ExternalLinkIcon size={14} strokeWidth={2} />
+                  }
+                  onClick={() => handleAction(openService)}
                   sx={{
                     textTransform: 'none',
                     fontWeight: 600,
@@ -228,8 +245,34 @@ export default function ServiceCatalogSection({
                     '&:hover': { bgcolor: ACCENT, filter: 'brightness(0.94)' },
                   }}
                 >
-                  Visiter {openService.name}
+                  {openService.internalRoute
+                    ? `Configurer ${openService.name}`
+                    : `Visiter ${openService.name}`}
                 </Button>
+
+                {/* Bouton secondaire : si internal, ajouter aussi le lien vers le site officiel */}
+                {openService.internalRoute && openService.websiteUrl && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    endIcon={<ExternalLinkIcon size={14} strokeWidth={2} />}
+                    component="a"
+                    href={openService.websiteUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    sx={{
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      fontSize: '0.78rem',
+                      borderRadius: '8px',
+                      borderColor: 'divider',
+                      color: 'text.primary',
+                      '&:hover': { borderColor: `${ACCENT}66`, backgroundColor: `${ACCENT}0F`, color: ACCENT },
+                    }}
+                  >
+                    En savoir plus
+                  </Button>
+                )}
               </Box>
             </Box>
           </Paper>
