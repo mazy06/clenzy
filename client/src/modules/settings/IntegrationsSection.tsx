@@ -128,14 +128,42 @@ export default function IntegrationsSection() {
    */
   const [notConfigured, setNotConfigured] = useState(false);
 
-  // ─── Multi-selection des providers actifs (configurables en parallele) ────
-  // Chaque provider stocke sa propre connexion (table dediee). La selection
-  // ici = "panneaux de configuration visibles". On seed depuis l'API : tous
-  // les providers avec une connexion active sont ouverts par defaut.
+  // ─── Selection card (single-focus) + multi-CONFIGURATION ──────────────────
+  // Chaque provider conserve sa propre connexion (table dediee cote backend).
+  // La selection ici = "quel panneau de config est ouvert en bas" (single).
+  // L'ensemble {@code connectedProviders} liste tous les providers ayant deja
+  // une connexion sauvegardee — affiches avec un badge "Configure" sur leur card.
   type SelectableProvider = Exclude<SignatureProvider, null>;
-  const [selectedProviders, setSelectedProviders] = useState<SelectableProvider[]>([]);
-  const [providerLoading, setProviderLoading] = useState(false);
+  const [activeProvider, setActiveProvider] = useState<SelectableProvider | null>(null);
+  const [connectedProviders, setConnectedProviders] = useState<Set<SelectableProvider>>(new Set());
+  const [providerLoading] = useState(false);
   const [providerMessage, setProviderMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  /**
+   * Callback distribue a chaque card de config. Quand un provider se connecte
+   * ou se deconnecte, on met a jour le set local pour rafraichir le badge sur
+   * la card de selection en haut.
+   */
+  const handleProviderStatusChange = useCallback(
+    (provider: SelectableProvider, connected: boolean) => {
+      setConnectedProviders((prev) => {
+        const next = new Set(prev);
+        if (connected) next.add(provider);
+        else next.delete(provider);
+        return next;
+      });
+    },
+    [],
+  );
+
+  // Synchronise le badge "Configure" sur la card Pennylane quand son status
+  // change (la card Pennylane existante n'utilise pas le pattern onStatusChange
+  // unifie car son block est inline avec d'autres fonctionnalites sync).
+  useEffect(() => {
+    if (status) {
+      handleProviderStatusChange('PENNYLANE', !!status.connected);
+    }
+  }, [status, handleProviderStatusChange]);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -163,10 +191,9 @@ export default function IntegrationsSection() {
     loadStatus();
   }, [loadStatus]);
 
-  // Au mount : on detecte tous les providers ayant deja une connexion active
-  // et on les pre-ouvre. Cela evite a l'utilisateur de tout re-cocher apres
-  // un refresh. Si un provider n'est pas configure cote backend (404), on
-  // l'ignore silencieusement.
+  // Au mount : on detecte tous les providers deja connectes pour afficher
+  // le badge "Configure" et focus automatiquement le premier d'entre eux.
+  // 404 = provider non active cote backend (env sans client-id) — ignore.
   useEffect(() => {
     const safeStatus = async <T extends { connected: boolean }>(p: Promise<T>): Promise<T | null> => {
       try { return await p; } catch { return null; }
@@ -180,15 +207,19 @@ export default function IntegrationsSection() {
       safeStatus(pennylaneApi.getStatus()),
       safeStatus(docusignApi.getStatus()),
     ]).then(([yousign, universign, docaposte, odoo, pennylane, docusign]) => {
-      const configured: SelectableProvider[] = [];
-      if (yousign?.connected)    configured.push('YOUSIGN');
-      if (universign?.connected) configured.push('UNIVERSIGN');
-      if (docaposte?.connected)  configured.push('DOCAPOSTE');
-      if (odoo?.connected)       configured.push('ODOO');
-      if (pennylane?.connected)  configured.push('PENNYLANE');
-      if (docusign?.connected)   configured.push('DOCUSIGN');
-      if (configured.length > 0) setSelectedProviders(configured);
+      const configured = new Set<SelectableProvider>();
+      if (yousign?.connected)    configured.add('YOUSIGN');
+      if (universign?.connected) configured.add('UNIVERSIGN');
+      if (docaposte?.connected)  configured.add('DOCAPOSTE');
+      if (odoo?.connected)       configured.add('ODOO');
+      if (pennylane?.connected)  configured.add('PENNYLANE');
+      if (docusign?.connected)   configured.add('DOCUSIGN');
+      setConnectedProviders(configured);
+      if (configured.size > 0 && activeProvider === null) {
+        setActiveProvider(configured.values().next().value!);
+      }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleConnect = async () => {
@@ -308,8 +339,9 @@ export default function IntegrationsSection() {
           )}
         </Typography>
         <SignatureProviderCards
-          value={selectedProviders}
-          onChange={(next) => setSelectedProviders(next)}
+          value={activeProvider}
+          onChange={(next) => setActiveProvider(next)}
+          connectedSet={connectedProviders}
           disabled={providerLoading}
         />
         {providerMessage && (
@@ -323,8 +355,8 @@ export default function IntegrationsSection() {
         )}
       </Paper>
 
-      {/* ─── Pennylane integration card (visible si selectionne) ─────── */}
-      {selectedProviders.includes('PENNYLANE') && (
+      {/* ─── Pennylane integration card (visible si focus) ───────────── */}
+      {activeProvider === 'PENNYLANE' && (
       <Paper
         elevation={0}
         sx={{
@@ -569,22 +601,43 @@ export default function IntegrationsSection() {
       )}
 
       {/* ─── QTSP français — Yousign / Universign / DocaPoste ────────── */}
-      {selectedProviders.includes('YOUSIGN') && <ApiKeyProviderCard provider="YOUSIGN" />}
-      {selectedProviders.includes('UNIVERSIGN') && <ApiKeyProviderCard provider="UNIVERSIGN" />}
-      {selectedProviders.includes('DOCAPOSTE') && <ApiKeyProviderCard provider="DOCAPOSTE" />}
+      {activeProvider === 'YOUSIGN' && (
+        <ApiKeyProviderCard
+          provider="YOUSIGN"
+          onStatusChange={(c) => handleProviderStatusChange('YOUSIGN', c)}
+        />
+      )}
+      {activeProvider === 'UNIVERSIGN' && (
+        <ApiKeyProviderCard
+          provider="UNIVERSIGN"
+          onStatusChange={(c) => handleProviderStatusChange('UNIVERSIGN', c)}
+        />
+      )}
+      {activeProvider === 'DOCAPOSTE' && (
+        <ApiKeyProviderCard
+          provider="DOCAPOSTE"
+          onStatusChange={(c) => handleProviderStatusChange('DOCAPOSTE', c)}
+        />
+      )}
 
       {/* ─── DocuSign (OAuth — meme moteur partage que Pennylane) ────── */}
-      {selectedProviders.includes('DOCUSIGN') && (
+      {activeProvider === 'DOCUSIGN' && (
         <OAuthProviderCard
           providerId="DOCUSIGN"
           label="DocuSign"
           description="Signature électronique mondiale · OAuth2 · SES + AES + QES via partenaires QTSP européens"
           api={docusignApi}
+          onStatusChange={(c) => handleProviderStatusChange('DOCUSIGN', c)}
         />
       )}
 
       {/* ─── Odoo (utilise le composant generique unifie) ────────────── */}
-      {selectedProviders.includes('ODOO') && <ApiKeyProviderCard provider="ODOO" />}
+      {activeProvider === 'ODOO' && (
+        <ApiKeyProviderCard
+          provider="ODOO"
+          onStatusChange={(c) => handleProviderStatusChange('ODOO', c)}
+        />
+      )}
 
 
       {/* ─── Coming soon — other integrations ─────────────────────────── */}
