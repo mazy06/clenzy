@@ -34,7 +34,13 @@ export type ProviderId =
   | 'SAGE'
   | 'CHEKIN'
   | 'POLICE_MA'
-  | 'ABSHER_KSA';
+  | 'ABSHER_KSA'
+  | 'SUMSUB'
+  | 'VERIFF'
+  | 'ONFIDO'
+  | 'SITEMINDER'
+  | 'HOSTAWAY'
+  | 'RENTALS_UNITED';
 
 interface ProviderLogoProps {
   provider: ProviderId;
@@ -81,6 +87,18 @@ const PALETTE: Record<ProviderId, BrandPalette> = {
   POLICE_MA:  { bg: '#C1272D', fg: '#FFFFFF', accent: '#006233' },
   // Absher KSA : vert profond (couleur drapeau KSA)
   ABSHER_KSA: { bg: '#006C35', fg: '#FFFFFF', accent: '#D4A574' },
+  // Sumsub : teal/turquoise
+  SUMSUB:     { bg: '#0F766E', fg: '#FFFFFF', accent: '#5EEAD4' },
+  // Veriff : vert frais (KYC)
+  VERIFF:     { bg: '#16A34A', fg: '#FFFFFF', accent: '#FFFFFF' },
+  // Onfido : violet/indigo
+  ONFIDO:     { bg: '#4F46E5', fg: '#FFFFFF', accent: '#A5B4FC' },
+  // SiteMinder : bleu corporate
+  SITEMINDER: { bg: '#1E40AF', fg: '#FFFFFF', accent: '#93C5FD' },
+  // Hostaway : navy + orange (brand)
+  HOSTAWAY:   { bg: '#0A2540', fg: '#FFFFFF', accent: '#F97316' },
+  // Rentals United : bleu marine + accent rouge
+  RENTALS_UNITED: { bg: '#0F172A', fg: '#FFFFFF', accent: '#EF4444' },
 };
 
 export default function ProviderLogo({ provider, size = 48, muted = false }: ProviderLogoProps) {
@@ -453,6 +471,135 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
           <path d="M24 22 Q31 12 34 18" stroke={p.fg} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.65" />
           {/* Petit cartouche dore en bas */}
           <line x1="13" y1="40" x2="35" y2="40" stroke={p.accent} strokeWidth="1.5" strokeLinecap="round" />
+        </>
+      );
+
+    case 'SUMSUB':
+      // Tile teal, "S" + cercle scan (verification d'identite)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="14"
+            y="33"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="22"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.04em"
+          >
+            S
+          </text>
+          <circle cx="32" cy="22" r="6" fill="none" stroke={p.accent} strokeWidth="2" />
+          <line x1="36" y1="26" x2="40" y2="30" stroke={p.accent} strokeWidth="2" strokeLinecap="round" />
+        </>
+      );
+
+    case 'VERIFF':
+      // Tile vert, "v" minuscule + tick coche (verification)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="14"
+            y="34"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="24"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.04em"
+          >
+            v
+          </text>
+          <path
+            d="M28 24 L32 28 L40 18"
+            stroke={p.fg}
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </>
+      );
+
+    case 'ONFIDO':
+      // Tile violet, "O" stylise avec point central (scan iris)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <circle cx="24" cy="24" r="11" fill="none" stroke={p.fg} strokeWidth="3" />
+          <circle cx="24" cy="24" r="4" fill={p.accent} />
+        </>
+      );
+
+    case 'SITEMINDER':
+      // Tile bleu, "SM" + connecteurs (network nodes)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="24"
+            y="28"
+            textAnchor="middle"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="14"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.04em"
+          >
+            SM
+          </text>
+          {/* Petits nodes connectes (motif channel manager) */}
+          <circle cx="12" cy="38" r="2" fill={p.accent} />
+          <circle cx="24" cy="40" r="2" fill={p.accent} />
+          <circle cx="36" cy="38" r="2" fill={p.accent} />
+          <line x1="14" y1="38" x2="22" y2="40" stroke={p.accent} strokeWidth="1.2" opacity="0.6" />
+          <line x1="26" y1="40" x2="34" y2="38" stroke={p.accent} strokeWidth="1.2" opacity="0.6" />
+        </>
+      );
+
+    case 'HOSTAWAY':
+      // Tile navy + accent orange, "H" + barre horizontale (way / chemin)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="24"
+            y="30"
+            textAnchor="middle"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="20"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.04em"
+          >
+            H
+          </text>
+          <line x1="11" y1="38" x2="37" y2="38" stroke={p.accent} strokeWidth="2.5" strokeLinecap="round" />
+        </>
+      );
+
+    case 'RENTALS_UNITED':
+      // Tile navy + accent rouge, "RU" + symbole d'union (cercles concentrique)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="24"
+            y="28"
+            textAnchor="middle"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="13"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.04em"
+          >
+            RU
+          </text>
+          {/* Trois cercles : symbole de "union" */}
+          <circle cx="18" cy="38" r="3" fill="none" stroke={p.accent} strokeWidth="1.5" />
+          <circle cx="24" cy="38" r="3" fill="none" stroke={p.accent} strokeWidth="1.5" />
+          <circle cx="30" cy="38" r="3" fill="none" stroke={p.accent} strokeWidth="1.5" />
         </>
       );
 
