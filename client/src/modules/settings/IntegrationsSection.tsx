@@ -42,6 +42,10 @@ import { xeroApi } from '../../services/api/xeroApi';
 import { sageApi } from '../../services/api/sageApi';
 import { complianceConnectionApi, type ComplianceProvider } from '../../services/api/complianceConnectionApi';
 import ComplianceProviderCard from './components/ComplianceProviderCard';
+import { kycConnectionApi, type KycProvider } from '../../services/api/kycConnectionApi';
+import KycProviderCard from './components/KycProviderCard';
+import { channelManagerConnectionApi, type ChannelManagerProvider } from '../../services/api/channelManagerConnectionApi';
+import ChannelManagerProviderCard from './components/ChannelManagerProviderCard';
 
 // ─── Style helpers (Clenzy palette) ─────────────────────────────────────────
 
@@ -208,6 +212,28 @@ export default function IntegrationsSection() {
     });
   }, []);
 
+  // ─── KYC (Sumsub / Veriff / Onfido) ──────────────────────────────────────
+  const [openKycProvider, setOpenKycProvider] = useState<KycProvider | null>(null);
+  const [connectedKyc, setConnectedKyc] = useState<Set<KycProvider>>(new Set());
+  const handleKycStatusChange = useCallback((p: KycProvider, connected: boolean) => {
+    setConnectedKyc((prev) => {
+      const next = new Set(prev);
+      if (connected) next.add(p); else next.delete(p);
+      return next;
+    });
+  }, []);
+
+  // ─── Channel Manager (SiteMinder / Hostaway / Rentals United) ───────────
+  const [openChannelManagerProvider, setOpenChannelManagerProvider] = useState<ChannelManagerProvider | null>(null);
+  const [connectedChannelManager, setConnectedChannelManager] = useState<Set<ChannelManagerProvider>>(new Set());
+  const handleChannelManagerStatusChange = useCallback((p: ChannelManagerProvider, connected: boolean) => {
+    setConnectedChannelManager((prev) => {
+      const next = new Set(prev);
+      if (connected) next.add(p); else next.delete(p);
+      return next;
+    });
+  }, []);
+
   // Au mount : detecte les connexions deja existantes pour pricing + accounting
   // pour afficher les badges "Configure" sur les cards. PAS d'ouverture
   // automatique de modal — l'utilisateur clique explicitement pour configurer.
@@ -225,7 +251,14 @@ export default function IntegrationsSection() {
       safe(complianceConnectionApi.getStatus('CHEKIN')),
       safe(complianceConnectionApi.getStatus('POLICE_MA')),
       safe(complianceConnectionApi.getStatus('ABSHER_KSA')),
-    ]).then(([pl, beyond, wheelhouse, qb, xero, sage, chekin, policeMa, absherKsa]) => {
+      safe(kycConnectionApi.getStatus('SUMSUB')),
+      safe(kycConnectionApi.getStatus('VERIFF')),
+      safe(kycConnectionApi.getStatus('ONFIDO')),
+      safe(channelManagerConnectionApi.getStatus('SITEMINDER')),
+      safe(channelManagerConnectionApi.getStatus('HOSTAWAY')),
+      safe(channelManagerConnectionApi.getStatus('RENTALS_UNITED')),
+    ]).then(([pl, beyond, wheelhouse, qb, xero, sage, chekin, policeMa, absherKsa,
+              sumsub, veriff, onfido, siteminder, hostaway, rentalsUnited]) => {
       const configuredPricing = new Set<PricingProvider>();
       if (pl?.connected) configuredPricing.add('PRICELABS');
       if (beyond?.connected) configuredPricing.add('BEYOND');
@@ -243,6 +276,18 @@ export default function IntegrationsSection() {
       if (policeMa?.connected) configuredCompliance.add('POLICE_MA');
       if (absherKsa?.connected) configuredCompliance.add('ABSHER_KSA');
       setConnectedCompliance(configuredCompliance);
+
+      const configuredKyc = new Set<KycProvider>();
+      if (sumsub?.connected) configuredKyc.add('SUMSUB');
+      if (veriff?.connected) configuredKyc.add('VERIFF');
+      if (onfido?.connected) configuredKyc.add('ONFIDO');
+      setConnectedKyc(configuredKyc);
+
+      const configuredCM = new Set<ChannelManagerProvider>();
+      if (siteminder?.connected) configuredCM.add('SITEMINDER');
+      if (hostaway?.connected) configuredCM.add('HOSTAWAY');
+      if (rentalsUnited?.connected) configuredCM.add('RENTALS_UNITED');
+      setConnectedChannelManager(configuredCM);
     });
   }, []);
 
@@ -1051,6 +1096,206 @@ export default function IntegrationsSection() {
           <ComplianceProviderCard
             provider={openComplianceProvider}
             onStatusChange={(c) => handleComplianceStatusChange(openComplianceProvider, c)}
+          />
+        )}
+      </IntegrationConfigDialog>
+
+      {/* ─── Section : KYC / Vérification d'identité ─────────────────── */}
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: '12px',
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: 'none',
+          mt: 3,
+          mb: 2,
+          px: 2,
+          py: 1.75,
+        }}
+      >
+        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
+          Vérification d'identité (KYC)
+        </Typography>
+        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          Vérification automatique des pièces d'identité des voyageurs (lutte contre la fraude, conformité LCB-FT). Indispensable pour les paiements sur compte et les réservations à forte valeur.
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 1,
+            mt: 1,
+          }}
+        >
+          {([
+            { id: 'SUMSUB', label: 'Sumsub',  desc: 'Leader MENA · KYC + KYB' },
+            { id: 'VERIFF', label: 'Veriff',  desc: 'Qualité/prix · EU + MENA' },
+            { id: 'ONFIDO', label: 'Onfido',  desc: 'Premium · UX exceptionnelle' },
+          ] as const).map(({ id: p, label, desc }) => (
+            <Box
+              key={p}
+              role="button"
+              tabIndex={0}
+              onClick={() => setOpenKycProvider(p)}
+              onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                  e.preventDefault();
+                  setOpenKycProvider(p);
+                }
+              }}
+              sx={{
+                position: 'relative',
+                cursor: 'pointer',
+                p: 1,
+                borderRadius: '10px',
+                border: '1px solid',
+                borderColor: openKycProvider === p
+                  ? ACCENT
+                  : (connectedKyc.has(p) ? `${ACCENT}55` : 'divider'),
+                backgroundColor: openKycProvider === p
+                  ? `${ACCENT}10`
+                  : (connectedKyc.has(p) ? `${ACCENT}05` : 'background.paper'),
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                minHeight: 56,
+                outline: 'none',
+                transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                '&:hover': {
+                  borderColor: ACCENT,
+                  backgroundColor: openKycProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
+                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
+                },
+                '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
+              }}
+            >
+              <ProviderLogo provider={p} size={32} />
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
+                  {label}
+                </Typography>
+                <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
+                  {desc}
+                </Typography>
+              </Box>
+              {connectedKyc.has(p) && (
+                <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
+                  <CheckCircleIcon size={14} strokeWidth={2.5} />
+                </Box>
+              )}
+            </Box>
+          ))}
+        </Box>
+      </Paper>
+      <IntegrationConfigDialog
+        open={openKycProvider !== null}
+        onClose={() => setOpenKycProvider(null)}
+      >
+        {openKycProvider && (
+          <KycProviderCard
+            provider={openKycProvider}
+            onStatusChange={(c) => handleKycStatusChange(openKycProvider, c)}
+          />
+        )}
+      </IntegrationConfigDialog>
+
+      {/* ─── Section : Channel Manager (middleware OTAs) ──────────────── */}
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: '12px',
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: 'none',
+          mt: 3,
+          mb: 2,
+          px: 2,
+          py: 1.75,
+        }}
+      >
+        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
+          Channel Manager (middleware)
+        </Typography>
+        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          Connectez un middleware qui agrège plusieurs OTAs en une seule API — utile pour les marchés niches ou régionaux sans intégration directe. Les OTAs eux-mêmes (Airbnb, Booking, Vrbo) restent dans la tab <strong>Channels</strong>.
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 1,
+            mt: 1,
+          }}
+        >
+          {([
+            { id: 'SITEMINDER',     label: 'SiteMinder',     desc: '~250 OTAs · leader mondial' },
+            { id: 'HOSTAWAY',       label: 'Hostaway',       desc: 'Focus STR · Airbnb natif' },
+            { id: 'RENTALS_UNITED', label: 'Rentals United', desc: '60+ OTAs · EU + MENA' },
+          ] as const).map(({ id: p, label, desc }) => (
+            <Box
+              key={p}
+              role="button"
+              tabIndex={0}
+              onClick={() => setOpenChannelManagerProvider(p)}
+              onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                  e.preventDefault();
+                  setOpenChannelManagerProvider(p);
+                }
+              }}
+              sx={{
+                position: 'relative',
+                cursor: 'pointer',
+                p: 1,
+                borderRadius: '10px',
+                border: '1px solid',
+                borderColor: openChannelManagerProvider === p
+                  ? ACCENT
+                  : (connectedChannelManager.has(p) ? `${ACCENT}55` : 'divider'),
+                backgroundColor: openChannelManagerProvider === p
+                  ? `${ACCENT}10`
+                  : (connectedChannelManager.has(p) ? `${ACCENT}05` : 'background.paper'),
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                minHeight: 56,
+                outline: 'none',
+                transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                '&:hover': {
+                  borderColor: ACCENT,
+                  backgroundColor: openChannelManagerProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
+                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
+                },
+                '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
+              }}
+            >
+              <ProviderLogo provider={p} size={32} />
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
+                  {label}
+                </Typography>
+                <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
+                  {desc}
+                </Typography>
+              </Box>
+              {connectedChannelManager.has(p) && (
+                <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
+                  <CheckCircleIcon size={14} strokeWidth={2.5} />
+                </Box>
+              )}
+            </Box>
+          ))}
+        </Box>
+      </Paper>
+      <IntegrationConfigDialog
+        open={openChannelManagerProvider !== null}
+        onClose={() => setOpenChannelManagerProvider(null)}
+      >
+        {openChannelManagerProvider && (
+          <ChannelManagerProviderCard
+            provider={openChannelManagerProvider}
+            onStatusChange={(c) => handleChannelManagerStatusChange(openChannelManagerProvider, c)}
           />
         )}
       </IntegrationConfigDialog>

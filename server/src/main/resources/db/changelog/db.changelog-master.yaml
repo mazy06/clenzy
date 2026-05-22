@@ -1156,3 +1156,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0122__create_compliance_connections_table.sql
         relativeToChangelogFile: true
+
+  # --- 0123 : KYC + Channel Manager (2 nouveaux domaines API key) ---
+  - changeSet:
+      id: "0123-create-kyc-and-channel-manager-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0123__create_kyc_and_channel_manager_tables.sql
+        relativeToChangelogFile: true
