@@ -15,7 +15,15 @@ function getAccessToken(): string | null {
   return getItem(STORAGE_KEYS.ACCESS_TOKEN);
 }
 
-export type SignatureProvider = 'PENNYLANE' | 'DOCUSIGN' | 'ODOO' | 'CLENZY_CUSTOM' | null;
+export type SignatureProvider =
+  | 'PENNYLANE'
+  | 'DOCUSIGN'
+  | 'ODOO'
+  | 'YOUSIGN'
+  | 'UNIVERSIGN'
+  | 'DOCAPOSTE'
+  | 'CLENZY_CUSTOM'
+  | null;
 
 export interface IntegrationsConfig {
   signatureProvider: SignatureProvider;
