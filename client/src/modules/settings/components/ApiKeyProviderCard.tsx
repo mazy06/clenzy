@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -103,6 +103,12 @@ const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
 
+  // Pattern "latest callback ref" : permet d'appeler onStatusChange depuis
+  // les effets / handlers SANS le mettre en dependance (sinon une arrow
+  // function inline cote parent change a chaque render et boucle infinie).
+  const onStatusChangeRef = useRef(onStatusChange);
+  useEffect(() => { onStatusChangeRef.current = onStatusChange; }, [onStatusChange]);
+
   useEffect(() => {
     let mounted = true;
     setLoading(true);
@@ -110,18 +116,18 @@ const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
       .then((s) => {
         if (mounted) {
           setStatus(s);
-          onStatusChange?.(!!s.connected);
+          onStatusChangeRef.current?.(!!s.connected);
         }
       })
       .catch(() => {
         if (mounted) {
           setStatus({ connected: false, providerType: provider });
-          onStatusChange?.(false);
+          onStatusChangeRef.current?.(false);
         }
       })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, [provider, onStatusChange]);
+  }, [provider]);
 
   const handleConnect = useCallback(async () => {
     setSubmitting(true);
@@ -133,7 +139,7 @@ const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
         apiKey: form.apiKey,
       });
       setStatus(result);
-      onStatusChange?.(!!result.connected);
+      onStatusChangeRef.current?.(!!result.connected);
       setMessage({ type: 'success', text: `${meta.label} : connexion enregistrée.` });
       // Reset apiKey pour ne pas la laisser dans le DOM
       setForm((f) => ({ ...f, apiKey: '' }));
@@ -150,7 +156,7 @@ const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
     try {
       await externalConnectionApi.disconnect(provider);
       setStatus({ connected: false, providerType: provider });
-      onStatusChange?.(false);
+      onStatusChangeRef.current?.(false);
       setMessage({ type: 'success', text: `${meta.label} : connexion supprimée.` });
     } catch {
       setMessage({ type: 'error', text: `Erreur lors de la déconnexion ${meta.label}.` });
