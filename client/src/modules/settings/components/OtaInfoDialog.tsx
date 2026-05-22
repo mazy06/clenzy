@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Paper,
@@ -7,6 +7,7 @@ import {
   Chip,
   Alert,
   CircularProgress,
+  TextField,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -15,33 +16,45 @@ import {
   Link as LinkIcon,
   LinkOff as LinkOffIcon,
   ArrowForward as ArrowRightIcon,
+  Science as TestIcon,
 } from '../../../icons';
-import { useDisconnectChannel } from '../../../hooks/useChannelConnections';
+import {
+  useDisconnectChannel,
+  useConnectChannel,
+  useTestChannelConnection,
+} from '../../../hooks/useChannelConnections';
 import { useAirbnbConnect } from '../../../hooks/useAirbnb';
-import { CONNECTABLE_CHANNELS, type ChannelId, type ChannelConnectionStatus } from '../../../services/api/channelConnectionApi';
+import {
+  CONNECTABLE_CHANNELS,
+  CHANNEL_BACKEND_MAP,
+  CHANNEL_CREDENTIAL_FIELDS,
+  type ChannelId,
+  type ChannelConnectionStatus,
+  type ChannelConnectionTestResult,
+} from '../../../services/api/channelConnectionApi';
 import type { AirbnbConnectionStatus } from '../../../services/api/airbnbApi';
 import type { OtaChannel } from '../../../services/channels/otaChannels';
 import IntegrationConfigDialog from './IntegrationConfigDialog';
 
 /**
- * Modal d'information pour les OTAs dans la vitrine Integrations.
+ * Modal unifie pour les OTAs dans la vitrine Integrations.
  *
- * <h2>3 cas geres</h2>
+ * <h2>4 cas geres (un seul composant)</h2>
  * <ul>
- *   <li><b>Deja connecte</b> : affiche les data (property name, date) +
- *       bouton Deconnecter. Le user peut reconfigurer en cliquant
- *       "Modifier la connexion" (qui ouvre le ChannelConnectDialog).</li>
- *   <li><b>Airbnb non connecte</b> : CTA "Se connecter via Airbnb (OAuth)"
- *       qui declenche {@code useAirbnbConnect()}.</li>
- *   <li><b>Coming soon</b> : message "Bientot disponible" + lien vers la
- *       page Channels pour express d'interet.</li>
+ *   <li><b>Coming soon</b> (Trip.com/HomeToGo/etc. quand !available) :
+ *       message "en cours de developpement"</li>
+ *   <li><b>Deja connecte</b> (form OTA ou Airbnb) : affiche les data
+ *       enregistrees (Property ID, dates) + boutons Modifier/Deconnecter</li>
+ *   <li><b>Airbnb non connecte</b> : CTA "Se connecter via Airbnb (OAuth)"</li>
+ *   <li><b>Form OTA non connecte</b> : formulaire dynamique base sur
+ *       CHANNEL_CREDENTIAL_FIELDS + boutons Tester / Connecter</li>
  * </ul>
  *
- * <h2>Cas non gere ici</h2>
- * <p>Le cas "form-connectable non connecte" (Booking, Expedia, Hotels.com,
- * Agoda, Vrbo, Abritel) est delegue au {@code ChannelConnectDialog} existant
- * qui contient deja la logique de formulaire + test de connexion. Le parent
- * (OtaShowcaseSection) route vers le bon dialog selon l'etat.</p>
+ * <h2>Layout uniforme</h2>
+ * <p>Strictement le meme format que les autres modales d'integration
+ * (KYC, Compliance, Channel Manager, etc.) : wrap dans
+ * {@link IntegrationConfigDialog} -> Paper -> Header logo+nom+chip+status
+ * + Body. Aucune divergence visuelle avec le reste de l'ecran.</p>
  */
 
 const ACCENT = '#4A9B8E';
@@ -62,16 +75,28 @@ const statusChipSx = (color: string) => ({
   '& .MuiChip-label': { px: 0.875 },
 });
 
+// Labels FR pour les champs de credentials — evite la dependance sur i18n
+// pour ces stubs scaffoldes.
+const FIELD_LABELS: Record<string, string> = {
+  hotelId: 'Hotel ID',
+  username: 'Nom d\'utilisateur',
+  password: 'Mot de passe',
+  propertyId: 'Property ID',
+  apiKey: 'API key',
+  apiSecret: 'API secret',
+  listingId: 'Listing ID',
+  accessToken: 'Access token',
+  refreshToken: 'Refresh token (optionnel)',
+  partnerId: 'Partner ID',
+  icalUrl: 'URL iCal',
+};
+
 interface OtaInfoDialogProps {
   ota: OtaChannel | null;
   open: boolean;
   onClose: () => void;
-  /** Statut de connexion existant (form-based OTAs). */
   channelStatus?: ChannelConnectionStatus | null;
-  /** Statut Airbnb (OAuth). */
   airbnbStatus?: AirbnbConnectionStatus | null;
-  /** Callback pour switcher vers le formulaire de modification. */
-  onEditConnection?: (ota: OtaChannel) => void;
 }
 
 export default function OtaInfoDialog({
@@ -80,12 +105,44 @@ export default function OtaInfoDialog({
   onClose,
   channelStatus,
   airbnbStatus,
-  onEditConnection,
 }: OtaInfoDialogProps) {
   const navigate = useNavigate();
   const disconnectMutation = useDisconnectChannel();
+  const connectMutation = useConnectChannel();
+  const testMutation = useTestChannelConnection();
   const airbnbConnectMutation = useAirbnbConnect();
+
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [testResult, setTestResult] = useState<ChannelConnectionTestResult | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Quand un OTA est connecte, le mode par defaut est "consultation".
+  // Click sur "Modifier la connexion" -> editingForm=true pour afficher
+  // le formulaire de re-saisie sans quitter le modal.
+  const [editingForm, setEditingForm] = useState(false);
+
+  // Reset l'etat local quand l'OTA change ou que le modal s'ouvre/ferme
+  useEffect(() => {
+    setFormData({});
+    setTestResult(null);
+    setActionError(null);
+    setEditingForm(false);
+    connectMutation.reset();
+    testMutation.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ota?.id, open]);
+
+  // Champs requis pour ce channel (CHANNEL_CREDENTIAL_FIELDS indexe par
+  // backend enum, pas par frontend id — d'ou le mapping intermediaire)
+  const fields = useMemo(() => {
+    if (!ota) return [];
+    const backendChannel = CHANNEL_BACKEND_MAP[ota.id as ChannelId];
+    return backendChannel ? CHANNEL_CREDENTIAL_FIELDS[backendChannel] ?? [] : [];
+  }, [ota]);
+
+  const isFormValid = useMemo(
+    () => fields.filter((f) => f.required).every((f) => formData[f.key]?.trim()),
+    [fields, formData],
+  );
 
   if (!ota) return null;
 
@@ -94,6 +151,42 @@ export default function OtaInfoDialog({
   const isAirbnbConnected = isAirbnb && !!airbnbStatus?.connected;
   const isChannelConnected = isFormConnectable && !!channelStatus?.connected;
   const isConnected = isAirbnbConnected || isChannelConnected;
+  // Affiche le formulaire si : pas connecte ET form-connectable, OU bien
+  // l'utilisateur a clique "Modifier" sur la vue connecte.
+  const showForm = ota.available && isFormConnectable && (!isChannelConnected || editingForm);
+
+  const handleFieldChange = (key: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+    setTestResult(null);
+    setActionError(null);
+  };
+
+  const handleTest = () => {
+    setTestResult(null);
+    setActionError(null);
+    testMutation.mutate(
+      { channelId: ota.id as ChannelId, request: { credentials: formData } },
+      {
+        onSuccess: (result) => setTestResult(result),
+        onError: (err: Error) => setActionError(`Test échoué : ${err.message ?? 'erreur inconnue'}`),
+      },
+    );
+  };
+
+  const handleConnect = () => {
+    setActionError(null);
+    connectMutation.mutate(
+      { channelId: ota.id as ChannelId, request: { credentials: formData } },
+      {
+        onSuccess: () => {
+          setEditingForm(false);
+          setFormData({});
+          onClose();
+        },
+        onError: (err: Error) => setActionError(err.message ?? `Erreur lors de la connexion ${ota.name}.`),
+      },
+    );
+  };
 
   const handleDisconnect = async () => {
     if (!isFormConnectable) return;
@@ -125,7 +218,7 @@ export default function OtaInfoDialog({
           overflow: 'hidden',
         }}
       >
-        {/* Header — meme format que les autres cards d'integration */}
+        {/* ─── Header (uniforme avec ApiKeyConnectionCard) ─────────────── */}
         <Box
           sx={{
             px: 2,
@@ -182,7 +275,11 @@ export default function OtaInfoDialog({
               />
             </Box>
             <Typography sx={{ fontSize: '0.74rem', color: 'text.secondary', mt: 0.5 }}>
-              {isAirbnb ? 'Connexion OAuth2 native' : isFormConnectable ? 'Connexion via formulaire (API ou iCal)' : 'Intégration en cours de développement'}
+              {isAirbnb
+                ? 'Connexion OAuth2 native'
+                : isFormConnectable
+                  ? 'Connexion via formulaire (API ou iCal)'
+                  : 'Intégration en cours de développement'}
             </Typography>
           </Box>
           <Box sx={{ flexShrink: 0 }}>
@@ -204,9 +301,9 @@ export default function OtaInfoDialog({
           </Box>
         </Box>
 
-        {/* Body */}
+        {/* ─── Body ────────────────────────────────────────────────────── */}
         <Box sx={{ p: 2 }}>
-          {/* ─── Cas 1 : Coming soon ─────────────────────────────────── */}
+          {/* Cas 1 : Coming soon */}
           {!ota.available && (
             <Alert
               severity="info"
@@ -217,8 +314,8 @@ export default function OtaInfoDialog({
             </Alert>
           )}
 
-          {/* ─── Cas 2 : Deja connecte (form OTA ou Airbnb) ─────────── */}
-          {ota.available && isConnected && (
+          {/* Cas 2 : Deja connecte (form OTA ou Airbnb), mode consultation */}
+          {ota.available && isConnected && !editingForm && (
             <Box>
               <Alert
                 severity="success"
@@ -256,28 +353,23 @@ export default function OtaInfoDialog({
                     )}
                   </>
                 )}
-                {isAirbnbConnected && airbnbStatus && (
-                  <>
-                    {airbnbStatus.connectedAt && (
-                      <Box>
-                        <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Connecté depuis</Typography>
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>
-                          {new Date(airbnbStatus.connectedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </Typography>
-                      </Box>
-                    )}
-                  </>
+                {isAirbnbConnected && airbnbStatus?.connectedAt && (
+                  <Box>
+                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Connecté depuis</Typography>
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>
+                      {new Date(airbnbStatus.connectedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </Typography>
+                  </Box>
                 )}
               </Box>
 
-              {/* Actions */}
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {isFormConnectable && onEditConnection && (
+                {isFormConnectable && (
                   <Button
                     variant="outlined"
                     size="small"
                     startIcon={<LinkIcon size={14} strokeWidth={2} />}
-                    onClick={() => onEditConnection(ota)}
+                    onClick={() => setEditingForm(true)}
                     sx={{
                       textTransform: 'none',
                       fontWeight: 600,
@@ -330,7 +422,7 @@ export default function OtaInfoDialog({
             </Box>
           )}
 
-          {/* ─── Cas 3 : Airbnb non connecte (OAuth) ─────────────────── */}
+          {/* Cas 3 : Airbnb non connecte (OAuth) */}
           {ota.available && isAirbnb && !isConnected && (
             <Box>
               <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', mb: 1.5 }}>
@@ -370,6 +462,107 @@ export default function OtaInfoDialog({
                 >
                   Détails dans Channels
                 </Button>
+              </Box>
+            </Box>
+          )}
+
+          {/* Cas 4 : Form OTA — non connecte OU mode "modifier" */}
+          {showForm && (
+            <Box
+              component="form"
+              onSubmit={(e) => { e.preventDefault(); handleConnect(); }}
+              sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}
+            >
+              <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
+                {editingForm
+                  ? `Modifier les credentials ${ota.name}. Les anciennes valeurs seront ecrasees apres connexion.`
+                  : `Renseignez vos credentials ${ota.name}. Ils sont chiffrés (AES-256) avant stockage.`}
+              </Typography>
+
+              {fields.map((field) => (
+                <TextField
+                  key={field.key}
+                  label={FIELD_LABELS[field.key] ?? field.key}
+                  type={field.type}
+                  size="small"
+                  fullWidth
+                  required={field.required}
+                  placeholder={field.placeholder}
+                  value={formData[field.key] ?? ''}
+                  onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                  autoComplete="off"
+                />
+              ))}
+
+              {/* Resultat test */}
+              {testResult && (
+                <Alert
+                  severity={testResult.success ? 'success' : 'error'}
+                  variant="outlined"
+                  icon={testResult.success ? <CheckCircleIcon size={14} strokeWidth={2} /> : undefined}
+                  sx={{ borderRadius: '8px', fontSize: '0.76rem' }}
+                >
+                  {testResult.success
+                    ? `Credentials valides${testResult.channelPropertyName ? ` (${testResult.channelPropertyName})` : ''}.`
+                    : testResult.message}
+                </Alert>
+              )}
+
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  startIcon={testMutation.isPending ? <CircularProgress size={12} /> : <TestIcon size={14} strokeWidth={2} />}
+                  onClick={handleTest}
+                  disabled={!isFormValid || testMutation.isPending || connectMutation.isPending}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: '0.78rem',
+                    borderRadius: '8px',
+                    borderColor: 'divider',
+                    color: 'text.primary',
+                    '&:hover': { borderColor: `${ACCENT}66`, backgroundColor: `${ACCENT}0F`, color: ACCENT },
+                  }}
+                >
+                  {testMutation.isPending ? 'Test en cours...' : 'Tester'}
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="small"
+                  startIcon={connectMutation.isPending ? <CircularProgress size={12} sx={{ color: '#fff' }} /> : <LinkIcon size={14} strokeWidth={2} />}
+                  disabled={!isFormValid || connectMutation.isPending}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: '0.78rem',
+                    borderRadius: '8px',
+                    bgcolor: ACCENT,
+                    color: '#fff',
+                    boxShadow: 'none',
+                    '&:hover': { bgcolor: ACCENT, filter: 'brightness(0.94)' },
+                  }}
+                >
+                  {connectMutation.isPending ? 'Connexion...' : `Connecter ${ota.name}`}
+                </Button>
+                {editingForm && (
+                  <Button
+                    type="button"
+                    variant="text"
+                    size="small"
+                    onClick={() => { setEditingForm(false); setFormData({}); setTestResult(null); }}
+                    sx={{
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      fontSize: '0.78rem',
+                      color: 'text.secondary',
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                )}
               </Box>
             </Box>
           )}
