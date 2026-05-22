@@ -1128,3 +1128,15 @@ databaseChangeLog:
       sqlFile:
         path: changes/0119__create_docusign_connections_table.sql
         relativeToChangelogFile: true
+
+  # --- 0120 : Tarification dynamique (PriceLabs, Beyond) + Comptabilite QuickBooks ---
+  # pricing_connections : API key (mirror external_service_connections, table
+  # separee pour isoler le domaine pricing du domaine signature).
+  # quickbooks_connections : OAuth2 (mirror docusign_connections, reutilise
+  # OAuthFlowEngine cote Java).
+  - changeSet:
+      id: "0120-create-pricing-and-quickbooks-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0120__create_pricing_and_quickbooks_tables.sql
+        relativeToChangelogFile: true

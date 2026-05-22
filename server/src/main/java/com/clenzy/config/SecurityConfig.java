@@ -168,6 +168,7 @@ public class SecurityConfig {
                     "/api/minut/callback",
                     "/api/pennylane/callback",
                     "/api/docusign/callback",
+                    "/api/quickbooks/callback",
                     "/api/public/**",
                     "/api/booking-engine/auth/**",
                     "/ws/**"
