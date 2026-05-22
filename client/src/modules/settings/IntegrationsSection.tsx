@@ -49,6 +49,8 @@ import ChannelManagerProviderCard from './components/ChannelManagerProviderCard'
 import OtaShowcaseSection from './components/OtaShowcaseSection';
 import ServiceCatalogSection from './components/ServiceCatalogSection';
 import ServiceTooltip from './components/ServiceTooltip';
+import IntegrationsHeader from './components/IntegrationsHeader';
+import { getDomIdForCategory, type ServiceIndexEntry } from '../../services/integrations/allServicesIndex';
 
 // ─── Style helpers (Clenzy palette) ─────────────────────────────────────────
 
@@ -236,6 +238,30 @@ export default function IntegrationsSection() {
       return next;
     });
   }, []);
+
+  // ─── Filtre par categorie + recherche autocomplete (header) ────────────
+  // selectedCategoryId : null = "Toutes", sinon ID de la categorie visible
+  // unique. showSection(id) = helper qui dit si une section doit s'afficher.
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const showSection = useCallback(
+    (categoryId: string): boolean =>
+      selectedCategoryId === null || selectedCategoryId === categoryId,
+    [selectedCategoryId],
+  );
+  const handleServiceSelect = useCallback((service: ServiceIndexEntry) => {
+    // Si un filtre categorie est actif et que le service est dans une autre
+    // categorie, on retire le filtre pour pouvoir afficher la section.
+    if (selectedCategoryId !== null && selectedCategoryId !== service.categoryId) {
+      setSelectedCategoryId(null);
+    }
+    // Scroll vers la section dans un timeout pour laisser le DOM rerender
+    const domId = getDomIdForCategory(service.categoryId);
+    if (domId) {
+      setTimeout(() => {
+        document.getElementById(domId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+    }
+  }, [selectedCategoryId]);
 
   // Au mount : detecte les connexions deja existantes pour pricing + accounting
   // pour afficher les badges "Configure" sur les cards. PAS d'ouverture
@@ -444,8 +470,17 @@ export default function IntegrationsSection() {
 
   return (
     <Box>
+      {/* ─── Header recherche + filtre categorie ─────────────────────── */}
+      <IntegrationsHeader
+        selectedCategoryId={selectedCategoryId}
+        onCategoryChange={setSelectedCategoryId}
+        onSelectService={handleServiceSelect}
+      />
+
       {/* ─── Choix du provider signature (radio) ──────────────────────── */}
+      {showSection('signature') && (
       <Paper
+        id="section-signature"
         elevation={0}
         sx={{
           borderRadius: '12px',
@@ -455,6 +490,7 @@ export default function IntegrationsSection() {
           mb: 2,
           px: 2,
           py: 1.75,
+          scrollMarginTop: 80,
         }}
       >
         <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
@@ -482,6 +518,7 @@ export default function IntegrationsSection() {
           </Alert>
         )}
       </Paper>
+      )}
 
       {/* ─── Modal Pennylane (OAuth — inline car gere son propre sync) ── */}
       <IntegrationConfigDialog
@@ -778,7 +815,9 @@ export default function IntegrationsSection() {
 
 
       {/* ─── Section : Tarification dynamique (PriceLabs, Beyond) ────── */}
+      {showSection('pricing') && (
       <Paper
+        id="section-pricing"
         elevation={0}
         sx={{
           borderRadius: '12px',
@@ -789,6 +828,7 @@ export default function IntegrationsSection() {
           mb: 2,
           px: 2,
           py: 1.75,
+          scrollMarginTop: 80,
         }}
       >
         <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
@@ -867,6 +907,7 @@ export default function IntegrationsSection() {
           ))}
         </Box>
       </Paper>
+      )}
       <IntegrationConfigDialog
         open={openPricingProvider !== null}
         onClose={() => setOpenPricingProvider(null)}
@@ -880,7 +921,9 @@ export default function IntegrationsSection() {
       </IntegrationConfigDialog>
 
       {/* ─── Section : Comptabilité (QuickBooks) ──────────────────────── */}
+      {showSection('accounting') && (
       <Paper
+        id="section-accounting"
         elevation={0}
         sx={{
           borderRadius: '12px',
@@ -891,6 +934,7 @@ export default function IntegrationsSection() {
           mb: 2,
           px: 2,
           py: 1.75,
+          scrollMarginTop: 80,
         }}
       >
         <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
@@ -969,6 +1013,7 @@ export default function IntegrationsSection() {
           ))}
         </Box>
       </Paper>
+      )}
       <IntegrationConfigDialog
         open={openAccountingProvider !== null}
         onClose={() => setOpenAccountingProvider(null)}
@@ -1003,7 +1048,9 @@ export default function IntegrationsSection() {
       </IntegrationConfigDialog>
 
       {/* ─── Section : Conformité légale (Chekin / Police MA / Absher KSA) ── */}
+      {showSection('compliance') && (
       <Paper
+        id="section-compliance"
         elevation={0}
         sx={{
           borderRadius: '12px',
@@ -1014,6 +1061,7 @@ export default function IntegrationsSection() {
           mb: 2,
           px: 2,
           py: 1.75,
+          scrollMarginTop: 80,
         }}
       >
         <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
@@ -1094,6 +1142,7 @@ export default function IntegrationsSection() {
           ))}
         </Box>
       </Paper>
+      )}
       <IntegrationConfigDialog
         open={openComplianceProvider !== null}
         onClose={() => setOpenComplianceProvider(null)}
@@ -1107,7 +1156,9 @@ export default function IntegrationsSection() {
       </IntegrationConfigDialog>
 
       {/* ─── Section : KYC / Vérification d'identité ─────────────────── */}
+      {showSection('kyc') && (
       <Paper
+        id="section-kyc"
         elevation={0}
         sx={{
           borderRadius: '12px',
@@ -1118,6 +1169,7 @@ export default function IntegrationsSection() {
           mb: 2,
           px: 2,
           py: 1.75,
+          scrollMarginTop: 80,
         }}
       >
         <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
@@ -1195,6 +1247,7 @@ export default function IntegrationsSection() {
           ))}
         </Box>
       </Paper>
+      )}
       <IntegrationConfigDialog
         open={openKycProvider !== null}
         onClose={() => setOpenKycProvider(null)}
@@ -1208,7 +1261,9 @@ export default function IntegrationsSection() {
       </IntegrationConfigDialog>
 
       {/* ─── Section : Channel Manager (middleware OTAs) ──────────────── */}
+      {showSection('channel_manager') && (
       <Paper
+        id="section-channel-manager"
         elevation={0}
         sx={{
           borderRadius: '12px',
@@ -1219,6 +1274,7 @@ export default function IntegrationsSection() {
           mb: 2,
           px: 2,
           py: 1.75,
+          scrollMarginTop: 80,
         }}
       >
         <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
@@ -1296,6 +1352,7 @@ export default function IntegrationsSection() {
           ))}
         </Box>
       </Paper>
+      )}
       <IntegrationConfigDialog
         open={openChannelManagerProvider !== null}
         onClose={() => setOpenChannelManagerProvider(null)}
@@ -1309,64 +1366,112 @@ export default function IntegrationsSection() {
       </IntegrationConfigDialog>
 
       {/* ─── Section : OTAs (vitrine — gestion dans tab Channels) ────── */}
-      <OtaShowcaseSection />
+      {showSection('ota') && (
+        <Box id="section-ota" sx={{ scrollMarginTop: 80 }}>
+          <OtaShowcaseSection />
+        </Box>
+      )}
 
       {/* ─── Sections catalogue (services informatifs avec tooltips riches) ─── */}
-      <ServiceCatalogSection
-        category="messaging"
-        title="Messagerie"
-        description="Envoyez emails, SMS et messages WhatsApp directement via les APIs natives des providers, sans intermédiaire."
-      />
-      <ServiceCatalogSection
-        category="market_intelligence"
-        title="Intelligence de marché"
-        description="Données de marché Airbnb / Vrbo : ADR, taux d'occupation, RevPAR par zone pour vos hosts."
-      />
-      <ServiceCatalogSection
-        category="tax_automation"
-        title="Fiscalité — Taxe de séjour"
-        description="Calcul, collecte et déclaration automatique de la taxe de séjour. Compatible barèmes France et international."
-      />
-      <ServiceCatalogSection
-        category="insurance"
-        title="Assurance & screening"
-        description="Vérification des guests, caution dommages, assurances annulation. Réduisez les risques et générez du revenu d'affiliation."
-      />
-      <ServiceCatalogSection
-        category="cleaning_operations"
-        title="Ménage & opérations"
-        description="Marketplaces de cleaners, checklists photo, gestion des inspections. Industrialisez les turnovers."
-      />
-      <ServiceCatalogSection
-        category="smart_locks_iot"
-        title="Serrures connectées & IoT"
-        description="Serrures Bluetooth, thermostats, capteurs. Codes guests dynamiques, économies énergie, supervision à distance."
-      />
-      <ServiceCatalogSection
-        category="key_management"
-        title="Gestion des clés"
-        description="Réseaux de gardiens de clés pour les logements sans serrure connectée. Solution propriétaire Clenzy ou partenaires externes."
-      />
-      <ServiceCatalogSection
-        category="noise_monitoring"
-        title="Monitoring sonore"
-        description="Surveillez le niveau de bruit en temps réel pour prévenir les nuisances et protéger vos relations de voisinage. Hardware Clenzy ou capteur partenaire."
-      />
-      <ServiceCatalogSection
-        category="activities_affiliate"
-        title="Activités & affiliation"
-        description="Vendez des activités à vos guests en cross-sell. Commission affiliée 8-20 % par réservation."
-      />
-      <ServiceCatalogSection
-        category="reviews_reputation"
-        title="Avis & réputation"
-        description="Agrégation multi-canaux, sentiment analysis, automated responses. Suivez votre réputation cross-OTA."
-      />
-      <ServiceCatalogSection
-        category="marketing_crm"
-        title="Marketing & CRM"
-        description="Email marketing, automation, CRM commercial pour acquisition de nouveaux propriétaires et campagnes guest."
-      />
+      {showSection('messaging') && (
+        <Box id="section-messaging" sx={{ scrollMarginTop: 80 }}>
+          <ServiceCatalogSection
+            category="messaging"
+            title="Messagerie"
+            description="Envoyez emails, SMS et messages WhatsApp directement via les APIs natives des providers, sans intermédiaire."
+          />
+        </Box>
+      )}
+      {showSection('market_intelligence') && (
+        <Box id="section-market-intelligence" sx={{ scrollMarginTop: 80 }}>
+          <ServiceCatalogSection
+            category="market_intelligence"
+            title="Intelligence de marché"
+            description="Données de marché Airbnb / Vrbo : ADR, taux d'occupation, RevPAR par zone pour vos hosts."
+          />
+        </Box>
+      )}
+      {showSection('tax_automation') && (
+      <Box id="section-tax" sx={{ scrollMarginTop: 80 }}>
+        <ServiceCatalogSection
+          category="tax_automation"
+          title="Fiscalité — Taxe de séjour"
+          description="Calcul, collecte et déclaration automatique de la taxe de séjour. Compatible barèmes France et international."
+        />
+      </Box>
+      )}
+      {showSection('insurance') && (
+        <Box id="section-insurance" sx={{ scrollMarginTop: 80 }}>
+          <ServiceCatalogSection
+            category="insurance"
+            title="Assurance & screening"
+            description="Vérification des guests, caution dommages, assurances annulation. Réduisez les risques et générez du revenu d'affiliation."
+          />
+        </Box>
+      )}
+      {showSection('cleaning_operations') && (
+        <Box id="section-cleaning" sx={{ scrollMarginTop: 80 }}>
+          <ServiceCatalogSection
+            category="cleaning_operations"
+            title="Ménage & opérations"
+            description="Marketplaces de cleaners, checklists photo, gestion des inspections. Industrialisez les turnovers."
+          />
+        </Box>
+      )}
+      {showSection('smart_locks_iot') && (
+        <Box id="section-smart-locks" sx={{ scrollMarginTop: 80 }}>
+          <ServiceCatalogSection
+            category="smart_locks_iot"
+            title="Serrures connectées & IoT"
+            description="Serrures Bluetooth, thermostats, capteurs. Codes guests dynamiques, économies énergie, supervision à distance."
+          />
+        </Box>
+      )}
+      {showSection('key_management') && (
+        <Box id="section-key-management" sx={{ scrollMarginTop: 80 }}>
+          <ServiceCatalogSection
+            category="key_management"
+            title="Gestion des clés"
+            description="Réseaux de gardiens de clés pour les logements sans serrure connectée. Solution propriétaire Clenzy ou partenaires externes."
+          />
+        </Box>
+      )}
+      {showSection('noise_monitoring') && (
+        <Box id="section-noise" sx={{ scrollMarginTop: 80 }}>
+          <ServiceCatalogSection
+            category="noise_monitoring"
+            title="Monitoring sonore"
+            description="Surveillez le niveau de bruit en temps réel pour prévenir les nuisances et protéger vos relations de voisinage. Hardware Clenzy ou capteur partenaire."
+          />
+        </Box>
+      )}
+      {showSection('activities_affiliate') && (
+        <Box id="section-activities" sx={{ scrollMarginTop: 80 }}>
+          <ServiceCatalogSection
+            category="activities_affiliate"
+            title="Activités & affiliation"
+            description="Vendez des activités à vos guests en cross-sell. Commission affiliée 8-20 % par réservation."
+          />
+        </Box>
+      )}
+      {showSection('reviews_reputation') && (
+        <Box id="section-reviews" sx={{ scrollMarginTop: 80 }}>
+          <ServiceCatalogSection
+            category="reviews_reputation"
+            title="Avis & réputation"
+            description="Agrégation multi-canaux, sentiment analysis, automated responses. Suivez votre réputation cross-OTA."
+          />
+        </Box>
+      )}
+      {showSection('marketing_crm') && (
+        <Box id="section-marketing" sx={{ scrollMarginTop: 80 }}>
+          <ServiceCatalogSection
+            category="marketing_crm"
+            title="Marketing & CRM"
+            description="Email marketing, automation, CRM commercial pour acquisition de nouveaux propriétaires et campagnes guest."
+          />
+        </Box>
+      )}
 
       {/* ─── Disconnect confirmation dialog ────────────────────────────── */}
       <Dialog
