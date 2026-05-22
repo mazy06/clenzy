@@ -89,9 +89,11 @@ const outlinedSx = (hoverColor: string) => ({
 
 interface Props {
   provider: ApiKeyProvider;
+  /** Notifie le parent du statut de connexion (loaded / connect / disconnect). */
+  onStatusChange?: (connected: boolean) => void;
 }
 
-const ApiKeyProviderCard: React.FC<Props> = ({ provider }) => {
+const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
   const meta = PROVIDER_META[provider];
 
   const [status, setStatus] = useState<ExternalConnectionStatus | null>(null);
@@ -105,13 +107,21 @@ const ApiKeyProviderCard: React.FC<Props> = ({ provider }) => {
     let mounted = true;
     setLoading(true);
     externalConnectionApi.getStatus(provider)
-      .then((s) => { if (mounted) setStatus(s); })
+      .then((s) => {
+        if (mounted) {
+          setStatus(s);
+          onStatusChange?.(!!s.connected);
+        }
+      })
       .catch(() => {
-        if (mounted) setStatus({ connected: false, providerType: provider });
+        if (mounted) {
+          setStatus({ connected: false, providerType: provider });
+          onStatusChange?.(false);
+        }
       })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, [provider]);
+  }, [provider, onStatusChange]);
 
   const handleConnect = useCallback(async () => {
     setSubmitting(true);
@@ -123,6 +133,7 @@ const ApiKeyProviderCard: React.FC<Props> = ({ provider }) => {
         apiKey: form.apiKey,
       });
       setStatus(result);
+      onStatusChange?.(!!result.connected);
       setMessage({ type: 'success', text: `${meta.label} : connexion enregistrée.` });
       // Reset apiKey pour ne pas la laisser dans le DOM
       setForm((f) => ({ ...f, apiKey: '' }));
@@ -139,6 +150,7 @@ const ApiKeyProviderCard: React.FC<Props> = ({ provider }) => {
     try {
       await externalConnectionApi.disconnect(provider);
       setStatus({ connected: false, providerType: provider });
+      onStatusChange?.(false);
       setMessage({ type: 'success', text: `${meta.label} : connexion supprimée.` });
     } catch {
       setMessage({ type: 'error', text: `Erreur lors de la déconnexion ${meta.label}.` });

@@ -1,28 +1,28 @@
 import React from 'react';
-import { Box, Typography, Chip, Tooltip } from '@mui/material';
+import { Box, Typography, Tooltip } from '@mui/material';
 import { CheckCircle as CheckCircleIcon } from '../../../icons';
 import ProviderLogo, { type ProviderId } from './ProviderLogos';
 import type { SignatureProvider } from '../../../services/api/integrationsApi';
 
 /**
- * Grille de cards (multi-select) pour activer / configurer plusieurs
- * fournisseurs de signature en parallele.
+ * Grille de cards pour selectionner UN provider a visualiser / configurer
+ * en bas. La selection ici est de la navigation pure (single-focus) — pas de
+ * connexion / deconnexion. Chaque provider conserve sa propre connexion
+ * stockee independamment cote backend.
  *
- * <h2>Multi-selection</h2>
- * Plusieurs providers peuvent etre actifs simultanement — chaque connexion
- * est stockee independamment cote backend (table dediee par provider). La
- * card cochee = "ouvrir le panneau de configuration de ce provider en
- * dessous". L'utilisateur peut configurer plusieurs API keys / OAuth flows
- * en parallele sans bascule.
+ * <h2>Badge "Configuré"</h2>
+ * Chaque card affiche un check vert quand le provider a deja une connexion
+ * active (loaded via prop {@code connectedSet}). Permet de savoir d'un
+ * coup d'oeil quels providers sont deja parametres sans avoir a ouvrir
+ * chaque panneau.
  *
  * <h2>Accessibilite</h2>
- * - role="group" sur le container, role="checkbox" sur chaque card
- * - aria-checked refletant l'appartenance a la selection
- * - Focus visible au clavier (tabindex 0)
+ * - role="radiogroup" sur le container, role="radio" sur chaque card
+ * - aria-checked = true sur la card focus
+ * - Focus visible au clavier
  */
 
 const ACCENT = '#4A9B8E';
-const NEUTRAL = '#8A8378';
 
 type SelectableProvider = Exclude<SignatureProvider, null>;
 
@@ -31,83 +31,37 @@ interface ProviderCardSpec {
   value: SelectableProvider;
   label: string;
   description: string;
-  badge?: string;
   qtspFr?: boolean;
 }
 
 const PROVIDERS: ProviderCardSpec[] = [
-  {
-    id: 'YOUSIGN',
-    value: 'YOUSIGN',
-    label: 'Yousign',
-    description: 'QTSP français · API key',
-    badge: 'SES + AES + QES',
-    qtspFr: true,
-  },
-  {
-    id: 'UNIVERSIGN',
-    value: 'UNIVERSIGN',
-    label: 'Universign',
-    description: 'QTSP français · API key',
-    badge: 'SES + AES + QES',
-    qtspFr: true,
-  },
-  {
-    id: 'DOCAPOSTE',
-    value: 'DOCAPOSTE',
-    label: 'DocaPoste',
-    description: 'QTSP français · API + LRE',
-    badge: 'SES + AES + QES',
-    qtspFr: true,
-  },
-  {
-    id: 'DOCUSIGN',
-    value: 'DOCUSIGN',
-    label: 'DocuSign',
-    description: 'Leader mondial · OAuth2',
-    badge: 'SES + AES + QES',
-  },
-  {
-    id: 'PENNYLANE',
-    value: 'PENNYLANE',
-    label: 'Pennylane',
-    description: 'Compta + signature · OAuth2',
-    badge: 'SES',
-  },
-  {
-    id: 'ODOO',
-    value: 'ODOO',
-    label: 'Odoo',
-    description: 'ERP open source · API key',
-    badge: 'Module Sign',
-  },
+  { id: 'YOUSIGN',    value: 'YOUSIGN',    label: 'Yousign',    description: 'QTSP français · API key', qtspFr: true },
+  { id: 'UNIVERSIGN', value: 'UNIVERSIGN', label: 'Universign', description: 'QTSP français · API key', qtspFr: true },
+  { id: 'DOCAPOSTE',  value: 'DOCAPOSTE',  label: 'DocaPoste',  description: 'QTSP français · API + LRE', qtspFr: true },
+  { id: 'DOCUSIGN',   value: 'DOCUSIGN',   label: 'DocuSign',   description: 'Leader mondial · OAuth2' },
+  { id: 'PENNYLANE',  value: 'PENNYLANE',  label: 'Pennylane',  description: 'Compta + signature · OAuth2' },
+  { id: 'ODOO',       value: 'ODOO',       label: 'Odoo',       description: 'ERP open source · API key' },
 ];
 
 interface SignatureProviderCardsProps {
-  /** Liste des providers selectionnes (ouverts pour configuration). */
-  value: SelectableProvider[];
-  onChange: (next: SelectableProvider[]) => void;
+  /** Provider actuellement focuse (panneau affiche en bas). null si aucun. */
+  value: SelectableProvider | null;
+  onChange: (next: SelectableProvider) => void;
+  /** Set des providers qui ont deja une connexion active (pour le badge). */
+  connectedSet?: Set<SelectableProvider>;
   disabled?: boolean;
 }
 
 export default function SignatureProviderCards({
   value,
   onChange,
+  connectedSet,
   disabled = false,
 }: SignatureProviderCardsProps) {
-  const toggle = (provider: SelectableProvider) => {
-    if (disabled) return;
-    if (value.includes(provider)) {
-      onChange(value.filter((p) => p !== provider));
-    } else {
-      onChange([...value, provider]);
-    }
-  };
-
   return (
     <Box
-      role="group"
-      aria-label="Fournisseurs de signature electronique"
+      role="radiogroup"
+      aria-label="Fournisseur de signature electronique"
       sx={{
         display: 'grid',
         gridTemplateColumns: {
@@ -124,8 +78,9 @@ export default function SignatureProviderCards({
         <ProviderCard
           key={p.id}
           spec={p}
-          selected={value.includes(p.value)}
-          onToggle={() => toggle(p.value)}
+          active={value === p.value}
+          configured={connectedSet?.has(p.value) ?? false}
+          onSelect={() => onChange(p.value)}
           disabled={disabled}
         />
       ))}
@@ -137,27 +92,28 @@ export default function SignatureProviderCards({
 
 interface ProviderCardInnerProps {
   spec: ProviderCardSpec;
-  selected: boolean;
-  onToggle: () => void;
+  active: boolean;
+  configured: boolean;
+  onSelect: () => void;
   disabled?: boolean;
 }
 
-function ProviderCard({ spec, selected, onToggle, disabled }: ProviderCardInnerProps) {
+function ProviderCard({ spec, active, configured, onSelect, disabled }: ProviderCardInnerProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (disabled) return;
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
-      onToggle();
+      onSelect();
     }
   };
 
   return (
     <Box
-      role="checkbox"
-      aria-checked={selected}
+      role="radio"
+      aria-checked={active}
       aria-disabled={disabled}
       tabIndex={disabled ? -1 : 0}
-      onClick={disabled ? undefined : onToggle}
+      onClick={disabled ? undefined : onSelect}
       onKeyDown={handleKeyDown}
       sx={{
         position: 'relative',
@@ -165,8 +121,8 @@ function ProviderCard({ spec, selected, onToggle, disabled }: ProviderCardInnerP
         p: 1,
         borderRadius: '10px',
         border: '1px solid',
-        borderColor: selected ? ACCENT : 'divider',
-        backgroundColor: selected ? `${ACCENT}08` : 'background.paper',
+        borderColor: active ? ACCENT : (configured ? `${ACCENT}55` : 'divider'),
+        backgroundColor: active ? `${ACCENT}10` : (configured ? `${ACCENT}05` : 'background.paper'),
         display: 'flex',
         alignItems: 'center',
         gap: 1,
@@ -178,8 +134,8 @@ function ProviderCard({ spec, selected, onToggle, disabled }: ProviderCardInnerP
         '&:hover': disabled
           ? {}
           : {
-              borderColor: selected ? ACCENT : `${ACCENT}66`,
-              backgroundColor: selected ? `${ACCENT}12` : `${ACCENT}06`,
+              borderColor: ACCENT,
+              backgroundColor: active ? `${ACCENT}14` : `${ACCENT}08`,
               boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
             },
         '&:focus-visible': {
@@ -248,19 +204,22 @@ function ProviderCard({ spec, selected, onToggle, disabled }: ProviderCardInnerP
           {spec.description}
         </Typography>
       </Box>
-      {/* Checkmark coche en haut a droite */}
-      {selected && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 4,
-            right: 4,
-            display: 'inline-flex',
-            color: ACCENT,
-          }}
-        >
-          <CheckCircleIcon size={14} strokeWidth={2.5} />
-        </Box>
+
+      {/* Badge "configure" — petit check vert en haut a droite */}
+      {configured && (
+        <Tooltip title="Connexion enregistrée" arrow placement="top">
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 4,
+              right: 4,
+              display: 'inline-flex',
+              color: ACCENT,
+            }}
+          >
+            <CheckCircleIcon size={14} strokeWidth={2.5} />
+          </Box>
+        </Tooltip>
       )}
     </Box>
   );

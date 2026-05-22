@@ -67,6 +67,8 @@ interface OAuthProviderCardProps {
   description: string;
   /** Adapter API : injecte ses methodes pour decoupler la card du client concret. */
   api: OAuthApiAdapter;
+  /** Notifie le parent du statut de connexion (load / connect / disconnect). */
+  onStatusChange?: (connected: boolean) => void;
   /** Texte i18n eventuel (fallback inline si absent). */
   labels?: {
     connectedAt?: string;
@@ -101,6 +103,7 @@ export default function OAuthProviderCard({
   label,
   description,
   api,
+  onStatusChange,
   labels = {},
 }: OAuthProviderCardProps) {
   const [status, setStatus] = useState<OAuthCardStatus | null>(null);
@@ -115,18 +118,21 @@ export default function OAuthProviderCard({
       const s = await api.getStatus();
       setStatus(s);
       setNotConfigured(false);
+      onStatusChange?.(!!s.connected);
     } catch (err) {
       const httpStatus = (err as { status?: number } | null)?.status;
       if (httpStatus === 404) {
         // Feature flag OFF — backend bean conditionnel non instancie
         setNotConfigured(true);
+        onStatusChange?.(false);
       } else {
         setStatus({ connected: false });
+        onStatusChange?.(false);
       }
     } finally {
       setLoading(false);
     }
-  }, [api]);
+  }, [api, onStatusChange]);
 
   useEffect(() => { loadStatus(); }, [loadStatus]);
 
@@ -152,6 +158,7 @@ export default function OAuthProviderCard({
     try {
       await api.disconnect();
       setStatus({ connected: false });
+      onStatusChange?.(false);
       setDisconnectOpen(false);
       setMessage({ type: 'success', text: `${label} déconnecté.` });
     } catch {
