@@ -183,6 +183,18 @@ clenzy:
     revoke-url: ${PENNYLANE_REVOKE_URL:https://app.pennylane.com/oauth/revoke}
     scopes: ${PENNYLANE_SCOPES:customer_invoices:all supplier_invoices:all customers:all suppliers:all journals:readonly ledger_accounts:readonly}
     accounting-api-base-url: ${PENNYLANE_ACCOUNTING_API_BASE_URL:https://app.pennylane.com/api/external/v2}
+  # DocuSign — OAuth2 Authorization Code Grant (meme moteur que Pennylane)
+  # Sans DOCUSIGN_CLIENT_ID, l'integration est silencieusement desactivee.
+  docusign:
+    client-id: ${DOCUSIGN_CLIENT_ID:}
+    client-secret: ${DOCUSIGN_CLIENT_SECRET:}
+    redirect-uri: ${DOCUSIGN_REDIRECT_URI:}
+    authorization-url: ${DOCUSIGN_AUTHORIZATION_URL:https://account.docusign.com/oauth/auth}
+    token-url: ${DOCUSIGN_TOKEN_URL:https://account.docusign.com/oauth/token}
+    revoke-url: ${DOCUSIGN_REVOKE_URL:https://account.docusign.com/oauth/revoke}
+    user-info-url: ${DOCUSIGN_USER_INFO_URL:https://account.docusign.com/oauth/userinfo}
+    api-base-url: ${DOCUSIGN_API_BASE_URL:https://www.docusign.net/restapi}
+    scopes: ${DOCUSIGN_SCOPES:signature}
   # Webhooks — Zapier & automation
   webhooks:
     enabled: ${WEBHOOKS_ENABLED:true}

@@ -13,10 +13,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  FormControl,
-  FormControlLabel,
-  Radio,
-  RadioGroup,
   TextField,
 } from '@mui/material';
 import {
@@ -34,6 +30,9 @@ import { integrationsApi } from '../../services/api/integrationsApi';
 import type { SignatureProvider } from '../../services/api/integrationsApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import ApiKeyProviderCard from './components/ApiKeyProviderCard';
+import SignatureProviderCards from './components/SignatureProviderCards';
+import OAuthProviderCard from './components/OAuthProviderCard';
+import { docusignApi } from '../../services/api/docusignApi';
 
 // ─── Style helpers (Clenzy palette) ─────────────────────────────────────────
 
@@ -294,83 +293,26 @@ export default function IntegrationsSection() {
         <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
           {t('settings.integrations.signatureProvider.title', 'Signature electronique')}
         </Typography>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 1.25 }}>
+        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
           {t(
             'settings.integrations.signatureProvider.description',
             'Choisissez le fournisseur a utiliser pour les demandes de signature electronique. Un seul fournisseur actif a la fois.',
           )}
         </Typography>
-        <FormControl disabled={providerLoading}>
-          <RadioGroup
-            row
-            value={signatureProvider ?? 'NONE'}
-            onChange={(e) => {
-              const v = e.target.value;
-              handleProviderChange(v === 'NONE' ? null : (v as SignatureProvider));
-            }}
-            sx={{ rowGap: 0.25 }}
+        <SignatureProviderCards
+          value={signatureProvider}
+          onChange={(next) => handleProviderChange(next)}
+          disabled={providerLoading}
+        />
+        {providerMessage && (
+          <Alert
+            severity={providerMessage.type}
+            variant="outlined"
+            sx={{ mt: 1.25, borderRadius: '8px', fontSize: '0.75rem', py: 0.25 }}
           >
-            <FormControlLabel
-              value="YOUSIGN"
-              control={<Radio size="small" sx={{ '&.Mui-checked': { color: ACCENT } }} />}
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Typography sx={{ fontSize: '0.82rem' }}>Yousign</Typography>
-                  <Typography sx={{ fontSize: '0.62rem', color: ACCENT, fontWeight: 600 }}>QTSP 🇫🇷</Typography>
-                </Box>
-              }
-            />
-            <FormControlLabel
-              value="UNIVERSIGN"
-              control={<Radio size="small" sx={{ '&.Mui-checked': { color: ACCENT } }} />}
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Typography sx={{ fontSize: '0.82rem' }}>Universign</Typography>
-                  <Typography sx={{ fontSize: '0.62rem', color: ACCENT, fontWeight: 600 }}>QTSP 🇫🇷</Typography>
-                </Box>
-              }
-            />
-            <FormControlLabel
-              value="DOCAPOSTE"
-              control={<Radio size="small" sx={{ '&.Mui-checked': { color: ACCENT } }} />}
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Typography sx={{ fontSize: '0.82rem' }}>DocaPoste</Typography>
-                  <Typography sx={{ fontSize: '0.62rem', color: ACCENT, fontWeight: 600 }}>QTSP 🇫🇷</Typography>
-                </Box>
-              }
-            />
-            <FormControlLabel
-              value="DOCUSIGN"
-              disabled
-              control={<Radio size="small" />}
-              label={
-                <Typography sx={{ fontSize: '0.82rem', color: 'text.disabled' }}>
-                  DocuSign <em>(OAuth — à venir)</em>
-                </Typography>
-              }
-            />
-            <FormControlLabel
-              value="PENNYLANE"
-              control={<Radio size="small" sx={{ '&.Mui-checked': { color: PRIMARY } }} />}
-              label={<Typography sx={{ fontSize: '0.82rem' }}>Pennylane</Typography>}
-            />
-            <FormControlLabel
-              value="ODOO"
-              control={<Radio size="small" sx={{ '&.Mui-checked': { color: ACCENT } }} />}
-              label={<Typography sx={{ fontSize: '0.82rem' }}>Odoo</Typography>}
-            />
-            <FormControlLabel
-              value="NONE"
-              control={<Radio size="small" />}
-              label={
-                <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary' }}>
-                  {t('settings.integrations.signatureProvider.none', 'Aucun')}
-                </Typography>
-              }
-            />
-          </RadioGroup>
-        </FormControl>
+            {providerMessage.text}
+          </Alert>
+        )}
       </Paper>
 
       {/* ─── Aucun fournisseur selectionne ───────────────────────────── */}
@@ -637,11 +579,14 @@ export default function IntegrationsSection() {
       {signatureProvider === 'UNIVERSIGN' && <ApiKeyProviderCard provider="UNIVERSIGN" />}
       {signatureProvider === 'DOCAPOSTE' && <ApiKeyProviderCard provider="DOCAPOSTE" />}
 
-      {/* ─── DocuSign (OAuth) — pas encore implemente ────────────────── */}
+      {/* ─── DocuSign (OAuth — meme moteur partage que Pennylane) ────── */}
       {signatureProvider === 'DOCUSIGN' && (
-        <Alert severity="warning" variant="outlined" sx={{ borderRadius: '8px', fontSize: '0.82rem' }}>
-          La connexion OAuth DocuSign sera implémentée prochainement. Pour l'instant, sélectionnez un autre fournisseur.
-        </Alert>
+        <OAuthProviderCard
+          providerId="DOCUSIGN"
+          label="DocuSign"
+          description="Signature électronique mondiale · OAuth2 · SES + AES + QES via partenaires QTSP européens"
+          api={docusignApi}
+        />
       )}
 
       {/* ─── Odoo (utilise le composant generique unifie) ────────────── */}

@@ -166,6 +166,8 @@ public class SecurityConfig {
                     "/api/webhooks/whatsapp",
                     "/api/airbnb/callback",
                     "/api/minut/callback",
+                    "/api/pennylane/callback",
+                    "/api/docusign/callback",
                     "/api/public/**",
                     "/api/booking-engine/auth/**",
                     "/ws/**"
