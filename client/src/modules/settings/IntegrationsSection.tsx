@@ -34,6 +34,7 @@ import SignatureProviderCards from './components/SignatureProviderCards';
 import OAuthProviderCard from './components/OAuthProviderCard';
 import PricingProviderCard from './components/PricingProviderCard';
 import ProviderLogo from './components/ProviderLogos';
+import IntegrationConfigDialog from './components/IntegrationConfigDialog';
 import { docusignApi } from '../../services/api/docusignApi';
 import { pricingConnectionApi, type PricingProvider } from '../../services/api/pricingConnectionApi';
 import { quickbooksApi } from '../../services/api/quickbooksApi';
@@ -140,7 +141,7 @@ export default function IntegrationsSection() {
   // L'ensemble {@code connectedProviders} liste tous les providers ayant deja
   // une connexion sauvegardee — affiches avec un badge "Configure" sur leur card.
   type SelectableProvider = Exclude<SignatureProvider, null>;
-  const [activeProvider, setActiveProvider] = useState<SelectableProvider | null>(null);
+  const [openSignatureProvider, setOpenSignatureProvider] = useState<SelectableProvider | null>(null);
   const [connectedProviders, setConnectedProviders] = useState<Set<SelectableProvider>>(new Set());
   const [providerLoading] = useState(false);
   const [providerMessage, setProviderMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -172,7 +173,7 @@ export default function IntegrationsSection() {
   }, [status, handleProviderStatusChange]);
 
   // ─── Tarification dynamique (PriceLabs, Beyond) ───────────────────────────
-  const [activePricingProvider, setActivePricingProvider] = useState<PricingProvider | null>(null);
+  const [openPricingProvider, setOpenPricingProvider] = useState<PricingProvider | null>(null);
   const [connectedPricing, setConnectedPricing] = useState<Set<PricingProvider>>(new Set());
   const handlePricingStatusChange = useCallback((p: PricingProvider, connected: boolean) => {
     setConnectedPricing((prev) => {
@@ -184,7 +185,7 @@ export default function IntegrationsSection() {
 
   // ─── Comptabilite (QuickBooks / Xero / Sage) ──────────────────────────────
   type AccountingProvider = 'QUICKBOOKS' | 'XERO' | 'SAGE';
-  const [activeAccountingProvider, setActiveAccountingProvider] = useState<AccountingProvider | null>(null);
+  const [openAccountingProvider, setOpenAccountingProvider] = useState<AccountingProvider | null>(null);
   const [connectedAccounting, setConnectedAccounting] = useState<Set<AccountingProvider>>(new Set());
   const handleAccountingStatusChange = useCallback((p: AccountingProvider, connected: boolean) => {
     setConnectedAccounting((prev) => {
@@ -195,6 +196,8 @@ export default function IntegrationsSection() {
   }, []);
 
   // Au mount : detecte les connexions deja existantes pour pricing + accounting
+  // pour afficher les badges "Configure" sur les cards. PAS d'ouverture
+  // automatique de modal — l'utilisateur clique explicitement pour configurer.
   useEffect(() => {
     const safe = async <T extends { connected: boolean }>(p: Promise<T>): Promise<T | null> => {
       try { return await p; } catch { return null; }
@@ -212,18 +215,12 @@ export default function IntegrationsSection() {
       if (beyond?.connected) configuredPricing.add('BEYOND');
       if (wheelhouse?.connected) configuredPricing.add('WHEELHOUSE');
       setConnectedPricing(configuredPricing);
-      if (configuredPricing.size > 0) {
-        setActivePricingProvider(configuredPricing.values().next().value!);
-      }
 
       const configuredAccounting = new Set<AccountingProvider>();
       if (qb?.connected) configuredAccounting.add('QUICKBOOKS');
       if (xero?.connected) configuredAccounting.add('XERO');
       if (sage?.connected) configuredAccounting.add('SAGE');
       setConnectedAccounting(configuredAccounting);
-      if (configuredAccounting.size > 0) {
-        setActiveAccountingProvider(configuredAccounting.values().next().value!);
-      }
     });
   }, []);
 
@@ -277,11 +274,10 @@ export default function IntegrationsSection() {
       if (pennylane?.connected)  configured.add('PENNYLANE');
       if (docusign?.connected)   configured.add('DOCUSIGN');
       setConnectedProviders(configured);
-      if (configured.size > 0 && activeProvider === null) {
-        setActiveProvider(configured.values().next().value!);
-      }
+      // Pas d'ouverture automatique de modal — les badges "Configure" sur
+      // les cards suffisent a indiquer l'etat. L'utilisateur clique pour
+      // configurer.
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleConnect = async () => {
@@ -401,8 +397,8 @@ export default function IntegrationsSection() {
           )}
         </Typography>
         <SignatureProviderCards
-          value={activeProvider}
-          onChange={(next) => setActiveProvider(next)}
+          value={openSignatureProvider}
+          onChange={(next) => setOpenSignatureProvider(next)}
           connectedSet={connectedProviders}
           disabled={providerLoading}
         />
@@ -417,8 +413,12 @@ export default function IntegrationsSection() {
         )}
       </Paper>
 
-      {/* ─── Pennylane integration card (visible si focus) ───────────── */}
-      {activeProvider === 'PENNYLANE' && (
+      {/* ─── Modal Pennylane (OAuth — inline car gere son propre sync) ── */}
+      <IntegrationConfigDialog
+        open={openSignatureProvider === 'PENNYLANE'}
+        onClose={() => setOpenSignatureProvider(null)}
+        maxWidth="md"
+      >
       <Paper
         elevation={0}
         sx={{
@@ -427,12 +427,6 @@ export default function IntegrationsSection() {
           borderColor: 'divider',
           boxShadow: 'none',
           overflow: 'hidden',
-          transition:
-            'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1)',
-          '&:hover': {
-            borderColor: `${PRIMARY}40`,
-            boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 12px rgba(45, 55, 72, 0.06)',
-          },
         }}
       >
         {/* Header */}
@@ -660,30 +654,40 @@ export default function IntegrationsSection() {
           )}
         </Box>
       </Paper>
-      )}
+      </IntegrationConfigDialog>
 
-      {/* ─── QTSP français — Yousign / Universign / DocaPoste ────────── */}
-      {activeProvider === 'YOUSIGN' && (
+      {/* ─── Modals de config signature (QTSP, Odoo, DocuSign) ────────── */}
+      <IntegrationConfigDialog
+        open={openSignatureProvider === 'YOUSIGN'}
+        onClose={() => setOpenSignatureProvider(null)}
+      >
         <ApiKeyProviderCard
           provider="YOUSIGN"
           onStatusChange={(c) => handleProviderStatusChange('YOUSIGN', c)}
         />
-      )}
-      {activeProvider === 'UNIVERSIGN' && (
+      </IntegrationConfigDialog>
+      <IntegrationConfigDialog
+        open={openSignatureProvider === 'UNIVERSIGN'}
+        onClose={() => setOpenSignatureProvider(null)}
+      >
         <ApiKeyProviderCard
           provider="UNIVERSIGN"
           onStatusChange={(c) => handleProviderStatusChange('UNIVERSIGN', c)}
         />
-      )}
-      {activeProvider === 'DOCAPOSTE' && (
+      </IntegrationConfigDialog>
+      <IntegrationConfigDialog
+        open={openSignatureProvider === 'DOCAPOSTE'}
+        onClose={() => setOpenSignatureProvider(null)}
+      >
         <ApiKeyProviderCard
           provider="DOCAPOSTE"
           onStatusChange={(c) => handleProviderStatusChange('DOCAPOSTE', c)}
         />
-      )}
-
-      {/* ─── DocuSign (OAuth — meme moteur partage que Pennylane) ────── */}
-      {activeProvider === 'DOCUSIGN' && (
+      </IntegrationConfigDialog>
+      <IntegrationConfigDialog
+        open={openSignatureProvider === 'DOCUSIGN'}
+        onClose={() => setOpenSignatureProvider(null)}
+      >
         <OAuthProviderCard
           providerId="DOCUSIGN"
           label="DocuSign"
@@ -691,15 +695,16 @@ export default function IntegrationsSection() {
           api={docusignApi}
           onStatusChange={(c) => handleProviderStatusChange('DOCUSIGN', c)}
         />
-      )}
-
-      {/* ─── Odoo (utilise le composant generique unifie) ────────────── */}
-      {activeProvider === 'ODOO' && (
+      </IntegrationConfigDialog>
+      <IntegrationConfigDialog
+        open={openSignatureProvider === 'ODOO'}
+        onClose={() => setOpenSignatureProvider(null)}
+      >
         <ApiKeyProviderCard
           provider="ODOO"
           onStatusChange={(c) => handleProviderStatusChange('ODOO', c)}
         />
-      )}
+      </IntegrationConfigDialog>
 
 
       {/* ─── Section : Tarification dynamique (PriceLabs, Beyond) ────── */}
@@ -738,13 +743,13 @@ export default function IntegrationsSection() {
             <Box
               key={p}
               role="radio"
-              aria-checked={activePricingProvider === p}
+              aria-checked={openPricingProvider === p}
               tabIndex={0}
-              onClick={() => setActivePricingProvider(p)}
+              onClick={() => setOpenPricingProvider(p)}
               onKeyDown={(e) => {
                 if (e.key === ' ' || e.key === 'Enter') {
                   e.preventDefault();
-                  setActivePricingProvider(p);
+                  setOpenPricingProvider(p);
                 }
               }}
               sx={{
@@ -753,10 +758,10 @@ export default function IntegrationsSection() {
                 p: 1,
                 borderRadius: '10px',
                 border: '1px solid',
-                borderColor: activePricingProvider === p
+                borderColor: openPricingProvider === p
                   ? ACCENT
                   : (connectedPricing.has(p) ? `${ACCENT}55` : 'divider'),
-                backgroundColor: activePricingProvider === p
+                backgroundColor: openPricingProvider === p
                   ? `${ACCENT}10`
                   : (connectedPricing.has(p) ? `${ACCENT}05` : 'background.paper'),
                 display: 'flex',
@@ -767,7 +772,7 @@ export default function IntegrationsSection() {
                 transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
                 '&:hover': {
                   borderColor: ACCENT,
-                  backgroundColor: activePricingProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
+                  backgroundColor: openPricingProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
                   boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
                 },
                 '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
@@ -791,12 +796,17 @@ export default function IntegrationsSection() {
           ))}
         </Box>
       </Paper>
-      {activePricingProvider && (
-        <PricingProviderCard
-          provider={activePricingProvider}
-          onStatusChange={(c) => handlePricingStatusChange(activePricingProvider, c)}
-        />
-      )}
+      <IntegrationConfigDialog
+        open={openPricingProvider !== null}
+        onClose={() => setOpenPricingProvider(null)}
+      >
+        {openPricingProvider && (
+          <PricingProviderCard
+            provider={openPricingProvider}
+            onStatusChange={(c) => handlePricingStatusChange(openPricingProvider, c)}
+          />
+        )}
+      </IntegrationConfigDialog>
 
       {/* ─── Section : Comptabilité (QuickBooks) ──────────────────────── */}
       <Paper
@@ -834,13 +844,13 @@ export default function IntegrationsSection() {
             <Box
               key={p}
               role="radio"
-              aria-checked={activeAccountingProvider === p}
+              aria-checked={openAccountingProvider === p}
               tabIndex={0}
-              onClick={() => setActiveAccountingProvider(p)}
+              onClick={() => setOpenAccountingProvider(p)}
               onKeyDown={(e) => {
                 if (e.key === ' ' || e.key === 'Enter') {
                   e.preventDefault();
-                  setActiveAccountingProvider(p);
+                  setOpenAccountingProvider(p);
                 }
               }}
               sx={{
@@ -849,10 +859,10 @@ export default function IntegrationsSection() {
                 p: 1,
                 borderRadius: '10px',
                 border: '1px solid',
-                borderColor: activeAccountingProvider === p
+                borderColor: openAccountingProvider === p
                   ? ACCENT
                   : (connectedAccounting.has(p) ? `${ACCENT}55` : 'divider'),
-                backgroundColor: activeAccountingProvider === p
+                backgroundColor: openAccountingProvider === p
                   ? `${ACCENT}10`
                   : (connectedAccounting.has(p) ? `${ACCENT}05` : 'background.paper'),
                 display: 'flex',
@@ -863,7 +873,7 @@ export default function IntegrationsSection() {
                 transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
                 '&:hover': {
                   borderColor: ACCENT,
-                  backgroundColor: activeAccountingProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
+                  backgroundColor: openAccountingProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
                   boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
                 },
                 '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
@@ -887,33 +897,38 @@ export default function IntegrationsSection() {
           ))}
         </Box>
       </Paper>
-      {activeAccountingProvider === 'QUICKBOOKS' && (
-        <OAuthProviderCard
-          providerId="QUICKBOOKS"
-          label="QuickBooks"
-          description="Synchronisation comptable temps réel · OAuth2 Intuit · sandbox + production"
-          api={quickbooksApi}
-          onStatusChange={(c) => handleAccountingStatusChange('QUICKBOOKS', c)}
-        />
-      )}
-      {activeAccountingProvider === 'XERO' && (
-        <OAuthProviderCard
-          providerId="XERO"
-          label="Xero"
-          description="Comptabilité cloud leader UK / Australie / Nouvelle-Zélande · OAuth2 multi-tenant"
-          api={xeroApi}
-          onStatusChange={(c) => handleAccountingStatusChange('XERO', c)}
-        />
-      )}
-      {activeAccountingProvider === 'SAGE' && (
-        <OAuthProviderCard
-          providerId="SAGE"
-          label="Sage"
-          description="Sage Business Cloud Accounting · leader France et Europe · OAuth2 multi-business"
-          api={sageApi}
-          onStatusChange={(c) => handleAccountingStatusChange('SAGE', c)}
-        />
-      )}
+      <IntegrationConfigDialog
+        open={openAccountingProvider !== null}
+        onClose={() => setOpenAccountingProvider(null)}
+      >
+        {openAccountingProvider === 'QUICKBOOKS' && (
+          <OAuthProviderCard
+            providerId="QUICKBOOKS"
+            label="QuickBooks"
+            description="Synchronisation comptable temps réel · OAuth2 Intuit · sandbox + production"
+            api={quickbooksApi}
+            onStatusChange={(c) => handleAccountingStatusChange('QUICKBOOKS', c)}
+          />
+        )}
+        {openAccountingProvider === 'XERO' && (
+          <OAuthProviderCard
+            providerId="XERO"
+            label="Xero"
+            description="Comptabilité cloud leader UK / Australie / Nouvelle-Zélande · OAuth2 multi-tenant"
+            api={xeroApi}
+            onStatusChange={(c) => handleAccountingStatusChange('XERO', c)}
+          />
+        )}
+        {openAccountingProvider === 'SAGE' && (
+          <OAuthProviderCard
+            providerId="SAGE"
+            label="Sage"
+            description="Sage Business Cloud Accounting · leader France et Europe · OAuth2 multi-business"
+            api={sageApi}
+            onStatusChange={(c) => handleAccountingStatusChange('SAGE', c)}
+          />
+        )}
+      </IntegrationConfigDialog>
 
       {/* ─── Disconnect confirmation dialog ────────────────────────────── */}
       <Dialog
