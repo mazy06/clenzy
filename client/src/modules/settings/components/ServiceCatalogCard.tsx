@@ -124,10 +124,35 @@ export default function ServiceCatalogCard({ service, onClick }: ServiceCatalogC
           </Link>
         </Box>
       }
-      // Seul override : maxWidth pour permettre au contenu riche de respirer.
-      // Le background / border / color / fontSize viennent du theme global.
+      // Pattern aligne sur PlanningPropertyColumn (tooltips riches du PMS) :
+      // background.paper -> blanc en mode clair, surface sombre en mode dark
+      // text.primary    -> texte sombre en clair, texte clair en dark
+      // border 1px divider + boxShadow theme-aware
       slotProps={{
-        tooltip: { sx: { maxWidth: 320 } },
+        tooltip: {
+          sx: (theme) => ({
+            bgcolor: 'background.paper',
+            color: 'text.primary',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 2,
+            maxWidth: 320,
+            p: 1.5,
+            fontSize: '0.75rem',
+            boxShadow:
+              theme.palette.mode === 'dark'
+                ? '0 12px 32px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35)'
+                : '0 12px 32px rgba(15,23,42,0.18), 0 2px 6px rgba(15,23,42,0.08)',
+            '& .MuiTooltip-arrow': {
+              color: theme.palette.background.paper,
+              '&::before': {
+                border: '1px solid',
+                borderColor: theme.palette.divider,
+                backgroundColor: theme.palette.background.paper,
+              },
+            },
+          }),
+        },
       }}
     >
       <Box
