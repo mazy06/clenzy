@@ -43,7 +43,47 @@ public class ChannelConnectionService {
 
     private static final Set<ChannelName> SUPPORTED_CHANNELS = Set.of(
         ChannelName.BOOKING, ChannelName.EXPEDIA, ChannelName.HOTELS_COM,
-        ChannelName.AGODA, ChannelName.HOMEAWAY
+        ChannelName.AGODA, ChannelName.HOMEAWAY,
+        // ─── Scaffoldes (stubs, sans entity dediee) ──────────────────────
+        ChannelName.TRIPCOM, ChannelName.HOMETOGO, ChannelName.GATHERN,
+        ChannelName.RENTELLY, ChannelName.KEASE, ChannelName.STAY_SA,
+        ChannelName.MABEET
+    );
+
+    /**
+     * Channels en stub (pas encore d'entity dedie). On stocke les credentials
+     * chiffres directement dans le champ credentials_ref de ChannelConnection
+     * (format JSON, prefixe "stub:").
+     */
+    private static final Set<ChannelName> STUB_CHANNELS = Set.of(
+        ChannelName.TRIPCOM, ChannelName.HOMETOGO, ChannelName.GATHERN,
+        ChannelName.RENTELLY, ChannelName.KEASE, ChannelName.STAY_SA,
+        ChannelName.MABEET
+    );
+
+    /**
+     * Definition des champs de credentials requis par channel stub.
+     * Reflete les besoins reels des API quand elles seront cablees :
+     *   - Trip.com : Open Distribution Platform -> partnerId + apiKey
+     *   - HomeToGo : metamoteur -> partnerId + endpoint iCal
+     *   - Gathern, Rentelly, Kease, Stay.sa, Mabeet : API key simple
+     */
+    private static final Map<ChannelName, List<String>> STUB_REQUIRED_FIELDS = Map.of(
+        ChannelName.TRIPCOM, List.of("partnerId", "apiKey"),
+        ChannelName.HOMETOGO, List.of("partnerId", "icalUrl"),
+        ChannelName.GATHERN, List.of("apiKey"),
+        ChannelName.RENTELLY, List.of("apiKey"),
+        ChannelName.KEASE, List.of("apiKey"),
+        ChannelName.STAY_SA, List.of("apiKey"),
+        ChannelName.MABEET, List.of("apiKey")
+    );
+
+    /** Champ utilise comme identifiant externe (affiche dans l'UI). */
+    private static final Map<ChannelName, String> STUB_IDENTIFIER_FIELD = Map.of(
+        ChannelName.TRIPCOM, "partnerId",
+        ChannelName.HOMETOGO, "partnerId"
+        // Les autres ont juste apiKey -> on n'expose pas l'apiKey comme identifiant
+        // (security : ne pas le re-afficher en clair dans le DTO)
     );
 
     private final ChannelConnectionRepository channelConnectionRepository;
@@ -120,6 +160,11 @@ public class ChannelConnectionService {
             case HOTELS_COM -> connectHotelsCom(orgId, creds);
             case AGODA -> connectAgoda(orgId, creds);
             case HOMEAWAY -> connectHomeAway(orgId, creds);
+            // Channels stub — credentials stockes en JSON chiffre dans
+            // credentials_ref. Pas d'entity dediee (sera ajoutee quand la
+            // vraie API du provider sera cablee).
+            case TRIPCOM, HOMETOGO, GATHERN, RENTELLY, KEASE, STAY_SA, MABEET ->
+                    connectStub(orgId, channel, creds);
             default -> throw new IllegalArgumentException("Channel non supporte: " + channel);
         };
     }
@@ -208,6 +253,19 @@ public class ChannelConnectionService {
                     requireCredential(creds, "accessToken");
                     return new ChannelConnectionTestResult(true,
                             "Credentials Vrbo/Abritel valides", creds.get("listingId"));
+                }
+                // Channels stub : validation par presence des champs requis
+                // (cf. STUB_REQUIRED_FIELDS). Quand la vraie API sera cablee,
+                // ce case sera remplace par un appel HTTP reel.
+                case TRIPCOM, HOMETOGO, GATHERN, RENTELLY, KEASE, STAY_SA, MABEET -> {
+                    for (String field : STUB_REQUIRED_FIELDS.get(channel)) {
+                        requireCredential(creds, field);
+                    }
+                    String identifier = STUB_IDENTIFIER_FIELD.get(channel);
+                    String identifierValue = identifier != null ? creds.get(identifier) : null;
+                    return new ChannelConnectionTestResult(true,
+                            "Credentials " + channel + " valides (stub — pas d'appel API reel)",
+                            identifierValue);
                 }
                 default -> {
                     return new ChannelConnectionTestResult(false,
@@ -300,6 +358,47 @@ public class ChannelConnectionService {
 
         ChannelConnection cc = createGenericConnection(orgId, ChannelName.HOMEAWAY,
                 String.valueOf(hc.getId()), listingId);
+        return toDto(cc);
+    }
+
+    // ========================================================================
+    // Stub connect — channels sans entity dediee (Trip.com, HomeToGo, Gathern,
+    // Rentelly, Kease, Stay.sa, Mabeet). Credentials chiffres en JSON dans
+    // credentials_ref de ChannelConnection. Quand la vraie API du provider
+    // sera cablee, on extrait ces credentials en entity dediee + on remplace
+    // ce stub par un connectXxx() avec appel HTTP reel.
+    // ========================================================================
+
+    private ChannelConnectionDto connectStub(Long orgId, ChannelName channel, Map<String, String> creds) {
+        // Validation : tous les champs requis du STUB_REQUIRED_FIELDS doivent etre presents
+        List<String> requiredFields = STUB_REQUIRED_FIELDS.get(channel);
+        for (String field : requiredFields) {
+            requireCredential(creds, field);
+        }
+
+        // Serialisation des credentials en JSON minimal (sans dependance lib),
+        // puis chiffrement. Le format est suffisant pour la lecture future
+        // par un ChannelAdapter quand il sera implemente.
+        StringBuilder json = new StringBuilder("{");
+        boolean first = true;
+        for (String field : requiredFields) {
+            if (!first) json.append(",");
+            json.append("\"").append(field).append("\":\"")
+                .append(creds.get(field).replace("\"", "\\\""))
+                .append("\"");
+            first = false;
+        }
+        json.append("}");
+        String encryptedCreds = encryptionService.encrypt(json.toString());
+
+        // Identifiant externe affiche dans le DTO (PAS l'api key — security)
+        String externalId = STUB_IDENTIFIER_FIELD.containsKey(channel)
+                ? creds.get(STUB_IDENTIFIER_FIELD.get(channel))
+                : channel.name().toLowerCase();
+
+        ChannelConnection cc = createGenericConnection(orgId, channel,
+                "stub:" + encryptedCreds, externalId);
+        log.info("Channel {} connecte (stub) pour l'organisation {}", channel, orgId);
         return toDto(cc);
     }
 
