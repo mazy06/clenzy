@@ -1088,3 +1088,17 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # --- 0117 : Odoo connections + org integration config (radio choice) ---
+  # Cree deux tables :
+  #   - odoo_connections : credentials Odoo par organisation (api_key chiffree)
+  #   - org_integration_config : choix radio du provider (PENNYLANE/ODOO/...)
+  #     pour la signature electronique (extensible aux autres services).
+  # Note : a appliquer en prod via Liquibase Bootstrap apres deploy
+  # (SPRING_LIQUIBASE_ENABLED=true charge ce changeset au boot).
+  - changeSet:
+      id: "0117-create-odoo-and-integration-config-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0117__create_odoo_and_integration_config_tables.sql
+        relativeToChangelogFile: true
