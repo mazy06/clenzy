@@ -1148,3 +1148,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0121__add_wheelhouse_xero_sage_integrations.sql
         relativeToChangelogFile: true
+
+  # --- 0122 : Conformite legale - declaration voyageurs (FR/MA/KSA) ---
+  - changeSet:
+      id: "0122-create-compliance-connections-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0122__create_compliance_connections_table.sql
+        relativeToChangelogFile: true
