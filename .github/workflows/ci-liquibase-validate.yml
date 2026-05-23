@@ -14,7 +14,8 @@
 #
 # CE WORKFLOW couvre le cas le plus critique : la MODIFICATION d'un changeset
 # deja applique en prod, qui provoquerait un checksum mismatch au prochain
-# boot Liquibase (= app crash-loop si SPRING_LIQUIBASE_ENABLED=true).
+# boot Liquibase (= app crash-loop, puisque spring.liquibase.enabled=true
+# applique automatiquement les changesets au demarrage Spring Boot).
 #
 # Pour chaque PR vers main/production qui touche au changelog :
 #   1. Detecte les fichiers .sql `changes/*` modifies par rapport a la base
@@ -105,8 +106,8 @@ jobs:
               echo "Changesets modifies :"
               printf '%s\n' "$ALL_OFFENDING" | sed 's/^/- /'
               echo ""
-              echo "Assurez-vous d'avoir un plan de reconciliation prod (Liquibase Bootstrap"
-              echo "avec sync_tag adapte) avant le deploy."
+              echo "Assurez-vous d'avoir un plan de reconciliation prod (run Liquibase CLI"
+              echo "out-of-band avec sync_tag adapte) avant le deploy."
             } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -120,8 +121,8 @@ jobs:
             printf '%s\n' "$ALL_OFFENDING" | sed 's/^/- /'
             echo ""
             echo "**Pourquoi** : modifier un changeset deja applique en prod cassera le"
-            echo "checksum stocke dans \`databasechangelog\`. Si \`SPRING_LIQUIBASE_ENABLED=true\`"
-            echo "etait actif, l'app refuserait de booter (validation failed)."
+            echo "checksum stocke dans \`databasechangelog\`. Comme \`spring.liquibase.enabled=true\`"
+            echo "est actif (defaut sur tous les env), l'app refusera de booter (validation failed)."
             echo ""
             echo "**Solution** : creer un nouveau changeset qui corrige l'effet du precedent"
             echo "plutot que de modifier l'existant."

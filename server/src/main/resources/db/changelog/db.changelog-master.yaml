@@ -13,22 +13,16 @@ databaseChangeLog:
   #   - Si PL/pgSQL (DO $$) : utiliser splitStatements: false
   #
   # ----------------------------------------------------------------------------
-  # POLITIQUE D'EXECUTION (mise a jour 2026-05-21)
+  # POLITIQUE D'EXECUTION (mise a jour 2026-05-23)
   # ----------------------------------------------------------------------------
-  # Prod tourne actuellement avec SPRING_LIQUIBASE_ENABLED=false (cf
-  # incident 0111 / Option C). L'execution se fait via le workflow
-  # `Liquibase Bootstrap` sur clenzy-infra avec un sync_tag adapte.
-  #
-  # Plan de reactivation en cours (5 phases) :
-  #   1. DB Status read-only quotidien            ✓ live
-  #   2. Audit baseline                           ✓ valide (no validation errors)
-  #   3. CI Validate sur PR                       ✓ active (rulesets en place)
-  #   4. Health indicator + conventions runtime   ← cette PR
-  #   5. Activation progressive (staging → prod)  pending
+  # Liquibase s'applique automatiquement au demarrage Spring Boot dans TOUS
+  # les environnements (dev, staging, prod) via spring.liquibase.enabled=true.
+  # Le plan de reactivation 5 phases est complete.
   #
   # Reglés a respecter quand on ajoute un changeset :
   #   - Eviter les gros changesets data (millions de lignes) → si necessaire,
-  #     les pousser via `Liquibase Bootstrap` apres deploy, pas via boot Spring.
+  #     les pousser via un job dedie post-deploy plutot qu'au boot pour
+  #     ne pas allonger le startup du backend.
   #   - Toujours tester en local contre une copie du schema prod avant push.
   #   - Ne JAMAIS modifier un changeset deja applique en prod (le CI le bloque
   #     via le check `immutable-changesets` — bypass `[liquibase-allow-modify]`
@@ -1094,8 +1088,7 @@ databaseChangeLog:
   #   - odoo_connections : credentials Odoo par organisation (api_key chiffree)
   #   - org_integration_config : choix radio du provider (PENNYLANE/ODOO/...)
   #     pour la signature electronique (extensible aux autres services).
-  # Note : a appliquer en prod via Liquibase Bootstrap apres deploy
-  # (SPRING_LIQUIBASE_ENABLED=true charge ce changeset au boot).
+  # Applique automatiquement au boot Spring Boot via spring.liquibase.enabled=true.
   - changeSet:
       id: "0117-create-odoo-and-integration-config-tables"
       author: clenzy-team
