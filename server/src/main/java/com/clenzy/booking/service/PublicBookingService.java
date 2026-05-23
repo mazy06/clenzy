@@ -352,6 +352,139 @@ public class PublicBookingService {
         );
     }
 
+    // ─── Reserve Batch (panier multi-sejours) ────────────────────────────────────
+
+    /**
+     * Cree un panier de reservations PENDING en une seule transaction atomique.
+     *
+     * <p>Tous les items doivent etre disponibles : si un seul ne l'est pas, on rollback
+     * et on retourne une erreur. Cela evite des reservations partielles que le guest
+     * ne pourrait pas payer ou annuler proprement.</p>
+     *
+     * <p>Le guest est partage entre tous les items (1 seul {@link Guest} cree ou trouve).</p>
+     *
+     * <p>Toutes les proprietes doivent avoir la meme devise par defaut (sinon erreur).</p>
+     */
+    @Transactional
+    public BookingReserveBatchResponseDto reserveBatch(OrgContext ctx, BookingReserveBatchRequestDto req) {
+        Long orgId = ctx.orgId();
+        BookingEngineConfig config = ctx.config();
+
+        if (req.items() == null || req.items().isEmpty()) {
+            throw new IllegalArgumentException("Le panier doit contenir au moins un item");
+        }
+
+        // ─── 1. Pre-validation : disponibilite de chaque item ────────────────────
+        // (on fait toutes les checks d'abord avant de creer quoi que ce soit)
+        List<AvailabilityResponseDto> availabilities = new ArrayList<>(req.items().size());
+        Set<String> currencies = new HashSet<>();
+
+        for (int i = 0; i < req.items().size(); i++) {
+            BookingReserveBatchRequestDto.Item item = req.items().get(i);
+            AvailabilityResponseDto availability = checkAvailability(ctx, new AvailabilityRequestDto(
+                item.propertyId(), item.checkIn(), item.checkOut(), item.guests()
+            ));
+            if (!availability.available()) {
+                throw new IllegalStateException("Item " + (i + 1) + " (propriete " + item.propertyId()
+                    + ") non disponible : " + String.join(", ", availability.violations()));
+            }
+            availabilities.add(availability);
+            if (availability.currency() != null) {
+                currencies.add(availability.currency());
+            }
+        }
+
+        if (currencies.size() > 1) {
+            throw new IllegalStateException("Toutes les proprietes du panier doivent avoir la meme devise "
+                + "(detectees : " + String.join(", ", currencies) + ")");
+        }
+        String batchCurrency = currencies.isEmpty() ? "EUR" : currencies.iterator().next();
+
+        // ─── 2. Find or create guest (partage entre tous les items) ─────────────
+        String[] nameParts = splitName(req.guest().name());
+        Guest guest = guestService.findOrCreate(
+            nameParts[0], nameParts[1],
+            req.guest().email(), req.guest().phone(),
+            GuestChannel.DIRECT, null, orgId
+        );
+
+        // ─── 3. Generer le batchCode (UUID) ─────────────────────────────────────
+        String batchCode = UUID.randomUUID().toString();
+
+        // ─── 4. Creer chaque reservation PENDING ────────────────────────────────
+        List<BookingReserveResponseDto> responses = new ArrayList<>(req.items().size());
+        BigDecimal grandTotal = BigDecimal.ZERO;
+        LocalDateTime earliestExpiration = null;
+        boolean autoConfirmed = config.isAutoConfirm();
+        boolean requiresPayment = config.isCollectPaymentOnBooking();
+
+        for (int i = 0; i < req.items().size(); i++) {
+            BookingReserveBatchRequestDto.Item item = req.items().get(i);
+            AvailabilityResponseDto availability = availabilities.get(i);
+
+            Property property = propertyRepository.findBookingEngineProperty(item.propertyId(), orgId)
+                .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable : " + item.propertyId()));
+
+            Reservation reservation = new Reservation();
+            reservation.setOrganizationId(orgId);
+            reservation.setProperty(property);
+            reservation.setGuest(guest);
+            reservation.setGuestName(req.guest().name());
+            reservation.setGuestCount(item.guests());
+            reservation.setCheckIn(item.checkIn());
+            reservation.setCheckOut(item.checkOut());
+            reservation.setCheckInTime(property.getDefaultCheckInTime());
+            reservation.setCheckOutTime(property.getDefaultCheckOutTime());
+            reservation.setStatus(autoConfirmed ? "confirmed" : "pending");
+            reservation.setSource("direct");
+            reservation.setSourceName("Clenzy Booking Engine (batch)");
+            reservation.setCurrency(property.getDefaultCurrency());
+            reservation.setNotes(item.notes());
+            reservation.setPaymentStatus(requiresPayment ? PaymentStatus.PENDING : PaymentStatus.NOT_REQUIRED);
+
+            reservation.setRoomRevenue(availability.subtotal());
+            reservation.setCleaningFee(availability.cleaningFee());
+            reservation.setTouristTaxAmount(availability.touristTax());
+            reservation.setTotalPrice(availability.total());
+
+            reservation.setConfirmationCode(generateConfirmationCode());
+            reservation = reservationRepository.save(reservation);
+
+            // Bloquer les dates
+            calendarEngine.book(
+                item.propertyId(), item.checkIn(), item.checkOut(),
+                reservation.getId(), orgId, "direct", "booking-engine-batch:" + batchCode
+            );
+
+            LocalDateTime expiresAt = requiresPayment && !autoConfirmed
+                ? LocalDateTime.now().plusMinutes(PENDING_EXPIRATION_MINUTES)
+                : null;
+            if (expiresAt != null && (earliestExpiration == null || expiresAt.isBefore(earliestExpiration))) {
+                earliestExpiration = expiresAt;
+            }
+
+            grandTotal = grandTotal.add(availability.total());
+
+            responses.add(new BookingReserveResponseDto(
+                reservation.getConfirmationCode(),
+                reservation.getStatus().toUpperCase(),
+                property.getName(),
+                item.checkIn(), item.checkOut(),
+                availability.total(),
+                property.getDefaultCurrency(),
+                expiresAt,
+                requiresPayment
+            ));
+        }
+
+        log.info("Booking Engine: batch {} cree avec {} reservations (total: {} {}, org: {})",
+            batchCode, responses.size(), grandTotal, batchCurrency, orgId);
+
+        return new BookingReserveBatchResponseDto(
+            batchCode, responses, grandTotal, batchCurrency, earliestExpiration, requiresPayment
+        );
+    }
+
     // ─── Checkout (Stripe) ───────────────────────────────────────────────────────
 
     @Transactional
@@ -437,6 +570,175 @@ public class PublicBookingService {
             reservation.getCheckInTime(),
             reservation.getCheckOutTime()
         );
+    }
+
+    // ─── Confirmation paiement Booking Engine (webhook Stripe) ───────────────────
+
+    /**
+     * Confirme un paiement Stripe pour une reservation booking engine.
+     *
+     * <p>Appele par {@link com.clenzy.controller.StripeWebhookController} sur l'evenement
+     * {@code checkout.session.completed} quand {@code metadata.type=booking_engine}.</p>
+     *
+     * <p>Deux cas geres :</p>
+     * <ul>
+     *   <li><b>Reservation deja creee</b> (cas standard si le SDK passe par {@code /reserve} avant
+     *       {@code /checkout/create-session}) : on retrouve la reservation via le {@code sessionId}
+     *       deja persiste, on la passe en CONFIRMED + PAID, on emet les notifications.</li>
+     *   <li><b>Pas de reservation prealable</b> (cas du flux Embedded Checkout direct) : on extrait
+     *       les donnees depuis {@code session.metadata}, on revalide la disponibilite, on cree la
+     *       reservation directement en CONFIRMED + PAID, on bloque les dates dans CalendarEngine.</li>
+     * </ul>
+     *
+     * <p><b>Idempotent</b> : si une reservation est deja PAID pour ce {@code sessionId}, on retourne
+     * silencieusement sans dupliquer (Stripe peut envoyer le webhook plusieurs fois).</p>
+     */
+    @Transactional
+    public void confirmBookingEngineCheckout(Session session) {
+        String sessionId = session.getId();
+        Map<String, String> metadata = session.getMetadata() != null
+            ? session.getMetadata() : Collections.emptyMap();
+
+        // ─── 1. Idempotence : reservation deja confirmee ? ──────────────────────
+        Optional<Reservation> existing = reservationRepository.findByStripeSessionId(sessionId);
+        if (existing.isPresent()) {
+            Reservation r = existing.get();
+            if (r.getPaymentStatus() == PaymentStatus.PAID) {
+                log.info("Booking Engine: session {} deja confirmee pour reservation {} - skip",
+                    sessionId, r.getConfirmationCode());
+                return;
+            }
+            // Reservation existante mais pas encore PAID → on la confirme via le flux existant
+            log.info("Booking Engine: confirmation reservation existante {} via session {}",
+                r.getConfirmationCode(), sessionId);
+            stripeService.confirmReservationPayment(sessionId);
+            return;
+        }
+
+        // ─── 2. Pas de reservation prealable → creer depuis metadata ────────────
+        String propertyIdStr = metadata.get("property_id");
+        String orgIdStr = metadata.get("organization_id");
+        String checkInStr = metadata.get("check_in");
+        String checkOutStr = metadata.get("check_out");
+        String guestsStr = metadata.get("guests");
+        if (propertyIdStr == null || orgIdStr == null
+            || checkInStr == null || checkOutStr == null || guestsStr == null) {
+            log.error("Booking Engine: metadata incompletes pour session {} - skip (meta={})",
+                sessionId, metadata);
+            return;
+        }
+
+        Long propertyId = Long.parseLong(propertyIdStr);
+        Long orgId = Long.parseLong(orgIdStr);
+        LocalDate checkIn = LocalDate.parse(checkInStr);
+        LocalDate checkOut = LocalDate.parse(checkOutStr);
+        int guests = Integer.parseInt(guestsStr);
+        String customerEmail = session.getCustomerEmail();
+        String customerName = session.getCustomerDetails() != null
+            ? session.getCustomerDetails().getName() : null;
+
+        // ─── 3. Charger la propriete (verif cross-tenant) ──────────────────────
+        Property property = propertyRepository.findBookingEngineProperty(propertyId, orgId)
+            .orElseThrow(() -> new IllegalStateException(
+                "Booking Engine: propriete " + propertyId + " introuvable pour org " + orgId));
+
+        // ─── 4. Re-valider disponibilite (concurrence) ─────────────────────────
+        OrgContext ctx = resolveOrgById(orgId);
+        AvailabilityResponseDto availability = checkAvailability(ctx, new AvailabilityRequestDto(
+            propertyId, checkIn, checkOut, guests
+        ));
+        if (!availability.available()) {
+            // Conflit detecte (autre voyageur a reserve entre temps) : on cree quand meme la
+            // reservation en CONFIRMED + PAID mais on log une alerte critique pour intervention manuelle.
+            log.error("Booking Engine: CONFLIT detection apres paiement reussi - session {}, property {}, "
+                + "dates {} → {}, violations: {}. Reservation creee en mode DEGRADE. Intervention manuelle requise.",
+                sessionId, propertyId, checkIn, checkOut, availability.violations());
+        }
+
+        // ─── 5. Trouver ou creer le Guest ──────────────────────────────────────
+        String[] nameParts = splitName(customerName != null ? customerName : "Guest");
+        Guest guest = guestService.findOrCreate(
+            nameParts[0], nameParts[1],
+            customerEmail, null,
+            GuestChannel.DIRECT, null, orgId
+        );
+
+        // ─── 6. Creer la reservation directement en CONFIRMED + PAID ───────────
+        Reservation reservation = new Reservation();
+        reservation.setOrganizationId(orgId);
+        reservation.setProperty(property);
+        reservation.setGuest(guest);
+        reservation.setGuestName(customerName != null ? customerName : nameParts[0]);
+        reservation.setGuestCount(guests);
+        reservation.setCheckIn(checkIn);
+        reservation.setCheckOut(checkOut);
+        reservation.setCheckInTime(property.getDefaultCheckInTime());
+        reservation.setCheckOutTime(property.getDefaultCheckOutTime());
+        reservation.setStatus("confirmed");
+        reservation.setSource("direct");
+        reservation.setSourceName("Clenzy Booking Engine");
+        reservation.setCurrency(property.getDefaultCurrency());
+        reservation.setPaymentStatus(PaymentStatus.PAID);
+        reservation.setPaidAt(LocalDateTime.now());
+        reservation.setStripeSessionId(sessionId);
+
+        // Montants : on prend ceux re-calcules par availability (source de verite)
+        reservation.setRoomRevenue(availability.subtotal());
+        reservation.setCleaningFee(availability.cleaningFee());
+        reservation.setTouristTaxAmount(availability.touristTax());
+
+        // Total : Stripe amount_total est en cents, on compare avec availability pour log
+        BigDecimal stripeTotal = session.getAmountTotal() != null
+            ? BigDecimal.valueOf(session.getAmountTotal()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+            : availability.total();
+        reservation.setTotalPrice(stripeTotal);
+
+        if (stripeTotal.compareTo(availability.total()) != 0) {
+            log.warn("Booking Engine: divergence montant Stripe ({}) vs availability ({}) - "
+                + "diff potentielle service options. Session {}", stripeTotal, availability.total(), sessionId);
+        }
+
+        reservation.setConfirmationCode(generateConfirmationCode());
+        reservation = reservationRepository.save(reservation);
+
+        // ─── 7. Bloquer les dates via CalendarEngine ───────────────────────────
+        try {
+            calendarEngine.book(
+                propertyId, checkIn, checkOut,
+                reservation.getId(), orgId, "direct", "booking-engine-webhook"
+            );
+        } catch (Exception e) {
+            log.error("Booking Engine: echec blocage calendrier pour reservation {} (paiement deja recu, "
+                + "intervention manuelle requise): {}", reservation.getConfirmationCode(), e.getMessage());
+        }
+
+        log.info("Booking Engine: reservation {} creee + confirmee via webhook (session={}, property={}, "
+            + "total={})", reservation.getConfirmationCode(), sessionId, propertyId, stripeTotal);
+
+        // ─── 8. Effets de bord (wallets, notifications, factures) ──────────────
+        // Delegue a stripeService.confirmReservationPayment qui mutualise toute la post-confirmation logic.
+        // Note : cette methode re-cherche la reservation par sessionId — elle la trouvera maintenant.
+        try {
+            stripeService.confirmReservationPayment(sessionId);
+        } catch (Exception e) {
+            log.error("Booking Engine: echec post-confirmation (wallets/notifications/factures) "
+                + "pour reservation {}: {}", reservation.getConfirmationCode(), e.getMessage(), e);
+            // On n'echoue pas le webhook — la reservation est creee et marquee PAID, c'est le critique.
+        }
+    }
+
+    /**
+     * Variante de {@link #resolveOrg(String)} utilisant directement l'orgId.
+     * Utilise par les webhooks ou l'org est resolue depuis les metadata Stripe.
+     */
+    private OrgContext resolveOrgById(Long orgId) {
+        Organization org = organizationRepository.findById(orgId)
+            .orElseThrow(() -> new IllegalArgumentException("Organisation introuvable : " + orgId));
+        BookingEngineConfig config = configRepository.findAllByOrganizationId(orgId)
+            .stream().filter(BookingEngineConfig::isEnabled).findFirst()
+            .orElseThrow(() -> new IllegalStateException(
+                "Booking Engine desactive pour l'organisation " + orgId));
+        return new OrgContext(org, config);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────────

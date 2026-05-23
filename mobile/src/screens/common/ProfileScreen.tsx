@@ -194,6 +194,13 @@ export function ProfileScreen() {
             />
             <View style={{ height: 1, backgroundColor: theme.colors.border.light, marginHorizontal: theme.SPACING.md }} />
             <MenuRow
+              icon="cash-outline"
+              label="Reversements proprietaires"
+              onPress={() => navigation.navigate('OwnerPayouts')}
+              theme={theme}
+            />
+            <View style={{ height: 1, backgroundColor: theme.colors.border.light, marginHorizontal: theme.SPACING.md }} />
+            <MenuRow
               icon="document-text-outline"
               label="Documents"
               onPress={() => navigation.navigate('Documents')}

@@ -1,0 +1,2602 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Clenzy — Stratégie d'acquisition Pre-Revenue</title>
+<style>
+@page {
+  size: A4;
+  margin: 18mm 16mm 22mm 16mm;
+  @bottom-center {
+    content: counter(page) " / " counter(pages);
+    color: #8A8378;
+    font-size: 9pt;
+  }
+  @top-right {
+    content: "Clenzy — Stratégie d'acquisition";
+    color: #8A8378;
+    font-size: 8.5pt;
+    letter-spacing: 0.04em;
+  }
+}
+@page :first { @top-right { content: ""; } @bottom-center { content: ""; } }
+* { box-sizing: border-box; }
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  color: #2D3748;
+  margin: 0; padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cover */
+.cover { page-break-after: always; text-align: center; padding-top: 60mm; }
+.cover .logo { font-size: 32pt; font-weight: 800; letter-spacing: -0.02em; color: #6B8A9A; margin-bottom: 10mm; }
+.cover h1 { font-size: 24pt; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 6mm 0; max-width: 140mm; margin-left: auto; margin-right: auto; line-height: 1.25; }
+.cover .subtitle { font-size: 12.5pt; color: #718096; margin-bottom: 30mm; max-width: 130mm; margin-left: auto; margin-right: auto; line-height: 1.4; }
+.cover .meta { font-size: 9.5pt; color: #8A8378; letter-spacing: 0.06em; text-transform: uppercase; }
+.cover .accent { display: inline-block; width: 60mm; height: 3px; background: #4A9B8E; margin: 10mm auto; }
+.cover .ribbon {
+  display: inline-block;
+  background: #4A9B8E; color: white;
+  padding: 3mm 8mm; border-radius: 4px;
+  font-size: 9pt; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  margin-bottom: 5mm;
+}
+.cover .author-line {
+  margin-top: 20mm;
+  font-size: 9.5pt;
+  color: #718096;
+  font-style: italic;
+}
+
+/* Avant-propos */
+.preface { page-break-after: always; padding-top: 10mm; }
+.preface h2 { border-bottom: 2px solid #4A9B8E; padding-bottom: 4mm; font-size: 18pt; }
+.preface p { font-size: 11pt; line-height: 1.7; }
+
+/* TOC */
+.toc { page-break-after: always; }
+.toc h2 {
+  font-size: 18pt;
+  border-bottom: 2px solid #4A9B8E;
+  padding-bottom: 4mm;
+  margin-bottom: 8mm;
+}
+.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: toc-counter; }
+.toc ol > li {
+  counter-increment: toc-counter;
+  margin-bottom: 3mm;
+  font-size: 11pt;
+  display: flex;
+  align-items: baseline;
+}
+.toc ol > li::before {
+  content: counter(toc-counter, decimal-leading-zero) ".";
+  color: #4A9B8E;
+  font-weight: 700;
+  margin-right: 6mm;
+  min-width: 12mm;
+}
+.toc .toc-dots { flex: 1; border-bottom: 1px dotted #CBD5E0; margin: 0 3mm; position: relative; top: -3pt; }
+.toc .toc-page { color: #718096; font-variant-numeric: tabular-nums; }
+.toc-sublist { list-style: none; padding-left: 14mm; margin-top: 1mm; }
+.toc-sublist li { font-size: 9.5pt; color: #718096; margin-bottom: 0.8mm; }
+
+/* Headings */
+h1, h2, h3, h4 { color: #2D3748; letter-spacing: -0.005em; page-break-after: avoid; }
+h2 {
+  font-size: 17pt; font-weight: 700;
+  margin: 12mm 0 5mm 0; padding-bottom: 2mm;
+  border-bottom: 2px solid #4A9B8E;
+  page-break-before: auto;
+}
+h3 { font-size: 13pt; font-weight: 700; margin: 8mm 0 3mm 0; color: #4A9B8E; }
+h4 { font-size: 11pt; font-weight: 700; margin: 5mm 0 2mm 0; color: #6B8A9A; }
+h5 { font-size: 10pt; font-weight: 700; margin: 3mm 0 1.5mm 0; color: #2D3748; }
+
+section.major-section { page-break-before: always; }
+
+p { margin: 0 0 3mm 0; }
+ol, ul { margin: 0 0 3mm 0; padding-left: 6mm; }
+li { margin-bottom: 1.5mm; }
+strong { color: #2D3748; font-weight: 700; }
+em { font-style: italic; color: #4A5568; }
+
+/* Code */
+code {
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 9pt;
+  background: #F7FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 3px;
+  padding: 1px 4px;
+  color: #2D3748;
+}
+pre {
+  background: #1A202C; color: #E2E8F0;
+  padding: 4mm 5mm; border-radius: 4px;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 8.5pt; line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  page-break-inside: avoid;
+  margin: 3mm 0;
+}
+pre code { background: transparent; border: none; padding: 0; color: inherit; font-size: inherit; }
+
+/* Tables */
+table {
+  border-collapse: collapse; width: 100%;
+  margin: 3mm 0; font-size: 9.5pt;
+  page-break-inside: avoid;
+}
+th {
+  background: #F7FAFC; text-align: left; font-weight: 700;
+  padding: 2.5mm 3mm; border: 1px solid #CBD5E0;
+  color: #2D3748; font-size: 9pt;
+  letter-spacing: 0.02em; text-transform: uppercase;
+}
+td { padding: 2.5mm 3mm; border: 1px solid #E2E8F0; vertical-align: top; }
+td code, th code { font-size: 8.5pt; }
+table.compact { font-size: 9pt; }
+table.compact td, table.compact th { padding: 1.8mm 2.5mm; }
+
+/* Callouts */
+.callout { border-left: 3px solid; padding: 3mm 4mm; margin: 4mm 0; border-radius: 0 4px 4px 0; page-break-inside: avoid; }
+.callout-title { font-weight: 700; margin-bottom: 1.5mm; font-size: 10pt; letter-spacing: 0.01em; text-transform: uppercase; }
+.callout-info    { background: #EBF4F8; border-color: #7BA3C2; }
+.callout-info .callout-title { color: #5A87A0; }
+.callout-success { background: #E6F3F0; border-color: #4A9B8E; }
+.callout-success .callout-title { color: #3A8579; }
+.callout-warning { background: #FBF3E5; border-color: #D4A574; }
+.callout-warning .callout-title { color: #B58853; }
+.callout-danger  { background: #F7E9E9; border-color: #C97A7A; }
+.callout-danger .callout-title { color: #B26060; }
+.callout p { margin-bottom: 1.5mm; font-size: 10pt; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* Glossary */
+.glossary dt { font-weight: 700; color: #4A9B8E; margin-top: 3mm; font-family: "SF Mono", "Menlo", monospace; font-size: 10pt; }
+.glossary dd { margin: 0 0 2mm 0; padding-left: 6mm; font-size: 10pt; line-height: 1.5; }
+.glossary dd em { color: #718096; font-style: normal; font-size: 9pt; }
+
+ol.steps { counter-reset: step-counter; list-style: none; padding-left: 0; }
+ol.steps > li {
+  counter-increment: step-counter;
+  position: relative;
+  padding-left: 12mm;
+  margin-bottom: 5mm;
+}
+ol.steps > li::before {
+  content: counter(step-counter);
+  position: absolute; left: 0; top: -0.5mm;
+  width: 8mm; height: 8mm;
+  background: #4A9B8E; color: white;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 10pt;
+}
+
+a { color: #4A9B8E; text-decoration: none; }
+
+.tag {
+  display: inline-block; padding: 0.5mm 2mm;
+  border-radius: 3px; font-size: 8pt; font-weight: 700;
+  letter-spacing: 0.02em; text-transform: uppercase;
+  margin-right: 2mm;
+}
+.tag-p0  { background: #F7E9E9; color: #B26060; }
+.tag-p1  { background: #FBF3E5; color: #B58853; }
+.tag-p2  { background: #EBF4F8; color: #5A87A0; }
+.tag-p3  { background: #E2E8F0; color: #4A5568; }
+.tag-do  { background: #E6F3F0; color: #3A8579; }
+.tag-dont{ background: #F7E9E9; color: #B26060; }
+
+/* KPI cards */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3mm;
+  margin: 4mm 0;
+}
+.kpi-card {
+  border: 1px solid #E2E8F0;
+  border-radius: 4px;
+  padding: 3mm 4mm;
+  background: #FAFBFC;
+  page-break-inside: avoid;
+}
+.kpi-card .kpi-label { font-size: 8.5pt; color: #718096; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 1mm; }
+.kpi-card .kpi-value { font-size: 18pt; font-weight: 700; color: #4A9B8E; font-variant-numeric: tabular-nums; line-height: 1; }
+.kpi-card .kpi-sub { font-size: 8.5pt; color: #8A8378; margin-top: 1.5mm; }
+
+/* Persona card */
+.persona {
+  border: 1px solid #CBD5E0;
+  border-radius: 6px;
+  padding: 5mm 6mm;
+  margin: 4mm 0;
+  background: #FAFBFC;
+  page-break-inside: avoid;
+}
+.persona h4 { margin-top: 0; color: #4A9B8E; font-size: 12pt; }
+.persona .persona-row { display: flex; gap: 6mm; margin-bottom: 2mm; }
+.persona .persona-label { font-weight: 700; min-width: 32mm; color: #718096; font-size: 9.5pt; text-transform: uppercase; letter-spacing: 0.03em; }
+.persona .persona-value { flex: 1; font-size: 10pt; }
+
+/* Pricing card */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4mm;
+  margin: 5mm 0;
+}
+.pricing-card {
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 5mm;
+  page-break-inside: avoid;
+  background: white;
+}
+.pricing-card.featured {
+  border: 2px solid #4A9B8E;
+  background: #F8FCFB;
+  position: relative;
+}
+.pricing-card .pc-badge {
+  position: absolute;
+  top: -3mm; right: 4mm;
+  background: #4A9B8E; color: white;
+  padding: 0.5mm 3mm; border-radius: 3px;
+  font-size: 7.5pt; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+}
+.pricing-card h4 { font-size: 11pt; color: #2D3748; margin: 0 0 1mm 0; }
+.pricing-card .pc-price { font-size: 22pt; font-weight: 800; color: #4A9B8E; line-height: 1; margin: 2mm 0; }
+.pricing-card .pc-price-unit { font-size: 9pt; color: #718096; font-weight: 400; }
+.pricing-card .pc-target { font-size: 9pt; color: #6B5A8A; font-style: italic; margin-bottom: 3mm; }
+.pricing-card ul { padding-left: 4mm; margin: 0; }
+.pricing-card li { font-size: 9.5pt; margin-bottom: 1.2mm; }
+
+/* Battle card */
+.battle-card {
+  border: 1px solid #E2E8F0;
+  border-radius: 5px;
+  padding: 4mm 5mm;
+  margin: 3mm 0;
+  page-break-inside: avoid;
+}
+.battle-card h5 { color: #4A9B8E; margin-top: 0; font-size: 11pt; }
+.battle-row { display: flex; gap: 4mm; margin-top: 2mm; }
+.battle-col { flex: 1; }
+.battle-col h6 { font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; color: #718096; margin: 0 0 1.5mm 0; font-weight: 700; }
+.battle-col ul { padding-left: 4mm; font-size: 9.5pt; margin: 0; }
+.battle-col li { margin-bottom: 1mm; }
+
+/* Timeline */
+.timeline { margin: 4mm 0; }
+.timeline-week {
+  border-left: 3px solid #4A9B8E;
+  padding: 0 0 3mm 5mm;
+  margin-bottom: 2mm;
+  position: relative;
+  page-break-inside: avoid;
+}
+.timeline-week::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 0;
+  width: 8px; height: 8px;
+  background: #4A9B8E;
+  border-radius: 50%;
+}
+.timeline-week h4 { margin: 0 0 1.5mm 0; color: #2D3748; font-size: 10.5pt; }
+.timeline-week ul { padding-left: 4mm; margin: 0; }
+.timeline-week li { font-size: 9.5pt; margin-bottom: 0.8mm; }
+
+.divider {
+  border: none;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #CBD5E0, transparent);
+  margin: 8mm 0;
+}
+
+/* Two columns */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6mm;
+  margin: 3mm 0;
+}
+.two-col h4 { margin-top: 0; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     COVER
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="logo">Clenzy</div>
+  <div class="accent"></div>
+  <div class="ribbon">Note stratégique interne</div>
+  <h1>Stratégie d'acquisition<br>Pre-Revenue</h1>
+  <div class="subtitle">ICP, Pricing, Pitch, Canaux, Roadmap produit<br>Plan d'exécution 90 jours</div>
+  <div class="meta">Version 1.0 · Mai 2026</div>
+  <div class="author-line">Document destiné au fondateur — confidentiel</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     AVANT-PROPOS
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="preface">
+<h2>Avant-propos</h2>
+
+<p>Ce document répond à une question simple : <strong>tu as un produit, tu n'as pas de clients, qu'est-ce que tu fais ?</strong></p>
+
+<p>Il a été rédigé après l'analyse de l'état de Clenzy en mai 2026 et de la situation business du fondateur : un produit techniquement avancé (PMS multi-tenant, paiements multi-rail, payouts automatisés), mais aucun client payant, aucun revenu, aucune validation marché.</p>
+
+<p>L'approche est <strong>contre-intuitive pour un développeur</strong> : il faut arrêter de coder pendant 90 jours et se concentrer exclusivement sur l'acquisition. Le code peut attendre, le marché ne le peut pas.</p>
+
+<p>Le document est structuré en 10 sections :</p>
+
+<ol>
+  <li><strong>Glossaire</strong> — les 35 acronymes et termes essentiels à comprendre pour parler business SaaS B2B</li>
+  <li><strong>Diagnostic actuel</strong> — où en est vraiment Clenzy aujourd'hui</li>
+  <li><strong>Définition de la cible (ICP)</strong> — qui tu vises, et pourquoi pas les autres</li>
+  <li><strong>Stratégie de pricing</strong> — combien tu fais payer, comment, à qui</li>
+  <li><strong>Positionnement et pitch</strong> — ton message en 5 secondes, 30 secondes, 5 minutes</li>
+  <li><strong>Stratégie d'acquisition</strong> — comment tu touches tes premiers clients</li>
+  <li><strong>Roadmap produit</strong> — Channel Manager, Booking Engine, Mobile : que prioriser ?</li>
+  <li><strong>Plan 90 jours</strong> — l'exécution semaine par semaine</li>
+  <li><strong>KPIs et métriques</strong> — comment tu sais que ça marche</li>
+  <li><strong>Outils et budget</strong> — ce dont tu as besoin pour démarrer</li>
+</ol>
+
+<p>Chaque section est rédigée pour être <strong>actionnable</strong>, pas théorique. Tu dois pouvoir refermer ce document et savoir quoi faire lundi matin.</p>
+
+<div class="callout callout-warning">
+  <div class="callout-title">Comment lire ce document</div>
+  <p>Lis-le en entier une première fois sans chercher à mémoriser. Puis reviens sur la section 8 (Plan 90 jours) et garde-la ouverte chaque semaine. C'est ton tableau de bord opérationnel.</p>
+  <p>Le glossaire est en début pour que tu puisses le consulter à chaque fois qu'un acronyme apparaît dans le reste du document. Tous les termes du glossaire sont marqués en gras lors de leur première occurrence.</p>
+</div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TOC
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="toc">
+  <h2>Table des matières</h2>
+  <ol>
+    <li>Glossaire — 35 termes business essentiels<span class="toc-dots"></span><span class="toc-page">5</span></li>
+    <li>Diagnostic actuel de Clenzy<span class="toc-dots"></span><span class="toc-page">10</span></li>
+    <li>Définition de l'ICP — Ideal Customer Profile<span class="toc-dots"></span><span class="toc-page">15</span></li>
+    <li>Stratégie de pricing<span class="toc-dots"></span><span class="toc-page">21</span></li>
+    <li>Positionnement et pitch<span class="toc-dots"></span><span class="toc-page">26</span></li>
+    <li>Stratégie d'acquisition — les 3 canaux qui marchent<span class="toc-dots"></span><span class="toc-page">31</span></li>
+    <li>Roadmap produit — Channel Manager / Booking Engine / Mobile<span class="toc-dots"></span><span class="toc-page">40</span></li>
+    <li>Plan 90 jours — exécution semaine par semaine<span class="toc-dots"></span><span class="toc-page">49</span></li>
+    <li>KPIs et métriques de succès<span class="toc-dots"></span><span class="toc-page">54</span></li>
+    <li>Outils, budget et stack opérationnel<span class="toc-dots"></span><span class="toc-page">58</span></li>
+  </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 1 — GLOSSAIRE
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>1. Glossaire — 35 termes business essentiels</h2>
+
+<p>Avant de plonger dans la stratégie, il faut maîtriser le vocabulaire. Voici les acronymes et termes qui reviennent en boucle dans le monde du SaaS B2B et de la location courte durée. Si tu butes sur un mot dans la suite, reviens ici.</p>
+
+<h3>1.1 Acronymes produit et marché</h3>
+
+<dl class="glossary">
+
+<dt>PMS — Property Management System</dt>
+<dd>Logiciel de gestion locative qui centralise calendrier, réservations, communication invités, ménage, facturation. C'est ce qu'est Clenzy. <em>Concurrents : Smoobu, Hostaway, iGMS, Beds24, Hospitable, Lodgify.</em></dd>
+
+<dt>OTA — Online Travel Agency</dt>
+<dd>Agence de voyage en ligne où les voyageurs réservent. Ce sont les distributeurs : Airbnb, Booking.com, Vrbo, Expedia, Tripadvisor, Hotels.com, Agoda. Tu ne <strong>concurrences</strong> pas une OTA, tu y <strong>distribues</strong> tes biens.</dd>
+
+<dt>Channel Manager (CM)</dt>
+<dd>Logiciel qui connecte le PMS à plusieurs OTAs simultanément. Quand un voyageur réserve sur Airbnb, le Channel Manager bloque automatiquement les mêmes dates sur Booking.com et Vrbo, pour éviter les <em>double bookings</em>. C'est un sous-composant critique d'un PMS sérieux. <em>Acteurs : Channex, Rentals United, NextPax, MyAllocator, SiteMinder.</em></dd>
+
+<dt>STR — Short Term Rental</dt>
+<dd>Location courte durée (typiquement 1 à 30 nuits). Synonymes : "vacation rental", "location saisonnière", "meublé de tourisme".</dd>
+
+<dt>LMNP — Loueur en Meublé Non Professionnel</dt>
+<dd>Statut fiscal français pour les propriétaires de meublés touristiques qui touchent moins de 23 000 € de revenus locatifs ou moins que les autres revenus du foyer. C'est le statut de 90% des hôtes Airbnb français.</dd>
+
+<dt>iCal — Internet Calendar</dt>
+<dd>Format standard de calendrier (RFC 5545) utilisé pour la synchronisation entre applications. <strong>Limites :</strong> sync uniquement des dates bloquées (pas des prix, pas des messages), latence 1-24h, lecture seule en pratique. C'est ce que Clenzy utilise aujourd'hui — d'où la friction.</dd>
+
+<dt>SaaS — Software as a Service</dt>
+<dd>Modèle économique où le logiciel est loué sous forme d'abonnement (mensuel ou annuel) plutôt que vendu en licence. Clenzy est un SaaS.</dd>
+
+<dt>B2B / B2C / B2B2C</dt>
+<dd>Business-to-Business (entreprises vendant à des entreprises, comme Clenzy → conciergeries), Business-to-Consumer (Airbnb → voyageurs), Business-to-Business-to-Consumer (Clenzy via les conciergeries jusqu'aux voyageurs). Clenzy est <strong>B2B2C</strong> : tu vends aux conciergeries mais ton produit sert aussi leurs voyageurs.</dd>
+
+<dt>PWA — Progressive Web App</dt>
+<dd>Site web qui s'installe comme une app sur mobile (icône sur l'écran d'accueil, notifications push, mode hors-ligne). Clenzy est déjà PWA grâce à Vite + Workbox. C'est une alternative très valable à une app native pour les premiers 12-24 mois.</dd>
+
+</dl>
+
+<h3>1.2 Acronymes business et finance</h3>
+
+<dl class="glossary">
+
+<dt>ICP — Ideal Customer Profile</dt>
+<dd>Le profil-type du client idéal pour ton produit : taille d'entreprise, géographie, secteur, douleur principale, budget. Définir l'ICP est l'exercice <strong>numéro 1</strong> en pre-revenue. Sans ICP clair, tu vas vendre à n'importe qui et perdre du temps.</dd>
+
+<dt>TAM / SAM / SOM</dt>
+<dd><strong>TAM</strong> (Total Addressable Market) = la taille totale du marché si tout le monde achetait ton produit. <strong>SAM</strong> (Serviceable Addressable Market) = le segment que tu peux réellement adresser (langue, géographie). <strong>SOM</strong> (Serviceable Obtainable Market) = la part de marché que tu peux capturer réalistement à 5 ans (typiquement 1-5%). Exemple pour Clenzy : TAM = 50 000 conciergeries en Europe, SAM = 3000 en France, SOM = 30-100 à 3 ans.</dd>
+
+<dt>PMF — Product-Market Fit</dt>
+<dd>Le moment où ton produit résout un vrai problème pour un vrai marché. Signe le plus fiable : <strong>plus de 40% de tes utilisateurs seraient "très déçus" si ton produit disparaissait</strong> (test de Sean Ellis). En pre-PMF, ne pas scaler. En post-PMF, scaler agressivement.</dd>
+
+<dt>LTV — Lifetime Value</dt>
+<dd>La valeur totale que t'apporte un client sur toute la durée de la relation. Formule simple : <code>LTV = ARPU × durée moyenne</code>. Exemple : 39€/mois × 24 mois de rétention = 936€. Pour un SaaS sain : <strong>LTV / CAC ≥ 3</strong>.</dd>
+
+<dt>CAC — Customer Acquisition Cost</dt>
+<dd>Combien il te coûte d'acquérir un client (publicité + commerciaux + outils + temps fondateur valorisé). Pour pre-revenue : ton temps × ton coût horaire. Si tu fais 30h de prospection pour signer un client et que tu te valorises à 50€/h, CAC = 1500€.</dd>
+
+<dt>MRR / ARR</dt>
+<dd><strong>MRR</strong> (Monthly Recurring Revenue) = somme de tous les abonnements mensuels actifs. <strong>ARR</strong> (Annual Recurring Revenue) = MRR × 12. C'est <em>la</em> métrique du SaaS. 5k€ MRR = 60k€ ARR. Les investisseurs raisonnent en ARR.</dd>
+
+<dt>ARPU / ARPA</dt>
+<dd><strong>ARPU</strong> (Average Revenue Per User) = MRR / nombre de clients. <strong>ARPA</strong> (Average Revenue Per Account) = même chose mais par compte, utile quand un compte = plusieurs utilisateurs. Pour Clenzy : si 10 conciergeries paient en moyenne 200€/mois, ARPA = 200€.</dd>
+
+<dt>Churn</dt>
+<dd>Taux de désabonnement mensuel. <strong>Churn brut</strong> = clients perdus / total. <strong>Churn net</strong> = (perdus - expansion) / total (peut être négatif si tes clients existants paient plus). Cible SaaS B2B sain : <strong>&lt; 2% / mois</strong> (équivaut à 24%/an).</dd>
+
+<dt>NPS — Net Promoter Score</dt>
+<dd>Indicateur de satisfaction client. Question : "De 0 à 10, recommanderais-tu Clenzy à un confrère ?". <strong>Promoteurs</strong> (9-10) − <strong>Détracteurs</strong> (0-6) = NPS. Cible : &gt; 30 pour un SaaS B2B mature, &gt; 50 pour excellent.</dd>
+
+<dt>ROI — Return On Investment</dt>
+<dd>Retour sur investissement. Pour un canal d'acquisition : <code>(LTV - CAC) / CAC × 100</code>. ROI de 200% = pour 1€ investi, tu récupères 2€ net.</dd>
+
+</dl>
+
+<h3>1.3 Acronymes marketing et ventes</h3>
+
+<dl class="glossary">
+
+<dt>MQL / SQL</dt>
+<dd><strong>MQL</strong> (Marketing Qualified Lead) = quelqu'un qui a montré de l'intérêt (téléchargé un livre blanc, demandé une démo). <strong>SQL</strong> (Sales Qualified Lead) = qualifié par les ventes comme prêt à acheter (budget, besoin, timing, autorité confirmés). MQL → SQL : ~20-30% en B2B.</dd>
+
+<dt>CTA — Call To Action</dt>
+<dd>Bouton ou phrase qui pousse le visiteur à agir : "Demander une démo", "Essayer gratuitement", "Réserver un appel". Un bon CTA est <strong>visible, unique par page, et précis</strong> (pas "Cliquez ici").</dd>
+
+<dt>CTR — Click-Through Rate</dt>
+<dd>Taux de clic : nombre de clics / nombre d'impressions. Pour un email cold outbound BtoB : CTR de 3-5% est correct, 10% est excellent.</dd>
+
+<dt>DM — Direct Message</dt>
+<dd>Message privé sur LinkedIn, Twitter, Instagram. Canal n°1 d'acquisition outbound pour SaaS B2B en 2026.</dd>
+
+<dt>LP — Landing Page</dt>
+<dd>Page d'atterrissage unique conçue pour convertir un visiteur en lead. Différente de la home : ne donne qu'<strong>une seule action possible</strong> (le CTA principal), pas de menu de navigation distrayant.</dd>
+
+<dt>SEO — Search Engine Optimization</dt>
+<dd>Référencement naturel sur Google. Trafic gratuit mais qui demande 6-12 mois pour donner des résultats. Crucial long terme, négligeable court terme.</dd>
+
+<dt>SEA — Search Engine Advertising</dt>
+<dd>Publicité payante sur Google (Google Ads). Trafic immédiat mais cher : 1-10€ le clic dans le SaaS B2B. À éviter en pre-revenue.</dd>
+
+<dt>CRM — Customer Relationship Management</dt>
+<dd>Logiciel qui centralise tes contacts commerciaux, les interactions, les opportunités, le pipeline. Pour pre-revenue : un Notion suffit. Pour 50+ leads : Pipedrive ou HubSpot.</dd>
+
+<dt>POC — Proof of Concept</dt>
+<dd>Démonstration courte (1-4 semaines) qu'un produit résout un problème spécifique du client, avant achat. Pour SaaS : équivalent du "trial gratuit". Ne pas confondre avec un MVP.</dd>
+
+<dt>MVP — Minimum Viable Product</dt>
+<dd>Version minimale du produit qui apporte assez de valeur pour qu'un client paye. Le MVP de Clenzy n'est pas le produit complet : c'est la sync calendrier + messages guest. Le reste est bonus.</dd>
+
+<dt>USP — Unique Selling Proposition</dt>
+<dd>L'argument unique de vente : pourquoi un client devrait choisir <em>toi</em> et pas un concurrent. Doit tenir en une phrase. USP Clenzy proposée : "Le seul PMS pensé pour les conciergeries françaises".</dd>
+
+</dl>
+
+<h3>1.4 Acronymes paiements et conformité</h3>
+
+<dl class="glossary">
+
+<dt>PSP — Payment Service Provider</dt>
+<dd>Prestataire de paiement qui encaisse pour toi (Stripe, Adyen, PayPal). Indispensable pour un SaaS.</dd>
+
+<dt>KYC / KYB</dt>
+<dd><strong>KYC</strong> (Know Your Customer) = vérification d'identité d'un individu (CNI, justificatif domicile). <strong>KYB</strong> (Know Your Business) = vérification d'une entreprise (Kbis, statuts, RBE). Obligatoire avant de verser des fonds.</dd>
+
+<dt>LCB-FT</dt>
+<dd>Lutte Contre le Blanchiment de capitaux et le Financement du Terrorisme. Cadre réglementaire qui impose KYC/KYB + monitoring des transactions suspectes. Clenzy n'y est pas soumis directement (Stripe/Wise le sont), sauf si Clenzy devient agent EMI.</dd>
+
+<dt>SCA — Strong Customer Authentication</dt>
+<dd>Authentification forte du client (PSD2). 2 facteurs sur 3 : ce que tu sais (mot de passe), ce que tu as (téléphone), ce que tu es (empreinte). Obligatoire pour les paiements en ligne en EU. Implémenté côté Stripe / Open Banking dans Clenzy.</dd>
+
+<dt>PSD2 — Payment Services Directive 2</dt>
+<dd>Directive européenne 2015 qui régule les paiements et impose la SCA. C'est elle qui crée le statut <strong>PISP</strong> (Payment Initiation Service Provider) que GoCardless utilise.</dd>
+
+</dl>
+
+<h3>1.5 Termes opérationnels SaaS</h3>
+
+<dl class="glossary">
+
+<dt>Onboarding</dt>
+<dd>Le parcours d'un nouveau client de l'inscription à sa première valeur tirée du produit. Pour un PMS : depuis "inscription" jusqu'à "j'ai connecté Airbnb + sync ma première résa". Cible : &lt; 30 minutes.</dd>
+
+<dt>Design Partner</dt>
+<dd>Premier client (souvent gratuit) qui accepte d'utiliser ton produit en échange d'un échange privilégié : feedback hebdo, logo affichable, témoignage, accès direct au fondateur. Permet de construire le produit <em>avec</em> les premiers utilisateurs.</dd>
+
+<dt>Cohort</dt>
+<dd>Groupe de clients ayant signé sur une même période (ex: tous les clients de janvier). Analyse de cohorte = mesurer la rétention par cohorte dans le temps. Permet de détecter si le produit s'améliore.</dd>
+
+<dt>Funnel</dt>
+<dd>Entonnoir de conversion : visiteur → lead → MQL → SQL → trial → client payant. Chaque étape filtre, et chaque taux de conversion est mesurable.</dd>
+
+<dt>NDR / GRR</dt>
+<dd><strong>NDR</strong> (Net Dollar Retention) = revenu retenu sur une cohorte, expansion incluse. <strong>GRR</strong> (Gross Revenue Retention) = revenu retenu hors expansion. NDR &gt; 110% = SaaS excellent (les clients existants paient plus).</dd>
+
+</dl>
+
+<div class="callout callout-info">
+  <div class="callout-title">À retenir</div>
+  <p>Tu n'as pas besoin de tous mémoriser. Mais tu dois savoir où les retrouver. Quand tu liras "Notre CAC est de 300€ pour un LTV de 2000€", tu dois immédiatement comprendre que c'est un bon ratio (LTV/CAC = 6.6, sain).</p>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 2 — DIAGNOSTIC
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>2. Diagnostic actuel de Clenzy</h2>
+
+<p>Avant de définir une stratégie, il faut être honnête sur l'état du produit, de la traction, et de la concurrence. Voici un diagnostic sans complaisance basé sur ce qui existe au 23 mai 2026.</p>
+
+<h3>2.1 État du produit</h3>
+
+<h4>Ce qui est fait et fonctionne (le solide)</h4>
+
+<table>
+  <thead><tr><th>Module</th><th>État</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><strong>PMS core</strong></td><td>Fonctionnel</td><td>Calendrier, réservations, propriétés, multi-tenant Keycloak</td></tr>
+    <tr><td><strong>Sync iCal</strong></td><td>Fonctionnel</td><td>Lecture seule depuis Airbnb / Booking / Vrbo</td></tr>
+    <tr><td><strong>Pricing dynamique</strong></td><td>Fonctionnel</td><td>6 niveaux (base / saisonnier / promo / last-minute / override / yield)</td></tr>
+    <tr><td><strong>Guests + messaging</strong></td><td>Fonctionnel</td><td>Email Brevo, SMS Twilio, WhatsApp</td></tr>
+    <tr><td><strong>Interventions ménage</strong></td><td>Fonctionnel</td><td>Planning, photos check-in/out, inventaire</td></tr>
+    <tr><td><strong>Paiements</strong></td><td>Fonctionnel</td><td>Stripe + PayTabs + CMI + Payzone + PayPal (multi-rail FR/MA/KSA)</td></tr>
+    <tr><td><strong>Payouts</strong></td><td>Fonctionnel</td><td>Stripe Connect + Wise + Open Banking + SEPA manuel</td></tr>
+    <tr><td><strong>Facturation</strong></td><td>Fonctionnel</td><td>NF FR conforme, intégrations Pennylane + Odoo</td></tr>
+    <tr><td><strong>Signature électronique</strong></td><td>Fonctionnel</td><td>DocuSign, Yousign, Universign (QTSP FR)</td></tr>
+    <tr><td><strong>Capteurs IoT</strong></td><td>Fonctionnel</td><td>Minut (bruit/température), Nuki / KeyNest (serrures)</td></tr>
+    <tr><td><strong>Booking Engine</strong></td><td>Partiel</td><td>SDK + widget intégrable, multi-langue FR/EN/AR — à finaliser</td></tr>
+    <tr><td><strong>Application mobile</strong></td><td>Partiel</td><td>PWA disponible. Pas de native. — à clarifier</td></tr>
+    <tr><td><strong>Channel Manager natif</strong></td><td>Absent</td><td>Seulement iCal en lecture. <strong>Friction critique.</strong></td></tr>
+    <tr><td><strong>API Airbnb directe</strong></td><td>Absent</td><td>Pas dans le Software Partner Program Airbnb</td></tr>
+  </tbody>
+</table>
+
+<h4>Ce qui est inachevé (les angles morts)</h4>
+
+<ol>
+  <li><strong>Channel Manager natif</strong> : tu importes les calendriers mais tu ne peux ni pousser les prix vers les OTAs, ni pousser les disponibilités après réservation directe. C'est <em>le</em> point de friction n°1 vs Smoobu / Hostaway.</li>
+  <li><strong>Booking Engine</strong> : le SDK existe, mais l'expérience guest n'est pas complètement polie (panier multi-séjours, paiement Stripe Checkout en flux complet, gestion des annulations).</li>
+  <li><strong>Application mobile native</strong> : aucune. La PWA couvre 80% du besoin mais les conciergeries veulent une app dans le store (perception "vrai produit").</li>
+  <li><strong>Tests E2E</strong> : la logique métier est testée (unit tests Spring), mais pas de scénarios end-to-end critiques en Playwright / Cypress.</li>
+  <li><strong>Onboarding produit</strong> : pas de tutorial guidé, pas de checklist de premier setup, pas d'import migration depuis concurrents.</li>
+</ol>
+
+<h3>2.2 État de la traction business</h3>
+
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-label">Clients payants</div>
+    <div class="kpi-value">0</div>
+    <div class="kpi-sub">Aucun MRR</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Béta-testeurs actifs</div>
+    <div class="kpi-value">0</div>
+    <div class="kpi-sub">À recruter</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Trafic mensuel site</div>
+    <div class="kpi-value">~0</div>
+    <div class="kpi-sub">Pas de SEO actif</div>
+  </div>
+</div>
+
+<p>La traction business est <strong>nulle</strong>. C'est dur à entendre mais c'est la vérité. À l'inverse, l'investissement produit est considérable : ~6-12 mois de développement, 3500+ tests, 124 migrations DB. Le déséquilibre est massif.</p>
+
+<div class="callout callout-warning">
+  <div class="callout-title">Le piège classique du fondateur tech</div>
+  <p>Tu as construit ce que tu savais faire (du code) plutôt que ce qui est dur (vendre). Tu n'es pas seul : c'est l'erreur n°1 des fondateurs solo techniques. La bonne nouvelle : le produit existe. La moins bonne : tu dois maintenant te forcer à faire 100% commercial pendant 90 jours.</p>
+</div>
+
+<h3>2.3 Forces et faiblesses (SWOT condensé)</h3>
+
+<div class="two-col">
+
+<div>
+<h4>Forces (Strengths)</h4>
+<ul>
+  <li><strong>Produit techniquement avancé</strong> : multi-tenant, multi-pays, multi-devises, multi-rails paiement</li>
+  <li><strong>Stack moderne</strong> : Spring Boot 21, React 18, Kafka, PostgreSQL — itérations rapides possibles</li>
+  <li><strong>Tests solides</strong> : 3500+ tests backend, base de code propre</li>
+  <li><strong>Multi-pays FR/MA/KSA</strong> : peu de concurrents adressent cette niche</li>
+  <li><strong>Pas de dette technique majeure</strong> : architecture Clean, Strategy + Registry patterns</li>
+  <li><strong>Documentation interne</strong> : 18 docs détaillées dans <code>/docs/</code></li>
+</ul>
+</div>
+
+<div>
+<h4>Faiblesses (Weaknesses)</h4>
+<ul>
+  <li><strong>Aucune validation marché</strong> : 0 client, 0 feedback réel</li>
+  <li><strong>Pas de Channel Manager natif</strong> : iCal seul = blocage des conciergeries pro</li>
+  <li><strong>Fondateur solo technique</strong> : pas d'expérience vente, pas de réseau marché</li>
+  <li><strong>Trafic SEO nul</strong> : pas d'autorité Google sur les mots-clés cibles</li>
+  <li><strong>Pas d'app mobile native</strong> : perception "moins pro" vs concurrents</li>
+  <li><strong>Pas de brand awareness</strong> : personne ne connaît Clenzy</li>
+</ul>
+</div>
+
+</div>
+
+<div class="two-col">
+
+<div>
+<h4>Opportunités (Opportunities)</h4>
+<ul>
+  <li><strong>Marché conciergerie FR fragmenté</strong> : ~3000 conciergeries, pas de leader local</li>
+  <li><strong>Smoobu mal noté en français</strong> : support en allemand, UX datée</li>
+  <li><strong>Hostaway hostile aux petites structures</strong> : pricing élevé, engagement annuel</li>
+  <li><strong>Marché MENA peu adressé</strong> : Maroc / Arabie quasiment sans PMS local</li>
+  <li><strong>Réglementation FR croissante</strong> : déclaration voyageurs, NF facturation, taxe de séjour automatique → besoin de logiciel local</li>
+  <li><strong>Saturation Airbnb pousse les hôtes vers le direct</strong> : Booking Engine devient stratégique</li>
+</ul>
+</div>
+
+<div>
+<h4>Menaces (Threats)</h4>
+<ul>
+  <li><strong>Bookiply (Holidu) gratuit</strong> mais prend 15-25% commission — concurrence sur la valeur perçue</li>
+  <li><strong>Hostaway / Hospitable agressifs sur le FR</strong> : campagnes Google Ads</li>
+  <li><strong>Smoobu domine l'entry-level</strong> : 25 000 clients EU</li>
+  <li><strong>Airbnb durcit les conditions API</strong> : accès Software Partner restreint</li>
+  <li><strong>Cycle de vente long</strong> : un conciergerie ne change pas de PMS facilement (coût de switch)</li>
+  <li><strong>Burnout fondateur solo</strong> : risque réel sans réseau de soutien</li>
+</ul>
+</div>
+
+</div>
+
+<h3>2.4 Position vs concurrents — analyse condensée</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Concurrent</th>
+      <th>Force principale</th>
+      <th>Faiblesse exploitable</th>
+      <th>Prix /bien /mois</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Smoobu</strong></td>
+      <td>Entry-level facile, 25k clients</td>
+      <td>Support en allemand, UX datée, peu d'automatisations avancées</td>
+      <td>15-25 €</td>
+    </tr>
+    <tr>
+      <td><strong>Hostaway</strong></td>
+      <td>Riche en features, Channel Manager solide</td>
+      <td>$39/listing minimum, contrat annuel, US-centric</td>
+      <td>~35-45 €</td>
+    </tr>
+    <tr>
+      <td><strong>iGMS</strong></td>
+      <td>Messaging avancé, automation</td>
+      <td>UX bureautique, pas de Booking Engine</td>
+      <td>14-22 $</td>
+    </tr>
+    <tr>
+      <td><strong>Beds24</strong></td>
+      <td>Très configurable, pas cher</td>
+      <td>UX technique repoussant, courbe d'apprentissage</td>
+      <td>9.60 €</td>
+    </tr>
+    <tr>
+      <td><strong>Hospitable (ex-Smartbnb)</strong></td>
+      <td>Messaging intelligent, IA</td>
+      <td>$40+/listing, US-only fluent</td>
+      <td>~38 $</td>
+    </tr>
+    <tr>
+      <td><strong>Lodgify</strong></td>
+      <td>Site web intégré, marketing-friendly</td>
+      <td>Channel Manager basique</td>
+      <td>20-72 $</td>
+    </tr>
+    <tr>
+      <td><strong>Avantio</strong></td>
+      <td>Enterprise, marché ES/IT</td>
+      <td>Tarif sur devis, cycle vente long</td>
+      <td>sur devis</td>
+    </tr>
+    <tr>
+      <td><strong>Bookiply (Holidu)</strong></td>
+      <td>Gratuit pour l'hôte</td>
+      <td>Prend 15-25% de commission, pas de personnalisation</td>
+      <td>commission</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-success">
+  <div class="callout-title">Le positionnement viable de Clenzy</div>
+  <p><strong>Entre Smoobu (trop entry-level) et Hostaway (trop cher, US-centric).</strong></p>
+  <p>L'angle Clenzy : pricing intermédiaire (Pro à 39€/bien), UX moderne, <strong>fait par et pour des Français</strong>, multi-pays activable (FR/MA/KSA), support en français par le fondateur. C'est défendable. C'est différenciant.</p>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 3 — ICP
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>3. Définition de l'ICP — Ideal Customer Profile</h2>
+
+<p>L'<strong>ICP</strong> (Ideal Customer Profile, voir glossaire) est la décision la plus importante de cette stratégie. Définir son ICP, c'est accepter de ne <strong>pas</strong> vendre à 95% du marché pour se concentrer sur les 5% qui paieront le plus, le plus longtemps, et te recommanderont aux autres.</p>
+
+<h3>3.1 Segmentation du marché — les 4 cibles possibles</h3>
+
+<p>Le marché de la location courte durée se divise en 4 segments distincts. Chacun a un profil, un budget, et un cycle de vente très différents.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Segment</th>
+      <th>Taille FR</th>
+      <th>Biens gérés</th>
+      <th>LTV typique</th>
+      <th>CAC viable</th>
+      <th>Friction sale</th>
+      <th>Verdict</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Hôte indépendant</strong></td>
+      <td>~250 000</td>
+      <td>1-3</td>
+      <td>~150 €/an</td>
+      <td>&lt; 30 €</td>
+      <td>Très faible</td>
+      <td><span class="tag tag-dont">À éviter</span></td>
+    </tr>
+    <tr>
+      <td><strong>Pro host</strong></td>
+      <td>~15 000</td>
+      <td>5-30</td>
+      <td>3-5k €/an</td>
+      <td>200-400 €</td>
+      <td>Moyenne</td>
+      <td><span class="tag tag-p1">Cible #2</span></td>
+    </tr>
+    <tr>
+      <td><strong>Conciergerie</strong></td>
+      <td>~3 000</td>
+      <td>10-100</td>
+      <td>8-15k €/an</td>
+      <td>500-1500 €</td>
+      <td>Moyenne</td>
+      <td><span class="tag tag-do">Cible #1</span></td>
+    </tr>
+    <tr>
+      <td><strong>Property manager pro</strong></td>
+      <td>~500</td>
+      <td>100+</td>
+      <td>30k €+ /an</td>
+      <td>3-5k €</td>
+      <td>Lourde, RFP</td>
+      <td><span class="tag tag-p3">À 50 clients</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h4>Pourquoi pas les hôtes indépendants ?</h4>
+
+<ul>
+  <li><strong>Volume énorme mais valeur unitaire faible</strong> : 250 000 hôtes en France, mais ils ne paieraient pas plus de 10€/mois. ARPU dérisoire.</li>
+  <li><strong>Churn élevé</strong> : un hôte indépendant abandonne souvent l'aventure Airbnb après 6-12 mois. Churn de 60% par an.</li>
+  <li><strong>Auto-service requis</strong> : pas le temps de t'appeler, pas le budget de payer du support. Tu dois construire un produit ultra-poli, sans accompagnement. Tu n'as pas les ressources.</li>
+  <li><strong>Concurrence frontale avec Smoobu et Bookiply</strong> qui sont gratuits ou très peu chers.</li>
+</ul>
+
+<h4>Pourquoi pas les property managers 100+ biens ?</h4>
+
+<ul>
+  <li><strong>RFP (Request For Proposal)</strong> : appels d'offres, cycle de vente 6-18 mois, exigences SI lourdes.</li>
+  <li><strong>Coût de switch énorme</strong> : ils utilisent déjà Avantio, Guesty, Track. Migration douloureuse.</li>
+  <li><strong>Ils veulent du sur-mesure</strong> : intégrations bespoke, SLA contractuels, account manager dédié. Tu ne peux pas servir ça seul.</li>
+  <li><strong>À envisager à partir de 50 clients</strong>, quand tu auras du staff et des refs solides.</li>
+</ul>
+
+<h3>3.2 La cible #1 : les conciergeries 10-50 biens</h3>
+
+<p>C'est ton ICP principal. Voici le raisonnement détaillé.</p>
+
+<h4>Pourquoi les conciergeries</h4>
+
+<ol>
+  <li><strong>La douleur est 10× plus forte</strong> qu'un hôte indé. Ils gèrent <em>les biens des autres</em>. Ils ont besoin de :
+    <ul>
+      <li>Multi-tenancy (séparer les biens par propriétaire)</li>
+      <li>Reversements automatisés vers chaque propriétaire</li>
+      <li>Facturation pro conforme</li>
+      <li>Reporting par propriétaire</li>
+      <li>Gestion d'équipes (femmes de ménage, mainteneurs)</li>
+      <li>Communication multi-canale (guest + propriétaire + équipe)</li>
+    </ul>
+    Clenzy est <em>conçu</em> pour ça (multi-tenant Keycloak, RBAC).</li>
+  <li><strong>Le budget existe déjà</strong>. Ils paient déjà Smoobu / Hostaway / iGMS. Tu ne crées pas un nouveau budget logiciel, tu rediriges un existant.</li>
+  <li><strong>Décision rapide</strong> : décideur = patron de la conciergerie (souvent un solo founder lui aussi). 1-2 calls, démo, trial, signature.</li>
+  <li><strong>Réseau fermé et dense</strong> : les conciergeries se parlent entre elles. Groupes Facebook "Conciergeries Airbnb France" (~8 000 membres), salons (Salon des Conciergeries, VRMA Europe). <strong>1 client heureux = 3 referrals</strong>.</li>
+  <li><strong>Croissance prévisible</strong> : tu peux estimer un client conciergerie ~200-400€ MRR (5-15 biens × 39€/bien Pro). 30 clients = 9k€ MRR = 108k€ ARR.</li>
+</ol>
+
+<h4>Persona principal : "Alex la conciergerie en croissance"</h4>
+
+<div class="persona">
+  <h4>Alex, 36 ans, fondateur de "Paris Stay Conciergerie"</h4>
+  <div class="persona-row"><div class="persona-label">Localisation</div><div class="persona-value">Paris, basé dans le 11e</div></div>
+  <div class="persona-row"><div class="persona-label">Biens gérés</div><div class="persona-value">22 appartements (90% en propriété déléguée par 14 propriétaires)</div></div>
+  <div class="persona-row"><div class="persona-label">Équipe</div><div class="persona-value">Lui + 1 associée + 4 femmes de ménage freelances + 2 check-in agents</div></div>
+  <div class="persona-row"><div class="persona-label">CA annuel</div><div class="persona-value">~420 000 € (commission moyenne 20% du CA locatif)</div></div>
+  <div class="persona-row"><div class="persona-label">Logiciel actuel</div><div class="persona-value">Smoobu Pro (495€/mois pour 22 biens) + Excel pour facturation + WhatsApp pour équipe</div></div>
+  <div class="persona-row"><div class="persona-label">Pain points</div><div class="persona-value">
+    <strong>1.</strong> Reversements aux 14 propriétaires = 2 jours/mois à compiler Excel + virements manuels<br>
+    <strong>2.</strong> Sync calendriers en retard (jusqu'à 12h sur Vrbo) → 3 double-bookings cette année<br>
+    <strong>3.</strong> Pas de visibilité sur ce que font les femmes de ménage en temps réel<br>
+    <strong>4.</strong> Smoobu peu adapté aux conciergeries (pas de multi-propriétaire natif)<br>
+    <strong>5.</strong> Facturation NF compliquée à gérer manuellement
+  </div></div>
+  <div class="persona-row"><div class="persona-label">Objectifs perso</div><div class="persona-value">Passer à 50 biens d'ici 18 mois sans recruter un assistant à temps plein</div></div>
+  <div class="persona-row"><div class="persona-label">Canaux préférés</div><div class="persona-value">LinkedIn (utilise quotidiennement), groupes Facebook conciergeries, podcast "Investisseur Immobilier"</div></div>
+  <div class="persona-row"><div class="persona-label">Décisions logiciel</div><div class="persona-value">Lui seul. Évalue 2-3 outils max, tranche en 2 semaines</div></div>
+  <div class="persona-row"><div class="persona-label">Budget logiciel</div><div class="persona-value">Jusqu'à 1500 €/mois si ROI clair (gain temps + zéro double-booking)</div></div>
+</div>
+
+<h4>Le parcours d'achat type (Buying Journey) d'Alex</h4>
+
+<ol class="steps">
+  <li><strong>Awareness</strong> — Découvre Clenzy via un post dans le groupe FB "Conciergeries Airbnb France" où le fondateur a répondu à une question sur les reversements.</li>
+  <li><strong>Considération</strong> — Va sur le site Clenzy, lit la landing "PMS pour conciergeries FR", regarde une vidéo Loom de 4 min montrant la fonctionnalité reversements multi-propriétaires.</li>
+  <li><strong>Recherche concurrent</strong> — Compare rapidement à Smoobu et Hostaway sur G2 ou Capterra. Trouve Clenzy "plus français, plus moderne".</li>
+  <li><strong>Premier contact</strong> — Réserve un call démo de 30 min via Calendly sur la landing.</li>
+  <li><strong>Démo personnalisée</strong> — Le fondateur lui montre Clenzy en partageant l'écran, focus sur SES douleurs spécifiques (reversements, multi-propriétaire, facturation NF).</li>
+  <li><strong>Trial 30 jours</strong> — Le fondateur l'aide à importer 5 biens en test pendant le call, lui donne accès trial sans CB.</li>
+  <li><strong>Utilisation trial</strong> — Pendant 2 semaines, il bascule progressivement ses 22 biens, le fondateur fait un call de suivi à J+7 et J+14.</li>
+  <li><strong>Décision</strong> — À J+25, il signe pour 22 biens × 39 €/mois = 858 €/mois (économie de 41 % vs Smoobu à 495€ + temps Excel sauvé).</li>
+  <li><strong>Onboarding équipe</strong> — Le fondateur fait un call avec son équipe pour activer les comptes femmes de ménage / propriétaires.</li>
+  <li><strong>Recommandation</strong> — À M+3, Alex est satisfait, recommande Clenzy à 2 autres conciergeries amies dans son groupe LinkedIn.</li>
+</ol>
+
+<h4>Géographies prioritaires (par ordre)</h4>
+
+<table class="compact">
+  <thead><tr><th>Région</th><th>Conciergeries estimées</th><th>Avantage Clenzy</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Paris + Île-de-France</strong></td><td>~800</td><td>Densité max, plus grand vivier d'early adopters</td></tr>
+    <tr><td><strong>Côte d'Azur (Nice/Cannes/Antibes)</strong></td><td>~400</td><td>CA/bien élevé, saisonnier marqué, multi-langues utile</td></tr>
+    <tr><td><strong>Bordeaux / Sud-Ouest</strong></td><td>~250</td><td>Marché en croissance, hôtes premium</td></tr>
+    <tr><td><strong>Lyon / Marseille</strong></td><td>~300</td><td>Marchés urbains, conciergeries pro</td></tr>
+    <tr><td><strong>Stations de montagne</strong></td><td>~350</td><td>Saisonnier, gros tickets (Megève, Courchevel, Chamonix)</td></tr>
+    <tr><td><strong>Bretagne / Normandie</strong></td><td>~200</td><td>Marché niche tourisme côtier, peu équipé</td></tr>
+  </tbody>
+</table>
+
+<h3>3.3 La cible #2 : les pro hosts 5-30 biens</h3>
+
+<p>Une fois 5-10 conciergeries signées, élargir vers les <strong>pro hosts</strong> : des investisseurs ou particuliers qui gèrent eux-mêmes 5 à 30 biens (souvent en LMNP / SCI).</p>
+
+<h4>Différences avec les conciergeries</h4>
+
+<table class="compact">
+  <thead><tr><th>Critère</th><th>Conciergerie</th><th>Pro host</th></tr></thead>
+  <tbody>
+    <tr><td>Multi-propriétaire</td><td>Critique</td><td>Inutile (1 seul propriétaire = lui)</td></tr>
+    <tr><td>Reversements</td><td>Très important</td><td>Pas pertinent</td></tr>
+    <tr><td>Gestion équipe</td><td>Critique</td><td>Optionnel</td></tr>
+    <tr><td>Booking Engine direct</td><td>Bonus</td><td><strong>Crucial</strong> (réduire commission Airbnb)</td></tr>
+    <tr><td>Pricing dynamique</td><td>Important</td><td>Très important (optimiser CA)</td></tr>
+    <tr><td>Budget mensuel</td><td>200-1500 €</td><td>50-400 €</td></tr>
+  </tbody>
+</table>
+
+<h4>Bon argument pour vendre à un pro host</h4>
+
+<p><em>"Tu fais 8 000 € de CA Airbnb par mois avec tes 12 biens. Avec leur commission de 15%, ça te coûte 1 200 € à Airbnb. Si tu captes 30% de tes futures résas en direct via le Booking Engine Clenzy (39€ × 12 = 468 €/mois), tu économises 360€/mois nets. ROI 9 mois."</em></p>
+
+<h3>3.4 Pourquoi limiter, c'est gagner</h3>
+
+<p>Tu vas être tenté de te dire <em>"je peux servir les hôtes indés ET les conciergeries ET les property managers"</em>. <strong>Résiste.</strong> Voici pourquoi.</p>
+
+<div class="callout callout-danger">
+  <div class="callout-title">Le piège du "on prend tout le monde"</div>
+  <p>Quand tu cibles tout le monde, tu construis un produit moyen pour personne. Tes messages marketing deviennent flous. Ton roadmap produit est tiraillé entre des demandes contradictoires (l'hôte indé veut "simple", la conciergerie veut "puissant", le PM pro veut "configurable").</p>
+  <p>Toutes les startups SaaS qui ont réussi ont commencé par <strong>un segment ultra-précis</strong> avant d'élargir. Slack a commencé chez les devs de petites équipes. Stripe chez les indie hackers. Notion chez les designers solo.</p>
+</div>
+
+<div class="callout callout-success">
+  <div class="callout-title">Reformulation positive</div>
+  <p>"Conciergerie 10-50 biens, France métropolitaine, qui a un Smoobu/Hostaway et veut un produit plus pro" — c'est ton ICP. Tout le reste, tu dis poliment "Clenzy n'est pas fait pour vous aujourd'hui, mais reviens dans 12 mois".</p>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 4 — PRICING
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>4. Stratégie de pricing</h2>
+
+<p>Le pricing est un signal autant qu'un revenu. Trop bas, tu attires des clients problématiques et tu ne peux pas survivre. Trop haut, tu n'attires personne en pre-revenue. Voici la stratégie recommandée.</p>
+
+<h3>4.1 Benchmark du marché — qui pratique quoi</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Concurrent</th>
+      <th>Modèle</th>
+      <th>Tarif entrée</th>
+      <th>Tarif pro</th>
+      <th>Particularités</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Smoobu</td>
+      <td>Par bien/mois</td>
+      <td>15 €</td>
+      <td>23.20 €</td>
+      <td>Gratuit jusqu'à 5 biens en plan Single. Engagement annuel = -20%</td>
+    </tr>
+    <tr>
+      <td>Hostaway</td>
+      <td>Par listing/mois</td>
+      <td>—</td>
+      <td>$39+</td>
+      <td>Pas de prix public, contrat annuel min 12 mois</td>
+    </tr>
+    <tr>
+      <td>iGMS</td>
+      <td>Par listing/mois</td>
+      <td>$14</td>
+      <td>$22</td>
+      <td>Dégressif à partir de 10 listings</td>
+    </tr>
+    <tr>
+      <td>Beds24</td>
+      <td>Par bien/mois</td>
+      <td>9.60 €</td>
+      <td>variable</td>
+      <td>Pricing complexe (par fonctionnalité activée)</td>
+    </tr>
+    <tr>
+      <td>Hospitable</td>
+      <td>Par listing/mois</td>
+      <td>$40</td>
+      <td>$50</td>
+      <td>Focus messaging IA, pas vraiment un PMS complet</td>
+    </tr>
+    <tr>
+      <td>Lodgify</td>
+      <td>Forfait + biens</td>
+      <td>$20</td>
+      <td>$72</td>
+      <td>Site web inclus, channel manager limité</td>
+    </tr>
+    <tr>
+      <td>Avantio</td>
+      <td>Sur devis</td>
+      <td>—</td>
+      <td>~60-100 €</td>
+      <td>Enterprise ES/IT, contrat 24 mois</td>
+    </tr>
+    <tr>
+      <td>Octorate</td>
+      <td>Par bien/mois</td>
+      <td>15 €</td>
+      <td>30 €</td>
+      <td>Italien, présent en FR/IT</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>4.2 Recommandation Clenzy — 3 plans simples</h3>
+
+<div class="pricing-grid">
+  <div class="pricing-card">
+    <h4>Starter</h4>
+    <div class="pc-price">19€<span class="pc-price-unit"> / bien / mois</span></div>
+    <div class="pc-target">Hôtes pro et petits multi-propriétaires (1-5 biens)</div>
+    <ul>
+      <li>Calendrier centralisé</li>
+      <li>Sync iCal (Airbnb, Booking, Vrbo)</li>
+      <li>Réservations + Guests</li>
+      <li>Messaging email basique</li>
+      <li>Facturation simple</li>
+      <li>Max 5 biens</li>
+      <li>Support email 48h</li>
+    </ul>
+  </div>
+
+  <div class="pricing-card featured">
+    <div class="pc-badge">Star</div>
+    <h4>Pro</h4>
+    <div class="pc-price">39€<span class="pc-price-unit"> / bien / mois</span></div>
+    <div class="pc-target">Conciergeries 5-30 biens (cible #1 Clenzy)</div>
+    <ul>
+      <li>Tout Starter +</li>
+      <li><strong>Channel Manager natif</strong> (Airbnb API + autres OTAs)</li>
+      <li>Booking Engine widget (site direct)</li>
+      <li>Multi-propriétaires + reversements auto</li>
+      <li>Paiements (Stripe + multi-rail)</li>
+      <li>Pricing dynamique 6 niveaux</li>
+      <li>Interventions ménage + photos</li>
+      <li>Messaging SMS + WhatsApp</li>
+      <li>Facturation NF FR conforme</li>
+      <li>Support email + chat 24h</li>
+    </ul>
+  </div>
+
+  <div class="pricing-card">
+    <h4>Enterprise</h4>
+    <div class="pc-price">sur devis<span class="pc-price-unit"> ~70 €/bien/mois</span></div>
+    <div class="pc-target">Property managers 30+ biens</div>
+    <ul>
+      <li>Tout Pro +</li>
+      <li>Multi-organisations</li>
+      <li>IoT (Minut, Nuki, KeyNest)</li>
+      <li>Compta intégrée (Pennylane / Odoo)</li>
+      <li>Signature électronique (Yousign, DocuSign)</li>
+      <li>API custom + webhooks</li>
+      <li>SLA 99.9%</li>
+      <li>Account manager dédié</li>
+      <li>Onboarding sur-mesure</li>
+    </ul>
+  </div>
+</div>
+
+<h3>4.3 Tactiques pricing à appliquer dès maintenant</h3>
+
+<h4>Annuel = -20%</h4>
+<p>L'engagement annuel prépayé est un classique SaaS. Tu obtiens :</p>
+<ul>
+  <li><strong>Cashflow immédiat</strong> : 12 mois de revenu encaissés en une fois</li>
+  <li><strong>Lock-in psychologique</strong> : le client se sent investi, churn divisé par 2-3</li>
+  <li><strong>Signal de confiance</strong> : "il paye à l'année, c'est qu'il est sûr"</li>
+</ul>
+<p>Tarif annuel Pro = 39 × 12 × 0.80 = <strong>374.40 €/bien/an</strong> (au lieu de 468 € en mensuel).</p>
+
+<h4>Volume = -10% à partir de 20 biens, -20% à partir de 50 biens</h4>
+<p>Récompense la croissance des clients. Un Alex qui passe de 22 à 35 biens doit le sentir.</p>
+
+<table class="compact">
+  <thead><tr><th>Biens gérés</th><th>Tarif Pro /bien</th><th>Économie</th></tr></thead>
+  <tbody>
+    <tr><td>1-19</td><td>39 €</td><td>—</td></tr>
+    <tr><td>20-49</td><td>35.10 €</td><td>-10%</td></tr>
+    <tr><td>50-99</td><td>31.20 €</td><td>-20%</td></tr>
+    <tr><td>100+</td><td>sur devis</td><td>Negociable</td></tr>
+  </tbody>
+</table>
+
+<h4>0 setup fee, 0 commitment (anti-Hostaway)</h4>
+<p>Hostaway exige un setup d'inboarding payant (1-2k€) et un engagement annuel obligatoire. C'est une grosse barrière. Clenzy doit jouer le contraire :</p>
+<ul>
+  <li><strong>0€ setup</strong> : l'onboarding est inclus, c'est ton boulot de fondateur de le faire</li>
+  <li><strong>Sans engagement</strong> sur le mensuel (résiliable à tout moment, fin de mois)</li>
+  <li><strong>Migration gratuite</strong> depuis Smoobu / Hostaway : tu te déplaces (ou tu fais une session écran à distance) pour les aider à basculer leurs données. Gain de temps = leur ouverture mentale.</li>
+</ul>
+
+<h4>Trial 30 jours sans carte bancaire</h4>
+<p>14 jours c'est trop court pour un PMS (cycle de réservation typique). 30 jours suffit pour qu'un nouvel utilisateur fasse passer une vraie réservation par le système.</p>
+<p>Le fait de ne pas demander la CB élimine la friction d'inscription. Tu transformes au call de fin de trial.</p>
+
+<h3>4.4 Programme "Design Partner" pour les 10 premiers clients</h3>
+
+<p>C'est ton arme secrète pour casser la dynamique "0 client".</p>
+
+<div class="callout callout-success">
+  <div class="callout-title">Le deal Design Partner Clenzy</div>
+  <p><strong>Pour eux :</strong></p>
+  <ul>
+    <li>6 mois <strong>gratuits</strong> (économie 2-5k€ selon nombre de biens)</li>
+    <li>Onboarding personnel par le fondateur (sur place si possible)</li>
+    <li>Influence directe sur la roadmap (leurs demandes priorisées)</li>
+    <li>Accès direct au fondateur par WhatsApp pour bugs / questions</li>
+    <li>20% à vie sur le tarif après les 6 mois gratuits</li>
+  </ul>
+  <p><strong>Pour Clenzy :</strong></p>
+  <ul>
+    <li>Logo sur la home + témoignage publié</li>
+    <li>Étude de cas écrite (1 par client, 1500 mots, format PDF)</li>
+    <li>Vidéo témoignage de 2-3 min (interview du patron)</li>
+    <li>Référencement croisé (tu mentionnes leur conciergerie sur ton blog, ils te recommandent dans leurs cercles)</li>
+    <li>Call hebdo de feedback pendant 8 semaines</li>
+    <li>Engagement à passer payant à M+7 (si satisfait — clause de sortie possible si insatisfait)</li>
+  </ul>
+</div>
+
+<h4>Comment pitcher le programme</h4>
+
+<p><em>"On lance Clenzy et on cherche 10 conciergeries pour façonner le produit avec nous. En échange : 6 mois gratuits, accès direct au fondateur, et 20% à vie après. On filme ta réussite et on l'utilise pour montrer aux autres. T'es intéressé ? On en parle 30 min cette semaine ?"</em></p>
+
+<h3>4.5 Erreurs pricing à NE PAS faire</h3>
+
+<div class="callout callout-danger">
+  <div class="callout-title">Anti-patterns pricing</div>
+  <ul>
+    <li><strong>Pricing freemium illimité.</strong> "Gratuit jusqu'à 3 biens" → tu attires des bricoleurs qui ne paieront jamais. Mieux : gratuit 30 jours puis payant.</li>
+    <li><strong>"Contactez-nous" partout.</strong> Cache le prix uniquement sur l'Enterprise. Pour Starter et Pro, prix affiché clairement. Pas de barrière artificielle.</li>
+    <li><strong>Dégressivité agressive (-50% à partir de 10 biens).</strong> Tu sacrifies ton ARPU. Maximum -20%.</li>
+    <li><strong>Plans à 10+ tiers.</strong> 3 plans, pas plus. Si quelqu'un hésite entre Starter et Pro, ton commercial (toi) tranche.</li>
+    <li><strong>Pricing en USD.</strong> Tu cibles la France. EUR partout.</li>
+    <li><strong>Augmenter les prix trop tôt.</strong> Garde le pricing actuel pendant 12-18 mois. Tu pourras augmenter quand tu auras 50+ clients.</li>
+  </ul>
+</div>
+
+<h3>4.6 Projection revenue 12 mois</h3>
+
+<p>Hypothèses :</p>
+<ul>
+  <li>Cible : conciergeries moyenne 15 biens × 39€ = <strong>585 €/mois/client</strong></li>
+  <li>Programme Design Partner : 10 premiers clients gratuits 6 mois</li>
+  <li>Acquisition : 2 nouveaux clients/mois à partir de M3, 4/mois à partir de M9</li>
+</ul>
+
+<table>
+  <thead><tr><th>Mois</th><th>Clients</th><th>Dont gratuits</th><th>MRR payant</th><th>ARR cumulé</th></tr></thead>
+  <tbody>
+    <tr><td>M1-M2</td><td>0-2</td><td>2</td><td>0 €</td><td>0 €</td></tr>
+    <tr><td>M3</td><td>4</td><td>4</td><td>0 €</td><td>0 €</td></tr>
+    <tr><td>M6</td><td>10</td><td>10</td><td>0 €</td><td>0 €</td></tr>
+    <tr><td>M7</td><td>12</td><td>10</td><td>1 170 €</td><td>14 040 €</td></tr>
+    <tr><td>M8</td><td>14</td><td>5</td><td>5 265 €</td><td>63 180 €</td></tr>
+    <tr><td>M9</td><td>16</td><td>0</td><td>9 360 €</td><td>112 320 €</td></tr>
+    <tr><td>M10</td><td>20</td><td>0</td><td>11 700 €</td><td>140 400 €</td></tr>
+    <tr><td>M11</td><td>24</td><td>0</td><td>14 040 €</td><td>168 480 €</td></tr>
+    <tr><td>M12</td><td>28</td><td>0</td><td>16 380 €</td><td>196 560 €</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Objectif réaliste à M12 :</strong> <strong>~16k€ MRR / 200k€ ARR</strong>. Suffisant pour vivre + réinvestir + envisager d'embaucher un commercial.</p>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 5 — POSITIONNEMENT
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>5. Positionnement et pitch</h2>
+
+<p>Ton positionnement est la promesse implicite que tu fais à chaque prospect. Il doit être <strong>court, clair, et différenciant</strong>. Voici comment le construire et le décliner pour chaque format.</p>
+
+<h3>5.1 La promesse-cœur (positioning statement)</h3>
+
+<p>Le format canonique du positionnement :</p>
+
+<pre>Pour [QUI], qui [DOULEUR], Clenzy est [CATÉGORIE]
+qui [BÉNÉFICE PRINCIPAL] parce que [PREUVE].</pre>
+
+<p>Application Clenzy :</p>
+
+<div class="callout callout-success">
+  <div class="callout-title">Positionnement officiel</div>
+  <p>Pour <strong>les conciergeries 10-50 biens en France</strong>, qui <strong>jonglent entre 5 outils (Smoobu, Excel, WhatsApp, Stripe, banque) sans visibilité unifiée</strong>, <strong>Clenzy</strong> est <strong>le PMS tout-en-un</strong> qui <strong>automatise les reversements multi-propriétaires, la sync OTA et la facturation NF</strong>, parce que <strong>conçu par et pour des Français qui parlent leur langue, comprennent leur fiscalité, et leur répondent en moins de 24h</strong>.</p>
+</div>
+
+<h3>5.2 La tagline (slogan)</h3>
+
+<p>La tagline doit tenir en 5 mots maximum, capturer l'essence. Quelques options :</p>
+
+<ul>
+  <li><strong>"Le PMS des conciergeries françaises."</strong> — direct, claim de leader local</li>
+  <li><em>"Gérez 50 biens sans 50 outils."</em> — promesse de simplicité</li>
+  <li><em>"Le PMS qui parle votre langue."</em> — angle multi-pays</li>
+  <li><em>"L'OS de votre conciergerie."</em> — angle stratégique (Operating System)</li>
+</ul>
+
+<p><strong>Recommandation :</strong> <em>"Le PMS des conciergeries françaises."</em> C'est défendable (peu de concurrents l'occupent), précis (pas de flou), et mémorable.</p>
+
+<h3>5.3 L'elevator pitch (30 secondes)</h3>
+
+<p>À sortir quand on te demande "tu fais quoi dans la vie" en réseautage :</p>
+
+<div class="callout callout-info">
+  <div class="callout-title">Pitch 30 secondes</div>
+  <p>"Je construis Clenzy, c'est un logiciel pour les conciergeries qui gèrent 10 à 50 logements Airbnb. Aujourd'hui, ces gens utilisent 5 outils différents — un calendrier, un Excel, WhatsApp, leur banque… On centralise tout dans une seule app : sync calendriers, paiements, reversements aux propriétaires, planning ménage. C'est fait en France, en français, et on est moins cher que Hostaway. On lance les premiers clients ce trimestre."</p>
+</div>
+
+<h3>5.4 Le pitch démo (5 minutes)</h3>
+
+<p>À utiliser lors d'un call commercial. Structure éprouvée en SaaS B2B :</p>
+
+<ol class="steps">
+  <li><strong>Hook (15s)</strong> — "Une conciergerie de 20 biens passe en moyenne 12h/mois à compiler les reversements aux propriétaires. Avec Clenzy, c'est 0."</li>
+  <li><strong>Présentation perso (30s)</strong> — "Je suis [Prénom], j'ai construit Clenzy après avoir vu mes potes conciergeries galérer avec Smoobu/Excel."</li>
+  <li><strong>Définition problème (45s)</strong> — Décrire LES douleurs des conciergeries (pas du pitch produit). "Vous avez 15-25 propriétaires différents, chacun avec sa fiscalité, son IBAN, ses préférences. Vous gérez ça comment aujourd'hui ?"</li>
+  <li><strong>Solution en 3 points (1m30)</strong> — Montrer 3 features clés :
+    <ol>
+      <li>Reversements automatiques (capture Clenzy → preview du virement)</li>
+      <li>Sync calendriers en temps réel (Channel Manager Channex)</li>
+      <li>Booking Engine pour réduire la commission Airbnb</li>
+    </ol>
+  </li>
+  <li><strong>Différenciation (1m)</strong> — Comparaison face à Smoobu et Hostaway sur 3 points : prix, langue, multi-propriétaires natifs.</li>
+  <li><strong>Programme design partner (45s)</strong> — Présenter le deal : 6 mois gratuits + influence roadmap + 20% à vie.</li>
+  <li><strong>Call to action (15s)</strong> — "Est-ce que tu veux qu'on programme un call démo de 30 min sur ton cas concret cette semaine ?"</li>
+</ol>
+
+<h3>5.5 Value propositions par segment</h3>
+
+<p>Adapte le message selon le segment. Même produit, formulations différentes.</p>
+
+<table>
+  <thead><tr><th>Segment</th><th>Douleur clé</th><th>Value prop unique</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Conciergerie 10-30 biens</td>
+      <td>Reversements multi-propriétaires manuels</td>
+      <td>"Automatisez la facturation et les reversements à vos propriétaires en 1 clic."</td>
+    </tr>
+    <tr>
+      <td>Conciergerie 30-100 biens</td>
+      <td>Croissance bloquée par l'organisation</td>
+      <td>"Passez à 100 biens sans recruter un assistant à plein temps."</td>
+    </tr>
+    <tr>
+      <td>Pro host 10-20 biens</td>
+      <td>Commission Airbnb élevée</td>
+      <td>"Captez 30% de vos résas en direct via votre booking engine et économisez 15% de commission."</td>
+    </tr>
+    <tr>
+      <td>Hôte multi-pays FR/MA</td>
+      <td>Pas d'outil qui parle français + arabe</td>
+      <td>"Le seul PMS qui gère vos biens à Paris ET à Marrakech, en français et en arabe."</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>5.6 Battle cards — comparatifs versus concurrents</h3>
+
+<p>Les <strong>battle cards</strong> sont des fiches comparatives que tu utilises pendant les calls quand un prospect mentionne un concurrent. Voici les 3 principales.</p>
+
+<div class="battle-card">
+  <h5>Clenzy vs Smoobu</h5>
+  <div class="battle-row">
+    <div class="battle-col">
+      <h6>Forces Smoobu</h6>
+      <ul>
+        <li>Très populaire en EU (25k clients)</li>
+        <li>Entry-level à 15€/bien</li>
+        <li>Channel Manager solide</li>
+      </ul>
+    </div>
+    <div class="battle-col">
+      <h6>Faiblesses Smoobu à exploiter</h6>
+      <ul>
+        <li>Support en allemand, FR moyen</li>
+        <li>UX datée (2018)</li>
+        <li>Pas conçu pour les conciergeries multi-propriétaires (workarounds)</li>
+        <li>Pas de booking engine intégré (option payante)</li>
+        <li>Reversements 100% manuels</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top: 2mm; font-size: 9.5pt;"><strong>Punchline :</strong> <em>"Smoobu c'est très bien si tu gères tes propres biens. Si tu es une conciergerie avec 10 propriétaires différents, Clenzy te fera gagner 8h/mois sur les reversements seuls."</em></p>
+</div>
+
+<div class="battle-card">
+  <h5>Clenzy vs Hostaway</h5>
+  <div class="battle-row">
+    <div class="battle-col">
+      <h6>Forces Hostaway</h6>
+      <ul>
+        <li>Riche en features (200+)</li>
+        <li>Marketplace de plugins</li>
+        <li>Channel Manager top niveau</li>
+      </ul>
+    </div>
+    <div class="battle-col">
+      <h6>Faiblesses Hostaway à exploiter</h6>
+      <ul>
+        <li>Minimum $39/listing = ~36€</li>
+        <li>Contrat annuel obligatoire</li>
+        <li>Onboarding payant (1500-2500$)</li>
+        <li>Pas de support FR natif</li>
+        <li>Trop "US-style" pour les conciergeries FR (facturation, fiscalité)</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top: 2mm; font-size: 9.5pt;"><strong>Punchline :</strong> <em>"Hostaway est super si tu as 100+ biens et un assistant pour le configurer. Pour 10-50 biens, c'est sur-dimensionné, sur-engagé, et 30% plus cher."</em></p>
+</div>
+
+<div class="battle-card">
+  <h5>Clenzy vs Excel + Outils éparpillés</h5>
+  <div class="battle-row">
+    <div class="battle-col">
+      <h6>Forces Excel</h6>
+      <ul>
+        <li>Gratuit</li>
+        <li>Personnalisable à l'infini</li>
+        <li>Tu connais déjà</li>
+      </ul>
+    </div>
+    <div class="battle-col">
+      <h6>Faiblesses Excel à exploiter</h6>
+      <ul>
+        <li>0 automatisation</li>
+        <li>0 sync avec Airbnb / Booking</li>
+        <li>Pas de paiement intégré</li>
+        <li>Pas d'historique des messages guest</li>
+        <li>1 erreur de copier-coller = double booking</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top: 2mm; font-size: 9.5pt;"><strong>Punchline :</strong> <em>"Excel coûte 0€ mais te coûte 15-20h/semaine. Clenzy coûte 500€/mois et te rend 15-20h/semaine. ROI = ton temps libre."</em></p>
+</div>
+
+<h3>5.7 Storyboard de la démo idéale</h3>
+
+<p>Lors d'une démo, suis ce déroulé. Durée totale : 25-30 minutes.</p>
+
+<ol>
+  <li><strong>Discovery (5-7 min)</strong> — TU poses des questions, le prospect parle. <em>Questions à poser :</em>
+    <ul>
+      <li>"Combien de biens tu gères aujourd'hui ?"</li>
+      <li>"Combien de propriétaires différents ?"</li>
+      <li>"Quel logiciel tu utilises actuellement ? Depuis combien de temps ?"</li>
+      <li>"C'est quoi le truc qui te prend le plus de temps chaque semaine ?"</li>
+      <li>"Tu as déjà eu un double booking ? C'est arrivé combien de fois ?"</li>
+      <li>"Tu envisages d'embaucher dans les 12 prochains mois ?"</li>
+    </ul>
+  </li>
+  <li><strong>Demo focalisée (12-15 min)</strong> — Montre 3 features qui répondent aux douleurs entendues, pas le tour complet du produit.
+    <ul>
+      <li>Si la douleur = reversements → montre l'écran "Reversements automatiques"</li>
+      <li>Si la douleur = double bookings → montre la sync Channel Manager</li>
+      <li>Si la douleur = facturation → montre l'export NF + intégration Pennylane</li>
+    </ul>
+  </li>
+  <li><strong>Pricing + Design Partner (5 min)</strong> — Présente les 3 plans, explique pourquoi tu recommandes le Pro pour son cas, puis introduis le programme Design Partner.</li>
+  <li><strong>Closing (3-5 min)</strong> — Pose la question fermée : "Tu veux qu'on démarre le trial gratuit cette semaine, ou tu préfères qu'on en reparle dans 15 jours ?". Évite "Qu'est-ce que tu en penses ?" qui invite à la procrastination.</li>
+</ol>
+
+<div class="callout callout-info">
+  <div class="callout-title">Règle d'or de la démo</div>
+  <p>Ne montre <strong>jamais</strong> tout ce que tu sais faire. Montre uniquement ce qui résout les douleurs spécifiques de ce prospect. Une démo de 25 min focalisée convertit mieux qu'une démo de 60 min exhaustive.</p>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 6 — ACQUISITION
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>6. Stratégie d'acquisition — les 3 canaux qui marchent</h2>
+
+<p>En pre-revenue, tu n'as pas de budget pub. Tu n'as pas de SEO. Tu n'as pas de réseau. Tu as toi, ton temps, et une connexion internet. Voici les 3 canaux qui peuvent te ramener tes 10 premiers clients en 90 jours, classés par ROI réel.</p>
+
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-label">Canal #1</div>
+    <div class="kpi-value" style="font-size: 14pt;">LinkedIn<br>Outbound</div>
+    <div class="kpi-sub">60% de ton temps</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Canal #2</div>
+    <div class="kpi-value" style="font-size: 14pt;">Communautés<br>Facebook</div>
+    <div class="kpi-sub">25% de ton temps</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Canal #3</div>
+    <div class="kpi-value" style="font-size: 14pt;">Content<br>SEO long terme</div>
+    <div class="kpi-sub">15% de ton temps</div>
+  </div>
+</div>
+
+<h3>6.1 Canal #1 : LinkedIn Outbound — ton arme principale</h3>
+
+<p>LinkedIn est <em>le</em> canal d'acquisition outbound numéro 1 pour SaaS B2B en 2026. Pourquoi :</p>
+
+<ul>
+  <li>Tes prospects (patrons de conciergerie) y sont. 90% des fondateurs de conciergerie ont un profil LinkedIn actif.</li>
+  <li>Pas de spam filters : tes DMs arrivent à 100% (vs ~70% pour les emails).</li>
+  <li>Acceptation sociale élevée : recevoir un DM commercial sur LinkedIn est devenu normal.</li>
+  <li>Filtrage chirurgical : tu peux cibler par titre + entreprise + géo + taille.</li>
+</ul>
+
+<h4>Étape 1 — Construire la liste des 500 prospects</h4>
+
+<p>Outils nécessaires : <strong>LinkedIn Sales Navigator</strong> (~80€/mois, essai gratuit 1 mois).</p>
+
+<p>Filtres à appliquer :</p>
+<ul>
+  <li><strong>Titres</strong> : "Conciergerie", "Property Manager", "Fondateur conciergerie", "Gérant location saisonnière", "CEO conciergerie", "Owner property management"</li>
+  <li><strong>Géo</strong> : France (et sous-régions Paris, Côte d'Azur, etc.)</li>
+  <li><strong>Taille entreprise</strong> : 1-10 employés (pour cibler conciergeries 10-50 biens)</li>
+  <li><strong>Secteur</strong> : Hospitality, Real Estate, Vacation Rental</li>
+</ul>
+
+<p>Résultat attendu : ~800-1500 profils correspondants. Tu sélectionnes les 500 meilleurs (récents, actifs sur LinkedIn).</p>
+
+<p>Exporte la liste dans un Notion ou Google Sheet avec colonnes :</p>
+
+<table class="compact">
+  <thead><tr><th>Champ</th><th>Exemple</th></tr></thead>
+  <tbody>
+    <tr><td>Nom</td><td>Alex Dupont</td></tr>
+    <tr><td>Entreprise</td><td>Paris Stay Conciergerie</td></tr>
+    <tr><td>Titre</td><td>Fondateur</td></tr>
+    <tr><td>Localisation</td><td>Paris</td></tr>
+    <tr><td>Biens estimés</td><td>22 (estimation via leur site web)</td></tr>
+    <tr><td>URL LinkedIn</td><td>linkedin.com/in/alex-dupont/</td></tr>
+    <tr><td>Connection demandée</td><td>2026-06-03</td></tr>
+    <tr><td>Acceptée</td><td>2026-06-05</td></tr>
+    <tr><td>Premier DM envoyé</td><td>2026-06-06</td></tr>
+    <tr><td>Réponse</td><td>"Intéressant, je veux bien échanger"</td></tr>
+    <tr><td>Call programmé</td><td>2026-06-12 à 14h</td></tr>
+    <tr><td>Statut</td><td>Demo → Trial</td></tr>
+  </tbody>
+</table>
+
+<h4>Étape 2 — Connection request personnalisée</h4>
+
+<p>JAMAIS de DM avant que la personne ait accepté ta demande de connexion. Le message de connexion doit être <strong>court, personnel, et ne pas pitcher</strong>.</p>
+
+<div class="callout callout-info">
+  <div class="callout-title">Template Connection Request</div>
+  <p><strong>Sujet</strong> : (rien — LinkedIn ne permet pas de sujet en connexion)</p>
+  <p><strong>Corps</strong> (max 300 caractères) :</p>
+  <p style="font-style: italic; background: #F7FAFC; padding: 3mm; border-radius: 3px;">"Salut [Prénom], j'ai vu que tu gères [Nom Conciergerie] à [Ville]. Je construis Clenzy, un PMS pensé pour les conciergeries FR. J'aimerais échanger 15 min avec toi pour comprendre comment tu bosses au quotidien — pas pour te vendre. Si t'as un peu de temps."</p>
+  <p style="font-size: 9pt; color: #718096;">Taux d'acceptation attendu : <strong>30-40%</strong> (200/500). Si tu descends sous 20%, ton message est trop pushy ou ton profil LinkedIn n'inspire pas confiance.</p>
+</div>
+
+<h4>Étape 3 — Le premier DM (après acceptation)</h4>
+
+<p>À envoyer 24-48h après acceptation. Plus tu attends, moins ils se souviennent de toi.</p>
+
+<div class="callout callout-info">
+  <div class="callout-title">Template Premier DM</div>
+  <p style="font-style: italic; background: #F7FAFC; padding: 3mm; border-radius: 3px;">"Merci d'avoir accepté, [Prénom] !<br><br>
+  Comme je disais, je construis Clenzy — un PMS pour les conciergeries comme la tienne. Avant de te montrer quoi que ce soit, j'aimerais surtout comprendre TON quotidien :<br><br>
+  <strong>•</strong> Combien de biens tu gères aujourd'hui ?<br>
+  <strong>•</strong> Tu utilises quoi comme logiciel actuellement ?<br>
+  <strong>•</strong> Quelle est la tâche qui te prend le plus de temps chaque semaine ?<br><br>
+  Si t'as 15 min cette semaine pour qu'on en discute, voici mon agenda : [lien Calendly]. Sinon par message ici ça marche aussi.<br><br>
+  Bonne journée,<br>
+  [Prénom]"</p>
+  <p style="font-size: 9pt; color: #718096;">Taux de réponse attendu : <strong>20-30%</strong> (40-60 sur 200 acceptations). Taux de prise de call : <strong>30-40%</strong> des réponses (~15-20 calls).</p>
+</div>
+
+<h4>Étape 4 — Séquences de relance (Lemlist ou manuel)</h4>
+
+<p>Si pas de réponse au premier DM, relancer 2 fois maximum, espacées de 3 et 7 jours.</p>
+
+<div class="callout callout-info">
+  <div class="callout-title">Template Relance J+3</div>
+  <p style="font-style: italic; background: #F7FAFC; padding: 3mm; border-radius: 3px;">"Hello [Prénom],<br><br>
+  Je te relance par rapport à mon message d'avant. Pas de souci si tu n'as pas eu le temps de répondre.<br><br>
+  Sinon, je te partage juste un truc qui pourrait t'intéresser : [lien vers ton article de blog le plus pertinent, OU une vidéo Loom de 3 min d'une feature qui résout LA douleur typique de ce profil].<br><br>
+  Pas besoin de répondre, c'est juste pour la culture.<br><br>
+  [Prénom]"</p>
+</div>
+
+<div class="callout callout-info">
+  <div class="callout-title">Template Relance J+10</div>
+  <p style="font-style: italic; background: #F7FAFC; padding: 3mm; border-radius: 3px;">"Hello [Prénom],<br><br>
+  Dernier message de ma part : on lance le programme Design Partner cette semaine. 10 conciergeries sélectionnées, 6 mois gratuits, accès direct à moi pour façonner le produit, et 20% à vie après.<br><br>
+  Si ça te tente, voici mon agenda : [Calendly]. Sinon, no worries — je te laisse tranquille et te recontacte dans 6 mois.<br><br>
+  Bonne suite,<br>
+  [Prénom]"</p>
+</div>
+
+<h4>Métriques cibles du canal LinkedIn</h4>
+
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-label">Volume cible</div>
+    <div class="kpi-value">50</div>
+    <div class="kpi-sub">DMs / semaine</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Acceptations</div>
+    <div class="kpi-value">35%</div>
+    <div class="kpi-sub">~17 / semaine</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Réponses</div>
+    <div class="kpi-value">25%</div>
+    <div class="kpi-sub">~4-5 / semaine</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Calls bookés</div>
+    <div class="kpi-value">35%</div>
+    <div class="kpi-sub">~1-2 / semaine</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Trials démarrés</div>
+    <div class="kpi-value">50%</div>
+    <div class="kpi-sub">~3-5 / mois</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Trial → payant</div>
+    <div class="kpi-value">30%</div>
+    <div class="kpi-sub">~1-2 / mois</div>
+  </div>
+</div>
+
+<p><strong>Conclusion mathématique :</strong> avec ce rythme, tu signes 1-2 nouveaux clients par mois en M3-M6, et 3-5 par mois à partir de M9.</p>
+
+<h3>6.2 Canal #2 : Communautés Facebook + groupes spécialisés</h3>
+
+<p>Le 2e canal est <strong>les groupes Facebook</strong> où tes prospects discutent entre eux. C'est gratuit, c'est lent, mais ça compounde.</p>
+
+<h4>Liste des groupes FR pertinents (à rejoindre maintenant)</h4>
+
+<table class="compact">
+  <thead><tr><th>Groupe</th><th>Membres</th><th>Activité</th><th>Pertinence</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Conciergeries Airbnb France</strong></td><td>~8 000</td><td>5-15 posts/jour</td><td>★★★★★</td></tr>
+    <tr><td><strong>Hôtes Airbnb France</strong></td><td>~15 000</td><td>20+ posts/jour</td><td>★★★★ (pro hosts)</td></tr>
+    <tr><td><strong>Location saisonnière entre pros</strong></td><td>~5 000</td><td>10 posts/jour</td><td>★★★★</td></tr>
+    <tr><td><strong>Investisseurs locatifs courte durée</strong></td><td>~12 000</td><td>15 posts/jour</td><td>★★★ (cible pro host)</td></tr>
+    <tr><td><strong>French Hospitality Network</strong></td><td>~3 000</td><td>5 posts/jour</td><td>★★★ (B2B)</td></tr>
+    <tr><td><strong>Optimisation location courte durée</strong></td><td>~4 000</td><td>3-5 posts/jour</td><td>★★★ (revenue management)</td></tr>
+  </tbody>
+</table>
+
+<h4>La règle d'or des groupes : 90% give, 10% take</h4>
+
+<p>Ne JAMAIS poster "Bonjour je vends Clenzy". Tu seras banni en 24h.</p>
+
+<p>À la place : <strong>réponds aux questions des autres</strong>. Donne la solution gratuitement, même si elle n'implique pas ton produit. Au bout de 30-60 jours, tu deviens "le mec du PMS qui aide tout le monde". Là, et là seulement, tu peux mentionner Clenzy quand c'est pertinent.</p>
+
+<div class="callout callout-success">
+  <div class="callout-title">Exemple concret</div>
+  <p><strong>Post de quelqu'un :</strong> "Hello, je galère pour synchroniser mon calendrier Airbnb avec mon Booking.com, j'ai des double-bookings tous les mois. Vous utilisez quoi ?"</p>
+  <p><strong>Mauvaise réponse</strong> : "Salut, essaie Clenzy ! C'est super, on fait ça nickel !"</p>
+  <p><strong>Bonne réponse</strong> : "Salut, le souci typique c'est que l'iCal a un délai de 1 à 12h selon les OTAs. Pour éliminer les double-bookings, deux options : (1) un Channel Manager avec API directe Airbnb (Smoobu, Hostaway, Clenzy en font partie) — la sync est instantanée. (2) Augmenter le buffer entre tes résas à 1 jour minimum. Le (1) est mieux mais coûte 200-500€/mois selon le nombre de biens. Tu as combien de biens ?"</p>
+</div>
+
+<p>Tu donnes une vraie réponse utile, tu mentionnes Clenzy parmi d'autres options (pas en push), et tu termines par une question qui invite à la conversation privée. <strong>Le DM se fait après en privé</strong>.</p>
+
+<h4>Routine quotidienne groupes Facebook</h4>
+
+<ul>
+  <li><strong>Matin (15-20 min)</strong> : check des nouveaux posts, réponds à 3-5 questions où tu as une vraie expertise</li>
+  <li><strong>Soir (5-10 min)</strong> : check des commentaires sur tes réponses, échange par DM avec les profils intéressants</li>
+</ul>
+
+<h4>Posts originaux à publier (1 par semaine maximum)</h4>
+
+<p>Quand tu postes en ton nom, choisis des sujets qui apportent de la valeur sans vendre :</p>
+
+<ul>
+  <li><em>"Comment j'ai aidé une conciergerie à passer de 12h à 1h de reversements/mois (pas de pub, juste le process)"</em></li>
+  <li><em>"Le calcul ROI exact entre rester sur Smoobu vs migrer vers un Channel Manager API"</em></li>
+  <li><em>"Les 5 erreurs de facturation NF qui peuvent te coûter cher en contrôle fiscal"</em></li>
+  <li><em>"Pourquoi 70% des conciergeries perdent de l'argent sur les reversements aux propriétaires"</em></li>
+</ul>
+
+<h3>6.3 Canal #3 : Content marketing — démarrer maintenant, récolter dans 6 mois</h3>
+
+<p>Le content (blog + vidéo + newsletter) ne paiera pas avant 6-12 mois. Mais si tu ne commences pas maintenant, dans 6 mois tu n'auras toujours rien. <strong>C'est un compound interest jeu</strong>.</p>
+
+<h4>Calendrier éditorial blog (1 article/semaine)</h4>
+
+<p>Tous les articles ciblent un mot-clé long-tail (faible volume mais faible concurrence, conversion élevée).</p>
+
+<table class="compact">
+  <thead><tr><th>Mois</th><th>Articles</th><th>Mots-clés</th></tr></thead>
+  <tbody>
+    <tr><td>M1 (4 articles)</td><td>Comment sync Airbnb et Booking.com en 2026 ; Comparatif Smoobu vs Hostaway ; Logiciel PMS gratuit ou payant ; Channel Manager : à quoi ça sert vraiment</td><td>"sync airbnb booking", "comparatif smoobu hostaway"</td></tr>
+    <tr><td>M2 (4 articles)</td><td>Reversements automatiques aux propriétaires ; Facturation NF location saisonnière ; Taxe de séjour automatisée ; Déclaration voyageurs en ligne</td><td>"reversement propriétaire conciergerie", "facturation NF location"</td></tr>
+    <tr><td>M3 (4 articles)</td><td>Pricing dynamique pour location courte durée ; Comment doubler son revenu Airbnb sans plus de biens ; Le bon contrat de mandat conciergerie ; Logiciel pour conciergerie 20 biens</td><td>"pricing dynamique airbnb", "contrat mandat conciergerie"</td></tr>
+  </tbody>
+</table>
+
+<h4>Format article gagnant</h4>
+
+<ul>
+  <li><strong>1500-2500 mots</strong> (Google récompense le contenu long)</li>
+  <li><strong>H1, H2, H3 structurés</strong> avec mots-clés naturels (pas de keyword stuffing)</li>
+  <li><strong>1 image / 300 mots</strong> (screenshots, infographies)</li>
+  <li><strong>1 CTA</strong> en milieu et fin d'article (vers Calendly démo)</li>
+  <li><strong>Méta-description ≤ 155 caractères</strong></li>
+  <li><strong>URL clean</strong> : <code>clenzy.fr/blog/sync-airbnb-booking</code> (pas <code>?id=42</code>)</li>
+</ul>
+
+<h4>Vidéo Loom — 1 par mois</h4>
+
+<p>Format gagnant : screencast de 3-5 minutes, ton "expert sympa" qui montre comment résoudre UN problème spécifique.</p>
+
+<ul>
+  <li>"Comment je gère 50 Airbnb sans devenir fou — workflow complet"</li>
+  <li>"Démonstration : reversement automatique à 5 propriétaires en 2 minutes"</li>
+  <li>"Migration de Smoobu vers Clenzy en live (sans coupure)"</li>
+</ul>
+
+<p>Publication : LinkedIn (post + vidéo) + YouTube + page Vimeo embed dans articles.</p>
+
+<h4>Newsletter mensuelle "Le journal de la conciergerie"</h4>
+
+<p>1 envoi par mois (le 1er du mois). Format court : 600-800 mots, 5 minutes de lecture.</p>
+
+<p>Contenu type :</p>
+<ul>
+  <li>1 actualité réglementaire (déclaration voyageurs, taxe de séjour, etc.)</li>
+  <li>1 tip concret (process, template, calcul)</li>
+  <li>1 outil utile (pas seulement Clenzy)</li>
+  <li>1 portrait de conciergerie (étude de cas si tu as un client volontaire)</li>
+</ul>
+
+<p>Outil : <strong>Brevo</strong> (déjà intégré à Clenzy) — gratuit jusqu'à 300 emails/jour.</p>
+
+<p>Capture mail sur landing via popup ou formulaire en pied de page. Objectif : 200 inscrits à M+6, 1000 à M+12.</p>
+
+<h3>6.4 Canaux à NE PAS faire en pre-revenue</h3>
+
+<div class="callout callout-danger">
+  <div class="callout-title">À éviter absolument</div>
+
+  <p><strong>Google Ads / Facebook Ads</strong> — Dans le SaaS B2B, un clic sur des mots-clés "logiciel PMS" coûte 3-10€. Pour 30 clics, tu paies 200€ et tu obtiens peut-être 1 lead. Sans landing page optimisée à 5%+ de conversion, tu brûles ton cash. À envisager seulement post-PMF (50+ clients).</p>
+
+  <p><strong>Salons et conférences en tant qu'exposant</strong> — Un stand au Salon des Conciergeries ou VRMA Europe coûte 5-15k€ tout compris. ROI proche de zéro avant d'avoir des références à montrer. Y aller en <em>visiteur</em> par contre (200€) = très bon ROI : 50+ contacts qualifiés sur 2 jours.</p>
+
+  <p><strong>Cold call téléphonique</strong> — Taux de décrochage &lt; 5% sur les patrons de petite entreprise. Effort gigantesque pour 1-2 calls bookés/jour. LinkedIn DM est 5x plus efficace pour le même temps.</p>
+
+  <p><strong>SEO heavy (link building, agences SEO)</strong> — 2000-5000€/mois pour des résultats à 6-12 mois. Faisable plus tard. Pour l'instant, du content régulier suffit.</p>
+
+  <p><strong>Programme d'affiliation / referral payant</strong> — Inutile avant d'avoir 20+ clients satisfaits. Personne ne va affilier un produit qu'il ne connaît pas.</p>
+
+  <p><strong>Influence marketing</strong> — Coûte cher (500-5000€ par post) et le ROI est très flou en B2B très niché.</p>
+</div>
+
+<h3>6.5 Routine hebdomadaire recommandée</h3>
+
+<p>Voici à quoi devrait ressembler ta semaine type pendant les 90 prochains jours.</p>
+
+<table class="compact">
+  <thead><tr><th>Jour</th><th>Matin (3-4h)</th><th>Après-midi (3-4h)</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Lundi</strong></td><td>50 connection requests LinkedIn</td><td>Calls discovery (planning des suivants)</td></tr>
+    <tr><td><strong>Mardi</strong></td><td>Réponse aux DMs reçus + relances J+3</td><td>1 article de blog (rédaction)</td></tr>
+    <tr><td><strong>Mercredi</strong></td><td>2-3 calls démo programmés</td><td>Groupes FB : réponse à 5-10 questions</td></tr>
+    <tr><td><strong>Jeudi</strong></td><td>Onboarding nouveaux trials (visio)</td><td>1 article de blog (publication + LinkedIn post)</td></tr>
+    <tr><td><strong>Vendredi</strong></td><td>Calls de suivi clients existants (15 min/client)</td><td>Reporting hebdo + revue métriques</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Total ~35h/semaine</strong> consacrées à la croissance. Le code (bug fixes uniquement) prend les 5h restantes.</p>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 7 — ROADMAP PRODUIT
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>7. Roadmap produit — les 3 grandes questions stratégiques</h2>
+
+<p>Trois questions produit doivent être tranchées maintenant pour aligner la stratégie 90 jours. Cette section les analyse en profondeur et propose une recommandation chiffrée pour chacune.</p>
+
+<h3>7.1 La grande question — Channel Manager : faire, partenariat, ou rester en iCal ?</h3>
+
+<p>C'est <strong>la</strong> décision la plus importante de cette roadmap. Aujourd'hui, Clenzy n'a qu'une sync iCal en lecture. Pour le marché conciergerie pro, c'est un <strong>blocage</strong>. Voici les 3 options et leur analyse.</p>
+
+<h4>Le contexte : pourquoi l'iCal seul ne suffit pas</h4>
+
+<p>L'iCal a deux limitations critiques pour les conciergeries pro :</p>
+
+<ol>
+  <li><strong>Latence</strong> : la sync iCal a un délai de 1 à 24 heures selon l'OTA. Airbnb refresh toutes les 1-2h, Booking.com toutes les 4-12h, Vrbo jusqu'à 24h. Pendant ce délai, deux voyageurs peuvent réserver les mêmes dates sur deux OTAs différentes = <strong>double booking</strong>, l'un des deux doit être annulé manuellement avec pénalité Airbnb (jusqu'à 1000€ par annulation hôte).</li>
+
+  <li><strong>Lecture seule</strong> : tu peux <strong>importer</strong> les dates bloquées, mais tu ne peux pas <strong>pousser</strong> les prix ou les disponibilités vers les OTAs. Si un client modifie son prix dans Clenzy, il doit le re-modifier manuellement sur Airbnb, Booking, Vrbo. C'est inacceptable pour une conciergerie qui gère 20 biens.</li>
+</ol>
+
+<div class="callout callout-danger">
+  <div class="callout-title">Verdict sans appel</div>
+  <p>Sans Channel Manager natif (en plus de l'iCal), Clenzy ne pourra <strong>pas</strong> séduire les conciergeries pro 10-50 biens — qui sont l'ICP. C'est une priorité <span class="tag tag-p0">P0</span> à résoudre avant les premiers clients payants.</p>
+</div>
+
+<h4>Option A : Construire son propre Channel Manager (intégrations directes OTAs)</h4>
+
+<p>Tu construis toi-même les intégrations API avec Airbnb, Booking.com, Vrbo, Expedia, etc.</p>
+
+<table class="compact">
+  <thead><tr><th>Critère</th><th>Détail</th></tr></thead>
+  <tbody>
+    <tr><td>Effort développement</td><td>12-24 mois, 2-3 devs minimum</td></tr>
+    <tr><td>Coût</td><td>200-500k € (équipe + certifications + tests)</td></tr>
+    <tr><td>Accès Airbnb API</td><td>Software Partner Program — exige 25+ biens connectés + certification 6-12 mois</td></tr>
+    <tr><td>Accès Booking.com</td><td>Connectivity Partner — exige 10+ biens connectés + audit</td></tr>
+    <tr><td>Accès Vrbo / Expedia</td><td>Programme partenaire similaire</td></tr>
+    <tr><td>Maintenance</td><td>Très lourde (chaque OTA change ses API 2-4x/an)</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Verdict :</strong> infaisable en pre-revenue. <span class="tag tag-dont">À éviter</span></p>
+
+<h4>Option B : Partenariat avec un Channel Manager B2B (la voie recommandée)</h4>
+
+<p>Tu intègres l'API d'un Channel Manager existant qui te revend son service en marque blanche. C'est ce que font 80% des PMS modernes.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Fournisseur</th>
+      <th>Pays</th>
+      <th>Connexions</th>
+      <th>Prix /bien /mois</th>
+      <th>Note Clenzy</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Channex</strong></td>
+      <td>UK</td>
+      <td>100+ OTAs (Airbnb, Booking, Vrbo, Expedia, etc.)</td>
+      <td>~£10 (~12€)</td>
+      <td><strong>Meilleur match</strong> — API REST moderne, doc claire, pricing transparent</td>
+    </tr>
+    <tr>
+      <td>Rentals United</td>
+      <td>Pologne</td>
+      <td>60+ OTAs spécialisés vacation rental</td>
+      <td>~€15</td>
+      <td>Premium, mature, plus orienté gros volumes</td>
+    </tr>
+    <tr>
+      <td>NextPax</td>
+      <td>Pays-Bas</td>
+      <td>50+ OTAs</td>
+      <td>~€20+</td>
+      <td>Enterprise, plus cher, moins adapté au SaaS B2B</td>
+    </tr>
+    <tr>
+      <td>MyAllocator (Cloudbeds)</td>
+      <td>USA</td>
+      <td>200+ OTAs (hôtelier-centric)</td>
+      <td>~$25</td>
+      <td>Top hôtelier, moins fluide pour STR</td>
+    </tr>
+    <tr>
+      <td>SiteMinder</td>
+      <td>Australie</td>
+      <td>450+ OTAs</td>
+      <td>~$50</td>
+      <td>Enterprise hôtelier, sur-dimensionné</td>
+    </tr>
+  </tbody>
+</table>
+
+<h5>Pourquoi Channex en premier choix</h5>
+
+<ul>
+  <li><strong>Prix accessible</strong> : ~12€/bien/mois revendable au client final (intégré dans le plan Pro à 39€/bien, tu gardes 27€ de marge brute, soit ~70%)</li>
+  <li><strong>API REST + webhooks modernes</strong> : implémentation 2-4 semaines avec Spring Boot</li>
+  <li><strong>Modèle pay-as-you-go</strong> : tu ne paies que pour les biens connectés (vs forfait fixe)</li>
+  <li><strong>Support en anglais réactif</strong></li>
+  <li><strong>Documentation publique complète</strong> (channex.io/docs)</li>
+  <li><strong>Connecteurs Airbnb / Booking / Vrbo de qualité production</strong></li>
+</ul>
+
+<h5>Architecture cible Clenzy + Channex</h5>
+
+<pre>┌─────────────────────────────────────────────────┐
+│  Clenzy PMS                                     │
+│                                                  │
+│  ┌─────────────────┐    ┌─────────────────┐    │
+│  │ CalendarEngine  │    │  PriceEngine    │    │
+│  │ (existant)      │    │  (existant)     │    │
+│  └────────┬────────┘    └────────┬────────┘    │
+│           │                       │              │
+│           └───────────┬───────────┘              │
+│                       ▼                          │
+│           ┌───────────────────────┐              │
+│           │  ChannelSyncService   │              │
+│           │  (orchestrateur)      │              │
+│           └───────────┬───────────┘              │
+└───────────────────────┼──────────────────────────┘
+                        │
+                        ▼ Push prix + dispo
+            ┌───────────────────────┐
+            │  Channex Channel API  │  (partenaire)
+            └───────────┬───────────┘
+                        │
+        ┌───────────────┼───────────────┐
+        ▼               ▼               ▼
+    ┌────────┐     ┌─────────┐    ┌────────┐
+    │ Airbnb │     │ Booking │    │  Vrbo  │
+    └────────┘     └─────────┘    └────────┘</pre>
+
+<h5>Effort d'intégration estimé</h5>
+
+<table class="compact">
+  <thead><tr><th>Tâche</th><th>Effort</th></tr></thead>
+  <tbody>
+    <tr><td>Souscription compte Channex + tests sandbox</td><td>1 semaine</td></tr>
+    <tr><td>Implémentation client HTTP Java (auth, pagination, retry)</td><td>1 semaine</td></tr>
+    <tr><td>Mapping Clenzy ↔ Channex (property, room type, rate plan)</td><td>1 semaine</td></tr>
+    <tr><td>Webhooks réceptions de réservations</td><td>3-5 jours</td></tr>
+    <tr><td>UI onboarding (saisie credentials, mapping)</td><td>1 semaine</td></tr>
+    <tr><td>Tests d'intégration + scénarios edge cases</td><td>1 semaine</td></tr>
+    <tr><td><strong>Total</strong></td><td><strong>5-6 semaines</strong></td></tr>
+  </tbody>
+</table>
+
+<p><strong>Verdict :</strong> <span class="tag tag-do">Recommandation #1</span> — l'intégration Channex à démarrer dès le mois de septembre, parallèlement aux premiers calls de prospection.</p>
+
+<h4>Option C : Devenir Software Partner Airbnb directement</h4>
+
+<p>Une fois 30+ biens gérés via Channex, postuler au <strong>Airbnb Software Partner Program</strong> en parallèle pour avoir l'API Airbnb directe.</p>
+
+<ul>
+  <li>Permet d'enrichir l'expérience (messaging native Airbnb, dispute resolution, statistiques)</li>
+  <li>Différencie Clenzy des PMS qui passent par Channex uniquement</li>
+  <li>Processus : 6-12 mois certification, exige 25+ biens minimum connectés (atteignable via Channex en M+12)</li>
+</ul>
+
+<p><strong>Verdict :</strong> <span class="tag tag-p2">À 12-18 mois</span></p>
+
+<h4>Recommandation finale Channel Manager</h4>
+
+<div class="callout callout-success">
+  <div class="callout-title">Décision tranchée</div>
+  <ol>
+    <li><strong>Court terme (M2-M3)</strong> : intégrer Channex (~5-6 semaines de dev). Le mettre en option <em>Pro+</em> dans le pricing (+5€/bien/mois sur le plan Pro = 44€).</li>
+    <li><strong>Moyen terme (M12-M18)</strong> : postuler Software Partner Airbnb + Booking.com Connectivity Partner pour devenir Channel Manager certifié direct.</li>
+    <li><strong>Long terme (24+ mois)</strong> : envisager remplacement de Channex par intégrations directes pour réduire les coûts et maîtriser la stack.</li>
+  </ol>
+</div>
+
+<h3>7.2 Booking Engine — finaliser ou abandonner ?</h3>
+
+<p>Le Booking Engine de Clenzy est le widget JS embarquable sur les sites web des conciergeries pour qu'ils prennent des réservations <strong>en direct</strong>, sans commission Airbnb.</p>
+
+<h4>L'angle business : pourquoi c'est un différenciateur</h4>
+
+<p>Airbnb prend 15% (hôte) + 14% (guest) = ~26% de commission totale sur chaque réservation. Pour une conciergerie de 20 biens qui fait 30 000 €/mois sur Airbnb, c'est 4 500 €/mois de "perte" vs une réservation directe.</p>
+
+<p>Si Clenzy permet de capter ne serait-ce que <strong>20%</strong> du trafic en direct, c'est :</p>
+
+<ul>
+  <li>6 000 €/mois de CA en direct (au lieu de via Airbnb)</li>
+  <li>-15% commission hôte = +900 €/mois pour la conciergerie</li>
+  <li>ROI Clenzy Pro pour 20 biens (780 €/mois) = positif en 1 mois</li>
+</ul>
+
+<h4>État actuel du Booking Engine</h4>
+
+<table>
+  <thead><tr><th>Module</th><th>État</th><th>Travail restant</th></tr></thead>
+  <tbody>
+    <tr><td>Widget JS embarquable</td><td>Fonctionnel</td><td>—</td></tr>
+    <tr><td>Recherche par dates / types</td><td>Fonctionnel</td><td>—</td></tr>
+    <tr><td>Calendrier 2 mois avec prix dynamiques</td><td>Fonctionnel</td><td>—</td></tr>
+    <tr><td>Auth guest (Keycloak séparé)</td><td>Fonctionnel</td><td>—</td></tr>
+    <tr><td>Multi-langue (FR / EN / AR) + RTL</td><td>Fonctionnel</td><td>—</td></tr>
+    <tr><td>Panier multi-séjours</td><td>Partiel</td><td>Workflow checkout à finaliser</td></tr>
+    <tr><td>Paiement Stripe Checkout</td><td>Partiel</td><td>Intégration end-to-end à valider</td></tr>
+    <tr><td>Gestion des annulations</td><td>Partiel</td><td>Politiques d'annulation paramétrables</td></tr>
+    <tr><td>SEO sitemap dynamique par bien</td><td>Absent</td><td>~1 semaine</td></tr>
+    <tr><td>Page de remerciement + email confirmation</td><td>Partiel</td><td>~3 jours</td></tr>
+  </tbody>
+</table>
+
+<p>Estimation du travail restant : <strong>3-4 semaines</strong> de dev focalisé.</p>
+
+<div class="callout callout-success">
+  <div class="callout-title">Recommandation Booking Engine</div>
+  <p><strong>Finaliser</strong> — c'est un différenciateur fort vs Smoobu et Hostaway (qui ont des booking engines mais limités). Priorité <span class="tag tag-p1">P1</span>, à terminer pendant les 4 premières semaines en parallèle de la prospection.</p>
+  <p>Ne pas attendre d'avoir 10 clients : il faut que la démo soit complète dès le premier call.</p>
+</div>
+
+<h3>7.3 Application mobile — native, PWA, ou pas du tout ?</h3>
+
+<p>Question importante : faut-il une app mobile native (iOS + Android), une PWA suffit, ou rien du tout ?</p>
+
+<h4>D'abord, quelle app ?</h4>
+
+<p>Distinction importante : il y a deux apps mobiles possibles, avec des publics différents.</p>
+
+<table>
+  <thead><tr><th>App</th><th>Public</th><th>Cas d'usage</th><th>Criticité</th></tr></thead>
+  <tbody>
+    <tr><td><strong>App B2B (PMS mobile pour patron / équipe)</strong></td><td>Hôtes, conciergeries, équipes de ménage, check-in agents</td><td>Check-ins terrain, photos inventaire, notifications de résa, messagerie guest mobile</td><td>Haute pour conciergeries multi-sites</td></tr>
+    <tr><td><strong>App B2C (Booking Engine pour voyageurs)</strong></td><td>Voyageurs / guests</td><td>Recherche, réservation, messages, accès digital aux serrures pendant le séjour</td><td>Faible (les voyageurs n'installent pas une app par hébergement)</td></tr>
+  </tbody>
+</table>
+
+<p>L'app B2C est généralement inutile : les voyageurs préfèrent un site web responsive ou WhatsApp. L'app B2B en revanche est utile pour les conciergeries.</p>
+
+<h4>L'option PWA (Progressive Web App) — déjà disponible</h4>
+
+<p>Clenzy est déjà PWA grâce à Vite + Workbox. Cela signifie :</p>
+<ul>
+  <li>Installation depuis le navigateur sur l'écran d'accueil (iOS et Android)</li>
+  <li>Icône comme une vraie app</li>
+  <li>Mode hors-ligne basique (cache des assets)</li>
+  <li>Notifications push (via Web Push API, Android oui, iOS oui depuis iOS 16.4)</li>
+  <li>Accès caméra (photos inventaire) via <code>getUserMedia()</code></li>
+</ul>
+
+<p>Limites PWA vs native :</p>
+<ul>
+  <li>Pas de présence dans l'App Store / Play Store (visibilité limitée)</li>
+  <li>Notifications push iOS moins fiables qu'en natif</li>
+  <li>Pas d'accès à certaines APIs avancées (Bluetooth pour les serrures, Wallet, etc.)</li>
+  <li>Perception "moins pro" pour certains clients qui veulent voir le logo Clenzy dans l'App Store</li>
+</ul>
+
+<h4>L'option native (React Native ou Flutter)</h4>
+
+<p>Construire une app native B2B Clenzy.</p>
+
+<table class="compact">
+  <thead><tr><th>Critère</th><th>React Native</th><th>Flutter</th><th>Natif iOS + Android</th></tr></thead>
+  <tbody>
+    <tr><td>Effort initial</td><td>2-4 mois</td><td>2-4 mois</td><td>5-8 mois</td></tr>
+    <tr><td>Maintenance</td><td>1 codebase</td><td>1 codebase</td><td>2 codebases</td></tr>
+    <tr><td>Réutilisation code Clenzy React</td><td>Élevée (~40%)</td><td>Faible (Dart)</td><td>Nulle</td></tr>
+    <tr><td>Coût (freelance)</td><td>15-30 k€</td><td>15-30 k€</td><td>40-80 k€</td></tr>
+    <tr><td>Performance UX</td><td>Bonne</td><td>Excellente</td><td>Top</td></tr>
+  </tbody>
+</table>
+
+<h4>Recommandation</h4>
+
+<div class="callout callout-success">
+  <div class="callout-title">Décision mobile</div>
+  <p><strong>Pas d'app native avant M+9</strong>. La PWA couvre 80% du besoin et elle existe déjà.</p>
+  <p>Sur les premiers 90 jours, focus sur :</p>
+  <ul>
+    <li><strong>Améliorer la PWA</strong> : forcer l'install prompt sur mobile, optimiser les notifications push iOS/Android, mode hors-ligne renforcé pour les femmes de ménage (formulaire de check-in/out sans réseau)</li>
+    <li><strong>Communiquer "Web App"</strong> dans les démos : montrer comment l'installer en 3 clics, pas comme un défaut mais comme un avantage (pas de mise à jour App Store à attendre)</li>
+  </ul>
+  <p>À M+9, si les clients demandent fortement une app native :</p>
+  <ul>
+    <li>Choisir <strong>React Native</strong> (réutilisation du code React Clenzy)</li>
+    <li>Cibler d'abord <strong>Android</strong> (femmes de ménage souvent sur Android entry-level)</li>
+    <li>App B2B uniquement (interface équipe), pas B2C</li>
+    <li>Sous-traitance ponctuelle freelance (~20 k€, 3 mois)</li>
+  </ul>
+  <p>Priorité actuelle : <span class="tag tag-p3">P3 — à M9+</span></p>
+</div>
+
+<h3>7.4 Synthèse des priorités produit 90 jours</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Chantier</th>
+      <th>Priorité</th>
+      <th>Effort</th>
+      <th>Quand</th>
+      <th>Pourquoi</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Intégration Channel Manager (Channex)</td>
+      <td><span class="tag tag-p0">P0</span></td>
+      <td>5-6 sem.</td>
+      <td>M2-M3</td>
+      <td>Blocage critique pour les conciergeries</td>
+    </tr>
+    <tr>
+      <td>Finalisation Booking Engine (checkout, annulations)</td>
+      <td><span class="tag tag-p1">P1</span></td>
+      <td>3-4 sem.</td>
+      <td>M1-M2</td>
+      <td>Différenciateur fort pour démo</td>
+    </tr>
+    <tr>
+      <td>Onboarding produit (tutorial, checklist, migration)</td>
+      <td><span class="tag tag-p1">P1</span></td>
+      <td>2-3 sem.</td>
+      <td>M1</td>
+      <td>Conversion trial → payant</td>
+    </tr>
+    <tr>
+      <td>Landing page + SEO de base</td>
+      <td><span class="tag tag-p1">P1</span></td>
+      <td>1-2 sem.</td>
+      <td>M1</td>
+      <td>Crédibilité pour outbound LinkedIn</td>
+    </tr>
+    <tr>
+      <td>PWA renforcée (push iOS, offline)</td>
+      <td><span class="tag tag-p2">P2</span></td>
+      <td>1-2 sem.</td>
+      <td>M3</td>
+      <td>Remplace l'app native pendant 9 mois</td>
+    </tr>
+    <tr>
+      <td>App mobile native (React Native)</td>
+      <td><span class="tag tag-p3">P3</span></td>
+      <td>3 mois</td>
+      <td>M9+</td>
+      <td>Quand validé par 10+ clients qui le demandent</td>
+    </tr>
+    <tr>
+      <td>Tests E2E Playwright</td>
+      <td><span class="tag tag-p2">P2</span></td>
+      <td>2 sem.</td>
+      <td>M2</td>
+      <td>Stabilité prod avant 10 clients</td>
+    </tr>
+    <tr>
+      <td>Software Partner Airbnb direct</td>
+      <td><span class="tag tag-p3">P3</span></td>
+      <td>6-12 mois</td>
+      <td>M12+</td>
+      <td>Quand 25+ biens connectés via Channex</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-warning">
+  <div class="callout-title">Discipline produit obligatoire</div>
+  <p>Tu vas être tenté d'ajouter des features que les premiers prospects demanderont (chacun voudra "son petit truc"). <strong>Note tout dans un Notion</strong>, mais ne code que ce qui apparaît dans <strong>3 demandes différentes minimum</strong>. C'est la <em>Rule of Three</em> — sans elle, tu fragilises ton produit pour faire plaisir à un seul client.</p>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 8 — PLAN 90 JOURS
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>8. Plan 90 jours — exécution semaine par semaine</h2>
+
+<p>Voici le plan opérationnel à dérouler sur les 13 prochaines semaines (90 jours). Imprime-le, mets-le sur ton mur. Chaque vendredi soir, revue de ce qui a été fait.</p>
+
+<h3>8.1 Phase 1 — Foundation (Semaines 1-2)</h3>
+
+<p>Objectif : poser les fondations marketing et produit avant de démarrer la prospection à grande échelle.</p>
+
+<div class="timeline">
+
+<div class="timeline-week">
+<h4>Semaine 1 — Setup marketing</h4>
+<ul>
+  <li>Refondre la <strong>landing page Clenzy</strong> : 1 page, 1 CTA "Demander une démo" → Calendly. Sections : hero (problème + solution en 5s), 3 features clés, témoignage (en attendant tes design partners, mettre un quote "à venir"), pricing affiché (3 plans), CTA bottom.</li>
+  <li>Activer <strong>pricing affiché</strong> sur la home : 19/39/Enterprise. Pas "Contactez-nous" partout.</li>
+  <li>Créer un <strong>Calendly</strong> "Démo Clenzy 30 min" avec questions de qualification.</li>
+  <li>Souscrire à <strong>LinkedIn Sales Navigator</strong> (essai gratuit 1 mois).</li>
+  <li>Créer un <strong>Notion CRM</strong> (1 base avec colonnes prospect / status / dernière action / notes).</li>
+  <li>Activer <strong>Plausible Analytics</strong> sur le site (analyse RGPD-friendly).</li>
+</ul>
+</div>
+
+<div class="timeline-week">
+<h4>Semaine 2 — Mapping prospects + premier contenu</h4>
+<ul>
+  <li><strong>Mapper 500 conciergeries cibles</strong> dans le Notion CRM via Sales Navigator. Champs : nom, entreprise, ville, biens estimés (recherche site), LinkedIn URL.</li>
+  <li>Rédiger les <strong>4 templates LinkedIn</strong> (connection, premier DM, relance J+3, relance J+10) et les valider sur 5 amis qui te diront s'ils répondraient.</li>
+  <li>Publier <strong>2 premiers articles de blog</strong> : (1) "Sync Airbnb + Booking.com : tout ce qu'il faut savoir en 2026" (2) "Comparatif Smoobu vs Hostaway vs Clenzy"</li>
+  <li>Rejoindre <strong>les 6 groupes Facebook</strong> ciblés. Présentation neutre dans chaque (1 post par groupe : "Bonjour, je suis [Prénom], dev qui construit un PMS pour conciergeries FR. Hâte d'échanger avec vous, je donne un coup de main si je peux.").</li>
+  <li>Tourner et publier <strong>1 vidéo Loom 5 min</strong> "Démo Clenzy en 5 minutes" (à coller dans les DMs).</li>
+</ul>
+</div>
+
+</div>
+
+<h3>8.2 Phase 2 — Outreach intensif (Semaines 3-6)</h3>
+
+<p>Objectif : générer 30+ calls discovery, signer les 3 premiers design partners.</p>
+
+<div class="timeline">
+
+<div class="timeline-week">
+<h4>Semaines 3-4 — Démarrage outbound LinkedIn</h4>
+<ul>
+  <li><strong>50 connection requests/semaine</strong> avec template personnalisé (mention de leur ville + nom conciergerie).</li>
+  <li><strong>Suivre les acceptations</strong> dans le Notion CRM, envoyer le premier DM dans les 24-48h.</li>
+  <li>Tracker les métriques : connections envoyées / acceptées / DMs envoyés / réponses / calls bookés.</li>
+  <li>Répondre <strong>5x/jour minimum</strong> dans les groupes FB (sans pitcher).</li>
+  <li>Publier <strong>1 article de blog</strong> par semaine.</li>
+  <li>Premier objectif : <strong>10 calls discovery</strong> sur les 2 semaines.</li>
+</ul>
+</div>
+
+<div class="timeline-week">
+<h4>Semaines 5-6 — Calls discovery + adaptation pitch</h4>
+<ul>
+  <li>Faire les <strong>15-20 calls discovery</strong> bookés. Format : <em>écoute 80%, parle 20%</em>. Tu sors avec une vraie compréhension de leurs douleurs.</li>
+  <li>Après chaque call : <strong>note 5 minutes</strong> dans le Notion (douleurs, taille, budget, urgence).</li>
+  <li>Identifier les <strong>3-5 plus chauds</strong> (douleur claire + budget + autorité + envie d'essayer).</li>
+  <li>Leur proposer le <strong>programme Design Partner</strong> en suivant : "Tu es exactement le profil qu'on cherche pour façonner Clenzy. Tu veux qu'on commence un trial cette semaine, 6 mois gratuits, accès direct à moi ?"</li>
+  <li>Objectif fin S6 : <strong>2-3 design partners signés</strong>.</li>
+  <li>Pendant ce temps, démarrer l'<strong>intégration Channex</strong> en parallèle (1 jour/semaine de dev).</li>
+</ul>
+</div>
+
+</div>
+
+<h3>8.3 Phase 3 — Onboarding + itération (Semaines 7-12)</h3>
+
+<p>Objectif : faire de tes 3 premiers design partners des succès, en récolter des témoignages, étendre à 10.</p>
+
+<div class="timeline">
+
+<div class="timeline-week">
+<h4>Semaines 7-8 — Onboarding des design partners</h4>
+<ul>
+  <li><strong>Onboarder en personne ou en visio</strong> chacun des 3 design partners. Migration de leurs données depuis Smoobu/Hostaway/Excel. Tu fais le travail à leur place. Tu te déplaces à Paris ou Côte d'Azur si nécessaire.</li>
+  <li>Configurer leur compte : biens, propriétaires (multi-tenant), templates email, calendrier sync.</li>
+  <li>Activer leur première intégration <strong>Channex</strong> (en sandbox d'abord, puis prod).</li>
+  <li>Sortir le manuel d'<strong>onboarding 10 pages</strong> : checklist setup, FAQ, contacts urgents.</li>
+  <li>Premier <strong>call de feedback hebdo</strong> avec chaque (30 min, le vendredi).</li>
+</ul>
+</div>
+
+<div class="timeline-week">
+<h4>Semaines 9-10 — Use du produit + feedback intensif</h4>
+<ul>
+  <li>Les design partners utilisent vraiment le produit en prod. Tu monitores activement (logs, support).</li>
+  <li><strong>Tracker ce qu'ils utilisent</strong> vs ce qu'ils ignorent (analytics produit via instrumentation simple).</li>
+  <li>Itération rapide : tout bug remonté = corrigé sous 48h.</li>
+  <li>Note les <strong>features non utilisées</strong> par les 3 (probablement candidates à supprimer).</li>
+  <li>Continuer la <strong>prospection LinkedIn</strong> en parallèle (40 DMs/semaine, allégé pendant l'onboarding).</li>
+  <li>Démarrer la <strong>2e vague de prospection</strong> : 200 nouveaux prospects, désormais avec un témoignage en plus dans le pitch.</li>
+</ul>
+</div>
+
+<div class="timeline-week">
+<h4>Semaines 11-12 — Témoignages + acquisition #2</h4>
+<ul>
+  <li>Récolter le premier <strong>témoignage écrit</strong> + <strong>vidéo</strong> avec un design partner satisfait.</li>
+  <li>Publier l'<strong>étude de cas</strong> sur le blog et sur LinkedIn (post organique du fondateur + du design partner).</li>
+  <li>Mettre à jour la <strong>landing page</strong> avec le logo + quote + chiffres (ex: "Paris Stay Conciergerie : -8h/mois sur les reversements").</li>
+  <li>Refaire une <strong>passe d'onboarding</strong> des 3 derniers design partners en attente.</li>
+  <li>Continuer la prospection : <strong>50 DMs/semaine</strong>, ciblant désormais cercle élargi (Sud-Ouest, Montagne).</li>
+  <li>Objectif fin S12 : <strong>8-10 design partners signés au total</strong>.</li>
+</ul>
+</div>
+
+</div>
+
+<h3>8.4 Phase 4 — Bilan + ajustement (Semaine 13)</h3>
+
+<div class="timeline">
+<div class="timeline-week">
+<h4>Semaine 13 — Le verdict 90 jours</h4>
+<ul>
+  <li><strong>Tableau de bord complet</strong> : connexions envoyées, calls bookés, design partners signés, MRR engagé (à partir de M+7).</li>
+  <li><strong>Revue qualitative</strong> avec chaque design partner : "Si Clenzy disparaissait demain, tu serais très déçu / déçu / pas vraiment déçu ?". &gt; 50% "très déçu" = signal de Product-Market Fit naissant.</li>
+  <li><strong>Décision stratégique pour les 90 prochains jours</strong> :
+    <ul>
+      <li>Si <strong>5+ design partners actifs et heureux</strong> → on est en route, on continue la même stratégie + on prépare le passage au payant à M+7.</li>
+      <li>Si <strong>2-4 design partners actifs</strong> → la stratégie marche mais lentement, on intensifie l'outbound.</li>
+      <li>Si <strong>0-1 design partners actifs</strong> → réévaluation lourde : peut-être pas le bon ICP, ou message qui ne porte pas, ou produit qui ne résout pas assez de douleur. Pivot ou ajustement.</li>
+    </ul>
+  </li>
+</ul>
+</div>
+</div>
+
+<h3>8.5 Vue d'ensemble — la fresque 90 jours</h3>
+
+<table>
+  <thead>
+    <tr><th>Semaine</th><th>Focus</th><th>Livrables critiques</th><th>Métrique</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>S1</td><td>Setup marketing</td><td>Landing, Calendly, Sales Nav, Notion CRM</td><td>—</td></tr>
+    <tr><td>S2</td><td>Mapping + content</td><td>500 prospects mappés, 2 articles publiés</td><td>—</td></tr>
+    <tr><td>S3</td><td>Outbound démarrage</td><td>50 connection requests, 1 article</td><td>10-15 acceptations</td></tr>
+    <tr><td>S4</td><td>Outbound régime</td><td>50 connections + DMs + groupes FB</td><td>5+ calls bookés</td></tr>
+    <tr><td>S5</td><td>Calls discovery</td><td>5-10 calls + 1 design partner signé</td><td>1 design partner</td></tr>
+    <tr><td>S6</td><td>Calls discovery</td><td>5-10 calls + 1-2 design partners signés</td><td>3 design partners</td></tr>
+    <tr><td>S7-S8</td><td>Onboarding</td><td>Onboarding 3 design partners</td><td>3 actifs</td></tr>
+    <tr><td>S9-S10</td><td>Use + feedback</td><td>Calls hebdo + bug fixes rapides</td><td>NPS &gt; 30</td></tr>
+    <tr><td>S11-S12</td><td>Témoignages + outbound v2</td><td>1ère étude de cas + acquisition 5 partners de plus</td><td>8-10 design partners total</td></tr>
+    <tr><td>S13</td><td>Bilan</td><td>Décision stratégique 90 jours suivants</td><td>40% "très déçu"</td></tr>
+  </tbody>
+</table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 9 — KPIs
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>9. KPIs et métriques de succès</h2>
+
+<p>Ce que tu ne mesures pas, tu ne peux pas l'améliorer. Voici les métriques à tracker chaque semaine.</p>
+
+<h3>9.1 Les 7 métriques hebdomadaires obligatoires</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Métrique</th>
+      <th>Cible S6</th>
+      <th>Cible S13</th>
+      <th>Comment calculer</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Connection requests envoyées</strong></td>
+      <td>50/sem</td>
+      <td>50/sem</td>
+      <td>LinkedIn → "Réseau" → "Invitations envoyées"</td>
+    </tr>
+    <tr>
+      <td><strong>Taux d'acceptation</strong></td>
+      <td>30%+</td>
+      <td>35%+</td>
+      <td>(Acceptations / requests) × 100</td>
+    </tr>
+    <tr>
+      <td><strong>DMs envoyés (1er + relances)</strong></td>
+      <td>30/sem</td>
+      <td>40/sem</td>
+      <td>Count manuel ou via Lemlist</td>
+    </tr>
+    <tr>
+      <td><strong>Taux de réponse aux DMs</strong></td>
+      <td>15%+</td>
+      <td>25%+</td>
+      <td>(Réponses / DMs envoyés) × 100</td>
+    </tr>
+    <tr>
+      <td><strong>Calls discovery bookés</strong></td>
+      <td>2/sem</td>
+      <td>3-4/sem</td>
+      <td>Calendly dashboard</td>
+    </tr>
+    <tr>
+      <td><strong>Design partners signés cumulés</strong></td>
+      <td>2-3</td>
+      <td>8-10</td>
+      <td>Notion CRM</td>
+    </tr>
+    <tr>
+      <td><strong>NPS moyen design partners</strong></td>
+      <td>30+</td>
+      <td>50+</td>
+      <td>Question survey post-call M+1</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>9.2 Le funnel d'acquisition Clenzy</h3>
+
+<p>Schéma de référence des taux de conversion à viser. Si une étape stagne, c'est là qu'il faut creuser.</p>
+
+<table>
+  <thead><tr><th>Étape</th><th>Volume mensuel</th><th>Taux conversion vers étape suivante</th></tr></thead>
+  <tbody>
+    <tr><td>Connection requests LinkedIn</td><td>200</td><td>35% acceptent</td></tr>
+    <tr><td>Connections acceptées</td><td>70</td><td>40% reçoivent un DM ouvert</td></tr>
+    <tr><td>DMs lus</td><td>28</td><td>25% répondent</td></tr>
+    <tr><td>Réponses positives</td><td>7</td><td>50% bookent un call</td></tr>
+    <tr><td>Calls discovery</td><td>3-4</td><td>50% démarrent trial</td></tr>
+    <tr><td>Trials actifs</td><td>2</td><td>50% deviennent design partners</td></tr>
+    <tr><td>Design partners</td><td>1</td><td>70% paient à M+7</td></tr>
+    <tr><td>Clients payants</td><td>0.7/mois</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<p>Soit ~1 client payant tous les 1.5 mois avec ce volume de prospection. Pour atteindre 10 clients à M+12, il faut soit doubler le volume, soit doubler les taux de conversion, soit faire les deux.</p>
+
+<h3>9.3 Métriques d'usage produit (à instrumenter)</h3>
+
+<p>Une fois les premiers design partners onboardés, mesurer leur engagement réel.</p>
+
+<table>
+  <thead><tr><th>Métrique</th><th>Cible santé</th></tr></thead>
+  <tbody>
+    <tr><td>DAU/MAU (Daily / Monthly Active Users)</td><td>&gt; 40%</td></tr>
+    <tr><td>Connexions /semaine par utilisateur</td><td>&gt; 3</td></tr>
+    <tr><td>Réservations créées via Clenzy</td><td>&gt; 5/semaine/client</td></tr>
+    <tr><td>Messages guest envoyés via Clenzy</td><td>&gt; 10/semaine/client</td></tr>
+    <tr><td>Reversements automatisés exécutés</td><td>1+/mois/propriétaire géré</td></tr>
+    <tr><td>Taux d'utilisation Channel Manager</td><td>&gt; 80% des biens connectés</td></tr>
+  </tbody>
+</table>
+
+<h3>9.4 Unit economics — quand surveiller</h3>
+
+<p>À partir de M+7 (premiers payants), suivre les ratios SaaS classiques.</p>
+
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-label">Cible LTV/CAC</div>
+    <div class="kpi-value">≥ 3</div>
+    <div class="kpi-sub">Standard SaaS sain</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Payback period</div>
+    <div class="kpi-value">&lt; 12 mois</div>
+    <div class="kpi-sub">CAC remboursé en moins d'un an</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Churn mensuel</div>
+    <div class="kpi-value">&lt; 3%</div>
+    <div class="kpi-sub">Cible B2B SaaS</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">ARPA</div>
+    <div class="kpi-value">500€+</div>
+    <div class="kpi-sub">Revenu moyen par compte</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Magic Number</div>
+    <div class="kpi-value">&gt; 0.7</div>
+    <div class="kpi-sub">Efficacité de la croissance</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">NPS</div>
+    <div class="kpi-value">&gt; 40</div>
+    <div class="kpi-sub">Satisfaction client</div>
+  </div>
+</div>
+
+<h3>9.5 Dashboard hebdomadaire — template à dupliquer</h3>
+
+<p>Chaque vendredi 17h, remplir ce tableau en 15 minutes. Tu suivras la progression sur 13 semaines.</p>
+
+<table class="compact">
+  <thead>
+    <tr><th>Métrique</th><th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>...</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Connection requests envoyées</td><td>0</td><td>0</td><td>50</td><td>50</td><td>...</td></tr>
+    <tr><td>Connection acceptées</td><td>0</td><td>0</td><td>15</td><td>18</td><td>...</td></tr>
+    <tr><td>DMs envoyés</td><td>0</td><td>0</td><td>15</td><td>30</td><td>...</td></tr>
+    <tr><td>Réponses DMs</td><td>0</td><td>0</td><td>2</td><td>5</td><td>...</td></tr>
+    <tr><td>Calls bookés</td><td>0</td><td>0</td><td>0</td><td>2</td><td>...</td></tr>
+    <tr><td>Calls effectués</td><td>0</td><td>0</td><td>0</td><td>1</td><td>...</td></tr>
+    <tr><td>Design partners signés</td><td>0</td><td>0</td><td>0</td><td>0</td><td>...</td></tr>
+    <tr><td>Articles publiés</td><td>1</td><td>1</td><td>1</td><td>1</td><td>...</td></tr>
+    <tr><td>Réponses groupes FB</td><td>5</td><td>15</td><td>25</td><td>25</td><td>...</td></tr>
+    <tr><td>Visites site (Plausible)</td><td>20</td><td>40</td><td>80</td><td>120</td><td>...</td></tr>
+    <tr><td>Inscrits newsletter</td><td>2</td><td>5</td><td>12</td><td>18</td><td>...</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <div class="callout-title">Discipline du reporting</div>
+  <p>Ce tableau n'a de valeur que si tu le remplis <strong>chaque semaine sans exception</strong>. Si tu sautes une semaine, tu sautes deux. Si tu sautes deux, c'est fini. Mets un rappel récurrent dans ton agenda : "Vendredi 17h — KPI review".</p>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 10 — OUTILS & BUDGET
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>10. Outils, budget et stack opérationnel</h2>
+
+<p>Voici les outils essentiels pour exécuter cette stratégie, leur coût mensuel, et leurs alternatives.</p>
+
+<h3>10.1 Stack outils recommandé</h3>
+
+<table>
+  <thead>
+    <tr><th>Outil</th><th>Usage</th><th>Coût /mois</th><th>Alternatives</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>LinkedIn Sales Navigator</strong></td>
+      <td>Recherche prospects, filtres avancés</td>
+      <td>80 €</td>
+      <td>Apollo.io (60€), Lusha (49€)</td>
+    </tr>
+    <tr>
+      <td><strong>Lemlist</strong> (optionnel)</td>
+      <td>Automatisation séquences LinkedIn + email</td>
+      <td>50 €</td>
+      <td>La Growth Machine, Waalaxy, Dripify</td>
+    </tr>
+    <tr>
+      <td><strong>Calendly</strong></td>
+      <td>Réservation de calls</td>
+      <td>gratuit</td>
+      <td>Cal.com (open source)</td>
+    </tr>
+    <tr>
+      <td><strong>Loom</strong></td>
+      <td>Vidéos démo asynchrones</td>
+      <td>gratuit (25 vidéos)</td>
+      <td>Tella, ScreenStudio, OBS</td>
+    </tr>
+    <tr>
+      <td><strong>Notion</strong></td>
+      <td>CRM maison, docs, journal</td>
+      <td>gratuit</td>
+      <td>Airtable, Pipedrive (15€)</td>
+    </tr>
+    <tr>
+      <td><strong>Plausible Analytics</strong></td>
+      <td>Analytics web RGPD-friendly</td>
+      <td>9 €</td>
+      <td>Fathom (14€), Matomo Cloud (19€)</td>
+    </tr>
+    <tr>
+      <td><strong>Brevo</strong> (déjà chez vous)</td>
+      <td>Newsletter + email transactionnel</td>
+      <td>gratuit (300/jour)</td>
+      <td>Mailchimp, ConvertKit, Buttondown</td>
+    </tr>
+    <tr>
+      <td><strong>Tally / Typeform</strong></td>
+      <td>Formulaires onboarding + NPS</td>
+      <td>gratuit</td>
+      <td>Google Forms</td>
+    </tr>
+    <tr>
+      <td><strong>Canva Pro</strong></td>
+      <td>Visuels articles + LinkedIn + carrousels</td>
+      <td>13 €</td>
+      <td>Figma (gratuit), Photopea</td>
+    </tr>
+    <tr>
+      <td><strong>Cosmetic</strong> (Ghost / Hashnode)</td>
+      <td>Hébergement blog (si externe)</td>
+      <td>0-25 €</td>
+      <td>WordPress sur Clenzy directement</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>10.2 Budget mensuel total</h3>
+
+<table>
+  <thead><tr><th>Poste</th><th>Coût mensuel</th><th>Justification</th></tr></thead>
+  <tbody>
+    <tr><td>Sales Navigator</td><td>80 €</td><td>Indispensable pour prospection ciblée</td></tr>
+    <tr><td>Lemlist (mois 3+)</td><td>50 €</td><td>Optionnel — manuel possible au début</td></tr>
+    <tr><td>Plausible</td><td>9 €</td><td>RGPD = critique pour la France</td></tr>
+    <tr><td>Canva Pro</td><td>13 €</td><td>Production visuelle régulière</td></tr>
+    <tr><td>Calendly Pro</td><td>10 €</td><td>Quand 5+ types de calls (optionnel)</td></tr>
+    <tr><td>Hébergement landing</td><td>20 €</td><td>Vercel / Netlify Pro</td></tr>
+    <tr><td>Channex (Channel Manager, à M+3)</td><td>variable</td><td>~12 €/bien/mois revendable</td></tr>
+    <tr><td><strong>TOTAL pre-revenue</strong></td><td><strong>~130-180 €/mois</strong></td><td>Atteignable sans levée de fonds</td></tr>
+  </tbody>
+</table>
+
+<h3>10.3 Compétences à acquérir ou déléguer</h3>
+
+<p>Le fondateur tech va devoir développer ou déléguer ces compétences en 90 jours.</p>
+
+<table>
+  <thead><tr><th>Compétence</th><th>Niveau requis</th><th>Comment l'acquérir</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Cold messaging</strong></td>
+      <td>Intermédiaire</td>
+      <td>Livre <em>"Predictable Revenue"</em> (Aaron Ross). Cours Reforge "Sales Foundations" (1 jour).</td>
+    </tr>
+    <tr>
+      <td><strong>Discovery calls</strong></td>
+      <td>Intermédiaire</td>
+      <td>Livre <em>"The Mom Test"</em> (Rob Fitzpatrick) — 150 pages, lecture 1 weekend, transforme ta façon d'écouter.</td>
+    </tr>
+    <tr>
+      <td><strong>Demo skills</strong></td>
+      <td>Avancé</td>
+      <td>Livre <em>"Demo To Win"</em> (Bob Riefstahl). Filme tes propres démos et regarde-les.</td>
+    </tr>
+    <tr>
+      <td><strong>SEO basique</strong></td>
+      <td>Basique</td>
+      <td>Free courses sur Ahrefs Academy ou Semrush Academy. 4-6h.</td>
+    </tr>
+    <tr>
+      <td><strong>Copywriting</strong></td>
+      <td>Basique</td>
+      <td>Livre <em>"Building a StoryBrand"</em> (Donald Miller). Templates Copyhackers.</td>
+    </tr>
+    <tr>
+      <td><strong>Pricing strategy</strong></td>
+      <td>Basique</td>
+      <td>Livre <em>"Monetizing Innovation"</em> (Madhavan Ramanujam).</td>
+    </tr>
+    <tr>
+      <td><strong>Comptabilité indépendant</strong></td>
+      <td>Basique</td>
+      <td>Comptable externe (50-100€/mois) ou Indy.fr (40€/mois).</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>10.4 Quand recruter (jamais avant)</h3>
+
+<p>Plein de fondateurs recrutent trop tôt. Voici les seuils à viser avant chaque recrutement.</p>
+
+<table>
+  <thead><tr><th>Rôle</th><th>Recruter quand</th><th>Salaire indicatif FR</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Commercial / SDR</strong></td><td>10-15 clients payants, MRR &gt; 5k€</td><td>2500-3500 €/mois + commission</td></tr>
+    <tr><td><strong>Customer Success</strong></td><td>30+ clients payants, &gt; 30 tickets support/sem</td><td>2800-3800 €/mois</td></tr>
+    <tr><td><strong>Dev front/back</strong></td><td>15+ clients payants, MRR &gt; 8k€, roadmap saturée</td><td>4500-6500 €/mois (junior-mid)</td></tr>
+    <tr><td><strong>Marketing manager</strong></td><td>50+ clients payants, MRR &gt; 25k€</td><td>3500-5000 €/mois</td></tr>
+    <tr><td><strong>Co-fondateur business</strong></td><td>Si tu ne te sens pas commercial, dès M+3 si possible</td><td>Equity 25-40%</td></tr>
+  </tbody>
+</table>
+
+<h3>10.5 Quelques ressources externes utiles</h3>
+
+<h4>Livres essentiels (lecture &lt; 1 weekend chacun)</h4>
+
+<ul>
+  <li><strong>"The Mom Test"</strong> — Rob Fitzpatrick. <em>Comment poser les bonnes questions en discovery sans biaiser les réponses.</em></li>
+  <li><strong>"Obviously Awesome"</strong> — April Dunford. <em>Le livre référence sur le positionnement B2B.</em></li>
+  <li><strong>"Predictable Revenue"</strong> — Aaron Ross. <em>Le manuel de l'outbound moderne, écrit par l'ex-Salesforce.</em></li>
+  <li><strong>"Lean B2B"</strong> — Étienne Garbugli. <em>L'équivalent de Lean Startup pour le SaaS B2B. Pratique.</em></li>
+  <li><strong>"Hooked"</strong> — Nir Eyal. <em>Comment construire des produits qui créent de l'habitude.</em></li>
+</ul>
+
+<h4>Podcasts / chaînes YouTube (FR)</h4>
+
+<ul>
+  <li><strong>SaaSpasse</strong> — François Lanthier-Nadeau (Québec) — interviews fondateurs SaaS francophones</li>
+  <li><strong>Generation Do It Yourself</strong> — Matthieu Stefani — entrepreneurs FR multi-secteurs</li>
+  <li><strong>L'épopée</strong> — fondateurs FR tech</li>
+  <li><strong>The Generation Tech</strong> — décryptage tech FR</li>
+</ul>
+
+<h4>Communautés à rejoindre</h4>
+
+<ul>
+  <li><strong>Indie Hackers France</strong> (Slack) — fondateurs SaaS indépendants FR</li>
+  <li><strong>France Tech Founders</strong> (LinkedIn) — réseau pro</li>
+  <li><strong>Bootstrapped Founders</strong> (Discord) — communauté internationale fondateurs solo</li>
+</ul>
+
+<h3>10.6 Mantra de discipline pour les 90 jours</h3>
+
+<div class="callout callout-warning">
+  <div class="callout-title">À garder en tête chaque matin</div>
+  <p style="font-size: 11pt; font-style: italic;">"Je ne suis plus développeur. Pendant 90 jours, je suis commercial. Chaque heure passée à coder une feature non-essentielle est une heure volée à mon avenir d'entreprise. Je code uniquement les bugs critiques de mes design partners. Le reste, c'est marketing, ventes, et conversations clients."</p>
+</div>
+
+<div class="callout callout-success">
+  <div class="callout-title">À la fin des 90 jours</div>
+  <p>Tu auras soit :</p>
+  <ul>
+    <li><strong>3-10 design partners actifs</strong> et un produit qui résout des vraies douleurs → tu rentres dans la phase "premier client payant" (M+4 à M+9), tu en sais 10x plus sur ton marché qu'aujourd'hui, et tu as construit un actif marketing (témoignages, articles, vidéos) qui compoundera.</li>
+    <li><strong>0-2 design partners</strong> → tu as appris pourquoi le marché ne mord pas, et tu peux pivoter avec des données plutôt qu'avec des intuitions. Mieux vaut un pivot à M+3 qu'à M+18.</li>
+  </ul>
+  <p>Dans les deux cas, tu auras gagné une chose précieuse : la <strong>certitude</strong> sur la suite. C'est ça, le vrai cadeau des 90 jours.</p>
+</div>
+
+<hr class="divider">
+
+<p style="text-align: center; color: #718096; font-size: 10pt; margin-top: 8mm;">
+  <em>Document Clenzy — Stratégie d'acquisition pre-revenue<br>
+  Version 1.0 — Mai 2026<br>
+  Destiné au fondateur, à relire chaque semaine pendant 90 jours.</em>
+</p>
+
+</section>
+
+</body>
+</html>

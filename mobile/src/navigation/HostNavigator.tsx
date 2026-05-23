@@ -52,6 +52,11 @@ import { PdfViewerScreen } from '@/screens/shared/PdfViewerScreen';
 import { BillingDashboardScreen } from '@/screens/host/BillingDashboardScreen';
 import { PaymentDetailScreen } from '@/screens/host/PaymentDetailScreen';
 import { InvoiceListScreen } from '@/screens/host/InvoiceListScreen';
+import { OwnerPayoutsScreen } from '@/screens/host/OwnerPayoutsScreen';
+import { OwnerPayoutDetailScreen } from '@/screens/host/OwnerPayoutDetailScreen';
+import { GeneratePayoutScreen } from '@/screens/host/GeneratePayoutScreen';
+import { PayoutStatsScreen } from '@/screens/host/PayoutStatsScreen';
+import { SendOwnerStatementScreen } from '@/screens/host/SendOwnerStatementScreen';
 import { InvoiceDetailScreen } from '@/screens/host/InvoiceDetailScreen';
 import { AnalyticsExportScreen } from '@/screens/host/AnalyticsExportScreen';
 import { MessageTemplatesScreen } from '@/screens/shared/MessageTemplatesScreen';
@@ -129,6 +134,11 @@ export type MoreStackParamList = {
   BillingDashboard: undefined;
   PaymentDetail: { paymentId: number; payment: PaymentRecord };
   InvoiceList: undefined;
+  OwnerPayouts: undefined;
+  OwnerPayoutDetail: { id: number };
+  GeneratePayout: undefined;
+  PayoutStats: undefined;
+  SendOwnerStatement: { ownerId: number; ownerName?: string; ownerEmail?: string };
   InvoiceDetail: { invoiceId: number; invoice: Invoice };
   Documents: undefined;
   DocumentDetail: { documentId: number };
@@ -224,6 +234,19 @@ function MoreStackNavigator() {
       <MoreStack.Screen name="BillingDashboard" component={BillingDashboardScreen} />
       <MoreStack.Screen name="PaymentDetail" component={PaymentDetailScreen} />
       <MoreStack.Screen name="InvoiceList" component={InvoiceListScreen} />
+      <MoreStack.Screen name="OwnerPayouts" component={OwnerPayoutsScreen} />
+      <MoreStack.Screen name="OwnerPayoutDetail" component={OwnerPayoutDetailScreen} />
+      <MoreStack.Screen
+        name="GeneratePayout"
+        component={GeneratePayoutScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <MoreStack.Screen name="PayoutStats" component={PayoutStatsScreen} />
+      <MoreStack.Screen
+        name="SendOwnerStatement"
+        component={SendOwnerStatementScreen}
+        options={{ presentation: 'modal' }}
+      />
       <MoreStack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} />
       <MoreStack.Screen name="Documents" component={DocumentsScreen} />
       <MoreStack.Screen name="DocumentDetail" component={DocumentDetailScreen} />

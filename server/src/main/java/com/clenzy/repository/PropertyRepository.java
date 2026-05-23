@@ -58,6 +58,14 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     long countByOwnerKeycloakId(@Param("ownerKeycloakId") String ownerKeycloakId, @Param("orgId") Long orgId);
 
     long countByOrganizationId(Long organizationId);
+
+    /**
+     * Liste les identifiants distincts des proprietaires qui possedent au moins
+     * une propriete dans l'organisation. Utilise pour la generation batch de
+     * reversements en fin de mois.
+     */
+    @Query("SELECT DISTINCT p.owner.id FROM Property p WHERE p.organizationId = :orgId AND p.owner IS NOT NULL")
+    List<Long> findDistinctOwnerIdsByOrgId(@Param("orgId") Long orgId);
     
     /**
      * Requête pour les IDs seulement (pour les vérifications d'existence)
