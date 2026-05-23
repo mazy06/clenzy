@@ -275,6 +275,32 @@ export const bookingEngineApi = {
       violations: string[];
     }>(`/public/booking/${slug}/availability`, data),
 
+  /**
+   * Admin variant: check availability + full pricing breakdown without needing
+   * the org slug. Resolves the org via the authenticated user's TenantContext.
+   *
+   * Used by the booking engine preview in the PMS to compute the real tourist tax
+   * (vs the public widget which uses the slug-based endpoint above).
+   */
+  checkPropertyAvailabilityAdmin: (data: {
+    propertyId: number;
+    checkIn: string;
+    checkOut: string;
+    guests: number;
+  }) =>
+    apiClient.post<{
+      available: boolean;
+      propertyId: number;
+      propertyName: string | null;
+      nights: number;
+      subtotal: number;
+      cleaningFee: number;
+      touristTax: number;
+      total: number;
+      currency: string | null;
+      violations: string[];
+    }>('/booking-engine/calendar/availability-check', data),
+
   // ─── Checkout (Stripe) ─────────────────────────────────────────────
 
   createCheckoutSession: (data: {

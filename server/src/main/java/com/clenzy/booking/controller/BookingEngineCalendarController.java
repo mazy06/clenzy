@@ -1,8 +1,17 @@
 package com.clenzy.booking.controller;
 
+import com.clenzy.booking.dto.AvailabilityRequestDto;
+import com.clenzy.booking.dto.AvailabilityResponseDto;
 import com.clenzy.booking.dto.CalendarAvailabilityResponseDto;
+import com.clenzy.booking.model.BookingEngineConfig;
+import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.booking.service.BookingEngineCalendarService;
+import com.clenzy.booking.service.PublicBookingService;
+import com.clenzy.booking.service.PublicBookingService.OrgContext;
+import com.clenzy.model.Organization;
+import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.tenant.TenantContext;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -25,11 +34,20 @@ public class BookingEngineCalendarController {
 
     private final BookingEngineCalendarService calendarService;
     private final TenantContext tenantContext;
+    private final PublicBookingService publicBookingService;
+    private final OrganizationRepository organizationRepository;
+    private final BookingEngineConfigRepository configRepository;
 
     public BookingEngineCalendarController(BookingEngineCalendarService calendarService,
-                                            TenantContext tenantContext) {
+                                            TenantContext tenantContext,
+                                            PublicBookingService publicBookingService,
+                                            OrganizationRepository organizationRepository,
+                                            BookingEngineConfigRepository configRepository) {
         this.calendarService = calendarService;
         this.tenantContext = tenantContext;
+        this.publicBookingService = publicBookingService;
+        this.organizationRepository = organizationRepository;
+        this.configRepository = configRepository;
     }
 
     /**
@@ -60,5 +78,33 @@ public class BookingEngineCalendarController {
 
         return ResponseEntity.ok(
                 calendarService.getCalendarAvailability(orgId, effectiveFrom, effectiveTo, types, guests));
+    }
+
+    /**
+     * POST /api/booking-engine/calendar/availability-check
+     *
+     * Verifie la disponibilite d'une propriete sur des dates precises et retourne
+     * le breakdown complet (subtotal, cleaning fee, tourist tax, total).
+     *
+     * <p>Utilise par la preview du PMS (BookingCartPage / BookingPaymentPage) pour
+     * afficher le bon montant de taxe de sejour. Endpoint admin equivalent au
+     * {@code POST /api/public/booking/{slug}/availability} mais resout l'org via
+     * TenantContext au lieu du slug.</p>
+     */
+    @PostMapping("/availability-check")
+    @Operation(summary = "Verification de disponibilite avec breakdown complet (preview admin)")
+    public ResponseEntity<AvailabilityResponseDto> checkAvailability(
+            @Valid @RequestBody AvailabilityRequestDto request) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        Organization org = organizationRepository.findById(orgId)
+            .orElseThrow(() -> new IllegalStateException("Organisation introuvable : " + orgId));
+        BookingEngineConfig config = configRepository.findAllByOrganizationId(orgId)
+            .stream().filter(BookingEngineConfig::isEnabled).findFirst()
+            .orElseThrow(() -> new IllegalStateException(
+                "Booking Engine desactive pour l'organisation " + orgId));
+
+        OrgContext ctx = new OrgContext(org, config);
+        return ResponseEntity.ok(publicBookingService.checkAvailability(ctx, request));
     }
 }

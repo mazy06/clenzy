@@ -32,12 +32,13 @@ class StripeWebhookControllerTest {
     @Mock private PaymentOrchestrationService orchestrationService;
     @Mock private StripeConnectService stripeConnectService;
     @Mock private com.clenzy.service.ShopService shopService;
+    @Mock private com.clenzy.booking.service.PublicBookingService publicBookingService;
 
     private StripeWebhookController controller;
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService);
+        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService);
         setField("webhookSecret", "whsec_test_secret");
         setField("stripeSecretKey", "sk_test_xxx");
     }
