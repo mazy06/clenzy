@@ -1165,3 +1165,13 @@ databaseChangeLog:
       sqlFile:
         path: changes/0124__add_wise_and_openbanking_to_owner_payout_config.sql
         relativeToChangelogFile: true
+
+  # --- 0125 : Channex Channel Manager — mapping tables (Sprint 2 du plan) ---
+  - changeSet:
+      id: "0125-add-channex-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0125__add_channex_tables.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
