@@ -68,21 +68,21 @@ class ChannexWebhookControllerTest {
     @Test
     @DisplayName("Signature invalide -> 401 + bookingService non appele")
     void rejectsInvalidSignature() {
-        when(signatureValidator.isValid(anyString(), anyString())).thenReturn(false);
+        when(signatureValidator.isValid(anyString())).thenReturn(false);
 
         ResponseEntity<Map<String, Object>> response = controller.handleWebhook(
             "sig-invalid", VALID_NEW_BOOKING_BODY
         );
 
         assertThat(response.getStatusCode().value()).isEqualTo(401);
-        assertThat(response.getBody()).containsEntry("error", "invalid_signature");
+        assertThat(response.getBody()).containsEntry("error", "invalid_token");
         verify(bookingService, never()).handleNewBooking(any());
     }
 
     @Test
     @DisplayName("Signature null -> 401 (header manquant)")
     void rejectsMissingSignature() {
-        when(signatureValidator.isValid(anyString(), any())).thenReturn(false);
+        when(signatureValidator.isValid(any())).thenReturn(false);
 
         ResponseEntity<Map<String, Object>> response = controller.handleWebhook(
             null, VALID_NEW_BOOKING_BODY
@@ -94,7 +94,7 @@ class ChannexWebhookControllerTest {
     @Test
     @DisplayName("Payload JSON malforme -> 400 + bookingService non appele")
     void rejectsMalformedPayload() {
-        when(signatureValidator.isValid(anyString(), anyString())).thenReturn(true);
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
 
         ResponseEntity<Map<String, Object>> response = controller.handleWebhook(
             "sig-ok", "{ broken json"
@@ -108,7 +108,7 @@ class ChannexWebhookControllerTest {
     @Test
     @DisplayName("event=booking_new -> dispatch vers handleNewBooking + 200")
     void dispatchesBookingNew() {
-        when(signatureValidator.isValid(anyString(), anyString())).thenReturn(true);
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
 
         Reservation r = new Reservation();
         r.setId(42L);
@@ -130,7 +130,7 @@ class ChannexWebhookControllerTest {
     @DisplayName("event=booking_modification -> dispatch + 200")
     void dispatchesBookingModification() {
         String body = VALID_NEW_BOOKING_BODY.replace("booking_new", "booking_modification");
-        when(signatureValidator.isValid(anyString(), anyString())).thenReturn(true);
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
 
         Reservation r = new Reservation();
         r.setId(99L);
@@ -146,7 +146,7 @@ class ChannexWebhookControllerTest {
     @DisplayName("event=booking_cancellation -> dispatch + 200")
     void dispatchesBookingCancellation() {
         String body = VALID_NEW_BOOKING_BODY.replace("booking_new", "booking_cancellation");
-        when(signatureValidator.isValid(anyString(), anyString())).thenReturn(true);
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
 
         Reservation r = new Reservation();
         r.setId(7L);
@@ -161,7 +161,7 @@ class ChannexWebhookControllerTest {
     @DisplayName("event inconnu (review_received) -> 200 ignored, pas de dispatch booking")
     void ignoresUnknownEvent() {
         String body = VALID_NEW_BOOKING_BODY.replace("booking_new", "review_received");
-        when(signatureValidator.isValid(anyString(), anyString())).thenReturn(true);
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
 
         ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -174,7 +174,7 @@ class ChannexWebhookControllerTest {
     @Test
     @DisplayName("Erreur metier (IllegalStateException: mapping absent) -> 400")
     void mapsBusinessExceptionTo400() {
-        when(signatureValidator.isValid(anyString(), anyString())).thenReturn(true);
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
         when(bookingService.handleNewBooking(any()))
             .thenThrow(new IllegalStateException("Aucun ChannexPropertyMapping pour channex_property_id=unknown"));
 
@@ -189,7 +189,7 @@ class ChannexWebhookControllerTest {
     @Test
     @DisplayName("Erreur technique imprevue (NPE) -> 500 pour que Channex retry")
     void mapsTechnicalExceptionTo500() {
-        when(signatureValidator.isValid(anyString(), anyString())).thenReturn(true);
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
         when(bookingService.handleNewBooking(any()))
             .thenThrow(new RuntimeException("DB connection lost"));
 
@@ -204,7 +204,7 @@ class ChannexWebhookControllerTest {
     @Test
     @DisplayName("Payload sans event -> 400 missing_event")
     void rejectsMissingEvent() {
-        when(signatureValidator.isValid(anyString(), anyString())).thenReturn(true);
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
         String body = """
             { "timestamp": "2026-06-01T10:00:00Z", "property_id": "p", "payload": {} }
             """;
