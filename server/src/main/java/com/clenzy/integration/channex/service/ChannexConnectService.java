@@ -3,7 +3,12 @@ package com.clenzy.integration.channex.service;
 import com.clenzy.integration.channex.client.ChannexClient;
 import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexConnectRequest;
+import com.clenzy.integration.channex.dto.ChannexCreatePropertyRequest;
+import com.clenzy.integration.channex.dto.ChannexCreateRatePlanRequest;
+import com.clenzy.integration.channex.dto.ChannexCreateRoomTypeRequest;
 import com.clenzy.integration.channex.dto.ChannexPropertyDto;
+import com.clenzy.integration.channex.dto.ChannexRatePlanDto;
+import com.clenzy.integration.channex.dto.ChannexRoomTypeDto;
 import com.clenzy.integration.channex.exception.ChannexException;
 import com.clenzy.integration.channex.model.ChannexPropertyMapping;
 import com.clenzy.integration.channex.model.ChannexSyncStatus;
@@ -68,9 +73,17 @@ public class ChannexConnectService {
     /**
      * Connecte une property Clenzy a son equivalent Channex.
      *
+     * <p>Deux modes selon {@link ChannexConnectRequest#effectiveMode()} :</p>
+     * <ul>
+     *   <li>{@code AUTO_CREATE} : on cree Property + Room Type + Rate Plan
+     *       dans Channex en derivant les attributs de la Property Clenzy</li>
+     *   <li>{@code IMPORT_EXISTING} : on importe les 3 IDs fournis (apres
+     *       verification d'existence via getProperty)</li>
+     * </ul>
+     *
      * @throws IllegalStateException si la property Clenzy est introuvable ou n'appartient
      *         pas a l'organisation, OU si un mapping existe deja, OU si la property
-     *         Channex n'existe pas (verifie par appel API).
+     *         Channex n'existe pas (mode IMPORT) ou ne peut etre creee (mode AUTO).
      */
     @Transactional
     public ChannexPropertyMapping connect(Long clenzyPropertyId, Long orgId, ChannexConnectRequest request) {
@@ -90,32 +103,24 @@ public class ChannexConnectService {
                 + " est deja connectee a Channex (mapping " + existing.get().getId() + ")");
         }
 
-        // 3. Verifier que la property Channex existe (appel API)
-        ChannexPropertyDto channexProperty;
-        try {
-            channexProperty = channexClient.getProperty(request.channexPropertyId());
-        } catch (ChannexException e) {
-            log.error("ChannexConnect: impossible de verifier la property Channex {}: {}",
-                request.channexPropertyId(), e.getMessage());
-            if (e.getKind() == ChannexException.Kind.NOT_FOUND) {
-                throw new IllegalStateException("Property Channex introuvable : "
-                    + request.channexPropertyId() + ". Verifiez l'ID dans le dashboard Channex.");
-            }
-            throw new IllegalStateException("Erreur API Channex : " + e.getMessage());
-        }
+        // 3. Resoudre les 3 IDs Channex selon le mode
+        ChannexConnectRequest.Mode mode = request.effectiveMode();
+        ChannexIds ids = (mode == ChannexConnectRequest.Mode.AUTO_CREATE)
+            ? autoCreateInChannex(property)
+            : verifyImportedIds(request);
 
         // 4. Creer le mapping en PENDING
         ChannexPropertyMapping mapping = new ChannexPropertyMapping();
         mapping.setOrganizationId(orgId);
         mapping.setClenzyPropertyId(clenzyPropertyId);
-        mapping.setChannexPropertyId(request.channexPropertyId());
-        mapping.setChannexRoomTypeId(request.channexRoomTypeId());
-        mapping.setChannexDefaultRatePlanId(request.channexDefaultRatePlanId());
+        mapping.setChannexPropertyId(ids.propertyId);
+        mapping.setChannexRoomTypeId(ids.roomTypeId);
+        mapping.setChannexDefaultRatePlanId(ids.ratePlanId);
         mapping.setSyncStatus(ChannexSyncStatus.PENDING);
         mapping = mappingRepository.save(mapping);
 
-        log.info("ChannexConnect: mapping cree {} pour property {} (Channex={})",
-            mapping.getId(), clenzyPropertyId, channexProperty.id());
+        log.info("ChannexConnect: mapping cree {} pour property {} (mode={}, Channex={})",
+            mapping.getId(), clenzyPropertyId, mode, ids.propertyId);
         metrics.recordMappingCreated();
 
         // 5. Push initial (best-effort, peut echouer sans rollback du mapping —
@@ -135,6 +140,82 @@ public class ChannexConnectService {
 
         // Re-lire pour avoir le status final apres push
         return mappingRepository.findById(mapping.getId()).orElse(mapping);
+    }
+
+    // ─── Helpers de resolution des IDs Channex ──────────────────────────────
+
+    /** Triple d'identifiants Channex. */
+    private record ChannexIds(String propertyId, String roomTypeId, String ratePlanId) {}
+
+    /**
+     * Mode AUTO_CREATE : cree Property + Room Type + Rate Plan dans Channex
+     * via 3 appels API. Les attributs sont derives de la Property Clenzy.
+     */
+    private ChannexIds autoCreateInChannex(Property property) {
+        // Property : derivation depuis Clenzy
+        String currency = property.getDefaultCurrency() != null && !property.getDefaultCurrency().isBlank()
+            ? property.getDefaultCurrency().toUpperCase() : "EUR";
+        String country = property.getCountryCode() != null && property.getCountryCode().length() == 2
+            ? property.getCountryCode().toUpperCase() : "FR";
+        String title = property.getName() != null && !property.getName().isBlank()
+            ? property.getName() : ("Clenzy Property #" + property.getId());
+
+        try {
+            ChannexPropertyDto created = channexClient.createProperty(new ChannexCreatePropertyRequest(
+                title, currency, country, "Europe/Paris", null
+            ));
+            log.info("ChannexConnect[AUTO]: property creee {} ({})", created.id(), created.title());
+
+            // Room Type : 1 unite, capacite = maxGuests de la Clenzy property
+            int maxAdults = property.getMaxGuests() != null ? property.getMaxGuests() : 2;
+            ChannexRoomTypeDto roomType = channexClient.createRoomType(
+                ChannexCreateRoomTypeRequest.simple(created.id(), title, maxAdults)
+            );
+            log.info("ChannexConnect[AUTO]: room_type cree {}", roomType.id());
+
+            // Rate Plan standard
+            ChannexRatePlanDto ratePlan = channexClient.createRatePlan(
+                ChannexCreateRatePlanRequest.standard(created.id(), roomType.id(), currency)
+            );
+            log.info("ChannexConnect[AUTO]: rate_plan cree {}", ratePlan.id());
+
+            return new ChannexIds(created.id(), roomType.id(), ratePlan.id());
+        } catch (ChannexException e) {
+            log.error("ChannexConnect[AUTO]: echec creation pour property {}: {}",
+                property.getId(), e.getMessage());
+            if (e.getKind() == ChannexException.Kind.UNAUTHORIZED) {
+                throw new IllegalStateException(
+                    "Cle API Channex invalide ou manquante. Verifiez CHANNEX_API_KEY dans l'env.");
+            }
+            throw new IllegalStateException("Echec auto-creation Channex : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Mode IMPORT_EXISTING : verifie que les 3 IDs sont fournis et que la
+     * property Channex existe.
+     */
+    private ChannexIds verifyImportedIds(ChannexConnectRequest request) {
+        if (!request.hasAllIds()) {
+            throw new IllegalStateException("Mode IMPORT_EXISTING : les 3 IDs Channex sont obligatoires "
+                + "(channexPropertyId, channexRoomTypeId, channexDefaultRatePlanId).");
+        }
+        try {
+            channexClient.getProperty(request.channexPropertyId());
+        } catch (ChannexException e) {
+            log.error("ChannexConnect[IMPORT]: impossible de verifier la property Channex {}: {}",
+                request.channexPropertyId(), e.getMessage());
+            if (e.getKind() == ChannexException.Kind.NOT_FOUND) {
+                throw new IllegalStateException("Property Channex introuvable : "
+                    + request.channexPropertyId() + ". Verifiez l'ID dans le dashboard Channex.");
+            }
+            throw new IllegalStateException("Erreur API Channex : " + e.getMessage());
+        }
+        return new ChannexIds(
+            request.channexPropertyId(),
+            request.channexRoomTypeId(),
+            request.channexDefaultRatePlanId()
+        );
     }
 
     // ─── Disconnect ─────────────────────────────────────────────────────────

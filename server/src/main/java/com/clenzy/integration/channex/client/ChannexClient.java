@@ -4,8 +4,12 @@ import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.config.ChannexProperties;
 import com.clenzy.integration.channex.dto.ChannexAvailabilityUpdate;
 import com.clenzy.integration.channex.dto.ChannexCreatePropertyRequest;
+import com.clenzy.integration.channex.dto.ChannexCreateRatePlanRequest;
+import com.clenzy.integration.channex.dto.ChannexCreateRoomTypeRequest;
 import com.clenzy.integration.channex.dto.ChannexPropertyDto;
+import com.clenzy.integration.channex.dto.ChannexRatePlanDto;
 import com.clenzy.integration.channex.dto.ChannexRateUpdate;
+import com.clenzy.integration.channex.dto.ChannexRoomTypeDto;
 import com.clenzy.integration.channex.exception.ChannexException;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
@@ -90,6 +94,35 @@ public class ChannexClient {
         String url = props.getBaseUrl() + "/properties/" + channexPropertyId;
         exchange(HttpMethod.DELETE, url, null, Void.class);
         log.info("Channex: property deleted id={}", channexPropertyId);
+    }
+
+    // ─── Room Types ─────────────────────────────────────────────────────────
+
+    /**
+     * Cree un Room Type cote Channex, sous-resource d'une Property.
+     * Au moins 1 room_type est requis avant de pouvoir creer un rate_plan
+     * ou push des disponibilites.
+     */
+    public ChannexRoomTypeDto createRoomType(ChannexCreateRoomTypeRequest req) {
+        String url = props.getBaseUrl() + "/room_types";
+        ChannexRoomTypeDto created = exchange(HttpMethod.POST, url, req.toApiPayload(), ChannexRoomTypeDto.class);
+        log.info("Channex: room_type created id={} title={} property={}",
+            created.id(), created.title(), created.propertyId());
+        return created;
+    }
+
+    // ─── Rate Plans ─────────────────────────────────────────────────────────
+
+    /**
+     * Cree un Rate Plan cote Channex, lie a un Room Type.
+     * Au moins 1 rate_plan est requis avant de pouvoir push des prix.
+     */
+    public ChannexRatePlanDto createRatePlan(ChannexCreateRatePlanRequest req) {
+        String url = props.getBaseUrl() + "/rate_plans";
+        ChannexRatePlanDto created = exchange(HttpMethod.POST, url, req.toApiPayload(), ChannexRatePlanDto.class);
+        log.info("Channex: rate_plan created id={} title={} property={} room_type={}",
+            created.id(), created.title(), created.propertyId(), created.roomTypeId());
+        return created;
     }
 
     // ─── Availability ───────────────────────────────────────────────────────
@@ -221,6 +254,8 @@ public class ChannexClient {
         if (path.endsWith("/properties") && method == HttpMethod.POST) return "create_property";
         if (path.contains("/properties/") && method == HttpMethod.GET) return "get_property";
         if (path.contains("/properties/") && method == HttpMethod.DELETE) return "delete_property";
+        if (path.endsWith("/room_types") && method == HttpMethod.POST) return "create_room_type";
+        if (path.endsWith("/rate_plans") && method == HttpMethod.POST) return "create_rate_plan";
         if (path.endsWith("/availability")) return "push_availability";
         if (path.endsWith("/restrictions")) return "push_rates";
         if (path.contains("/bookings/")) return "get_booking";

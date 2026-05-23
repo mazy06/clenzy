@@ -22,10 +22,19 @@ export interface ChannexMappingDto {
   updatedAt: string;
 }
 
+/**
+ * Mode de connexion :
+ * - AUTO_CREATE : Clenzy cree Property + Room Type + Rate Plan dans Channex
+ *   en derivant les attributs depuis la Property Clenzy (nom, pays, devise, max guests)
+ * - IMPORT_EXISTING : l'utilisateur fournit les 3 IDs deja crees dans Channex
+ */
+export type ChannexConnectMode = 'AUTO_CREATE' | 'IMPORT_EXISTING';
+
 export interface ChannexConnectRequest {
-  channexPropertyId: string;
-  channexRoomTypeId: string;
-  channexDefaultRatePlanId: string;
+  mode?: ChannexConnectMode;
+  channexPropertyId?: string;
+  channexRoomTypeId?: string;
+  channexDefaultRatePlanId?: string;
 }
 
 export interface ChannexSyncResult {
