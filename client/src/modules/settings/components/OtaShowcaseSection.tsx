@@ -25,13 +25,26 @@ const ACCENT = '#4A9B8E';
 const NEUTRAL = '#8A8378';
 const SEGMENT_B2B = '#7BA3C2';
 
-export default function OtaShowcaseSection() {
+interface OtaShowcaseSectionProps {
+  /**
+   * Filtre par ID d'OTA : si non-null, on n'affiche QUE la card de l'OTA
+   * correspondant (utile depuis l'autocomplete de recherche). null = toutes
+   * les cards visibles (comportement par defaut).
+   */
+  serviceFilter?: string | null;
+}
+
+export default function OtaShowcaseSection({ serviceFilter = null }: OtaShowcaseSectionProps = {}) {
   const navigate = useNavigate();
   const { isConnected, getStatus } = useChannelConnections();
   const { data: airbnbStatus } = useAirbnbConnectionStatus();
 
   // State : quel OTA a son modal ouvert (un seul dialog unifie pour tous les cas)
   const [openOta, setOpenOta] = useState<OtaChannel | null>(null);
+
+  const visibleChannels = serviceFilter
+    ? OTA_CHANNELS.filter((ota) => ota.id === serviceFilter)
+    : OTA_CHANNELS;
 
   const isOtaConnected = (ota: OtaChannel): boolean => {
     if (ota.id === 'airbnb') return !!airbnbStatus?.connected;
@@ -95,7 +108,7 @@ export default function OtaShowcaseSection() {
             mt: 1,
           }}
         >
-          {OTA_CHANNELS.map((ota) => {
+          {visibleChannels.map((ota) => {
             const segmentColor = ota.segment === 'B2C' ? ACCENT : SEGMENT_B2B;
             const connected = isOtaConnected(ota);
 

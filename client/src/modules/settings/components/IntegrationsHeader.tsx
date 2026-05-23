@@ -2,15 +2,13 @@ import React from 'react';
 import {
   Autocomplete,
   Box,
-  Chip,
-  Paper,
   Select,
   MenuItem,
   TextField,
   Typography,
   InputAdornment,
 } from '@mui/material';
-import { Search as SearchIcon, Filter as FilterIcon } from '../../../icons';
+import { Search as SearchIcon } from '../../../icons';
 import {
   ALL_SERVICES,
   CATEGORIES,
@@ -19,43 +17,55 @@ import {
 } from '../../../services/integrations/allServicesIndex';
 
 /**
- * Header de la tab Integrations : recherche autocomplete + filtre par categorie.
+ * Header compact (recherche + filtre categorie) destine au slot {@code filters}
+ * du PageHeader de la page Parametres. Aucune surface propre (pas de Paper) :
+ * juste 2 champs inline qui s'integrent visuellement dans le bandeau de titre.
  *
- * <h2>UX</h2>
+ * <h2>Tailles</h2>
  * <ul>
- *   <li>Autocomplete : tape pour rechercher parmi les ~50 services. Selectionner
- *       une suggestion declenche {@code onSelectService} qui scroll vers la
- *       section concernee.</li>
- *   <li>Select : filtre par categorie. "Toutes" = aucun filtre. Selection =
- *       n'affiche que cette section + ses sous-cards.</li>
+ *   <li>Autocomplete : largeur 220-260px responsive, height 34px</li>
+ *   <li>Select : largeur 180px, height 34px</li>
+ *   <li>Gap 8px entre les 2</li>
  * </ul>
  *
- * <h2>Layout</h2>
- * <p>Sticky en haut de la tab pour rester accessible quand on scroll.
- * Theme-aware (background.paper, divider, etc.).</p>
+ * <h2>Theme-aware</h2>
+ * <p>Borders {@code divider}, focus ACCENT, dropdown {@code background.paper}.</p>
  */
 
 const ACCENT = '#4A9B8E';
 
 interface IntegrationsHeaderProps {
-  /** ID de la categorie actuellement filtree, ou null pour "Toutes". */
   selectedCategoryId: string | null;
   onCategoryChange: (categoryId: string | null) => void;
-  /** Callback quand l'utilisateur selectionne un service dans l'autocomplete. */
-  onSelectService?: (service: ServiceIndexEntry) => void;
+  /**
+   * Service actuellement filtre (affiche dans l'input de l'autocomplete).
+   * {@code null} = aucun filtre service actif → l'input affiche son
+   * placeholder. Mode controle complet : le parent possede l'etat.
+   */
+  selectedService?: ServiceIndexEntry | null;
+  /**
+   * Callback declenche soit avec un service (selection via l'autocomplete),
+   * soit avec {@code null} quand l'utilisateur clic sur le bouton X clear
+   * de MUI pour reset le filtre.
+   */
+  onSelectService?: (service: ServiceIndexEntry | null) => void;
 }
 
 export default function IntegrationsHeader({
   selectedCategoryId,
   onCategoryChange,
+  selectedService = null,
   onSelectService,
 }: IntegrationsHeaderProps) {
+  // Mode controle : la {@code value} de l'autocomplete vient du parent
+  // ({@code selectedService}). Quand un service est filtre, son nom apparait
+  // dans l'input — l'utilisateur voit ce qu'il a recherche au lieu d'un
+  // placeholder vide. Clic sur X (clearable natif MUI) → onChange(null) →
+  // le parent reset le filtre.
   const handleSelectService = (service: ServiceIndexEntry | null) => {
-    if (!service) return;
     if (onSelectService) {
       onSelectService(service);
-    } else {
-      // Fallback : scroll direct vers la section
+    } else if (service) {
       const domId = getDomIdForCategory(service.categoryId);
       if (domId) {
         document.getElementById(domId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -63,70 +73,54 @@ export default function IntegrationsHeader({
     }
   };
 
+  const fieldSx = {
+    fontSize: '0.78rem',
+    borderRadius: '8px',
+    height: 34,
+    '& .MuiOutlinedInput-root': { height: 34, fontSize: '0.78rem' },
+    '& .MuiOutlinedInput-input': { py: 0 },
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: `${ACCENT}66` },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline, & .Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: ACCENT,
+    },
+  };
+
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-        borderRadius: '12px',
-        border: '1px solid',
-        borderColor: 'divider',
-        backgroundColor: 'background.paper',
-        boxShadow: 'none',
-        mb: 2,
-        px: 2,
-        py: 1.5,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
-        flexWrap: 'wrap',
-      }}
-    >
-      {/* Recherche autocomplete */}
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
       <Autocomplete
         size="small"
         options={ALL_SERVICES}
         getOptionLabel={(option) => option.name}
         groupBy={(option) => option.categoryLabel}
         isOptionEqualToValue={(a, b) => a.id === b.id}
+        value={selectedService}
         onChange={(_, value) => handleSelectService(value)}
-        clearOnBlur
         blurOnSelect
-        sx={{
-          flex: 1,
-          minWidth: 240,
-        }}
+        sx={{ width: { xs: 200, sm: 240, md: 260 } }}
         renderInput={(params) => (
           <TextField
             {...params}
-            placeholder="Rechercher un service…"
+            placeholder="Rechercher…"
             InputProps={{
               ...params.InputProps,
               startAdornment: (
                 <>
-                  <InputAdornment position="start" sx={{ ml: 0.5, color: 'text.secondary' }}>
-                    <SearchIcon size={16} strokeWidth={2} />
+                  <InputAdornment position="start" sx={{ ml: 0.25, mr: -0.25, color: 'text.secondary' }}>
+                    <SearchIcon size={14} strokeWidth={2} />
                   </InputAdornment>
                   {params.InputProps.startAdornment}
                 </>
               ),
-              sx: {
-                fontSize: '0.82rem',
-                borderRadius: '8px',
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: `${ACCENT}66` },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ACCENT },
-              },
+              sx: fieldSx,
             }}
           />
         )}
         renderOption={(props, option) => {
           const { key, ...optionProps } = props as React.HTMLAttributes<HTMLLIElement> & { key?: React.Key };
           return (
-            <Box component="li" key={key} {...optionProps} sx={{ display: 'flex !important', alignItems: 'center', gap: 1, py: 0.625 }}>
-              <Typography sx={{ fontSize: '0.82rem', fontWeight: 500, color: 'text.primary' }}>
+            <Box component="li" key={key} {...optionProps} sx={{ display: 'flex !important', alignItems: 'center', py: 0.5 }}>
+              <Typography sx={{ fontSize: '0.78rem', fontWeight: 500, color: 'text.primary' }}>
                 {option.name}
               </Typography>
             </Box>
@@ -139,15 +133,15 @@ export default function IntegrationsHeader({
                 position: 'sticky',
                 top: 0,
                 backgroundColor: 'background.paper',
-                px: 1.5,
-                py: 0.5,
+                px: 1.25,
+                py: 0.375,
                 borderBottom: '1px solid',
                 borderColor: 'divider',
               }}
             >
               <Typography
                 sx={{
-                  fontSize: '0.62rem',
+                  fontSize: '0.6rem',
                   fontWeight: 700,
                   letterSpacing: '0.06em',
                   color: 'text.secondary',
@@ -171,79 +165,45 @@ export default function IntegrationsHeader({
                   ? '0 8px 24px rgba(0,0,0,0.5)'
                   : '0 8px 24px rgba(15,23,42,0.12)',
               mt: 0.5,
+              fontSize: '0.78rem',
             },
           },
         }}
       />
 
-      {/* Filtre categorie */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 220 }}>
-        <FilterIcon size={14} strokeWidth={2} color="currentColor" style={{ opacity: 0.6 }} />
-        <Select
-          size="small"
-          value={selectedCategoryId ?? '_all'}
-          onChange={(e) => {
-            const v = e.target.value;
-            onCategoryChange(v === '_all' ? null : v);
-          }}
-          displayEmpty
-          renderValue={(value) => {
-            if (value === '_all' || !value) {
-              return (
-                <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary' }}>
-                  Toutes les catégories
-                </Typography>
-              );
-            }
-            const cat = CATEGORIES.find((c) => c.id === value);
-            return (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <Chip
-                  label={cat?.label ?? value}
-                  size="small"
-                  sx={{
-                    height: 22,
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    bgcolor: `${ACCENT}14`,
-                    color: ACCENT,
-                    border: `1px solid ${ACCENT}33`,
-                    '& .MuiChip-label': { px: 0.75 },
-                  }}
-                />
-              </Box>
-            );
-          }}
-          sx={{
-            flex: 1,
-            fontSize: '0.82rem',
-            borderRadius: '8px',
-            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
-            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: `${ACCENT}66` },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ACCENT },
-          }}
-          MenuProps={{
-            PaperProps: {
-              sx: {
-                borderRadius: '10px',
-                border: '1px solid',
-                borderColor: 'divider',
-                mt: 0.5,
-                maxHeight: 380,
-              },
+      <Select
+        size="small"
+        value={selectedCategoryId ?? '_all'}
+        onChange={(e) => {
+          const v = e.target.value;
+          onCategoryChange(v === '_all' ? null : v);
+        }}
+        sx={{
+          width: { xs: 160, sm: 180 },
+          ...fieldSx,
+        }}
+        MenuProps={{
+          PaperProps: {
+            sx: {
+              borderRadius: '10px',
+              border: '1px solid',
+              borderColor: 'divider',
+              mt: 0.5,
+              maxHeight: 340,
+              fontSize: '0.78rem',
             },
-          }}
-        >
-          <MenuItem value="_all" sx={{ fontSize: '0.82rem' }}>
-            Toutes les catégories
+          },
+        }}
+      >
+        <MenuItem value="_all" sx={{ fontSize: '0.78rem' }}>
+          Toutes les catégories
+        </MenuItem>
+        {CATEGORIES.map((cat) => (
+          <MenuItem key={cat.id} value={cat.id} sx={{ fontSize: '0.78rem' }}>
+            {cat.label}
           </MenuItem>
-          {CATEGORIES.map((cat) => (
-            <MenuItem key={cat.id} value={cat.id} sx={{ fontSize: '0.82rem' }}>
-              {cat.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </Box>
-    </Paper>
+        ))}
+      </Select>
+    </Box>
   );
 }
