@@ -1,5 +1,6 @@
 package com.clenzy.integration.channex.client;
 
+import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.config.ChannexProperties;
 import com.clenzy.integration.channex.dto.ChannexAvailabilityUpdate;
 import com.clenzy.integration.channex.dto.ChannexCreatePropertyRequest;
@@ -55,11 +56,14 @@ public class ChannexClient {
 
     private final RestTemplate restTemplate;
     private final ChannexProperties props;
+    private final ChannexMetrics metrics;
 
     public ChannexClient(@Qualifier("channexRestTemplate") RestTemplate restTemplate,
-                          ChannexProperties props) {
+                          ChannexProperties props,
+                          ChannexMetrics metrics) {
         this.restTemplate = restTemplate;
         this.props = props;
+        this.metrics = metrics;
     }
 
     // ─── Properties ─────────────────────────────────────────────────────────
@@ -155,6 +159,9 @@ public class ChannexClient {
     /**
      * Wrapper unique pour tous les appels HTTP avec retry + mapping d'erreur.
      * Visible package-private pour les tests.
+     *
+     * <p>Instrumente avec ChannexMetrics : compteurs success/error/retry
+     * + histogramme latence avec tag operation (deduit du path URL).</p>
      */
     <T> T exchange(HttpMethod method, String url, Object body, Class<T> responseType) {
         if (!props.isConfigured()) {
@@ -169,6 +176,8 @@ public class ChannexClient {
         headers.set("User-Agent", "Clenzy-PMS/1.0 (channex-client)");
 
         HttpEntity<Object> entity = new HttpEntity<>(body, headers);
+        String operation = deriveOperationTag(method, url);
+        long startMs = System.currentTimeMillis();
 
         int attempt = 0;
         ChannexException lastError = null;
@@ -176,21 +185,46 @@ public class ChannexClient {
             attempt++;
             try {
                 ResponseEntity<T> response = restTemplate.exchange(url, method, entity, responseType);
+                metrics.recordClientSuccess(operation, System.currentTimeMillis() - startMs);
                 return response.getBody();
             } catch (HttpStatusCodeException e) {
                 lastError = mapHttpError(e.getStatusCode(), e.getResponseBodyAsString());
                 if (!lastError.isRetryable()) {
+                    metrics.recordClientError(operation, lastError.getKind().name(),
+                        System.currentTimeMillis() - startMs);
                     throw lastError;
                 }
+                metrics.recordClientRetry(operation);
                 backoff(attempt);
             } catch (ResourceAccessException e) {
                 lastError = new ChannexException(ChannexException.Kind.TRANSPORT,
                     "Network error calling Channex " + url + ": " + e.getMessage(), e);
+                metrics.recordClientRetry(operation);
                 backoff(attempt);
             }
         }
+        // Retries exhausted
+        metrics.recordClientError(operation,
+            lastError != null ? lastError.getKind().name() : "TRANSPORT",
+            System.currentTimeMillis() - startMs);
         throw lastError != null ? lastError
             : new ChannexException(ChannexException.Kind.TRANSPORT, "All retries failed for " + url);
+    }
+
+    /**
+     * Derive un tag d'operation simple a partir du verbe HTTP + path.
+     * Exemples : POST /properties → "create_property", POST /availability → "push_availability".
+     * On garde une enumeration courte pour eviter l'explosion cardinalite Prometheus.
+     */
+    private static String deriveOperationTag(HttpMethod method, String url) {
+        String path = url.replaceAll("^https?://[^/]+(/[^?]*).*$", "$1").toLowerCase();
+        if (path.endsWith("/properties") && method == HttpMethod.POST) return "create_property";
+        if (path.contains("/properties/") && method == HttpMethod.GET) return "get_property";
+        if (path.contains("/properties/") && method == HttpMethod.DELETE) return "delete_property";
+        if (path.endsWith("/availability")) return "push_availability";
+        if (path.endsWith("/restrictions")) return "push_rates";
+        if (path.contains("/bookings/")) return "get_booking";
+        return "other";
     }
 
     private ChannexException mapHttpError(HttpStatusCode status, String body) {

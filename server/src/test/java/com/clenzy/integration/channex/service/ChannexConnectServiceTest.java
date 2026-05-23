@@ -1,7 +1,9 @@
 package com.clenzy.integration.channex.service;
 
 import com.clenzy.integration.channex.client.ChannexClient;
+import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexConnectRequest;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.clenzy.integration.channex.dto.ChannexPropertyDto;
 import com.clenzy.integration.channex.exception.ChannexException;
 import com.clenzy.integration.channex.model.ChannexPropertyMapping;
@@ -44,7 +46,8 @@ class ChannexConnectServiceTest {
     @BeforeEach
     void setUp() {
         service = new ChannexConnectService(
-            channexClient, mappingRepository, otaChannelRepository, syncService, propertyRepository
+            channexClient, mappingRepository, otaChannelRepository, syncService, propertyRepository,
+            new ChannexMetrics(new SimpleMeterRegistry())
         );
     }
 

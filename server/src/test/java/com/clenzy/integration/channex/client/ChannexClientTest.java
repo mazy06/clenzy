@@ -1,6 +1,8 @@
 package com.clenzy.integration.channex.client;
 
+import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.config.ChannexProperties;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.clenzy.integration.channex.dto.ChannexAvailabilityUpdate;
 import com.clenzy.integration.channex.dto.ChannexCreatePropertyRequest;
 import com.clenzy.integration.channex.dto.ChannexPropertyDto;
@@ -60,7 +62,7 @@ class ChannexClientTest {
         props.setBaseUrl(BASE);
         props.setApiKey("test-api-key-secret");
         props.setMaxRetries(3);
-        client = new ChannexClient(restTemplate, props);
+        client = new ChannexClient(restTemplate, props, new ChannexMetrics(new SimpleMeterRegistry()));
     }
 
     // ─── createProperty ─────────────────────────────────────────────────────

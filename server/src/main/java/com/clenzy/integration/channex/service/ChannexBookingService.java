@@ -1,5 +1,6 @@
 package com.clenzy.integration.channex.service;
 
+import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexBookingDto;
 import com.clenzy.integration.channex.model.ChannexPropertyMapping;
 import com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository;
@@ -53,19 +54,22 @@ public class ChannexBookingService {
     private final GuestService guestService;
     private final CalendarEngine calendarEngine;
     private final NotificationService notificationService;
+    private final ChannexMetrics metrics;
 
     public ChannexBookingService(ChannexPropertyMappingRepository mappingRepository,
                                    ReservationRepository reservationRepository,
                                    PropertyRepository propertyRepository,
                                    GuestService guestService,
                                    CalendarEngine calendarEngine,
-                                   NotificationService notificationService) {
+                                   NotificationService notificationService,
+                                   ChannexMetrics metrics) {
         this.mappingRepository = mappingRepository;
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
         this.guestService = guestService;
         this.calendarEngine = calendarEngine;
         this.notificationService = notificationService;
+        this.metrics = metrics;
     }
 
     // ─── New booking ────────────────────────────────────────────────────────
@@ -91,6 +95,7 @@ public class ChannexBookingService {
         if (existing.isPresent()) {
             log.info("ChannexBooking: booking {} deja persiste (reservation #{}) — skip",
                 booking.id(), existing.get().getId());
+            metrics.recordBookingProcessed("duplicate_skip");
             return existing.get();
         }
 
@@ -124,6 +129,7 @@ public class ChannexBookingService {
             reservation.getConfirmationCode(), booking.id(),
             booking.otaName(), booking.arrivalDate(), booking.departureDate(),
             booking.amount(), booking.currency());
+        metrics.recordBookingProcessed("new");
 
         // Notifier l'equipe
         try {
@@ -199,6 +205,7 @@ public class ChannexBookingService {
 
         log.info("ChannexBooking: reservation #{} modifiee depuis {} (dates_changed={})",
             reservation.getId(), booking.id(), datesChanged);
+        metrics.recordBookingProcessed("modification");
         return Optional.of(reservation);
     }
 
@@ -243,6 +250,7 @@ public class ChannexBookingService {
 
         log.info("ChannexBooking: reservation #{} annulee depuis Channex booking {}",
             reservation.getId(), booking.id());
+        metrics.recordBookingProcessed("cancellation");
 
         try {
             notificationService.notifyAdminsAndManagersByOrgId(
