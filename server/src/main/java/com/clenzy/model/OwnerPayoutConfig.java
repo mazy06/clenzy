@@ -45,6 +45,26 @@ public class OwnerPayoutConfig {
     @Column(name = "verified", nullable = false)
     private boolean verified = false;
 
+    /** Identifiant du recipient Wise (created via Wise API quand WISE methode active). */
+    @Column(name = "wise_recipient_id", length = 64)
+    private String wiseRecipientId;
+
+    /** Profile Wise optionnel de l'owner (sinon profile Clenzy par défaut). */
+    @Column(name = "wise_profile_id", length = 64)
+    private String wiseProfileId;
+
+    /** Provider Open Banking PIS utilise : GOCARDLESS ou TINK. */
+    @Column(name = "open_banking_provider", length = 20)
+    private String openBankingProvider;
+
+    /** Consent ID retourne par le PIS au moment du SCA. */
+    @Column(name = "open_banking_consent_id", length = 128)
+    private String openBankingConsentId;
+
+    /** Date d'expiration du consent (typiquement +90 jours). */
+    @Column(name = "open_banking_consent_expires_at")
+    private Instant openBankingConsentExpiresAt;
+
     @Column(name = "created_at")
     private Instant createdAt;
 
@@ -83,6 +103,16 @@ public class OwnerPayoutConfig {
     public void setBankAccountHolder(String bankAccountHolder) { this.bankAccountHolder = bankAccountHolder; }
     public boolean isVerified() { return verified; }
     public void setVerified(boolean verified) { this.verified = verified; }
+    public String getWiseRecipientId() { return wiseRecipientId; }
+    public void setWiseRecipientId(String wiseRecipientId) { this.wiseRecipientId = wiseRecipientId; }
+    public String getWiseProfileId() { return wiseProfileId; }
+    public void setWiseProfileId(String wiseProfileId) { this.wiseProfileId = wiseProfileId; }
+    public String getOpenBankingProvider() { return openBankingProvider; }
+    public void setOpenBankingProvider(String openBankingProvider) { this.openBankingProvider = openBankingProvider; }
+    public String getOpenBankingConsentId() { return openBankingConsentId; }
+    public void setOpenBankingConsentId(String openBankingConsentId) { this.openBankingConsentId = openBankingConsentId; }
+    public Instant getOpenBankingConsentExpiresAt() { return openBankingConsentExpiresAt; }
+    public void setOpenBankingConsentExpiresAt(Instant t) { this.openBankingConsentExpiresAt = t; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }
