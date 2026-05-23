@@ -3,8 +3,13 @@ package com.clenzy.integration.channex.service;
 import com.clenzy.integration.channex.client.ChannexClient;
 import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexConnectRequest;
+import com.clenzy.integration.channex.dto.ChannexCreatePropertyRequest;
+import com.clenzy.integration.channex.dto.ChannexCreateRatePlanRequest;
+import com.clenzy.integration.channex.dto.ChannexCreateRoomTypeRequest;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.clenzy.integration.channex.dto.ChannexPropertyDto;
+import com.clenzy.integration.channex.dto.ChannexRatePlanDto;
+import com.clenzy.integration.channex.dto.ChannexRoomTypeDto;
 import com.clenzy.integration.channex.exception.ChannexException;
 import com.clenzy.integration.channex.model.ChannexPropertyMapping;
 import com.clenzy.integration.channex.model.ChannexSyncStatus;
@@ -60,7 +65,7 @@ class ChannexConnectServiceTest {
     }
 
     private ChannexConnectRequest request() {
-        return new ChannexConnectRequest("channex-prop-1", "channex-room-1", "channex-rate-1");
+        return ChannexConnectRequest.importExisting("channex-prop-1", "channex-room-1", "channex-rate-1");
     }
 
     // ─── Connect ────────────────────────────────────────────────────────────
@@ -164,6 +169,87 @@ class ChannexConnectServiceTest {
         ChannexPropertyMapping result = service.connect(100L, 42L, request());
         assertThat(result).isNotNull();
         verify(mappingRepository).save(any());
+    }
+
+    // ─── AUTO_CREATE mode ───────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("connect[AUTO_CREATE]: succes -> appelle createProperty + createRoomType + createRatePlan dans Channex")
+    void connect_autoCreate_callsAllThreeChannexEndpoints() {
+        Property p = property(100L, 42L);
+        p.setName("Studio Marais");
+        p.setMaxGuests(2);
+        p.setDefaultCurrency("EUR");
+        p.setCountryCode("FR");
+
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(p));
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.empty());
+
+        // Mock des 3 appels Channex
+        when(channexClient.createProperty(any(ChannexCreatePropertyRequest.class)))
+            .thenReturn(new ChannexPropertyDto("chx-prop-auto", "Studio Marais", "EUR", null, "Europe/Paris"));
+        when(channexClient.createRoomType(any(ChannexCreateRoomTypeRequest.class)))
+            .thenReturn(new ChannexRoomTypeDto("chx-room-auto", "Studio Marais", "chx-prop-auto", 1));
+        when(channexClient.createRatePlan(any(ChannexCreateRatePlanRequest.class)))
+            .thenReturn(new ChannexRatePlanDto("chx-rate-auto", "Standard Rate", "chx-prop-auto", "chx-room-auto", "EUR", "per_room"));
+
+        ChannexPropertyMapping saved = new ChannexPropertyMapping();
+        saved.setId(UUID.randomUUID());
+        saved.setChannexPropertyId("chx-prop-auto");
+        saved.setChannexRoomTypeId("chx-room-auto");
+        saved.setChannexDefaultRatePlanId("chx-rate-auto");
+        when(mappingRepository.save(any())).thenReturn(saved);
+        when(mappingRepository.findById(saved.getId())).thenReturn(Optional.of(saved));
+        when(syncService.pushProperty(anyLong(), anyLong(), any(), any()))
+            .thenReturn(new ChannexSyncService.ChannexSyncResult(true, "ok", 180, 180));
+
+        ChannexPropertyMapping result = service.connect(100L, 42L, ChannexConnectRequest.autoCreate());
+
+        assertThat(result.getChannexPropertyId()).isEqualTo("chx-prop-auto");
+        assertThat(result.getChannexRoomTypeId()).isEqualTo("chx-room-auto");
+        assertThat(result.getChannexDefaultRatePlanId()).isEqualTo("chx-rate-auto");
+        verify(channexClient).createProperty(any());
+        verify(channexClient).createRoomType(any());
+        verify(channexClient).createRatePlan(any());
+        // getProperty PAS appele en mode AUTO_CREATE
+        verify(channexClient, never()).getProperty(any());
+    }
+
+    @Test
+    @DisplayName("connect[AUTO_CREATE]: API key Channex invalide -> message d'erreur explicite")
+    void connect_autoCreate_unauthorizedHasFriendlyMessage() {
+        Property p = property(100L, 42L);
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(p));
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.empty());
+        when(channexClient.createProperty(any()))
+            .thenThrow(new ChannexException(ChannexException.Kind.UNAUTHORIZED, "missing api key"));
+
+        assertThatThrownBy(() -> service.connect(100L, 42L, ChannexConnectRequest.autoCreate()))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("CHANNEX_API_KEY");
+
+        verify(mappingRepository, never()).save(any());
+        verify(channexClient, never()).createRoomType(any());
+    }
+
+    @Test
+    @DisplayName("connect[IMPORT_EXISTING]: 3 IDs manquants -> IllegalStateException explicite")
+    void connect_importExisting_requiresAllThreeIds() {
+        Property p = property(100L, 42L);
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(p));
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.empty());
+
+        // Mode IMPORT mais aucun ID fourni
+        ChannexConnectRequest req = new ChannexConnectRequest(
+            ChannexConnectRequest.Mode.IMPORT_EXISTING, null, null, null
+        );
+
+        assertThatThrownBy(() -> service.connect(100L, 42L, req))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("3 IDs Channex sont obligatoires");
+
+        verify(mappingRepository, never()).save(any());
+        verify(channexClient, never()).getProperty(any());
     }
 
     // ─── Disconnect ─────────────────────────────────────────────────────────

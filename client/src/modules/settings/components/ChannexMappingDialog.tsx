@@ -36,6 +36,7 @@ import { propertiesApi, type Property } from '../../../services/api/propertiesAp
 import {
   channexApi,
   CHANNEX_STATUS_META,
+  type ChannexConnectMode,
   type ChannexMappingDto,
   type ChannexSyncStatus,
 } from '../../../services/api/channexApi';
@@ -48,6 +49,7 @@ interface ChannexMappingDialogProps {
 interface ConnectFormState {
   open: boolean;
   property: Property | null;
+  mode: ChannexConnectMode;
   channexPropertyId: string;
   channexRoomTypeId: string;
   channexDefaultRatePlanId: string;
@@ -58,6 +60,7 @@ interface ConnectFormState {
 const initialConnectForm: ConnectFormState = {
   open: false,
   property: null,
+  mode: 'AUTO_CREATE',
   channexPropertyId: '',
   channexRoomTypeId: '',
   channexDefaultRatePlanId: '',
@@ -138,19 +141,29 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
 
   const handleConnectSubmit = async () => {
     if (!connectForm.property) return;
-    const ids = {
-      channexPropertyId: connectForm.channexPropertyId.trim(),
-      channexRoomTypeId: connectForm.channexRoomTypeId.trim(),
-      channexDefaultRatePlanId: connectForm.channexDefaultRatePlanId.trim(),
+
+    // Validation conditionnelle selon le mode
+    const payload: import('../../../services/api/channexApi').ChannexConnectRequest = {
+      mode: connectForm.mode,
     };
-    if (!ids.channexPropertyId || !ids.channexRoomTypeId || !ids.channexDefaultRatePlanId) {
-      setConnectForm((s) => ({ ...s, error: 'Les 3 IDs Channex sont obligatoires.' }));
-      return;
+
+    if (connectForm.mode === 'IMPORT_EXISTING') {
+      const ids = {
+        channexPropertyId: connectForm.channexPropertyId.trim(),
+        channexRoomTypeId: connectForm.channexRoomTypeId.trim(),
+        channexDefaultRatePlanId: connectForm.channexDefaultRatePlanId.trim(),
+      };
+      if (!ids.channexPropertyId || !ids.channexRoomTypeId || !ids.channexDefaultRatePlanId) {
+        setConnectForm((s) => ({ ...s, error: 'Les 3 IDs Channex sont obligatoires en mode import.' }));
+        return;
+      }
+      Object.assign(payload, ids);
     }
+    // En mode AUTO_CREATE, le backend derive tout depuis la property Clenzy
 
     setConnectForm((s) => ({ ...s, submitting: true, error: null }));
     try {
-      const mapping = await channexApi.connect(connectForm.property.id, ids);
+      const mapping = await channexApi.connect(connectForm.property.id, payload);
       setMappings((prev) => {
         const next = new Map(prev);
         next.set(mapping.clenzyPropertyId, mapping);
@@ -385,7 +398,9 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
             Connecter "{connectForm.property?.name}" a Channex
           </Typography>
           <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.25 }}>
-            Renseignez les 3 identifiants Channex (visibles dans votre dashboard)
+            {connectForm.mode === 'AUTO_CREATE'
+              ? "Clenzy va creer Property + Room Type + Rate Plan automatiquement dans Channex"
+              : "Renseignez les 3 identifiants Channex (visibles dans votre dashboard)"}
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
@@ -395,50 +410,143 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
             </Alert>
           )}
 
-          <Stack spacing={1.5}>
-            <TextField
-              label="Channex Property ID"
-              fullWidth
-              size="small"
-              value={connectForm.channexPropertyId}
-              onChange={(e) =>
-                setConnectForm((s) => ({ ...s, channexPropertyId: e.target.value }))
-              }
-              disabled={connectForm.submitting}
-              placeholder="ex: 8f8a2c1a-4b5e-..."
-              helperText="UUID de la Property dans Channex"
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              label="Channex Room Type ID"
-              fullWidth
-              size="small"
-              value={connectForm.channexRoomTypeId}
-              onChange={(e) =>
-                setConnectForm((s) => ({ ...s, channexRoomTypeId: e.target.value }))
-              }
-              disabled={connectForm.submitting}
-              placeholder="ex: 1d2e3f4a-..."
-              helperText="Room Type rattache a la property"
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              label="Channex Default Rate Plan ID"
-              fullWidth
-              size="small"
-              value={connectForm.channexDefaultRatePlanId}
-              onChange={(e) =>
-                setConnectForm((s) => ({ ...s, channexDefaultRatePlanId: e.target.value }))
-              }
-              disabled={connectForm.submitting}
-              placeholder="ex: 5b6c7d8e-..."
-              helperText="Rate Plan par defaut utilise pour pousser les prix"
-              InputLabelProps={{ shrink: true }}
-            />
+          {/* Mode toggle */}
+          <Stack spacing={1} sx={{ mb: 2 }}>
+            <Box
+              role="button"
+              tabIndex={0}
+              onClick={() => setConnectForm((s) => ({ ...s, mode: 'AUTO_CREATE', error: null }))}
+              sx={{
+                p: 1.25,
+                border: '1.5px solid',
+                borderColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'divider',
+                borderRadius: 1.5,
+                cursor: 'pointer',
+                backgroundColor: connectForm.mode === 'AUTO_CREATE' ? `${ACCENT}10` : 'background.paper',
+                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                '&:hover': { borderColor: ACCENT },
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: '50%',
+                    border: '2px solid',
+                    borderColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'divider',
+                    backgroundColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'transparent',
+                    flexShrink: 0,
+                  }}
+                />
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                  Creation automatique <span style={{ color: ACCENT, fontSize: '0.7rem', fontWeight: 700 }}>RECOMMANDE</span>
+                </Typography>
+              </Box>
+              <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', ml: 3, mt: 0.5 }}>
+                Clenzy cree la Property, le Room Type et le Rate Plan automatiquement dans Channex en utilisant les infos de votre propriete.
+              </Typography>
+            </Box>
+
+            <Box
+              role="button"
+              tabIndex={0}
+              onClick={() => setConnectForm((s) => ({ ...s, mode: 'IMPORT_EXISTING', error: null }))}
+              sx={{
+                p: 1.25,
+                border: '1.5px solid',
+                borderColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'divider',
+                borderRadius: 1.5,
+                cursor: 'pointer',
+                backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? `${ACCENT}10` : 'background.paper',
+                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                '&:hover': { borderColor: ACCENT },
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: '50%',
+                    border: '2px solid',
+                    borderColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'divider',
+                    backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'transparent',
+                    flexShrink: 0,
+                  }}
+                />
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                  Importer des IDs existants
+                </Typography>
+              </Box>
+              <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', ml: 3, mt: 0.5 }}>
+                Vous avez deja cree la propriete dans le dashboard Channex et possedez les 3 UUIDs.
+              </Typography>
+            </Box>
           </Stack>
+
+          {/* Champs IDs : visibles uniquement en mode IMPORT */}
+          {connectForm.mode === 'IMPORT_EXISTING' && (
+            <Stack spacing={1.5}>
+              <TextField
+                label="Channex Property ID"
+                fullWidth
+                size="small"
+                value={connectForm.channexPropertyId}
+                onChange={(e) =>
+                  setConnectForm((s) => ({ ...s, channexPropertyId: e.target.value }))
+                }
+                disabled={connectForm.submitting}
+                placeholder="ex: 8f8a2c1a-4b5e-..."
+                helperText="UUID de la Property dans Channex"
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="Channex Room Type ID"
+                fullWidth
+                size="small"
+                value={connectForm.channexRoomTypeId}
+                onChange={(e) =>
+                  setConnectForm((s) => ({ ...s, channexRoomTypeId: e.target.value }))
+                }
+                disabled={connectForm.submitting}
+                placeholder="ex: 1d2e3f4a-..."
+                helperText="Room Type rattache a la property"
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="Channex Default Rate Plan ID"
+                fullWidth
+                size="small"
+                value={connectForm.channexDefaultRatePlanId}
+                onChange={(e) =>
+                  setConnectForm((s) => ({ ...s, channexDefaultRatePlanId: e.target.value }))
+                }
+                disabled={connectForm.submitting}
+                placeholder="ex: 5b6c7d8e-..."
+                helperText="Rate Plan par defaut utilise pour pousser les prix"
+                InputLabelProps={{ shrink: true }}
+              />
+            </Stack>
+          )}
+
+          {/* Recap mode AUTO_CREATE */}
+          {connectForm.mode === 'AUTO_CREATE' && connectForm.property && (
+            <Alert severity="info" sx={{ fontSize: '0.72rem' }}>
+              <strong>Sera cree dans Channex :</strong>
+              <Box component="ul" sx={{ margin: 0, paddingInlineStart: 2, mt: 0.5 }}>
+                <li>Property : <em>{connectForm.property.name}</em> ({connectForm.property.city}, {connectForm.property.country})</li>
+                <li>Room Type : 1 unite, capacite {connectForm.property.maxGuests} personnes</li>
+                <li>Rate Plan : Standard Rate, per_room</li>
+              </Box>
+            </Alert>
+          )}
 
           <Alert severity="info" sx={{ mt: 2, fontSize: '0.72rem' }}>
             Apres connexion, un push initial de 6 mois (prix + disponibilites) sera declenche automatiquement.
+            {connectForm.mode === 'AUTO_CREATE' && (
+              <> Pour connecter ensuite Airbnb / Booking / Vrbo, ouvrez la property dans le dashboard Channex (onglet Channels).</>
+            )}
           </Alert>
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
