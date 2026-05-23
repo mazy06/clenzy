@@ -1,0 +1,65 @@
+Company Name,Category,Priority,Contact Email,Phone,Region,Partner Program URL,Revenue Model,Status,Owner,Last Contact Date,Next Action,Notes
+Hostaway,Channel Manager,P1,partnerships@hostaway.com,,Global,https://www.hostaway.com/integrations/,Marketplace listing + co-marketing,Not started,,,Cold email,PMS Marketplace mature - Airbnb natif + 50 OTAs - intégration API native
+PriceLabs,Pricing dynamique,P1,partners@pricelabs.co,,Global,https://www.pricelabs.co/partners,Referral 15-20% MRR Y1,Not started,,,Cold email,Leader STR revenue management - Partner Network public - sandbox API gratuit
+Pennylane,Compta + Signature,P1,partenariats@pennylane.com,,FR,https://www.pennylane.com/fr/partenaires/,Referral + Marketplace App,Not started,,,Cold email,600+ employés FR - intégration OAuth2 déjà en place côté Clenzy
+Sumsub,KYC,P1,partners@sumsub.com,,Global / MENA,https://sumsub.com/partners/,Referral + tarif partner 30-40% off,Not started,,,Cold email,Leader MENA KYC - support arabe natif - critical pour KSA/MA
+Chekin,Conformité voyageur,P1,partners@chekin.com,,FR / EU,https://chekin.com/integrations/,Referral + tarif partner,Not started,,,Cold email,Standard de fait fiche police FR - couvre 14 pays EU
+AirDNA,Market intelligence,P1,partners@airdna.co,,Global,https://www.airdna.co/partners,Affiliate + revenue share + tarif partner,Not started,,,Cold email,Leader market intel STR - data benchmarking cherché par tous les hosts
+WhatsApp Business,Messagerie,P1,Meta Business Manager,,MA / KSA,https://www.facebook.com/business/partner-directory,Coût par conversation Meta + marge BSP,Not started,,,Via BSP (Twilio/360dialog),Standard de fait MENA - accès via Business Solution Provider tiers
+Avalara MyLodgeTax,Taxe de séjour,P1,partners@avalara.com,,FR / Global,https://www.avalara.com/partners/,Referral + listing + co-marketing,Not started,,,Cold email,Leader compliance fiscale - automatise taxe séjour multi-villes
+Yousign,Signature,P2,partners@yousign.com,,FR / EU,https://yousign.com/fr/partenaires,Revenue share 15-30% Y1,Not started,,,Cold email,QTSP français eIDAS - alternative locale à DocuSign
+DocuSign,Signature,P2,partner@docusign.com,,Global,https://www.docusign.com/partner-program,Referral + co-sell + App Marketplace,Not started,,,Inscription en ligne,Leader mondial - 1.4M clients - listing App Marketplace possible
+Beyond,Pricing,P2,partnerships@beyondpricing.com,,Global,https://www.beyondpricing.com/partners,Referral + co-marketing,Not started,,,Cold email,Algorithme propriétaire - alternative PriceLabs cible premium
+Wheelhouse,Pricing,P2,partnerships@usewheelhouse.com,,Global,https://www.usewheelhouse.com/partners,Referral SaaS standard,Not started,,,Cold email,Market comparison engine - US/EU
+QuickBooks,Compta,P2,marketplace@intuit.com,,US / UK / CA / AU,https://developer.intuit.com/app/developer/qbo/docs/develop/marketplace-listings,App Marketplace listing,Not started,,,Inscription Intuit Developer,14M+ clients - utile pour expansion US/UK/AU
+Xero,Compta,P2,partner-program@xero.com,,UK / AU / NZ,https://www.xero.com/partner-programs/,App Store listing + featured tier,Not started,,,Application en ligne,3.7M+ clients - process strict review 6-8 semaines
+Sage,Compta,P2,partenaires@sage.com,,FR / EU,https://www.sage.com/fr-fr/partenaires/,Commission négociable,Not started,,,Cold email,Leader compta FR/EU PME - alternative Pennylane pour base installée
+SiteMinder,Channel Manager,P2,partners@siteminder.com,,Global,https://www.siteminder.com/partners/,App Store listing + co-marketing,Not started,,,Cold email,Leader hôtellerie ~250 OTAs - process partnership rigoureux
+Veriff,KYC,P2,partners@veriff.com,,EU,https://www.veriff.com/partners,Referral standard SaaS,Not started,,,Cold email,Alternative Sumsub - EU focus
+Onfido,KYC,P2,partners@onfido.com,,Global,https://onfido.com/partners,Referral + co-sell,Not started,,,Cold email,UX premium - racheté par Entrust 2024
+Airbnb,OTA,P2,partner-onboarding@airbnb.com,,Global,https://www.airbnb.com/partner,Pas de commission - badge Approved Partner,Not started,,,Application Software Partner,OAuth2 en place côté Clenzy - certification en cours
+Booking.com,OTA,P2,connectivity@booking.com,,Global,https://connect.booking.com/,Pas de commission - badge Connectivity,Not started,,,Cold email,Booking Holdings - leader hôtellerie + STR EU
+Expedia Group,OTA,P2,via EPS form,,Global,https://www.expediagroup.com/partner-solutions/,Pas de commission - listing,Not started,,,Application EPS,Expedia + Hotels.com + Vrbo + Abritel - accès groupé
+Vrbo,OTA,P2,via Expedia EPS,,US / EU,https://www.expediagroup.com/partner-solutions/,Inclus Expedia Connectivity,Not started,,,Application EPS,Inclus dans Expedia
+Gathern,OTA,P2,partnerships@gathern.co,,KSA,https://gathern.co/,À négocier,Not started,,,Cold email,Leader STR Arabie Saoudite
+Almosafer,OTA,P2,via Seera Group,,GCC,https://almosafer.com/,À négocier,Not started,,,Via Seera Group,OTA grand public KSA / Émirats
+Stay.sa,OTA,P3,via NIC,,KSA,https://stay.sa/,À négocier,Not started,,,Via NIC,OTA gouvernementale saoudienne
+Tajawal,OTA,P3,via Seera Group,,MENA,https://tajawal.com/,À négocier,Not started,,,Via Seera Group,Focus arabophone MENA
+Mabeet,OTA,P3,direct contact,,KSA,https://mabeet.com/,À négocier,Not started,,,Cold email,STR + religieux Mecque/Médine
+Wego,OTA,P3,direct contact,,MENA / APAC,https://wego.com/,Affiliation,Not started,,,Cold email,Meta-moteur affiliation
+Rentelly,OTA,P3,direct contact,,MA / Tunisie,,À négocier,Not started,,,Cold email,STR Maghreb émergent
+Kease,OTA,P3,direct contact,,MA,,À négocier,Not started,,,Cold email,STR Maroc local
+Agoda,OTA,P3,partners@agoda.com,,APAC,https://partners.agoda.com/,Pas de commission - listing,Not started,,,Cold email,Booking Holdings focus APAC
+Trip.com,OTA,P3,partner@trip.com,,APAC,https://www.trip.com/partners/,Pas de commission - listing,Not started,,,Cold email,Leader APAC clientèle chinoise
+HomeToGo,OTA,P3,partners@hometogo.com,,Global,https://www.hometogo.com/partners,Affiliation,Not started,,,Cold email,Meta-moteur STR
+Superhog,Assurance,P2,partners@superhog.com,,Global,https://www.superhog.com/partners/,Referral + Trust Network,Not started,,,Cold email,Screening guest + assurance dommages STR UK
+SafelyStay,Assurance,P2,partners@safely.com,,US / UK,https://safely.com/partners,Referral + listing,Not started,,,Cold email,Assurance + screening STR Atlanta
+Turno,Cleaning,P2,partnerships@turno.com,,US / Global,https://turno.com/partners,Referral + marketplace listing,Not started,,,Cold email,PMS Integration Marketplace très actif
+Properly,Cleaning,P2,partners@getproperly.com,,Global,https://getproperly.com/partners,Referral standard,Not started,,,Cold email,Vancouver - checklists photo
+Breezeway,Cleaning,P2,partners@breezeway.io,,US / Global,https://www.breezeway.io/partners,Referral + co-marketing,Not started,,,Cold email,Boston - property care + inspections
+Nuki,Smart lock,P2,partner@nuki.io,,EU,https://nuki.io/en/business/,Hardware reseller + API,Not started,,,Cold email,Graz Autriche - leader EU smart locks
+Igloohome,Smart lock,P2,partners@igloohome.co,,APAC / Global,https://www.igloohome.co/partners,Hardware + API,Not started,,,Cold email,Singapour - smart locks STR
+TTLock,Smart lock,P2,partner@ttlock.com,,Global,https://www.ttlock.com/en/partners,Hardware reseller,Not started,,,Cold email,Shenzhen Sciener Inc.
+Tuya Smart,IoT,P3,partnership@tuya.com,,Global / APAC,https://developer.tuya.com/,Marketplace partner,Not started,,,Inscription developer,NYSE TUYA - catalogue IoT large
+Ecobee,IoT,P3,via developer portal,,NA,https://www.ecobee.com/developers/,Marketplace,Not started,,,Cold email,Thermostats smart Toronto
+Resideo,IoT,P3,via Honeywell,,Global,,Marketplace,Not started,,,Via Honeywell partner program,Honeywell Home thermostats
+KeyNest,Gestion clés,P3,partnerships@keynest.com,,UK / EU,https://keynest.com/partners,Referral + co-marketing,Not started,,,Cold email,UK-centric - utile si expansion UK
+Minut,Monitoring sonore,P2,partners@minut.com,,EU / Global,https://www.minut.com/partners,Hardware + SaaS,Not started,,,Cold email,Suède - capteurs bruit/température
+GetYourGuide,Activités,P2,partners@getyourguide.com,,Global,https://partner.getyourguide.com/,Commission 8-15% par résa,Not started,,,Cold email,Berlin - leader EU activités
+Klook,Activités,P2,partners@klook.com,,APAC / Global,https://www.klook.com/partner/,Affiliation,Not started,,,Cold email,Hong Kong - leader APAC
+Viator,Activités,P2,partners@viator.com,,Global,https://www.viator.com/partner/,Commission 8-20% par résa,Not started,,,Cold email,Groupe Tripadvisor
+Revinate,Reviews,P3,partners@revinate.com,,Global,https://www.revinate.com/partners,À négocier,Not started,,,Cold email,Plus orienté hôtellerie traditionnelle
+TrustYou,Reviews,P3,partners@trustyou.com,,EU / Global,https://www.trustyou.com/partners,À négocier,Not started,,,Cold email,Munich - reviews aggregation
+HiJiffy,Reviews,P3,partners@hijiffy.com,,EU / Global,https://hijiffy.com/partners/,À négocier,Not started,,,Cold email,Lisbonne - chatbot + reviews automation
+Mailchimp,Marketing,P2,via Mailchimp Partner,,Global,https://mailchimp.com/partner/,Marketplace listing + tier program,Not started,,,Application en ligne,Groupe Intuit - Connected/Pro/Expert tiers
+Klaviyo,Marketing,P2,partners@klaviyo.com,,Global,https://www.klaviyo.com/partners,Referral + integration directory,Not started,,,Cold email,NYSE KVYO - Boston
+Pipedrive,CRM,P3,partners@pipedrive.com,,Global,https://www.pipedrive.com/en/partners,Marketplace,Not started,,,Cold email,Tallinn - CRM commercial
+MyTSE,Taxe séjour,P2,via formulaire site,,FR,,Referral,Not started,,,Cold email,Niche FR taxe de séjour
+Universign,Signature,P3,via formulaire site,,FR,https://www.universign.com/fr/partenaires/,Négociable - orientation enterprise,Not started,,,Cold email,QTSP FR groupe Crédit Agricole - corporate lent
+DocaPoste,Signature,P3,contact-commercial@docaposte.fr,01 55 44 01 00,FR,https://www.docaposte.com/partenaires,Pas d'affiliation publique - case by case,Not started,,,Cold email + tel,Groupe La Poste - LRE différenciateur location
+Odoo,ERP,P3,partnership@odoo.com,,Global,https://www.odoo.com/partners,Discount licences + revenue share,Not started,,,Cold email,Belgique - open source ERP - partnership Silver/Gold/Ready
+Rentals United,Channel Manager,P3,partnerships@rentalsunited.com,,EU / MENA,https://rentalsunited.com/partners/,Referral + co-sell,Not started,,,Cold email,Barcelone - 60+ OTAs STR-focused
+AXA Partners,Assurance,P3,via formulaire AXA,,FR / Global,https://www.axapartners.com/fr/partenariats,À négocier - corporate,Not started,,,Via AXA B2B,Gros corporate cycle 12+ mois
+Tawuniya,Assurance,P3,via entité KSA,,KSA,https://www.tawuniya.com.sa/,À négocier corporate,Not started,,,Via partenaire KSA,Tadawul TAWUNIYA leader assurance KSA
+Police Maroc (DGSN),Compliance MA,P3,via avocat MA,,MA,https://www.dgsn.gov.ma/,N/A gouvernemental,Not started,,,Via cabinet avocat Casablanca/Rabat,Différenciation extrême - délai 6-12 mois - budget 5-10k€ juridique
+Absher KSA,Compliance KSA,P3,via NIC,,KSA,https://www.absher.sa/,N/A gouvernemental,Not started,,,Via partenaire local KSA,API gouvernementale - entité juridique KSA requise - budget 10-20k€

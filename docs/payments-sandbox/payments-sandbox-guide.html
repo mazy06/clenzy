@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Clenzy — Guide de test sandbox PayTabs &amp; CMI</title>
+<style>
+@page {
+  size: A4;
+  margin: 18mm 16mm 22mm 16mm;
+  @bottom-center {
+    content: counter(page) " / " counter(pages);
+    color: #8A8378;
+    font-size: 9pt;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  color: #2D3748;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Cover page ─── */
+.cover {
+  page-break-after: always;
+  text-align: center;
+  padding-top: 80mm;
+}
+.cover .logo {
+  font-size: 28pt;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #6B8A9A;
+  margin-bottom: 12mm;
+}
+.cover h1 {
+  font-size: 22pt;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 6mm 0;
+  color: #2D3748;
+}
+.cover .subtitle {
+  font-size: 12pt;
+  color: #718096;
+  margin-bottom: 30mm;
+}
+.cover .meta {
+  font-size: 9.5pt;
+  color: #8A8378;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.cover .accent {
+  display: inline-block;
+  width: 60mm;
+  height: 3px;
+  background: #4A9B8E;
+  margin: 8mm auto;
+}
+
+/* ─── TOC ─── */
+.toc {
+  page-break-after: always;
+}
+.toc h2 {
+  font-size: 18pt;
+  border-bottom: 2px solid #4A9B8E;
+  padding-bottom: 4mm;
+  margin-bottom: 8mm;
+}
+.toc ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: toc-counter;
+}
+.toc ol > li {
+  counter-increment: toc-counter;
+  margin-bottom: 3mm;
+  font-size: 11pt;
+  display: flex;
+  align-items: baseline;
+}
+.toc ol > li::before {
+  content: counter(toc-counter, decimal-leading-zero) ".";
+  color: #4A9B8E;
+  font-weight: 700;
+  margin-right: 6mm;
+  min-width: 12mm;
+}
+.toc .toc-dots {
+  flex: 1;
+  border-bottom: 1px dotted #CBD5E0;
+  margin: 0 3mm;
+  position: relative;
+  top: -3pt;
+}
+.toc .toc-page {
+  color: #718096;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Headings ─── */
+h1, h2, h3, h4 {
+  color: #2D3748;
+  letter-spacing: -0.005em;
+  page-break-after: avoid;
+}
+h1 { font-size: 20pt; font-weight: 700; margin: 0 0 6mm 0; }
+h2 {
+  font-size: 16pt;
+  font-weight: 700;
+  margin: 12mm 0 5mm 0;
+  padding-bottom: 2mm;
+  border-bottom: 2px solid #4A9B8E;
+  page-break-before: auto;
+}
+h3 {
+  font-size: 13pt;
+  font-weight: 700;
+  margin: 8mm 0 3mm 0;
+  color: #4A9B8E;
+}
+h4 {
+  font-size: 11pt;
+  font-weight: 700;
+  margin: 5mm 0 2mm 0;
+  color: #6B8A9A;
+}
+
+/* Section break for major sections */
+section { page-break-before: auto; }
+section.major-section { page-break-before: always; }
+
+/* ─── Body ─── */
+p { margin: 0 0 3mm 0; }
+
+ol, ul { margin: 0 0 3mm 0; padding-left: 6mm; }
+li { margin-bottom: 1.5mm; }
+
+strong { color: #2D3748; font-weight: 700; }
+em { font-style: italic; color: #4A5568; }
+
+/* ─── Code ─── */
+code {
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 9pt;
+  background: #F7FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 3px;
+  padding: 1px 4px;
+  color: #2D3748;
+}
+pre {
+  background: #1A202C;
+  color: #E2E8F0;
+  padding: 4mm 5mm;
+  border-radius: 4px;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 8.5pt;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  page-break-inside: avoid;
+  margin: 3mm 0;
+}
+pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+.bash::before { content: "$ "; color: #4A9B8E; }
+
+/* ─── Tables ─── */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 3mm 0;
+  font-size: 9.5pt;
+  page-break-inside: avoid;
+}
+th {
+  background: #F7FAFC;
+  text-align: left;
+  font-weight: 700;
+  padding: 2.5mm 3mm;
+  border: 1px solid #CBD5E0;
+  color: #2D3748;
+  font-size: 9pt;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+td {
+  padding: 2.5mm 3mm;
+  border: 1px solid #E2E8F0;
+  vertical-align: top;
+}
+td code, th code { font-size: 8.5pt; }
+
+/* ─── Callout boxes ─── */
+.callout {
+  border-left: 3px solid;
+  padding: 3mm 4mm;
+  margin: 4mm 0;
+  border-radius: 0 4px 4px 0;
+  page-break-inside: avoid;
+}
+.callout-title {
+  font-weight: 700;
+  margin-bottom: 1.5mm;
+  font-size: 10pt;
+  letter-spacing: 0.01em;
+}
+.callout-info {
+  background: #EBF4F8;
+  border-color: #7BA3C2;
+}
+.callout-info .callout-title { color: #5A87A0; }
+.callout-success {
+  background: #E6F3F0;
+  border-color: #4A9B8E;
+}
+.callout-success .callout-title { color: #3A8579; }
+.callout-warning {
+  background: #FBF3E5;
+  border-color: #D4A574;
+}
+.callout-warning .callout-title { color: #B58853; }
+.callout-danger {
+  background: #F7E9E9;
+  border-color: #C97A7A;
+}
+.callout-danger .callout-title { color: #B26060; }
+
+.callout p { margin-bottom: 1.5mm; font-size: 10pt; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* ─── KBD ─── */
+kbd {
+  background: #EDF2F7;
+  border: 1px solid #CBD5E0;
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 0 4px;
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 9pt;
+}
+
+/* ─── Step list ─── */
+ol.steps {
+  counter-reset: step-counter;
+  list-style: none;
+  padding-left: 0;
+}
+ol.steps > li {
+  counter-increment: step-counter;
+  position: relative;
+  padding-left: 12mm;
+  margin-bottom: 5mm;
+}
+ol.steps > li::before {
+  content: counter(step-counter);
+  position: absolute;
+  left: 0;
+  top: -0.5mm;
+  width: 8mm;
+  height: 8mm;
+  background: #4A9B8E;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 10pt;
+}
+
+/* ─── Footer link ─── */
+a { color: #4A9B8E; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ─── Tag pills ─── */
+.tag {
+  display: inline-block;
+  padding: 0.5mm 2mm;
+  border-radius: 3px;
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin-right: 2mm;
+}
+.tag-immediate { background: #E6F3F0; color: #3A8579; }
+.tag-blocked   { background: #FBF3E5; color: #B58853; }
+.tag-critical  { background: #F7E9E9; color: #B26060; }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     COVER
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="logo">Clenzy</div>
+  <div class="accent"></div>
+  <h1>Guide de test sandbox<br>PayTabs &amp; CMI Maroc</h1>
+  <div class="subtitle">Configuration, credentials et scénarios de bout en bout</div>
+  <div class="meta">
+    Version 1.0 · Mai 2026 · Roadmap P1 paiements internationaux
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TABLE OF CONTENTS
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="toc">
+  <h2>Table des matières</h2>
+  <ol>
+    <li>Vue d'ensemble &amp; prérequis<span class="toc-dots"></span><span class="toc-page">3</span></li>
+    <li>Setup ngrok (tunnel local)<span class="toc-dots"></span><span class="toc-page">4</span></li>
+    <li>PayTabs — Sandbox immédiat<span class="toc-dots"></span><span class="toc-page">5</span></li>
+    <li>CMI Maroc — Test partiel en local<span class="toc-dots"></span><span class="toc-page">8</span></li>
+    <li>Configuration Clenzy<span class="toc-dots"></span><span class="toc-page">10</span></li>
+    <li>Scénarios de test end-to-end<span class="toc-dots"></span><span class="toc-page">11</span></li>
+    <li>Débogage &amp; commandes utiles<span class="toc-dots"></span><span class="toc-page">13</span></li>
+    <li>Annexe — Script compute-cmi-hash.sh<span class="toc-dots"></span><span class="toc-page">14</span></li>
+  </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 1
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>1. Vue d'ensemble &amp; prérequis</h2>
+
+<p>Ce guide accompagne le déploiement local des deux nouveaux fournisseurs de paiement intégrés dans Clenzy (roadmap P1) : <strong>PayTabs</strong> pour l'Arabie Saoudite et <strong>CMI</strong> pour le Maroc. L'objectif est de valider l'intégration complète en environnement de test avant le passage en production.</p>
+
+<h3>État de la roadmap P1</h3>
+
+<table>
+  <thead>
+    <tr><th>PR</th><th>Description</th><th>Statut</th><th>Couverture tests</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>PR1</td><td>Correctifs orchestrateur (refund agnostique, transaction-status, CMI webhook body)</td><td>Livré</td><td>3482 tests verts</td></tr>
+    <tr><td>PR2</td><td>Implémentation PayTabs : client HTTP, provider, webhook HMAC-SHA256</td><td>Livré</td><td>16 tests dédiés</td></tr>
+    <tr><td>PR3</td><td>Frontend : dialog de configuration des credentials</td><td>Livré</td><td>TypeScript clean</td></tr>
+    <tr><td>PR4</td><td>Implémentation CMI : hash SHA-512 ver3, redirect controller, webhook</td><td>Livré</td><td>40 tests dédiés</td></tr>
+    <tr><td>PR5</td><td>Routing currency-aware (SAR → PayTabs, MAD → CMI)</td><td>Livré</td><td>10 tests dédiés</td></tr>
+  </tbody>
+</table>
+
+<h3>Prérequis machine</h3>
+
+<table>
+  <thead><tr><th>Outil</th><th>Version</th><th>Vérification</th></tr></thead>
+  <tbody>
+    <tr><td><code>docker</code> + <code>docker compose</code></td><td>recent</td><td><code>docker compose version</code></td></tr>
+    <tr><td>Java JDK</td><td>21+</td><td><code>java -version</code></td></tr>
+    <tr><td>Node.js</td><td>20+</td><td><code>node --version</code></td></tr>
+    <tr><td><code>openssl</code> + <code>base64</code></td><td>natif macOS</td><td><code>openssl version</code></td></tr>
+    <tr><td><code>ngrok</code></td><td>3.x</td><td><code>ngrok version</code> — installation détaillée section 2</td></tr>
+  </tbody>
+</table>
+
+<h3>Ce que ce guide couvre</h3>
+<ul>
+  <li>Création des comptes sandbox PayTabs et stratégie CMI</li>
+  <li>Configuration du tunnel ngrok pour exposer les webhooks locaux</li>
+  <li>Saisie des credentials dans Clenzy via l'interface admin</li>
+  <li>Tests end-to-end avec cartes bancaires de test</li>
+  <li>Simulation manuelle des callbacks CMI (en attendant l'accès sandbox officiel)</li>
+  <li>Outils de debug : logs, requêtes SQL, dashboard ngrok</li>
+</ul>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 2 — NGROK
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>2. Setup ngrok (tunnel local)</h2>
+
+<div class="callout callout-info">
+  <div class="callout-title">Pourquoi ngrok ?</div>
+  <p>PayTabs et CMI doivent pouvoir <strong>joindre votre serveur Clenzy depuis Internet</strong> pour envoyer les notifications de paiement (IPN). Votre <code>localhost</code> n'est pas accessible publiquement. ngrok crée un tunnel HTTPS sécurisé qui relaie les requêtes externes vers votre machine.</p>
+</div>
+
+<h3>Installation</h3>
+<pre><span class="bash"></span>brew install ngrok/ngrok/ngrok</pre>
+
+<h3>Authentification</h3>
+<ol class="steps">
+  <li>Créer un compte gratuit sur <code>ngrok.com</code></li>
+  <li>Copier le token depuis le dashboard ngrok (section <em>Your Authtoken</em>)</li>
+  <li>Configurer le token localement :
+    <pre><span class="bash"></span>ngrok config add-authtoken &lt;votre-token-ngrok&gt;</pre>
+  </li>
+</ol>
+
+<h3>Lancer le tunnel sur le port backend Clenzy</h3>
+<pre><span class="bash"></span>ngrok http 8084</pre>
+
+<p>Une fois lancé, ngrok affiche une URL publique du type :</p>
+<pre>Forwarding   https://a1b2c3d4.ngrok-free.app -&gt; http://localhost:8084</pre>
+
+<p>Notez cette URL : c'est elle que vous allez configurer dans PayTabs et dans Clenzy comme <strong>Callback URL</strong>.</p>
+
+<div class="callout callout-warning">
+  <div class="callout-title">URL ngrok éphémère</div>
+  <p>Sur le plan gratuit ngrok, l'URL change à chaque relance. Si vous redémarrez ngrok, mettez à jour l'URL dans le dashboard PayTabs (section IPN) <strong>et</strong> dans la configuration Clenzy (champ Callback URL du dialog provider). Le plan payant ngrok permet d'avoir un sous-domaine fixe.</p>
+</div>
+
+<h3>Vérification</h3>
+<pre><span class="bash"></span>curl https://a1b2c3d4.ngrok-free.app/api/webhooks/payments/paytabs</pre>
+<p>Doit retourner <code>401 Missing signature</code> — c'est attendu, ça confirme que le tunnel fonctionne et que la route est bien exposée.</p>
+
+<h3>Dashboard ngrok</h3>
+<p>Pendant que ngrok tourne, ouvrir <code>http://127.0.0.1:4040</code> dans un navigateur pour voir <strong>en temps réel toutes les requêtes entrantes</strong> avec leurs headers, body et réponses. Indispensable pour debugger les webhooks.</p>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 3 — PAYTABS
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>3. PayTabs — Sandbox immédiat <span class="tag tag-immediate">Disponible</span></h2>
+
+<p>PayTabs offre un sandbox <strong>auto-service, gratuit et sans KYB</strong>. Vous pouvez créer un compte de test en 5 minutes et obtenir immédiatement des credentials fonctionnels.</p>
+
+<h3>3.1 — Création du compte marchand sandbox</h3>
+
+<ol class="steps">
+  <li>Ouvrir <strong>https://merchant.sandbox.paytabs.com/auth/register</strong></li>
+  <li>Sélectionner le pays <strong>Saudi Arabia</strong> (région principale ciblée par Clenzy)</li>
+  <li>Renseigner email, mot de passe, nom d'entreprise (n'importe lequel, aucune vérification)</li>
+  <li>Confirmer l'email reçu dans la boîte de réception</li>
+  <li>Se connecter au dashboard : <code>merchant.sandbox.paytabs.com</code></li>
+</ol>
+
+<h3>3.2 — Récupération des credentials</h3>
+
+<table>
+  <thead>
+    <tr><th>Credential</th><th>Où le trouver</th><th>Champ Clenzy</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Server Key</strong><br><em>(secret)</em></td>
+      <td>Menu <code>Developers</code> → <code>Server Key</code> → bouton "Show"</td>
+      <td><code>apiKey</code><br>(Server Key dans le dialog)</td>
+    </tr>
+    <tr>
+      <td><strong>Profile ID</strong><br><em>(numérique)</em></td>
+      <td>Page <code>Profile</code> → en haut, sous le nom du marchand</td>
+      <td><code>configJson.profileId</code></td>
+    </tr>
+    <tr>
+      <td><strong>Region</strong></td>
+      <td>Profile → "Region" (sera <code>SA</code>)</td>
+      <td><code>configJson.region</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Format attendu du Server Key : <code>STJN6XX12-XXXXX-XXXXX-XXXXX</code></p>
+
+<h3>3.3 — Activation de l'IPN (webhook)</h3>
+
+<div class="callout callout-warning">
+  <div class="callout-title">L'IPN n'est PAS activé par défaut</div>
+  <p>Sans cette étape, PayTabs effectuera le paiement mais ne notifiera jamais Clenzy → la transaction restera en <code>PROCESSING</code> indéfiniment.</p>
+</div>
+
+<ol class="steps">
+  <li>Dashboard PayTabs → menu <code>Developers</code> → onglet <code>IPN</code></li>
+  <li>Activer l'IPN (toggle)</li>
+  <li>Renseigner l'URL :<br>
+    <code>https://&lt;votre-tunnel-ngrok&gt;/api/webhooks/payments/paytabs</code></li>
+  <li>Cocher les événements :
+    <ul>
+      <li><code>Sale Successful</code></li>
+      <li><code>Sale Declined</code></li>
+      <li><code>Sale Error</code></li>
+    </ul>
+  </li>
+  <li>Sauvegarder</li>
+</ol>
+
+<h3>3.4 — Cartes de test PayTabs</h3>
+
+<p>Cartes officielles fournies par PayTabs pour simuler des scénarios :</p>
+
+<table>
+  <thead>
+    <tr><th>Scénario</th><th>Numéro de carte</th><th>Exp.</th><th>CVV</th><th>OTP 3DS</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Succès complet</td><td><code>4111 1111 1111 1111</code></td><td>12/30</td><td>123</td><td><code>1234</code></td></tr>
+    <tr><td>Carte déclinée</td><td><code>4012 0010 3714 1112</code></td><td>12/30</td><td>123</td><td>—</td></tr>
+    <tr><td>Échec 3D Secure</td><td><code>4000 0000 0000 0002</code></td><td>12/30</td><td>123</td><td><code>0000</code></td></tr>
+    <tr><td>Erreur générique</td><td><code>4012 0010 3844 0026</code></td><td>12/30</td><td>123</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<p>Le <strong>nom du porteur</strong> et l'<strong>adresse</strong> peuvent être n'importe quelle valeur en sandbox — aucune vérification.</p>
+
+<p>Documentation officielle des cartes de test : <strong>docs.paytabs.com/manuals/PT-Sandbox-and-Cards/</strong></p>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 4 — CMI
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>4. CMI Maroc — Test partiel en local <span class="tag tag-blocked">Sandbox NDA</span></h2>
+
+<div class="callout callout-danger">
+  <div class="callout-title">Pas de sandbox public</div>
+  <p>Contrairement à PayTabs, CMI Maroc <strong>ne propose pas de sandbox auto-service</strong>. L'obtention de credentials de test requiert :</p>
+  <ul>
+    <li>Une entité légale au Maroc (SARL, SA ou auto-entrepreneur marocain)</li>
+    <li>Signature d'un NDA</li>
+    <li>Délai de 2 à 4 semaines</li>
+    <li>Documents : KBis marocain (RC), RIB d'une banque marocaine, CIN du gérant</li>
+  </ul>
+  <p>Contact commercial CMI : <code>commercial@cmi.co.ma</code> · téléphone <code>+212 522 366 100</code></p>
+</div>
+
+<h3>4.1 — Approche court terme : tester le flow Clenzy avec credentials fictifs</h3>
+
+<p>En attendant l'accès officiel, on peut <strong>valider la quasi-totalité du flow Clenzy</strong> avec des credentials fictifs :</p>
+
+<ul>
+  <li>Génération correcte du HASH SHA-512 ver3 ✓</li>
+  <li>Construction des paramètres CMI (clientid, amount, currency, oid…) ✓</li>
+  <li>Rendu du HTML auto-submit par le <code>CmiRedirectController</code> ✓</li>
+  <li>Vérification de la signature dans le webhook handler ✓</li>
+  <li>Routage <code>orchestrationService.completeTransaction()</code> ✓</li>
+</ul>
+
+<p>La seule chose qu'on ne peut <em>pas</em> valider sans accès officiel : la connexion réseau effective au portail <code>testpayment.cmi.co.ma</code> (qui rejettera évidemment le <code>clientid</code> inconnu).</p>
+
+<h3>4.2 — Credentials fictifs à utiliser dans Clenzy</h3>
+
+<table>
+  <thead><tr><th>Champ</th><th>Valeur de test</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Client ID</strong></td><td><code>TEST_CLIENT_001</code></td></tr>
+    <tr><td><strong>Store Key</strong></td><td><code>STORE_KEY_LOREM_IPSUM_DOLOR_SIT_AMET</code></td></tr>
+    <tr><td><strong>OK URL</strong></td><td><code>http://localhost:3000/booking/success</code></td></tr>
+    <tr><td><strong>Fail URL</strong></td><td><code>http://localhost:3000/booking/error</code></td></tr>
+    <tr><td><strong>Callback URL</strong></td><td><code>https://&lt;tunnel-ngrok&gt;/api/webhooks/payments/cmi</code></td></tr>
+    <tr><td><strong>Mode sandbox</strong></td><td>Activé (toggle ON)</td></tr>
+  </tbody>
+</table>
+
+<h3>4.3 — Simulation du callback IPN avec le script <code>compute-cmi-hash.sh</code></h3>
+
+<p>Pour valider que la vérification du HASH SHA-512 ver3 fonctionne <strong>sans attendre CMI</strong>, on peut générer manuellement un HASH valide et envoyer un faux callback :</p>
+
+<pre><span class="bash"></span>./compute-cmi-hash.sh "STORE_KEY_LOREM_IPSUM_DOLOR_SIT_AMET" \
+  "clientid=TEST_CLIENT_001" \
+  "oid=TX-abc12345" \
+  "amount=250.00" \
+  "currency=504" \
+  "ProcReturnCode=00" \
+  "Response=Approved"</pre>
+
+<p>Le script produit :</p>
+<ol>
+  <li>Le HASH calculé (Base64, 88 caractères)</li>
+  <li>Le plaintext utilisé (pour debug)</li>
+  <li>Une commande <code>curl</code> prête à exécuter</li>
+</ol>
+
+<div class="callout callout-info">
+  <div class="callout-title">Important : créer d'abord la transaction</div>
+  <p>Le webhook handler vérifie que l'<code>oid</code> correspond à une <code>PaymentTransaction</code> existante. Avant d'envoyer le faux callback, lancez d'abord une vraie transaction CMI depuis le frontend Clenzy (sélection d'une propriété marocaine, devise MAD) — cela crée la <code>PaymentTransaction</code> en BDD avec un <code>transactionRef</code> unique. Reprenez ce <code>transactionRef</code> comme valeur d'<code>oid</code> dans votre commande curl.</p>
+</div>
+
+<h3>4.4 — Validation attendue côté Clenzy</h3>
+
+<table>
+  <thead><tr><th>Scénario</th><th>Réponse HTTP</th><th>Effet BDD</th></tr></thead>
+  <tbody>
+    <tr><td>HASH valide + <code>ProcReturnCode=00</code></td><td><code>200 OK</code></td><td>Transaction → <code>COMPLETED</code>, event Kafka publié</td></tr>
+    <tr><td>HASH invalide</td><td><code>401 Invalid HASH</code></td><td>Aucun changement</td></tr>
+    <tr><td><code>oid</code> inconnu</td><td><code>404 Unknown transaction</code></td><td>Aucun changement</td></tr>
+    <tr><td><code>ProcReturnCode</code> ≠ "00"</td><td><code>200 OK</code></td><td>Transaction → <code>FAILED</code> avec le message d'erreur</td></tr>
+  </tbody>
+</table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 5 — CONFIGURATION CLENZY
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>5. Configuration Clenzy</h2>
+
+<h3>5.1 — Variables d'environnement</h3>
+
+<p>Dans <code>server/src/main/resources/application.yml</code> ou <code>.env.local</code>, vérifier ces variables :</p>
+
+<table>
+  <thead><tr><th>Variable</th><th>Valeur attendue (dev)</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td><code>clenzy.base-url</code></td><td><code>http://localhost:8084</code></td><td>Utilisé par CMI pour construire le redirectUrl</td></tr>
+    <tr><td><code>SPRING_PROFILES_ACTIVE</code></td><td><code>dev</code></td><td>Active la config de sécurité permissive</td></tr>
+  </tbody>
+</table>
+
+<p>Override possible en variable d'env :</p>
+<pre><span class="bash"></span>export CLENZY_BASE_URL=http://localhost:8084</pre>
+
+<h3>5.2 — Saisie des credentials via l'interface admin</h3>
+
+<ol class="steps">
+  <li>Login Clenzy en tant que <code>SUPER_ADMIN</code></li>
+  <li>Aller dans <strong>Paramètres → onglet Paiement</strong></li>
+  <li>Identifier le provider à configurer (PayTabs ou CMI) — chip <strong>"À configurer"</strong> en orange</li>
+  <li>Cliquer sur l'icône <kbd>⚙</kbd> (Configurer) à droite de la ligne</li>
+  <li>Renseigner les champs du dialog (cf. sections 3.2 ou 4.2)</li>
+  <li>Vérifier que <strong>Mode sandbox</strong> est activé</li>
+  <li>Cliquer sur <strong>Enregistrer</strong></li>
+  <li>Le toggle du provider s'active automatiquement</li>
+</ol>
+
+<h3>5.3 — Sécurité des credentials</h3>
+
+<div class="callout callout-success">
+  <div class="callout-title">Chiffrement automatique côté backend</div>
+  <p>Tous les secrets (<code>Server Key</code>, <code>Store Key</code>, <code>Webhook Secret</code>) sont automatiquement chiffrés en <strong>AES-256-GCM</strong> via Jasypt avant d'être stockés en base. L'API REST ne les retourne <strong>jamais</strong> en clair — si vous rouvrez le dialog de config, le champ secret apparaît vide (laisser vide = préserver la valeur existante).</p>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 6 — SCENARIOS DE TEST
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>6. Scénarios de test end-to-end</h2>
+
+<h3>6.1 — Scénario complet PayTabs (devise SAR)</h3>
+
+<p><strong>Préparation</strong> : backend Clenzy démarré sur <code>:8084</code>, frontend sur <code>:3000</code>, ngrok actif, compte sandbox PayTabs créé et configuré.</p>
+
+<ol class="steps">
+  <li>Booking Engine → sélectionner une propriété en KSA (devise SAR)</li>
+  <li>Compléter la réservation → page paiement</li>
+  <li>Frontend appelle <code>POST /api/payments/create-session</code> avec <code>currency: "SAR"</code></li>
+  <li><code>PaymentOrchestrationService.resolveProvider()</code> → identifie SAR → cherche PayTabs enabled → trouve → utilise <code>PayTabsPaymentProvider</code></li>
+  <li><code>PayTabsPaymentProvider.createPayment()</code> → POST vers <code>secure.paytabs.sa/payment/request</code> → reçoit <code>redirect_url</code></li>
+  <li>Frontend redirige le navigateur vers le portail PayTabs</li>
+  <li>Saisir la carte <code>4111 1111 1111 1111</code>, exp <code>12/30</code>, CVV <code>123</code></li>
+  <li>Page 3D Secure → OTP <code>1234</code></li>
+  <li>Redirection vers <code>successUrl</code> (Clenzy)</li>
+  <li><strong>En parallèle</strong> : PayTabs poste un IPN sur <code>https://&lt;ngrok&gt;/api/webhooks/payments/paytabs</code></li>
+  <li><code>PaymentWebhookRouter.handlePayTabsWebhook()</code> : parse <code>cart_id</code> → charge le Server Key → vérifie HMAC-SHA256 → si <code>response_status == "A"</code> → <code>completeTransaction()</code></li>
+  <li>BDD : transaction → <code>COMPLETED</code>, réservation → <code>PAID</code></li>
+</ol>
+
+<h3>6.2 — Scénario partiel CMI (devise MAD, sans sandbox CMI)</h3>
+
+<ol class="steps">
+  <li>Configurer CMI avec les credentials fictifs de la section 4.2</li>
+  <li>Forcer une transaction CMI (depuis le frontend en MAD, ou via curl) :
+    <pre><span class="bash"></span>curl -X POST http://localhost:8084/api/payments/create-session \
+  -H "Authorization: Bearer &lt;jwt-keycloak&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{"amount":250.00,"currency":"MAD","sourceType":"RESERVATION","sourceId":1}'</pre>
+  </li>
+  <li>Le backend retourne <code>redirectUrl: "http://localhost:8084/api/payments/cmi-redirect/TX-xxx"</code></li>
+  <li>Ouvrir cette URL dans le navigateur → page de redirection Clenzy (spinner + "Redirection vers CMI…")</li>
+  <li>Le formulaire HTML auto-submit vers <code>testpayment.cmi.co.ma</code></li>
+  <li>CMI rejette (clientid inconnu) → c'est attendu, le flow Clenzy est validé jusqu'à la redirection</li>
+  <li><strong>View source</strong> de la page pour vérifier :
+    <ul>
+      <li>Tous les paramètres CMI présents (clientid, amount, currency=504, oid, HASH…)</li>
+      <li>Le HASH ressemble à du Base64 (88 caractères, terminant éventuellement par <code>==</code>)</li>
+      <li>L'URL d'action est <code>https://testpayment.cmi.co.ma/fim/est3Dgate</code></li>
+    </ul>
+  </li>
+  <li>Simuler le callback avec le script <code>compute-cmi-hash.sh</code> + curl (section 4.3)</li>
+  <li>Vérifier que la transaction passe en <code>COMPLETED</code></li>
+</ol>
+
+<h3>6.3 — Tests de fallback du routing</h3>
+
+<p>Le <code>PaymentOrchestrationService.resolveProvider()</code> applique cette logique de priorité :</p>
+
+<ol>
+  <li><strong>preferredProvider explicite</strong> : si l'appelant impose un provider, on l'utilise</li>
+  <li><strong>Currency match</strong> : SAR → PayTabs (si enabled pour l'org), MAD → CMI (si enabled)</li>
+  <li><strong>Country match</strong> : premier provider enabled pour le pays de l'org</li>
+  <li><strong>Fallback Stripe</strong> : derniere chance</li>
+</ol>
+
+<p>Tester en désactivant successivement les providers et en lançant des transactions avec différentes devises :</p>
+
+<table>
+  <thead><tr><th>Config org</th><th>Devise transaction</th><th>Provider attendu</th></tr></thead>
+  <tbody>
+    <tr><td>Stripe ON, PayTabs ON</td><td>SAR</td><td>PayTabs (currency match)</td></tr>
+    <tr><td>Stripe ON, PayTabs OFF</td><td>SAR</td><td>Stripe (fallback)</td></tr>
+    <tr><td>Stripe ON, CMI ON</td><td>MAD</td><td>CMI (currency match)</td></tr>
+    <tr><td>Stripe ON, CMI ON</td><td>EUR</td><td>Stripe (pas de currency match fort sur EUR)</td></tr>
+    <tr><td>Stripe OFF, PayTabs ON</td><td>EUR</td><td>PayTabs (seul enabled, mais non-natif EUR)</td></tr>
+  </tbody>
+</table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 7 — DEBUG
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>7. Débogage &amp; commandes utiles</h2>
+
+<h3>7.1 — Logs backend Clenzy</h3>
+
+<pre><span class="bash"></span>tail -f server/logs/application.log | grep -i "paytabs\|cmi\|payment"</pre>
+
+<p>Logs clés à surveiller :</p>
+<ul>
+  <li><code>PayTabs payment created — tranRef=XXX for org=YY</code> : provider créé avec succès</li>
+  <li><code>PayTabs webhook : transaction TX-xxx confirmee</code> : IPN reçu et traité</li>
+  <li><code>CMI redirect rendu pour txRef=XXX → https://testpayment.cmi.co.ma/...</code> : redirection servie</li>
+  <li><code>CMI webhook : HASH invalide pour oid=...</code> : problème de signature (vérifier le store_key)</li>
+</ul>
+
+<h3>7.2 — Inspection BDD</h3>
+
+<pre><span class="bash"></span>docker exec -it clenzy-postgres-dev psql -U clenzy -d clenzy -c \
+  "SELECT transaction_ref, provider_type, status, amount, currency,
+          created_at, error_message
+   FROM payment_transactions
+   ORDER BY created_at DESC LIMIT 10;"</pre>
+
+<pre><span class="bash"></span>docker exec -it clenzy-postgres-dev psql -U clenzy -d clenzy -c \
+  "SELECT provider_type, enabled, country_codes, sandbox_mode, config_json
+   FROM payment_method_configs
+   WHERE organization_id = 1;"</pre>
+
+<h3>7.3 — Dashboard ngrok</h3>
+
+<p>Pendant que ngrok tourne, ouvrir <code>http://127.0.0.1:4040</code> :</p>
+<ul>
+  <li>Onglet <strong>Inspect</strong> : voir chaque requête entrante en détail (body, headers, status, durée)</li>
+  <li>Onglet <strong>Status</strong> : statistiques de trafic du tunnel</li>
+  <li>Bouton <strong>Replay</strong> : rejouer une requête (utile pour tester un IPN sans repasser par le portail)</li>
+</ul>
+
+<h3>7.4 — Tests unitaires backend</h3>
+
+<pre><span class="bash"></span>cd server && mvn test -Dtest='PayTabsPaymentProviderTest,CmiHashServiceTest,CmiPaymentProviderTest'</pre>
+
+<h3>7.5 — Erreurs courantes</h3>
+
+<table>
+  <thead><tr><th>Symptôme</th><th>Cause probable</th><th>Solution</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>PayTabs renvoie HTTP 401 sur createPayment</td>
+      <td>Server Key incorrect ou non lu depuis la BDD</td>
+      <td>Vérifier que le toggle PayTabs est activé en BDD ET que <code>apiKey</code> n'est pas null</td>
+    </tr>
+    <tr>
+      <td>Transaction reste en PROCESSING</td>
+      <td>IPN PayTabs non activé dans le dashboard sandbox</td>
+      <td>Cf. section 3.3 — activer l'IPN + vérifier l'URL ngrok</td>
+    </tr>
+    <tr>
+      <td>CMI webhook renvoie 401 "Invalid HASH"</td>
+      <td>Le store_key utilisé pour calculer le HASH dans le script ne matche pas celui configuré dans Clenzy</td>
+      <td>Vérifier que les deux valeurs sont strictement identiques (sensible à la casse)</td>
+    </tr>
+    <tr>
+      <td>CMI redirect : "Transaction introuvable"</td>
+      <td>L'URL <code>/cmi-redirect/&lt;txRef&gt;</code> contient un txRef inexistant en BDD</td>
+      <td>Lancer d'abord une vraie transaction depuis le frontend</td>
+    </tr>
+    <tr>
+      <td>ngrok change d'URL à chaque relance</td>
+      <td>Plan gratuit ngrok</td>
+      <td>Mettre à jour l'URL dans PayTabs ET dans Clenzy à chaque relance, ou passer au plan payant</td>
+    </tr>
+  </tbody>
+</table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 8 — ANNEXE SCRIPT
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>8. Annexe — Script <code>compute-cmi-hash.sh</code></h2>
+
+<p>Le script <code>compute-cmi-hash.sh</code> est livré dans <code>docs/payments-sandbox/</code>. Il calcule le HASH SHA-512 ver3 selon la spec officielle CMI, en parité stricte avec l'implémentation Java <code>CmiHashService</code> du backend Clenzy.</p>
+
+<h3>Algorithme reproduit</h3>
+
+<ol>
+  <li>Trier les paramètres par nom de champ (case-insensitive, ordre alphabétique)</li>
+  <li>Exclure les champs <code>HASH</code> et <code>encoding</code> du calcul</li>
+  <li>Échapper chaque valeur : <code>\</code> → <code>\\</code>, puis <code>|</code> → <code>\|</code></li>
+  <li>Joindre les valeurs échappées avec <code>|</code></li>
+  <li>Concaténer <code>|</code> + <code>escape(storeKey)</code> à la fin</li>
+  <li>Calculer SHA-512 sur les bytes UTF-8 → encoder en Base64 standard</li>
+</ol>
+
+<h3>Dépendances</h3>
+
+<p>Uniquement des outils Unix natifs : <code>openssl</code>, <code>base64</code>, <code>sort</code>, <code>tr</code>. Aucune installation requise sur macOS et Linux.</p>
+
+<h3>Validation</h3>
+
+<p>Le script a été validé en parité contre :</p>
+<ul>
+  <li>L'implémentation Java <code>CmiHashService</code> (26 tests unitaires verts)</li>
+  <li>Une implémentation de référence en Python (algorithme officiel)</li>
+  <li>Cas d'échappement spéciaux : <code>|</code>, <code>\</code>, et combinaisons</li>
+</ul>
+
+<h3>Usage</h3>
+
+<pre><span class="bash"></span>./compute-cmi-hash.sh STORE_KEY "key1=value1" "key2=value2" ...
+
+# Options
+--webhook-url URL    URL du webhook pour la commande curl générée
+                     Default: http://localhost:8084/api/webhooks/payments/cmi
+-h, --help           Affiche l'aide</pre>
+
+<h3>Exemple d'utilisation complète</h3>
+
+<pre><span class="bash"></span>./compute-cmi-hash.sh \
+  "STORE_KEY_LOREM_IPSUM_DOLOR_SIT_AMET" \
+  "clientid=TEST_CLIENT_001" \
+  "oid=TX-abc12345" \
+  "amount=250.00" \
+  "currency=504" \
+  "ProcReturnCode=00" \
+  "Response=Approved"</pre>
+
+<p>Le script produit en sortie :</p>
+<ol>
+  <li>Le HASH calculé (Base64, 88 caractères)</li>
+  <li>Le plaintext utilisé pour le hash (debug)</li>
+  <li>Une commande <code>curl</code> prête à exécuter avec tous les paramètres + le HASH</li>
+  <li>Une description des réponses HTTP attendues côté Clenzy</li>
+</ol>
+
+<div class="callout callout-success">
+  <div class="callout-title">Vous voilà prêt</div>
+  <p>Avec ce script + le sandbox PayTabs gratuit + ngrok, vous disposez de tout ce qu'il faut pour tester les deux providers sans attendre l'accès officiel à CMI. Pour le passage en production, il restera à obtenir les credentials prod auprès de chaque marchand et à les saisir via le même dialog de configuration — le code Clenzy est déjà prêt.</p>
+</div>
+
+</section>
+
+</body>
+</html>
