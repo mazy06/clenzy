@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.model.Organization;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.tenant.TenantContext;
+import com.clenzy.util.IbanMasker;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,7 @@ public class SepaDebtorSettingsController {
         Organization org = organizationRepository.findById(orgId)
                 .orElseThrow(() -> new IllegalArgumentException("Organisation introuvable"));
 
-        String maskedIban = maskIban(org.getSepaDebtorIban());
+        String maskedIban = IbanMasker.mask(org.getSepaDebtorIban());
         return ResponseEntity.ok(new SepaDebtorConfigResponse(
                 org.getSepaDebtorName(),
                 maskedIban,
@@ -65,15 +66,10 @@ public class SepaDebtorSettingsController {
 
         return new SepaDebtorConfigResponse(
                 org.getSepaDebtorName(),
-                maskIban(org.getSepaDebtorIban()),
+                IbanMasker.mask(org.getSepaDebtorIban()),
                 org.getSepaDebtorBic(),
                 true
         );
-    }
-
-    private String maskIban(String iban) {
-        if (iban == null || iban.length() < 8) return null;
-        return iban.substring(0, 4) + "****" + iban.substring(iban.length() - 4);
     }
 
     public record SepaDebtorConfigResponse(String name, String iban, String bic, boolean configured) {}

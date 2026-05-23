@@ -533,7 +533,7 @@ class IntegrationDtoCoverageTest {
     @DisplayName("ChannelName enum")
     class ChannelNameTest {
         @Test void allValues() {
-            assertThat(ChannelName.values()).hasSize(13);
+            assertThat(ChannelName.values()).hasSize(20);
             assertThat(ChannelName.valueOf("AIRBNB")).isEqualTo(ChannelName.AIRBNB);
             assertThat(ChannelName.valueOf("BOOKING")).isEqualTo(ChannelName.BOOKING);
             assertThat(ChannelName.valueOf("EXPEDIA")).isEqualTo(ChannelName.EXPEDIA);
@@ -546,6 +546,14 @@ class IntegrationDtoCoverageTest {
             assertThat(ChannelName.valueOf("HOTELS_COM")).isEqualTo(ChannelName.HOTELS_COM);
             assertThat(ChannelName.valueOf("DIRECT")).isEqualTo(ChannelName.DIRECT);
             assertThat(ChannelName.valueOf("BOOKING_ENGINE")).isEqualTo(ChannelName.BOOKING_ENGINE);
+            // Stubs scaffoldes
+            assertThat(ChannelName.valueOf("TRIPCOM")).isEqualTo(ChannelName.TRIPCOM);
+            assertThat(ChannelName.valueOf("HOMETOGO")).isEqualTo(ChannelName.HOMETOGO);
+            assertThat(ChannelName.valueOf("GATHERN")).isEqualTo(ChannelName.GATHERN);
+            assertThat(ChannelName.valueOf("RENTELLY")).isEqualTo(ChannelName.RENTELLY);
+            assertThat(ChannelName.valueOf("KEASE")).isEqualTo(ChannelName.KEASE);
+            assertThat(ChannelName.valueOf("STAY_SA")).isEqualTo(ChannelName.STAY_SA);
+            assertThat(ChannelName.valueOf("MABEET")).isEqualTo(ChannelName.MABEET);
             assertThat(ChannelName.valueOf("OTHER")).isEqualTo(ChannelName.OTHER);
         }
     }

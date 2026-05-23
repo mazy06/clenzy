@@ -1,5 +1,7 @@
 package com.clenzy.integration.pennylane.model;
 
+import com.clenzy.integration.oauth.OAuthConnectionLike;
+import com.clenzy.integration.oauth.OAuthConnectionStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.Filter;
 
@@ -14,7 +16,7 @@ import java.time.Instant;
 @Table(name = "pennylane_connections",
     indexes = @Index(name = "idx_pennylane_connections_org", columnList = "organization_id"))
 @Filter(name = "organizationFilter", condition = "organization_id = :orgId")
-public class PennylaneConnection {
+public class PennylaneConnection implements OAuthConnectionLike {
 
     public enum Status {
         ACTIVE, EXPIRED, ERROR, REVOKED
@@ -127,6 +129,22 @@ public class PennylaneConnection {
 
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
+
+    // ─── Pont vers OAuthConnectionLike (mutualisation OAuth) ─────────────────
+    // Le moteur OAuthFlowEngine manipule des connexions via OAuthConnectionLike
+    // sans connaitre les enums internes. On expose le statut sous forme du
+    // type partage OAuthConnectionStatus tout en gardant l'enum interne pour
+    // les usages provider-specific (pas de breaking change).
+
+    @Override
+    public OAuthConnectionStatus getOAuthStatus() {
+        return status == null ? null : OAuthConnectionStatus.valueOf(status.name());
+    }
+
+    @Override
+    public void setOAuthStatus(OAuthConnectionStatus oauthStatus) {
+        this.status = oauthStatus == null ? null : Status.valueOf(oauthStatus.name());
+    }
 
     public String getErrorMessage() { return errorMessage; }
     public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }

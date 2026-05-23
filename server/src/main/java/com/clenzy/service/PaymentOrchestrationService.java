@@ -168,7 +168,18 @@ public class PaymentOrchestrationService {
 
         PaymentResult result;
         try {
-            result = provider.refundPayment(originalTx.getProviderTxId(),
+            // Construit le contexte enrichi pour les providers régionaux (PayTabs,
+            // Payzone, PayPal) qui ont besoin de l'orgId + currency + transactionRef
+            // pour reconstruire la requête refund auprès de la passerelle. Pour
+            // Stripe, la default method de l'interface délègue à l'ancienne
+            // signature (rétro-compat).
+            var refundContext = new com.clenzy.payment.RefundContext(
+                orgId,
+                originalTx.getProviderTxId(),
+                originalTx.getTransactionRef(),
+                originalTx.getCurrency(),
+                originalTx.getAmount());
+            result = provider.refundPayment(refundContext,
                 amount != null ? amount : originalTx.getAmount(), reason);
         } catch (Exception e) {
             refundTx.setStatus(TransactionStatus.FAILED);
@@ -232,19 +243,107 @@ public class PaymentOrchestrationService {
         return tx;
     }
 
+    /**
+     * Resout le provider a utiliser pour une transaction donnee.
+     *
+     * <h2>Ordre de priorite</h2>
+     * <ol>
+     *   <li><strong>preferredProvider</strong> : si l'appelant a explicitement
+     *       impose un provider (ex: booking engine avec preference user),
+     *       on l'utilise sans poser de question.</li>
+     *   <li><strong>Currency match</strong> : pour une devise regionale forte
+     *       (SAR → PayTabs, MAD → CMI/Payzone), on prefere un provider
+     *       qui parle nativement cette devise SI il est active pour l'org.
+     *       Evite les frais de conversion forex inutiles.</li>
+     *   <li><strong>Country match</strong> : on retombe sur la liste des
+     *       providers enabled pour le pays de l'org (logique pre-existante).</li>
+     *   <li><strong>Fallback Stripe</strong> : derniere chance, accepte la
+     *       plupart des devises avec frais raisonnables.</li>
+     * </ol>
+     *
+     * <h2>Multi-currency par org</h2>
+     * <p>Une org KSA peut accepter SAR (PayTabs) ET EUR (Stripe). Les deux
+     * configs peuvent etre {@code enabled=true} en parallele — la devise de
+     * la transaction tranche.</p>
+     */
     private PaymentProvider resolveProvider(Long orgId, String countryCode,
                                              PaymentOrchestrationRequest request) {
+        // 1. Preference explicite : court-circuit
         if (request.preferredProvider() != null) {
             return providerRegistry.get(request.preferredProvider());
         }
 
         List<PaymentMethodConfig> configs = configService.getEnabledProviders(orgId, countryCode);
+
+        // 2. Currency match : pour les devises regionales fortes, on resout via
+        //    la liste ordonnee des providers preferes (priorite decroissante)
+        //    et on prend le premier enabled pour l'org. Plus efficient en
+        //    frais Forex.
+        List<PaymentProviderType> preferredOrder = preferredProvidersForCurrency(request.currency());
+        for (PaymentProviderType preferred : preferredOrder) {
+            for (PaymentMethodConfig cfg : configs) {
+                if (cfg.getProviderType() == preferred) {
+                    log.debug("Currency {} → {} (provider regional enabled pour org {})",
+                        request.currency(), preferred, orgId);
+                    return providerRegistry.get(preferred);
+                }
+            }
+        }
+
+        // 3. Country match : premier provider enabled pour le pays de l'org
         if (!configs.isEmpty()) {
             return providerRegistry.get(configs.get(0).getProviderType());
         }
 
-        log.info("No enabled provider for org {} country {}, falling back to Stripe", orgId, countryCode);
+        // 4. Fallback Stripe global
+        log.info("No enabled provider for org {} country {}, falling back to Stripe",
+            orgId, countryCode);
         return providerRegistry.get(PaymentProviderType.STRIPE);
+    }
+
+    /**
+     * Mapping devise → liste ordonnee de providers regionaux preferes.
+     *
+     * <p>L'ordre exprime la preference : on essaie le premier, s'il n'est
+     * pas enabled pour l'org on tente le suivant, etc. Pour les devises
+     * multi-pays (EUR, USD, GBP), liste vide = pas de preference forte →
+     * la logique pays-based prend le relais.</p>
+     *
+     * <h2>MAD (Maroc) : CMI > Payzone</h2>
+     * <p>CMI reste le standard bancaire officiel (confiance, gros volumes).
+     * Payzone est une alternative moderne (REST, onboarding rapide) — choisi
+     * en fallback si CMI n'est pas configure pour l'org.</p>
+     *
+     * <h2>SAR (KSA) : PayTabs uniquement</h2>
+     * <p>PayTabs est le leader regional, pas d'alternative crédible enabled
+     * dans Clenzy pour l'instant.</p>
+     *
+     * <p>Visibilite package-private pour testabilite directe sans monter
+     * tout le contexte Spring de l'orchestrateur.</p>
+     */
+    static List<PaymentProviderType> preferredProvidersForCurrency(String currency) {
+        if (currency == null) return List.of();
+        return switch (currency.toUpperCase()) {
+            case "SAR" -> List.of(PaymentProviderType.PAYTABS);
+            case "MAD" -> List.of(PaymentProviderType.CMI, PaymentProviderType.PAYZONE);
+            // AED / EGP supportés par PayTabs aussi, mais on n'impose pas l'ordre
+            // pour laisser le choix par-org. Ajouter ici si la règle se confirme
+            // côté business.
+            default -> List.of();
+        };
+    }
+
+    /**
+     * Ancienne signature pour rétro-compat avec les tests qui testent
+     * la résolution single-provider. À retirer quand les tests seront
+     * migrés vers la nouvelle signature.
+     *
+     * @deprecated utiliser {@link #preferredProvidersForCurrency(String)}
+     */
+    @Deprecated
+    static PaymentProviderType preferredProviderForCurrency(String currency) {
+        List<PaymentProviderType> list = preferredProvidersForCurrency(currency);
+        return list.isEmpty() ? null : list.get(0);
     }
 
     private PaymentTransaction createTransaction(Long orgId, PaymentProviderType providerType,
