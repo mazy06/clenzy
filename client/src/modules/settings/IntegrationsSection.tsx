@@ -46,6 +46,7 @@ import { kycConnectionApi, type KycProvider } from '../../services/api/kycConnec
 import KycProviderCard from './components/KycProviderCard';
 import { channelManagerConnectionApi, type ChannelManagerProvider } from '../../services/api/channelManagerConnectionApi';
 import ChannelManagerProviderCard from './components/ChannelManagerProviderCard';
+import ChannexMappingDialog from './components/ChannexMappingDialog';
 import OtaShowcaseSection from './components/OtaShowcaseSection';
 import ServiceCatalogSection from './components/ServiceCatalogSection';
 import ServiceTooltip from './components/ServiceTooltip';
@@ -247,6 +248,7 @@ export default function IntegrationsSection({
 
   // ─── Channel Manager (SiteMinder / Hostaway / Rentals United) ───────────
   const [openChannelManagerProvider, setOpenChannelManagerProvider] = useState<ChannelManagerProvider | null>(null);
+  const [channexDialogOpen, setChannexDialogOpen] = useState(false);
   const [connectedChannelManager, setConnectedChannelManager] = useState<Set<ChannelManagerProvider>>(new Set());
   const handleChannelManagerStatusChange = useCallback((p: ChannelManagerProvider, connected: boolean) => {
     setConnectedChannelManager((prev) => {
@@ -1307,11 +1309,15 @@ export default function IntegrationsSection({
             <Box
               role="button"
               tabIndex={0}
-              onClick={() => setOpenChannelManagerProvider(p)}
+              onClick={() => {
+                if (p === 'CHANNEX') setChannexDialogOpen(true);
+                else setOpenChannelManagerProvider(p);
+              }}
               onKeyDown={(e) => {
                 if (e.key === ' ' || e.key === 'Enter') {
                   e.preventDefault();
-                  setOpenChannelManagerProvider(p);
+                  if (p === 'CHANNEX') setChannexDialogOpen(true);
+                  else setOpenChannelManagerProvider(p);
                 }
               }}
               sx={{
@@ -1371,6 +1377,23 @@ export default function IntegrationsSection({
           />
         )}
       </IntegrationConfigDialog>
+
+      {/* Channex : dialog dedie (mapping par property au lieu d'API key globale) */}
+      <ChannexMappingDialog
+        open={channexDialogOpen}
+        onClose={() => {
+          setChannexDialogOpen(false);
+          // Refresh du statut "connecte" pour la card Channex
+          channelManagerConnectionApi.getStatus('CHANNEX').then((status) => {
+            setConnectedChannelManager((prev) => {
+              const next = new Set(prev);
+              if (status?.connected) next.add('CHANNEX');
+              else next.delete('CHANNEX');
+              return next;
+            });
+          }).catch(() => { /* ignore */ });
+        }}
+      />
 
       {/* ─── Section : OTAs (vitrine — gestion dans tab Channels) ────── */}
       {showSection('ota') && (
