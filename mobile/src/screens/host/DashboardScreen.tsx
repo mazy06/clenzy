@@ -8,6 +8,7 @@ import { useProperties } from '@/hooks/useProperties';
 import { useReservations } from '@/hooks/useReservations';
 import { useInterventions } from '@/hooks/useInterventions';
 import { useServiceRequests } from '@/hooks/useServiceRequests';
+import { usePendingPayoutSummary } from '@/hooks/usePayouts';
 import { useAuthStore } from '@/store/authStore';
 import { KpiCard } from '@/components/domain/KpiCard';
 import { ReservationCard } from '@/components/domain/ReservationCard';
@@ -91,6 +92,12 @@ export function DashboardScreen() {
   const activeInterventions = (serviceRequestsData?.content ?? []).filter(
     (sr: any) => sr.status === 'PENDING' || sr.status === 'IN_PROGRESS',
   ).length;
+
+  // Reversements en attente — KPI critique pour les conciergeries (differenciateur Clenzy).
+  // Affiche un highlight si total > 0, sinon masque la card.
+  const { data: payoutSummary } = usePendingPayoutSummary();
+  const pendingPayoutAmount = payoutSummary?.totalPendingAmount ?? 0;
+  const pendingPayoutCount = payoutSummary?.pendingCount ?? 0;
 
   // Date range
   const today = new Date().toISOString().split('T')[0];
@@ -196,6 +203,54 @@ export function DashboardScreen() {
             </Pressable>
           ))}
         </View>
+
+        {/* Reversements highlight (uniquement si du > 0 — sinon ne pas distraire) */}
+        {pendingPayoutCount > 0 && (
+          <View style={{ paddingHorizontal: theme.SPACING.lg, marginBottom: theme.SPACING.md }}>
+            <Pressable
+              onPress={() => navigation.navigate('More' as any, { screen: 'OwnerPayouts' })}
+              style={({ pressed }) => ({
+                backgroundColor: theme.colors.background.paper,
+                borderRadius: theme.BORDER_RADIUS.lg,
+                padding: theme.SPACING.lg,
+                opacity: pressed ? 0.92 : 1,
+                borderLeftWidth: 3,
+                borderLeftColor: '#D97706',
+                ...theme.shadows.sm,
+              })}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <Ionicons name="cash-outline" size={16} color="#D97706" />
+                <Text style={{
+                  ...theme.typography.caption,
+                  color: '#D97706',
+                  marginLeft: 6,
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                }}>
+                  Reversements en attente
+                </Text>
+                <View style={{ flex: 1 }} />
+                <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} />
+              </View>
+              <Text style={{
+                ...theme.typography.h2,
+                color: theme.colors.text.primary,
+                fontVariant: ['tabular-nums'],
+              }}>
+                {pendingPayoutAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+              </Text>
+              <Text style={{
+                ...theme.typography.body2,
+                color: theme.colors.text.secondary,
+                marginTop: 2,
+              }}>
+                {pendingPayoutCount} versement{pendingPayoutCount > 1 ? 's' : ''} a effectuer
+              </Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* KPIs summary */}
         <View style={{ paddingHorizontal: theme.SPACING.lg }}>
