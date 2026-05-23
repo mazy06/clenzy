@@ -36,6 +36,8 @@ import { useCommissions, useSaveCommission } from '../../hooks/useAccounting';
 import type { ChannelCommission } from '../../services/api/accountingApi';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
+import PaymentProviderConfigDialog from './components/PaymentProviderConfigDialog';
+import { Settings as SettingsIcon } from '../../icons';
 
 // ─── Provider metadata ───────────────────────────────────────────────────────
 
@@ -79,11 +81,20 @@ const SHARE_OWNER = '#4A9B8E';
 const SHARE_PLATFORM = '#6B8A9A';
 const SHARE_CONCIERGE = '#D4A574';
 
+/** Providers configurables via le dialog (credentials chiffres en BDD).
+ *  STRIPE est configure cote application.yml (global), pas par-tenant.
+ *  Plus aucun stub UI : les 4 providers non-Stripe sont desormais configurables.
+ */
+const CONFIGURABLE_PROVIDERS: PaymentProviderType[] = ['PAYTABS', 'CMI', 'PAYZONE', 'PAYPAL'];
+const STUB_PROVIDERS: PaymentProviderType[] = [];
+
 export default function PaymentSettings() {
   const { t } = useTranslation();
   const [configs, setConfigs] = useState<PaymentMethodConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [configDialogProvider, setConfigDialogProvider] = useState<PaymentProviderType | null>(null);
 
   // Split config state
   const [splitConfig, setSplitConfig] = useState<SplitConfiguration | null>(null);
@@ -124,7 +135,50 @@ export default function PaymentSettings() {
     }
   };
 
+  /**
+   * Verifie si la config d'un provider est suffisamment renseignee pour
+   * etre activee.
+   * - STRIPE   : toujours OK (config globale application.yml).
+   * - PAYTABS  : profileId + region dans configJson (server_key chiffré BDD).
+   * - CMI      : okUrl + failUrl dans configJson (client_id + store_key BDD).
+   * - PAYZONE  : webhookUrl dans configJson (api_key BDD). MAD principal.
+   * - PAYPAL   : client_id + client_secret BDD (presence = config valide).
+   */
+  const isProviderConfigured = (type: PaymentProviderType, config?: PaymentMethodConfig): boolean => {
+    if (type === 'STRIPE') return true;
+    if (!config) return false;
+    const json = (config.config ?? {}) as Record<string, unknown>;
+    if (type === 'PAYTABS') {
+      return json.profileId != null && typeof json.region === 'string' && json.region.length > 0;
+    }
+    if (type === 'CMI') {
+      return typeof json.okUrl === 'string' && typeof json.failUrl === 'string';
+    }
+    if (type === 'PAYZONE') {
+      // L'api_key elle-même n'est pas exposée par l'API (chiffrée), donc on
+      // s'appuie sur la presence d'au moins une clef provider-specific dans
+      // configJson — la webhookUrl est requise au moment du saving du dialog.
+      return typeof json.webhookUrl === 'string' && json.webhookUrl.length > 0;
+    }
+    if (type === 'PAYPAL') {
+      // PayPal n'a pas de configJson obligatoire — la config est valide dès
+      // que sandbox mode + credentials ont été enregistrés au moins une fois.
+      // L'API renvoie le sandboxMode mais pas les credentials. On considère
+      // que si le record existe et que sandboxMode est défini, c'est configuré.
+      return config.id != null;
+    }
+    return false;
+  };
+
   const handleToggle = async (providerType: PaymentProviderType, currentEnabled: boolean) => {
+    const config = getConfig(providerType);
+    // Pour PayTabs/CMI : si on essaie d'activer mais pas encore configure → ouvre le dialog.
+    if (!currentEnabled
+        && CONFIGURABLE_PROVIDERS.includes(providerType)
+        && !isProviderConfigured(providerType, config)) {
+      openConfigDialog(providerType);
+      return;
+    }
     try {
       await paymentConfigApi.updateConfig(providerType, { enabled: !currentEnabled });
       setConfigs(prev =>
@@ -140,6 +194,27 @@ export default function PaymentSettings() {
     } catch (error) {
       setSnackbar({ open: true, message: 'Erreur lors de la mise à jour', severity: 'error' });
     }
+  };
+
+  const openConfigDialog = (providerType: PaymentProviderType) => {
+    setConfigDialogProvider(providerType);
+    setConfigDialogOpen(true);
+  };
+
+  const handleSaveProviderConfig = async (data: Parameters<typeof paymentConfigApi.updateConfig>[1]) => {
+    if (!configDialogProvider) return;
+    const updated = await paymentConfigApi.updateConfig(configDialogProvider, data);
+    setConfigs(prev => {
+      const existing = prev.find(c => c.providerType === configDialogProvider);
+      return existing
+        ? prev.map(c => (c.providerType === configDialogProvider ? updated : c))
+        : [...prev, updated];
+    });
+    setSnackbar({
+      open: true,
+      message: `${PAYMENT_PROVIDER_LABELS[configDialogProvider]} configuré`,
+      severity: 'success',
+    });
   };
 
   const splitTotal = useCallback(() => {
@@ -212,7 +287,9 @@ export default function PaymentSettings() {
             {allProviders.map((type, index) => {
               const config = getConfig(type);
               const enabled = config?.enabled ?? false;
-              const isStub = type !== 'STRIPE';
+              const isStub = STUB_PROVIDERS.includes(type);
+              const isConfigurable = CONFIGURABLE_PROVIDERS.includes(type);
+              const isConfigured = isProviderConfigured(type, config);
               const brandColor = PROVIDER_COLORS[type] ?? '#8A8378';
 
               const statusChips = (
@@ -220,37 +297,78 @@ export default function PaymentSettings() {
                   {isStub && (
                     <Chip label="Bientôt" size="small" sx={buildStatusChipSx('#8A8378')} />
                   )}
+                  {isConfigurable && !isConfigured && (
+                    <Chip label="À configurer" size="small" sx={buildStatusChipSx('#D4A574')} />
+                  )}
                   {enabled && !isStub && (
                     <Chip label="Actif" size="small" sx={buildStatusChipSx('#4A9B8E')} />
                   )}
-                  {config?.sandboxMode && (
+                  {config?.sandboxMode && isConfigured && (
                     <Chip label="Sandbox" size="small" sx={buildStatusChipSx('#D4A574')} />
                   )}
                 </>
               );
 
+              // Pour PayTabs/CMI : icône "Configurer" cliquable a droite de la
+              // ligne (rebascule sur le dialog). On la rend en endAdornment via
+              // le slot iconButton du SettingsToggleRow… mais ce composant
+              // n'expose pas ce slot. On va plutot wrapper la ligne dans un
+              // Box avec un IconButton positionne en absolu.
+              const configureButton = isConfigurable ? (
+                <Tooltip title={isConfigured ? 'Reconfigurer' : 'Configurer les credentials'} arrow>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openConfigDialog(type);
+                    }}
+                    sx={{
+                      ml: 0.5,
+                      color: isConfigured ? 'text.secondary' : '#D4A574',
+                      '&:hover': { color: '#4A9B8E', backgroundColor: '#4A9B8E0F' },
+                    }}
+                  >
+                    <SettingsIcon size={16} strokeWidth={1.75} />
+                  </IconButton>
+                </Tooltip>
+              ) : null;
+
               return (
-                <SettingsToggleRow
-                  key={type}
-                  icon={CreditCard}
-                  iconColor={brandColor}
-                  title={(
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, flexWrap: 'wrap' }}>
-                      <Typography
-                        component="span"
-                        sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'inherit' }}
-                      >
-                        {PAYMENT_PROVIDER_LABELS[type]}
-                      </Typography>
-                      {statusChips}
+                <Box key={type} sx={{ position: 'relative' }}>
+                  <SettingsToggleRow
+                    icon={CreditCard}
+                    iconColor={brandColor}
+                    title={(
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, flexWrap: 'wrap' }}>
+                        <Typography
+                          component="span"
+                          sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'inherit' }}
+                        >
+                          {PAYMENT_PROVIDER_LABELS[type]}
+                        </Typography>
+                        {statusChips}
+                      </Box>
+                    )}
+                    description={PROVIDER_REGIONS[type]}
+                    checked={enabled}
+                    onChange={() => handleToggle(type, enabled)}
+                    disabled={isStub}
+                    divider={index < allProviders.length - 1}
+                  />
+                  {configureButton && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        right: 56, // a gauche du Switch (qui fait ~36px + margin)
+                        transform: 'translateY(-50%)',
+                        pointerEvents: 'auto',
+                      }}
+                    >
+                      {configureButton}
                     </Box>
                   )}
-                  description={PROVIDER_REGIONS[type]}
-                  checked={enabled}
-                  onChange={() => handleToggle(type, enabled)}
-                  disabled={isStub}
-                  divider={index < allProviders.length - 1}
-                />
+                </Box>
               );
             })}
           </SettingsSection>
@@ -454,6 +572,14 @@ export default function PaymentSettings() {
           </Box>
         </Grid>
       </Grid>
+
+      <PaymentProviderConfigDialog
+        open={configDialogOpen}
+        providerType={configDialogProvider}
+        currentConfig={configDialogProvider ? getConfig(configDialogProvider) ?? null : null}
+        onClose={() => setConfigDialogOpen(false)}
+        onSave={handleSaveProviderConfig}
+      />
 
       <Snackbar
         open={snackbar.open}
