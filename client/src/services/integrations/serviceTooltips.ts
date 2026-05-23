@@ -201,6 +201,14 @@ export const SERVICE_TOOLTIPS: Record<string, ServiceTooltipData> = {
     websiteUrl: 'https://rentalsunited.com',
     region: 'EU',
   },
+  CHANNEX: {
+    description:
+      "Channel manager STR (UK). 100+ OTAs (Airbnb, Booking.com, Vrbo, Expedia, HomeToGo, Trip.com…). API REST moderne avec webhooks, documentation publique complète. Recommandé pour les conciergeries françaises 10-50 biens.",
+    accessModality:
+      "Compte Channex en pay-as-you-go (~10 £ / £8 / £6 par bien/mois selon le tier). Sandbox gratuit. API key dans le dashboard Channex après onboarding (<1 jour).",
+    websiteUrl: 'https://channex.io',
+    region: 'Global',
+  },
 
   // ─── OTAs (channels de reservation) ────────────────────────────────────
   airbnb: {
