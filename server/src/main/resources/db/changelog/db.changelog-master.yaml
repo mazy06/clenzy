@@ -1164,3 +1164,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0123__create_kyc_and_channel_manager_tables.sql
         relativeToChangelogFile: true
+
+  # --- 0124 : Wise + Open Banking PIS pour payouts sortants automatises ---
+  - changeSet:
+      id: "0124-add-wise-and-openbanking-to-owner-payout-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0124__add_wise_and_openbanking_to_owner_payout_config.sql
+        relativeToChangelogFile: true

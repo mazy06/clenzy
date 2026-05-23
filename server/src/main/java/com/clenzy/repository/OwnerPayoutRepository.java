@@ -57,4 +57,15 @@ public interface OwnerPayoutRepository extends JpaRepository<OwnerPayout, Long> 
 
     @Query("SELECT DISTINCT p.organizationId FROM OwnerPayout p WHERE p.organizationId IS NOT NULL")
     List<Long> findDistinctOrganizationIds();
+
+    /**
+     * Recherche un payout par sa référence de paiement (utilisée pour résoudre
+     * les webhooks externes — Wise stocke "WISE:&lt;transferId&gt;", Stripe stocke
+     * directement le transferId).
+     *
+     * <p>Retourne le premier match si plusieurs payouts partagent la même
+     * référence (cas anormal mais possible en cas de retry).</p>
+     */
+    @Query("SELECT p FROM OwnerPayout p WHERE p.paymentReference = :ref")
+    Optional<OwnerPayout> findFirstByPaymentReference(@Param("ref") String paymentReference);
 }
