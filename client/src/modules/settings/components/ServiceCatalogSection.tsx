@@ -46,14 +46,26 @@ interface ServiceCatalogSectionProps {
   category: ServiceCategory;
   title: string;
   description: string;
+  /**
+   * Filtre par ID de service : si non-null, on n'affiche QUE la card du
+   * service correspondant (utile depuis l'autocomplete de recherche). null =
+   * toutes les cards de la categorie sont visibles (comportement par defaut).
+   * Si le service ne fait pas partie de la categorie courante, la section
+   * entiere ne rend rien.
+   */
+  serviceFilter?: string | null;
 }
 
 export default function ServiceCatalogSection({
   category,
   title,
   description,
+  serviceFilter = null,
 }: ServiceCatalogSectionProps) {
-  const services = getServicesByCategory(category);
+  const allServices = getServicesByCategory(category);
+  const services = serviceFilter
+    ? allServices.filter((s) => s.id === serviceFilter)
+    : allServices;
   const navigate = useNavigate();
   const [openService, setOpenService] = useState<CatalogService | null>(null);
 

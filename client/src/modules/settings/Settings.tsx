@@ -65,6 +65,12 @@ import TaxRulesSection from './TaxRulesSection';
 import PaymentSettings from './PaymentSettings';
 import AiSettingsSection from './AiSettingsSection';
 import IntegrationsSection from './IntegrationsSection';
+import IntegrationsHeader from './components/IntegrationsHeader';
+import {
+  ALL_SERVICES,
+  getDomIdForCategory,
+  type ServiceIndexEntry,
+} from '../../services/integrations/allServicesIndex';
 import OwnerPayoutSettings from './OwnerPayoutSettings';
 import MyPayoutSettings from './MyPayoutSettings';
 import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
@@ -117,6 +123,68 @@ export default function Settings() {
   const tabParam = searchParams.get('tab');
   const initialTab = tabParam === 'integrations' ? 7 : parseInt(tabParam || '0', 10);
   const [tabValue, setTabValue] = useState(isNaN(initialTab) ? 0 : initialTab);
+
+  // ─── Etat tab Integrations (hoiste depuis IntegrationsSection) ──────────
+  // Permet d'injecter la barre de recherche + filtre categorie dans le slot
+  // {@code filters} du PageHeader (au lieu d'occuper l'espace sous les tabs).
+  //
+  // Deux niveaux de filtre cumulatifs :
+  // - {@code integrationsCategoryId} : null = toutes les sections visibles ;
+  //   sinon affichage de la seule section correspondante.
+  // - {@code integrationsServiceId} : null = toutes les cards de la section
+  //   visibles ; sinon on n'affiche que la card du service recherche.
+  //
+  // L'autocomplete renseigne les DEUX (categorie auto-derivee depuis le
+  // service) ; le dropdown categorie ne touche QUE la categorie et reset le
+  // service (l'utilisateur a explicitement change de scope).
+  const [integrationsCategoryId, setIntegrationsCategoryId] = useState<string | null>(null);
+  const [integrationsServiceId, setIntegrationsServiceId] = useState<string | null>(null);
+
+  const handleIntegrationsCategoryChange = (categoryId: string | null) => {
+    setIntegrationsCategoryId(categoryId);
+    setIntegrationsServiceId(null);
+  };
+
+  // Quand l'utilisateur selectionne un service dans l'autocomplete, on veut
+  // scroller vers la section correspondante. Le useEffect s'execute apres le
+  // commit phase, donc le DOM est a jour quand on cherche l'element.
+  const [pendingScrollDomId, setPendingScrollDomId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pendingScrollDomId) return;
+    const el = document.getElementById(pendingScrollDomId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setPendingScrollDomId(null);
+  }, [pendingScrollDomId, integrationsCategoryId]);
+
+  const handleIntegrationsServiceSelect = (service: ServiceIndexEntry | null) => {
+    if (!service) {
+      // Clic sur le X de l'autocomplete = retour a la vue complete : on reset
+      // les DEUX filtres (service + categorie). Le filtre categorie avait ete
+      // auto-derive lors de la selection, donc le clear de la recherche doit
+      // logiquement annuler ce derive.
+      setIntegrationsServiceId(null);
+      setIntegrationsCategoryId(null);
+      return;
+    }
+    // Auto-derive le filtre categorie depuis le service choisi. Resultat :
+    // l'utilisateur voit UNIQUEMENT la section de la categorie + UNIQUEMENT
+    // le service recherche dans cette section, ET le nom du service apparait
+    // dans l'input de l'autocomplete (mode controle).
+    setIntegrationsCategoryId(service.categoryId);
+    setIntegrationsServiceId(service.id);
+    const domId = getDomIdForCategory(service.categoryId);
+    if (domId) {
+      setPendingScrollDomId(domId);
+    }
+  };
+
+  // Derive l'objet {@code ServiceIndexEntry} a partir de l'id pour le passer
+  // en {@code value} a l'autocomplete (mode controle complet).
+  const selectedIntegrationsService = integrationsServiceId
+    ? ALL_SERVICES.find((s) => s.id === integrationsServiceId) ?? null
+    : null;
 
   // OAuth callback status handling
   const oauthStatus = searchParams.get('status');
@@ -534,6 +602,16 @@ export default function Settings() {
         backPath="/"
         showBackButton={false}
         actions={headerActions}
+        filters={
+          tabValue === 7 ? (
+            <IntegrationsHeader
+              selectedCategoryId={integrationsCategoryId}
+              onCategoryChange={handleIntegrationsCategoryChange}
+              selectedService={selectedIntegrationsService}
+              onSelectService={handleIntegrationsServiceSelect}
+            />
+          ) : undefined
+        }
       />
 
       {/* Onglets */}
@@ -928,7 +1006,10 @@ export default function Settings() {
       {/* ─── Onglet Intégrations (ADMIN/MANAGER) ──────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
         <TabPanel value={tabValue} index={7}>
-          <IntegrationsSection />
+          <IntegrationsSection
+            selectedCategoryId={integrationsCategoryId}
+            selectedServiceId={integrationsServiceId}
+          />
         </TabPanel>
       )}
 

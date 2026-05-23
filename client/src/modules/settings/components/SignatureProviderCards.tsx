@@ -51,6 +51,12 @@ interface SignatureProviderCardsProps {
   /** Set des providers qui ont deja une connexion active (pour le badge). */
   connectedSet?: Set<SelectableProvider>;
   disabled?: boolean;
+  /**
+   * Filtre par ID de service : si non-null, on n'affiche QUE la card du
+   * service correspondant (utile depuis l'autocomplete de recherche).
+   * null = toutes les cards visibles (comportement par defaut).
+   */
+  serviceFilter?: string | null;
 }
 
 export default function SignatureProviderCards({
@@ -58,7 +64,11 @@ export default function SignatureProviderCards({
   onChange,
   connectedSet,
   disabled = false,
+  serviceFilter = null,
 }: SignatureProviderCardsProps) {
+  const visibleProviders = serviceFilter
+    ? PROVIDERS.filter((p) => p.value === serviceFilter)
+    : PROVIDERS;
   return (
     <Box
       role="radiogroup"
@@ -75,7 +85,7 @@ export default function SignatureProviderCards({
         mt: 1,
       }}
     >
-      {PROVIDERS.map((p) => (
+      {visibleProviders.map((p) => (
         <ProviderCard
           key={p.id}
           spec={p}
