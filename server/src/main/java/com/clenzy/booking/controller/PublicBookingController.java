@@ -123,6 +123,24 @@ public class PublicBookingController {
     }
 
     /**
+     * POST /{slug}/reserve-batch
+     * Cree un panier de N reservations PENDING en une seule transaction atomique.
+     *
+     * <p>Utile pour les sejours multiples (panier avec plusieurs proprietes ou plusieurs
+     * creneaux). Si un seul item n'est pas disponible, toute l'operation est rollback.</p>
+     *
+     * <p>Le guest est partage entre tous les items.</p>
+     */
+    @PostMapping("/reserve-batch")
+    public ResponseEntity<BookingReserveBatchResponseDto> reserveBatch(
+            @PathVariable String slug,
+            @Valid @RequestBody BookingReserveBatchRequestDto request,
+            HttpServletRequest httpRequest) {
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        return ResponseEntity.ok(bookingService.reserveBatch(ctx, request));
+    }
+
+    /**
      * POST /{slug}/checkout
      * Cree une Stripe Checkout Session et retourne l'URL de redirection.
      */

@@ -1,5 +1,6 @@
 package com.clenzy.controller;
 
+import com.clenzy.booking.service.PublicBookingService;
 import com.clenzy.service.InscriptionService;
 import com.clenzy.service.MobilePaymentService;
 import com.clenzy.service.PaymentOrchestrationService;
@@ -43,6 +44,7 @@ public class StripeWebhookController {
     private final PaymentOrchestrationService orchestrationService;
     private final StripeConnectService stripeConnectService;
     private final ShopService shopService;
+    private final PublicBookingService publicBookingService;
 
     @Value("${stripe.webhook-secret}")
     private String webhookSecret;
@@ -56,7 +58,8 @@ public class StripeWebhookController {
                                    MobilePaymentService mobilePaymentService,
                                    PaymentOrchestrationService orchestrationService,
                                    StripeConnectService stripeConnectService,
-                                   ShopService shopService) {
+                                   ShopService shopService,
+                                   PublicBookingService publicBookingService) {
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
         this.subscriptionService = subscriptionService;
@@ -64,6 +67,7 @@ public class StripeWebhookController {
         this.orchestrationService = orchestrationService;
         this.stripeConnectService = stripeConnectService;
         this.shopService = shopService;
+        this.publicBookingService = publicBookingService;
     }
 
     /**
@@ -256,6 +260,17 @@ public class StripeWebhookController {
             } catch (Exception e) {
                 logger.error("Erreur lors de la confirmation du paiement de reservation pour session: {}", sessionId, e);
             }
+        } else if ("booking_engine".equals(type)) {
+            // Paiement d'une reservation creee via le Booking Engine public (widget SDK).
+            // Le webhook gere deux scenarios :
+            //  - reservation deja creee (flux SDK avec /reserve avant /checkout) → la passer en PAID
+            //  - reservation absente (flux Embedded Checkout direct) → la creer ex-nihilo depuis metadata
+            logger.info("Paiement Booking Engine reussi pour session: {}", sessionId);
+            try {
+                publicBookingService.confirmBookingEngineCheckout(session);
+            } catch (Exception e) {
+                logger.error("Erreur lors de la confirmation du paiement Booking Engine pour session: {}", sessionId, e);
+            }
         } else if ("service_request".equals(type)) {
             // Paiement de demande de service → confirmation + creation intervention automatique
             String srId = session.getMetadata().get("service_request_id");
@@ -329,6 +344,13 @@ public class StripeWebhookController {
         } else if ("reservation".equals(type)) {
             logger.info("Paiement de reservation asynchrone reussi pour session: {}", sessionId);
             stripeService.confirmReservationPayment(sessionId);
+        } else if ("booking_engine".equals(type)) {
+            logger.info("Paiement Booking Engine asynchrone reussi pour session: {}", sessionId);
+            try {
+                publicBookingService.confirmBookingEngineCheckout(session);
+            } catch (Exception e) {
+                logger.error("Erreur confirmation async Booking Engine pour session: {}", sessionId, e);
+            }
         } else if ("service_request".equals(type)) {
             logger.info("Paiement SR asynchrone reussi pour session: {}", sessionId);
             stripeService.confirmServiceRequestPayment(sessionId);
