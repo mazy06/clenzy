@@ -37,17 +37,23 @@ public class OwnerPayoutConfigController {
     private final UserRepository userRepository;
     private final StripeConnectService stripeConnectService;
     private final NotificationService notificationService;
+    private final com.clenzy.payment.payout.openbanking.GoCardlessPisClient gocardlessClient;
+
+    @org.springframework.beans.factory.annotation.Value("${clenzy.base-url:https://app.clenzy.fr}")
+    private String clenzyBaseUrl;
 
     public OwnerPayoutConfigController(OwnerPayoutConfigRepository configRepository,
                                         TenantContext tenantContext,
                                         UserRepository userRepository,
                                         StripeConnectService stripeConnectService,
-                                        NotificationService notificationService) {
+                                        NotificationService notificationService,
+                                        com.clenzy.payment.payout.openbanking.GoCardlessPisClient gocardlessClient) {
         this.configRepository = configRepository;
         this.tenantContext = tenantContext;
         this.userRepository = userRepository;
         this.stripeConnectService = stripeConnectService;
         this.notificationService = notificationService;
+        this.gocardlessClient = gocardlessClient;
     }
 
     // ─── Self-service endpoints (current user) ─────────────────────────────────
@@ -192,20 +198,165 @@ public class OwnerPayoutConfigController {
     private OwnerPayoutConfigDto updateSepaInternal(Long ownerId, UpdateSepaRequest request) {
         Long orgId = tenantContext.getOrganizationId();
 
-        String iban = request.iban().replaceAll("\\s+", "").toUpperCase();
-        if (!IBAN_PATTERN.matcher(iban).matches()) {
-            throw new IllegalArgumentException("Format IBAN invalide");
+        OwnerPayoutConfig config = getOrCreate(ownerId, orgId);
+
+        // Update partiel : si l'IBAN n'est pas fourni (ou est blank/contient un *
+        // = mask non modifié côté frontend), on garde l'IBAN existant.
+        boolean ibanProvided = request.iban() != null
+            && !request.iban().isBlank()
+            && !request.iban().contains("*");
+
+        if (ibanProvided) {
+            String iban = request.iban().replaceAll("\\s+", "").toUpperCase();
+            if (!IBAN_PATTERN.matcher(iban).matches()) {
+                throw new IllegalArgumentException("Format IBAN invalide");
+            }
+            config.setIban(iban);
+            // Si on remplace l'IBAN, on reset la verification (admin doit revalider)
+            config.setVerified(false);
+        } else if (config.getIban() == null || config.getIban().isBlank()) {
+            // Premier setup : IBAN obligatoire
+            throw new IllegalArgumentException("L'IBAN est requis pour la première configuration SEPA");
         }
 
-        OwnerPayoutConfig config = getOrCreate(ownerId, orgId);
-        config.setIban(iban);
-        config.setBic(request.bic());
-        config.setBankAccountHolder(request.bankAccountHolder());
+        // BIC et titulaire sont toujours mis à jour s'ils sont fournis
+        if (request.bic() != null && !request.bic().isBlank()) {
+            config.setBic(request.bic());
+        }
+        if (request.bankAccountHolder() != null && !request.bankAccountHolder().isBlank()) {
+            config.setBankAccountHolder(request.bankAccountHolder());
+        }
+
         config.setPayoutMethod(PayoutMethod.SEPA_TRANSFER);
         config.setStripeConnectedAccountId(null); // Clear Stripe fields when switching to SEPA
         config.setStripeOnboardingComplete(false);
-        config.setVerified(false); // Reset verification when details change
         return OwnerPayoutConfigDto.from(configRepository.save(config));
+    }
+
+    /**
+     * Liste les banques disponibles pour le SCA Open Banking par pays.
+     *
+     * <p>Proxy vers GoCardless avec cache 1h pour limiter la charge. Renvoie
+     * une liste {@code [{ id, name, logo }]} triée alphabétiquement, à
+     * afficher dans le sélecteur de banque du dialog frontend.</p>
+     */
+    @org.springframework.web.bind.annotation.GetMapping("/openbanking/institutions")
+    public ResponseEntity<List<com.clenzy.payment.payout.openbanking.GoCardlessPisClient.InstitutionInfo>>
+        listOpenBankingInstitutions(@org.springframework.web.bind.annotation.RequestParam(defaultValue = "FR") String country) {
+        if (!gocardlessClient.isEnabled()) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
+        try {
+            return ResponseEntity.ok(gocardlessClient.listInstitutions(country));
+        } catch (Exception e) {
+            log.error("Erreur listInstitutions pour pays {}: {}", country, e.getMessage());
+            return ResponseEntity.status(org.springframework.http.HttpStatus.BAD_GATEWAY).build();
+        }
+    }
+
+    // ─── Open Banking SCA endpoints ─────────────────────────────────────────
+
+    /**
+     * Initie le flow SCA Open Banking pour le propriétaire courant.
+     * Crée une requisition GoCardless et stocke l'ID en BDD ; renvoie
+     * l'URL à ouvrir pour signer le SCA.
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/me/openbanking/init")
+    public ResponseEntity<com.clenzy.dto.OpenBankingInitResponse> initMyOpenBanking(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody com.clenzy.dto.OpenBankingInitRequest request) {
+        User currentUser = resolveCurrentUser(jwt);
+        return initOpenBankingForOwner(currentUser.getId(), request);
+    }
+
+    /**
+     * Variante admin : initier le SCA pour un propriétaire spécifique
+     * (utile quand l'admin Clenzy doit configurer Open Banking pour un host
+     * qui n'est pas en self-service).
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/{ownerId}/openbanking/init")
+    public ResponseEntity<com.clenzy.dto.OpenBankingInitResponse> initOpenBankingAdmin(
+            @PathVariable Long ownerId,
+            @RequestBody com.clenzy.dto.OpenBankingInitRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        validateOwnershipOrAdmin(ownerId, jwt);
+        return initOpenBankingForOwner(ownerId, request);
+    }
+
+    /**
+     * Callback de retour après SCA bancaire. GoCardless redirige le browser
+     * vers cet endpoint avec {@code ?ref=<requisitionId>}. On vérifie le
+     * statut côté provider et on enregistre le consent comme actif.
+     */
+    @org.springframework.web.bind.annotation.GetMapping("/openbanking/callback")
+    public ResponseEntity<OwnerPayoutConfigDto> openBankingCallback(@AuthenticationPrincipal Jwt jwt) {
+        User currentUser = resolveCurrentUser(jwt);
+        Long orgId = tenantContext.getOrganizationId();
+
+        // GoCardless ne renvoie pas le requisitionId dans le redirect — on
+        // récupère le consent_id depuis la config de l'utilisateur courant.
+        OwnerPayoutConfig config = configRepository.findByOwnerIdAndOrgId(currentUser.getId(), orgId)
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Aucune configuration Open Banking en cours pour l'utilisateur."));
+
+        String requisitionId = config.getOpenBankingConsentId();
+        if (requisitionId == null || requisitionId.isBlank()) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.BAD_REQUEST).build();
+        }
+
+        if (!gocardlessClient.isConsentValid(requisitionId)) {
+            log.warn("Open Banking callback : consent {} invalide cote GoCardless", requisitionId);
+            return ResponseEntity.status(org.springframework.http.HttpStatus.BAD_REQUEST).build();
+        }
+
+        // Consent actif : on marque la méthode active et la verification OK
+        config.setPayoutMethod(PayoutMethod.OPEN_BANKING);
+        config.setOpenBankingConsentExpiresAt(
+            java.time.Instant.now().plus(90, java.time.temporal.ChronoUnit.DAYS));
+        config.setVerified(true);
+        OwnerPayoutConfig saved = configRepository.save(config);
+
+        log.info("Open Banking : consent {} active pour owner {} (org {})",
+            requisitionId, currentUser.getId(), orgId);
+        return ResponseEntity.ok(OwnerPayoutConfigDto.from(saved));
+    }
+
+    private ResponseEntity<com.clenzy.dto.OpenBankingInitResponse> initOpenBankingForOwner(
+            Long ownerId, com.clenzy.dto.OpenBankingInitRequest request) {
+        if (!gocardlessClient.isEnabled()) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
+        if (request.institutionId() == null || request.institutionId().isBlank()) {
+            throw new IllegalArgumentException("institutionId requis");
+        }
+        String provider = request.provider() != null ? request.provider().toUpperCase() : "GOCARDLESS";
+        if (!"GOCARDLESS".equals(provider)) {
+            throw new IllegalArgumentException("Provider non supporté en MVP : " + provider);
+        }
+
+        Long orgId = tenantContext.getOrganizationId();
+        OwnerPayoutConfig config = getOrCreate(ownerId, orgId);
+
+        // L'URL de retour pointe vers le frontend Clenzy qui appellera ensuite
+        // l'endpoint /openbanking/callback. GoCardless ne modifie pas le redirect ;
+        // on inclut un marqueur pour que le frontend sache qu'il revient d'un SCA.
+        String redirectUrl = clenzyBaseUrl + "/settings?tab=reversements&openbanking=callback";
+        String reference = "clenzy-" + orgId + "-" + ownerId + "-" + System.currentTimeMillis();
+
+        var requisition = gocardlessClient.createRequisition(redirectUrl, request.institutionId(), reference);
+
+        // On stocke le requisitionId en BDD immédiatement : au retour SCA, le
+        // frontend appellera /openbanking/callback?ref=<requisitionId> et on
+        // pourra finaliser. L'utilisateur retrouve aussi son consent_id si la
+        // session expire entre-temps (lookup par owner+org).
+        config.setOpenBankingProvider(provider);
+        config.setOpenBankingConsentId(requisition.requisitionId());
+        configRepository.save(config);
+
+        log.info("Open Banking init : requisition {} cree pour owner {} (org {})",
+            requisition.requisitionId(), ownerId, orgId);
+        return ResponseEntity.ok(new com.clenzy.dto.OpenBankingInitResponse(
+            requisition.redirectLink(), requisition.requisitionId()));
     }
 
     private OwnerPayoutConfig getOrCreate(Long ownerId, Long orgId) {
