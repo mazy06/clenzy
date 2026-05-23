@@ -3,12 +3,15 @@ package com.clenzy.controller;
 import com.clenzy.dto.OwnerPayoutDto;
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.model.ChannelCommission;
+import com.clenzy.model.Organization;
 import com.clenzy.model.OwnerPayout;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
 import com.clenzy.model.User;
+import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.OwnerPayoutRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.AccountingService;
+import com.clenzy.service.OwnerStatementService;
 import com.clenzy.service.PayoutExecutionService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -33,17 +36,23 @@ public class AccountingController {
     private final OwnerPayoutRepository payoutRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
+    private final OwnerStatementService ownerStatementService;
+    private final OrganizationRepository organizationRepository;
 
     public AccountingController(AccountingService accountingService,
                                 PayoutExecutionService payoutExecutionService,
                                 OwnerPayoutRepository payoutRepository,
                                 UserRepository userRepository,
-                                TenantContext tenantContext) {
+                                TenantContext tenantContext,
+                                OwnerStatementService ownerStatementService,
+                                OrganizationRepository organizationRepository) {
         this.accountingService = accountingService;
         this.payoutExecutionService = payoutExecutionService;
         this.payoutRepository = payoutRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
+        this.ownerStatementService = ownerStatementService;
+        this.organizationRepository = organizationRepository;
     }
 
     @GetMapping("/payouts")
@@ -79,6 +88,53 @@ public class AccountingController {
         OwnerPayout payout = accountingService.generatePayout(ownerId, orgId, from, to);
         String ownerName = resolveOwnerName(ownerId);
         return OwnerPayoutDto.from(payout, ownerName);
+    }
+
+    /**
+     * Generation batch pour tous les proprietaires eligibles de l'organisation
+     * sur une periode donnee. Workflow critique fin de mois des conciergeries.
+     *
+     * <p>Idempotent (un payout deja existant sur la periode est retourne tel quel).</p>
+     */
+    @PostMapping("/payouts/generate-batch")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
+    public List<OwnerPayoutDto> generatePayoutsBatch(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        Long orgId = tenantContext.getOrganizationId();
+        List<OwnerPayout> payouts = accountingService.generatePayoutsBatch(orgId, from, to);
+        return toDtosWithOwnerNames(payouts);
+    }
+
+    /**
+     * Envoie au proprietaire un releve mail HTML resumant les reversements
+     * VERSES sur la periode. Differenciateur Clenzy : transparence proactive
+     * vers les proprietaires (vs Smoobu/Hostaway qui ne le proposent pas).
+     */
+    @PostMapping("/owners/{ownerId}/send-statement")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
+    public Map<String, Object> sendOwnerStatement(
+            @PathVariable Long ownerId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        Long orgId = tenantContext.getOrganizationId();
+        String conciergerieName = organizationRepository.findById(orgId)
+            .map(Organization::getName)
+            .orElse("Votre conciergerie");
+
+        OwnerStatementService.OwnerStatementResult result =
+            ownerStatementService.sendStatement(ownerId, orgId, from, to, conciergerieName);
+
+        return Map.of(
+            "emailSentTo", result.emailSentTo(),
+            "ownerName", result.ownerName(),
+            "payoutsCount", result.payoutsCount(),
+            "totalPaid", result.totalPaid(),
+            "totalGross", result.totalGross(),
+            "totalCommission", result.totalCommission(),
+            "totalExpenses", result.totalExpenses()
+        );
     }
 
     @PutMapping("/payouts/{id}/approve")

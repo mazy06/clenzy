@@ -140,6 +140,55 @@ public class AccountingService {
         return savedPayout;
     }
 
+    /**
+     * Generate payouts for ALL eligible owners of the organization on a given period.
+     *
+     * <p>Idempotent : un proprietaire qui a deja un payout sur la periode voit son
+     * payout existant retourne (pas de doublon). Un proprietaire sans reservation
+     * payee sur la periode obtient un payout a 0 € (filtre cote frontend si non desire).</p>
+     *
+     * <p>Critique pour le workflow fin de mois des conciergeries : un seul appel API
+     * pour generer 5 a 50 reversements simultanement, au lieu de N appels manuels.</p>
+     *
+     * @return La liste des payouts crees ou existants, dans l'ordre des owner IDs.
+     */
+    @Transactional
+    public List<OwnerPayout> generatePayoutsBatch(Long orgId, LocalDate from, LocalDate to) {
+        List<Long> ownerIds = propertyRepository.findDistinctOwnerIdsByOrgId(orgId);
+        if (ownerIds.isEmpty()) {
+            log.info("Batch payout generation: no eligible owners for org {} period {}-{}", orgId, from, to);
+            return List.of();
+        }
+
+        log.info("Batch payout generation starting: org={}, period={}-{}, ownersCount={}",
+            orgId, from, to, ownerIds.size());
+
+        List<OwnerPayout> result = new ArrayList<>(ownerIds.size());
+        int created = 0;
+        int existing = 0;
+        for (Long ownerId : ownerIds) {
+            try {
+                // generatePayout est idempotent : retourne l'existant ou cree.
+                // On compte les creations vs deja-existants via la presence d'un ID anterieur.
+                Optional<OwnerPayout> alreadyExists = payoutRepository.findByOwnerAndPeriod(ownerId, from, to, orgId);
+                OwnerPayout payout = generatePayout(ownerId, orgId, from, to);
+                result.add(payout);
+                if (alreadyExists.isPresent()) {
+                    existing++;
+                } else {
+                    created++;
+                }
+            } catch (Exception e) {
+                // Log mais continue — un proprietaire en erreur ne doit pas bloquer les autres.
+                log.error("Batch payout generation failed for owner {} (org={}): {}", ownerId, orgId, e.getMessage());
+            }
+        }
+
+        log.info("Batch payout generation done: org={}, created={}, existing={}, totalResult={}",
+            orgId, created, existing, result.size());
+        return result;
+    }
+
     @Transactional
     public OwnerPayout approvePayout(Long id, Long orgId) {
         OwnerPayout payout = getPayoutById(id, orgId);
