@@ -13,7 +13,7 @@ function getAccessToken(): string | null {
   return getItem(STORAGE_KEYS.ACCESS_TOKEN);
 }
 
-export type ChannelManagerProvider = 'SITEMINDER' | 'HOSTAWAY' | 'RENTALS_UNITED';
+export type ChannelManagerProvider = 'SITEMINDER' | 'HOSTAWAY' | 'RENTALS_UNITED' | 'CHANNEX';
 
 export interface ChannelManagerConnectionRequest {
   serverUrl: string;
@@ -109,5 +109,14 @@ export const CHANNEL_MANAGER_PROVIDER_META: Record<ChannelManagerProvider, Chann
     serverUrlPlaceholder: 'https://api.rentalsunited.com',
     apiKeyHelpUrl: 'https://documentation.rentalsunited.com/',
     accountIdentifierLabel: 'Owner ID (optionnel)',
+  },
+  CHANNEX: {
+    id: 'CHANNEX',
+    label: 'Channex',
+    description:
+      'Channel manager STR (UK). API REST moderne, 100+ OTAs (Airbnb, Booking.com, Vrbo, Expedia, HomeToGo…). Pricing pay-as-you-go ~12 €/bien/mois. Recommandé pour les conciergeries françaises.',
+    serverUrlPlaceholder: 'https://staging.channex.io/api/v1',
+    apiKeyHelpUrl: 'https://docs.channex.io/api-reference',
+    accountIdentifierLabel: 'Group ID (optionnel)',
   },
 };

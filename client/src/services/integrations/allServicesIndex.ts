@@ -95,6 +95,7 @@ export const ALL_SERVICES: ServiceIndexEntry[] = [
   entry('ONFIDO', 'Onfido', 'kyc'),
 
   // Channel Manager middleware
+  entry('CHANNEX', 'Channex', 'channel_manager'),
   entry('SITEMINDER', 'SiteMinder', 'channel_manager'),
   entry('HOSTAWAY', 'Hostaway', 'channel_manager'),
   entry('RENTALS_UNITED', 'Rentals United', 'channel_manager'),
