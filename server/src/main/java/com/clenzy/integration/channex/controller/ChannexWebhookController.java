@@ -1,6 +1,7 @@
 package com.clenzy.integration.channex.controller;
 
 import com.clenzy.integration.channex.client.ChannexSignatureValidator;
+import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexWebhookPayload;
 import com.clenzy.integration.channex.service.ChannexBookingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,13 +48,16 @@ public class ChannexWebhookController {
     private final ChannexSignatureValidator signatureValidator;
     private final ChannexBookingService bookingService;
     private final ObjectMapper objectMapper;
+    private final ChannexMetrics metrics;
 
     public ChannexWebhookController(ChannexSignatureValidator signatureValidator,
                                       ChannexBookingService bookingService,
-                                      ObjectMapper objectMapper) {
+                                      ObjectMapper objectMapper,
+                                      ChannexMetrics metrics) {
         this.signatureValidator = signatureValidator;
         this.bookingService = bookingService;
         this.objectMapper = objectMapper;
+        this.metrics = metrics;
     }
 
     @PostMapping
@@ -64,6 +68,7 @@ public class ChannexWebhookController {
         // 1. Validation signature (anti spoof + LCB-FT)
         if (!signatureValidator.isValid(rawBody, signature)) {
             log.warn("Channex webhook: signature invalide refusee (body length {})", rawBody.length());
+            metrics.recordWebhookReceived("unknown", "invalid_signature");
             return ResponseEntity.status(401).body(Map.of(
                 "error", "invalid_signature",
                 "message", "X-Channex-Signature header missing or invalid"
@@ -76,6 +81,7 @@ public class ChannexWebhookController {
             payload = objectMapper.readValue(rawBody, ChannexWebhookPayload.class);
         } catch (Exception e) {
             log.error("Channex webhook: payload malforme: {}", e.getMessage());
+            metrics.recordWebhookReceived("unknown", "malformed");
             return ResponseEntity.badRequest().body(Map.of(
                 "error", "malformed_payload",
                 "message", e.getMessage()
@@ -84,6 +90,7 @@ public class ChannexWebhookController {
 
         if (payload.event() == null) {
             log.warn("Channex webhook: event type manquant dans le payload");
+            metrics.recordWebhookReceived("unknown", "malformed");
             return ResponseEntity.badRequest().body(Map.of("error", "missing_event"));
         }
 
@@ -94,18 +101,22 @@ public class ChannexWebhookController {
 
         // 3. Dispatch
         try {
-            return switch (payload.event()) {
+            ResponseEntity<Map<String, Object>> response = switch (payload.event()) {
                 case "booking_new" -> handleNewBooking(payload);
                 case "booking_modification" -> handleModification(payload);
                 case "booking_cancellation" -> handleCancellation(payload);
                 default -> {
                     log.debug("Channex webhook: event '{}' ignore (non gere)", payload.event());
+                    metrics.recordWebhookReceived(payload.event(), "ignored");
                     yield ResponseEntity.ok(Map.of("status", "ignored", "event", payload.event()));
                 }
             };
+            metrics.recordWebhookReceived(payload.event(), "ok");
+            return response;
         } catch (IllegalStateException | IllegalArgumentException e) {
             // Erreur metier (mapping absent, payload invalide) — 400 pour signaler a Channex de ne pas retry
             log.error("Channex webhook: erreur metier: {}", e.getMessage());
+            metrics.recordWebhookReceived(payload.event(), "business_error");
             return ResponseEntity.badRequest().body(Map.of(
                 "error", "business_error",
                 "message", e.getMessage()
@@ -113,6 +124,7 @@ public class ChannexWebhookController {
         } catch (Exception e) {
             // Erreur technique imprevue — 500 pour que Channex retry
             log.error("Channex webhook: erreur technique non-recuperee", e);
+            metrics.recordWebhookReceived(payload.event(), "technical_error");
             return ResponseEntity.internalServerError().body(Map.of(
                 "error", "internal_error",
                 "message", "Voir les logs Clenzy pour le detail"

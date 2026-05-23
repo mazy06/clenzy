@@ -1,10 +1,12 @@
 package com.clenzy.integration.channex.controller;
 
 import com.clenzy.integration.channex.client.ChannexSignatureValidator;
+import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.service.ChannexBookingService;
 import com.clenzy.model.Reservation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,7 +61,8 @@ class ChannexWebhookControllerTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
-        controller = new ChannexWebhookController(signatureValidator, bookingService, objectMapper);
+        controller = new ChannexWebhookController(signatureValidator, bookingService, objectMapper,
+            new ChannexMetrics(new SimpleMeterRegistry()));
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.clenzy.integration.channex.service;
 
 import com.clenzy.config.KafkaConfig;
 import com.clenzy.integration.channex.client.ChannexClient;
+import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexAvailabilityUpdate;
 import com.clenzy.integration.channex.dto.ChannexRateUpdate;
 import com.clenzy.integration.channex.exception.ChannexException;
@@ -57,17 +58,20 @@ public class ChannexSyncService {
     private final CalendarDayRepository calendarDayRepository;
     private final PriceEngine priceEngine;
     private final ObjectMapper objectMapper;
+    private final ChannexMetrics metrics;
 
     public ChannexSyncService(ChannexClient channexClient,
                                 ChannexPropertyMappingRepository mappingRepository,
                                 CalendarDayRepository calendarDayRepository,
                                 PriceEngine priceEngine,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                ChannexMetrics metrics) {
         this.channexClient = channexClient;
         this.mappingRepository = mappingRepository;
         this.calendarDayRepository = calendarDayRepository;
         this.priceEngine = priceEngine;
         this.objectMapper = objectMapper;
+        this.metrics = metrics;
     }
 
     // ─── Kafka consumer ─────────────────────────────────────────────────────
@@ -164,6 +168,7 @@ public class ChannexSyncService {
      * Convention Clenzy : absence de ligne = AVAILABLE.
      */
     private boolean pushAvailabilityForRange(ChannexPropertyMapping mapping, LocalDate from, LocalDate to) {
+        long startMs = System.currentTimeMillis();
         try {
             List<CalendarDay> days = calendarDayRepository.findByPropertyAndDateRange(
                 mapping.getClenzyPropertyId(), from, to, mapping.getOrganizationId()
@@ -190,8 +195,11 @@ public class ChannexSyncService {
             }
 
             channexClient.pushAvailability(updates);
+            metrics.recordSyncSuccess("push_availability", System.currentTimeMillis() - startMs);
             return true;
         } catch (ChannexException e) {
+            metrics.recordSyncError("push_availability", e.getKind().name(),
+                System.currentTimeMillis() - startMs);
             log.error("ChannexSync: push availability KO property={} [{}, {}]: {}",
                 mapping.getClenzyPropertyId(), from, to, e.getMessage());
             updateMappingStatus(mapping, false, "availability push: " + e.getMessage());
@@ -203,6 +211,7 @@ public class ChannexSyncService {
      * Resout les prix via PriceEngine et push vers Channex.
      */
     private boolean pushRatesForRange(ChannexPropertyMapping mapping, LocalDate from, LocalDate to) {
+        long startMs = System.currentTimeMillis();
         try {
             Map<LocalDate, BigDecimal> prices = priceEngine.resolvePriceRange(
                 mapping.getClenzyPropertyId(), from, to, mapping.getOrganizationId()
@@ -219,8 +228,11 @@ public class ChannexSyncService {
                 ));
             }
             channexClient.pushRates(updates);
+            metrics.recordSyncSuccess("push_rates", System.currentTimeMillis() - startMs);
             return true;
         } catch (ChannexException e) {
+            metrics.recordSyncError("push_rates", e.getKind().name(),
+                System.currentTimeMillis() - startMs);
             log.error("ChannexSync: push rates KO property={} [{}, {}]: {}",
                 mapping.getClenzyPropertyId(), from, to, e.getMessage());
             updateMappingStatus(mapping, false, "rates push: " + e.getMessage());

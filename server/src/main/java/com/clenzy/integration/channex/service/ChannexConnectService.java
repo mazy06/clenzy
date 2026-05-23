@@ -1,6 +1,7 @@
 package com.clenzy.integration.channex.service;
 
 import com.clenzy.integration.channex.client.ChannexClient;
+import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexConnectRequest;
 import com.clenzy.integration.channex.dto.ChannexPropertyDto;
 import com.clenzy.integration.channex.exception.ChannexException;
@@ -46,17 +47,20 @@ public class ChannexConnectService {
     private final ChannexOtaChannelRepository otaChannelRepository;
     private final ChannexSyncService syncService;
     private final PropertyRepository propertyRepository;
+    private final ChannexMetrics metrics;
 
     public ChannexConnectService(ChannexClient channexClient,
                                    ChannexPropertyMappingRepository mappingRepository,
                                    ChannexOtaChannelRepository otaChannelRepository,
                                    ChannexSyncService syncService,
-                                   PropertyRepository propertyRepository) {
+                                   PropertyRepository propertyRepository,
+                                   ChannexMetrics metrics) {
         this.channexClient = channexClient;
         this.mappingRepository = mappingRepository;
         this.otaChannelRepository = otaChannelRepository;
         this.syncService = syncService;
         this.propertyRepository = propertyRepository;
+        this.metrics = metrics;
     }
 
     // ─── Connect ────────────────────────────────────────────────────────────
@@ -112,6 +116,7 @@ public class ChannexConnectService {
 
         log.info("ChannexConnect: mapping cree {} pour property {} (Channex={})",
             mapping.getId(), clenzyPropertyId, channexProperty.id());
+        metrics.recordMappingCreated();
 
         // 5. Push initial (best-effort, peut echouer sans rollback du mapping —
         //    le scheduler retentera dans l'heure)
@@ -153,6 +158,7 @@ public class ChannexConnectService {
             .forEach(otaChannelRepository::delete);
 
         mappingRepository.delete(mapping);
+        metrics.recordMappingDeleted();
 
         log.info("ChannexConnect: mapping {} supprime (property {}, org {}). " +
             "La property reste presente cote Channex.", mapping.getId(), clenzyPropertyId, orgId);

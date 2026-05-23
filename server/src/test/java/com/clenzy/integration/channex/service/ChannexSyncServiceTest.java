@@ -1,7 +1,9 @@
 package com.clenzy.integration.channex.service;
 
 import com.clenzy.integration.channex.client.ChannexClient;
+import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexAvailabilityUpdate;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.clenzy.integration.channex.dto.ChannexRateUpdate;
 import com.clenzy.integration.channex.exception.ChannexException;
 import com.clenzy.integration.channex.model.ChannexPropertyMapping;
@@ -52,7 +54,8 @@ class ChannexSyncServiceTest {
     @BeforeEach
     void setUp() {
         service = new ChannexSyncService(
-            channexClient, mappingRepository, calendarDayRepository, priceEngine, new ObjectMapper()
+            channexClient, mappingRepository, calendarDayRepository, priceEngine, new ObjectMapper(),
+            new ChannexMetrics(new SimpleMeterRegistry())
         );
 
         mapping = new ChannexPropertyMapping();
