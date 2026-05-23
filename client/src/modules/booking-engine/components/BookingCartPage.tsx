@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Typography, IconButton, Divider } from '@mui/material';
 import { ArrowBack, Delete, Remove, Add, ChevronRight, PhotoLibrary } from '../../../icons';
 import type { ResolvedTokens, PreviewProperty, PreviewPage, CartItem } from '../types/bookingEngine';
 import { fmt, fmtDate } from '../types/bookingEngine';
 import type { BookingI18n } from '../sdk/i18n';
 import type { BookingServiceCategory, SelectedServiceOption } from '../../../services/api/bookingServiceOptionsApi';
+import { bookingEngineApi } from '../../../services/api/bookingEngineApi';
 import BookingStepIndicator from './BookingStepIndicator';
 import PropertyDetailPanel from './PropertyDetailPanel';
 import BookingServiceOptionsSection, { computeOptionsTotal } from './BookingServiceOptionsSection';
@@ -43,13 +44,52 @@ const BookingCartPage: React.FC<BookingCartPageProps> = ({
   serviceCategories = [], selectedOptions = [], onOptionChange,
 }) => {
   const [detailProperty, setDetailProperty] = useState<PreviewProperty | null>(null);
+  // Map: propertyId → tourist tax amount (fourni par l'API admin /availability-check)
+  const [touristTaxByItem, setTouristTaxByItem] = useState<Map<number, number>>(new Map());
   const subtotal = cart.reduce((sum, item) => sum + (item.property.nightlyPrice || 0) * item.nights, 0);
   const cleaningTotal = showCleaningFee ? cart.reduce((sum, item) => sum + (item.property.cleaningFee || 0), 0) : 0;
-  // Taxe de sejour : pas de calcul frontend, sera fournie par l'API availability du serveur
-  const touristTaxTotal = 0; // TODO: integrer avec bookingEngineApi.checkPropertyAvailability() pour obtenir le montant reel
+  // Taxe de sejour : fetch depuis l'endpoint admin (un appel par item du panier)
+  const touristTaxTotal = showTouristTax
+    ? cart.reduce((sum, item) => sum + (touristTaxByItem.get(item.property.id) || 0), 0)
+    : 0;
   const optionsTotal = computeOptionsTotal(serviceCategories, selectedOptions, adults, children, nights);
   const total = subtotal + cleaningTotal + touristTaxTotal + optionsTotal;
   const currentStep = 0;
+
+  // Fetch tourist tax for each cart item whenever cart, dates ou guest count changent.
+  // Note : appel limite a la preview admin du PMS (TenantContext requis).
+  useEffect(() => {
+    if (!showTouristTax || !checkIn || !checkOut || cart.length === 0) {
+      setTouristTaxByItem(new Map());
+      return;
+    }
+    const totalGuests = adults + children;
+    let cancelled = false;
+    const next = new Map<number, number>();
+
+    (async () => {
+      // Sequential fetch to avoid hammering the API. For 1-5 items typical cart, latence acceptable.
+      for (const item of cart) {
+        try {
+          const res = await bookingEngineApi.checkPropertyAvailabilityAdmin({
+            propertyId: item.property.id,
+            checkIn,
+            checkOut,
+            guests: totalGuests,
+          });
+          if (cancelled) return;
+          next.set(item.property.id, res.touristTax || 0);
+        } catch {
+          // Silencieux : si l'endpoint echoue, taxe = 0 (degradation gracieuse)
+          if (cancelled) return;
+          next.set(item.property.id, 0);
+        }
+      }
+      if (!cancelled) setTouristTaxByItem(next);
+    })();
+
+    return () => { cancelled = true; };
+  }, [cart, checkIn, checkOut, adults, children, showTouristTax]);
 
   const cardSx = {
     bgcolor: tk.surface, borderRadius: tk.cardRadius, border: `1px solid ${tk.border}`,
