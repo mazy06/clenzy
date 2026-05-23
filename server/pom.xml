@@ -32,12 +32,13 @@
         <!--
             Override la version Liquibase par defaut de Spring Boot 3.2 (4.24.0)
             pour s'aligner sur la version utilisee par les workflows d'infra
-            (Liquibase Bootstrap + DB Status + Liquibase Unlock sur clenzy-infra).
+            (DB Status + Liquibase Unlock sur clenzy-infra).
             Sans cet alignement, les checksums calcules par 4.24.0 differeraient
             de ceux stockes dans databasechangelog (calcules par 4.29.2) -> mismatch
             au boot Liquibase -> echec d'application avec "column already exists"
             sur les changesets pre-baseline (incident 0111 / Option C, mai 2026).
-            Prerequis pour activer SPRING_LIQUIBASE_ENABLED=true en prod (Phase 5).
+            Liquibase s'applique automatiquement au boot Spring Boot dans tous les
+            environnements (spring.liquibase.enabled=true).
         -->
         <liquibase.version>4.29.2</liquibase.version>
     </properties>

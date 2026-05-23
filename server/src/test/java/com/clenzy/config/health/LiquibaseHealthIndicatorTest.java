@@ -84,8 +84,8 @@ class LiquibaseHealthIndicatorTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("reports DOWN when liquibase is enabled but table is missing (prod anomaly)")
         void downWhenLiquibaseEnabledButTableMissing() throws Exception {
-            // Construction directe avec liquibaseConfigured=true pour simuler la prod
-            // Phase 5+ ou Liquibase est cense etre actif mais la table manque.
+            // Construction directe avec liquibaseConfigured=true pour simuler un
+            // environnement ou Liquibase est cense etre actif mais la table manque.
             LiquibaseHealthIndicator strictIndicator =
                     new LiquibaseHealthIndicator(jdbcTemplate, 300L, true);
 
@@ -96,7 +96,7 @@ class LiquibaseHealthIndicatorTest extends AbstractIntegrationTest {
                     .isEqualTo("databasechangelog table does not exist");
             assertThat(health.getDetails().get("interpretation"))
                     .asString()
-                    .contains("Liquibase Bootstrap");
+                    .contains("Spring Boot startup");
         }
     }
 

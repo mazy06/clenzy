@@ -580,9 +580,9 @@ gocardless:
   </tbody>
 </table>
 
-<div class="callout callout-warning">
-  <div class="callout-title">Production : migration via workflow CI/CD</div>
-  <p>En dev, Liquibase s'applique automatiquement au démarrage Spring Boot. En production, <code>SPRING_LIQUIBASE_ENABLED=false</code> et il faut passer par le workflow GitHub Actions <em>Liquibase Bootstrap</em> de clenzy-infra avec un sync_tag.</p>
+<div class="callout callout-info">
+  <div class="callout-title">Application automatique au boot</div>
+  <p>Liquibase s'applique automatiquement au démarrage Spring Boot dans <strong>tous les environnements</strong> (dev, staging, prod) — <code>spring.liquibase.enabled: true</code> dans <code>application-prod.yml</code>. La migration 0124 (5 colonnes nullable) est non destructive et idempotente : safe à appliquer sans intervention manuelle.</p>
 </div>
 
 <h3>5.3 — Configuration côté propriétaire</h3>
