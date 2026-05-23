@@ -140,6 +140,7 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/webhooks/nuki/**").permitAll()
                         .requestMatchers("/api/webhooks/hubspot/**").permitAll()
                         .requestMatchers("/api/webhooks/pennylane/**").permitAll()
+                        .requestMatchers("/api/webhooks/channex/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/booking-engine/auth/**").permitAll()
                         .requestMatchers("/api/booking-engine/checkout/**").permitAll()
