@@ -94,4 +94,28 @@ public class ChannexConnectController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return connectService.resync(clenzyPropertyId, orgId, months);
     }
+
+    /**
+     * Importe dans Clenzy les bookings actuellement connus de Channex pour une
+     * property (reverse sync OTA -> Channex -> Clenzy).
+     *
+     * <p>Typiquement appele juste apres avoir connecte un OTA dans Channex
+     * (ex: Airbnb) pour recuperer les reservations existantes sur cet OTA.
+     * Les webhooks {@code booking_new} prennent le relais pour les futures.</p>
+     */
+    @PostMapping("/properties/{clenzyPropertyId}/pull-bookings")
+    @Operation(summary = "Import des bookings Channex existants en Reservation Clenzy (idempotent)")
+    public com.clenzy.integration.channex.service.ChannexConnectService.PullBookingsResult pullBookings(
+            @PathVariable Long clenzyPropertyId,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        java.time.LocalDate fromDate = from != null
+            ? java.time.LocalDate.parse(from)
+            : java.time.LocalDate.now();
+        java.time.LocalDate toDate = to != null
+            ? java.time.LocalDate.parse(to)
+            : fromDate.plusMonths(12);
+        return connectService.pullBookings(clenzyPropertyId, orgId, fromDate, toDate);
+    }
 }

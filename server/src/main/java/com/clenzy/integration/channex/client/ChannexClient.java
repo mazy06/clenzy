@@ -187,6 +187,28 @@ public class ChannexClient {
         return exchange(HttpMethod.GET, url, null, JsonNode.class);
     }
 
+    /**
+     * Liste les bookings d'une property sur une plage de dates.
+     *
+     * <p>Utilise pour l'import initial des reservations OTAs apres connexion
+     * d'une property (reverse sync), et pour la reconciliation periodique.</p>
+     *
+     * @param channexPropertyId UUID de la property Channex
+     * @param arrivalFrom       date d'arrivee minimum (inclus)
+     * @param arrivalTo         date d'arrivee maximum (inclus)
+     */
+    public com.clenzy.integration.channex.dto.ChannexBookingsListResponse listBookings(
+            String channexPropertyId,
+            java.time.LocalDate arrivalFrom,
+            java.time.LocalDate arrivalTo) {
+        String url = props.getBaseUrl()
+            + "/bookings?property_id=" + channexPropertyId
+            + "&arrival_date_from=" + arrivalFrom
+            + "&arrival_date_to=" + arrivalTo;
+        return exchange(HttpMethod.GET, url, null,
+            com.clenzy.integration.channex.dto.ChannexBookingsListResponse.class);
+    }
+
     // ─── HTTP helpers ───────────────────────────────────────────────────────
 
     /**
@@ -259,6 +281,7 @@ public class ChannexClient {
         if (path.endsWith("/availability")) return "push_availability";
         if (path.endsWith("/restrictions")) return "push_rates";
         if (path.contains("/bookings/")) return "get_booking";
+        if (path.startsWith("/bookings") || path.contains("/bookings?")) return "list_bookings";
         return "other";
     }
 

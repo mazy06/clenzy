@@ -93,7 +93,30 @@ export const channexApi = {
       { params: { months: String(months) } },
     );
   },
+
+  /**
+   * Importe les bookings actuellement connus de Channex pour cette property
+   * (utile juste apres avoir connecte un OTA cote Channex).
+   * Idempotent : les bookings deja persistes sont skip silencieusement.
+   */
+  pullBookings(clenzyPropertyId: number, from?: string, to?: string): Promise<PullBookingsResult> {
+    const params: Record<string, string> = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    return apiClient.post<PullBookingsResult>(
+      `/integrations/channex/properties/${clenzyPropertyId}/pull-bookings`,
+      undefined,
+      { params },
+    );
+  },
 };
+
+export interface PullBookingsResult {
+  totalReceived: number;
+  importedOrIdempotent: number;
+  skipped: number;
+  errors: number;
+}
 
 /** UI helpers : couleurs + labels par statut de sync. */
 export const CHANNEX_STATUS_META: Record<

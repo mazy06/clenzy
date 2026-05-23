@@ -30,7 +30,7 @@ import {
   Tooltip,
   Chip,
 } from '@mui/material';
-import { X, Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink } from 'lucide-react';
+import { X, Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download } from 'lucide-react';
 
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
 import {
@@ -218,6 +218,23 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
     }
   };
 
+  const handlePullBookings = async (property: Property) => {
+    setBusyPropertyId(property.id);
+    setGlobalError(null);
+    try {
+      const result = await channexApi.pullBookings(property.id);
+      const msg = result.totalReceived === 0
+        ? `Aucun booking trouve cote Channex pour "${property.name}". Verifiez que vos OTAs sont bien connectees dans le dashboard Channex.`
+        : `Import termine : ${result.totalReceived} booking(s) recus de Channex (${result.importedOrIdempotent} traites${result.errors > 0 ? `, ${result.errors} erreur(s)` : ''}).`;
+      // Toast simplifie via alert (window) — on peut migrer vers notistack plus tard
+      window.alert(msg);
+    } catch (err) {
+      setGlobalError(err instanceof Error ? err.message : "Erreur lors de l'import des bookings.");
+    } finally {
+      setBusyPropertyId(null);
+    }
+  };
+
   const ACCENT = '#0F766E'; // teal Channex
 
   return (
@@ -351,7 +368,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                         </Button>
                       ) : (
                         <>
-                          <Tooltip title="Re-pousser prix + dispo (6 mois)">
+                          <Tooltip title="Re-pousser prix + dispo Clenzy vers Channex (6 mois)">
                             <span>
                               <IconButton
                                 size="small"
@@ -360,6 +377,18 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                                 sx={{ color: ACCENT }}
                               >
                                 {isBusy ? <CircularProgress size={14} /> : <RefreshCw size={14} />}
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          <Tooltip title="Importer les bookings Channex existants (Airbnb / Booking / ...)">
+                            <span>
+                              <IconButton
+                                size="small"
+                                disabled={isBusy}
+                                onClick={() => handlePullBookings(property)}
+                                sx={{ color: '#3B82F6' }}
+                              >
+                                <Download size={14} />
                               </IconButton>
                             </span>
                           </Tooltip>

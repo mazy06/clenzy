@@ -5,6 +5,8 @@ import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexConnectRequest;
 import com.clenzy.integration.channex.dto.ChannexCreatePropertyRequest;
 import com.clenzy.integration.channex.dto.ChannexCreateRatePlanRequest;
+import com.clenzy.integration.channex.dto.ChannexBookingDto;
+import com.clenzy.integration.channex.dto.ChannexBookingsListResponse;
 import com.clenzy.integration.channex.dto.ChannexCreateRoomTypeRequest;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.clenzy.integration.channex.dto.ChannexPropertyDto;
@@ -44,6 +46,7 @@ class ChannexConnectServiceTest {
     @Mock private ChannexPropertyMappingRepository mappingRepository;
     @Mock private ChannexOtaChannelRepository otaChannelRepository;
     @Mock private ChannexSyncService syncService;
+    @Mock private ChannexBookingService bookingService;
     @Mock private PropertyRepository propertyRepository;
 
     private ChannexConnectService service;
@@ -51,7 +54,8 @@ class ChannexConnectServiceTest {
     @BeforeEach
     void setUp() {
         service = new ChannexConnectService(
-            channexClient, mappingRepository, otaChannelRepository, syncService, propertyRepository,
+            channexClient, mappingRepository, otaChannelRepository, syncService, bookingService,
+            propertyRepository,
             new ChannexMetrics(new SimpleMeterRegistry())
         );
     }
@@ -278,6 +282,101 @@ class ChannexConnectServiceTest {
 
         verify(otaChannelRepository).findByMappingId(mapping.getId());
         verify(mappingRepository).delete(mapping);
+    }
+
+    // ─── PullBookings (reverse sync) ────────────────────────────────────────
+
+    @Test
+    @DisplayName("pullBookings: mapping inexistant -> IllegalStateException")
+    void pullBookings_noMapping() {
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.pullBookings(100L, 42L,
+            java.time.LocalDate.now(), java.time.LocalDate.now().plusMonths(6)))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Aucun mapping Channex");
+    }
+
+    @Test
+    @DisplayName("pullBookings: succes -> appelle handleNewBooking pour chaque booking + retourne counters")
+    void pullBookings_success() {
+        ChannexPropertyMapping mapping = new ChannexPropertyMapping();
+        mapping.setId(UUID.randomUUID());
+        mapping.setClenzyPropertyId(100L);
+        mapping.setOrganizationId(42L);
+        mapping.setChannexPropertyId("chx-prop-1");
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
+
+        ChannexBookingDto b1 = new ChannexBookingDto(
+            "booking-1", "HM1", "airbnb", "chx-prop-1", "new",
+            java.time.LocalDate.of(2026, 8, 1), java.time.LocalDate.of(2026, 8, 5),
+            java.math.BigDecimal.valueOf(450), "EUR",
+            null, List.of()
+        );
+        ChannexBookingDto b2 = new ChannexBookingDto(
+            "booking-2", "HM2", "booking_com", "chx-prop-1", "new",
+            java.time.LocalDate.of(2026, 9, 1), java.time.LocalDate.of(2026, 9, 7),
+            java.math.BigDecimal.valueOf(800), "EUR",
+            null, List.of()
+        );
+        when(channexClient.listBookings(eq("chx-prop-1"), any(), any()))
+            .thenReturn(new ChannexBookingsListResponse(List.of(b1, b2)));
+
+        com.clenzy.model.Reservation r1 = new com.clenzy.model.Reservation();
+        r1.setId(1L);
+        com.clenzy.model.Reservation r2 = new com.clenzy.model.Reservation();
+        r2.setId(2L);
+        when(bookingService.handleNewBooking(b1)).thenReturn(r1);
+        when(bookingService.handleNewBooking(b2)).thenReturn(r2);
+
+        ChannexConnectService.PullBookingsResult result = service.pullBookings(
+            100L, 42L, java.time.LocalDate.now(), java.time.LocalDate.now().plusMonths(6)
+        );
+
+        assertThat(result.totalReceived()).isEqualTo(2);
+        assertThat(result.importedOrIdempotent()).isEqualTo(2);
+        assertThat(result.errors()).isEqualTo(0);
+        verify(bookingService).handleNewBooking(b1);
+        verify(bookingService).handleNewBooking(b2);
+    }
+
+    @Test
+    @DisplayName("pullBookings: aucun booking dans Channex -> result avec counters a zero")
+    void pullBookings_empty() {
+        ChannexPropertyMapping mapping = new ChannexPropertyMapping();
+        mapping.setId(UUID.randomUUID());
+        mapping.setClenzyPropertyId(100L);
+        mapping.setOrganizationId(42L);
+        mapping.setChannexPropertyId("chx-prop-1");
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
+        when(channexClient.listBookings(eq("chx-prop-1"), any(), any()))
+            .thenReturn(new ChannexBookingsListResponse(List.of()));
+
+        ChannexConnectService.PullBookingsResult result = service.pullBookings(
+            100L, 42L, java.time.LocalDate.now(), java.time.LocalDate.now().plusMonths(6)
+        );
+
+        assertThat(result.totalReceived()).isEqualTo(0);
+        assertThat(result.importedOrIdempotent()).isEqualTo(0);
+        verify(bookingService, never()).handleNewBooking(any());
+    }
+
+    @Test
+    @DisplayName("pullBookings: erreur Channex API -> IllegalStateException avec message")
+    void pullBookings_channexError() {
+        ChannexPropertyMapping mapping = new ChannexPropertyMapping();
+        mapping.setId(UUID.randomUUID());
+        mapping.setClenzyPropertyId(100L);
+        mapping.setOrganizationId(42L);
+        mapping.setChannexPropertyId("chx-prop-1");
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
+        when(channexClient.listBookings(eq("chx-prop-1"), any(), any()))
+            .thenThrow(new ChannexException(ChannexException.Kind.SERVER_ERROR, "Channex 503"));
+
+        assertThatThrownBy(() -> service.pullBookings(100L, 42L,
+            java.time.LocalDate.now(), java.time.LocalDate.now().plusMonths(6)))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Erreur lors de l'import");
     }
 
     // ─── Resync ─────────────────────────────────────────────────────────────
