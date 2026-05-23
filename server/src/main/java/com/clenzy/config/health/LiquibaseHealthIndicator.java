@@ -18,9 +18,9 @@ import java.util.Map;
  * HealthIndicator custom pour Liquibase.
  *
  * <h2>Pourquoi</h2>
- * Phase 4 du plan de re-activation de {@code SPRING_LIQUIBASE_ENABLED=true} en
- * prod. Une fois Liquibase reactive au boot, on a besoin d'une visibilite
- * runtime immediate sur son etat — un crash silencieux du tracking
+ * Liquibase s'applique automatiquement au boot Spring Boot dans tous les
+ * environnements ({@code spring.liquibase.enabled=true}). On a besoin d'une
+ * visibilite runtime immediate sur son etat — un crash silencieux du tracking
  * ({@code databasechangelog} corrompu, lock orphelin apres un OOM Kill, etc.)
  * doit etre detectable via {@code /actuator/health} et alertable par Grafana.
  *
@@ -92,16 +92,17 @@ public class LiquibaseHealthIndicator implements HealthIndicator {
                             .withDetail("interpretation",
                                     "spring.liquibase.enabled=false on this environment — "
                                             + "schema managed by another mechanism (Hibernate ddl-auto, "
-                                            + "or external Liquibase Bootstrap workflow).")
+                                            + "or out-of-band Liquibase CLI run).")
                             .build();
                 }
-                // Sinon : Liquibase est cense etre actif (prod Phase 5+) mais la
-                // table manque → vraie anomalie.
+                // Sinon : Liquibase est cense etre actif (defaut sur tous les env)
+                // mais la table manque → vraie anomalie.
                 return Health.down()
                         .withDetail("reason", "databasechangelog table does not exist")
                         .withDetail("interpretation",
                                 "Liquibase is enabled but has never been initialized on this database. "
-                                        + "Run the Liquibase Bootstrap workflow if this is unexpected.")
+                                        + "Verify the migration ran at Spring Boot startup; "
+                                        + "if this is unexpected, run the migrations out-of-band via Liquibase CLI.")
                         .build();
             }
 

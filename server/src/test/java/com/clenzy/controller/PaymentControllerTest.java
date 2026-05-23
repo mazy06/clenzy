@@ -36,6 +36,7 @@ class PaymentControllerTest {
     @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
     @Mock private com.clenzy.repository.ServiceRequestRepository serviceRequestRepository;
     @Mock private UserRepository userRepository;
+    @Mock private com.clenzy.repository.PaymentTransactionRepository paymentTransactionRepository;
     @Mock private TenantContext tenantContext;
 
     private PaymentController controller;
@@ -43,7 +44,7 @@ class PaymentControllerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new PaymentController(stripeService, orchestrationService, interventionRepository, reservationRepository, serviceRequestRepository, userRepository, tenantContext);
+        controller = new PaymentController(stripeService, orchestrationService, interventionRepository, reservationRepository, serviceRequestRepository, userRepository, paymentTransactionRepository, tenantContext);
         Field field = PaymentController.class.getDeclaredField("stripeSecretKey");
         field.setAccessible(true);
         field.set(controller, "sk_test_xxx");

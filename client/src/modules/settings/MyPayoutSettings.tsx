@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { accountingApi } from '../../services/api/accountingApi';
 import {
   Box,
   Typography,
@@ -19,14 +21,19 @@ import {
   CreditCard,
   OpenInNew,
   CheckCircle,
+  Settings as SettingsIcon,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useMyPayoutConfig,
   useUpdateMySepa,
   useInitMyStripeConnect,
   useMyStripeOnboardingLink,
+  ownerPayoutConfigKeys,
 } from '../../hooks/useOwnerPayoutConfig';
+import PayoutMethodEditDialog from './components/PayoutMethodEditDialog';
+import OpenBankingConsentBanner from './components/OpenBankingConsentBanner';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -36,6 +43,7 @@ const IBAN_REGEX = /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/;
 
 export default function MyPayoutSettings() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { data: config, isLoading, isError } = useMyPayoutConfig();
   const updateSepaMutation = useUpdateMySepa();
   const initStripeMutation = useInitMyStripeConnect();
@@ -46,6 +54,35 @@ export default function MyPayoutSettings() {
   const [sepaBic, setSepaBic] = useState('');
   const [sepaHolder, setSepaHolder] = useState('');
   const [ibanError, setIbanError] = useState('');
+
+  // Unified method dialog (Wise + Open Banking + autres)
+  const [methodDialogOpen, setMethodDialogOpen] = useState(false);
+
+  // Open Banking callback auto-finalize
+  // Si l'URL contient ?openbanking=callback (retour depuis SCA banque),
+  // on appelle automatiquement le backend pour valider le consent.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [obProcessing, setObProcessing] = useState(false);
+  const [obError, setObError] = useState<string | null>(null);
+  useEffect(() => {
+    if (searchParams.get('openbanking') !== 'callback') return;
+    setObProcessing(true);
+    accountingApi.finalizeOpenBankingCallback()
+      .then(() => {
+        // Cleanup URL pour éviter de re-déclencher au refresh
+        const next = new URLSearchParams(searchParams);
+        next.delete('openbanking');
+        setSearchParams(next, { replace: true });
+        queryClient.invalidateQueries({ queryKey: ownerPayoutConfigKeys.me });
+      })
+      .catch((e) => {
+        setObError(e instanceof Error
+          ? e.message
+          : 'Le consent Open Banking n\'a pas pu être validé. Veuillez relancer le SCA.');
+      })
+      .finally(() => setObProcessing(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
@@ -158,6 +195,70 @@ export default function MyPayoutSettings() {
           )}
         </Box>
       )}
+
+      {/* ── Banner retour Open Banking SCA ── */}
+      {obProcessing && (
+        <Alert severity="info" sx={{ mb: 2, fontSize: '0.85rem', borderRadius: 2 }}>
+          {t('settings.myPayout.obProcessing', 'Validation du consent Open Banking en cours…')}
+        </Alert>
+      )}
+      {obError && (
+        <Alert severity="error" sx={{ mb: 2, fontSize: '0.85rem', borderRadius: 2 }} onClose={() => setObError(null)}>
+          {obError}
+        </Alert>
+      )}
+
+      {/* ── Bannière proactive expiration consent Open Banking ── */}
+      <OpenBankingConsentBanner
+        config={config}
+        onReconnect={() => setMethodDialogOpen(true)}
+      />
+
+      {/* ── Bannière Méthodes avancées (Wise, Open Banking) ── */}
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
+          mb: 2.5,
+          borderRadius: 2,
+          backgroundColor: '#4A9B8E08',
+          borderColor: '#4A9B8E33',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          flexWrap: 'wrap',
+        }}
+      >
+        <Box sx={{ flex: 1, minWidth: 200 }}>
+          <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#4A9B8E', mb: 0.25 }}>
+            {t('settings.myPayout.advancedTitle', 'Méthodes avancées disponibles')}
+          </Typography>
+          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', lineHeight: 1.45 }}>
+            {t(
+              'settings.myPayout.advancedSubtitle',
+              'Wise Business pour les virements internationaux (Maroc, Arabie Saoudite, 80+ pays) ou Open Banking PIS pour des virements SEPA automatiques sans upload manuel.',
+            )}
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<SettingsIcon size={14} strokeWidth={1.75} />}
+          onClick={() => setMethodDialogOpen(true)}
+          sx={{
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: '0.78rem',
+            borderRadius: '8px',
+            borderColor: '#4A9B8E66',
+            color: '#4A9B8E',
+            '&:hover': { borderColor: '#4A9B8E', backgroundColor: '#4A9B8E0F' },
+          }}
+        >
+          {t('settings.myPayout.changeMethodBtn', 'Choisir une autre méthode')}
+        </Button>
+      </Paper>
 
       {/* ── Section SEPA ── */}
       <Paper variant="outlined" sx={{ p: 2.5, mb: 2.5, borderRadius: 2 }}>
@@ -311,6 +412,21 @@ export default function MyPayoutSettings() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <PayoutMethodEditDialog
+        open={methodDialogOpen}
+        currentConfig={config ?? null}
+        mode="self"
+        onClose={() => setMethodDialogOpen(false)}
+        onSaved={() => {
+          setSnackbar({
+            open: true,
+            message: t('settings.myPayout.methodSaved', 'Méthode de reversement mise à jour'),
+            severity: 'success',
+          });
+          queryClient.invalidateQueries({ queryKey: ownerPayoutConfigKeys.me });
+        }}
+      />
     </Box>
   );
 }

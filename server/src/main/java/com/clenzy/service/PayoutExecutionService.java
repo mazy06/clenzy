@@ -2,17 +2,32 @@ package com.clenzy.service;
 
 import com.clenzy.model.*;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
+import com.clenzy.payment.payout.PayoutExecutor;
+import com.clenzy.payment.payout.PayoutExecutorRegistry;
 import com.clenzy.repository.OwnerPayoutConfigRepository;
 import com.clenzy.repository.OwnerPayoutRepository;
-import com.clenzy.repository.UserRepository;
-import com.stripe.model.Transfer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-
+/**
+ * Orchestrateur des executions de payouts.
+ *
+ * <h2>Pattern Strategy + Registry</h2>
+ * <p>Délègue l'exécution à l'un des {@link PayoutExecutor} découverts par
+ * Spring via {@link PayoutExecutorRegistry}. Cette classe ne contient plus de
+ * logique provider-specific — l'ajout d'un nouveau rail (Wise, Open Banking,
+ * Mangopay…) se fait via un nouveau bean executor, sans toucher ce service.</p>
+ *
+ * <h2>Responsabilités conservées</h2>
+ * <ul>
+ *   <li>Validation des invariants métier (payout en APPROVED, config verifiée)</li>
+ *   <li>Gestion du compteur de retry (max 3)</li>
+ *   <li>Resolution multi-tenant via {@code findByIdAndOrgId}</li>
+ *   <li>Vérification de l'existence de la {@link OwnerPayoutConfig}</li>
+ * </ul>
+ */
 @Service
 public class PayoutExecutionService {
 
@@ -21,175 +36,85 @@ public class PayoutExecutionService {
 
     private final OwnerPayoutRepository payoutRepository;
     private final OwnerPayoutConfigRepository configRepository;
-    private final StripeConnectService stripeConnectService;
-    private final NotificationService notificationService;
-    private final UserRepository userRepository;
+    private final PayoutExecutorRegistry executorRegistry;
 
     public PayoutExecutionService(OwnerPayoutRepository payoutRepository,
                                    OwnerPayoutConfigRepository configRepository,
-                                   StripeConnectService stripeConnectService,
-                                   NotificationService notificationService,
-                                   UserRepository userRepository) {
+                                   PayoutExecutorRegistry executorRegistry) {
         this.payoutRepository = payoutRepository;
         this.configRepository = configRepository;
-        this.stripeConnectService = stripeConnectService;
-        this.notificationService = notificationService;
-        this.userRepository = userRepository;
+        this.executorRegistry = executorRegistry;
     }
 
     /**
-     * Executes a payout based on the owner's configured payment method.
-     * Only APPROVED payouts with a verified config can be executed.
+     * Exécute un payout en délégant à l'exécuteur correspondant à la méthode
+     * configurée par le propriétaire. Seuls les payouts APPROVED peuvent être
+     * exécutés, et la config doit être vérifiée.
      */
     @Transactional
     public OwnerPayout executePayout(Long payoutId, Long orgId) {
         OwnerPayout payout = payoutRepository.findByIdAndOrgId(payoutId, orgId)
-                .orElseThrow(() -> new IllegalArgumentException("Payout not found: " + payoutId));
+            .orElseThrow(() -> new IllegalArgumentException("Payout not found: " + payoutId));
 
         if (payout.getStatus() != PayoutStatus.APPROVED) {
-            throw new IllegalStateException("Payout must be APPROVED before execution. Current: " + payout.getStatus());
+            throw new IllegalStateException(
+                "Payout must be APPROVED before execution. Current: " + payout.getStatus());
         }
 
         OwnerPayoutConfig config = configRepository.findByOwnerIdAndOrgId(payout.getOwnerId(), orgId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Le proprietaire n'a pas encore configure sa methode de paiement. "
-                        + "Il doit renseigner son IBAN ou connecter son compte Stripe dans Parametres > Mes reversements."));
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Le proprietaire n'a pas encore configure sa methode de paiement. "
+              + "Il doit renseigner son IBAN, connecter Stripe, Wise ou Open Banking dans "
+              + "Parametres > Mes reversements."));
 
         if (!config.isVerified()) {
             throw new IllegalArgumentException(
-                    "La configuration de paiement du proprietaire n'est pas encore verifiee.");
+                "La configuration de paiement du proprietaire n'est pas encore verifiee.");
         }
 
-        return switch (config.getPayoutMethod()) {
-            case STRIPE_CONNECT -> executeStripeTransfer(payout, config);
-            case SEPA_TRANSFER -> markSepaProcessing(payout);
-            case MANUAL -> throw new IllegalArgumentException(
-                    "Les reversements en mode manuel ne peuvent pas etre executes automatiquement. "
-                    + "Changez la methode de paiement du proprietaire en SEPA ou Stripe Connect.");
-        };
+        PayoutMethod method = config.getPayoutMethod() != null ? config.getPayoutMethod() : PayoutMethod.MANUAL;
+        log.info("Executing payout {} via {} for org {}", payoutId, method, orgId);
+
+        PayoutExecutor executor;
+        try {
+            executor = executorRegistry.get(method);
+        } catch (PayoutExecutor.PayoutExecutionException e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
+
+        try {
+            return executor.execute(payout, config);
+        } catch (PayoutExecutor.PayoutExecutionException e) {
+            // L'executor a refusé l'exécution en amont (config invalide, méthode
+            // non-automatisable, etc.) — on remonte tel quel à l'utilisateur.
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
     }
 
     /**
-     * Retries a FAILED payout. Increments retryCount and re-executes.
+     * Relance un payout FAILED en remettant son statut à APPROVED.
+     * Le compteur de retry est incrémenté ; au-delà de {@value #MAX_RETRY_COUNT}
+     * relances, l'opération est refusée.
      */
     @Transactional
     public OwnerPayout retryPayout(Long payoutId, Long orgId) {
         OwnerPayout payout = payoutRepository.findByIdAndOrgId(payoutId, orgId)
-                .orElseThrow(() -> new IllegalArgumentException("Payout not found: " + payoutId));
+            .orElseThrow(() -> new IllegalArgumentException("Payout not found: " + payoutId));
 
         if (payout.getStatus() != PayoutStatus.FAILED) {
-            throw new IllegalStateException("Only FAILED payouts can be retried. Current: " + payout.getStatus());
+            throw new IllegalStateException(
+                "Only FAILED payouts can be retried. Current: " + payout.getStatus());
         }
 
         if (payout.getRetryCount() >= MAX_RETRY_COUNT) {
-            throw new IllegalStateException("Max retry count (" + MAX_RETRY_COUNT + ") reached for payout " + payoutId);
+            throw new IllegalStateException(
+                "Max retry count (" + MAX_RETRY_COUNT + ") reached for payout " + payoutId);
         }
 
-        // Reset to APPROVED to allow re-execution
         payout.setStatus(PayoutStatus.APPROVED);
         payout.setFailureReason(null);
         payoutRepository.save(payout);
 
         return executePayout(payoutId, orgId);
-    }
-
-    private OwnerPayout executeStripeTransfer(OwnerPayout payout, OwnerPayoutConfig config) {
-        payout.setStatus(PayoutStatus.PROCESSING);
-        payout.setPayoutMethod(PayoutMethod.STRIPE_CONNECT);
-        payoutRepository.save(payout);
-
-        try {
-            String description = "Payout #" + payout.getId() + " - "
-                    + payout.getPeriodStart() + " to " + payout.getPeriodEnd();
-
-            Transfer transfer = stripeConnectService.createTransfer(
-                    payout.getNetAmount(),
-                    payout.getCurrency(),
-                    config.getStripeConnectedAccountId(),
-                    description
-            );
-
-            payout.setStripeTransferId(transfer.getId());
-            payout.setPaymentReference(transfer.getId());
-            payout.setStatus(PayoutStatus.PAID);
-            payout.setPaidAt(Instant.now());
-            OwnerPayout saved = payoutRepository.save(payout);
-
-            notifySuccess(saved);
-            log.info("Stripe transfer {} completed for payout {}", transfer.getId(), payout.getId());
-            return saved;
-
-        } catch (Exception e) {
-            return handleFailure(payout, e);
-        }
-    }
-
-    private OwnerPayout markSepaProcessing(OwnerPayout payout) {
-        // For SEPA, we mark as PROCESSING — admin will confirm after bank transfer
-        payout.setStatus(PayoutStatus.PROCESSING);
-        payout.setPayoutMethod(PayoutMethod.SEPA_TRANSFER);
-        OwnerPayout saved = payoutRepository.save(payout);
-
-        notificationService.notifyAdminsAndManagersByOrgId(
-                payout.getOrganizationId(),
-                NotificationKey.PAYOUT_PENDING_APPROVAL,
-                "Virement SEPA a effectuer",
-                "Le reversement #" + payout.getId() + " (" + payout.getNetAmount() + " " + payout.getCurrency()
-                        + ") est pret pour virement SEPA.",
-                "/billing"
-        );
-
-        log.info("SEPA payout {} marked as PROCESSING, awaiting manual bank transfer", payout.getId());
-        return saved;
-    }
-
-    private OwnerPayout handleFailure(OwnerPayout payout, Exception e) {
-        payout.setStatus(PayoutStatus.FAILED);
-        payout.setFailureReason(e.getMessage());
-        payout.setRetryCount(payout.getRetryCount() + 1);
-        OwnerPayout saved = payoutRepository.save(payout);
-
-        notificationService.notifyAdminsAndManagersByOrgId(
-                payout.getOrganizationId(),
-                NotificationKey.PAYOUT_FAILED,
-                "Echec du reversement",
-                "Le reversement #" + payout.getId() + " a echoue: " + e.getMessage(),
-                "/billing"
-        );
-
-        notifyOwner(saved, NotificationKey.PAYOUT_FAILED,
-                "Echec du reversement",
-                "Votre reversement de " + payout.getNetAmount() + " " + payout.getCurrency()
-                        + " n'a pas pu etre execute. Notre equipe a ete notifiee.");
-
-        log.error("Payout {} execution failed (attempt {}): {}", payout.getId(), payout.getRetryCount(), e.getMessage());
-        return saved;
-    }
-
-    private void notifySuccess(OwnerPayout payout) {
-        String amount = payout.getNetAmount() + " " + payout.getCurrency();
-
-        notificationService.notifyAdminsAndManagersByOrgId(
-                payout.getOrganizationId(),
-                NotificationKey.PAYOUT_EXECUTED,
-                "Reversement execute",
-                "Le reversement #" + payout.getId() + " (" + amount + ") a ete execute avec succes.",
-                "/billing"
-        );
-
-        notifyOwner(payout, NotificationKey.PAYOUT_EXECUTED,
-                "Reversement effectue",
-                "Votre reversement de " + amount + " a ete effectue. Reference: " + payout.getPaymentReference());
-    }
-
-    private void notifyOwner(OwnerPayout payout, NotificationKey key, String title, String message) {
-        userRepository.findById(payout.getOwnerId()).ifPresent(owner -> {
-            if (owner.getKeycloakId() != null) {
-                notificationService.sendByOrgId(
-                        owner.getKeycloakId(), key, title, message,
-                        "/billing", payout.getOrganizationId()
-                );
-            }
-        });
     }
 }

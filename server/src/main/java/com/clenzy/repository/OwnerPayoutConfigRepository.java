@@ -25,4 +25,12 @@ public interface OwnerPayoutConfigRepository extends JpaRepository<OwnerPayoutCo
 
     @Query("SELECT c FROM OwnerPayoutConfig c WHERE c.stripeConnectedAccountId = :accountId")
     Optional<OwnerPayoutConfig> findByStripeConnectedAccountId(@Param("accountId") String accountId);
+
+    /**
+     * Lookup d'une config par son consent_id Open Banking (utile pour le
+     * callback de retour GoCardless qui renvoie le requisitionId en query).
+     */
+    @Query("SELECT c FROM OwnerPayoutConfig c WHERE c.openBankingConsentId = :requisitionId AND c.organizationId = :orgId")
+    Optional<OwnerPayoutConfig> findByRequisitionId(@Param("requisitionId") String requisitionId,
+                                                      @Param("orgId") Long orgId);
 }

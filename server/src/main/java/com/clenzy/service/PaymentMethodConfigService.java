@@ -95,13 +95,16 @@ public class PaymentMethodConfigService {
     }
 
     /**
-     * Update config with encrypted API credentials.
+     * Update config with encrypted API credentials and provider-specific JSON.
      * API keys, secrets, and webhook secrets are encrypted via AES-256-GCM before storage.
+     * {@code configJson} fields (e.g. PayTabs {@code profileId}, CMI {@code clientId})
+     * are stored as-is — they are not secrets per se but provider-specific identifiers.
      */
     public PaymentMethodConfig updateConfig(Long orgId, PaymentProviderType providerType,
                                               Boolean enabled, String countryCodes,
                                               Boolean sandboxMode, String apiKey,
-                                              String apiSecret, String webhookSecret) {
+                                              String apiSecret, String webhookSecret,
+                                              Map<String, Object> configJson) {
         PaymentMethodConfig config = getOrCreateConfig(orgId, providerType);
         if (enabled != null) config.setEnabled(enabled);
         if (countryCodes != null) config.setCountryCodes(countryCodes);
@@ -118,9 +121,30 @@ public class PaymentMethodConfigService {
             config.setWebhookSecretEncrypted(encryptionService.encrypt(webhookSecret));
         }
 
+        // Merge configJson : on remplace les clefs fournies sans ecraser le
+        // reste (ex. mise a jour du profileId sans toucher au region).
+        if (configJson != null && !configJson.isEmpty()) {
+            Map<String, Object> existing = config.getConfigJson() != null
+                ? new java.util.HashMap<>(config.getConfigJson())
+                : new java.util.HashMap<>();
+            existing.putAll(configJson);
+            config.setConfigJson(existing);
+        }
+
         log.info("Updated payment config for provider {} org {} (credentials {}encrypted)",
             providerType, orgId, apiKey != null ? "" : "not ");
         return repository.save(config);
+    }
+
+    /**
+     * Backward-compatible updateConfig signature (sans configJson).
+     */
+    public PaymentMethodConfig updateConfig(Long orgId, PaymentProviderType providerType,
+                                              Boolean enabled, String countryCodes,
+                                              Boolean sandboxMode, String apiKey,
+                                              String apiSecret, String webhookSecret) {
+        return updateConfig(orgId, providerType, enabled, countryCodes, sandboxMode,
+            apiKey, apiSecret, webhookSecret, null);
     }
 
     /**
@@ -129,7 +153,7 @@ public class PaymentMethodConfigService {
     public PaymentMethodConfig updateConfig(Long orgId, PaymentProviderType providerType,
                                               Boolean enabled, String countryCodes,
                                               Boolean sandboxMode) {
-        return updateConfig(orgId, providerType, enabled, countryCodes, sandboxMode, null, null, null);
+        return updateConfig(orgId, providerType, enabled, countryCodes, sandboxMode, null, null, null, null);
     }
 
     /**

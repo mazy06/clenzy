@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.*;
 import com.clenzy.model.*;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.PaymentTransactionRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
@@ -49,6 +50,7 @@ public class PaymentController {
     private final ReservationRepository reservationRepository;
     private final ServiceRequestRepository serviceRequestRepository;
     private final UserRepository userRepository;
+    private final PaymentTransactionRepository paymentTransactionRepository;
     private final TenantContext tenantContext;
 
     @Value("${stripe.secret-key}")
@@ -60,6 +62,7 @@ public class PaymentController {
                               ReservationRepository reservationRepository,
                               ServiceRequestRepository serviceRequestRepository,
                               UserRepository userRepository,
+                              PaymentTransactionRepository paymentTransactionRepository,
                               TenantContext tenantContext) {
         this.stripeService = stripeService;
         this.orchestrationService = orchestrationService;
@@ -67,6 +70,7 @@ public class PaymentController {
         this.reservationRepository = reservationRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
+        this.paymentTransactionRepository = paymentTransactionRepository;
         this.tenantContext = tenantContext;
     }
     
@@ -299,6 +303,39 @@ public class PaymentController {
             .body(Map.of("error", "Aucun paiement trouvé pour cette session: " + sessionId));
     }
 
+    /**
+     * Statut d'une transaction provider-agnostique.
+     *
+     * <p>Endpoint canonique pour les nouveaux flows (PayTabs, CMI, et tout
+     * provider qui ne s'appuie pas sur Stripe Checkout Session). Le polling
+     * frontend apres redirect doit utiliser cet endpoint avec le
+     * {@code transactionRef} retourne par {@code /create-session}.</p>
+     *
+     * <p>{@link #getSessionStatus(String)} reste disponible pour la
+     * compatibilite Stripe legacy (lookup par {@code stripeSessionId}).</p>
+     */
+    @GetMapping("/transaction-status/{transactionRef}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<?> getTransactionStatus(@PathVariable String transactionRef) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        var tx = paymentTransactionRepository.findByTransactionRef(transactionRef)
+            .filter(t -> t.getOrganizationId().equals(orgId))
+            .orElse(null);
+        if (tx == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "Transaction introuvable: " + transactionRef));
+        }
+        return ResponseEntity.ok(Map.of(
+            "transactionRef", tx.getTransactionRef(),
+            "providerType", tx.getProviderType().name(),
+            "status", tx.getStatus().name(),
+            "amount", tx.getAmount(),
+            "currency", tx.getCurrency(),
+            "sourceType", tx.getSourceType() != null ? tx.getSourceType() : "",
+            "sourceId", tx.getSourceId() != null ? tx.getSourceId() : 0L
+        ));
+    }
+
     // ─── Historique des paiements ────────────────────────────────────────────────
 
     /**
@@ -504,7 +541,20 @@ public class PaymentController {
     // ─── Remboursement ─────────────────────────────────────────────────────────
 
     /**
-     * Rembourse un paiement via Stripe. Reservé aux ADMIN et MANAGER.
+     * Rembourse un paiement d'intervention. Reserve aux ADMIN et MANAGER.
+     *
+     * <h2>Provider-agnostique</h2>
+     * <p>Cherche d'abord une {@code PaymentTransaction} liee a l'intervention
+     * via {@code sourceType=INTERVENTION + sourceId}. Si trouvee, route via
+     * {@code orchestrationService.processRefund()} qui delegue au bon
+     * provider (Stripe, PayTabs, CMI, etc.).</p>
+     *
+     * <h2>Fallback legacy</h2>
+     * <p>Pour les interventions creees avant l'introduction de l'orchestrateur
+     * (champ {@code stripeSessionId} mais pas de {@code PaymentTransaction}),
+     * fallback sur {@link StripeService#refundPayment(Long)} pour preserver la
+     * compatibilite. A retirer une fois la migration des anciennes donnees
+     * effectuee.</p>
      */
     @PostMapping("/{interventionId}/refund")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
@@ -518,9 +568,35 @@ public class PaymentController {
                     .body(Map.of("error", "Seuls les paiements confirmés peuvent être remboursés. Statut actuel: " + intervention.getPaymentStatus()));
             }
 
-            stripeService.refundPayment(interventionId);
+            Long orgId = tenantContext.getRequiredOrganizationId();
 
-            return ResponseEntity.ok(Map.of("message", "Remboursement effectué avec succès"));
+            // Nouvelle voie : provider-agnostique via PaymentTransaction.
+            // Les paiements normaux sont stockes en CHECKOUT/COMPLETED ; on prend la
+            // transaction completee la plus recente comme "original" a rembourser.
+            var transactions = paymentTransactionRepository
+                .findByOrganizationIdAndSourceTypeAndSourceId(orgId, "INTERVENTION", interventionId);
+            var originalTx = transactions.stream()
+                .filter(t -> t.getPaymentType() == TransactionType.CHECKOUT
+                          && t.getStatus() == TransactionStatus.COMPLETED)
+                .findFirst();
+
+            if (originalTx.isPresent()) {
+                var result = orchestrationService.processRefund(
+                    originalTx.get().getTransactionRef(), null, "Refund requested by admin");
+                if (!result.isSuccess()) {
+                    logger.error("Refund failed for intervention {} via {}: {}",
+                        interventionId, result.providerUsed(), result.paymentResult().errorMessage());
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("error", "Échec du remboursement: " + result.paymentResult().errorMessage()));
+                }
+                return ResponseEntity.ok(Map.of(
+                    "message", "Remboursement effectué avec succès",
+                    "provider", result.providerUsed() != null ? result.providerUsed().name() : "UNKNOWN"));
+            }
+
+            // Fallback legacy : interventions payees avant l'orchestrateur.
+            stripeService.refundPayment(interventionId);
+            return ResponseEntity.ok(Map.of("message", "Remboursement effectué avec succès (legacy Stripe)"));
         } catch (StripeException e) {
             logger.error("Erreur Stripe lors du remboursement de l'intervention {}", interventionId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
