@@ -296,8 +296,9 @@ export default function IntegrationsSection({
       safe(channelManagerConnectionApi.getStatus('SITEMINDER')),
       safe(channelManagerConnectionApi.getStatus('HOSTAWAY')),
       safe(channelManagerConnectionApi.getStatus('RENTALS_UNITED')),
+      safe(channelManagerConnectionApi.getStatus('CHANNEX')),
     ]).then(([pl, beyond, wheelhouse, qb, xero, sage, chekin, policeMa, absherKsa,
-              sumsub, veriff, onfido, siteminder, hostaway, rentalsUnited]) => {
+              sumsub, veriff, onfido, siteminder, hostaway, rentalsUnited, channex]) => {
       const configuredPricing = new Set<PricingProvider>();
       if (pl?.connected) configuredPricing.add('PRICELABS');
       if (beyond?.connected) configuredPricing.add('BEYOND');
@@ -326,6 +327,7 @@ export default function IntegrationsSection({
       if (siteminder?.connected) configuredCM.add('SITEMINDER');
       if (hostaway?.connected) configuredCM.add('HOSTAWAY');
       if (rentalsUnited?.connected) configuredCM.add('RENTALS_UNITED');
+      if (channex?.connected) configuredCM.add('CHANNEX');
       setConnectedChannelManager(configuredCM);
     });
   }, []);
@@ -1296,9 +1298,10 @@ export default function IntegrationsSection({
           }}
         >
           {([
-            { id: 'SITEMINDER',     label: 'SiteMinder',     desc: '~250 OTAs · leader mondial' },
-            { id: 'HOSTAWAY',       label: 'Hostaway',       desc: 'Focus STR · Airbnb natif' },
+            { id: 'CHANNEX',        label: 'Channex',        desc: '100+ OTAs · REST moderne · ~12 €/bien' },
             { id: 'RENTALS_UNITED', label: 'Rentals United', desc: '60+ OTAs · EU + MENA' },
+            { id: 'HOSTAWAY',       label: 'Hostaway',       desc: 'Focus STR · Airbnb natif' },
+            { id: 'SITEMINDER',     label: 'SiteMinder',     desc: '~250 OTAs · leader mondial' },
           ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc }) => (
             <ServiceTooltip key={p} providerId={p} name={label}>
             <Box

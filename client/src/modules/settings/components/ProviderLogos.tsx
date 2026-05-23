@@ -40,7 +40,8 @@ export type ProviderId =
   | 'ONFIDO'
   | 'SITEMINDER'
   | 'HOSTAWAY'
-  | 'RENTALS_UNITED';
+  | 'RENTALS_UNITED'
+  | 'CHANNEX';
 
 interface ProviderLogoProps {
   provider: ProviderId;
@@ -99,6 +100,8 @@ const PALETTE: Record<ProviderId, BrandPalette> = {
   HOSTAWAY:   { bg: '#0A2540', fg: '#FFFFFF', accent: '#F97316' },
   // Rentals United : bleu marine + accent rouge
   RENTALS_UNITED: { bg: '#0F172A', fg: '#FFFFFF', accent: '#EF4444' },
+  // Channex : teal (couleur brand officielle channex.io)
+  CHANNEX: { bg: '#0F766E', fg: '#FFFFFF', accent: '#5EEAD4' },
 };
 
 export default function ProviderLogo({ provider, size = 48, muted = false }: ProviderLogoProps) {
@@ -600,6 +603,32 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
           <circle cx="18" cy="38" r="3" fill="none" stroke={p.accent} strokeWidth="1.5" />
           <circle cx="24" cy="38" r="3" fill="none" stroke={p.accent} strokeWidth="1.5" />
           <circle cx="30" cy="38" r="3" fill="none" stroke={p.accent} strokeWidth="1.5" />
+        </>
+      );
+
+    case 'CHANNEX':
+      // Tile teal + "Cx" stylise + 4 noeuds connectes (representation des channels distribues)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="24"
+            y="28"
+            textAnchor="middle"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="16"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.05em"
+          >
+            Cx
+          </text>
+          {/* 4 noeuds connectes : evoque le multi-OTA */}
+          <circle cx="13" cy="38" r="1.6" fill={p.accent} />
+          <circle cx="20" cy="38" r="1.6" fill={p.accent} />
+          <circle cx="28" cy="38" r="1.6" fill={p.accent} />
+          <circle cx="35" cy="38" r="1.6" fill={p.accent} />
+          <line x1="13" y1="38" x2="35" y2="38" stroke={p.accent} strokeWidth="1" strokeLinecap="round" opacity="0.6" />
         </>
       );
 

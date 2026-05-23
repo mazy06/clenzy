@@ -17,5 +17,12 @@ public enum ChannelManagerProviderType {
     /** Hostaway (US) — popularite croissante STR, integration native Airbnb. */
     HOSTAWAY,
     /** Rentals United (Espagne) — 60+ OTAs y compris MENA. */
-    RENTALS_UNITED
+    RENTALS_UNITED,
+    /**
+     * Channex (UK) — API REST moderne, 100+ OTAs (Airbnb, Booking, Vrbo, Expedia).
+     * Recommande pour Clenzy : pricing pay-as-you-go (~12€/bien/mois), webhooks,
+     * documentation publique complete (docs.channex.io). Plan d'integration :
+     * {@code docs/strategy/channex-integration-plan.md}.
+     */
+    CHANNEX
 }
