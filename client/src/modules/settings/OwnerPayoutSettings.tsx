@@ -29,15 +29,19 @@ import {
   Warning,
   Edit as EditIcon,
   CheckCircle,
+  Settings as SettingsIcon,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useAllOwnerPayoutConfigs,
   useUpdateSepaDetails,
   useVerifyOwnerConfig,
+  ownerPayoutConfigKeys,
 } from '../../hooks/useOwnerPayoutConfig';
 import type { OwnerPayoutConfig, PayoutMethod } from '../../services/api/accountingApi';
 import SettingsSection from './components/SettingsSection';
+import PayoutMethodEditDialog from './components/PayoutMethodEditDialog';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -45,6 +49,8 @@ const PAYOUT_METHOD_LABELS: Record<PayoutMethod, string> = {
   MANUAL: 'Manuel',
   STRIPE_CONNECT: 'Stripe Connect',
   SEPA_TRANSFER: 'Virement SEPA',
+  WISE: 'Wise Business',
+  OPEN_BANKING: 'Open Banking',
 };
 
 // Palette Clenzy tintée pour les chips de méthode
@@ -52,6 +58,8 @@ const PAYOUT_METHOD_COLORS: Record<PayoutMethod, string> = {
   MANUAL: '#8A8378',
   STRIPE_CONNECT: '#635BFF', // brand Stripe (preserved for recognizability)
   SEPA_TRANSFER: '#7BA3C2',
+  WISE: '#00B9FF',           // brand Wise teal — préservé pour reconnaissance
+  OPEN_BANKING: '#4A9B8E',   // brand Clenzy accent (Open Banking = approche maison)
 };
 
 const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
@@ -77,6 +85,7 @@ const MIN_ROWS = 3;
 
 export default function OwnerPayoutSettings() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { data: configs = [], isLoading } = useAllOwnerPayoutConfigs();
   const updateSepaMutation = useUpdateSepaDetails();
   const verifyMutation = useVerifyOwnerConfig();
@@ -110,7 +119,7 @@ export default function OwnerPayoutSettings() {
     [configs, page, rowsPerPage],
   );
 
-  // SEPA edit dialog
+  // SEPA edit dialog (legacy — kept for backward compat with existing button)
   const [sepaOpen, setSepaOpen] = useState(false);
   const [sepaTarget, setSepaTarget] = useState<OwnerPayoutConfig | null>(null);
   const [sepaIban, setSepaIban] = useState('');
@@ -118,23 +127,49 @@ export default function OwnerPayoutSettings() {
   const [sepaHolder, setSepaHolder] = useState('');
   const [ibanError, setIbanError] = useState('');
 
+  // Nouvelle modale unifiée méthode (Wise, Open Banking, etc.)
+  const [methodDialogOpen, setMethodDialogOpen] = useState(false);
+  const [methodDialogTarget, setMethodDialogTarget] = useState<OwnerPayoutConfig | null>(null);
+  const openMethodDialog = (config: OwnerPayoutConfig) => {
+    setMethodDialogTarget(config);
+    setMethodDialogOpen(true);
+  };
+
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
   const openSepaDialog = (config: OwnerPayoutConfig) => {
     setSepaTarget(config);
-    setSepaIban('');
+    // Pré-remplit avec le mask serveur (ex: FR76 **** **** **** **** *** 0189).
+    // Au save, ibanUnchanged détecte si l'utilisateur n'a rien modifié et on
+    // skip la validation regex pour préserver l'IBAN existant.
+    setSepaIban(config.maskedIban ?? '');
     setSepaBic(config.bic ?? '');
     setSepaHolder(config.bankAccountHolder ?? '');
     setIbanError('');
     setSepaOpen(true);
   };
 
+  /** True si le champ IBAN contient encore le mask (= non modifié). */
+  const isSepaIbanUnchanged = (() => {
+    const trimmed = sepaIban.trim();
+    if (!trimmed || !sepaTarget?.maskedIban) return false;
+    if (trimmed === sepaTarget.maskedIban) return true;
+    return trimmed.includes('*');
+  })();
+
   const handleSaveSepa = async () => {
     if (!sepaTarget) return;
-    const cleanIban = sepaIban.replace(/\s+/g, '').toUpperCase();
-    if (!IBAN_REGEX.test(cleanIban)) {
-      setIbanError(t('settings.ownerPayout.ibanInvalid', 'Format IBAN invalide'));
-      return;
+
+    // Si l'IBAN n'a pas été modifié (mask encore présent), on n'envoie pas
+    // l'IBAN au backend — il garde l'existant. Le backend a été ajusté pour
+    // accepter ce mode de mise à jour partielle (BIC et/ou titulaire seuls).
+    let cleanIban: string | undefined;
+    if (!isSepaIbanUnchanged) {
+      cleanIban = sepaIban.replace(/\s+/g, '').toUpperCase();
+      if (!IBAN_REGEX.test(cleanIban)) {
+        setIbanError(t('settings.ownerPayout.ibanInvalid', 'Format IBAN invalide'));
+        return;
+      }
     }
 
     try {
@@ -183,6 +218,46 @@ export default function OwnerPayoutSettings() {
           'Configurez la méthode de paiement pour chaque propriétaire (Stripe Connect, virement SEPA ou manuel).',
         )}
       >
+        {/* ── Bannière agrégée Open Banking : alerte si des consents sont expirés/expirant ── */}
+        {(() => {
+          const obConfigs = configs.filter((c) => c.payoutMethod === 'OPEN_BANKING');
+          if (obConfigs.length === 0) return null;
+          const now = Date.now();
+          const expired = obConfigs.filter((c) => {
+            if (!c.openBankingConsentExpiresAt) return true; // jamais configuré
+            return new Date(c.openBankingConsentExpiresAt).getTime() < now;
+          });
+          const expiringSoon = obConfigs.filter((c) => {
+            if (!c.openBankingConsentExpiresAt) return false;
+            const days = (new Date(c.openBankingConsentExpiresAt).getTime() - now) / (1000 * 60 * 60 * 24);
+            return days > 0 && days <= 7;
+          });
+
+          if (expired.length === 0 && expiringSoon.length === 0) return null;
+
+          const isCritical = expired.length > 0;
+          return (
+            <Alert
+              severity={isCritical ? 'error' : 'warning'}
+              sx={{ mb: 2, fontSize: '0.85rem', borderRadius: 2 }}
+            >
+              <Box>
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 0.25 }}>
+                  Open Banking — {expired.length} consent{expired.length > 1 ? 's' : ''} expiré{expired.length > 1 ? 's' : ''}
+                  {expired.length > 0 && expiringSoon.length > 0 ? ', ' : ''}
+                  {expiringSoon.length > 0 && `${expiringSoon.length} expirant dans 7 jours`}
+                </Typography>
+                <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
+                  Les propriétaires concernés doivent refaire l'authentification bancaire (SCA) depuis leur page
+                  <strong> Mes reversements </strong>
+                  pour réactiver les virements automatiques. Vous pouvez aussi initier le SCA pour eux via l'icône
+                  engrenage (Configurer la méthode).
+                </Typography>
+              </Box>
+            </Alert>
+          );
+        })()}
+
         {configs.length === 0 ? (
           <Box
             sx={{
@@ -337,6 +412,31 @@ export default function OwnerPayoutSettings() {
                       </TableCell>
                       <TableCell sx={{ ...CELL_SX, pr: 1.25 }} align="right">
                         <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, justifyContent: 'flex-end' }}>
+                          <Tooltip title={t('settings.ownerPayout.changeMethod', 'Changer la méthode de reversement')}>
+                            <IconButton
+                              size="small"
+                              onClick={() => openMethodDialog(config)}
+                              aria-label={t('settings.ownerPayout.changeMethod', 'Changer la méthode')}
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: '7px',
+                                color: 'text.secondary',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                transition:
+                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                '&:hover': {
+                                  color: '#4A9B8E',
+                                  borderColor: '#4A9B8E66',
+                                  backgroundColor: '#4A9B8E0F',
+                                },
+                                '&:focus-visible': { outline: '2px solid #4A9B8E', outlineOffset: 2 },
+                              }}
+                            >
+                              <SettingsIcon size={13} strokeWidth={1.75} />
+                            </IconButton>
+                          </Tooltip>
                           {config.payoutMethod === 'SEPA_TRANSFER' && (
                             <Tooltip title={t('settings.ownerPayout.editSepa', 'Modifier SEPA')}>
                               <IconButton
@@ -447,8 +547,23 @@ export default function OwnerPayoutSettings() {
               setSepaIban(e.target.value);
               setIbanError('');
             }}
+            onFocus={(e) => {
+              // Si le champ contient encore le mask, on selectionne tout :
+              // l'utilisateur peut taper un nouvel IBAN directement, ou
+              // cliquer ailleurs pour conserver l'existant.
+              if (isSepaIbanUnchanged) {
+                e.target.select();
+              }
+            }}
             error={!!ibanError}
-            helperText={ibanError || (sepaTarget?.maskedIban ? `${t('settings.ownerPayout.current', 'Actuel')} : ${sepaTarget.maskedIban}` : '')}
+            helperText={
+              ibanError ||
+              (sepaTarget?.maskedIban
+                ? (isSepaIbanUnchanged
+                    ? t('settings.ownerPayout.ibanPreserved', 'IBAN actuel conservé. Tapez un nouvel IBAN pour le remplacer.')
+                    : t('settings.ownerPayout.ibanNewFormat', 'Nouvel IBAN. Format : FR76 1234 5678 9012 3456 7890 123'))
+                : t('settings.ownerPayout.ibanFormat', 'Format : FR76 1234 5678 9012 3456 7890 123'))
+            }
             size="small"
             fullWidth
             InputProps={{
@@ -492,7 +607,16 @@ export default function OwnerPayoutSettings() {
             disableElevation
             size="small"
             onClick={handleSaveSepa}
-            disabled={updateSepaMutation.isPending || !sepaIban.trim() || !sepaHolder.trim()}
+            disabled={
+              updateSepaMutation.isPending
+              // Holder reste obligatoire (toujours présent : pré-rempli depuis config)
+              || !sepaHolder.trim()
+              // IBAN : actif si modifié (= pas le mask) OU si un IBAN existe déjà
+              //   - cas 1 : nouvel IBAN saisi → on valide au save
+              //   - cas 2 : mask intact + IBAN existe → on préserve (update partiel)
+              //   - cas 3 : pas de mask + champ vide → bouton désactivé (premier setup)
+              || (!sepaIban.trim() && !sepaTarget?.maskedIban)
+            }
             startIcon={
               updateSepaMutation.isPending ? (
                 <CircularProgress size={14} color="inherit" />
@@ -518,6 +642,22 @@ export default function OwnerPayoutSettings() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <PayoutMethodEditDialog
+        open={methodDialogOpen}
+        currentConfig={methodDialogTarget}
+        mode="admin"
+        ownerId={methodDialogTarget?.ownerId}
+        onClose={() => setMethodDialogOpen(false)}
+        onSaved={() => {
+          setSnackbar({
+            open: true,
+            message: t('settings.ownerPayout.methodSaved', 'Méthode de reversement mise à jour'),
+            severity: 'success',
+          });
+          queryClient.invalidateQueries({ queryKey: ownerPayoutConfigKeys.all });
+        }}
+      />
 
       <Snackbar
         open={snackbar.open}

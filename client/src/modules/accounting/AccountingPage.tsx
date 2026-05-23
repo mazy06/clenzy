@@ -68,6 +68,7 @@ import { documentsApi } from '../../services/api/documentsApi';
 import { usersApi } from '../../services/api/usersApi';
 import { accountingExportApi } from '../../services/api/accountingExportApi';
 import ExportPreviewDialog from './ExportPreviewDialog';
+import SepaTransferProcedureTooltip from './components/SepaTransferProcedureTooltip';
 import FiscalReportSection from '../reports/FiscalReportSection';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -312,16 +313,18 @@ export const PayoutsTab: React.FC = () => {
 
         <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
           {processingSepaPayouts.length > 0 && (
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={sepaDownloading ? <CircularProgress size={14} /> : <DownloadIcon />}
-              onClick={() => handleDownloadSepaXml(processingSepaPayouts.map((p) => p.id))}
-              disabled={sepaDownloading}
-              sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-            >
-              {t('accounting.downloadSepaXml', 'SEPA XML')} ({processingSepaPayouts.length})
-            </Button>
+            <SepaTransferProcedureTooltip placement="bottom">
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={sepaDownloading ? <CircularProgress size={14} /> : <DownloadIcon />}
+                onClick={() => handleDownloadSepaXml(processingSepaPayouts.map((p) => p.id))}
+                disabled={sepaDownloading}
+                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+              >
+                {t('accounting.downloadSepaXml', 'SEPA XML')} ({processingSepaPayouts.length})
+              </Button>
+            </SepaTransferProcedureTooltip>
           )}
         </Box>
       </Paper>
@@ -481,7 +484,7 @@ export const PayoutsTab: React.FC = () => {
                           </IconButton>
                         </Tooltip>
                         {payout.payoutMethod === 'SEPA_TRANSFER' && (
-                          <Tooltip title={t('accounting.downloadSepaXml', 'SEPA XML')}>
+                          <SepaTransferProcedureTooltip placement="left">
                             <IconButton
                               size="small"
                               onClick={() => handleDownloadSepaXml([payout.id])}
@@ -489,7 +492,7 @@ export const PayoutsTab: React.FC = () => {
                             >
                               <DownloadIcon size={'1rem'} strokeWidth={1.75} />
                             </IconButton>
-                          </Tooltip>
+                          </SepaTransferProcedureTooltip>
                         )}
                       </Box>
                     )}

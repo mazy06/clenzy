@@ -38,25 +38,40 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
   useEffect(() => {
     if (config) {
       setName(config.name ?? '');
-      setIban('');
+      // Pré-remplit avec le mask (FR76 **** **** **** **** *** 0189) au lieu
+      // d'un champ vide. Le mask contient des '*' — au save, on détecte si
+      // l'utilisateur a modifié le champ via ibanUnchanged.
+      setIban(config.iban ?? '');
       setBic(config.bic ?? '');
     }
   }, [config]);
 
   const baseline = useMemo(() => ({
     name: config?.name ?? '',
+    iban: config?.iban ?? '',
     bic: config?.bic ?? '',
   }), [config]);
+
+  /** True si le champ IBAN contient encore le mask (= non modifié, à préserver). */
+  const ibanUnchanged = useMemo(() => {
+    const trimmed = iban.trim();
+    if (!trimmed) return false;
+    if (!config?.iban) return false;
+    if (trimmed === config.iban) return true;
+    return trimmed.includes('*');
+  }, [iban, config?.iban]);
 
   const mutation = useMutation({
     mutationFn: () => accountingApi.updateSepaDebtorConfig({
       name: name.trim(),
-      iban: iban.trim() || undefined,
+      // N'envoie l'IBAN au backend QUE s'il a été effectivement modifié.
+      // Si c'est encore le mask, on omet → le backend préserve l'existant.
+      iban: ibanUnchanged ? undefined : (iban.trim() || undefined),
       bic: bic.trim(),
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sepa-debtor-config'] });
-      setIban('');
+      // Pas de reset à '' — useEffect va re-charger le nouveau mask depuis config
     },
   });
 
@@ -64,7 +79,8 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
     return (
       name.trim() !== baseline.name ||
       bic.trim() !== baseline.bic ||
-      iban.trim().length > 0
+      // Modif IBAN = pas en mode mask
+      (iban.trim().length > 0 && !ibanUnchanged)
     );
   };
 
@@ -165,15 +181,25 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
           label={t('settings.sepaDebtor.ibanLabel', 'IBAN')}
           value={iban}
           onChange={(e) => setIban(e.target.value)}
+          onFocus={(e) => {
+            // Auto-sélection du contenu si c'est encore le mask : permet à
+            // l'admin de taper un nouvel IBAN directement, ou de continuer à
+            // utiliser l'existant en cliquant ailleurs sans avoir modifié.
+            if (ibanUnchanged) {
+              e.target.select();
+            }
+          }}
           size="small"
           fullWidth
-          placeholder={config?.iban ?? 'FR76 3000 1007 9412 3456 7890 185'}
+          placeholder={!config?.configured ? 'FR76 3000 1007 9412 3456 7890 185' : undefined}
           helperText={
             config?.configured
-              ? `${t('settings.sepaDebtor.ibanMasked', 'IBAN actuel : ')}${config.iban ?? ''}${t('settings.sepaDebtor.ibanChangeHint', ' — laissez vide pour conserver')}`
-              : undefined
+              ? ibanUnchanged
+                ? t('settings.sepaDebtor.ibanPreserved', 'IBAN actuel conservé. Tapez un nouvel IBAN pour le remplacer.')
+                : t('settings.sepaDebtor.ibanNewFormat', 'Nouvel IBAN. Format : FR76 1234 5678 9012 3456 7890 123')
+              : t('settings.sepaDebtor.ibanRequired', 'Renseignez l\'IBAN du compte débiteur Clenzy.')
           }
-          InputProps={{ sx: { fontVariantNumeric: 'tabular-nums', letterSpacing: '0.02em' } }}
+          InputProps={{ sx: { fontFamily: 'monospace', fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' } }}
         />
         <TextField
           label={t('settings.sepaDebtor.bicLabel', 'BIC / SWIFT')}

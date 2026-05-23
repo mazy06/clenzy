@@ -15,6 +15,13 @@ export interface PaymentMethodConfigUpdate {
   sandboxMode?: boolean;
   apiKey?: string;
   apiSecret?: string;
+  webhookSecret?: string;
+  /**
+   * Champs specifiques au provider (PayTabs profileId/region, CMI clientId/okUrl…).
+   * Cote backend, ces champs sont mergeables : seules les clefs fournies sont
+   * mises a jour, le reste est preserve.
+   */
+  configJson?: Record<string, unknown>;
 }
 
 export interface WalletDto {

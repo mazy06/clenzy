@@ -47,10 +47,11 @@ public class PaymentMethodConfigController {
             @RequestBody PaymentMethodConfigUpdateRequest request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         PaymentProviderType type = PaymentProviderType.valueOf(providerType.toUpperCase());
-        // Use the encrypted version — API keys, secrets are encrypted via AES-256-GCM
+        // Use the encrypted version — API keys, secrets are encrypted via AES-256-GCM.
+        // configJson est merge cote service (pas d'ecrasement total).
         PaymentMethodConfig config = configService.updateConfig(
             orgId, type, request.enabled(), request.countryCodes(), request.sandboxMode(),
-            request.apiKey(), request.apiSecret(), null);
+            request.apiKey(), request.apiSecret(), request.webhookSecret(), request.configJson());
         return ResponseEntity.ok(toDto(config));
     }
 
