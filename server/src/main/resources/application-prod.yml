@@ -183,6 +183,52 @@ clenzy:
     revoke-url: ${PENNYLANE_REVOKE_URL:https://app.pennylane.com/oauth/revoke}
     scopes: ${PENNYLANE_SCOPES:customer_invoices:all supplier_invoices:all customers:all suppliers:all journals:readonly ledger_accounts:readonly}
     accounting-api-base-url: ${PENNYLANE_ACCOUNTING_API_BASE_URL:https://app.pennylane.com/api/external/v2}
+  # DocuSign — OAuth2 Authorization Code Grant (meme moteur que Pennylane)
+  # Sans DOCUSIGN_CLIENT_ID, l'integration est silencieusement desactivee.
+  docusign:
+    client-id: ${DOCUSIGN_CLIENT_ID:}
+    client-secret: ${DOCUSIGN_CLIENT_SECRET:}
+    redirect-uri: ${DOCUSIGN_REDIRECT_URI:}
+    authorization-url: ${DOCUSIGN_AUTHORIZATION_URL:https://account.docusign.com/oauth/auth}
+    token-url: ${DOCUSIGN_TOKEN_URL:https://account.docusign.com/oauth/token}
+    revoke-url: ${DOCUSIGN_REVOKE_URL:https://account.docusign.com/oauth/revoke}
+    user-info-url: ${DOCUSIGN_USER_INFO_URL:https://account.docusign.com/oauth/userinfo}
+    api-base-url: ${DOCUSIGN_API_BASE_URL:https://www.docusign.net/restapi}
+    scopes: ${DOCUSIGN_SCOPES:signature}
+  # QuickBooks Online — OAuth2 Authorization Code Grant (Intuit)
+  # Sans QUICKBOOKS_CLIENT_ID, l'integration est silencieusement desactivee.
+  quickbooks:
+    client-id: ${QUICKBOOKS_CLIENT_ID:}
+    client-secret: ${QUICKBOOKS_CLIENT_SECRET:}
+    redirect-uri: ${QUICKBOOKS_REDIRECT_URI:}
+    authorization-url: ${QUICKBOOKS_AUTHORIZATION_URL:https://appcenter.intuit.com/connect/oauth2}
+    token-url: ${QUICKBOOKS_TOKEN_URL:https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer}
+    revoke-url: ${QUICKBOOKS_REVOKE_URL:https://developer.api.intuit.com/v2/oauth2/tokens/revoke}
+    api-base-url: ${QUICKBOOKS_API_BASE_URL:https://quickbooks.api.intuit.com}
+    scopes: ${QUICKBOOKS_SCOPES:com.intuit.quickbooks.accounting}
+  # Xero — OAuth2 Authorization Code Grant (compta UK/AU/NZ + USA)
+  # Sans XERO_CLIENT_ID, l'integration est silencieusement desactivee.
+  xero:
+    client-id: ${XERO_CLIENT_ID:}
+    client-secret: ${XERO_CLIENT_SECRET:}
+    redirect-uri: ${XERO_REDIRECT_URI:}
+    authorization-url: ${XERO_AUTHORIZATION_URL:https://login.xero.com/identity/connect/authorize}
+    token-url: ${XERO_TOKEN_URL:https://identity.xero.com/connect/token}
+    revoke-url: ${XERO_REVOKE_URL:https://identity.xero.com/connect/revocation}
+    connections-url: ${XERO_CONNECTIONS_URL:https://api.xero.com/connections}
+    api-base-url: ${XERO_API_BASE_URL:https://api.xero.com}
+    scopes: ${XERO_SCOPES:accounting.transactions accounting.contacts accounting.settings offline_access}
+  # Sage Business Cloud Accounting — OAuth2 (compta France + Europe + UK)
+  sage:
+    client-id: ${SAGE_CLIENT_ID:}
+    client-secret: ${SAGE_CLIENT_SECRET:}
+    redirect-uri: ${SAGE_REDIRECT_URI:}
+    authorization-url: ${SAGE_AUTHORIZATION_URL:https://www.sageone.com/oauth2/auth/central}
+    token-url: ${SAGE_TOKEN_URL:https://oauth.accounting.sage.com/token}
+    revoke-url: ${SAGE_REVOKE_URL:https://oauth.accounting.sage.com/revoke}
+    businesses-url: ${SAGE_BUSINESSES_URL:https://api.accounting.sage.com/v3.1/businesses}
+    api-base-url: ${SAGE_API_BASE_URL:https://api.accounting.sage.com/v3.1}
+    scopes: ${SAGE_SCOPES:full_access}
   # Webhooks — Zapier & automation
   webhooks:
     enabled: ${WEBHOOKS_ENABLED:true}

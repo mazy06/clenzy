@@ -1,0 +1,2201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Clenzy — Guide de lancement des partenariats</title>
+<style>
+@page {
+  size: A4;
+  margin: 18mm 16mm 22mm 16mm;
+  @bottom-center {
+    content: counter(page) " / " counter(pages);
+    color: #8A8378;
+    font-size: 9pt;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 10pt;
+  line-height: 1.5;
+  color: #2D3748;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Cover ─── */
+.cover {
+  page-break-after: always;
+  text-align: center;
+  padding-top: 70mm;
+}
+.cover .logo { font-size: 28pt; font-weight: 800; letter-spacing: -0.02em; color: #6B8A9A; margin-bottom: 12mm; }
+.cover .accent { display: inline-block; width: 60mm; height: 3px; background: #4A9B8E; margin: 8mm auto; }
+.cover h1 { font-size: 22pt; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 6mm 0; }
+.cover .subtitle { font-size: 12pt; color: #718096; margin-bottom: 30mm; }
+.cover .meta { font-size: 9.5pt; color: #8A8378; letter-spacing: 0.04em; text-transform: uppercase; }
+.cover .ribbon {
+  display: inline-block;
+  background: #4A9B8E;
+  color: white;
+  padding: 3mm 8mm;
+  border-radius: 4px;
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 4mm;
+}
+
+/* ─── TOC ─── */
+.toc { page-break-after: always; }
+.toc h2 { font-size: 18pt; border-bottom: 2px solid #4A9B8E; padding-bottom: 4mm; margin: 0 0 8mm 0; }
+.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: toc-counter; }
+.toc ol > li {
+  counter-increment: toc-counter;
+  margin-bottom: 2.5mm;
+  font-size: 10.5pt;
+  display: flex;
+  align-items: baseline;
+}
+.toc ol > li::before {
+  content: counter(toc-counter, decimal-leading-zero) ".";
+  color: #4A9B8E;
+  font-weight: 700;
+  margin-right: 5mm;
+  min-width: 10mm;
+}
+.toc .toc-dots { flex: 1; border-bottom: 1px dotted #CBD5E0; margin: 0 3mm; position: relative; top: -3pt; }
+.toc .toc-page { color: #718096; font-variant-numeric: tabular-nums; }
+
+/* ─── Headings ─── */
+h1, h2, h3, h4 { color: #2D3748; letter-spacing: -0.005em; page-break-after: avoid; }
+h2 {
+  font-size: 16pt;
+  font-weight: 700;
+  margin: 10mm 0 4mm 0;
+  padding-bottom: 2mm;
+  border-bottom: 2px solid #4A9B8E;
+}
+h3 {
+  font-size: 12pt;
+  font-weight: 700;
+  margin: 7mm 0 3mm 0;
+  color: #4A9B8E;
+}
+h4 {
+  font-size: 10.5pt;
+  font-weight: 700;
+  margin: 5mm 0 2mm 0;
+  color: #6B8A9A;
+}
+
+section.major-section { page-break-before: always; }
+
+p { margin: 0 0 3mm 0; }
+ol, ul { margin: 0 0 3mm 0; padding-left: 6mm; }
+li { margin-bottom: 1.5mm; }
+strong { color: #2D3748; font-weight: 700; }
+
+/* ─── Code ─── */
+code {
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 8.5pt;
+  background: #F7FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 3px;
+  padding: 1px 4px;
+  color: #2D3748;
+}
+pre {
+  background: #1A202C;
+  color: #E2E8F0;
+  padding: 3mm 4mm;
+  border-radius: 4px;
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 8.5pt;
+  line-height: 1.45;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  page-break-inside: avoid;
+  margin: 3mm 0;
+}
+pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+/* ─── Tables ─── */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 3mm 0;
+  font-size: 9pt;
+  page-break-inside: avoid;
+}
+th {
+  background: #F7FAFC;
+  text-align: left;
+  font-weight: 700;
+  padding: 2mm 2.5mm;
+  border: 1px solid #CBD5E0;
+  color: #2D3748;
+  font-size: 8.5pt;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+td {
+  padding: 2mm 2.5mm;
+  border: 1px solid #E2E8F0;
+  vertical-align: top;
+}
+td code { font-size: 8pt; }
+
+/* ─── Callout ─── */
+.callout {
+  border-left: 3px solid;
+  padding: 3mm 4mm;
+  margin: 3mm 0;
+  border-radius: 0 4px 4px 0;
+  page-break-inside: avoid;
+}
+.callout-title { font-weight: 700; margin-bottom: 1.5mm; font-size: 9.5pt; letter-spacing: 0.01em; }
+.callout-info    { background: #EBF4F8; border-color: #7BA3C2; }
+.callout-info .callout-title { color: #5A87A0; }
+.callout-success { background: #E6F3F0; border-color: #4A9B8E; }
+.callout-success .callout-title { color: #3A8579; }
+.callout-warning { background: #FBF3E5; border-color: #D4A574; }
+.callout-warning .callout-title { color: #B58853; }
+.callout-danger  { background: #F7E9E9; border-color: #C97A7A; }
+.callout-danger .callout-title { color: #B26060; }
+.callout p { margin-bottom: 1.5mm; font-size: 9.5pt; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* ─── Tags / Pills ─── */
+.tag {
+  display: inline-block;
+  padding: 0.5mm 2mm;
+  border-radius: 3px;
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-right: 1.5mm;
+  vertical-align: middle;
+}
+.tag-p1 { background: #4A9B8E; color: white; }
+.tag-p2 { background: #D4A574; color: white; }
+.tag-p3 { background: #8A8378; color: white; }
+.tag-region { background: #EBF4F8; color: #5A87A0; border: 1px solid #7BA3C2; }
+.tag-tech { background: #F0E9F5; color: #6B5A8A; border: 1px solid #8A7BA3; }
+.tag-marketplace { background: #FBF3E5; color: #B58853; border: 1px solid #D4A574; }
+.tag-referral { background: #E6F3F0; color: #3A8579; border: 1px solid #4A9B8E; }
+
+/* ─── Provider card ─── */
+.provider-card {
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 4mm 5mm;
+  margin-bottom: 5mm;
+  page-break-inside: avoid;
+  background: #FCFCFD;
+}
+.provider-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid #E2E8F0;
+  padding-bottom: 2mm;
+  margin-bottom: 3mm;
+}
+.provider-card-name {
+  font-size: 13pt;
+  font-weight: 700;
+  color: #2D3748;
+  margin: 0;
+}
+.provider-card-tags { display: flex; gap: 2mm; }
+.provider-meta {
+  display: grid;
+  grid-template-columns: 25mm 1fr;
+  gap: 1.5mm 4mm;
+  font-size: 9pt;
+  margin-bottom: 3mm;
+}
+.provider-meta dt { font-weight: 700; color: #6B8A9A; }
+.provider-meta dd { margin: 0; }
+.provider-section { margin-bottom: 2.5mm; }
+.provider-section-title {
+  font-size: 8.5pt;
+  font-weight: 700;
+  color: #4A9B8E;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 1mm;
+}
+.pitch-block {
+  background: #EBF4F8;
+  border-left: 2px solid #7BA3C2;
+  padding: 2.5mm 3mm;
+  font-style: italic;
+  font-size: 9pt;
+  color: #2C5282;
+  border-radius: 0 3px 3px 0;
+  margin-top: 2mm;
+}
+
+/* ─── KBD ─── */
+kbd {
+  background: #EDF2F7;
+  border: 1px solid #CBD5E0;
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 0 4px;
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 8.5pt;
+}
+
+a { color: #4A9B8E; text-decoration: none; }
+
+/* ─── 2 columns layout for grouped providers ─── */
+.two-col {
+  column-count: 2;
+  column-gap: 6mm;
+  column-rule: 1px solid #E2E8F0;
+}
+.two-col .provider-card { break-inside: avoid; }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     COVER
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="logo">Clenzy</div>
+  <div class="accent"></div>
+  <div class="ribbon">Partnership Launch Kit</div>
+  <h1>Guide de lancement des partenariats<br>fournisseurs intégrés</h1>
+  <div class="subtitle">Stratégie, sales kit et fiches détaillées<br>pour 50+ providers déjà branchés dans le PMS</div>
+  <div class="meta">Version 1.0 · Mai 2026 · Confidentiel</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TOC
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="toc">
+  <h2>Table des matières</h2>
+  <ol>
+    <li>Vue d'ensemble &amp; objectifs<span class="toc-dots"></span><span class="toc-page">3</span></li>
+    <li>Matrice de priorisation<span class="toc-dots"></span><span class="toc-page">4</span></li>
+    <li>Sales kit Clenzy<span class="toc-dots"></span><span class="toc-page">6</span></li>
+    <li>Templates d'emails de prise de contact<span class="toc-dots"></span><span class="toc-page">8</span></li>
+    <li>Signature électronique<span class="toc-dots"></span><span class="toc-page">10</span></li>
+    <li>Tarification dynamique<span class="toc-dots"></span><span class="toc-page">13</span></li>
+    <li>Comptabilité &amp; ERP<span class="toc-dots"></span><span class="toc-page">15</span></li>
+    <li>Conformité légale &amp; KYC<span class="toc-dots"></span><span class="toc-page">17</span></li>
+    <li>Channel Manager middleware<span class="toc-dots"></span><span class="toc-page">20</span></li>
+    <li>OTAs (Online Travel Agencies)<span class="toc-dots"></span><span class="toc-page">22</span></li>
+    <li>Messagerie &amp; Market intelligence<span class="toc-dots"></span><span class="toc-page">26</span></li>
+    <li>Fiscalité &amp; Assurance<span class="toc-dots"></span><span class="toc-page">28</span></li>
+    <li>Cleaning operations &amp; IoT<span class="toc-dots"></span><span class="toc-page">31</span></li>
+    <li>Activités, Reviews &amp; Marketing<span class="toc-dots"></span><span class="toc-page">34</span></li>
+    <li>Tableau récapitulatif (CRM-ready)<span class="toc-dots"></span><span class="toc-page">37</span></li>
+    <li>Annexes — modèles deck &amp; KPIs<span class="toc-dots"></span><span class="toc-page">39</span></li>
+  </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 1 — VUE D'ENSEMBLE
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>1. Vue d'ensemble &amp; objectifs</h2>
+
+<p>Ce guide accompagne le <strong>lancement structuré des partenariats commerciaux et techniques</strong> entre Clenzy et l'ensemble des fournisseurs déjà intégrés dans le PMS. À ce stade, le code de connexion a été développé pour 50+ services répartis sur 17 catégories. Il reste à transformer ces intégrations techniques en <strong>partenariats commerciaux officiels</strong>.</p>
+
+<h3>Pourquoi le faire maintenant</h3>
+
+<ol>
+  <li><strong>Crédibilité commerciale</strong> : un host qui hésite entre Clenzy et un concurrent vérifiera les partenariats officiels (badges, étude de cas, mentions sur le site du fournisseur). Aujourd'hui Clenzy a l'intégration technique mais pas la visibilité.</li>
+  <li><strong>Revenus d'affiliation</strong> : la plupart des SaaS B2B SaaS offrent 10-30 % de commission sur les referrals. Volume estimé à terme : 50-200 €/mois par client référé selon le tier.</li>
+  <li><strong>Tarifs préférentiels</strong> : statut Partner ouvre des discounts (10-30 %) à proposer aux clients Clenzy, créant un avantage tarifaire net.</li>
+  <li><strong>Co-marketing</strong> : webinaires, études de cas, listing dans le marketplace du partenaire = canal de leads gratuit.</li>
+  <li><strong>Accès anticipé</strong> : roadmap produit du partenaire, beta features, support prioritaire.</li>
+</ol>
+
+<h3>Objectifs SMART du Q3 2026</h3>
+
+<table>
+  <thead>
+    <tr><th>Objectif</th><th>Cible</th><th>Mesure</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Partenariats P1 finalisés</td><td>8/8 signés ou en cours</td><td>Contrat MoU/MSA signé</td></tr>
+    <tr><td>Partenariats P2 entamés</td><td>10+ contacts qualifiés</td><td>Demo call effectué</td></tr>
+    <tr><td>Revenus d'affiliation</td><td>~500 €/mois</td><td>Reporting partenaires</td></tr>
+    <tr><td>Mentions Clenzy publiques</td><td>5+ partenaires</td><td>Page partenaires/marketplace</td></tr>
+    <tr><td>Études de cas conjointes</td><td>2 publiées</td><td>Article + LinkedIn</td></tr>
+  </tbody>
+</table>
+
+<h3>Métriques Clenzy à mettre en avant (état actuel)</h3>
+
+<div class="callout callout-info">
+  <div class="callout-title">Stats à intégrer dans le pitch (à ajuster selon réalité)</div>
+  <ul>
+    <li><strong>Stack technique</strong> : Spring Boot 3.2, React 18, multi-tenant, multi-régions FR/MA/KSA</li>
+    <li><strong>Architecture</strong> : 17 catégories d'intégrations, 50+ providers déjà connectés, pattern Strategy SOLID</li>
+    <li><strong>Devises supportées</strong> : EUR, MAD, SAR, USD, GBP</li>
+    <li><strong>Langues</strong> : français, anglais, arabe (RTL)</li>
+    <li><strong>Conformité</strong> : RGPD, AES-256-GCM pour les credentials, NF compliance comptable FR</li>
+    <li><strong>Marché cible</strong> : property managers STR en France métropolitaine, Maroc et Arabie Saoudite</li>
+    <li><strong>Volume prévisible 12 mois</strong> : 200+ propriétés sous gestion (cibles internes)</li>
+  </ul>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 2 — MATRICE DE PRIORISATION
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>2. Matrice de priorisation</h2>
+
+<p>Tous les partenariats ne se valent pas. Critères de priorisation :</p>
+
+<ul>
+  <li><strong>Impact revenu</strong> : commission d'affiliation + tarifs préférentiels potentiels</li>
+  <li><strong>Impact client</strong> : nombre de clients Clenzy qui utiliseront ce service</li>
+  <li><strong>Facilité d'accès</strong> : programme partenaire public vs. négociation case-by-case</li>
+  <li><strong>Marchés stratégiques</strong> : couverture FR/MA/KSA prioritaire</li>
+  <li><strong>Différenciation</strong> : partenariats rares qui apportent un avantage concurrentiel</li>
+</ul>
+
+<h3>Priorité 1 — Lancer dans les 30 jours <span class="tag tag-p1">P1</span></h3>
+
+<table>
+  <thead>
+    <tr><th>Provider</th><th>Catégorie</th><th>Justification</th><th>Marché</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Hostaway</td><td>Channel Manager</td><td>PMS marketplace mature, intégration API native, programme Tech Partner clair</td><td>Global</td></tr>
+    <tr><td>PriceLabs</td><td>Pricing dynamique</td><td>Leader STR, Partner Network public, indispensable pour hosts</td><td>Global</td></tr>
+    <tr><td>Pennylane</td><td>Compta + Signature</td><td>Marché FR, déjà déployé techniquement, programme partenaires actif</td><td>FR</td></tr>
+    <tr><td>Sumsub</td><td>KYC</td><td>Leader MENA pour KYC, indispensable réservations à risque KSA/MA</td><td>MENA</td></tr>
+    <tr><td>Chekin</td><td>Conformité voyageur</td><td>Standard de facto fiche police FR, légalement obligatoire</td><td>FR / EU</td></tr>
+    <tr><td>AirDNA</td><td>Market intel</td><td>Marketplace cherché par hosts pour positionnement tarifaire</td><td>Global</td></tr>
+    <tr><td>WhatsApp Business</td><td>Messagerie</td><td>Standard de fait MA/KSA, accès via Meta Business Partner</td><td>MA / KSA</td></tr>
+    <tr><td>Avalara MyLodgeTax</td><td>Taxe de séjour</td><td>Automatise une douleur opérationnelle majeure des hosts multi-villes</td><td>FR / Global</td></tr>
+  </tbody>
+</table>
+
+<h3>Priorité 2 — Lancer dans les 60-90 jours <span class="tag tag-p2">P2</span></h3>
+
+<table>
+  <thead>
+    <tr><th>Provider</th><th>Catégorie</th><th>Justification</th><th>Marché</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Yousign</td><td>Signature</td><td>QTSP français, alternative locale à DocuSign</td><td>FR</td></tr>
+    <tr><td>DocuSign</td><td>Signature</td><td>Global, gros volume, déjà OAuth en place</td><td>Global</td></tr>
+    <tr><td>Beyond / Wheelhouse</td><td>Pricing</td><td>Alternatives crédibles à PriceLabs, segments différents</td><td>Global</td></tr>
+    <tr><td>QuickBooks / Xero</td><td>Compta</td><td>Marchés US/UK/AU/NZ pour expansion future</td><td>Global</td></tr>
+    <tr><td>Sage</td><td>Compta</td><td>Leader FR/EU pour les hosts professionnels</td><td>FR / EU</td></tr>
+    <tr><td>SiteMinder</td><td>Channel Manager</td><td>~250 OTAs, leader mondial, programme Tech Partner solide</td><td>Global</td></tr>
+    <tr><td>Veriff / Onfido</td><td>KYC</td><td>Alternatives Sumsub, différenciation par UX et prix</td><td>EU</td></tr>
+    <tr><td>Turno / Properly</td><td>Cleaning</td><td>Marketplaces actives, commission affiliation possible</td><td>Global</td></tr>
+    <tr><td>Igloohome / TTLock / Nuki</td><td>Smart locks</td><td>Cross-sell hardware, marges intéressantes</td><td>Global / FR</td></tr>
+    <tr><td>Minut</td><td>Monitoring sonore</td><td>Hardware partner, commission sur vente capteurs</td><td>EU / Global</td></tr>
+    <tr><td>Klaviyo / Mailchimp</td><td>Marketing</td><td>SaaS répandu, programmes partenaires standards</td><td>Global</td></tr>
+    <tr><td>GetYourGuide / Klook / Viator</td><td>Activités</td><td>Affiliation 8-20 % par réservation, cross-sell guest</td><td>Global</td></tr>
+  </tbody>
+</table>
+
+<h3>Priorité 3 — Opportuniste, partenariats spécifiques <span class="tag tag-p3">P3</span></h3>
+
+<table>
+  <thead>
+    <tr><th>Provider</th><th>Catégorie</th><th>Note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Universign / DocaPoste</td><td>Signature</td><td>QTSP FR, corporate, process lent</td></tr>
+    <tr><td>Odoo</td><td>ERP</td><td>Open source, partenariat technique uniquement</td></tr>
+    <tr><td>Police Maroc (DGSN)</td><td>Conformité MA</td><td>Intégration gouvernementale, accès difficile, à initier via avocat marocain</td></tr>
+    <tr><td>Absher KSA</td><td>Conformité KSA</td><td>API gouvernementale, accès via NIC saoudien</td></tr>
+    <tr><td>Rentals United</td><td>Channel Manager</td><td>60+ OTAs, alternative SiteMinder, plus tactique</td></tr>
+    <tr><td>SafelyStay / Superhog</td><td>Assurance</td><td>Niche, intéressant pour hosts à fort volume</td></tr>
+    <tr><td>AXA Partners / Tawuniya</td><td>Assurance corporate</td><td>Gros corporate, longs cycles de vente</td></tr>
+    <tr><td>Pipedrive</td><td>CRM</td><td>Niche pour gestionnaires multi-propriétés</td></tr>
+    <tr><td>Revinate / TrustYou / HiJiffy</td><td>Reviews</td><td>SaaS payants, demande hôteliers plus que STR</td></tr>
+    <tr><td>Resideo / Ecobee / Tuya</td><td>IoT thermostats</td><td>Catalogue marketplace, partenariat opportuniste</td></tr>
+    <tr><td>KeyNest</td><td>Gestion clés</td><td>UK-centric, intéressant si expansion britannique</td></tr>
+  </tbody>
+</table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 3 — SALES KIT
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>3. Sales kit Clenzy</h2>
+
+<h3>3.1 — Les 10 points clés à mémoriser</h3>
+
+<ol>
+  <li><strong>Clenzy</strong> est un PMS multi-tenant SaaS pour la location courte durée, opéré depuis la France.</li>
+  <li><strong>Marchés ciblés</strong> : France métropolitaine, Maroc, Arabie Saoudite — corridor euro-méditerranéen unique sur le marché.</li>
+  <li><strong>Stack moderne</strong> : Java 21 / Spring Boot 3.2 / React 18 / PostgreSQL 16 / Kafka — design Strategy + Registry pour les intégrations.</li>
+  <li><strong>17 catégories d'intégrations</strong> déjà branchées (signature, pricing, compta, KYC, channel managers, OTAs, etc.).</li>
+  <li><strong>3 langues natives</strong> : français, anglais, arabe (incluant RTL pour le booking engine).</li>
+  <li><strong>Conformité légale forte</strong> : RGPD, fiche police FR, chiffrement AES-256-GCM, NF compliance comptable, multi-juridictions.</li>
+  <li><strong>Booking engine SDK embarquable</strong> : widget JS intégrable sur n'importe quel site host, multi-langues + RTL.</li>
+  <li><strong>Multi-rails de paiement</strong> : Stripe Europe, PayTabs KSA, CMI Maroc, payouts Stripe Connect + SEPA + Wise (roadmap).</li>
+  <li><strong>Différenciation clé</strong> : seul PMS occidental avec intégration native compliance MA (DGSN) et KSA (Absher) en roadmap.</li>
+  <li><strong>Croissance</strong> : phase commerciale active, cible 200+ propriétés sous gestion en S2 2026.</li>
+</ol>
+
+<h3>3.2 — Le pitch en 30 secondes (elevator pitch)</h3>
+
+<div class="callout callout-info">
+  <div class="callout-title">Version courte</div>
+  <p>« Nous sommes Clenzy, un PMS SaaS multi-tenant pour la location courte durée qui se spécialise sur le corridor France–Maroc–Arabie Saoudite. Nous avons déjà intégré votre API dans notre catalogue produit et nous souhaitons devenir partenaire officiel pour proposer votre solution à nos clients property managers. Nous générons aujourd'hui [X] propriétés sous gestion et ciblons 5x cette taille en 12 mois. Pouvons-nous échanger 30 minutes pour explorer un partenariat ? »</p>
+</div>
+
+<h3>3.3 — Argumentaires différenciants par type de partenaire</h3>
+
+<h4>Pour les channel managers (Hostaway, SiteMinder, Rentals United)</h4>
+<p>Insister sur la <strong>complémentarité PMS + CM</strong>. Clenzy gère le booking direct + la résidence + l'ops, le channel manager gère la distribution OTA. Pas de concurrence, synergie. Volume prévisible 100+ propriétés.</p>
+
+<h4>Pour les SaaS pricing (PriceLabs, Beyond, Wheelhouse)</h4>
+<p>Marché STR encore sous-équipé en pricing dynamique en France et MA. Clenzy peut être un canal d'éducation et de distribution majeur. Co-marketing : étude de cas conjointe sur l'impact RevPAR.</p>
+
+<h4>Pour les KYC (Sumsub, Veriff, Onfido)</h4>
+<p>Réservations à fort risque (KSA, dépôt de garantie élevé, événements). Clenzy peut intégrer le KYC dans le flow booking engine natif — différenciation forte vs. PMS concurrents qui sous-traitent à Airbnb/Booking.</p>
+
+<h4>Pour les compliance (Chekin, etc.)</h4>
+<p>Marché FR : obligation légale fiche police = pain point connu de tous les hosts. Clenzy automatise cette obligation, Chekin est le maillon technique. Volume prévisible direct.</p>
+
+<h4>Pour les marketplaces activités (GetYourGuide, Klook, Viator)</h4>
+<p>Audience captive de guests qualifiés. Cross-sell activités via le booking engine = revenue affiliation. Clenzy peut offrir l'audience, le partenaire offre le produit.</p>
+
+<h4>Pour les hardware (Nuki, Minut, Igloohome, TTLock)</h4>
+<p>Distribution + intégration. Clenzy peut proposer le hardware en bundle avec son abonnement PMS, créant un revenu hardware + une fidélisation. Co-promotion sur les salons spécialisés.</p>
+
+<h3>3.4 — Stack visuelle (one-pager mental)</h3>
+
+<table>
+  <thead><tr><th>Élément</th><th>Détail</th></tr></thead>
+  <tbody>
+    <tr><td>Logo Clenzy</td><td>Bleu-gris <code>#6B8A9A</code> + accent vert <code>#4A9B8E</code></td></tr>
+    <tr><td>Tagline</td><td>« Le PMS pour le corridor euro-méditerranéen »</td></tr>
+    <tr><td>Ton</td><td>Professionnel, technique mais accessible, axé business value</td></tr>
+    <tr><td>Sources de crédibilité</td><td>Stack technique mature, conformité multi-régions, code multi-tenant solide</td></tr>
+    <tr><td>Risques à anticiper</td><td>Encore en early stage commercial, volume client à confirmer en RDV</td></tr>
+  </tbody>
+</table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 4 — TEMPLATES EMAILS
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>4. Templates d'emails de prise de contact</h2>
+
+<h3>4.1 — Email cold outreach (premier contact)</h3>
+
+<pre>Sujet : Demande de partenariat — Clenzy PMS x [Provider]
+
+Bonjour [Prénom Nom],
+
+Je m'appelle [Votre prénom], je suis [titre] chez Clenzy
+(https://clenzy.fr), un PMS SaaS multi-tenant pour la location
+courte durée opéré sur le corridor France-Maroc-Arabie Saoudite.
+
+Nous avons déjà intégré l'API de [Provider] dans notre catalogue
+produit (catégorie : [signature/pricing/etc.]), et notre roadmap
+prévoit d'en faire l'un des fournisseurs de référence pour nos
+clients property managers en [marché ciblé].
+
+Je souhaite explorer avec vous un partenariat formel : selon votre
+programme partenaires, cela peut prendre plusieurs formes — tech
+partnership, marketplace listing, accord d'affiliation, ou co-
+marketing. L'objectif côté Clenzy est triple :
+
+  1. Bénéficier d'une visibilité officielle dans votre écosystème
+     (badge partenaire, listing marketplace).
+  2. Proposer à nos clients un tarif préférentiel négocié.
+  3. Activer un canal d'affiliation et de co-marketing.
+
+Côté volume : nous prévoyons [X] propriétés sous gestion en S2 2026
+sur nos trois marchés cibles, avec un mix d'usage compatible avec
+votre offre.
+
+Pouvons-nous organiser un appel de 30 minutes la semaine prochaine
+pour explorer ensemble ?
+
+Cordialement,
+[Votre nom]
+[Votre titre] — Clenzy
+[email] · [téléphone]
+https://clenzy.fr
+</pre>
+
+<h3>4.2 — Email de relance (J+7)</h3>
+
+<pre>Sujet : Relance — Partenariat Clenzy x [Provider]
+
+Bonjour [Prénom],
+
+Je me permets une relance suite à mon email du [date] concernant un
+partenariat entre Clenzy PMS et [Provider].
+
+Quelques précisions complémentaires qui peuvent intéresser votre
+équipe partnership :
+
+  - Stack technique : Spring Boot 3.2 / React 18 / pattern Strategy
+    SOLID — l'intégration [Provider] est déjà fonctionnelle en
+    sandbox local
+  - Cible géographique unique sur le marché : corridor France ↔
+    Maroc ↔ Arabie Saoudite, peu adressé par les PMS occidentaux
+  - 17 catégories d'intégrations déjà branchées, 50+ providers actifs
+
+Si l'angle "partenariat formel" n'est pas le bon point d'entrée,
+je suis ouvert à toute autre forme d'échange (tech review, demo
+mutuelle, intro avec votre équipe produit).
+
+Avez-vous 20 minutes la semaine prochaine ?
+
+Cordialement,
+[Votre nom]
+</pre>
+
+<h3>4.3 — Email post-demo call</h3>
+
+<pre>Sujet : Récap & next steps — Partenariat Clenzy x [Provider]
+
+Bonjour [Prénom],
+
+Merci pour le temps accordé aujourd'hui. Comme convenu, voici un
+récap des points abordés et les prochaines étapes :
+
+CONTEXTE
+  - Clenzy PMS opère sur [FR/MA/KSA]
+  - Intégration technique [Provider] déjà en place
+  - Volume cible 12 mois : [X] propriétés
+
+PROCHAINES ÉTAPES
+  - [ ] Action 1 : [côté Provider] — date butoir
+  - [ ] Action 2 : [côté Clenzy] — date butoir
+  - [ ] Action 3 : [partagé] — date butoir
+
+DOCUMENTS PARTAGÉS
+  - Deck Clenzy v1.0 (ci-joint)
+  - Roadmap intégration technique
+  - Liens portfolio clients (NDA si nécessaire)
+
+Je reste disponible pour toute clarification.
+
+Cordialement,
+[Votre nom]
+</pre>
+
+<h3>4.4 — Email type pour les très gros partenaires (DocuSign, Stripe, etc.)</h3>
+
+<pre>Sujet : Inquiry — Technology partnership inquiry, Clenzy PMS
+
+Hello [First Name] / Dear Partnership Team,
+
+My name is [Your name], I am the [title] at Clenzy
+(https://clenzy.fr), a multi-tenant SaaS Property Management
+System operating in the France–Morocco–Saudi Arabia corridor.
+
+We have already integrated [Provider]'s public API into our
+product catalog (category: [signature/payments/etc.]), and
+[Provider] is part of our short list of strategic technology
+partners for the [region] market.
+
+We are writing to formally inquire about your [Partner Program /
+Tech Partner Network / Marketplace] and the requirements to be
+listed as an official partner.
+
+Our key metrics:
+  - Multi-tenant SaaS PMS, RGPD-compliant, AES-256-GCM encryption
+  - Markets: France, Morocco (Arabic + French), Saudi Arabia
+    (Arabic + English)
+  - Customer profile: small-to-mid property managers (5-100 units)
+  - Forecast S2 2026: 200+ units under management
+
+We would appreciate the opportunity to discuss with the
+appropriate partner manager at your end.
+
+Best regards,
+[Your name]
+[Title], Clenzy
+[email] · https://clenzy.fr
+</pre>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 5 — SIGNATURE
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>5. Signature électronique</h2>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Yousign</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">FR / EU</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Paris, France · QTSP eIDAS · ~200 employés</dd>
+  <dt>Site partner</dt><dd>https://yousign.com/fr/partenaires</dd>
+  <dt>Email contact</dt><dd>partners@yousign.com (ou via formulaire site)</dd>
+  <dt>Programme</dt><dd>Yousign Partner Program — niveaux Standard, Premium, Strategic</dd>
+  <dt>Revenue model</dt><dd>Revenue share 15-30 % sur referrals première année</dd>
+  <dt>API status</dt><dd>API v3 stable, sandbox gratuit, OAuth2</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Process partenariat</div>
+  <ol>
+    <li>Création compte développeur sur <code>developers.yousign.com</code> (immédiat, gratuit)</li>
+    <li>Envoi email à partners@yousign.com avec deck Clenzy + cas d'usage</li>
+    <li>Call avec Partner Manager (~45 min)</li>
+    <li>Signature partnership agreement standard</li>
+    <li>Activation referral code + accès marketplace</li>
+  </ol>
+</div>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« Yousign est le QTSP français de référence. Clenzy le propose en option par défaut pour ses hosts français qui ont besoin de signer des contrats de gestion locative ou des baux de courte durée. Volume attendu : 100+ signatures/mois en S2 2026. »</div>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Universign</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">FR</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Paris, France · QTSP eIDAS · groupe Crédit Agricole</dd>
+  <dt>Site partner</dt><dd>https://www.universign.com/fr/partenaires/</dd>
+  <dt>Email contact</dt><dd>contact@universign.com — formulaire web</dd>
+  <dt>Programme</dt><dd>Universign Partner Network (peu publicisé, négociation case-by-case)</dd>
+  <dt>Revenue model</dt><dd>Commission négociable — orientation enterprise</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Notes</div>
+  <p>Plus corporate qu'Yousign, processus de partnership plus lent. À aborder en P3 ou si demande client spécifique. Avantage : appartenance au Crédit Agricole = crédibilité bancaire.</p>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">DocaPoste</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">FR</span>
+    <span class="tag tag-marketplace">Marketplace</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Paris, France · Filiale du Groupe La Poste · QTSP eIDAS</dd>
+  <dt>Site partner</dt><dd>https://www.docaposte.com/partenaires</dd>
+  <dt>Email contact</dt><dd>contact-commercial@docaposte.fr · 01 55 44 01 00</dd>
+  <dt>Programme</dt><dd>DocaPoste Ecosystem (partners technologiques + LRE)</dd>
+  <dt>Revenue model</dt><dd>Pas de affiliation publique, négociation case-by-case</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Notes</div>
+  <p>Très corporate, gros volume, cycle de vente long. L'angle "Lettre Recommandée Electronique" (LRE) est un différenciateur fort pour les contrats de location. À cibler après avoir signé Yousign et accumulé une base client crédible.</p>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">DocuSign</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+    <span class="tag tag-marketplace">App Marketplace</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>San Francisco, USA · ~7000 employés · NASDAQ:DOCU</dd>
+  <dt>Site partner</dt><dd>https://www.docusign.com/partner-program</dd>
+  <dt>Email contact</dt><dd>partner@docusign.com</dd>
+  <dt>Programme</dt><dd>DocuSign Partner Program — tiers : Registered / Authorized / Premier</dd>
+  <dt>Revenue model</dt><dd>Referral fees + co-sell + listing App Marketplace officiel</dd>
+  <dt>API status</dt><dd>eSignature REST API v2.1, OAuth2 — déjà intégré côté Clenzy</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Process partenariat</div>
+  <ol>
+    <li>Inscription Partner Program online : <code>partners.docusign.com</code></li>
+    <li>Soumission application Registered Partner (gratuit)</li>
+    <li>Demo technique + intégration review (~2 semaines)</li>
+    <li>Listing App Marketplace officiel après QA DocuSign</li>
+    <li>Upgrade Authorized → Premier après volume seuil (~12 mois)</li>
+  </ol>
+</div>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« DocuSign est notre solution global de signature, déjà intégré via OAuth2. Nous souhaitons être listés dans l'App Marketplace pour donner de la visibilité Clenzy aux 1,4M de clients DocuSign — en échange de la mise en avant de DocuSign comme option premium dans notre catalogue. »</div>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Pennylane</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p1">P1</span>
+    <span class="tag tag-region">FR</span>
+    <span class="tag tag-tech">Tech partner</span>
+    <span class="tag tag-marketplace">Marketplace</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Paris, France · 600+ employés · scale-up SaaS compta</dd>
+  <dt>Site partner</dt><dd>https://www.pennylane.com/fr/partenaires/</dd>
+  <dt>Email contact</dt><dd>partenariats@pennylane.com</dd>
+  <dt>Programme</dt><dd>Pennylane Partner Program (Tech + Experts-comptables)</dd>
+  <dt>Revenue model</dt><dd>Commission referral (clients apportés) + listing marketplace App</dd>
+  <dt>API status</dt><dd>API publique stable, OAuth2 — déjà intégré côté Clenzy</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Process partenariat</div>
+  <ol>
+    <li>Email à partenariats@pennylane.com</li>
+    <li>Qualification call (~30 min)</li>
+    <li>Demo croisée Clenzy ↔ Pennylane (Q&amp;A produit)</li>
+    <li>Inscription marketplace App + listing officiel</li>
+    <li>Co-marketing : webinar conjoint cibles hosts STR ayant un expert-comptable</li>
+  </ol>
+</div>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« L'intégration Pennylane est déjà en place côté Clenzy avec sync auto factures + dépenses. Nos clients property managers ont besoin d'un partenaire compta moderne, Pennylane est notre choix par défaut. Volume attendu : 30-50 PME en année 1. Co-marketing : étude de cas conjointe sur l'automatisation comptable des PMS. »</div>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Odoo</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Belgique · Open source ERP · communauté +30M utilisateurs</dd>
+  <dt>Site partner</dt><dd>https://www.odoo.com/partners</dd>
+  <dt>Email contact</dt><dd>partnership@odoo.com</dd>
+  <dt>Programme</dt><dd>Odoo Partner Network — Silver / Gold / Ready</dd>
+  <dt>Revenue model</dt><dd>Discount sur licences + revenue partage intégrateurs</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Notes</div>
+  <p>Plus pertinent pour gestionnaires multi-propriétés qui font de la gestion comptable + paye en interne. Marché plus restreint que Pennylane sur la cible Clenzy STR. À aborder en P3 ou opportunité spécifique.</p>
+</div>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 6 — PRICING
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>6. Tarification dynamique</h2>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">PriceLabs</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p1">P1</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+    <span class="tag tag-referral">Referral</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Chicago, USA &amp; Pune, India · Leader STR revenue management</dd>
+  <dt>Site partner</dt><dd>https://www.pricelabs.co/partners</dd>
+  <dt>Email contact</dt><dd>partners@pricelabs.co</dd>
+  <dt>Programme</dt><dd>PriceLabs Partner Network — tiers Integration / Reseller</dd>
+  <dt>Revenue model</dt><dd>Referral fees 15-20 % MRR la première année + discount clients</dd>
+  <dt>API status</dt><dd>API publique gratuite après partnership, sandbox disponible</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Process partenariat</div>
+  <ol>
+    <li>Email à partners@pricelabs.co avec deck Clenzy + cas d'usage</li>
+    <li>Demo call (~45 min) avec PriceLabs Partner Manager</li>
+    <li>Signature MoU intégration (pas de KYB lourd, format léger)</li>
+    <li>Accès API officielle (au-delà du sandbox public)</li>
+    <li>Listing dans le PMS Marketplace PriceLabs (visibilité forte chez les hosts)</li>
+    <li>Co-marketing : webinaire conjoint "Optimize your STR revenue with Clenzy + PriceLabs"</li>
+  </ol>
+</div>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« PriceLabs est le standard de facto du pricing STR. Clenzy en fait son provider préféré, déjà intégré techniquement. Nos hosts français et MENA cherchent à monter en maturité pricing, PriceLabs est notre canal d'éducation. Objectif 12 mois : 100+ propriétés connectées à PriceLabs via Clenzy. »</div>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Beyond</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>San Francisco, USA · ex Beyond Pricing</dd>
+  <dt>Site partner</dt><dd>https://www.beyondpricing.com/partners</dd>
+  <dt>Email contact</dt><dd>partnerships@beyondpricing.com</dd>
+  <dt>Programme</dt><dd>Beyond Partner Network — algorithme propriétaire</dd>
+  <dt>Revenue model</dt><dd>Referral fees + co-marketing — détails négociables</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« Beyond est l'alternative pricing recommandée par Clenzy pour les hosts qui veulent un algorithme propriétaire plus différencié. Cible : hosts premium et boutique hotels. Volume attendu : 20-30 propriétés en année 1. »</div>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Wheelhouse</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>San Francisco, USA · Market comparison engine</dd>
+  <dt>Site partner</dt><dd>https://www.usewheelhouse.com/partners</dd>
+  <dt>Email contact</dt><dd>partnerships@usewheelhouse.com</dd>
+  <dt>Programme</dt><dd>Wheelhouse Tech Partner</dd>
+  <dt>Revenue model</dt><dd>Commission referral standard SaaS</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Notes</div>
+  <p>Plus orienté US/Europe, moins de pénétration MENA. Aborder après PriceLabs et Beyond pour avoir un trio complet d'options.</p>
+</div>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 7 — COMPTABILITÉ
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>7. Comptabilité &amp; ERP</h2>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">QuickBooks (Intuit)</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">US / UK / CA / AU</span>
+    <span class="tag tag-marketplace">App Marketplace</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Mountain View, USA · NASDAQ:INTU · 14M+ clients</dd>
+  <dt>Site partner</dt><dd>https://developer.intuit.com/app/developer/qbo/docs/develop/marketplace-listings</dd>
+  <dt>Email contact</dt><dd>marketplace@intuit.com</dd>
+  <dt>Programme</dt><dd>QuickBooks App Marketplace — Standard / Premier</dd>
+  <dt>Revenue model</dt><dd>Pas de commission directe, gain via listing public</dd>
+  <dt>API status</dt><dd>QuickBooks Online API, OAuth2 — déjà intégré côté Clenzy</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Process partenariat</div>
+  <ol>
+    <li>Création compte Intuit Developer (gratuit)</li>
+    <li>Build → soumission à l'App Marketplace</li>
+    <li>Review technique + sécurité par Intuit (~4-6 semaines)</li>
+    <li>Listing public dans QuickBooks App Marketplace</li>
+    <li>Marketing conjoint via newsletter Intuit (selon trafic généré)</li>
+  </ol>
+</div>
+<div class="provider-section">
+  <div class="provider-section-title">Notes</div>
+  <p>Pas critique en marché FR (Pennylane domine), mais utile pour expansion US/UK/AU. À pousser en parallèle de Pennylane si bandwidth.</p>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Xero</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">UK / AU / NZ</span>
+    <span class="tag tag-marketplace">App Store</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Wellington, New Zealand · NZX:XRO · 3.7M+ clients</dd>
+  <dt>Site partner</dt><dd>https://www.xero.com/partner-programs/</dd>
+  <dt>Email contact</dt><dd>partner-program@xero.com</dd>
+  <dt>Programme</dt><dd>Xero App Partner — tiers : App Partner / Connected / Featured</dd>
+  <dt>Revenue model</dt><dd>Pas de commission directe, gain via listing App Store + co-marketing</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Process partenariat</div>
+  <ol>
+    <li>Application en ligne sur Xero Developer Portal</li>
+    <li>Tech review + UX review (~6-8 semaines, processus strict)</li>
+    <li>Listing App Store si validation</li>
+    <li>Eligibilité tier "Featured" après 100+ connexions actives</li>
+  </ol>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Sage</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">FR / EU</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Newcastle, UK · LSE:SGE · leader compta FR/EU PME</dd>
+  <dt>Site partner</dt><dd>https://www.sage.com/fr-fr/partenaires/</dd>
+  <dt>Email contact</dt><dd>partenaires@sage.com</dd>
+  <dt>Programme</dt><dd>Sage Network — ISV partners</dd>
+  <dt>Revenue model</dt><dd>Commission négociable selon volume</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« Sage est le leader compta des PME en France et en Europe. Clenzy le propose comme alternative à Pennylane pour les hosts qui ont déjà un environnement Sage en place. Objectif : capter la base installée Sage existante. »</div>
+</div>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 8 — COMPLIANCE & KYC
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>8. Conformité légale &amp; KYC</h2>
+
+<h3>8.1 — Conformité voyageur (déclarations légales)</h3>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Chekin</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p1">P1</span>
+    <span class="tag tag-region">FR / EU</span>
+    <span class="tag tag-tech">Tech partner</span>
+    <span class="tag tag-referral">Referral</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Madrid, Espagne · spécialiste compliance voyageur EU</dd>
+  <dt>Site partner</dt><dd>https://chekin.com/integrations/</dd>
+  <dt>Email contact</dt><dd>partners@chekin.com · sales@chekin.com</dd>
+  <dt>Programme</dt><dd>Chekin Partner Integration — programme actif et bien rodé</dd>
+  <dt>Revenue model</dt><dd>Referral fees standard SaaS + tarif partner pour clients Clenzy</dd>
+  <dt>Couverture</dt><dd>France (fiche police), Espagne (DGP), Italie (Alloggiati), 14 pays EU</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Process partenariat</div>
+  <ol>
+    <li>Email à partners@chekin.com avec pitch Clenzy</li>
+    <li>Demo call (~45 min)</li>
+    <li>Signature accord de partenariat</li>
+    <li>Activation referral code + accès API</li>
+    <li>Listing dans le Chekin PMS Marketplace</li>
+  </ol>
+</div>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« Clenzy positionne Chekin comme provider par défaut compliance voyageur pour ses hosts français. Marché FR a une obligation légale fiche police, Chekin couvre 100% de cette obligation. Volume attendu : 100+ propriétés FR en S2 2026, croissance vers Italie/Espagne en année 2. »</div>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Police Maroc (DGSN)</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">MA</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>Entité</dt><dd>Direction Générale de la Sûreté Nationale (DGSN), Maroc</dd>
+  <dt>Site officiel</dt><dd>https://www.dgsn.gov.ma/</dd>
+  <dt>Contact</dt><dd>Pas de contact partnership direct — passage par avocat marocain ou consultant gov-tech</dd>
+  <dt>Accès</dt><dd>API gouvernementale, accès restreint, demande officielle requise</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Notes stratégiques</div>
+  <ul>
+    <li>Pas de programme partner formel — accès gouvernemental</li>
+    <li>À initier via cabinet d'avocats marocains spécialisés tourisme (ex: cabinets de Casablanca/Rabat)</li>
+    <li>Différenciation forte si obtenu : aucun PMS occidental n'a cette intégration</li>
+    <li>Délai estimé : 6-12 mois</li>
+    <li>Budget juridique à prévoir : ~5-10 k€</li>
+  </ul>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Absher KSA</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">KSA</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>Entité</dt><dd>Ministry of Interior, Royaume d'Arabie Saoudite</dd>
+  <dt>Site officiel</dt><dd>https://www.absher.sa/</dd>
+  <dt>Contact</dt><dd>NIC (National Information Center) — accès via partenaire local KSA</dd>
+  <dt>Accès</dt><dd>API gouvernementale, partenariat NIC requis</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Notes stratégiques</div>
+  <ul>
+    <li>Accès via une entité juridique locale KSA (LLC saoudienne, partenariat avec un Saoudien)</li>
+    <li>Compliance avec PIPL saoudien (équivalent RGPD)</li>
+    <li>Différenciation extrême — quasiment aucun PMS occidental n'a cette intégration</li>
+    <li>Budget à prévoir : ~10-20 k€ entre conseils juridiques et setup local</li>
+  </ul>
+</div>
+</div>
+
+<h3>8.2 — KYC / Vérification d'identité</h3>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Sumsub</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p1">P1</span>
+    <span class="tag tag-region">Global / MENA</span>
+    <span class="tag tag-tech">Tech partner</span>
+    <span class="tag tag-referral">Referral</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Londres, UK · Anti-fraude + KYC/KYB</dd>
+  <dt>Site partner</dt><dd>https://sumsub.com/partners/</dd>
+  <dt>Email contact</dt><dd>partners@sumsub.com</dd>
+  <dt>Programme</dt><dd>Sumsub Partner Program — Referral / Reseller / Tech</dd>
+  <dt>Revenue model</dt><dd>Referral fees + tarif partner significativement réduit (~30-40 %)</dd>
+  <dt>Couverture</dt><dd>200+ pays, support arabe, leader MENA en KYC</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Process partenariat</div>
+  <ol>
+    <li>Formulaire sur sumsub.com/partners</li>
+    <li>Qualification call avec Sumsub partnerships team</li>
+    <li>Signature accord (NDA + MoU)</li>
+    <li>Accès dashboard partner + API key</li>
+    <li>Co-marketing : étude de cas conjointe sur les use cases STR à risque</li>
+  </ol>
+</div>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« Sumsub est notre choix par défaut pour le KYC sur le booking engine Clenzy, en particulier pour les réservations à risque (montants élevés, événements, marchés MENA). Couverture arabe native = avantage décisif pour KSA et MA. »</div>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Veriff</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">EU</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Tallinn, Estonie · ~600 employés</dd>
+  <dt>Site partner</dt><dd>https://www.veriff.com/partners</dd>
+  <dt>Email contact</dt><dd>partners@veriff.com</dd>
+  <dt>Programme</dt><dd>Veriff Partner Network</dd>
+  <dt>Revenue model</dt><dd>Referral fees standard + co-marketing</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Onfido</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Londres, UK · racheté par Entrust en 2024</dd>
+  <dt>Site partner</dt><dd>https://onfido.com/partners</dd>
+  <dt>Email contact</dt><dd>partners@onfido.com</dd>
+  <dt>Programme</dt><dd>Onfido Partner Program — Connect / Reseller</dd>
+  <dt>Revenue model</dt><dd>Referral + listing officiel + co-sell</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Notes</div>
+  <p>Plus orienté financial services, UX premium. À aborder après Sumsub pour avoir une alternative haut de gamme à proposer.</p>
+</div>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 9 — CHANNEL MANAGER
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>9. Channel Manager middleware</h2>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Hostaway</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p1">P1</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+    <span class="tag tag-marketplace">PMS Marketplace</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Toronto, Canada · Channel Manager STR / vacation rental</dd>
+  <dt>Site partner</dt><dd>https://www.hostaway.com/integrations/</dd>
+  <dt>Email contact</dt><dd>partnerships@hostaway.com</dd>
+  <dt>Programme</dt><dd>Hostaway Integration Marketplace — Tech Partner</dd>
+  <dt>Revenue model</dt><dd>Pas de commission, gain via marketplace + co-marketing</dd>
+  <dt>Couverture</dt><dd>Airbnb natif + 50+ OTAs, leader STR mid-market</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Process partenariat</div>
+  <ol>
+    <li>Application sur hostaway.com/integrations (formulaire)</li>
+    <li>Demo technique + intégration review</li>
+    <li>Listing marketplace officiel</li>
+    <li>Co-marketing : webinaire, blog post conjoint</li>
+  </ol>
+</div>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« Hostaway est le channel manager middleware préféré de Clenzy. Nos hosts qui veulent multi-channel passent par Hostaway pour la distribution OTA, Clenzy reste leur PMS principal pour la gestion ops + booking direct. Synergie évidente, pas de concurrence. »</div>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">SiteMinder</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+    <span class="tag tag-marketplace">App Store</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Sydney, Australie · ASX:SDR · leader CM hôtellerie mondiale</dd>
+  <dt>Site partner</dt><dd>https://www.siteminder.com/partners/</dd>
+  <dt>Email contact</dt><dd>partners@siteminder.com</dd>
+  <dt>Programme</dt><dd>SiteMinder Connectivity Partner — niveaux Connect / Connect+</dd>
+  <dt>Revenue model</dt><dd>Pas de commission, gain via SiteMinder App Store + visibilité hôteliers</dd>
+  <dt>Couverture</dt><dd>~250 OTAs, leader hôtellerie + emerging STR</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Notes</div>
+  <p>Plus orienté hôtellerie traditionnelle que STR pur. Process partnership rigoureux mais bien documenté. Listing app store apporte une visibilité forte chez les hôteliers indépendants.</p>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Rentals United</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">EU / MENA</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Barcelone, Espagne · STR-focused</dd>
+  <dt>Site partner</dt><dd>https://rentalsunited.com/partners/</dd>
+  <dt>Email contact</dt><dd>partnerships@rentalsunited.com</dd>
+  <dt>Programme</dt><dd>Rentals United Channel Partner</dd>
+  <dt>Revenue model</dt><dd>Commission referral + co-sell</dd>
+  <dt>Couverture</dt><dd>60+ OTAs avec spécialités EU/MENA</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Notes</div>
+  <p>Bon complément Hostaway si on cible plus fort MENA et OTAs régionales. Plus accessible que SiteMinder pour démarrer.</p>
+</div>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 10 — OTAS
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>10. OTAs (Online Travel Agencies)</h2>
+
+<div class="callout callout-info">
+  <div class="callout-title">Stratégie OTAs : double approche</div>
+  <p>Les OTAs majeures (Airbnb, Booking, Expedia, Vrbo) ont des programmes "Connectivity Partner" très structurés et techniques. L'accès direct nécessite un volume client significatif. <strong>En attendant ce volume</strong>, le passage par un channel manager middleware (Hostaway, SiteMinder) donne un accès immédiat à 50-250 OTAs sans avoir à signer chaque partnership individuellement.</p>
+  <p><strong>Sur ce guide</strong> : nous listons les OTAs majeures avec les contacts officiels Connectivity Partner, mais l'effort court terme reste sur les channel managers de la section 9.</p>
+</div>
+
+<h3>10.1 — Tier 1 OTAs (volume significatif)</h3>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Airbnb</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Software Partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>San Francisco, USA · leader STR mondial</dd>
+  <dt>Site partner</dt><dd>https://www.airbnb.com/partner</dd>
+  <dt>Email contact</dt><dd>via formulaire — partner-onboarding@airbnb.com</dd>
+  <dt>Programme</dt><dd>Airbnb Software Partner Program — tiers Approved / Preferred</dd>
+  <dt>Revenue model</dt><dd>Pas de commission directe, gain via badge Approved</dd>
+  <dt>API status</dt><dd>OAuth2, deja intégré côté Clenzy (en cours certification)</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Process partenariat</div>
+  <ol>
+    <li>Application Software Partner sur partners.airbnb.com</li>
+    <li>Tech review + tests d'intégration certification (~3-6 mois)</li>
+    <li>Badge Approved Partner + listing public</li>
+    <li>Upgrade Preferred Partner après volume seuil</li>
+  </ol>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Booking.com</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Connectivity Partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Amsterdam, Pays-Bas · Booking Holdings</dd>
+  <dt>Site partner</dt><dd>https://connect.booking.com/</dd>
+  <dt>Email contact</dt><dd>connectivity@booking.com</dd>
+  <dt>Programme</dt><dd>Connectivity Partner Program — Premier / Standard</dd>
+  <dt>Couverture</dt><dd>Leader hôtellerie + STR Europe</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Expedia Group</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Connectivity Partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Seattle, USA · NASDAQ:EXPE</dd>
+  <dt>Site partner</dt><dd>https://www.expediagroup.com/partner-solutions/</dd>
+  <dt>Email contact</dt><dd>via formulaire EPS (Expedia Partner Solutions)</dd>
+  <dt>Programme</dt><dd>Expedia Connectivity</dd>
+  <dt>Couverture</dt><dd>Expedia, Hotels.com, Vrbo, Trivago — accès groupé</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Vrbo (Expedia Group)</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">US / EU</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>Notes</dt><dd>Inclus dans le programme Expedia Connectivity. Accès groupé avec Expedia, Hotels.com et Abritel.</dd>
+</dl>
+</div>
+
+<h3>10.2 — OTAs régionales MENA</h3>
+
+<div class="two-col">
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Gathern</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">KSA</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Riyadh, KSA</dd>
+  <dt>Site</dt><dd>https://gathern.co/</dd>
+  <dt>Contact</dt><dd>partnerships@gathern.co</dd>
+  <dt>Spécialité</dt><dd>Leader STR Arabie Saoudite, intégration via API ou Hostaway</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Stay.sa</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">KSA</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>Site</dt><dd>https://stay.sa/</dd>
+  <dt>Notes</dt><dd>OTA gouvernementale saoudienne, partenariat NIC requis</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Mabeet</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">KSA</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>Site</dt><dd>https://mabeet.com/</dd>
+  <dt>Spécialité</dt><dd>STR + religieux (Mecque, Médine)</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Almosafer</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">GCC</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>Site</dt><dd>https://almosafer.com/</dd>
+  <dt>Notes</dt><dd>Groupe Seera, OTA grand public KSA / Émirats</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Tajawal</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">MENA</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>Site</dt><dd>https://tajawal.com/</dd>
+  <dt>Notes</dt><dd>Groupe Seera, focus arabophone MENA</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Wego</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">MENA / APAC</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>Site</dt><dd>https://wego.com/</dd>
+  <dt>Notes</dt><dd>Meta-moteur, partenariat possible via affiliation</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Rentelly</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">MA / Tunisie</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>Notes</dt><dd>OTA STR Maghreb émergent</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Kease</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">MA</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>Notes</dt><dd>STR Maroc local, intégration directe</dd>
+</dl>
+</div>
+
+</div>
+
+<h3>10.3 — Autres OTAs</h3>
+
+<table>
+  <thead><tr><th>OTA</th><th>HQ</th><th>Contact partnership</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Agoda</td><td>Singapour</td><td>partners@agoda.com</td><td>Booking Holdings, focus APAC</td></tr>
+    <tr><td>Trip.com</td><td>Shanghai</td><td>partner@trip.com</td><td>Leader APAC, important pour clientèle chinoise</td></tr>
+    <tr><td>HomeToGo</td><td>Berlin</td><td>partners@hometogo.com</td><td>Meta-moteur STR, affiliation</td></tr>
+    <tr><td>Hotels.com</td><td>Seattle</td><td>via Expedia Connectivity</td><td>Groupe Expedia</td></tr>
+    <tr><td>Abritel</td><td>Paris</td><td>via Expedia Connectivity</td><td>Filiale Vrbo / Expedia, marché FR</td></tr>
+  </tbody>
+</table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 11 — MESSAGERIE & MARKET INTEL
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>11. Messagerie &amp; Market intelligence</h2>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">WhatsApp Business Cloud (Meta)</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p1">P1</span>
+    <span class="tag tag-region">Global / MA / KSA</span>
+    <span class="tag tag-tech">Business Solution Provider</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Meta · API cloud officielle</dd>
+  <dt>Site partner</dt><dd>https://www.facebook.com/business/partner-directory/search?solution_type=technology_partners</dd>
+  <dt>Email contact</dt><dd>via formulaire Meta Business — pas de mail direct</dd>
+  <dt>Programme</dt><dd>Meta Business Solution Provider (BSP) — accès direct ou via BSP tiers (Twilio, MessageBird, 360dialog)</dd>
+  <dt>Revenue model</dt><dd>Coût par conversation Meta + marge BSP</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Process partenariat</div>
+  <ol>
+    <li>Choix entre : accès direct Meta (long, ~6 mois) OU via un BSP existant (Twilio, MessageBird, 360dialog — rapide, déjà partenaire Clenzy)</li>
+    <li>Vérification Meta Business Manager (KYB lite)</li>
+    <li>Activation API Cloud + numéro WhatsApp Business</li>
+    <li>Configuration templates de messages (approbation Meta ~24-48h)</li>
+  </ol>
+</div>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« WhatsApp est le canal de communication par défaut au Maroc et en Arabie Saoudite. Clenzy l'intègre nativement dans le booking engine et la communication guest. Volume estimé : 1000+ conversations/mois en S2 2026, principalement sur les marchés MENA. »</div>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">AirDNA</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p1">P1</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Data partner</span>
+    <span class="tag tag-referral">Affiliate</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Denver, USA · leader market intelligence STR</dd>
+  <dt>Site partner</dt><dd>https://www.airdna.co/partners</dd>
+  <dt>Email contact</dt><dd>partners@airdna.co</dd>
+  <dt>Programme</dt><dd>AirDNA Partner Program — Reseller / Tech Integration / Affiliate</dd>
+  <dt>Revenue model</dt><dd>Affiliate fees + revenue share + tarif partner pour clients Clenzy</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Process partenariat</div>
+  <ol>
+    <li>Application sur airdna.co/partners</li>
+    <li>Demo call + qualification</li>
+    <li>Signature accord</li>
+    <li>Activation lien affilié + accès API Market Minder</li>
+    <li>Co-marketing : webinar sur "data-driven property management"</li>
+  </ol>
+</div>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« AirDNA est l'outil de data STR de référence. Clenzy intègre AirDNA dans son onboarding pour aider ses hosts à benchmarker leur portefeuille et identifier des zones d'expansion. Affiliation directe sur abonnements AirDNA. »</div>
+</div>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 12 — FISCALITÉ & ASSURANCE
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>12. Fiscalité &amp; Assurance</h2>
+
+<h3>12.1 — Taxe de séjour</h3>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Avalara MyLodgeTax</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p1">P1</span>
+    <span class="tag tag-region">Global / US-FR</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Seattle, USA · NYSE:AVLR · leader compliance fiscale</dd>
+  <dt>Site partner</dt><dd>https://www.avalara.com/partners/</dd>
+  <dt>Email contact</dt><dd>partners@avalara.com</dd>
+  <dt>Programme</dt><dd>Avalara Certified Partner — niveaux Connect / Premier</dd>
+  <dt>Revenue model</dt><dd>Referral fees + listing partenaires + co-marketing</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« Avalara MyLodgeTax est notre solution recommandée pour automatiser la taxe de séjour multi-villes. Marché FR + US essentiellement, expansion MENA en exploration. »</div>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">MyTSE</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">FR</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>France · spécialiste taxe de séjour FR</dd>
+  <dt>Site</dt><dd>https://mytse.com/ (à confirmer)</dd>
+  <dt>Notes</dt><dd>Niche FR, partenariat direct + commission referral</dd>
+</dl>
+</div>
+
+<h3>12.2 — Assurance &amp; screening</h3>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Superhog</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>UK · spécialiste screening guest + assurance dommages STR</dd>
+  <dt>Site partner</dt><dd>https://www.superhog.com/partners/</dd>
+  <dt>Email contact</dt><dd>partners@superhog.com</dd>
+  <dt>Programme</dt><dd>Superhog Trust Network</dd>
+  <dt>Revenue model</dt><dd>Commission referral + listing Trust Network</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">SafelyStay (Safely)</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">US / UK</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Atlanta, USA · assurance + screening STR</dd>
+  <dt>Site partner</dt><dd>https://safely.com/partners</dd>
+  <dt>Email contact</dt><dd>partners@safely.com</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">AXA Partners</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">Global / FR</span>
+    <span class="tag tag-tech">Corporate</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Paris, France · AXA Group</dd>
+  <dt>Site partner</dt><dd>https://www.axapartners.com/fr/partenariats</dd>
+  <dt>Contact</dt><dd>Demande commerciale via formulaire AXA Partners</dd>
+  <dt>Notes</dt><dd>Gros corporate, cycle de vente long (12+ mois), accès via B2B sales force AXA</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Tawuniya</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">KSA</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Riyadh, KSA · Tadawul:TAWUNIYA · leader assurance KSA</dd>
+  <dt>Site</dt><dd>https://www.tawuniya.com.sa/</dd>
+  <dt>Notes</dt><dd>Partenariat corporate KSA — accès via entité légale locale</dd>
+</dl>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 13 — CLEANING & IOT
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>13. Cleaning operations &amp; IoT</h2>
+
+<h3>13.1 — Ménage &amp; opérations</h3>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Turno (ex TurnoverBnB)</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">US / Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+    <span class="tag tag-marketplace">Marketplace</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>San Diego, USA</dd>
+  <dt>Site partner</dt><dd>https://turno.com/partners</dd>
+  <dt>Email contact</dt><dd>partnerships@turno.com</dd>
+  <dt>Programme</dt><dd>Turno PMS Integration Marketplace</dd>
+  <dt>Revenue model</dt><dd>Commission referral + listing marketplace</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Properly</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Vancouver, Canada</dd>
+  <dt>Site partner</dt><dd>https://getproperly.com/partners</dd>
+  <dt>Email contact</dt><dd>partners@getproperly.com</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Breezeway</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">US / Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Boston, USA</dd>
+  <dt>Site partner</dt><dd>https://www.breezeway.io/partners</dd>
+  <dt>Email contact</dt><dd>partners@breezeway.io</dd>
+  <dt>Notes</dt><dd>Plus orienté property care + inspections détaillées</dd>
+</dl>
+</div>
+
+<h3>13.2 — Smart locks &amp; IoT</h3>
+
+<div class="two-col">
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Nuki</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">EU</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Graz, Autriche</dd>
+  <dt>Partner</dt><dd>https://nuki.io/en/business/</dd>
+  <dt>Email</dt><dd>partner@nuki.io</dd>
+  <dt>Modèle</dt><dd>Distribution hardware + API</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Igloohome</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">APAC / Global</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Singapour</dd>
+  <dt>Partner</dt><dd>https://www.igloohome.co/partners</dd>
+  <dt>Email</dt><dd>partners@igloohome.co</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">TTLock</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Shenzhen, Chine · Sciener Inc.</dd>
+  <dt>Partner</dt><dd>https://www.ttlock.com/en/partners</dd>
+  <dt>Email</dt><dd>partner@ttlock.com</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Tuya Smart</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">Global / APAC</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Hangzhou, Chine · NYSE:TUYA</dd>
+  <dt>Partner</dt><dd>https://developer.tuya.com/</dd>
+  <dt>Email</dt><dd>partnership@tuya.com</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Ecobee</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">NA</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Toronto, Canada · thermostats smart</dd>
+  <dt>Partner</dt><dd>https://www.ecobee.com/developers/</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Resideo (Honeywell Home)</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">Global</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>USA</dd>
+  <dt>Notes</dt><dd>Catalogue IoT large, partenariat opportuniste</dd>
+</dl>
+</div>
+
+</div>
+
+<h3>13.3 — Gestion des clés</h3>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">KeyNest</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">UK / EU</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Londres, UK</dd>
+  <dt>Site partner</dt><dd>https://keynest.com/partners</dd>
+  <dt>Email contact</dt><dd>partnerships@keynest.com</dd>
+  <dt>Notes</dt><dd>UK-centric, intéressant si expansion britannique</dd>
+</dl>
+</div>
+
+<h3>13.4 — Monitoring sonore</h3>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Minut</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">EU / Global</span>
+    <span class="tag tag-tech">Tech partner</span>
+    <span class="tag tag-referral">Hardware reseller</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Malmö, Suède · capteurs bruit + température STR</dd>
+  <dt>Site partner</dt><dd>https://www.minut.com/partners</dd>
+  <dt>Email contact</dt><dd>partners@minut.com</dd>
+  <dt>Programme</dt><dd>Minut Partner Program — Tech / Reseller</dd>
+  <dt>Revenue model</dt><dd>Commission sur ventes hardware + abonnement SaaS</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« Minut est notre capteur recommandé pour le monitoring sonore — Clenzy l'intègre nativement dans son module ops. Volume hardware estimé : 50-100 capteurs en S2 2026. Bundle possible Clenzy + Minut sous offre conjointe. »</div>
+</div>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 14 — ACTIVITÉS, REVIEWS, MARKETING
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>14. Activités, Reviews &amp; Marketing</h2>
+
+<h3>14.1 — Activités &amp; affiliation</h3>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">GetYourGuide</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-referral">Affiliate</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Berlin, Allemagne</dd>
+  <dt>Site partner</dt><dd>https://partner.getyourguide.com/</dd>
+  <dt>Email contact</dt><dd>partners@getyourguide.com</dd>
+  <dt>Programme</dt><dd>GetYourGuide Partner Program — Affiliate / API Partner</dd>
+  <dt>Revenue model</dt><dd>Commission 8-15 % par réservation activité</dd>
+</dl>
+<div class="provider-section">
+  <div class="provider-section-title">Pitch type</div>
+  <div class="pitch-block">« Cross-sell activités aux guests Clenzy au moment du booking + post-confirmation. GetYourGuide est le leader européen avec une offre forte sur les destinations FR / Espagne / MA. Volume estimé : 500+ guests/mois en S2 2026. »</div>
+</div>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Klook</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">APAC / Global</span>
+    <span class="tag tag-referral">Affiliate</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Hong Kong</dd>
+  <dt>Site partner</dt><dd>https://www.klook.com/partner/</dd>
+  <dt>Email</dt><dd>partners@klook.com</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Viator (Tripadvisor)</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-referral">Affiliate</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>San Francisco, USA · groupe Tripadvisor</dd>
+  <dt>Site partner</dt><dd>https://www.viator.com/partner/</dd>
+  <dt>Email</dt><dd>partners@viator.com</dd>
+  <dt>Revenue model</dt><dd>Commission affiliation 8-20 %</dd>
+</dl>
+</div>
+
+<h3>14.2 — Reviews &amp; réputation</h3>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Revinate</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">Global / hôtellerie</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>San Francisco, USA</dd>
+  <dt>Site partner</dt><dd>https://www.revinate.com/partners</dd>
+  <dt>Email</dt><dd>partners@revinate.com</dd>
+  <dt>Notes</dt><dd>Plus orienté hôtellerie traditionnelle, demande mid-market</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">TrustYou</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">Global / EU</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Munich, Allemagne</dd>
+  <dt>Site partner</dt><dd>https://www.trustyou.com/partners</dd>
+  <dt>Email</dt><dd>partners@trustyou.com</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">HiJiffy</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">Global / EU</span>
+    <span class="tag tag-tech">Tech partner</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Lisbonne, Portugal</dd>
+  <dt>Site partner</dt><dd>https://hijiffy.com/partners/</dd>
+  <dt>Email</dt><dd>partners@hijiffy.com</dd>
+  <dt>Notes</dt><dd>Plus orienté chatbot + reviews automation hôtelier</dd>
+</dl>
+</div>
+
+<h3>14.3 — Marketing &amp; CRM</h3>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Mailchimp (Intuit)</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-marketplace">App Marketplace</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Atlanta, USA · groupe Intuit</dd>
+  <dt>Site partner</dt><dd>https://mailchimp.com/partner/</dd>
+  <dt>Programme</dt><dd>Mailchimp Partner Program — Connected / Pro / Expert</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Klaviyo</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p2">P2</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-marketplace">Integration Directory</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Boston, USA · NYSE:KVYO</dd>
+  <dt>Site partner</dt><dd>https://www.klaviyo.com/partners</dd>
+  <dt>Email</dt><dd>partners@klaviyo.com</dd>
+  <dt>Programme</dt><dd>Klaviyo Partner Network — Tech / Solution</dd>
+  <dt>Revenue model</dt><dd>Commission referral + listing directory</dd>
+</dl>
+</div>
+
+<div class="provider-card">
+<div class="provider-card-header">
+  <h3 class="provider-card-name">Pipedrive</h3>
+  <div class="provider-card-tags">
+    <span class="tag tag-p3">P3</span>
+    <span class="tag tag-region">Global</span>
+    <span class="tag tag-marketplace">Marketplace</span>
+  </div>
+</div>
+<dl class="provider-meta">
+  <dt>HQ</dt><dd>Tallinn, Estonie</dd>
+  <dt>Site partner</dt><dd>https://www.pipedrive.com/en/partners</dd>
+  <dt>Email</dt><dd>partners@pipedrive.com</dd>
+</dl>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 15 — TABLEAU RÉCAPITULATIF
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>15. Tableau récapitulatif (CRM-ready)</h2>
+
+<p>Tableau exhaustif des contacts à intégrer dans votre CRM (export CSV possible depuis ce PDF, ou ressaisie directe).</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Provider</th>
+      <th>Catégorie</th>
+      <th>Priorité</th>
+      <th>Contact</th>
+      <th>Région</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Hostaway</td><td>Channel Manager</td><td>P1</td><td>partnerships@hostaway.com</td><td>Global</td></tr>
+    <tr><td>PriceLabs</td><td>Pricing</td><td>P1</td><td>partners@pricelabs.co</td><td>Global</td></tr>
+    <tr><td>Pennylane</td><td>Compta/Signature</td><td>P1</td><td>partenariats@pennylane.com</td><td>FR</td></tr>
+    <tr><td>Sumsub</td><td>KYC</td><td>P1</td><td>partners@sumsub.com</td><td>MENA</td></tr>
+    <tr><td>Chekin</td><td>Compliance</td><td>P1</td><td>partners@chekin.com</td><td>FR/EU</td></tr>
+    <tr><td>AirDNA</td><td>Market intel</td><td>P1</td><td>partners@airdna.co</td><td>Global</td></tr>
+    <tr><td>WhatsApp Business</td><td>Messagerie</td><td>P1</td><td>Meta Business Manager</td><td>MA/KSA</td></tr>
+    <tr><td>Avalara MyLodgeTax</td><td>Taxe séjour</td><td>P1</td><td>partners@avalara.com</td><td>FR/Global</td></tr>
+    <tr><td>Yousign</td><td>Signature</td><td>P2</td><td>partners@yousign.com</td><td>FR</td></tr>
+    <tr><td>DocuSign</td><td>Signature</td><td>P2</td><td>partner@docusign.com</td><td>Global</td></tr>
+    <tr><td>Beyond</td><td>Pricing</td><td>P2</td><td>partnerships@beyondpricing.com</td><td>Global</td></tr>
+    <tr><td>Wheelhouse</td><td>Pricing</td><td>P2</td><td>partnerships@usewheelhouse.com</td><td>Global</td></tr>
+    <tr><td>QuickBooks</td><td>Compta</td><td>P2</td><td>marketplace@intuit.com</td><td>US/UK</td></tr>
+    <tr><td>Xero</td><td>Compta</td><td>P2</td><td>partner-program@xero.com</td><td>UK/AU/NZ</td></tr>
+    <tr><td>Sage</td><td>Compta</td><td>P2</td><td>partenaires@sage.com</td><td>FR/EU</td></tr>
+    <tr><td>SiteMinder</td><td>Channel Manager</td><td>P2</td><td>partners@siteminder.com</td><td>Global</td></tr>
+    <tr><td>Veriff</td><td>KYC</td><td>P2</td><td>partners@veriff.com</td><td>EU</td></tr>
+    <tr><td>Onfido</td><td>KYC</td><td>P2</td><td>partners@onfido.com</td><td>Global</td></tr>
+    <tr><td>Airbnb</td><td>OTA</td><td>P2</td><td>partner-onboarding@airbnb.com</td><td>Global</td></tr>
+    <tr><td>Booking.com</td><td>OTA</td><td>P2</td><td>connectivity@booking.com</td><td>Global</td></tr>
+    <tr><td>Expedia Group</td><td>OTA</td><td>P2</td><td>via EPS</td><td>Global</td></tr>
+    <tr><td>Gathern</td><td>OTA</td><td>P2</td><td>partnerships@gathern.co</td><td>KSA</td></tr>
+    <tr><td>Almosafer</td><td>OTA</td><td>P2</td><td>via Seera Group</td><td>GCC</td></tr>
+    <tr><td>Superhog</td><td>Assurance</td><td>P2</td><td>partners@superhog.com</td><td>Global</td></tr>
+    <tr><td>SafelyStay</td><td>Assurance</td><td>P2</td><td>partners@safely.com</td><td>US/UK</td></tr>
+    <tr><td>Turno</td><td>Cleaning</td><td>P2</td><td>partnerships@turno.com</td><td>US</td></tr>
+    <tr><td>Properly</td><td>Cleaning</td><td>P2</td><td>partners@getproperly.com</td><td>Global</td></tr>
+    <tr><td>Breezeway</td><td>Cleaning</td><td>P2</td><td>partners@breezeway.io</td><td>US</td></tr>
+    <tr><td>Nuki</td><td>Smart lock</td><td>P2</td><td>partner@nuki.io</td><td>EU</td></tr>
+    <tr><td>Igloohome</td><td>Smart lock</td><td>P2</td><td>partners@igloohome.co</td><td>APAC</td></tr>
+    <tr><td>TTLock</td><td>Smart lock</td><td>P2</td><td>partner@ttlock.com</td><td>Global</td></tr>
+    <tr><td>Minut</td><td>Bruit</td><td>P2</td><td>partners@minut.com</td><td>EU</td></tr>
+    <tr><td>GetYourGuide</td><td>Activités</td><td>P2</td><td>partners@getyourguide.com</td><td>Global</td></tr>
+    <tr><td>Klook</td><td>Activités</td><td>P2</td><td>partners@klook.com</td><td>APAC</td></tr>
+    <tr><td>Viator</td><td>Activités</td><td>P2</td><td>partners@viator.com</td><td>Global</td></tr>
+    <tr><td>Mailchimp</td><td>Marketing</td><td>P2</td><td>via Mailchimp Partner</td><td>Global</td></tr>
+    <tr><td>Klaviyo</td><td>Marketing</td><td>P2</td><td>partners@klaviyo.com</td><td>Global</td></tr>
+    <tr><td>MyTSE</td><td>Taxe séjour</td><td>P2</td><td>via formulaire</td><td>FR</td></tr>
+    <tr><td>Universign</td><td>Signature</td><td>P3</td><td>via formulaire</td><td>FR</td></tr>
+    <tr><td>DocaPoste</td><td>Signature</td><td>P3</td><td>contact-commercial@docaposte.fr</td><td>FR</td></tr>
+    <tr><td>Odoo</td><td>ERP</td><td>P3</td><td>partnership@odoo.com</td><td>Global</td></tr>
+    <tr><td>Police Maroc (DGSN)</td><td>Compliance MA</td><td>P3</td><td>via avocat MA</td><td>MA</td></tr>
+    <tr><td>Absher KSA</td><td>Compliance KSA</td><td>P3</td><td>via partenaire KSA</td><td>KSA</td></tr>
+    <tr><td>Rentals United</td><td>Channel Manager</td><td>P3</td><td>partnerships@rentalsunited.com</td><td>EU/MENA</td></tr>
+    <tr><td>AXA Partners</td><td>Assurance</td><td>P3</td><td>via formulaire</td><td>FR</td></tr>
+    <tr><td>Tawuniya</td><td>Assurance</td><td>P3</td><td>via KSA</td><td>KSA</td></tr>
+    <tr><td>Tuya Smart</td><td>IoT</td><td>P3</td><td>partnership@tuya.com</td><td>Global</td></tr>
+    <tr><td>Ecobee</td><td>IoT</td><td>P3</td><td>via developer portal</td><td>NA</td></tr>
+    <tr><td>Resideo</td><td>IoT</td><td>P3</td><td>via Honeywell</td><td>Global</td></tr>
+    <tr><td>KeyNest</td><td>Clés</td><td>P3</td><td>partnerships@keynest.com</td><td>UK</td></tr>
+    <tr><td>Revinate</td><td>Reviews</td><td>P3</td><td>partners@revinate.com</td><td>Global</td></tr>
+    <tr><td>TrustYou</td><td>Reviews</td><td>P3</td><td>partners@trustyou.com</td><td>EU</td></tr>
+    <tr><td>HiJiffy</td><td>Reviews</td><td>P3</td><td>partners@hijiffy.com</td><td>EU</td></tr>
+    <tr><td>Pipedrive</td><td>CRM</td><td>P3</td><td>partners@pipedrive.com</td><td>Global</td></tr>
+  </tbody>
+</table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 16 — ANNEXES
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>16. Annexes</h2>
+
+<h3>16.1 — Structure recommandée du deck Clenzy v1.0 (10 slides)</h3>
+
+<table>
+  <thead><tr><th>#</th><th>Slide</th><th>Contenu clé</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Cover</td><td>Logo Clenzy + tagline + nom du partenaire ciblé</td></tr>
+    <tr><td>2</td><td>Qui est Clenzy</td><td>1 phrase de définition + 3 chiffres clés</td></tr>
+    <tr><td>3</td><td>Le marché unique</td><td>Carte FR-MA-KSA, taille du marché STR par pays</td></tr>
+    <tr><td>4</td><td>Produit</td><td>Screenshots PMS + booking engine + ops mobile</td></tr>
+    <tr><td>5</td><td>Stack technique</td><td>Java/Spring + React + multi-tenant + intégrations</td></tr>
+    <tr><td>6</td><td>Pourquoi ce partenariat</td><td>Adapté au partenaire — synergie business</td></tr>
+    <tr><td>7</td><td>Volume prévisible</td><td>Projection clients + revenue partagé</td></tr>
+    <tr><td>8</td><td>Roadmap</td><td>Phases produit + partnerships + expansion</td></tr>
+    <tr><td>9</td><td>Demande spécifique</td><td>Ce qu'on veut du partenaire — précis</td></tr>
+    <tr><td>10</td><td>Next steps</td><td>Action items + contacts + agenda call</td></tr>
+  </tbody>
+</table>
+
+<h3>16.2 — KPIs à suivre par partnership</h3>
+
+<table>
+  <thead><tr><th>KPI</th><th>Fréquence</th><th>Cible année 1</th></tr></thead>
+  <tbody>
+    <tr><td>Nombre de partenariats P1 signés</td><td>Mensuel</td><td>8/8</td></tr>
+    <tr><td>Revenue d'affiliation mensuel</td><td>Mensuel</td><td>~500 €/mois</td></tr>
+    <tr><td>Mentions Clenzy sur sites partenaires</td><td>Trimestriel</td><td>5+ partenaires</td></tr>
+    <tr><td>Leads entrants via marketplace partenaires</td><td>Mensuel</td><td>10+ leads/mois</td></tr>
+    <tr><td>Co-marketing events réalisés</td><td>Trimestriel</td><td>2+ webinaires/an</td></tr>
+    <tr><td>Études de cas conjointes publiées</td><td>Annuel</td><td>2+ cases/an</td></tr>
+  </tbody>
+</table>
+
+<h3>16.3 — Documents à préparer avant la 1ère prise de contact</h3>
+
+<ol>
+  <li><strong>Deck Clenzy v1.0</strong> (10 slides, structure ci-dessus)</li>
+  <li><strong>One-pager Clenzy</strong> : recto-verso A4, version texte pour email</li>
+  <li><strong>Démo screencast PMS + booking engine</strong> (3-5 min, hébergé sur Loom/YouTube unlisted)</li>
+  <li><strong>Stats clés du produit</strong> : nombre de propriétés, transactions, devises supportées</li>
+  <li><strong>Liens vers la doc API publique</strong> de Clenzy (si elle existe ; sinon mentionner qu'elle est en cours)</li>
+  <li><strong>Liste des intégrations déjà branchées</strong> (capture du tab Intégrations)</li>
+  <li><strong>Roadmap produit synthétique</strong> (1 slide, 12 mois)</li>
+  <li><strong>NDA standard Clenzy</strong> (pour conversations avec accès à des chiffres de business)</li>
+  <li><strong>Contacts de référence</strong> : LinkedIn fondateur, site corporate, KBis</li>
+</ol>
+
+<h3>16.4 — Rythme de prise de contact recommandé</h3>
+
+<table>
+  <thead><tr><th>Semaine</th><th>Action</th><th>Cible</th></tr></thead>
+  <tbody>
+    <tr><td>S1</td><td>Préparer deck + emails + listes</td><td>Setup tooling</td></tr>
+    <tr><td>S2</td><td>Lancer 4 emails P1 (Hostaway, PriceLabs, Pennylane, Sumsub)</td><td>4 emails</td></tr>
+    <tr><td>S3</td><td>Lancer 4 emails P1 restants (Chekin, AirDNA, WhatsApp, Avalara)</td><td>4 emails</td></tr>
+    <tr><td>S4</td><td>Relances + premiers demos calls</td><td>2-4 demos</td></tr>
+    <tr><td>S5-S6</td><td>Closing premiers partenariats P1</td><td>3-5 signés</td></tr>
+    <tr><td>S7-S10</td><td>Lancement P2 par vagues de 4 emails/semaine</td><td>16 emails</td></tr>
+    <tr><td>S11-S14</td><td>Continuer P2 + démarrer P3 opportunistes</td><td>10+ emails</td></tr>
+  </tbody>
+</table>
+
+<h3>16.5 — Avertissements importants</h3>
+
+<div class="callout callout-warning">
+  <div class="callout-title">À vérifier au premier contact</div>
+  <p>Les emails listés dans ce guide sont vérifiés à la date de rédaction. Certains peuvent changer (équipes partnerships qui bougent, refontes de site). En cas de bounce, consulter le site partenaires à jour ou rechercher LinkedIn « Partnership manager [Provider] ».</p>
+</div>
+
+<div class="callout callout-info">
+  <div class="callout-title">Localisation des emails par marché</div>
+  <p>Pour les partenaires FR (Pennylane, Yousign, Universign), envoyer les emails en français. Pour les partenaires globaux ou MENA, l'anglais reste la langue par défaut. Adapter le ton selon la culture business locale.</p>
+</div>
+
+<div class="callout callout-success">
+  <div class="callout-title">Bonne pratique : LinkedIn en parallèle</div>
+  <p>Pour chaque email envoyé à <code>partners@xxx.com</code>, identifier également le Partnership Manager sur LinkedIn et envoyer une invite avec un mot personnalisé. Le taux de réponse double quand le contact est triangulé email + LinkedIn.</p>
+</div>
+
+</section>
+
+</body>
+</html>

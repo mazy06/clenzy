@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Clenzy — Guide de test sandbox Wise &amp; GoCardless</title>
+<style>
+@page {
+  size: A4;
+  margin: 18mm 16mm 22mm 16mm;
+  @bottom-center {
+    content: counter(page) " / " counter(pages);
+    color: #8A8378;
+    font-size: 9pt;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  color: #2D3748;
+  margin: 0; padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cover */
+.cover { page-break-after: always; text-align: center; padding-top: 80mm; }
+.cover .logo { font-size: 28pt; font-weight: 800; letter-spacing: -0.02em; color: #6B8A9A; margin-bottom: 12mm; }
+.cover h1 { font-size: 22pt; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 6mm 0; }
+.cover .subtitle { font-size: 12pt; color: #718096; margin-bottom: 30mm; }
+.cover .meta { font-size: 9.5pt; color: #8A8378; letter-spacing: 0.04em; text-transform: uppercase; }
+.cover .accent { display: inline-block; width: 60mm; height: 3px; background: #4A9B8E; margin: 8mm auto; }
+.cover .ribbon {
+  display: inline-block;
+  background: #4A9B8E; color: white;
+  padding: 3mm 8mm; border-radius: 4px;
+  font-size: 9pt; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  margin-bottom: 4mm;
+}
+
+/* TOC */
+.toc { page-break-after: always; }
+.toc h2 {
+  font-size: 18pt;
+  border-bottom: 2px solid #4A9B8E;
+  padding-bottom: 4mm;
+  margin-bottom: 8mm;
+}
+.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: toc-counter; }
+.toc ol > li {
+  counter-increment: toc-counter;
+  margin-bottom: 3mm;
+  font-size: 11pt;
+  display: flex;
+  align-items: baseline;
+}
+.toc ol > li::before {
+  content: counter(toc-counter, decimal-leading-zero) ".";
+  color: #4A9B8E;
+  font-weight: 700;
+  margin-right: 6mm;
+  min-width: 12mm;
+}
+.toc .toc-dots { flex: 1; border-bottom: 1px dotted #CBD5E0; margin: 0 3mm; position: relative; top: -3pt; }
+.toc .toc-page { color: #718096; font-variant-numeric: tabular-nums; }
+
+/* Headings */
+h1, h2, h3, h4 { color: #2D3748; letter-spacing: -0.005em; page-break-after: avoid; }
+h2 {
+  font-size: 16pt; font-weight: 700;
+  margin: 12mm 0 5mm 0; padding-bottom: 2mm;
+  border-bottom: 2px solid #4A9B8E;
+  page-break-before: auto;
+}
+h3 { font-size: 13pt; font-weight: 700; margin: 8mm 0 3mm 0; color: #4A9B8E; }
+h4 { font-size: 11pt; font-weight: 700; margin: 5mm 0 2mm 0; color: #6B8A9A; }
+
+section.major-section { page-break-before: always; }
+
+p { margin: 0 0 3mm 0; }
+ol, ul { margin: 0 0 3mm 0; padding-left: 6mm; }
+li { margin-bottom: 1.5mm; }
+strong { color: #2D3748; font-weight: 700; }
+em { font-style: italic; color: #4A5568; }
+
+/* Code */
+code {
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 9pt;
+  background: #F7FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 3px;
+  padding: 1px 4px;
+  color: #2D3748;
+}
+pre {
+  background: #1A202C; color: #E2E8F0;
+  padding: 4mm 5mm; border-radius: 4px;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 8.5pt; line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  page-break-inside: avoid;
+  margin: 3mm 0;
+}
+pre code { background: transparent; border: none; padding: 0; color: inherit; font-size: inherit; }
+.bash::before { content: "$ "; color: #4A9B8E; }
+
+/* Tables */
+table {
+  border-collapse: collapse; width: 100%;
+  margin: 3mm 0; font-size: 9.5pt;
+  page-break-inside: avoid;
+}
+th {
+  background: #F7FAFC; text-align: left; font-weight: 700;
+  padding: 2.5mm 3mm; border: 1px solid #CBD5E0;
+  color: #2D3748; font-size: 9pt;
+  letter-spacing: 0.02em; text-transform: uppercase;
+}
+td { padding: 2.5mm 3mm; border: 1px solid #E2E8F0; vertical-align: top; }
+td code, th code { font-size: 8.5pt; }
+
+/* Callouts */
+.callout { border-left: 3px solid; padding: 3mm 4mm; margin: 4mm 0; border-radius: 0 4px 4px 0; page-break-inside: avoid; }
+.callout-title { font-weight: 700; margin-bottom: 1.5mm; font-size: 10pt; letter-spacing: 0.01em; }
+.callout-info    { background: #EBF4F8; border-color: #7BA3C2; }
+.callout-info .callout-title { color: #5A87A0; }
+.callout-success { background: #E6F3F0; border-color: #4A9B8E; }
+.callout-success .callout-title { color: #3A8579; }
+.callout-warning { background: #FBF3E5; border-color: #D4A574; }
+.callout-warning .callout-title { color: #B58853; }
+.callout-danger  { background: #F7E9E9; border-color: #C97A7A; }
+.callout-danger .callout-title { color: #B26060; }
+.callout p { margin-bottom: 1.5mm; font-size: 10pt; }
+.callout p:last-child { margin-bottom: 0; }
+
+kbd {
+  background: #EDF2F7; border: 1px solid #CBD5E0; border-bottom-width: 2px;
+  border-radius: 3px; padding: 0 4px;
+  font-family: "SF Mono", "Menlo", monospace; font-size: 9pt;
+}
+
+ol.steps { counter-reset: step-counter; list-style: none; padding-left: 0; }
+ol.steps > li {
+  counter-increment: step-counter;
+  position: relative;
+  padding-left: 12mm;
+  margin-bottom: 5mm;
+}
+ol.steps > li::before {
+  content: counter(step-counter);
+  position: absolute; left: 0; top: -0.5mm;
+  width: 8mm; height: 8mm;
+  background: #4A9B8E; color: white;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 10pt;
+}
+
+a { color: #4A9B8E; text-decoration: none; }
+
+.tag {
+  display: inline-block; padding: 0.5mm 2mm;
+  border-radius: 3px; font-size: 8pt; font-weight: 700;
+  letter-spacing: 0.02em; text-transform: uppercase;
+  margin-right: 2mm;
+}
+.tag-immediate { background: #E6F3F0; color: #3A8579; }
+.tag-eu        { background: #EBF4F8; color: #5A87A0; }
+.tag-global    { background: #F0E9F5; color: #6B5A8A; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     COVER
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="logo">Clenzy</div>
+  <div class="accent"></div>
+  <div class="ribbon">Phase P2 — Payouts automatisés</div>
+  <h1>Guide de test sandbox<br>Wise Business &amp; GoCardless PIS</h1>
+  <div class="subtitle">Configuration, credentials et scénarios end-to-end<br>pour les virements sortants automatisés</div>
+  <div class="meta">Version 1.0 · Mai 2026 · Roadmap P2</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TOC
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="toc">
+  <h2>Table des matières</h2>
+  <ol>
+    <li>Vue d'ensemble &amp; architecture<span class="toc-dots"></span><span class="toc-page">3</span></li>
+    <li>Setup ngrok (tunnel local)<span class="toc-dots"></span><span class="toc-page">5</span></li>
+    <li>Wise Business — Sandbox immédiat<span class="toc-dots"></span><span class="toc-page">6</span></li>
+    <li>GoCardless PIS — Sandbox immédiat<span class="toc-dots"></span><span class="toc-page">9</span></li>
+    <li>Configuration Clenzy<span class="toc-dots"></span><span class="toc-page">12</span></li>
+    <li>Scénarios end-to-end<span class="toc-dots"></span><span class="toc-page">14</span></li>
+    <li>Débogage &amp; commandes utiles<span class="toc-dots"></span><span class="toc-page">17</span></li>
+    <li>Erreurs courantes &amp; solutions<span class="toc-dots"></span><span class="toc-page">19</span></li>
+    <li>Annexes — webhooks &amp; structure des payloads<span class="toc-dots"></span><span class="toc-page">20</span></li>
+  </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 1 — VUE D'ENSEMBLE
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>1. Vue d'ensemble &amp; architecture</h2>
+
+<p>Ce guide accompagne le déploiement local des deux nouveaux <strong>rails de payouts sortants</strong> automatisés de Clenzy : Wise Business pour les virements internationaux (Maroc, Arabie Saoudite, 80+ pays) et GoCardless Bank Account Data + PIS pour les virements SEPA automatiques sans upload manuel.</p>
+
+<h3>Les 5 méthodes de payout supportées par Clenzy</h3>
+
+<table>
+  <thead>
+    <tr><th>Méthode</th><th>Couverture</th><th>Niveau d'auto</th><th>Frais typiques</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>STRIPE_CONNECT</code></td><td>EU, US, UK, +40 pays</td><td>Auto complet</td><td>0.25% + €0.10</td></tr>
+    <tr><td><code>WISE</code></td><td>80+ pays (dont MA, KSA)</td><td>Auto complet</td><td>~0.5%</td></tr>
+    <tr><td><code>OPEN_BANKING</code></td><td>EU (PSD2)</td><td>Auto via PIS</td><td>~€0.10/virement</td></tr>
+    <tr><td><code>SEPA_TRANSFER</code></td><td>EU (zone SEPA)</td><td>Semi-auto (XML + upload manuel)</td><td>Variable banque</td></tr>
+    <tr><td><code>MANUAL</code></td><td>—</td><td>Hors-Clenzy</td><td>N/A</td></tr>
+  </tbody>
+</table>
+
+<h3>Architecture Strategy + Registry</h3>
+
+<p>Tous les exécuteurs implémentent l'interface {@code PayoutExecutor} et sont auto-découverts par Spring. L'orchestrateur {@code PayoutExecutionService} délègue à l'exécuteur via {@code PayoutExecutorRegistry.get(method)}.</p>
+
+<pre>com.clenzy.payment.payout/
+├── PayoutExecutor              (interface)
+├── PayoutExecutorRegistry      (auto-discovery Spring)
+├── PayoutNotifier              (notifications partagées)
+├── wise/WiseClient             (HTTP REST Wise API)
+├── openbanking/
+│   ├── GoCardlessPisClient     (HTTP REST GoCardless + cache token)
+│   └── OpenBankingProvider     (enum GOCARDLESS / TINK)
+└── executor/
+    ├── StripeConnectPayoutExecutor
+    ├── SepaTransferPayoutExecutor
+    ├── ManualPayoutExecutor
+    ├── WisePayoutExecutor
+    └── OpenBankingPayoutExecutor</pre>
+
+<h3>Prérequis machine</h3>
+
+<table>
+  <thead><tr><th>Outil</th><th>Version</th><th>Vérification</th></tr></thead>
+  <tbody>
+    <tr><td>Docker + Docker Compose</td><td>récent</td><td><code>docker compose version</code></td></tr>
+    <tr><td>Java JDK</td><td>21+</td><td><code>java -version</code></td></tr>
+    <tr><td>Node.js</td><td>20+</td><td><code>node --version</code></td></tr>
+    <tr><td>ngrok</td><td>3.x</td><td><code>ngrok version</code> — voir section 2</td></tr>
+  </tbody>
+</table>
+
+<h3>État de la roadmap P2 (mai 2026)</h3>
+
+<table>
+  <thead>
+    <tr><th>PR</th><th>Description</th><th>Statut</th><th>Tests</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>PR8</td><td>Refactor Strategy + Wise Business</td><td>Livré</td><td>12 tests</td></tr>
+    <tr><td>PR9</td><td>Open Banking PIS (GoCardless)</td><td>Livré</td><td>9 tests</td></tr>
+    <tr><td>PR10</td><td>Frontend SCA + endpoints (init/callback)</td><td>Livré</td><td>TS clean</td></tr>
+    <tr><td>PR11</td><td>Doc sandbox (ce guide)</td><td>Livré</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-success">
+  <div class="callout-title">Suite de tests backend</div>
+  <p><strong>3557 tests verts</strong> (TypeScript clean côté frontend). Tous les flows critiques sont couverts par des tests unitaires : signature Wise, cache token GoCardless, validation consent, expiration, refunds.</p>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 2 — NGROK
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>2. Setup ngrok (tunnel local)</h2>
+
+<div class="callout callout-info">
+  <div class="callout-title">Pourquoi ngrok ?</div>
+  <p>Wise et GoCardless envoient des notifications webhook depuis leurs serveurs externes vers Clenzy à chaque changement d'état de virement. Votre <code>localhost:8084</code> n'est pas joignable depuis Internet — ngrok crée un tunnel HTTPS sécurisé qui relaie les requêtes vers votre machine.</p>
+</div>
+
+<h3>Installation</h3>
+<pre><span class="bash"></span>brew install ngrok/ngrok/ngrok</pre>
+
+<h3>Authentification</h3>
+<ol class="steps">
+  <li>Créer un compte gratuit sur <code>ngrok.com</code></li>
+  <li>Copier le token depuis le dashboard ngrok (section <em>Your Authtoken</em>)</li>
+  <li>Configurer le token localement :
+    <pre><span class="bash"></span>ngrok config add-authtoken &lt;votre-token-ngrok&gt;</pre>
+  </li>
+</ol>
+
+<h3>Lancer le tunnel sur le port backend Clenzy</h3>
+<pre><span class="bash"></span>ngrok http 8084</pre>
+
+<p>Une URL publique est affichée :</p>
+<pre>Forwarding   https://a1b2c3d4.ngrok-free.app -&gt; http://localhost:8084</pre>
+
+<p>C'est cette URL que vous allez configurer dans Wise et dans GoCardless comme URL de webhook.</p>
+
+<h3>Vérification</h3>
+<pre><span class="bash"></span>curl https://a1b2c3d4.ngrok-free.app/api/webhooks/payouts/wise/transfers-state-change</pre>
+<p>Doit retourner <code>401 Missing signature</code> — c'est attendu : confirme que le tunnel route correctement.</p>
+
+<div class="callout callout-warning">
+  <div class="callout-title">URL ngrok éphémère</div>
+  <p>Sur le plan gratuit, l'URL ngrok change à chaque relance. Si vous redémarrez ngrok :</p>
+  <ul>
+    <li>Mettre à jour l'URL de webhook dans Wise (Dashboard → Settings → Webhooks)</li>
+    <li>Mettre à jour l'URL dans GoCardless (Dashboard → Developers → Webhooks)</li>
+    <li>Mettre à jour <code>gocardless.debtor-account-id</code> n'est pas concerné — il reste fixe</li>
+  </ul>
+  <p>Le plan payant ngrok ($8/mois) permet d'avoir un sous-domaine fixe ce qui simplifie nettement le workflow.</p>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 3 — WISE
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>3. Wise Business — Sandbox immédiat <span class="tag tag-immediate">Disponible</span></h2>
+
+<p>Wise propose un environnement sandbox <strong>auto-service, gratuit et sans KYB</strong>. Vous obtenez un compte de test en quelques minutes avec un solde fictif et un Profile ID utilisable pour tester l'intégration complète.</p>
+
+<h3>3.1 — Création du compte sandbox</h3>
+
+<ol class="steps">
+  <li>Aller sur <strong>https://sandbox.transferwise.tech/register</strong></li>
+  <li>Choisir le type <strong>Business</strong> (pas Personal — l'API Business est différente)</li>
+  <li>Renseigner email + mot de passe + nom d'entreprise (libre, aucune vérification)</li>
+  <li>Confirmer l'email</li>
+  <li>Se connecter au dashboard sandbox</li>
+</ol>
+
+<h3>3.2 — Récupération des credentials</h3>
+
+<table>
+  <thead>
+    <tr><th>Credential</th><th>Où le trouver</th><th>Champ Clenzy correspondant</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>API Token</strong> (secret)</td>
+      <td>Dashboard → <em>Settings</em> → <em>API tokens</em> → bouton "Create new token" avec scope <code>Full access</code></td>
+      <td><code>wise.api-token</code></td>
+    </tr>
+    <tr>
+      <td><strong>Profile ID</strong> (numérique)</td>
+      <td>Dashboard → <em>Account</em> → en haut, sous le nom du business. Format : un long entier (ex: 12345678)</td>
+      <td><code>wise.profile-id</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Format du token : <code>11111111-2222-3333-4444-555555555555</code> (UUID).</p>
+
+<h3>3.3 — Configuration du webhook</h3>
+
+<ol class="steps">
+  <li>Dashboard Wise → <em>Settings</em> → <em>Webhooks</em></li>
+  <li>Cliquer sur <strong>"Subscribe to a webhook"</strong></li>
+  <li>Renseigner l'URL :<br>
+    <code>https://&lt;votre-tunnel-ngrok&gt;/api/webhooks/payouts/wise/transfers-state-change</code></li>
+  <li>Sélectionner l'événement <strong>transfers#state-change</strong></li>
+  <li>Wise affiche une <strong>clé publique RSA</strong> — copier le contenu PEM (commence par <code>-----BEGIN PUBLIC KEY-----</code>)</li>
+  <li>Sauvegarder</li>
+</ol>
+
+<h3>3.4 — Variables d'environnement Clenzy</h3>
+
+<p>Dans <code>server/src/main/resources/application.yml</code> (ou via variables d'env) :</p>
+
+<pre>wise:
+  api-token: ${WISE_API_TOKEN:11111111-2222-3333-4444-555555555555}
+  profile-id: ${WISE_PROFILE_ID:12345678}
+  sandbox: true                         # false en production
+  public-key: |                          # Clé publique RSA pour vérifier les webhooks
+    -----BEGIN PUBLIC KEY-----
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyMEdY1aR...
+    -----END PUBLIC KEY-----</pre>
+
+<div class="callout callout-info">
+  <div class="callout-title">Wise unique pour Clenzy entier, pas par-tenant</div>
+  <p>Contrairement à PayTabs/CMI (paiements entrants, credentials par-org), Wise est un compte <strong>unique pour toute la plateforme Clenzy</strong>. Toutes les organisations utilisent le même compte Wise Business comme source pour les payouts. La configuration est globale, pas dans la BDD multi-tenant.</p>
+</div>
+
+<h3>3.5 — Solde du compte sandbox</h3>
+
+<p>Pour pouvoir effectuer des virements, le compte Wise sandbox doit avoir un solde. Top-up :</p>
+
+<ol class="steps">
+  <li>Dashboard Wise → <em>Balances</em></li>
+  <li>Sélectionner <strong>EUR</strong> (ou la devise source de Clenzy)</li>
+  <li>Cliquer <strong>"Add money"</strong> → choisir <em>Bank transfer (sandbox)</em></li>
+  <li>Le sandbox crédite automatiquement (~10 secondes)</li>
+  <li>Vérifier le solde EUR : doit être > 0 pour que les virements partent</li>
+</ol>
+
+<h3>3.6 — Couverture géographique</h3>
+
+<p>Wise sandbox supporte tous les pays de production. Pour Clenzy, devises clés :</p>
+
+<table>
+  <thead><tr><th>Devise</th><th>Pays</th><th>Délai virement sandbox</th></tr></thead>
+  <tbody>
+    <tr><td>EUR → MAD</td><td>vers Maroc</td><td>Quasi-instantané en sandbox</td></tr>
+    <tr><td>EUR → SAR</td><td>vers Arabie Saoudite</td><td>Quasi-instantané en sandbox</td></tr>
+    <tr><td>EUR → EUR</td><td>Zone SEPA</td><td>Quasi-instantané en sandbox</td></tr>
+    <tr><td>EUR → USD</td><td>USA</td><td>Quasi-instantané en sandbox</td></tr>
+  </tbody>
+</table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 4 — GOCARDLESS
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>4. GoCardless PIS — Sandbox immédiat <span class="tag tag-immediate">Disponible</span> <span class="tag tag-eu">EU PSD2</span></h2>
+
+<p>GoCardless Bank Account Data inclut un service Payment Initiation (PIS) qui permet d'initier des virements SEPA Credit Transfer depuis le compte Clenzy bancaire sans uploader de XML pain.001. Le sandbox est gratuit et inclut une <strong>banque virtuelle de test</strong> (<code>SANDBOXFINANCE</code>) qui simule le flow complet de SCA.</p>
+
+<h3>4.1 — Création du compte sandbox</h3>
+
+<ol class="steps">
+  <li>Aller sur <strong>https://bankaccountdata.gocardless.com/register/</strong></li>
+  <li>Renseigner email + mot de passe + nom de la société</li>
+  <li>Confirmer l'email</li>
+  <li>Dashboard sandbox accessible immédiatement</li>
+</ol>
+
+<h3>4.2 — Récupération des credentials</h3>
+
+<table>
+  <thead>
+    <tr><th>Credential</th><th>Où le trouver</th><th>Champ Clenzy correspondant</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Secret ID</strong></td>
+      <td>Dashboard → <em>User secrets</em> → "Generate new secret"</td>
+      <td><code>gocardless.secret-id</code></td>
+    </tr>
+    <tr>
+      <td><strong>Secret Key</strong> (secret)</td>
+      <td>Affiché une seule fois lors de la génération — copier immédiatement</td>
+      <td><code>gocardless.secret-key</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>4.3 — Setup initial : authentification de votre compte bancaire Clenzy</h3>
+
+<p>Pour pouvoir initier des virements PIS, GoCardless doit avoir un consent valide pour <strong>votre compte bancaire Clenzy</strong> (le débiteur). C'est un SCA one-time à faire en tant qu'admin.</p>
+
+<ol class="steps">
+  <li>Une fois Clenzy démarré, ouvrir Settings → Reversements → Mes reversements (en mode admin/host)</li>
+  <li>Cliquer sur <strong>"Choisir une autre méthode"</strong></li>
+  <li>Sélectionner <strong>"Open Banking PIS"</strong></li>
+  <li>Choisir <code>SANDBOXFINANCE_SFIN0000</code> dans le menu déroulant (la banque de test GoCardless)</li>
+  <li>Cliquer sur <strong>"Connecter ma banque"</strong></li>
+  <li>Le browser est redirigé vers le portail SCA sandbox de GoCardless</li>
+  <li>Choisir un compte fictif (ex: "Current Account")</li>
+  <li>Authoriser (l'authentification est simulée — aucun mot de passe requis en sandbox)</li>
+  <li>Browser redirigé vers Clenzy avec <code>?openbanking=callback</code></li>
+  <li>Le frontend appelle automatiquement <code>finalizeOpenBankingCallback</code> → consent activé pour 90 jours</li>
+</ol>
+
+<h3>4.4 — Récupération de l'ID du compte débiteur</h3>
+
+<p>Une fois le consent validé, GoCardless vous a fourni un <strong>account_id</strong> qui identifie votre compte bancaire pour les futurs virements. Cet ID est nécessaire dans la config Clenzy.</p>
+
+<ol class="steps">
+  <li>Dashboard GoCardless → <em>Account &amp; transactions</em> → <em>Accounts</em></li>
+  <li>Trouver le compte qu'on vient d'autoriser</li>
+  <li>Copier l'<strong>Account ID</strong> (UUID)</li>
+</ol>
+
+<h3>4.5 — Configuration du webhook</h3>
+
+<ol class="steps">
+  <li>Dashboard GoCardless → <em>Developers</em> → <em>Webhook endpoints</em></li>
+  <li>Cliquer <strong>"Create new endpoint"</strong></li>
+  <li>URL : <code>https://&lt;votre-tunnel-ngrok&gt;/api/webhooks/payouts/gocardless/events</code></li>
+  <li>Sélectionner les événements :
+    <ul>
+      <li><code>payments.paid</code></li>
+      <li><code>payments.confirmed</code></li>
+      <li><code>payments.failed</code></li>
+      <li><code>payments.cancelled</code></li>
+      <li><code>payments.customer_approval_denied</code></li>
+    </ul>
+  </li>
+  <li>GoCardless génère un <strong>webhook secret</strong> — copier immédiatement</li>
+</ol>
+
+<h3>4.6 — Variables d'environnement Clenzy</h3>
+
+<pre>gocardless:
+  secret-id: ${GOCARDLESS_SECRET_ID}
+  secret-key: ${GOCARDLESS_SECRET_KEY}
+  debtor-account-id: ${GOCARDLESS_DEBTOR_UUID}    # UUID du compte Clenzy
+  webhook-secret: ${GOCARDLESS_WEBHOOK_SECRET}</pre>
+
+<h3>4.7 — Banques disponibles en sandbox</h3>
+
+<p>GoCardless expose ~2400 banques européennes en production. En sandbox, on a une banque virtuelle de test :</p>
+
+<table>
+  <thead><tr><th>Institution ID</th><th>Nom</th><th>Pays</th><th>Usage</th></tr></thead>
+  <tbody>
+    <tr><td><code>SANDBOXFINANCE_SFIN0000</code></td><td>Sandbox Finance</td><td>FR/EU</td><td>Tests généraux, SCA simulé</td></tr>
+    <tr><td><code>BNP_PARIBAS_BNPAFRPP</code></td><td>BNP Paribas</td><td>FR</td><td>Prod — KYB requis</td></tr>
+    <tr><td><code>SOCIETE_GENERALE_SOGEFRPP</code></td><td>Société Générale</td><td>FR</td><td>Prod — KYB requis</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-success">
+  <div class="callout-title">Endpoint banques dynamique côté Clenzy</div>
+  <p>Le dialog frontend appelle <code>GET /api/owner-payout-config/openbanking/institutions?country=FR</code> qui proxy GoCardless. La liste est mise en cache 1h côté backend. En cas d'erreur réseau, fallback sur une liste de 8 banques codées en dur.</p>
+</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 5 — CONFIGURATION CLENZY
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>5. Configuration Clenzy</h2>
+
+<h3>5.1 — application.yml complet (extrait Payouts)</h3>
+
+<pre>clenzy:
+  base-url: ${CLENZY_BASE_URL:http://localhost:8084}  # ou URL ngrok
+
+# Stripe Connect (existant, EU payouts)
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY:sk_test_xxx}
+  connect-platform-id: ${STRIPE_CONNECT_PLATFORM:acct_xxx}
+
+# Wise Business (international payouts)
+wise:
+  api-token: ${WISE_API_TOKEN:}
+  profile-id: ${WISE_PROFILE_ID:}
+  sandbox: ${WISE_SANDBOX:true}
+  public-key: ${WISE_PUBLIC_KEY:}
+
+# GoCardless PIS (auto-SEPA EU)
+gocardless:
+  secret-id: ${GOCARDLESS_SECRET_ID:}
+  secret-key: ${GOCARDLESS_SECRET_KEY:}
+  debtor-account-id: ${GOCARDLESS_DEBTOR_UUID:}
+  webhook-secret: ${GOCARDLESS_WEBHOOK_SECRET:}</pre>
+
+<h3>5.2 — Migration Liquibase</h3>
+
+<p>La migration <code>0124__add_wise_and_openbanking_to_owner_payout_config.sql</code> ajoute 5 colonnes à <code>owner_payout_config</code> :</p>
+
+<table>
+  <thead><tr><th>Colonne</th><th>Type</th><th>Usage</th></tr></thead>
+  <tbody>
+    <tr><td><code>wise_recipient_id</code></td><td>VARCHAR(64)</td><td>ID du recipient Wise créé lors du 1er payout</td></tr>
+    <tr><td><code>wise_profile_id</code></td><td>VARCHAR(64)</td><td>Optionnel — profile Wise de l'owner</td></tr>
+    <tr><td><code>open_banking_provider</code></td><td>VARCHAR(20)</td><td>GOCARDLESS ou TINK</td></tr>
+    <tr><td><code>open_banking_consent_id</code></td><td>VARCHAR(128)</td><td>Requisition ID GoCardless</td></tr>
+    <tr><td><code>open_banking_consent_expires_at</code></td><td>TIMESTAMP</td><td>Expiration consent (typiquement +90j)</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <div class="callout-title">Application automatique au boot</div>
+  <p>Liquibase s'applique automatiquement au démarrage Spring Boot dans <strong>tous les environnements</strong> (dev, staging, prod) — <code>spring.liquibase.enabled: true</code> dans <code>application-prod.yml</code>. La migration 0124 (5 colonnes nullable) est non destructive et idempotente : safe à appliquer sans intervention manuelle.</p>
+</div>
+
+<h3>5.3 — Configuration côté propriétaire</h3>
+
+<p>L'admin ou le propriétaire ouvre Settings → Reversements → Mes reversements → bouton <strong>"Choisir une autre méthode"</strong> :</p>
+
+<table>
+  <thead><tr><th>Méthode</th><th>Champs requis</th></tr></thead>
+  <tbody>
+    <tr><td>Wise</td><td>IBAN + BIC + Titulaire du compte (renseignés directement dans le dialog)</td></tr>
+    <tr><td>Open Banking</td><td>Sélection de la banque dans le dropdown + clic "Connecter ma banque" → flow SCA</td></tr>
+    <tr><td>SEPA Transfer</td><td>IBAN + BIC + Titulaire</td></tr>
+    <tr><td>Stripe Connect</td><td>Géré séparément via onboarding self-service</td></tr>
+    <tr><td>Manuel</td><td>Aucun</td></tr>
+  </tbody>
+</table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 6 — SCENARIOS
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>6. Scénarios de test end-to-end</h2>
+
+<h3>6.1 — Scénario Wise complet (EUR → MAD, propriétaire au Maroc)</h3>
+
+<p><strong>Préparation</strong> : Wise sandbox configuré, solde EUR > 1000€, webhook actif, ngrok actif, propriétaire fictif créé dans Clenzy avec IBAN marocain.</p>
+
+<ol class="steps">
+  <li>SUPER_ADMIN ouvre Settings → Reversements → table des propriétaires</li>
+  <li>Clic sur l'icône engrenage du propriétaire marocain → modale "Méthode de reversement"</li>
+  <li>Sélectionner <strong>"Wise Business"</strong> dans les options</li>
+  <li>Renseigner l'IBAN marocain (ex: <code>MA64011519000001205000534921</code>) + Titulaire</li>
+  <li>Cliquer <strong>"Enregistrer"</strong></li>
+  <li>Générer un payout via le scheduler ou manuellement depuis Facturation → Reversements</li>
+  <li>Approuver le payout (status passe à APPROVED)</li>
+  <li>Exécuter le payout (clic icône "Exécuter") :
+    <ul>
+      <li>Backend : <code>WisePayoutExecutor.execute()</code></li>
+      <li>1er appel : <code>POST /v1/accounts</code> crée le recipient Wise (idempotent côté Wise)</li>
+      <li>2e appel : <code>POST /v3/profiles/&lt;id&gt;/quotes</code> obtient un quote EUR → MAD</li>
+      <li>3e appel : <code>POST /v1/transfers</code> crée le transfer avec idempotence UUID</li>
+      <li>4e appel : <code>POST /v3/profiles/&lt;id&gt;/transfers/&lt;tid&gt;/payments</code> funde depuis le solde</li>
+    </ul>
+  </li>
+  <li>Payout passe en <strong>PROCESSING</strong> avec <code>paymentReference = "WISE:&lt;transferId&gt;"</code></li>
+  <li>Wise traite le virement (quasi-instantané en sandbox)</li>
+  <li>Webhook <code>transfers#state-change</code> reçu avec <code>current_state = outgoing_payment_sent</code></li>
+  <li>Vérification signature RSA-SHA256 avec la clé publique Wise</li>
+  <li>Lookup payout par <code>paymentReference</code> → mark PAID + notify success</li>
+  <li>Dashboard Wise : transfer visible dans l'historique</li>
+</ol>
+
+<h3>6.2 — Scénario Open Banking complet (consent + virement)</h3>
+
+<ol class="steps">
+  <li>Propriétaire (ou admin) ouvre Mes reversements</li>
+  <li>Clic "Choisir une autre méthode" → modale</li>
+  <li>Sélectionner <strong>"Open Banking PIS"</strong> → dropdown se charge depuis GoCardless</li>
+  <li>Choisir <code>SANDBOXFINANCE_SFIN0000</code></li>
+  <li>Clic <strong>"Connecter ma banque"</strong> :
+    <ul>
+      <li>Frontend : <code>POST /api/owner-payout-config/me/openbanking/init</code></li>
+      <li>Backend : <code>GoCardlessPisClient.createRequisition()</code> → URL SCA + requisitionId stocké en BDD</li>
+      <li>Frontend : <code>window.location.href = redirectUrl</code></li>
+    </ul>
+  </li>
+  <li>Portail SANDBOXFINANCE : sélection du compte fictif + auth simulée</li>
+  <li>Redirect vers Clenzy : <code>app.clenzy.fr/settings?tab=reversements&amp;openbanking=callback</code></li>
+  <li>useEffect dans MyPayoutSettings détecte le query param → appel <code>finalizeOpenBankingCallback</code></li>
+  <li>Backend : vérifie le consent valide chez GoCardless → marque <code>verified=true</code> + <code>payoutMethod=OPEN_BANKING</code> + <code>consentExpiresAt = now() + 90 days</code></li>
+  <li>Snackbar "Méthode de reversement mise à jour"</li>
+  <li>Bannière <em>OpenBankingConsentBanner</em> affichée avec consent actif</li>
+  <li>Maintenant, à chaque payout APPROVED → <code>OpenBankingPayoutExecutor.execute()</code> initie un payment GoCardless</li>
+  <li>Webhook <code>payments.paid</code> reçu → mark PAID</li>
+</ol>
+
+<h3>6.3 — Tester l'expiration du consent (forcer date passée)</h3>
+
+<p>Pour valider la bannière proactive, on peut forcer une date d'expiration passée en BDD :</p>
+
+<pre><span class="bash"></span>docker exec -it clenzy-postgres-dev psql -U clenzy -d clenzy -c \
+  "UPDATE owner_payout_config
+   SET open_banking_consent_expires_at = NOW() - INTERVAL '1 day'
+   WHERE owner_id = &lt;OWNER_ID&gt;;"</pre>
+
+<p>Recharger la page Mes reversements → bannière rouge <strong>"Consent bancaire expiré"</strong> avec bouton "Reconnecter ma banque".</p>
+
+<p>Pour tester l'avertissement J-7 :</p>
+
+<pre><span class="bash"></span>UPDATE owner_payout_config
+SET open_banking_consent_expires_at = NOW() + INTERVAL '3 days'
+WHERE owner_id = &lt;OWNER_ID&gt;;</pre>
+
+<p>→ bannière jaune <strong>"Consent bancaire à renouveler bientôt"</strong>.</p>
+
+<h3>6.4 — Tester un refund Wise</h3>
+
+<p>L'API Wise ne supporte pas les refunds directs — un payout envoyé ne peut pas être annulé une fois <code>outgoing_payment_sent</code>. Si le transfer est encore en état <em>incoming_payment_waiting</em>, on peut le cancel via dashboard.</p>
+
+<p>Pour Clenzy : <code>WisePayoutExecutor.refundPayment</code> n'est pas implémenté (hors scope payouts). Si un refund est nécessaire, il faut le faire manuellement via dashboard Wise + appeler <code>markAsFailed</code> côté Clenzy.</p>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 7 — DEBUG
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>7. Débogage &amp; commandes utiles</h2>
+
+<h3>7.1 — Logs backend Clenzy</h3>
+
+<pre><span class="bash"></span>tail -f server/logs/application.log | grep -iE "wise|gocardless|payout"</pre>
+
+<p>Logs clés :</p>
+<ul>
+  <li><code>Wise transfer XXX created+funded for payout YYY</code> : transfer créé et fundé avec succès</li>
+  <li><code>Wise webhook : payout YYY marque PAID (transferId=XXX)</code> : webhook traité</li>
+  <li><code>Wise webhook : signature invalide</code> : vérifier <code>wise.public-key</code></li>
+  <li><code>GoCardless institutions chargees : N banques pour pays=FR</code> : cache rafraîchi</li>
+  <li><code>Open Banking : consent XXX active pour owner Y (org Z)</code> : SCA finalisé</li>
+  <li><code>Open Banking payment XXX initiated for payout YYY</code> : virement PIS lancé</li>
+</ul>
+
+<h3>7.2 — Inspection BDD</h3>
+
+<pre><span class="bash"></span>docker exec -it clenzy-postgres-dev psql -U clenzy -d clenzy -c \
+  "SELECT id, owner_id, payout_method, wise_recipient_id, open_banking_provider,
+          open_banking_consent_id, open_banking_consent_expires_at, verified
+   FROM owner_payout_config
+   ORDER BY updated_at DESC LIMIT 10;"</pre>
+
+<pre><span class="bash"></span>docker exec -it clenzy-postgres-dev psql -U clenzy -d clenzy -c \
+  "SELECT id, owner_id, status, payout_method, net_amount, currency,
+          payment_reference, paid_at, failure_reason
+   FROM owner_payouts
+   ORDER BY created_at DESC LIMIT 20;"</pre>
+
+<h3>7.3 — Dashboard ngrok</h3>
+
+<p>Ouvrir <code>http://127.0.0.1:4040</code> pendant que ngrok tourne pour voir les webhooks entrants en temps réel. Particulièrement utile pour debugger les signatures Wise (RSA) et HMAC GoCardless.</p>
+
+<h3>7.4 — Replay d'un webhook Wise depuis le dashboard</h3>
+
+<p>Dashboard Wise → Webhooks → cliquer sur l'événement → bouton <strong>"Replay"</strong>. Permet de re-déclencher un webhook sans refaire un transfer complet.</p>
+
+<h3>7.5 — Verifier un consent GoCardless</h3>
+
+<p>Via curl direct (utile si on doute de la validité côté GoCardless) :</p>
+
+<pre><span class="bash"></span># 1. Obtenir un token
+TOKEN=$(curl -s -X POST https://bankaccountdata.gocardless.com/api/v2/token/new/ \
+  -H "Content-Type: application/json" \
+  -d '{"secret_id":"'$GOCARDLESS_SECRET_ID'","secret_key":"'$GOCARDLESS_SECRET_KEY'"}' \
+  | jq -r .access)
+
+# 2. Lookup une requisition
+curl -s https://bankaccountdata.gocardless.com/api/v2/requisitions/&lt;REQ_ID&gt;/ \
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+# Status attendu : "LN" (Linked) pour un consent valide</pre>
+
+<h3>7.6 — Tests unitaires backend</h3>
+
+<pre><span class="bash"></span>cd server &amp;&amp; mvn test -Dtest='WisePayoutExecutorTest,OpenBankingPayoutExecutorTest,PayoutExecutorRegistryTest'</pre>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 8 — ERREURS COURANTES
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>8. Erreurs courantes &amp; solutions</h2>
+
+<table>
+  <thead><tr><th>Symptôme</th><th>Cause probable</th><th>Solution</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>"Wise n'est pas configure cote Clenzy"</td>
+      <td>Variables <code>wise.api-token</code> ou <code>wise.profile-id</code> vides</td>
+      <td>Vérifier <code>application.yml</code> + redémarrer le backend</td>
+    </tr>
+    <tr>
+      <td>Wise renvoie 401 sur createQuote</td>
+      <td>API token invalide ou expiré</td>
+      <td>Régénérer un nouveau token dans dashboard Wise → Settings → API tokens</td>
+    </tr>
+    <tr>
+      <td>Wise renvoie "insufficient balance"</td>
+      <td>Solde EUR sandbox insuffisant</td>
+      <td>Top-up via dashboard Wise → Balances → Add money</td>
+    </tr>
+    <tr>
+      <td>Wise webhook 401 "Invalid signature"</td>
+      <td>Clé publique RSA mal copiée ou changée</td>
+      <td>Re-copier la clé publique depuis dashboard Wise → Settings → Webhooks</td>
+    </tr>
+    <tr>
+      <td>Wise transfer reste en PROCESSING</td>
+      <td>Webhook non reçu (ngrok down ou URL mal config)</td>
+      <td>Vérifier ngrok actif + URL dans dashboard Wise correspond à ngrok actuel</td>
+    </tr>
+    <tr>
+      <td>"Open Banking : aucun consent SCA enregistre"</td>
+      <td>Premier setup : aucune requisition encore créée</td>
+      <td>L'admin doit ouvrir "Connecter ma banque" depuis Mes reversements</td>
+    </tr>
+    <tr>
+      <td>"Open Banking : le consent SCA est expire"</td>
+      <td>Plus de 90 jours depuis le dernier SCA</td>
+      <td>Refaire le SCA via la bannière rouge "Reconnecter ma banque"</td>
+    </tr>
+    <tr>
+      <td>GoCardless renvoie 403 sur createRequisition</td>
+      <td>Secret ID/Key invalides ou expirés</td>
+      <td>Régénérer dans dashboard → User secrets</td>
+    </tr>
+    <tr>
+      <td>Liste banques GoCardless ne charge pas dans le dialog</td>
+      <td>Erreur réseau ou API down</td>
+      <td>Le fallback codé en dur prend le relais. Vérifier console réseau frontend.</td>
+    </tr>
+    <tr>
+      <td>Webhook GoCardless 401 "Invalid signature"</td>
+      <td>Webhook secret mal copié</td>
+      <td>Régénérer un webhook endpoint dans dashboard + copier le nouveau secret</td>
+    </tr>
+    <tr>
+      <td>ngrok change d'URL à chaque relance</td>
+      <td>Plan gratuit ngrok</td>
+      <td>Mettre à jour les URLs webhook dans Wise + GoCardless, ou passer au plan payant</td>
+    </tr>
+  </tbody>
+</table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 9 — ANNEXES
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="major-section">
+<h2>9. Annexes — webhooks &amp; structure des payloads</h2>
+
+<h3>9.1 — Webhook Wise (transfers#state-change)</h3>
+
+<p><strong>URL Clenzy</strong> : <code>POST /api/webhooks/payouts/wise/transfers-state-change</code></p>
+
+<p><strong>Header signature</strong> : <code>X-Signature-SHA256: &lt;base64-encoded RSA signature&gt;</code></p>
+
+<p><strong>Body</strong> (extrait) :</p>
+
+<pre>{
+  "data": {
+    "resource": {
+      "id": 123456789,
+      "type": "transfer",
+      "profile_id": 12345678,
+      "account_id": 87654321
+    },
+    "current_state": "outgoing_payment_sent",
+    "previous_state": "processing",
+    "occurred_at": "2026-05-23T10:42:00Z"
+  },
+  "subscription_id": "subscription-uuid",
+  "event_type": "transfers#state-change",
+  "schema_version": "2.0.0",
+  "sent_at": "2026-05-23T10:42:01Z"
+}</pre>
+
+<p><strong>États possibles</strong> :</p>
+<ul>
+  <li><code>processing</code> : transfer reçu côté Wise, en attente d'execution</li>
+  <li><code>funds_converted</code> : conversion devise effectuée</li>
+  <li><code>outgoing_payment_sent</code> : virement émis → Clenzy mark PAID</li>
+  <li><code>funds_refunded</code>, <code>cancelled</code>, <code>charged_back</code>, <code>bounced_back</code> → Clenzy mark FAILED</li>
+</ul>
+
+<h3>9.2 — Webhook GoCardless (payments.*)</h3>
+
+<p><strong>URL Clenzy</strong> : <code>POST /api/webhooks/payouts/gocardless/events</code></p>
+
+<p><strong>Header signature</strong> : <code>Webhook-Signature: &lt;hex HMAC-SHA256&gt;</code></p>
+
+<p><strong>Body</strong> (extrait) :</p>
+
+<pre>{
+  "events": [
+    {
+      "id": "EV01XXX",
+      "created_at": "2026-05-23T10:42:00Z",
+      "resource_type": "payments",
+      "action": "paid",
+      "links": {
+        "payment": "PM01XXX",
+        "creditor": "CR01XXX"
+      },
+      "details": {
+        "origin": "bank",
+        "cause": "payment_paid",
+        "scheme": "sepa_credit_transfer"
+      }
+    }
+  ]
+}</pre>
+
+<p><strong>Actions traitées par Clenzy</strong> :</p>
+<ul>
+  <li><code>paid</code>, <code>confirmed</code> : succès → mark PAID</li>
+  <li><code>failed</code>, <code>cancelled</code>, <code>customer_approval_denied</code> : échec → mark FAILED</li>
+</ul>
+
+<h3>9.3 — Vérification de signature Wise (RSA-SHA256)</h3>
+
+<pre>Signature signer = Signature.getInstance("SHA256withRSA");
+signer.initVerify(wisePublicKey);
+signer.update(rawPayloadBody.getBytes(StandardCharsets.UTF_8));
+byte[] receivedSig = Base64.getDecoder().decode(headerSignature);
+boolean valid = signer.verify(receivedSig);</pre>
+
+<h3>9.4 — Vérification de signature GoCardless (HMAC-SHA256)</h3>
+
+<pre>Mac mac = Mac.getInstance("HmacSHA256");
+mac.init(new SecretKeySpec(webhookSecret.getBytes(UTF_8), "HmacSHA256"));
+byte[] computed = mac.doFinal(rawPayloadBody.getBytes(UTF_8));
+String computedHex = HexFormat.of().formatHex(computed);
+boolean valid = constantTimeEquals(computedHex, headerSignature);</pre>
+
+<h3>9.5 — Endpoints Clenzy exposés</h3>
+
+<table>
+  <thead><tr><th>Méthode</th><th>Endpoint</th><th>Usage</th></tr></thead>
+  <tbody>
+    <tr><td>POST</td><td><code>/api/owner-payout-config/me/openbanking/init</code></td><td>Self-service init SCA</td></tr>
+    <tr><td>POST</td><td><code>/api/owner-payout-config/{ownerId}/openbanking/init</code></td><td>Admin init SCA pour un owner</td></tr>
+    <tr><td>GET</td><td><code>/api/owner-payout-config/openbanking/callback</code></td><td>Finalize après retour SCA</td></tr>
+    <tr><td>GET</td><td><code>/api/owner-payout-config/openbanking/institutions?country=FR</code></td><td>Liste banques GoCardless (cache 1h)</td></tr>
+    <tr><td>POST</td><td><code>/api/webhooks/payouts/wise/transfers-state-change</code></td><td>Webhook Wise</td></tr>
+    <tr><td>POST</td><td><code>/api/webhooks/payouts/gocardless/events</code></td><td>Webhook GoCardless</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-success">
+  <div class="callout-title">Vous voilà prêt</div>
+  <p>Avec le sandbox Wise gratuit et le sandbox GoCardless avec SANDBOXFINANCE, vous pouvez tester l'intégralité du flow payouts P2 sans accès à du KYB réel. Les credentials de production demanderont juste 2-3 semaines d'onboarding côté Wise + une vérification GoCardless. Le code Clenzy est déjà prêt pour la production : seules les variables d'env changent.</p>
+</div>
+
+</section>
+
+</body>
+</html>
