@@ -53,9 +53,14 @@ class ChannexSyncServiceTest {
 
     @BeforeEach
     void setUp() {
+        // ChannexSyncLogService est mocke via une instance fake qui no-op : on
+        // ne teste pas l'ecriture des logs ici (couvert par les tests d'integration
+        // dedies), juste le comportement metier de sync.
+        ChannexSyncLogService noopLogs = org.mockito.Mockito.mock(ChannexSyncLogService.class);
         service = new ChannexSyncService(
             channexClient, mappingRepository, calendarDayRepository, priceEngine, new ObjectMapper(),
-            new ChannexMetrics(new SimpleMeterRegistry())
+            new ChannexMetrics(new SimpleMeterRegistry()),
+            noopLogs
         );
 
         mapping = new ChannexPropertyMapping();
@@ -107,6 +112,7 @@ class ChannexSyncServiceTest {
     void pushesAvailabilityAndRatesWhenMappingActive() {
         when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
             .thenReturn(Optional.of(mapping));
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(true);
         when(calendarDayRepository.findByPropertyAndDateRange(eq(100L), any(), any(), eq(42L)))
             .thenReturn(List.of());
         when(priceEngine.resolvePriceRange(eq(100L), any(), any(), eq(42L)))
@@ -145,6 +151,7 @@ class ChannexSyncServiceTest {
     void mapsCalendarStatusToAvailability() {
         when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
             .thenReturn(Optional.of(mapping));
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(true);
 
         // Jour 2 bloque par BOOKED
         CalendarDay booked = new CalendarDay();
@@ -176,6 +183,7 @@ class ChannexSyncServiceTest {
     void marksErrorOnAvailabilityFailure() {
         when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
             .thenReturn(Optional.of(mapping));
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(true);
         when(calendarDayRepository.findByPropertyAndDateRange(eq(100L), any(), any(), eq(42L)))
             .thenReturn(List.of());
         when(priceEngine.resolvePriceRange(eq(100L), any(), any(), eq(42L)))
@@ -194,10 +202,12 @@ class ChannexSyncServiceTest {
     }
 
     @Test
-    @DisplayName("pushProperty (manuel) retourne le bilan + sauve le mapping")
+    @DisplayName("pushProperty (manuel) retourne le bilan + sauve le mapping (avec OTA actif)")
     void pushPropertyReturnsResult() {
         when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
             .thenReturn(Optional.of(mapping));
+        // Prerequis : au moins un OTA actif cote Channex sinon push est skip
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(true);
         when(calendarDayRepository.findByPropertyAndDateRange(eq(100L), any(), any(), eq(42L)))
             .thenReturn(List.of());
         when(priceEngine.resolvePriceRange(eq(100L), any(), any(), eq(42L)))
@@ -213,6 +223,27 @@ class ChannexSyncServiceTest {
         assertThat(result.availabilityUpdates()).isEqualTo(7);
         verify(channexClient).pushAvailability(anyList());
         verify(channexClient).pushRates(anyList());
+    }
+
+    @Test
+    @DisplayName("pushProperty sans OTA actif -> skip silencieux + result.message explicite")
+    void pushPropertySkipsIfNoActiveOta() {
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.of(mapping));
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(false);
+
+        ChannexSyncService.ChannexSyncResult result = service.pushProperty(
+            100L, 42L,
+            LocalDate.of(2026, 6, 1),
+            LocalDate.of(2026, 6, 7)
+        );
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.availabilityUpdates()).isZero();
+        assertThat(result.message()).contains("no active OTA");
+        // Aucun push effectue cote Channex
+        verify(channexClient, never()).pushAvailability(anyList());
+        verify(channexClient, never()).pushRates(anyList());
     }
 
     @Test

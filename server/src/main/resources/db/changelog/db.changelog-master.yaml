@@ -1175,3 +1175,42 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  - changeSet:
+      id: "0126-add-external-url-to-property-photos"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0126__add_external_url_to_property_photos.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0127 : OTA raw amenities (transparence des amenities non mappees) ---
+  - changeSet:
+      id: "0127-add-ota-raw-amenities-to-properties"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0127__add_ota_raw_amenities_to_properties.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0128 : Gestion des commodites OTA (aliases + custom + ignored) ---
+  - changeSet:
+      id: "0128-add-amenity-management-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0128__add_amenity_management_tables.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0129 : Channex sync logs (historique des push par property) ---
+  - changeSet:
+      id: "0129-add-channex-sync-logs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0129__add_channex_sync_logs.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

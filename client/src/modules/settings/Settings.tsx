@@ -34,6 +34,7 @@ import {
   SmartToy,
   Extension,
   CalendarMonth,
+  LocalOffer,
 } from '../../icons';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
@@ -66,6 +67,7 @@ import PaymentSettings from './PaymentSettings';
 import AiSettingsSection from './AiSettingsSection';
 import IntegrationsSection from './IntegrationsSection';
 import IntegrationsHeader from './components/IntegrationsHeader';
+import AmenityMappingPage from './amenity-mapping/AmenityMappingPage';
 import {
   ALL_SERVICES,
   getDomIdForCategory,
@@ -627,6 +629,7 @@ export default function Settings() {
           { label: 'Paiement', icon: <Payment />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
           { label: 'Intégrations', icon: <Extension />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
           { label: 'Reversements', icon: <CalendarMonth />, hidden: !hasAnyRole(['SUPER_ADMIN']) },
+          { label: 'Commodités OTA', icon: <LocalOffer />, hidden: !hasAnyRole(['HOST', 'SUPERVISOR', 'SUPER_ADMIN', 'SUPER_MANAGER']) },
         ]}
         value={tabValue}
         onChange={handleTabChange}
@@ -1033,6 +1036,13 @@ export default function Settings() {
           <Box sx={{ mt: 2 }}>
             <OwnerPayoutSettings />
           </Box>
+        </TabPanel>
+      )}
+
+      {/* ─── Onglet Commodités OTA ─────────────────────────────────────── */}
+      {hasAnyRole(['HOST', 'SUPERVISOR', 'SUPER_ADMIN', 'SUPER_MANAGER']) && (
+        <TabPanel value={tabValue} index={9}>
+          <AmenityMappingPage />
         </TabPanel>
       )}
 

@@ -31,6 +31,19 @@ public class PropertyPhoto {
     @Column(name = "storage_key", length = 500)
     private String storageKey;
 
+    /**
+     * URL externe vers la photo originale (Airbnb, Booking, Vrbo via Channex).
+     * Permet de referencer des photos hebergees ailleurs sans avoir a telecharger
+     * et stocker les bytes en local. Le getter {@link #getUrl()} priorise ce
+     * champ s'il est present.
+     *
+     * <p>Cas typique : import en masse d'une property Channex avec
+     * {@code content.photos[]} non-vide — chaque photo cree un {@link PropertyPhoto}
+     * avec {@code externalUrl} set et {@code data=null}.</p>
+     */
+    @Column(name = "external_url", length = 2048)
+    private String externalUrl;
+
     @Column(name = "original_filename", length = 255)
     private String originalFilename;
 
@@ -81,6 +94,9 @@ public class PropertyPhoto {
     public String getStorageKey() { return storageKey; }
     public void setStorageKey(String storageKey) { this.storageKey = storageKey; }
 
+    public String getExternalUrl() { return externalUrl; }
+    public void setExternalUrl(String externalUrl) { this.externalUrl = externalUrl; }
+
     public String getOriginalFilename() { return originalFilename; }
     public void setOriginalFilename(String originalFilename) { this.originalFilename = originalFilename; }
 
@@ -112,10 +128,14 @@ public class PropertyPhoto {
     public void setProperty(Property property) { this.property = property; }
 
     /**
-     * Backward-compatible URL getter for booking engine DTOs.
-     * Returns the storage key prefixed with the API path for photo retrieval.
+     * URL absolue ou relative vers la photo. Priorise {@link #externalUrl} si
+     * present (photos importees depuis Channex/Airbnb), sinon construit le
+     * chemin API local vers le bytea (photos uploadees manuellement).
      */
     public String getUrl() {
+        if (externalUrl != null && !externalUrl.isBlank()) {
+            return externalUrl;
+        }
         if (storageKey != null && property != null) {
             return "/api/properties/" + property.getId() + "/photos/" + id + "/data";
         }
