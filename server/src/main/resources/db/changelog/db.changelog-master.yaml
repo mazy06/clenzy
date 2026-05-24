@@ -1214,3 +1214,33 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0130 : Extend rate_plans.type CHECK aux 9 valeurs enum Java ---
+  - changeSet:
+      id: "0130-extend-rate-plans-type-check"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0130__extend_rate_plans_type_check.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0131 : Price source of truth + table de detection des drifts OTA ---
+  - changeSet:
+      id: "0131-add-price-source-of-truth"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0131__add_price_source_of_truth.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0132 : Metadonnees booking OTA sur properties (Phase 4) ---
+  - changeSet:
+      id: "0132-add-property-ota-booking-metadata"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0132__add_property_ota_booking_metadata.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

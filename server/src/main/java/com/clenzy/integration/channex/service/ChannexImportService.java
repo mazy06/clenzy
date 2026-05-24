@@ -19,12 +19,19 @@ import com.clenzy.integration.channex.model.ChannexPropertyMapping;
 import com.clenzy.integration.channex.model.ChannexSyncStatus;
 import com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository;
 import com.clenzy.model.LengthOfStayDiscount;
+import com.clenzy.model.OccupancyPricing;
+import com.clenzy.model.RateOverride;
+import com.clenzy.model.RatePlan;
+import com.clenzy.model.RatePlanType;
 import com.clenzy.model.Property;
 import com.clenzy.model.PropertyPhoto;
 import com.clenzy.model.PropertyStatus;
 import com.clenzy.model.PropertyType;
 import com.clenzy.model.User;
 import com.clenzy.repository.LengthOfStayDiscountRepository;
+import com.clenzy.repository.OccupancyPricingRepository;
+import com.clenzy.repository.RateOverrideRepository;
+import com.clenzy.repository.RatePlanRepository;
 import com.clenzy.repository.PropertyPhotoRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
@@ -85,6 +92,9 @@ public class ChannexImportService {
     private final ChannexConnectService connectService;
     private final UserRepository userRepository;
     private final LengthOfStayDiscountRepository lengthOfStayDiscountRepository;
+    private final RatePlanRepository ratePlanRepository;
+    private final OccupancyPricingRepository occupancyPricingRepository;
+    private final RateOverrideRepository rateOverrideRepository;
     private final ObjectMapper objectMapper;
     private final AmenityManagementService amenityManagementService;
 
@@ -101,6 +111,9 @@ public class ChannexImportService {
                                   ChannexConnectService connectService,
                                   UserRepository userRepository,
                                   LengthOfStayDiscountRepository lengthOfStayDiscountRepository,
+                                  RatePlanRepository ratePlanRepository,
+                                  OccupancyPricingRepository occupancyPricingRepository,
+                                  RateOverrideRepository rateOverrideRepository,
                                   ObjectMapper objectMapper,
                                   AmenityManagementService amenityManagementService) {
         this.channexClient = channexClient;
@@ -110,6 +123,9 @@ public class ChannexImportService {
         this.connectService = connectService;
         this.userRepository = userRepository;
         this.lengthOfStayDiscountRepository = lengthOfStayDiscountRepository;
+        this.ratePlanRepository = ratePlanRepository;
+        this.occupancyPricingRepository = occupancyPricingRepository;
+        this.rateOverrideRepository = rateOverrideRepository;
         this.objectMapper = objectMapper;
         this.amenityManagementService = amenityManagementService;
     }
@@ -121,7 +137,7 @@ public class ChannexImportService {
      * Si Channex ne les fournit pas (rate_plan absent / channel inactif), les
      * champs sont {@code null} (pas de fabrication).
      */
-    private record ChannelListingInfo(
+    record ChannelListingInfo(
         // Identite OTA
         String otaName,             // "AirBNB", "BookingCom", ...
         String listingId,           // settings.listing_id (ex Airbnb: "1512384244344462850")
@@ -551,6 +567,19 @@ public class ChannexImportService {
                     if (info.minNights() != null && info.minNights() > 0) {
                         prop.setMinimumNights(info.minNights());
                     }
+                    // Phase 4 OTA metadata : 6 champs additionnels importes depuis le rate_plan
+                    if (info.maxNights() != null && info.maxNights() > 0) {
+                        prop.setMaximumNights(info.maxNights());
+                    }
+                    if (info.cancellationPolicy() != null && !info.cancellationPolicy().isBlank()) {
+                        prop.setCancellationPolicy(info.cancellationPolicy());
+                    }
+                    if (info.instantBookingPolicy() != null && !info.instantBookingPolicy().isBlank()) {
+                        prop.setInstantBookingPolicy(info.instantBookingPolicy());
+                    }
+                    if (info.allowsPets() != null) prop.setAllowsPets(info.allowsPets());
+                    if (info.allowsSmoking() != null) prop.setAllowsSmoking(info.allowsSmoking());
+                    if (info.allowsEvents() != null) prop.setAllowsEvents(info.allowsEvents());
                     // Lien retour vers la fiche Airbnb publique (pour affichage UX)
                     if ("AirBNB".equalsIgnoreCase(info.otaName())) {
                         prop.setAirbnbListingId(info.listingId());
@@ -670,13 +699,21 @@ public class ChannexImportService {
                 mapping.setSyncStatus(ChannexSyncStatus.PENDING);
                 mappingRepository.save(mapping);
 
-                // 6. Creer les LengthOfStayDiscount (= campagnes de prix
-                //    longue-duree) depuis les facteurs Channex :
-                //      - weekly_price_factor  → discount [7, 27] nuits
-                //      - monthly_price_factor → discount [28, +∞[ nuits
-                //    Les facteurs Channex sont des pourcentages de remise.
-                //    On ne cree QUE si > 0 (skip "0" qui signifie pas de remise).
+                // 6. Creer les artefacts tarifaires Clenzy depuis le rate_plan OTA :
+                //    a) LengthOfStayDiscount (weekly/monthly factors)
+                //    b) RatePlan(type=BASE)  ← Phase 1 : tracker l'origine OTA
+                //    c) RatePlan(type=WEEKEND) si weekend_price differe du default
+                //    d) OccupancyPricing si guests_included + extra_person_price
+                //    e) RateOverride par date  ← Phase 2 : capture le calendrier
+                //       OTA exact au moment de la connexion (festivals, evenements,
+                //       ajustements manuels du host). Best-effort si endpoint
+                //       /restrictions GET non supporte par Channex.
+                //    Tous sont idempotents (skip si deja present pour ce property).
                 int discountsCreated = createLengthOfStayDiscounts(prop, orgId, info);
+                boolean baseRatePlanCreated = createBaseRatePlan(prop, orgId, info);
+                boolean weekendRatePlanCreated = createWeekendRatePlan(prop, orgId, info);
+                boolean occupancyPricingCreated = createOccupancyPricingFromOta(prop, orgId, info);
+                int rateOverridesCreated = importRateOverridesFromOta(prop, orgId, mapping, info);
 
                 // 7. Pull initial des reservations OTA (Airbnb / Booking / Vrbo).
                 //    Plage : [1er janvier annee courante → aujourd'hui + 12 mois]
@@ -732,6 +769,23 @@ public class ChannexImportService {
                     + (importedBookings > 1 ? "s" : "") + " importee" + (importedBookings > 1 ? "s" : "");
                 if (discountsCreated > 0) msg += ", " + discountsCreated + " campagne"
                     + (discountsCreated > 1 ? "s" : "") + " de prix";
+                // Phase 1 OTA pricing : counters concis sur ce qui a ete cree depuis le rate_plan
+                int pricingArtefacts = (baseRatePlanCreated ? 1 : 0)
+                    + (weekendRatePlanCreated ? 1 : 0)
+                    + (occupancyPricingCreated ? 1 : 0);
+                if (pricingArtefacts > 0) {
+                    java.util.List<String> labels = new java.util.ArrayList<>();
+                    if (baseRatePlanCreated) labels.add("BASE rate plan");
+                    if (weekendRatePlanCreated) labels.add("WEEKEND rate plan");
+                    if (occupancyPricingCreated) labels.add("Occupancy pricing");
+                    msg += ", " + String.join(" + ", labels) + " importe"
+                        + (pricingArtefacts > 1 ? "s" : "") + " depuis OTA";
+                }
+                if (rateOverridesCreated > 0) {
+                    msg += ", " + rateOverridesCreated + " prix par date OTA importe"
+                        + (rateOverridesCreated > 1 ? "s" : "")
+                        + " (festivals/evenements/ajustements host)";
+                }
                 int mappedCount = resolvedAmenities.mapped.size();
                 int unmappedCount = resolvedAmenities.stillUnmapped.size();
                 int totalAmenities = mappedCount + unmappedCount;
@@ -1756,6 +1810,285 @@ public class ChannexImportService {
     private boolean hasExistingDiscount(Long propertyId, Long orgId, int minNights) {
         return lengthOfStayDiscountRepository.findByPropertyId(propertyId, orgId).stream()
             .anyMatch(d -> d.getMinNights() == minNights);
+    }
+
+    // ─── Phase 1 OTA pricing import — RatePlan + OccupancyPricing ─────────────
+
+    /**
+     * Cree un {@link RatePlan} de type {@link RatePlanType#BASE} a partir de
+     * {@code info.defaultPrice} pour permettre au {@link com.clenzy.service.PriceEngine}
+     * de resoudre via le niveau 5 (BASE) plutot que via le fallback property.nightlyPrice.
+     *
+     * <p><b>Pourquoi un RatePlan en plus de Property.nightlyPrice</b> :</p>
+     * <ul>
+     *   <li>Tracking d'origine via {@code name} ("OTA Base — {otaName}")</li>
+     *   <li>Currency explicite stockee separement</li>
+     *   <li>Foundation pour Phase 4 : un RatePlan par variante Channex (refundable/non-refundable)</li>
+     * </ul>
+     *
+     * <p>Idempotent : skip si un BASE plan existe deja pour cette property.</p>
+     *
+     * @return true si un RatePlan a ete cree
+     */
+    boolean createBaseRatePlan(Property prop, Long orgId, ChannelListingInfo info) {
+        if (info == null || info.defaultPrice() == null || info.defaultPrice().signum() <= 0) {
+            return false;
+        }
+        try {
+            boolean exists = !ratePlanRepository
+                .findByPropertyIdAndType(prop.getId(), RatePlanType.BASE, orgId).isEmpty();
+            if (exists) {
+                log.debug("ChannexImport: BASE rate plan deja present pour property={}, skip",
+                    prop.getId());
+                return false;
+            }
+            RatePlan plan = new RatePlan();
+            plan.setProperty(prop);
+            plan.setOrganizationId(orgId);
+            plan.setName("OTA Base — " + (info.otaName() != null ? info.otaName() : "Channex"));
+            plan.setType(RatePlanType.BASE);
+            plan.setPriority(0);
+            plan.setNightlyPrice(info.defaultPrice());
+            plan.setCurrency(info.currency() != null
+                ? info.currency().toUpperCase() : prop.getDefaultCurrency());
+            plan.setIsActive(true);
+            ratePlanRepository.save(plan);
+            log.info("ChannexImport: created BASE RatePlan property={} price={}{} (source OTA {})",
+                prop.getId(), plan.getNightlyPrice(), plan.getCurrency(), info.otaName());
+            return true;
+        } catch (Exception e) {
+            log.warn("ChannexImport: creation BASE RatePlan KO property={} : {}",
+                prop.getId(), e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Cree un {@link RatePlan} de type {@link RatePlanType#WEEKEND} depuis
+     * {@code info.weekendPrice} (le tarif vendredi-dimanche cote Airbnb).
+     *
+     * <p>{@code daysOfWeek = [5, 6, 7]} (vendredi, samedi, dimanche) selon la
+     * convention ISO ({@code DayOfWeek.getValue()} : 1=Lundi … 7=Dimanche).
+     * Priority = 10 (au-dessus du BASE qui est a 0) — le PriceEngine ne resoud
+     * pas WEEKEND directement, mais via le tri par priority au sein du type BASE.</p>
+     *
+     * <p><b>Note importante</b> : le {@link com.clenzy.service.PriceEngine} actuel ne
+     * resoud QUE les types PROMOTIONAL/SEASONAL/LAST_MINUTE/BASE. WEEKEND n'est
+     * pas dans son ordre de resolution. Pour que le tarif weekend soit applique
+     * un cron/Resolver future devra l'integrer. En attendant, le RatePlan est
+     * cree pour la visibilite UI + futur usage.</p>
+     *
+     * <p>Skip si : weekendPrice null OU egal au defaultPrice (pas de differenciation)
+     * OU WEEKEND plan deja present.</p>
+     *
+     * @return true si un RatePlan a ete cree
+     */
+    boolean createWeekendRatePlan(Property prop, Long orgId, ChannelListingInfo info) {
+        if (info == null || info.weekendPrice() == null
+            || info.weekendPrice().signum() <= 0) {
+            return false;
+        }
+        // Pas de differenciation weekend → inutile de creer le plan
+        if (info.defaultPrice() != null
+            && info.weekendPrice().compareTo(info.defaultPrice()) == 0) {
+            return false;
+        }
+        try {
+            boolean exists = !ratePlanRepository
+                .findByPropertyIdAndType(prop.getId(), RatePlanType.WEEKEND, orgId).isEmpty();
+            if (exists) {
+                log.debug("ChannexImport: WEEKEND rate plan deja present pour property={}, skip",
+                    prop.getId());
+                return false;
+            }
+            RatePlan plan = new RatePlan();
+            plan.setProperty(prop);
+            plan.setOrganizationId(orgId);
+            plan.setName("OTA Weekend — " + (info.otaName() != null ? info.otaName() : "Channex"));
+            plan.setType(RatePlanType.WEEKEND);
+            plan.setPriority(10);
+            plan.setNightlyPrice(info.weekendPrice());
+            plan.setCurrency(info.currency() != null
+                ? info.currency().toUpperCase() : prop.getDefaultCurrency());
+            // Vendredi, samedi, dimanche
+            plan.setDaysOfWeek(new Integer[] { 5, 6, 7 });
+            plan.setIsActive(true);
+            ratePlanRepository.save(plan);
+            log.info("ChannexImport: created WEEKEND RatePlan property={} price={}{} (vs base {})",
+                prop.getId(), plan.getNightlyPrice(), plan.getCurrency(), info.defaultPrice());
+            return true;
+        } catch (Exception e) {
+            log.warn("ChannexImport: creation WEEKEND RatePlan KO property={} : {}",
+                prop.getId(), e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Cree une {@link OccupancyPricing} depuis les champs {@code guestsIncluded}
+     * et {@code pricePerExtraPerson} du rate_plan Channex.
+     *
+     * <p>Mapping :</p>
+     * <ul>
+     *   <li>{@code info.guestsIncluded}      → {@code baseOccupancy}
+     *       (nombre de voyageurs inclus dans le tarif de base)</li>
+     *   <li>{@code info.pricePerExtraPerson} → {@code extraGuestFee}</li>
+     *   <li>{@code property.maxGuests}       → {@code maxOccupancy}</li>
+     * </ul>
+     *
+     * <p>Skip si : guestsIncluded null OU pricePerExtraPerson null/zero (pas de
+     * surcharge a appliquer) OU OccupancyPricing existe deja.</p>
+     *
+     * @return true si une OccupancyPricing a ete creee
+     */
+    /**
+     * Phase 2 OTA pricing — Pull du calendrier de prix Channex et creation de
+     * {@link RateOverride} pour les dates ou le prix differe du tarif de base.
+     *
+     * <p>Capture fidelement ce qui etait dans Airbnb au moment de la connexion :
+     * dates de festival, evenements locaux, ajustements manuels du host, etc.
+     * Sans ce pull, on perdrait ce calendrier et le PriceEngine pousserait son
+     * propre prix uniforme.</p>
+     *
+     * <p><b>Conditions</b> :</p>
+     * <ul>
+     *   <li>{@code mapping.channexDefaultRatePlanId} requis (sinon skip)</li>
+     *   <li>{@code info.defaultPrice} requis comme reference de comparaison
+     *       (on ne cree des overrides QUE pour les dates ou rate ≠ defaultPrice)</li>
+     * </ul>
+     *
+     * <p><b>Idempotence</b> : si un {@link RateOverride} existe deja pour
+     * (property, date), on skip silencieusement — l'admin a peut-etre deja
+     * personnalise ce prix entre 2 imports.</p>
+     *
+     * @return nb de RateOverride creees (0 si endpoint Channex non supporte
+     *         ou aucune date avec prix override cote OTA)
+     */
+    int importRateOverridesFromOta(Property prop, Long orgId,
+                                     com.clenzy.integration.channex.model.ChannexPropertyMapping mapping,
+                                     ChannelListingInfo info) {
+        if (mapping == null || mapping.getChannexDefaultRatePlanId() == null) {
+            log.debug("ChannexImport[RATE_OVERRIDES]: pas de rate_plan_id mapping, skip property={}",
+                prop.getId());
+            return 0;
+        }
+        if (info == null || info.defaultPrice() == null) {
+            log.debug("ChannexImport[RATE_OVERRIDES]: pas de defaultPrice reference, skip property={}",
+                prop.getId());
+            return 0;
+        }
+        java.time.LocalDate from = java.time.LocalDate.now();
+        java.time.LocalDate to = from.plusMonths(12);
+
+        java.util.Optional<java.util.List<com.fasterxml.jackson.databind.JsonNode>> opt =
+            channexClient.fetchRatesForRange(mapping.getChannexPropertyId(),
+                mapping.getChannexDefaultRatePlanId(), from, to);
+        if (opt.isEmpty()) {
+            log.info("ChannexImport[RATE_OVERRIDES]: endpoint Channex /restrictions non supporte, skip property={}",
+                prop.getId());
+            return 0;
+        }
+        java.util.List<com.fasterxml.jackson.databind.JsonNode> entries = opt.get();
+        if (entries.isEmpty()) {
+            log.info("ChannexImport[RATE_OVERRIDES]: aucune entry rate cote Channex property={} sur 12 mois",
+                prop.getId());
+            return 0;
+        }
+
+        BigDecimal defaultPrice = info.defaultPrice();
+        int created = 0;
+        int skippedSame = 0;
+        int skippedExisting = 0;
+
+        for (com.fasterxml.jackson.databind.JsonNode entry : entries) {
+            try {
+                // Channex JSON:API : { attributes: { date, rate, ... } }
+                com.fasterxml.jackson.databind.JsonNode attrs = entry.path("attributes");
+                String dateStr = attrs.path("date").asText(null);
+                String rateStr = attrs.path("rate").asText(null);
+                if (dateStr == null || rateStr == null || rateStr.isBlank()) continue;
+
+                java.time.LocalDate date;
+                BigDecimal rate;
+                try {
+                    date = java.time.LocalDate.parse(dateStr);
+                    rate = new BigDecimal(rateStr);
+                } catch (Exception parseError) {
+                    log.debug("ChannexImport[RATE_OVERRIDES]: parse KO date={} rate={}, skip",
+                        dateStr, rateStr);
+                    continue;
+                }
+
+                // Skip si meme prix que le default (pas d'override utile)
+                if (rate.compareTo(defaultPrice) == 0) {
+                    skippedSame++;
+                    continue;
+                }
+                // Skip si un override existe deja (admin peut l'avoir personnalise)
+                if (rateOverrideRepository.findByPropertyIdAndDate(prop.getId(), date, orgId).isPresent()) {
+                    skippedExisting++;
+                    continue;
+                }
+
+                RateOverride override = new RateOverride();
+                override.setProperty(prop);
+                override.setOrganizationId(orgId);
+                override.setDate(date);
+                override.setNightlyPrice(rate);
+                override.setSource("OTA:" + (info.otaName() != null ? info.otaName() : "Channex"));
+                override.setCurrency(info.currency() != null
+                    ? info.currency().toUpperCase() : prop.getDefaultCurrency());
+                override.setCreatedBy("channex-import");
+                rateOverrideRepository.save(override);
+                created++;
+            } catch (Exception e) {
+                log.warn("ChannexImport[RATE_OVERRIDES]: erreur sur entry property={}: {}",
+                    prop.getId(), e.getMessage());
+            }
+        }
+        log.info("ChannexImport[RATE_OVERRIDES]: property={} created={} skippedSameAsDefault={} skippedExisting={} totalEntries={}",
+            prop.getId(), created, skippedSame, skippedExisting, entries.size());
+        return created;
+    }
+
+    boolean createOccupancyPricingFromOta(Property prop, Long orgId,
+                                            ChannelListingInfo info) {
+        if (info == null || info.guestsIncluded() == null || info.guestsIncluded() <= 0) {
+            return false;
+        }
+        if (info.pricePerExtraPerson() == null || info.pricePerExtraPerson().signum() <= 0) {
+            // Pas de surcharge → inutile de creer (l'algo PriceEngine retourne
+            // ZERO ajustement dans ce cas, autant ne pas polluer la DB).
+            return false;
+        }
+        try {
+            boolean exists = occupancyPricingRepository
+                .findByPropertyId(prop.getId(), orgId).isPresent();
+            if (exists) {
+                log.debug("ChannexImport: OccupancyPricing deja present pour property={}, skip",
+                    prop.getId());
+                return false;
+            }
+            int maxOccupancy = prop.getMaxGuests() != null && prop.getMaxGuests() > 0
+                ? prop.getMaxGuests()
+                : Math.max(info.guestsIncluded() + 4, 6); // fallback safe : base + 4 ou min 6
+            OccupancyPricing op = new OccupancyPricing();
+            op.setProperty(prop);
+            op.setOrganizationId(orgId);
+            op.setBaseOccupancy(info.guestsIncluded());
+            op.setExtraGuestFee(info.pricePerExtraPerson());
+            op.setMaxOccupancy(maxOccupancy);
+            op.setActive(true);
+            occupancyPricingRepository.save(op);
+            log.info("ChannexImport: created OccupancyPricing property={} base={} extra={}{} max={}",
+                prop.getId(), op.getBaseOccupancy(), op.getExtraGuestFee(),
+                info.currency() != null ? info.currency() : "", op.getMaxOccupancy());
+            return true;
+        } catch (Exception e) {
+            log.warn("ChannexImport: creation OccupancyPricing KO property={} : {}",
+                prop.getId(), e.getMessage());
+            return false;
+        }
     }
 
     /**

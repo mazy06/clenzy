@@ -822,6 +822,66 @@ public class ChannexClient {
         log.info("Channex: pushed {} rate updates", updates.size());
     }
 
+    /**
+     * Pull du calendrier de tarifs Channex pour un rate_plan donne — Phase 2 OTA pricing.
+     *
+     * <p>Permet de capturer fidelement les prix par date deja presents cote OTA
+     * au moment de la connexion (host qui a override le prix pour des dates
+     * specifiques : festival, evenement, etc).</p>
+     *
+     * <p>Filtres JSON:API standards : property_id + rate_plan_id + plage de dates.
+     * Channex retourne un array d'entries {date, rate, min_stay_through, ...}.
+     * Best-effort : si Channex ne supporte pas l'endpoint ou renvoie un payload
+     * vide, on retourne une {@link Optional#empty}.</p>
+     *
+     * <p><b>Format de retour</b> : map {@code date → Map(rate, restrictions)}
+     * (Map<String,Object> pour rester souple sur les champs additionnels). Le
+     * caller filtre/parse ce qui l'interesse.</p>
+     *
+     * @param channexPropertyId Property Channex
+     * @param channexRatePlanId Rate plan a interroger (typiquement le default
+     *                          du mapping)
+     * @param from              Date min (inclusive)
+     * @param to                Date max (inclusive)
+     * @return liste des entries (vide si Channex repond mais aucune entry),
+     *         {@link Optional#empty()} si l'endpoint ne supporte pas la query
+     */
+    public java.util.Optional<java.util.List<JsonNode>> fetchRatesForRange(
+            String channexPropertyId, String channexRatePlanId,
+            java.time.LocalDate from, java.time.LocalDate to) {
+        try {
+            // Channex JSON:API : filter[X] syntax. property_id + rate_plan_id +
+            // plage. limit haut pour ne pas paginer (12 mois = 365 entries max).
+            String url = props.getBaseUrl() + "/restrictions"
+                + "?filter[property_id]=" + channexPropertyId
+                + "&filter[rate_plan_id]=" + channexRatePlanId
+                + "&filter[date][gte]=" + from
+                + "&filter[date][lte]=" + to
+                + "&pagination[limit]=500";
+            JsonNode response = exchange(HttpMethod.GET, url, null, JsonNode.class);
+            if (response == null || !response.path("data").isArray()) {
+                log.debug("Channex: fetchRatesForRange retour vide property={} ratePlan={}",
+                    channexPropertyId, channexRatePlanId);
+                return java.util.Optional.of(java.util.List.of());
+            }
+            java.util.List<JsonNode> entries = new java.util.ArrayList<>();
+            for (JsonNode entry : response.path("data")) {
+                entries.add(entry);
+            }
+            log.info("Channex: fetched {} rate entries property={} ratePlan={} range=[{}, {}]",
+                entries.size(), channexPropertyId, channexRatePlanId, from, to);
+            return java.util.Optional.of(entries);
+        } catch (ChannexException e) {
+            // 404 / 400 / endpoint not supported : on degrade gracefully
+            log.warn("Channex: fetchRatesForRange non supporte ou en erreur ({}), on skip",
+                e.getMessage());
+            return java.util.Optional.empty();
+        } catch (Exception e) {
+            log.warn("Channex: fetchRatesForRange erreur inattendue : {}", e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
     // ─── Bookings ───────────────────────────────────────────────────────────
 
     /** Recupere une booking specifique (utile pour reconciliation post-webhook). */

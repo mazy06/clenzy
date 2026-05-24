@@ -57,10 +57,18 @@ class ChannexSyncServiceTest {
         // ne teste pas l'ecriture des logs ici (couvert par les tests d'integration
         // dedies), juste le comportement metier de sync.
         ChannexSyncLogService noopLogs = org.mockito.Mockito.mock(ChannexSyncLogService.class);
+        com.clenzy.repository.PropertyRepository propertyRepo =
+            org.mockito.Mockito.mock(com.clenzy.repository.PropertyRepository.class);
+        // Defaut : property en mode CLENZY (push autorise)
+        com.clenzy.model.Property propStub = new com.clenzy.model.Property();
+        propStub.setPriceSourceOfTruth(com.clenzy.model.PriceSourceOfTruth.CLENZY);
+        org.mockito.Mockito.lenient().when(propertyRepo.findById(org.mockito.ArgumentMatchers.anyLong()))
+            .thenReturn(java.util.Optional.of(propStub));
         service = new ChannexSyncService(
             channexClient, mappingRepository, calendarDayRepository, priceEngine, new ObjectMapper(),
             new ChannexMetrics(new SimpleMeterRegistry()),
-            noopLogs
+            noopLogs,
+            propertyRepo
         );
 
         mapping = new ChannexPropertyMapping();
