@@ -1244,3 +1244,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0133 : Fix partial unique sur channex_price_drifts (audit Phase 5) ---
+  - changeSet:
+      id: "0133-fix-channex-price-drift-partial-unique"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0133__fix_channex_price_drift_partial_unique.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

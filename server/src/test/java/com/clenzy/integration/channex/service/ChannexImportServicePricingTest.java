@@ -446,23 +446,26 @@ class ChannexImportServicePricingTest {
         verify(ratePlanRepository, org.mockito.Mockito.times(2)).save(captor.capture());
         assertThat(captor.getAllValues()).allSatisfy(rp -> {
             assertThat(rp.getType()).isEqualTo(com.clenzy.model.RatePlanType.PROMOTIONAL);
-            assertThat(rp.getName()).startsWith("OTA — ");
+            // Phase 5 audit fix : nouveau format "OTA [xxxxxxxx] — Title"
+            assertThat(rp.getName()).startsWith("OTA [").contains("] — ");
             assertThat(rp.getPriority()).isEqualTo(5);
             assertThat(rp.getCurrency()).isEqualTo("EUR");
         });
     }
 
     @Test
-    @DisplayName("importAdditionalRatePlansFromOta: variante avec nom deja existant -> skip idempotent")
-    void additionalRatePlans_skipDuplicateName() {
+    @DisplayName("importAdditionalRatePlansFromOta: variante avec meme Channex ID -> skip idempotent (meme si title a change)")
+    void additionalRatePlans_skipDuplicateId() {
         Property prop = property(100L);
         com.clenzy.model.RatePlan existingPromo = new com.clenzy.model.RatePlan();
-        existingPromo.setName("OTA — Non-refundable -10%");
+        // Le name contient l'ID Channex tronque (premiers 8 chars) entre [].
+        existingPromo.setName("OTA [rp-2-abc] — Ancien titre qui a change");
         when(ratePlanRepository.findByPropertyIdAndType(100L, com.clenzy.model.RatePlanType.PROMOTIONAL, 42L))
             .thenReturn(java.util.List.of(existingPromo));
 
         var additional = java.util.List.of(
-            new ChannexImportService.AdditionalRatePlan("rp-2", "Non-refundable -10%",
+            // Meme ID Channex, mais titre different
+            new ChannexImportService.AdditionalRatePlan("rp-2-abc", "Nouveau titre Non-refundable -10%",
                 new BigDecimal("80.10"), "EUR")
         );
 
