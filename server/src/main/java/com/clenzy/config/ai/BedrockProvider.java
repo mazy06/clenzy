@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.util.HashMap;
@@ -93,6 +94,13 @@ public class BedrockProvider implements AiProvider {
                     .body(requestBody)
                     .retrieve()
                     .body(String.class);
+        } catch (HttpClientErrorException.Gone e) {
+            // Provider a sunset le modele (ex: NVIDIA Build qui retire les anciens Qwen 2.5).
+            // On donne un message d'action clair plutot que de relayer le JSON brut.
+            log.warn("{} API: modele '{}' obsolete (410 Gone). Reponse: {}", label, model, e.getResponseBodyAsString());
+            throw new AiProviderException(label,
+                    "Le modele '" + model + "' n'est plus disponible chez " + label
+                            + ". Selectionnez un nouveau modele dans Parametres > IA et sauvegardez.", e);
         } catch (Exception e) {
             log.error("{} API call failed: {}", label, e.getMessage());
             throw new AiProviderException(label, "API call failed: " + e.getMessage(), e);
