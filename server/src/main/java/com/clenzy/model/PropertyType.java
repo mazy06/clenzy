@@ -29,7 +29,27 @@ public enum PropertyType {
      * Loft
      */
     LOFT("Loft", "Loft ou espace ouvert"),
-    
+
+    /**
+     * Duplex
+     */
+    DUPLEX("Duplex", "Logement sur deux niveaux"),
+
+    /**
+     * Townhouse
+     */
+    TOWNHOUSE("Maison de ville", "Maison mitoyenne en ville"),
+
+    /**
+     * Bungalow
+     */
+    BUNGALOW("Bungalow", "Petite maison de plain-pied"),
+
+    /**
+     * Riad (typique au Maroc)
+     */
+    RIAD("Riad", "Maison marocaine traditionnelle avec patio"),
+
     /**
      * Chambre d'hôte
      */

@@ -53,8 +53,18 @@ COPY --from=build /workspace/target/clenzy-platform-1.0.0.jar /app/app.jar
 # Copy pre-installed Playwright browsers from build stage
 COPY --from=build /playwright-browsers /app/.playwright
 
-# Create upload directories before switching to non-root user
-RUN mkdir -p /app/uploads/templates /app/uploads/documents /app/uploads/contact
+# Create upload + tmp directories before switching to non-root user.
+# /app/tmp est utilise par Spring Boot 3.x pour extraire les nested JARs au
+# demarrage : on l'isole de /tmp (root:root) pour eviter "Failed to create
+# unpack directory in directory '/tmp'" quand l'user clenzy n'a pas les bons
+# droits sur /tmp (cas frequent avec certaines configs Docker Desktop).
+#
+# chmod 1777 sur /app/tmp = sticky bit (comme /tmp standard) pour s'assurer
+# que TOUT user (meme si UID change entre builds) peut creer des sous-dossiers.
+# Diagnostic explicite pour debugger si la layer Docker est corrompue.
+RUN mkdir -p /app/uploads/templates /app/uploads/documents /app/uploads/contact /app/tmp \
+    && chmod 1777 /app/tmp \
+    && test -d /app/tmp || (echo "ERROR: /app/tmp not created" && exit 1)
 
 RUN chown -R clenzy:clenzy /app
 
@@ -65,4 +75,7 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD curl -sf http://localhost:8080/actuator/health || exit 1
 
-ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom $JAVA_OPTS -jar /app/app.jar"]
+# -Djava.io.tmpdir=/app/tmp : force Spring Boot a unpack les nested JARs dans
+# /app/tmp (owned by clenzy) plutot que dans /tmp (root:root sticky-bit qui
+# pose parfois probleme avec les containers non-root).
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.awt.headless=true -Djava.io.tmpdir=/app/tmp -Djava.security.egd=file:/dev/./urandom $JAVA_OPTS -jar /app/app.jar"]

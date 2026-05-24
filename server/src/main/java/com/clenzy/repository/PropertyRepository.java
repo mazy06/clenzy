@@ -21,6 +21,17 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
      */
     @Query("SELECT p FROM Property p WHERE p.latitude IS NULL OR p.longitude IS NULL")
     List<Property> findAllWithoutCoordinates();
+
+    /**
+     * Proprietes d'une org qui ont des amenities OTA brutes non encore mappees.
+     * Utilise par {@code AmenityManagementService} pour l'agregation
+     * "unmapped" et le reprocess.
+     */
+    @Query("SELECT p FROM Property p "
+        + "WHERE p.organizationId = :orgId "
+        + "AND p.otaRawAmenities IS NOT NULL "
+        + "AND p.otaRawAmenities <> ''")
+    List<Property> findByOrgWithRawAmenities(@Param("orgId") Long orgId);
     
     /**
      * Requête optimisée avec FETCH JOIN pour éviter les N+1

@@ -194,6 +194,12 @@ clenzy:
     enabled: true
     token-budget:
       default-monthly-tokens: 500000
+  channex:
+    base-url: ${CHANNEX_BASE_URL:https://staging.channex.io/api/v1}
+    api-key: ${CHANNEX_API_KEY:}
+    webhook-secret: ${CHANNEX_WEBHOOK_SECRET:}
+    timeout: ${CHANNEX_TIMEOUT:30s}
+    max-retries: ${CHANNEX_MAX_RETRIES:3}
   mail:
     provider: ${MAIL_PROVIDER:generic}
     from: ${MAIL_FROM:info@clenzy.fr}
