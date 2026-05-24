@@ -75,6 +75,13 @@ public enum NotificationKey {
     // Phase 3 OTA pricing : detection d'ecarts Clenzy ↔ OTA
     CHANNEX_PRICE_DRIFT_DETECTED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
 
+    // ─── AI MODEL HEALTH (1 cle) ───────────────────────────────────────────────
+    // Emise quand un modele LLM configure repond 410 Gone (EOL chez le provider).
+    // Action requise : aller dans Parametres > IA et reassigner un modele vivant
+    // a la feature impactee. Dedup en memoire dans AiModelDeprecationListener
+    // pour eviter 1000 notifs si 1000 users tapent l'erreur en parallele.
+    AI_MODEL_EOL(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+
     // ─── TEAM (8 cles) ─────────────────────────────────────────────────────────
 
     TEAM_CREATED(NotificationType.INFO, NotificationCategory.TEAM, true),

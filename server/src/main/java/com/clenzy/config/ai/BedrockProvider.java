@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
@@ -30,11 +31,14 @@ public class BedrockProvider implements AiProvider {
 
     private final AiProperties aiProperties;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
     private volatile RestClient restClient;
 
-    public BedrockProvider(AiProperties aiProperties, ObjectMapper objectMapper) {
+    public BedrockProvider(AiProperties aiProperties, ObjectMapper objectMapper,
+                           ApplicationEventPublisher eventPublisher) {
         this.aiProperties = aiProperties;
         this.objectMapper = objectMapper;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -97,7 +101,11 @@ public class BedrockProvider implements AiProvider {
         } catch (HttpClientErrorException.Gone e) {
             // Provider a sunset le modele (ex: NVIDIA Build qui retire les anciens Qwen 2.5).
             // On donne un message d'action clair plutot que de relayer le JSON brut.
-            log.warn("{} API: modele '{}' obsolete (410 Gone). Reponse: {}", label, model, e.getResponseBodyAsString());
+            String providerMessage = e.getResponseBodyAsString();
+            log.warn("{} API: modele '{}' obsolete (410 Gone). Reponse: {}", label, model, providerMessage);
+            // Publie un event async -> AiModelDeprecationListener notifie les SUPER_ADMIN
+            // (avec dedup par "label|model" pour eviter le spam si N requetes concurrentes).
+            eventPublisher.publishEvent(new AiModelDeprecatedEvent(label, model, providerMessage));
             throw new AiProviderException(label,
                     "Le modele '" + model + "' n'est plus disponible chez " + label
                             + ". Selectionnez un nouveau modele dans Parametres > IA et sauvegardez.", e);

@@ -13,6 +13,12 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import {
+  PageHeaderActionsProvider,
+  usePageHeaderActionsSlot,
+  resolveTabHeader,
+  type TabHeaderMeta,
+} from '../../components/PageHeaderActionsContext';
 import TeamsList from '../teams/TeamsList';
 import PortfoliosPage from '../portfolios/PortfoliosPage';
 import GuestsListPage from '../guests/GuestsListPage';
@@ -43,6 +49,31 @@ const ALL_TABS: TabDef[] = [
   { key: 'prospection', labelKey: 'directoryPage.tabs.prospection', icon: <TrendingUp />, permission: 'teams:view', roles: ['SUPER_ADMIN', 'SUPER_MANAGER'] },
 ];
 
+// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
+// Clef = LABEL traduit du tab (string stable face aux filtres roles/permissions).
+const DIRECTORY_TAB_META: Record<string, TabHeaderMeta> = {
+  'Utilisateurs': {
+    subtitle: "Comptes utilisateurs de la plateforme : roles, permissions, activation et reinitialisation d'acces.",
+  },
+  'Équipes': {
+    subtitle: 'Equipes operationnelles (menage, maintenance, supervision) : composition, specialites et disponibilites.',
+  },
+  'Portefeuilles': {
+    subtitle: 'Regroupements de biens par proprietaire ou portefeuille de gestion pour faciliter le pilotage.',
+  },
+  'Organisations': {
+    subtitle: 'Organisations clientes (multi-tenant) : informations legales, branding et configuration.',
+  },
+  'Voyageurs': {
+    subtitle: 'Base centralisee des voyageurs ayant sejourne ou contacte vos biens : historique et preferences.',
+  },
+  'Prospection': {
+    subtitle: 'Pipeline commercial : imports CSV, enrichissement et suivi des prospects qualifies.',
+  },
+};
+const DIRECTORY_ROOT_TITLE = 'Annuaire';
+const DIRECTORY_DEFAULT_SUBTITLE = 'Gestion des équipes, portefeuilles, voyageurs, utilisateurs et organisations';
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const DirectoryPage: React.FC = () => {
@@ -68,6 +99,10 @@ const DirectoryPage: React.FC = () => {
 
   // Portal container
   const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
+
+  // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
+  // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
+  const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = usePageHeaderActionsSlot();
 
   // Sync tab to URL param
   const handleTabChange = useCallback((v: number) => {
@@ -102,46 +137,61 @@ const DirectoryPage: React.FC = () => {
 
   // ── Multiple tabs visible ──
   const activeTabDef = visibleTabs[activeTab];
+  const visibleTabLabels = visibleTabs.map((tab) => t(tab.labelKey));
+  const { title, subtitle } = resolveTabHeader(
+    DIRECTORY_ROOT_TITLE,
+    DIRECTORY_DEFAULT_SUBTITLE,
+    visibleTabLabels,
+    activeTab,
+    DIRECTORY_TAB_META,
+  );
 
   return (
-    <Box>
-      <PageHeader
-        title={t('directoryPage.title')}
-        subtitle={t('directoryPage.subtitle')}
-        iconBadge={<PersonSearch />}
-        backPath="/dashboard"
-        showBackButton={false}
-        actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
-      />
-      <PageTabs
-        options={visibleTabs.map((tab) => ({
-          label: t(tab.labelKey),
-          icon: tab.icon,
-        }))}
-        value={activeTab}
-        onChange={handleTabChange}
-      />
+    <PageHeaderActionsProvider slot={headerActionsSlot}>
+      <Box>
+        <PageHeader
+          title={title}
+          subtitle={subtitle}
+          iconBadge={<PersonSearch />}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {headerActionsPortal}
+              <div ref={setActionsContainer} style={PORTAL_STYLE} />
+            </Box>
+          }
+        />
+        <PageTabs
+          options={visibleTabs.map((tab) => ({
+            label: t(tab.labelKey),
+            icon: tab.icon,
+          }))}
+          value={activeTab}
+          onChange={handleTabChange}
+        />
 
-      {/* ── Tab content ── */}
-      {activeTabDef?.key === 'teams' && (
-        <TeamsList embedded actionsContainer={actionsContainer} />
-      )}
-      {activeTabDef?.key === 'portfolios' && (
-        <PortfoliosPage embedded actionsContainer={actionsContainer} />
-      )}
-      {activeTabDef?.key === 'guests' && (
-        <GuestsListPage embedded actionsContainer={actionsContainer} />
-      )}
-      {activeTabDef?.key === 'users' && (
-        <UsersList embedded actionsContainer={actionsContainer} />
-      )}
-      {activeTabDef?.key === 'organizations' && (
-        <OrganizationsList embedded actionsContainer={actionsContainer} />
-      )}
-      {activeTabDef?.key === 'prospection' && (
-        <ProspectionPage embedded actionsContainer={actionsContainer} />
-      )}
-    </Box>
+        {/* ── Tab content ── */}
+        {activeTabDef?.key === 'teams' && (
+          <TeamsList embedded actionsContainer={actionsContainer} />
+        )}
+        {activeTabDef?.key === 'portfolios' && (
+          <PortfoliosPage embedded actionsContainer={actionsContainer} />
+        )}
+        {activeTabDef?.key === 'guests' && (
+          <GuestsListPage embedded actionsContainer={actionsContainer} />
+        )}
+        {activeTabDef?.key === 'users' && (
+          <UsersList embedded actionsContainer={actionsContainer} />
+        )}
+        {activeTabDef?.key === 'organizations' && (
+          <OrganizationsList embedded actionsContainer={actionsContainer} />
+        )}
+        {activeTabDef?.key === 'prospection' && (
+          <ProspectionPage embedded actionsContainer={actionsContainer} />
+        )}
+      </Box>
+    </PageHeaderActionsProvider>
   );
 };
 

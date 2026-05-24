@@ -29,6 +29,18 @@ import {
   GppGood,
   Email,
 } from '../../icons';
+import { softChipSx } from '../../utils/statusUtils';
+
+// ─── Palette Clenzy (accents valides) ────────────────────────────────────────
+// On evite les couleurs MUI brutes (#1976d2, #2e7d32, #e65100...) au profit
+// des accents du produit pour eviter le rendu "templated" generique.
+const PRIMARY = '#6B8A9A';        // bleu-gris Clenzy
+const ACCENT_TEAL = '#4A9B8E';    // teal
+const SOFT_BLUE = '#7BA3C2';      // bleu doux
+const WARM = '#D4A574';           // warm sand
+const NEUTRAL = '#8A8378';        // warm-gray
+const VIOLET = '#8b5cf6';         // violet (categorie distincte)
+const DANGER_SOFT = '#C97A7A';    // rouge doux (action critique)
 
 // ─── Définition de tous les tags disponibles (miroir de TagResolverService.java) ───
 
@@ -54,7 +66,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Messagerie guest',
     description: 'Variables pour les templates de messagerie envoyés aux voyageurs. Syntaxe : {variable}',
     icon: <Email />,
-    color: '#1976d2',
+    color: SOFT_BLUE,
     tags: [
       { tag: '{guestName}', description: 'Nom complet du voyageur', example: 'Jean Dupont', type: 'text' },
       { tag: '{guestFirstName}', description: 'Prénom du voyageur', example: 'Jean', type: 'text' },
@@ -82,7 +94,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Système',
     description: 'Tags automatiques générés à chaque document. Syntaxe : ${category.field}',
     icon: <Computer />,
-    color: '#607d8b',
+    color: NEUTRAL,
     tags: [
       { tag: 'system.date', description: 'Date du jour', example: '15/01/2025', type: 'date' },
       { tag: 'system.datetime', description: 'Date et heure', example: '15/01/2025 14:30', type: 'date' },
@@ -95,7 +107,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Entreprise',
     description: 'Informations de votre société (configurées dans application.yml)',
     icon: <Business />,
-    color: '#795548',
+    color: PRIMARY,
     tags: [
       { tag: 'entreprise.nom', description: 'Nom de la société', example: 'Clenzy', type: 'text' },
       { tag: 'entreprise.adresse', description: 'Adresse complète', example: '12 rue de la Paix, 75002 Paris', type: 'text' },
@@ -109,7 +121,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Client',
     description: 'Informations du client (propriétaire, demandeur ou utilisateur référencé)',
     icon: <Person />,
-    color: '#1976d2',
+    color: ACCENT_TEAL,
     tags: [
       { tag: 'client.nom', description: 'Nom de famille', example: 'Dupont', type: 'text' },
       { tag: 'client.prenom', description: 'Prénom', example: 'Jean', type: 'text' },
@@ -127,7 +139,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Technicien',
     description: 'Informations du technicien assigné (mêmes champs que Client)',
     icon: <Person />,
-    color: '#2e7d32',
+    color: VIOLET,
     tags: [
       { tag: 'technicien.nom', description: 'Nom de famille', example: 'Martin', type: 'text' },
       { tag: 'technicien.prenom', description: 'Prénom', example: 'Pierre', type: 'text' },
@@ -145,7 +157,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Propriété',
     description: 'Informations du bien immobilier concerné',
     icon: <Home />,
-    color: '#e65100',
+    color: WARM,
     tags: [
       { tag: 'property.nom', description: 'Nom du bien', example: 'Appartement Marais', type: 'text' },
       { tag: 'property.adresse', description: 'Adresse complète', example: '5 rue des Rosiers', type: 'text' },
@@ -168,7 +180,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Intervention',
     description: "Détails de l'intervention (ménage, maintenance, réparation...)",
     icon: <Build />,
-    color: '#6a1b9a',
+    color: DANGER_SOFT,
     tags: [
       { tag: 'intervention.id', description: 'Identifiant unique', example: '1042', type: 'number' },
       { tag: 'intervention.titre', description: "Titre de l'intervention", example: 'Ménage post-départ', type: 'text' },
@@ -195,7 +207,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Demande de service',
     description: 'Informations de la demande de service',
     icon: <Assignment />,
-    color: '#00838f',
+    color: PRIMARY,
     tags: [
       { tag: 'demande.id', description: 'Identifiant unique', example: '507', type: 'number' },
       { tag: 'demande.titre', description: 'Titre de la demande', example: 'Réparation chauffe-eau', type: 'text' },
@@ -216,7 +228,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Paiement',
     description: "Informations de paiement liées à l'intervention",
     icon: <Payment />,
-    color: '#2e7d32',
+    color: ACCENT_TEAL,
     tags: [
       { tag: 'paiement.statut', description: 'Statut du paiement', example: 'PAID', type: 'text' },
       { tag: 'paiement.montant', description: 'Montant payé', example: '165,00 €', type: 'money' },
@@ -229,7 +241,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Conformité NF',
     description: 'Tags de conformité NF injectés automatiquement pour FACTURE et DEVIS',
     icon: <GppGood />,
-    color: '#f57c00',
+    color: WARM,
     tags: [
       { tag: 'nf.numero_legal', description: 'Numéro légal séquentiel (sans trou)', example: 'FAC-2025-00001', type: 'text' },
       { tag: 'nf.date_emission', description: "Date d'émission du document", example: '18/01/2025', type: 'date' },
@@ -240,11 +252,12 @@ const TAG_CATEGORIES: TagCategory[] = [
   },
 ];
 
+// Couleurs des types alignees sur la palette Clenzy via softChipSx.
 const TYPE_COLORS: Record<string, string> = {
-  text: '#1976d2',
-  date: '#e65100',
-  money: '#2e7d32',
-  number: '#6a1b9a',
+  text:   NEUTRAL,       // texte = valeur generique
+  date:   SOFT_BLUE,     // date = info temporelle
+  money:  ACCENT_TEAL,   // montant = financier
+  number: PRIMARY,       // nombre = compteur
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -287,25 +300,53 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
 
   const totalTags = TAG_CATEGORIES.reduce((sum, c) => sum + c.tags.length, 0);
 
+  // Style cohérent partagé pour les chips ${...} (memes proportions que
+  // TemplateCatalogAccordions : monospace, primary tinted, font 0.7rem).
+  const codeChipSx = {
+    fontFamily: '"SF Mono", Menlo, Consolas, monospace',
+    fontSize: '0.7rem',
+    color: PRIMARY,
+    backgroundColor: `${PRIMARY}0F`,
+    border: '1px solid',
+    borderColor: `${PRIMARY}26`,
+    borderRadius: '4px',
+    px: 0.625,
+    py: '2px',
+    lineHeight: 1.5,
+    display: 'inline-block',
+    whiteSpace: 'nowrap' as const,
+  };
+
   return (
     <Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.78rem' }}>
         {totalTags} tags disponibles dans {TAG_CATEGORIES.length} catégories
       </Typography>
 
-      {/* Instructions */}
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">
-          <strong>Comment utiliser les tags :</strong> Dans votre fichier .odt, insérez les tags sous la forme{' '}
-          <code style={{ backgroundColor: 'rgba(25, 118, 210, 0.12)', padding: '2px 6px', borderRadius: 4 }}>
-            {'${categorie.champ}'}
-          </code>
+      {/* Instructions — icone lucide ContentCopy inline (plus d'emoji) */}
+      <Alert
+        severity="info"
+        variant="outlined"
+        sx={{
+          mb: 3,
+          borderRadius: 1.5,
+          borderColor: `${SOFT_BLUE}40`,
+          backgroundColor: `${SOFT_BLUE}0A`,
+          color: 'text.primary',
+          '& .MuiAlert-icon': { color: SOFT_BLUE },
+        }}
+      >
+        <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.6 }}>
+          <Box component="strong" sx={{ fontWeight: 600 }}>Comment utiliser les tags :</Box>{' '}
+          Dans votre fichier .odt, insérez les tags sous la forme{' '}
+          <Box component="code" sx={codeChipSx}>{'${categorie.champ}'}</Box>
           . Par exemple{' '}
-          <code style={{ backgroundColor: 'rgba(25, 118, 210, 0.12)', padding: '2px 6px', borderRadius: 4 }}>
-            {'${client.nom}'}
-          </code>{' '}
-          sera remplacé par le nom du client.
-          Cliquez sur l&apos;icône 📋 pour copier un tag prêt à coller.
+          <Box component="code" sx={codeChipSx}>{'${client.nom}'}</Box>{' '}
+          sera remplacé par le nom du client. Cliquez sur l&apos;icône{' '}
+          <Box component="span" sx={{ display: 'inline-flex', verticalAlign: 'middle', color: SOFT_BLUE, mx: 0.25 }}>
+            <ContentCopy size={13} strokeWidth={1.75} />
+          </Box>{' '}
+          à droite de chaque ligne pour copier un tag prêt à coller.
         </Typography>
       </Alert>
 
@@ -315,23 +356,65 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
           key={category.id}
           expanded={expandedCategory === category.id}
           onChange={() => handleToggleCategory(category.id)}
-          sx={{ mb: 1, '&:before': { display: 'none' } }}
+          disableGutters
+          elevation={0}
+          sx={{
+            mb: 1,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: '8px !important',
+            '&:before': { display: 'none' },
+            transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+            '&:hover': { borderColor: 'text.disabled' },
+          }}
         >
-          <AccordionSummary expandIcon={<ExpandMore />}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
-              <Box sx={{ color: category.color, display: 'flex', alignItems: 'center' }}>
-                {category.icon}
+          <AccordionSummary
+            expandIcon={<ExpandMore size={18} strokeWidth={1.75} />}
+            sx={{
+              borderRadius: '8px',
+              cursor: 'pointer',
+              '&.Mui-expanded': {
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+              },
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', minWidth: 0 }}>
+              {/* Badge icone Clenzy (tile 26x26 tintee, icon 16px) */}
+              <Box
+                sx={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: `${category.color}14`,
+                  color: category.color,
+                  flexShrink: 0,
+                }}
+              >
+                {React.isValidElement(category.icon)
+                  ? React.cloneElement(category.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
+                      size: 16,
+                      strokeWidth: 1.75,
+                    })
+                  : category.icon}
               </Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography sx={{ fontWeight: 600 }}>{category.label}</Typography>
-                <Typography variant="caption" color="text.secondary">
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>
+                  {category.label}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block', lineHeight: 1.4 }}>
                   {category.description}
                 </Typography>
               </Box>
               <Chip
                 label={`${category.tags.length} tags`}
                 size="small"
-                sx={{ backgroundColor: category.color + '20', color: category.color, fontWeight: 500 }}
+                sx={softChipSx(category.color)}
               />
             </Box>
           </AccordionSummary>
@@ -339,12 +422,27 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
             <TableContainer>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: 'action.hover' }}>
-                    <TableCell sx={{ fontWeight: 600, width: '30%' }}>Tag</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: '30%' }}>Description</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: '10%' }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: '25%' }}>Exemple</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: '5%' }} align="center">Copier</TableCell>
+                  <TableRow
+                    sx={{
+                      // Header de table tres subtil (au lieu de action.hover agressif)
+                      backgroundColor: 'background.default',
+                      '& th': {
+                        fontWeight: 600,
+                        fontSize: '0.7rem',
+                        color: 'text.secondary',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.02em',
+                        py: 1,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                      },
+                    }}
+                  >
+                    <TableCell sx={{ width: '30%' }}>Tag</TableCell>
+                    <TableCell sx={{ width: '30%' }}>Description</TableCell>
+                    <TableCell sx={{ width: '10%' }}>Type</TableCell>
+                    <TableCell sx={{ width: '25%' }}>Exemple</TableCell>
+                    <TableCell sx={{ width: '5%' }} align="center">Copier</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -352,55 +450,44 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                     <TableRow
                       key={tagDef.tag}
                       hover
-                      sx={{
-                        '&:last-child td': { borderBottom: 0 },
-                      }}
+                      sx={{ '&:last-child td': { borderBottom: 0 } }}
                     >
                       <TableCell>
-                        <code
-                          style={{
-                            backgroundColor: 'rgba(107, 138, 154, 0.12)',
-                            padding: '3px 8px',
-                            borderRadius: 4,
-                            fontSize: '0.85rem',
-                            fontFamily: 'monospace',
-                            border: '1px solid rgba(107, 138, 154, 0.25)',
-                            color: 'inherit',
-                          }}
-                        >
+                        <Box component="code" sx={codeChipSx}>
                           {'${' + tagDef.tag + '}'}
-                        </code>
+                        </Box>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{tagDef.description}</Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+                          {tagDef.description}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Chip
                           label={TYPE_LABELS[tagDef.type]}
                           size="small"
-                          sx={{
-                            backgroundColor: TYPE_COLORS[tagDef.type] + '15',
-                            color: TYPE_COLORS[tagDef.type],
-                            fontWeight: 500,
-                            fontSize: '0.75rem',
-                          }}
+                          sx={softChipSx(TYPE_COLORS[tagDef.type])}
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.8125rem' }}>
                           {tagDef.example}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Tooltip title={copiedTag === tagDef.tag ? 'Copié !' : 'Copier le tag'}>
+                        <Tooltip title={copiedTag === tagDef.tag ? 'Copié !' : 'Copier le tag'} arrow>
                           <IconButton
                             size="small"
                             onClick={() => handleCopyTag(tagDef.tag)}
+                            aria-label={`Copier le tag ${tagDef.tag}`}
                             sx={{
-                              color: copiedTag === tagDef.tag ? 'success.main' : 'text.secondary',
+                              cursor: 'pointer',
+                              color: copiedTag === tagDef.tag ? ACCENT_TEAL : 'text.secondary',
+                              transition: 'color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                              '&:hover': { color: PRIMARY, backgroundColor: `${PRIMARY}0F` },
                             }}
                           >
-                            <ContentCopy size={16} strokeWidth={1.75} />
+                            <ContentCopy size={15} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                       </TableCell>

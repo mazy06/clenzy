@@ -54,6 +54,52 @@ import { propertiesApi } from '../../services/api/propertiesApi';
 import { planningKeys } from '../../hooks/useDashboardPlanning';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import { SettingsHeaderProvider, useSettingsHeaderActionsSlot } from './SettingsHeaderContext';
+
+// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
+// Clef = LABEL du tab (string stable), pas un index. Les indexes visibles
+// shiftent selon le role utilisateur (hidden tabs filtrees par PageTabs),
+// donc un mapping numerique serait fragile.
+interface SettingsTabMeta {
+  /** Sous-titre affiche dans le PageHeader pour ce tab. */
+  subtitle: string;
+}
+const SETTINGS_TAB_META: Record<string, SettingsTabMeta> = {
+  'Général': {
+    subtitle: 'Identité, organisation, préférences régionales et affichage.',
+  },
+  'Notifications': {
+    subtitle: 'Configurez vos canaux (in-app, email, push) et la granularité par type d\'événement.',
+  },
+  'Messagerie': {
+    subtitle: 'Automatisations de messages voyageurs (check-in, bienvenue, push tarification) et templates.',
+  },
+  'Mes reversements': {
+    subtitle: 'Paramètres de vos virements bancaires : IBAN, fréquence, seuil minimum.',
+  },
+  'IA': {
+    subtitle: 'Connectez votre clé OpenAI/Anthropic ou utilisez le quota partagé. Modèles assignés par feature.',
+  },
+  'Fiscal': {
+    subtitle: 'Profil fiscal de votre organisation : régime TVA, mentions légales, conformité NF 525 / ZATCA.',
+  },
+  'Organisation': {
+    subtitle: 'Informations légales, branding, équipe et permissions de votre organisation.',
+  },
+  'Paiement': {
+    subtitle: 'Fournisseurs de paiement (Stripe, PayPal, PayTabs, CMI…) et règles de répartition.',
+  },
+  'Intégrations': {
+    subtitle: 'Connectez vos outils tiers : signature électronique, comptabilité, KYC, conformité légale, channels OTA.',
+  },
+  'Reversements': {
+    subtitle: 'Calendrier et règles de calcul des reversements aux propriétaires.',
+  },
+  'Commodités OTA': {
+    subtitle: "Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Clenzy. Créez vos propres commodités si rien ne correspond.",
+  },
+};
+const SETTINGS_DEFAULT_SUBTITLE = 'Configurez votre application selon vos préférences';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
 import OrganizationSection from '../organization/OrganizationSection';
@@ -335,6 +381,11 @@ export default function Settings() {
     checkPermissions();
   }, [hasPermissionAsync]);
 
+  // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader
+  // (cf. SettingsHeaderContext + useSettingsHeaderActions dans le tab content).
+  // /!\ DOIT etre declare AVANT les early returns pour respecter Rules of Hooks.
+  const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = useSettingsHeaderActionsSlot();
+
   // Attendre que l'utilisateur soit complètement chargé APRÈS tous les hooks
   if (!user) {
     return (
@@ -594,16 +645,52 @@ export default function Settings() {
     </Button>
   ) : undefined;
 
+  // Construction de la liste des tabs UNE SEULE fois — utilisee pour PageTabs
+  // ET pour resoudre le tab actif (via son label, stable face aux roles qui
+  // cachent certains tabs).
+  const settingsTabs = [
+    { label: 'Général', icon: <TuneOutlined />, hidden: false },
+    { label: 'Notifications', icon: <Notifications />, hidden: false },
+    { label: 'Messagerie', icon: <ChatBubbleOutline />, hidden: false },
+    { label: t('settings.myPayout.tabLabel', 'Mes reversements'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOST']) },
+    { label: 'IA', icon: <SmartToy />, hidden: !canViewAi },
+    { label: 'Fiscal', icon: <AccountBalance />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { label: 'Organisation', icon: <GroupAdd />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { label: 'Paiement', icon: <Payment />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { label: 'Intégrations', icon: <Extension />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { label: 'Reversements', icon: <CalendarMonth />, hidden: !hasAnyRole(['SUPER_ADMIN']) },
+    { label: 'Commodités OTA', icon: <LocalOffer />, hidden: !hasAnyRole(['HOST', 'SUPERVISOR', 'SUPER_ADMIN', 'SUPER_MANAGER']) },
+  ];
+  const visibleSettingsTabs = settingsTabs.filter((t) => !t.hidden);
+
+  // Breadcrumb : "Paramètres" (root = Général) ou "Paramètres › <label>" sinon.
+  // On indexe par label car tabValue est le visible-index (filtree par role).
+  const activeTabLabel = visibleSettingsTabs[tabValue]?.label;
+  const activeTabMeta = activeTabLabel ? SETTINGS_TAB_META[activeTabLabel] : undefined;
+  const headerTitle = activeTabLabel && tabValue > 0 ? `Paramètres › ${activeTabLabel}` : 'Paramètres';
+  const headerSubtitle = activeTabMeta?.subtitle ?? SETTINGS_DEFAULT_SUBTITLE;
+
+  // Actions : un tab a-t-il deja inline son bouton via headerActions (tab 1/4/8)
+  // OU bien il portale via le slot ? Si headerActions est defini ET le slot est
+  // utilise par un tab, on stack les deux. Sinon on prend ce qui existe.
+  const combinedActions = (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      {headerActionsPortal}
+      {headerActions}
+    </Box>
+  );
+
   return (
+    <SettingsHeaderProvider slot={headerActionsSlot}>
     <Box>
       {/* Header avec actions */}
       <PageHeader
-        title="Paramètres"
-        subtitle="Configurez votre application selon vos préférences"
+        title={headerTitle}
+        subtitle={headerSubtitle}
         iconBadge={<TuneOutlined />}
         backPath="/"
         showBackButton={false}
-        actions={headerActions}
+        actions={combinedActions}
         filters={
           tabValue === 7 ? (
             <IntegrationsHeader
@@ -616,21 +703,9 @@ export default function Settings() {
         }
       />
 
-      {/* Onglets */}
+      {/* Onglets — source unique settingsTabs (cf. resolution du headerTitle plus haut) */}
       <PageTabs
-        options={[
-          { label: 'Général', icon: <TuneOutlined /> },
-          { label: 'Notifications', icon: <Notifications /> },
-          { label: 'Messagerie', icon: <ChatBubbleOutline /> },
-          { label: t('settings.myPayout.tabLabel', 'Mes reversements'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOST']) },
-          { label: 'IA', icon: <SmartToy />, hidden: !canViewAi },
-          { label: 'Fiscal', icon: <AccountBalance />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-          { label: 'Organisation', icon: <GroupAdd />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-          { label: 'Paiement', icon: <Payment />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-          { label: 'Intégrations', icon: <Extension />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-          { label: 'Reversements', icon: <CalendarMonth />, hidden: !hasAnyRole(['SUPER_ADMIN']) },
-          { label: 'Commodités OTA', icon: <LocalOffer />, hidden: !hasAnyRole(['HOST', 'SUPERVISOR', 'SUPER_ADMIN', 'SUPER_MANAGER']) },
-        ]}
+        options={settingsTabs}
         value={tabValue}
         onChange={handleTabChange}
         ariaLabel="settings-tabs"
@@ -1085,5 +1160,6 @@ export default function Settings() {
         </Alert>
       </Snackbar>
     </Box>
+    </SettingsHeaderProvider>
   );
 }

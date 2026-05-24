@@ -12,6 +12,12 @@ import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.repository.DocumentTemplateRepository;
 import com.clenzy.repository.DocumentTemplateTagRepository;
 import com.clenzy.repository.FiscalProfileRepository;
+import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ProviderExpenseRepository;
+import com.clenzy.repository.ReceivedFormRepository;
+import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import fr.opensagres.xdocreport.document.IXDocReport;
 import fr.opensagres.xdocreport.document.registry.XDocReportRegistry;
 import fr.opensagres.xdocreport.template.IContext;
@@ -19,10 +25,14 @@ import fr.opensagres.xdocreport.template.TemplateEngineKind;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import jakarta.persistence.EntityManager;
+import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -81,6 +91,16 @@ public class DocumentGeneratorService {
     private final TaxRulePreValidator taxRulePreValidator;
     private final TenantContext tenantContext;
     private final FiscalProfileRepository fiscalProfileRepository;
+    // Repos pour la preview reelle : on cherche la derniere entite existante
+    // de chaque type et on appelle TagResolverService dessus (meme pipeline
+    // que la generation reelle). Voir generateTemplatePreview().
+    private final InterventionRepository interventionRepository;
+    private final ReceivedFormRepository receivedFormRepository;
+    private final ServiceRequestRepository serviceRequestRepository;
+    private final ReservationRepository reservationRepository;
+    private final PropertyRepository propertyRepository;
+    private final ProviderExpenseRepository providerExpenseRepository;
+    private final EntityManager entityManager;
 
     private final Counter generationSuccessCounter;
     private final Counter generationFailureCounter;
@@ -105,6 +125,13 @@ public class DocumentGeneratorService {
             TaxRulePreValidator taxRulePreValidator,
             TenantContext tenantContext,
             FiscalProfileRepository fiscalProfileRepository,
+            InterventionRepository interventionRepository,
+            ReceivedFormRepository receivedFormRepository,
+            ServiceRequestRepository serviceRequestRepository,
+            ReservationRepository reservationRepository,
+            PropertyRepository propertyRepository,
+            ProviderExpenseRepository providerExpenseRepository,
+            EntityManager entityManager,
             MeterRegistry meterRegistry
     ) {
         this.templateRepository = templateRepository;
@@ -125,6 +152,13 @@ public class DocumentGeneratorService {
         this.taxRulePreValidator = taxRulePreValidator;
         this.tenantContext = tenantContext;
         this.fiscalProfileRepository = fiscalProfileRepository;
+        this.interventionRepository = interventionRepository;
+        this.receivedFormRepository = receivedFormRepository;
+        this.serviceRequestRepository = serviceRequestRepository;
+        this.reservationRepository = reservationRepository;
+        this.propertyRepository = propertyRepository;
+        this.providerExpenseRepository = providerExpenseRepository;
+        this.entityManager = entityManager;
 
         this.generationSuccessCounter = Counter.builder("clenzy.documents.generation.success")
                 .description("Nombre de documents generes avec succes")
@@ -350,38 +384,144 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * Genere un PDF de previsualisation d'un template en utilisant des donnees
-     * factices coherentes (sample data). Ne persiste rien en BDD (aucun
-     * DocumentGeneration cree), n'envoie pas de mail. Utile pour visualiser
-     * un template avant son activation.
-     *
-     * @return bytes PDF prets a etre servis au client
+     * Genere un PDF de previsualisation d'un template en utilisant le MEME
+     * pipeline que la generation reelle (TagResolverService) sur une entite
+     * existante la plus recente du type approprie (intervention, devis, etc.).
+     * <p>
+     * Aucune persistance (pas de DocumentGeneration cree), pas d'email, pas
+     * de numerotation legale reelle. Le filtre Hibernate "organizationFilter"
+     * est desactive pour cette requete : la preview est restreinte aux roles
+     * SUPER_ADMIN / SUPER_MANAGER (cf. DocumentController @PreAuthorize), qui
+     * ont legitimement acces cross-org.
+     * <p>
+     * <b>Filter safety</b> : le disableFilter est entoure d'un try-finally pour
+     * eviter de fuir l'etat de session vers les requetes suivantes sur le meme
+     * thread (sinon = data leak cross-tenant).
      */
     @Transactional(readOnly = true)
     public byte[] generateTemplatePreview(Long id) {
         DocumentTemplate template = getTemplate(id);
+        Session session = entityManager.unwrap(Session.class);
+        // Memorise l'etat actuel pour le restaurer en finally (defensive : si le
+        // filter etait deja desactive en amont on ne le re-active pas par erreur).
+        boolean wasFilterEnabled = session.getEnabledFilter("organizationFilter") != null;
         try {
+            if (wasFilterEnabled) {
+                session.disableFilter("organizationFilter");
+            }
+
             byte[] templateContent = resolveTemplateContent(template);
-            Map<String, Object> context = buildSampleContext(template);
+            Map<String, Object> context = buildPreviewContext(template);
+
+            // Tags de conformite (numero legal factice pour la preview)
+            if (numberingService.requiresLegalNumber(template.getDocumentType(),
+                                                    tenantContext.getCountryCode())) {
+                String previewLegalNumber = "PREVIEW-" + template.getDocumentType().name() + "-0001";
+                Map<String, Object> nfTags = complianceService.resolveComplianceTags(
+                        template.getDocumentType(), previewLegalNumber);
+                context.put("nf", nfTags);
+            }
+
+            // Placeholder pour les tags non resolus (evite le crash Freemarker)
+            ensurePreviewTagsPresent(template, context);
+
             byte[] filledOdt = fillTemplate(templateContent, context);
             return conversionService.convertToPdf(filledOdt, template.getOriginalFilename());
         } catch (Exception e) {
             log.error("Erreur preview template id={}: {}", id, e.getMessage(), e);
             throw new DocumentGenerationException("Impossible de generer la previsualisation : " + e.getMessage());
+        } finally {
+            // CRITIQUE : re-active le filter pour ne pas contaminer les requetes
+            // suivantes sur le meme thread/connexion (cross-tenant data leak).
+            if (wasFilterEnabled && session.getEnabledFilter("organizationFilter") == null) {
+                session.enableFilter("organizationFilter");
+            }
         }
     }
 
     /**
-     * Construit un contexte avec des valeurs factices pour chacun des tags
-     * declares sur le template. La valeur est choisie selon le TagType
-     * (LIST, CONDITIONAL, DATE, MONEY, IMAGE, SIMPLE) puis par heuristique
-     * sur le nom du champ pour rester realiste.
+     * Trouve une entite existante adaptee au documentType et appelle
+     * TagResolverService.resolveTagsForDocument dessus — meme chemin que la
+     * generation reelle. Cela garantit que les Map/List/Boolean sont produits
+     * avec la bonne structure (ex: intervention.lignes est bien une List).
+     * <p>
+     * Defensive : si TagResolverService leve (donnees corrompues, FK manquante),
+     * on log warn et on continue avec un contexte vide — la preview reste
+     * generable avec des placeholders via {@code ensurePreviewTagsPresent}.
+     */
+    private Map<String, Object> buildPreviewContext(DocumentTemplate template) {
+        DocumentType type = template.getDocumentType();
+        for (String refType : candidateRefTypes(type)) {
+            Long sampleId = findLatestId(refType);
+            if (sampleId == null) continue;
+
+            log.debug("Preview template {} ({}): utilisation de {} #{}",
+                    template.getName(), type, refType, sampleId);
+            try {
+                Map<String, Object> ctx = tagResolverService.resolveTagsForDocument(
+                        type, sampleId, refType);
+                if (ctx != null && !ctx.isEmpty()) {
+                    return new LinkedHashMap<>(ctx);
+                }
+            } catch (Exception ex) {
+                log.warn("Preview template {} ({}): resolveTagsForDocument a echoue sur {} #{} : {} — fallback type suivant",
+                        template.getName(), type, refType, sampleId, ex.getMessage());
+            }
+        }
+        log.warn("Preview template {} ({}): aucune entite exploitable, contexte vide (placeholders pour tous les tags)",
+                template.getName(), type);
+        return new LinkedHashMap<>();
+    }
+
+    /**
+     * Ordre de preference des types de reference pour generer un preview
+     * en fonction du documentType. Calque sur l'usage reel :
+     * - DEVIS : public form → received_form, sinon service_request, sinon intervention
+     * - FACTURE / BON_INTERVENTION / etc. : intervention (a des lignes)
+     * - MANDAT / AUTORISATION : property
+     * - BON_COMMANDE : provider_expense
+     */
+    private List<String> candidateRefTypes(DocumentType type) {
+        return switch (type) {
+            case DEVIS -> List.of("received_form", "service_request", "intervention", "reservation");
+            case FACTURE, BON_INTERVENTION, VALIDATION_FIN_MISSION,
+                 JUSTIFICATIF_PAIEMENT, JUSTIFICATIF_REMBOURSEMENT
+                    -> List.of("intervention", "reservation");
+            case MANDAT_GESTION, AUTORISATION_TRAVAUX -> List.of("property", "intervention");
+            case BON_COMMANDE -> List.of("provider_expense", "intervention");
+        };
+    }
+
+    /** Recupere l'id de l'entite la plus recente d'un type donne (par id DESC). */
+    private Long findLatestId(String refType) {
+        Pageable one = PageRequest.of(0, 1, Sort.by(Sort.Direction.DESC, "id"));
+        return switch (refType) {
+            case "intervention" -> interventionRepository.findAll(one).stream().findFirst()
+                    .map(Intervention::getId).orElse(null);
+            case "received_form" -> receivedFormRepository.findAll(one).stream().findFirst()
+                    .map(ReceivedForm::getId).orElse(null);
+            case "service_request" -> serviceRequestRepository.findAll(one).stream().findFirst()
+                    .map(ServiceRequest::getId).orElse(null);
+            case "reservation" -> reservationRepository.findAll(one).stream().findFirst()
+                    .map(Reservation::getId).orElse(null);
+            case "property" -> propertyRepository.findAll(one).stream().findFirst()
+                    .map(Property::getId).orElse(null);
+            case "provider_expense" -> providerExpenseRepository.findAll(one).stream().findFirst()
+                    .map(ProviderExpense::getId).orElse(null);
+            default -> null;
+        };
+    }
+
+    /**
+     * Pour les tags non resolus par TagResolverService, injecte une valeur
+     * placeholder typee (List vide, Boolean false, "—") afin que Freemarker
+     * ne plante pas. Variant non-throwing de {@link #ensureTemplateTagsPresent} —
+     * en preview on veut produire un PDF visible, pas remonter une erreur.
      */
     @SuppressWarnings("unchecked")
-    private Map<String, Object> buildSampleContext(DocumentTemplate template) {
-        Map<String, Object> context = new HashMap<>();
+    private void ensurePreviewTagsPresent(DocumentTemplate template, Map<String, Object> context) {
         List<DocumentTemplateTag> tags = template.getTags();
-        if (tags == null) return context;
+        if (tags == null || tags.isEmpty()) return;
 
         for (DocumentTemplateTag tag : tags) {
             String tagName = tag.getTagName();
@@ -389,194 +529,29 @@ public class DocumentGeneratorService {
             int dotIndex = tagName.indexOf('.');
             String group = tagName.substring(0, dotIndex);
             String field = tagName.substring(dotIndex + 1);
-            TagType type = tag.getTagType() != null ? tag.getTagType() : TagType.SIMPLE;
+            TagType tagType = tag.getTagType() != null ? tag.getTagType() : TagType.SIMPLE;
 
-            Map<String, Object> groupMap = (Map<String, Object>) context.computeIfAbsent(group, k -> new HashMap<String, Object>());
-            groupMap.put(field, sampleValueFor(group, field, type));
-        }
-        return context;
-    }
-
-    /**
-     * Genere une valeur factice selon le TagType puis, pour SIMPLE, applique
-     * une heuristique basee sur le nom du champ.
-     */
-    private Object sampleValueFor(String group, String field, TagType type) {
-        switch (type) {
-            case LIST:
-                return buildSampleList(group, field);
-            case CONDITIONAL:
-                return Boolean.TRUE;
-            case DATE:
-                return "12/03/2026";
-            case MONEY:
-                return "1 234,56 €";
-            case IMAGE:
-                // XDocReport gere les images via un FieldsMetadata. En preview,
-                // on retourne un placeholder texte — l'image ne sera pas rendue
-                // mais le template ne plantera pas.
-                return "[image]";
-            case SIMPLE:
-            default:
-                return sampleSimpleValue(group, field);
-        }
-    }
-
-    /**
-     * Construit une liste factice de 3 lignes avec des champs frequents
-     * (libelle, description, designation, quantite, prix, total, tva, etc.).
-     * Utilise une Map permissive qui retourne un placeholder pour toute clef
-     * inconnue, evitant le crash Freemarker sur ${ligne.unknown_field}.
-     */
-    private List<Map<String, Object>> buildSampleList(String group, String field) {
-        List<Map<String, Object>> rows = new ArrayList<>();
-        String[][] samples = new String[][] {
-                {"Ménage hôtelier — studio", "1", "75,00 €", "75,00 €"},
-                {"Linge de lit & toilette", "2", "18,00 €", "36,00 €"},
-                {"Réassort produits d'accueil", "1", "12,50 €", "12,50 €"},
-        };
-        for (int i = 0; i < samples.length; i++) {
-            Map<String, Object> row = new SampleRowMap();
-            row.put("index", String.valueOf(i + 1));
-            row.put("numero", String.valueOf(i + 1));
-            row.put("reference", "REF-" + String.format("%03d", i + 1));
-            row.put("libelle", samples[i][0]);
-            row.put("designation", samples[i][0]);
-            row.put("description", samples[i][0]);
-            row.put("nom", samples[i][0]);
-            row.put("name", samples[i][0]);
-            row.put("title", samples[i][0]);
-            row.put("titre", samples[i][0]);
-            row.put("quantite", samples[i][1]);
-            row.put("quantity", samples[i][1]);
-            row.put("qty", samples[i][1]);
-            row.put("nombre", samples[i][1]);
-            row.put("prix_unitaire", samples[i][2]);
-            row.put("prixUnitaire", samples[i][2]);
-            row.put("unit_price", samples[i][2]);
-            row.put("unitPrice", samples[i][2]);
-            row.put("prix", samples[i][2]);
-            row.put("price", samples[i][2]);
-            row.put("total", samples[i][3]);
-            row.put("montant", samples[i][3]);
-            row.put("amount", samples[i][3]);
-            row.put("montant_ht", samples[i][3]);
-            row.put("montantHt", samples[i][3]);
-            row.put("ht", samples[i][3]);
-            row.put("ttc", samples[i][3]);
-            row.put("taux_tva", "20 %");
-            row.put("tauxTva", "20 %");
-            row.put("tva", "20 %");
-            row.put("vat", "20 %");
-            row.put("unite", "u");
-            row.put("unit", "u");
-            row.put("date", "12/03/2026");
-            rows.add(row);
-        }
-        return rows;
-    }
-
-    /**
-     * Map qui retourne un placeholder pour toute clef inconnue, afin que
-     * Freemarker ne plante pas si le template lit un champ non prevu dans
-     * la donnee factice (ex: ${ligne.champ_inexistant}).
-     */
-    private static final class SampleRowMap extends HashMap<String, Object> {
-        @Override
-        public Object get(Object key) {
-            Object v = super.get(key);
-            if (v != null) return v;
-            return "[" + key + "]";
-        }
-
-        @Override
-        public boolean containsKey(Object key) {
-            return true;
-        }
-    }
-
-    /**
-     * Heuristique simple pour generer une valeur factice realiste selon le
-     * nom du champ. Pas exhaustif — couvre les patterns frequents.
-     */
-    private String sampleSimpleValue(String group, String field) {
-        String f = field.toLowerCase();
-        // Valeurs liees au numero legal / NF
-        if ("nf".equalsIgnoreCase(group)) {
-            if (f.contains("numero") || f.contains("number")) return "DEVIS-2026-0001";
-            if (f.contains("date")) return "12/03/2026";
-            if (f.contains("mention")) return "TVA non applicable, art. 293 B du CGI.";
-        }
-        // Emails
-        if (f.contains("email") || f.contains("mail")) {
-            if ("entreprise".equalsIgnoreCase(group) || "company".equalsIgnoreCase(group)) return "contact@clenzy.fr";
-            return "jean.dupont@example.com";
-        }
-        // Telephones
-        if (f.contains("phone") || f.contains("tel") || f.contains("mobile")) return "+33 6 12 34 56 78";
-        // Dates
-        if (f.contains("date") || f.endsWith("at") || f.startsWith("date")) return "12/03/2026";
-        // Montants / prix
-        if (f.contains("price") || f.contains("amount") || f.contains("total")
-                || f.contains("montant") || f.contains("ht") || f.contains("ttc") || f.contains("tva")) {
-            return "1 234,56 €";
-        }
-        // Pourcentages / taux
-        if (f.contains("rate") || f.contains("taux") || f.contains("percent")) return "20 %";
-        // Codes postaux
-        if (f.contains("postal") || f.contains("zip") || f.contains("cp")) return "75003";
-        // Ville / pays
-        if (f.contains("city") || f.contains("ville")) return "Paris";
-        if (f.contains("country") || f.contains("pays")) return "France";
-        // Adresses
-        if (f.contains("street") || f.contains("rue") || f.contains("adresse") || f.contains("address")) {
-            return "12 rue de Turenne";
-        }
-        // Surface
-        if (f.contains("surface") || f.contains("area")) return "45 m²";
-        // SIRET / TVA num
-        if (f.contains("siret")) return "123 456 789 00012";
-        if (f.contains("vat") || f.contains("tva") && f.contains("num")) return "FR12345678901";
-        if (f.contains("iban")) return "FR76 1234 5678 9012 3456 7890 123";
-        // Noms / prenoms
-        if (f.contains("firstname") || f.contains("prenom")) return "Jean";
-        if (f.contains("lastname") || f.contains("nom")) return "Dupont";
-        if (f.contains("fullname") || f.equals("name")) {
-            switch (group.toLowerCase()) {
-                case "entreprise":
-                case "company":
-                    return "Clenzy SAS";
-                case "intervention":
-                    return "Ménage hôtelier";
-                case "bien":
-                case "property":
-                    return "Studio Le Marais";
-                default:
-                    return "Jean Dupont";
+            Object groupObj = context.get(group);
+            Map<String, Object> groupMap;
+            if (groupObj instanceof Map) {
+                groupMap = (Map<String, Object>) groupObj;
+            } else {
+                groupMap = new LinkedHashMap<>();
+                context.put(group, groupMap);
+            }
+            if (!groupMap.containsKey(field)) {
+                groupMap.put(field, previewPlaceholderForType(tagType));
             }
         }
-        // Identifiants
-        if (f.equals("id") || f.endsWith("id")) return "42";
-        // Description / commentaire
-        if (f.contains("description") || f.contains("comment") || f.contains("note") || f.contains("remarque")) {
-            return "Lorem ipsum dolor sit amet — donnée d'exemple pour prévisualisation.";
-        }
-        // Quantite
-        if (f.contains("quantity") || f.contains("quantite") || f.contains("count") || f.contains("nombre")) return "3";
-        // Reference / numero
-        if (f.contains("ref") || f.contains("numero") || f.contains("number")) return "REF-001";
-        // Fallback generique selon le groupe
-        switch (group.toLowerCase()) {
-            case "client":     return "[Client " + field + "]";
-            case "entreprise":
-            case "company":    return "[Entreprise " + field + "]";
-            case "intervention": return "[Intervention " + field + "]";
-            case "bien":
-            case "property":   return "[Bien " + field + "]";
-            case "system":
-            case "systeme":    return "[" + field + "]";
-            default:           return "[" + group + "." + field + "]";
-        }
+    }
+
+    private Object previewPlaceholderForType(TagType type) {
+        return switch (type) {
+            case LIST -> List.of();
+            case CONDITIONAL -> Boolean.FALSE;
+            case IMAGE -> "";
+            default -> "—";
+        };
     }
 
     // ─── Generation de documents ────────────────────────────────────────────

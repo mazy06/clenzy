@@ -18,6 +18,12 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import {
+  PageHeaderActionsProvider,
+  usePageHeaderActionsSlot,
+  resolveTabHeader,
+  type TabHeaderMeta,
+} from '../../components/PageHeaderActionsContext';
 import PaymentHistoryPage from '../payments/PaymentHistoryPage';
 import InvoicesList from '../invoices/InvoicesList';
 import WalletDashboard from '../finance/WalletDashboard';
@@ -32,6 +38,34 @@ const TAB_WALLETS = 2;
 const TAB_PAYOUTS = 3;
 const TAB_EXPENSES = 4;
 const TAB_REPORTS = 5;
+
+// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
+// Clef = LABEL traduit du tab (string stable face aux filtres roles/permissions).
+const BILLING_TAB_META: Record<string, TabHeaderMeta> = {
+  'Paiements': {
+    subtitle: "Historique des paiements voyageurs : statut, mode de reglement, remboursements et reconciliation.",
+  },
+  'Factures': {
+    subtitle: 'Factures emises (sejours, frais, services) et avoirs : edition PDF, envoi et suivi des reglements.',
+  },
+  'Portefeuille': {
+    subtitle: "Solde des portefeuilles par proprietaire : mouvements, blocages, retraits et historique detaille.",
+  },
+  'Reversements': {
+    subtitle: 'Calendrier des reversements aux proprietaires : calculs SEPA, statut, exports bancaires.',
+  },
+  'Dépenses': {
+    subtitle: 'Suivi des depenses operationnelles par categorie et par bien : factures fournisseurs, refacturation.',
+  },
+  'Depenses': {
+    subtitle: 'Suivi des depenses operationnelles par categorie et par bien : factures fournisseurs, refacturation.',
+  },
+  'Rapports & Exports': {
+    subtitle: 'Rapport fiscal (TVA, taxes, NF 525) et exports comptables formates pour vos outils tiers.',
+  },
+};
+const BILLING_ROOT_TITLE = 'Facturation';
+const BILLING_DEFAULT_SUBTITLE = 'Paiements, factures, reversements, dépenses et rapports comptables';
 
 // ─── Merged Reports & Exports Tab ──────────────────────────────────────────
 
@@ -74,6 +108,10 @@ const BillingPage: React.FC = () => {
   const canViewInvoices = user?.permissions?.includes('reports:view') ?? false;
   const canViewWallets = user?.permissions?.includes('payments:manage') ?? false;
   const canViewAccounting = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
+
+  // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
+  // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
+  const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = usePageHeaderActionsSlot();
 
   // Build visible tabs dynamically (order preserved)
   const visibleTabs: { index: number; key: string }[] = [
@@ -123,36 +161,52 @@ const BillingPage: React.FC = () => {
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return (
-    <Box>
-      <PageHeader
-        title={t('billing.title')}
-        subtitle={t('billing.subtitle')}
-        iconBadge={<AccountBalance />}
-        backPath="/dashboard"
-        showBackButton={false}
-      />
-      <PageTabs
-        options={[
-          { label: t('billing.tabs.payments'), icon: <Payment /> },
-          { label: t('billing.tabs.invoices'), icon: <Receipt />, hidden: !canViewInvoices },
-          { label: t('navigation.wallets'), icon: <AccountBalanceWallet />, hidden: !canViewWallets },
-          { label: t('billing.tabs.payouts', 'Reversements'), icon: <AccountBalance />, hidden: !canViewAccounting },
-          { label: t('billing.tabs.expenses', 'Depenses'), icon: <Category />, hidden: !canViewAccounting },
-          { label: t('billing.tabs.reportsExports', 'Rapports & Exports'), icon: <Assessment />, hidden: !canViewAccounting },
-        ]}
-        value={activePos}
-        onChange={handleTabChange}
-      />
+  // Source de verite des tabs (avec hidden flag) — utilisee pour PageTabs ET
+  // pour resoudre le tab actif via resolveTabHeader. Le filtre `hidden` doit
+  // matcher la logique de visibleTabs ci-dessus pour rester coherent.
+  const tabs = [
+    { label: t('billing.tabs.payments'),                          icon: <Payment />,                hidden: false },
+    { label: t('billing.tabs.invoices'),                          icon: <Receipt />,                hidden: !canViewInvoices },
+    { label: t('navigation.wallets'),                             icon: <AccountBalanceWallet />,   hidden: !canViewWallets },
+    { label: t('billing.tabs.payouts', 'Reversements'),           icon: <AccountBalance />,         hidden: !canViewAccounting },
+    { label: t('billing.tabs.expenses', 'Depenses'),              icon: <Category />,               hidden: !canViewAccounting },
+    { label: t('billing.tabs.reportsExports', 'Rapports & Exports'), icon: <Assessment />,          hidden: !canViewAccounting },
+  ];
+  const visibleTabLabels = tabs.filter((tab) => !tab.hidden).map((tab) => tab.label);
+  const { title, subtitle } = resolveTabHeader(
+    BILLING_ROOT_TITLE,
+    BILLING_DEFAULT_SUBTITLE,
+    visibleTabLabels,
+    activePos,
+    BILLING_TAB_META,
+  );
 
-      {/* ── Tab content ── */}
-      {activeLogicalIndex === TAB_PAYMENTS && <PaymentHistoryPage embedded />}
-      {activeLogicalIndex === TAB_INVOICES && canViewInvoices && <InvoicesList embedded />}
-      {activeLogicalIndex === TAB_WALLETS && canViewWallets && <WalletDashboard embedded />}
-      {activeLogicalIndex === TAB_PAYOUTS && canViewAccounting && <PayoutsTab />}
-      {activeLogicalIndex === TAB_EXPENSES && canViewAccounting && <ExpensesTab />}
-      {activeLogicalIndex === TAB_REPORTS && canViewAccounting && <ReportsExportsTab />}
-    </Box>
+  return (
+    <PageHeaderActionsProvider slot={headerActionsSlot}>
+      <Box>
+        <PageHeader
+          title={title}
+          subtitle={subtitle}
+          iconBadge={<AccountBalance />}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={headerActionsPortal}
+        />
+        <PageTabs
+          options={tabs}
+          value={activePos}
+          onChange={handleTabChange}
+        />
+
+        {/* ── Tab content ── */}
+        {activeLogicalIndex === TAB_PAYMENTS && <PaymentHistoryPage embedded />}
+        {activeLogicalIndex === TAB_INVOICES && canViewInvoices && <InvoicesList embedded />}
+        {activeLogicalIndex === TAB_WALLETS && canViewWallets && <WalletDashboard embedded />}
+        {activeLogicalIndex === TAB_PAYOUTS && canViewAccounting && <PayoutsTab />}
+        {activeLogicalIndex === TAB_EXPENSES && canViewAccounting && <ExpensesTab />}
+        {activeLogicalIndex === TAB_REPORTS && canViewAccounting && <ReportsExportsTab />}
+      </Box>
+    </PageHeaderActionsProvider>
   );
 };
 

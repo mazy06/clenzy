@@ -11,6 +11,10 @@ import {
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import {
+  resolveTabHeader,
+  type TabHeaderMeta,
+} from '../../components/PageHeaderActionsContext';
 import ConnectionsTab from './sync/ConnectionsTab';
 import EventsTab from './sync/EventsTab';
 import OutboxTab from './sync/OutboxTab';
@@ -19,6 +23,11 @@ import MappingsTab from './sync/MappingsTab';
 import DiagnosticsTab from './sync/DiagnosticsTab';
 import ReconciliationTab from './sync/ReconciliationTab';
 
+// Le contexte interne SyncAdminHeader est conserve : il expose deux slots
+// distincts (filters + actions) qui s'alimentent dans deux props differentes
+// de PageHeader. La primitive generique PageHeaderActionsContext ne couvre
+// qu'un seul slot — la migration aurait force un seul slot fusionne, ce qui
+// degrade la separation visuelle filters/actions du PageHeader.
 interface SyncAdminHeaderApi {
   setHeaderFilters: (filters: React.ReactNode) => void;
   setHeaderActions: (actions: React.ReactNode) => void;
@@ -30,6 +39,46 @@ const SyncAdminHeaderContext = createContext<SyncAdminHeaderApi>({
 });
 
 export const useSyncAdminHeader = (): SyncAdminHeaderApi => useContext(SyncAdminHeaderContext);
+
+// ─── Tab definitions (source of truth) ──────────────────────────────────────
+
+const SYNC_ADMIN_TABS = [
+  { label: 'Connexions',     icon: <Cable /> },
+  { label: 'Sync Events',    icon: <Sync /> },
+  { label: 'Outbox',         icon: <Outbox /> },
+  { label: 'Calendrier',     icon: <CalendarMonth /> },
+  { label: 'Mappings',       icon: <AccountTree /> },
+  { label: 'Diagnostics',    icon: <BugReport /> },
+  { label: 'Reconciliation', icon: <CompareArrows /> },
+] as const;
+
+// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
+// Clef = LABEL du tab (string stable face aux changements d'index).
+const SYNC_ADMIN_TAB_META: Record<string, TabHeaderMeta> = {
+  'Connexions': {
+    subtitle: 'Suivi en temps réel des connexions OTA (Airbnb, Booking, Channex) : statut, tokens, dernière sync.',
+  },
+  'Sync Events': {
+    subtitle: 'Évènements de synchronisation des calendriers (push/pull) : volumétrie par canal et statut.',
+  },
+  'Outbox': {
+    subtitle: "Outbox pattern Kafka : events en attente, envoyés ou échoués, avec retry à la demande.",
+  },
+  'Calendrier': {
+    subtitle: 'Audit des commandes calendrier (book, cancel, block, price) et détection des conflits multi-canal.',
+  },
+  'Mappings': {
+    subtitle: 'Correspondances propriété ↔ listing externe par canal (Airbnb ID, Booking hotel ID, etc.).',
+  },
+  'Diagnostics': {
+    subtitle: "Diagnostics système : tâches planifiées, jobs en cours, erreurs récentes et état des intégrations.",
+  },
+  'Reconciliation': {
+    subtitle: 'Runs de réconciliation calendrier : détection des divergences entre Clenzy et OTA, déclenchement manuel.',
+  },
+};
+const SYNC_ADMIN_ROOT_TITLE = 'Sync & Diagnostics';
+const SYNC_ADMIN_DEFAULT_SUBTITLE = 'Supervision de la synchronisation channel et diagnostic du systeme';
 
 const SyncAdminPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
@@ -47,11 +96,20 @@ const SyncAdminPage: React.FC = () => {
     [],
   );
 
+  // Resolution title/subtitle en fonction du tab actif.
+  const { title, subtitle } = resolveTabHeader(
+    SYNC_ADMIN_ROOT_TITLE,
+    SYNC_ADMIN_DEFAULT_SUBTITLE,
+    SYNC_ADMIN_TABS.map((tab) => tab.label),
+    tabValue,
+    SYNC_ADMIN_TAB_META,
+  );
+
   return (
     <Box>
       <PageHeader
-        title="Sync & Diagnostics"
-        subtitle="Supervision de la synchronisation channel et diagnostic du systeme"
+        title={title}
+        subtitle={subtitle}
         iconBadge={<Sync />}
         backPath="/admin"
         showBackButton={false}
@@ -60,15 +118,7 @@ const SyncAdminPage: React.FC = () => {
       />
 
       <PageTabs
-        options={[
-          { label: 'Connexions',     icon: <Cable /> },
-          { label: 'Sync Events',    icon: <Sync /> },
-          { label: 'Outbox',         icon: <Outbox /> },
-          { label: 'Calendrier',     icon: <CalendarMonth /> },
-          { label: 'Mappings',       icon: <AccountTree /> },
-          { label: 'Diagnostics',    icon: <BugReport /> },
-          { label: 'Reconciliation', icon: <CompareArrows /> },
-        ]}
+        options={SYNC_ADMIN_TABS.map((tab) => ({ label: tab.label, icon: tab.icon }))}
         value={tabValue}
         onChange={setTabValue}
         ariaLabel="Sync admin tabs"
