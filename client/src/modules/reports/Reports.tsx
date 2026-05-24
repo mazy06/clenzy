@@ -9,6 +9,12 @@ import {
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import {
+  PageHeaderActionsProvider,
+  usePageHeaderActionsSlot,
+  resolveTabHeader,
+  type TabHeaderMeta,
+} from '../../components/PageHeaderActionsContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -84,6 +90,25 @@ const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
 
 const TAB_PANEL_SX = { pt: 1.5 } as const;
 
+// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
+// Clef = LABEL traduit du tab (string stable).
+const REPORTS_TAB_META: Record<string, TabHeaderMeta> = {
+  'Rapports Financiers': {
+    subtitle: 'Revenus par bien, coûts d\'exploitation, marge nette et exports comptables sur la période choisie.',
+  },
+  'Rapports d\'Interventions': {
+    subtitle: 'Volume, délais moyens et taux de réalisation des interventions par type et par équipe.',
+  },
+  'Rapports d\'Équipes': {
+    subtitle: 'Charge de travail, performance et disponibilités par équipe et par membre.',
+  },
+  'Rapports de Propriétés': {
+    subtitle: 'Taux d\'occupation, RevPAR, alertes maintenance et indicateurs de santé par bien.',
+  },
+};
+const REPORTS_ROOT_TITLE = 'Rapports';
+const REPORTS_DEFAULT_SUBTITLE = 'Générez et consultez les rapports de votre plateforme Clenzy';
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const Reports: React.FC = () => {
@@ -93,6 +118,10 @@ const Reports: React.FC = () => {
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
   const [allowedTabs, setAllowedTabs] = useState<boolean[]>([]);
   const [period, setPeriod] = useState<DashboardPeriod>('month');
+
+  // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
+  // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
+  const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = usePageHeaderActionsSlot();
 
   // Check permissions for all tabs
   useEffect(() => {
@@ -144,49 +173,66 @@ const Reports: React.FC = () => {
   const currentTab = REPORT_TABS[activeTab];
   const CurrentComponent = currentTab.Component;
 
+  // Source de verite des tabs visibles — utilisee pour PageTabs ET resolveTabHeader.
+  // Ici tous les tabs restent affiches (juste disabled si pas autorise), donc on
+  // les indexe tous (pas de filtre hidden).
+  const tabs = REPORT_TABS.map((tab, index) => ({
+    label: t(tab.labelKey),
+    icon: tab.icon,
+    disabled: !allowedTabs[index],
+    hidden: false,
+  }));
+  const visibleTabs = tabs.filter((tab) => !tab.hidden);
+  const { title, subtitle } = resolveTabHeader(
+    REPORTS_ROOT_TITLE,
+    REPORTS_DEFAULT_SUBTITLE,
+    visibleTabs.map((tab) => tab.label),
+    activeTab,
+    REPORTS_TAB_META,
+  );
+
   return (
-    <Box>
-      <PageHeader
-        title={t('reports.title')}
-        subtitle={t('reports.subtitle')}
-        iconBadge={<BarChartIcon />}
-        backPath="/dashboard"
-        showBackButton={false}
-        filters={
-          currentTab.hasPeriodFilter ? (
-            <DashboardDateFilter<DashboardPeriod>
-              value={period}
-              onChange={setPeriod}
-              options={PERIOD_OPTIONS}
-            />
-          ) : undefined
-        }
-      />
+    <PageHeaderActionsProvider slot={headerActionsSlot}>
+      <Box>
+        <PageHeader
+          title={title}
+          subtitle={subtitle}
+          iconBadge={<BarChartIcon />}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={headerActionsPortal}
+          filters={
+            currentTab.hasPeriodFilter ? (
+              <DashboardDateFilter<DashboardPeriod>
+                value={period}
+                onChange={setPeriod}
+                options={PERIOD_OPTIONS}
+              />
+            ) : undefined
+          }
+        />
 
-      <PageTabs
-        options={REPORT_TABS.map((tab, index) => ({
-          label: t(tab.labelKey),
-          icon: tab.icon,
-          disabled: !allowedTabs[index],
-        }))}
-        value={activeTab}
-        onChange={setActiveTab}
-      />
+        <PageTabs
+          options={tabs}
+          value={activeTab}
+          onChange={setActiveTab}
+        />
 
-      <Box sx={TAB_PANEL_SX}>
-        {allowedTabs[activeTab] ? (
-          currentTab.hasPeriodFilter ? (
-            <CurrentComponent period={period} onPeriodChange={setPeriod} />
+        <Box sx={TAB_PANEL_SX}>
+          {allowedTabs[activeTab] ? (
+            currentTab.hasPeriodFilter ? (
+              <CurrentComponent period={period} onPeriodChange={setPeriod} />
+            ) : (
+              <CurrentComponent />
+            )
           ) : (
-            <CurrentComponent />
-          )
-        ) : (
-          <Alert severity="warning">
-            {t('reports.noPermission')}
-          </Alert>
-        )}
+            <Alert severity="warning">
+              {t('reports.noPermission')}
+            </Alert>
+          )}
+        </Box>
       </Box>
-    </Box>
+    </PageHeaderActionsProvider>
   );
 };
 
