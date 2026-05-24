@@ -43,17 +43,20 @@ public class ChannexConnectController {
     private final TenantContext tenantContext;
     private final com.clenzy.integration.channex.service.ChannexCapabilityService capabilityService;
     private final com.clenzy.integration.channex.repository.ChannexSyncLogRepository syncLogRepository;
+    private final com.clenzy.integration.channex.service.ChannexPriceDriftService priceDriftService;
 
     public ChannexConnectController(ChannexConnectService connectService,
                                       ChannexImportService importService,
                                       TenantContext tenantContext,
                                       com.clenzy.integration.channex.service.ChannexCapabilityService capabilityService,
-                                      com.clenzy.integration.channex.repository.ChannexSyncLogRepository syncLogRepository) {
+                                      com.clenzy.integration.channex.repository.ChannexSyncLogRepository syncLogRepository,
+                                      com.clenzy.integration.channex.service.ChannexPriceDriftService priceDriftService) {
         this.connectService = connectService;
         this.importService = importService;
         this.tenantContext = tenantContext;
         this.capabilityService = capabilityService;
         this.syncLogRepository = syncLogRepository;
+        this.priceDriftService = priceDriftService;
     }
 
     /**
@@ -143,6 +146,59 @@ public class ChannexConnectController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return connectService.computeHealthSummary(orgId);
     }
+
+    // ─── Phase 3 OTA pricing : price drifts ─────────────────────────────────
+
+    /** Liste tous les drifts actifs (non resolus) de l'organisation. */
+    @GetMapping("/price-drifts")
+    @Operation(summary = "Liste les ecarts de prix Clenzy ↔ OTA en attente de resolution")
+    public List<com.clenzy.integration.channex.dto.ChannexPriceDriftDto> listPriceDrifts() {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return priceDriftService.listActive(orgId).stream()
+            .map(com.clenzy.integration.channex.dto.ChannexPriceDriftDto::from)
+            .toList();
+    }
+
+    /** Drifts actifs pour une property specifique. */
+    @GetMapping("/properties/{clenzyPropertyId}/price-drifts")
+    @Operation(summary = "Drifts de prix actifs pour cette property")
+    public List<com.clenzy.integration.channex.dto.ChannexPriceDriftDto> listPriceDriftsForProperty(
+            @PathVariable Long clenzyPropertyId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return priceDriftService.listActiveForProperty(orgId, clenzyPropertyId).stream()
+            .map(com.clenzy.integration.channex.dto.ChannexPriceDriftDto::from)
+            .toList();
+    }
+
+    /**
+     * Resout un drift : KEEP_CLENZY (force push au prochain cycle), KEEP_OTA
+     * (cree un RateOverride avec le prix OTA), DISMISSED (ignore).
+     */
+    @PostMapping("/price-drifts/{driftId}/resolve")
+    @Operation(summary = "Resout un drift de prix avec la strategie choisie")
+    public com.clenzy.integration.channex.dto.ChannexPriceDriftDto resolvePriceDrift(
+            @PathVariable Long driftId,
+            @RequestBody ResolveDriftBody body,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        if (body == null || body.resolution() == null) {
+            throw new IllegalArgumentException("Body requis : { \"resolution\": \"KEEP_CLENZY|KEEP_OTA|DISMISSED\" }");
+        }
+        com.clenzy.integration.channex.model.ChannexPriceDrift.Resolution res;
+        try {
+            res = com.clenzy.integration.channex.model.ChannexPriceDrift.Resolution
+                .valueOf(body.resolution());
+        } catch (IllegalArgumentException iae) {
+            throw new IllegalArgumentException(
+                "resolution doit etre KEEP_CLENZY, KEEP_OTA ou DISMISSED — recu : " + body.resolution());
+        }
+        String resolvedBy = jwt != null ? jwt.getClaimAsString("email") : "system";
+        return com.clenzy.integration.channex.dto.ChannexPriceDriftDto.from(
+            priceDriftService.resolve(orgId, driftId, res, resolvedBy));
+    }
+
+    /** Body POST /price-drifts/{id}/resolve. */
+    public record ResolveDriftBody(String resolution) {}
 
     /**
      * Historique des operations de sync Channex pour une property (Phase 3).

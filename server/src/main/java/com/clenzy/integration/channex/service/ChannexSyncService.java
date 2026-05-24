@@ -60,6 +60,7 @@ public class ChannexSyncService {
     private final ObjectMapper objectMapper;
     private final ChannexMetrics metrics;
     private final ChannexSyncLogService syncLogService;
+    private final com.clenzy.repository.PropertyRepository propertyRepository;
 
     public ChannexSyncService(ChannexClient channexClient,
                                 ChannexPropertyMappingRepository mappingRepository,
@@ -67,7 +68,8 @@ public class ChannexSyncService {
                                 PriceEngine priceEngine,
                                 ObjectMapper objectMapper,
                                 ChannexMetrics metrics,
-                                ChannexSyncLogService syncLogService) {
+                                ChannexSyncLogService syncLogService,
+                                com.clenzy.repository.PropertyRepository propertyRepository) {
         this.channexClient = channexClient;
         this.mappingRepository = mappingRepository;
         this.calendarDayRepository = calendarDayRepository;
@@ -75,6 +77,7 @@ public class ChannexSyncService {
         this.objectMapper = objectMapper;
         this.metrics = metrics;
         this.syncLogService = syncLogService;
+        this.propertyRepository = propertyRepository;
     }
 
     // ─── Kafka consumer ─────────────────────────────────────────────────────
@@ -168,6 +171,21 @@ public class ChannexSyncService {
             return new ChannexSyncResult(false, "No Channex mapping for property " + propertyId, 0, 0);
         }
         ChannexPropertyMapping mapping = mappingOpt.get();
+
+        // Phase 3 OTA pricing : skip push si priceSourceOfTruth = OTA ou MANUAL
+        // (sinon on ecraserait les prix que l'host gere de son cote).
+        com.clenzy.model.PriceSourceOfTruth source = propertyRepository.findById(propertyId)
+            .map(com.clenzy.model.Property::getPriceSourceOfTruth)
+            .orElse(com.clenzy.model.PriceSourceOfTruth.CLENZY);
+        if (source != com.clenzy.model.PriceSourceOfTruth.CLENZY) {
+            log.info("ChannexSync: skip push property={} (price_source_of_truth={})", propertyId, source);
+            syncLogService.record(orgId, propertyId, mapping.getId(),
+                com.clenzy.integration.channex.model.ChannexSyncLog.SyncType.PUSH_PROPERTY,
+                com.clenzy.integration.channex.model.ChannexSyncLog.Status.SKIPPED,
+                0, startedAt, "Push skip — price_source_of_truth=" + source);
+            return new ChannexSyncResult(true,
+                "Skipped: price_source_of_truth=" + source + " (sync push desactivee)", 0, 0);
+        }
 
         // Gate : ne push que si au moins un OTA (Airbnb, Booking, ...) est actif
         // pour cette property cote Channex. Tant qu'aucun OTA n'est branche,

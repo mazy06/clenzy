@@ -98,6 +98,37 @@ public class Property {
     @Column(name = "default_currency", nullable = false, length = 3, columnDefinition = "varchar(3) default 'EUR'")
     private String defaultCurrency = "EUR";
 
+    /**
+     * Phase 3 OTA pricing — qui pilote les prix de cette property.
+     * Defaut {@link PriceSourceOfTruth#CLENZY} (comportement historique :
+     * PriceEngine push vers Channex). Cf migration 0131.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "price_source_of_truth", nullable = false, length = 10)
+    private PriceSourceOfTruth priceSourceOfTruth = PriceSourceOfTruth.CLENZY;
+
+    // ─── Phase 4 OTA metadata ────────────────────────────────────────────────
+    // Champs importes depuis Channex rate_plan.settings.* (cf migration 0132).
+    // Tous nullable : si l'OTA ne les expose pas, on garde NULL.
+
+    @Column(name = "maximum_nights")
+    private Integer maximumNights;
+
+    @Column(name = "cancellation_policy", length = 60)
+    private String cancellationPolicy;
+
+    @Column(name = "instant_booking_policy", length = 40)
+    private String instantBookingPolicy;
+
+    @Column(name = "allows_pets")
+    private Boolean allowsPets;
+
+    @Column(name = "allows_smoking")
+    private Boolean allowsSmoking;
+
+    @Column(name = "allows_events")
+    private Boolean allowsEvents;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PropertyType type = PropertyType.APARTMENT;
@@ -409,6 +440,32 @@ public class Property {
     public void setDefaultCurrency(String defaultCurrency) {
         this.defaultCurrency = defaultCurrency;
     }
+
+    public PriceSourceOfTruth getPriceSourceOfTruth() {
+        return priceSourceOfTruth;
+    }
+
+    public void setPriceSourceOfTruth(PriceSourceOfTruth priceSourceOfTruth) {
+        this.priceSourceOfTruth = priceSourceOfTruth;
+    }
+
+    public Integer getMaximumNights() { return maximumNights; }
+    public void setMaximumNights(Integer maximumNights) { this.maximumNights = maximumNights; }
+
+    public String getCancellationPolicy() { return cancellationPolicy; }
+    public void setCancellationPolicy(String cancellationPolicy) { this.cancellationPolicy = cancellationPolicy; }
+
+    public String getInstantBookingPolicy() { return instantBookingPolicy; }
+    public void setInstantBookingPolicy(String instantBookingPolicy) { this.instantBookingPolicy = instantBookingPolicy; }
+
+    public Boolean getAllowsPets() { return allowsPets; }
+    public void setAllowsPets(Boolean allowsPets) { this.allowsPets = allowsPets; }
+
+    public Boolean getAllowsSmoking() { return allowsSmoking; }
+    public void setAllowsSmoking(Boolean allowsSmoking) { this.allowsSmoking = allowsSmoking; }
+
+    public Boolean getAllowsEvents() { return allowsEvents; }
+    public void setAllowsEvents(Boolean allowsEvents) { this.allowsEvents = allowsEvents; }
 
     public PropertyType getType() {
         return type;

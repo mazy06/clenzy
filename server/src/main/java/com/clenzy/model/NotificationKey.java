@@ -72,6 +72,8 @@ public enum NotificationKey {
 
     CHANNEX_SYNC_ERROR(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
     CHANNEX_SYNC_RECOVERED(NotificationType.SUCCESS, NotificationCategory.SYSTEM, true),
+    // Phase 3 OTA pricing : detection d'ecarts Clenzy ↔ OTA
+    CHANNEX_PRICE_DRIFT_DETECTED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
 
     // ─── TEAM (8 cles) ─────────────────────────────────────────────────────────
 
