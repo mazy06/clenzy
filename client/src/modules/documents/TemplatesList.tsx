@@ -23,6 +23,14 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTemplates, useActivateTemplate, useDeleteTemplate } from './hooks/useDocuments';
 import TemplateUpload from './TemplateUpload';
+import { softChipSx } from '../../utils/statusUtils';
+
+// Palette Clenzy (accents valides)
+const PRIMARY = '#6B8A9A';
+const ACCENT_TEAL = '#4A9B8E';
+const SOFT_BLUE = '#7BA3C2';
+const NEUTRAL = '#8A8378';
+const DANGER_SOFT = '#C97A7A';
 
 export interface TemplatesListRef {
   fetchTemplates: () => void;
@@ -114,57 +122,71 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Chip label={t.documentType} size="small"
-                      sx={{ backgroundColor: '#1976d218', color: '#1976d2', border: '1px solid #1976d240', borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }} />
+                    <Chip label={t.documentType} size="small" sx={softChipSx(PRIMARY)} />
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
+                    <Typography variant="body2" noWrap sx={{ maxWidth: 150, fontSize: '0.8125rem' }}>
                       {t.originalFilename}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Chip label={`${t.tags?.length || 0} tags`} size="small"
-                      sx={{ backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }} />
+                    <Chip label={`${t.tags?.length || 0} tags`} size="small" sx={softChipSx(SOFT_BLUE)} />
                   </TableCell>
                   <TableCell>
-                    {(() => { const c = t.active ? '#4A9B8E' : '#757575'; return (
                     <Chip
                       label={t.active ? 'Actif' : 'Inactif'}
                       size="small"
-                      sx={{
-                        backgroundColor: `${c}18`,
-                        color: c,
-                        border: `1px solid ${c}40`,
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        fontSize: '0.75rem',
-                        height: 24,
-                        '& .MuiChip-label': { px: 1 },
-                      }}
+                      sx={softChipSx(t.active ? ACCENT_TEAL : NEUTRAL)}
                     />
-                    ); })()}
                   </TableCell>
-                  <TableCell>v{t.version}</TableCell>
                   <TableCell>
-                    <Typography variant="body2" noWrap sx={{ maxWidth: 120 }}>
+                    <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontVariantNumeric: 'tabular-nums' }}>
+                      v{t.version}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" noWrap sx={{ maxWidth: 120, fontSize: '0.8125rem' }}>
                       {t.createdBy}
                     </Typography>
                   </TableCell>
                   <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                    <Tooltip title="Voir détails">
-                      <IconButton size="small" onClick={() => navigate(`/documents/templates/${t.id}`)}>
+                    <Tooltip title="Voir détails" arrow>
+                      <IconButton
+                        size="small"
+                        onClick={() => navigate(`/documents/templates/${t.id}`)}
+                        aria-label="Voir détails"
+                        sx={{ cursor: 'pointer', '&:hover': { color: PRIMARY } }}
+                      >
                         <Visibility />
                       </IconButton>
                     </Tooltip>
                     {!t.active && (
-                      <Tooltip title="Activer">
-                        <IconButton size="small" color="success" onClick={() => handleActivate(t.id)}>
+                      <Tooltip title="Activer" arrow>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleActivate(t.id)}
+                          aria-label="Activer"
+                          sx={{
+                            cursor: 'pointer',
+                            color: 'text.secondary',
+                            '&:hover': { color: ACCENT_TEAL, backgroundColor: `${ACCENT_TEAL}14` },
+                          }}
+                        >
                           <CheckCircle />
                         </IconButton>
                       </Tooltip>
                     )}
-                    <Tooltip title="Supprimer">
-                      <IconButton size="small" color="error" onClick={() => handleDelete(t.id)}>
+                    <Tooltip title="Supprimer" arrow>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDelete(t.id)}
+                        aria-label="Supprimer"
+                        sx={{
+                          cursor: 'pointer',
+                          color: 'text.secondary',
+                          '&:hover': { color: DANGER_SOFT, backgroundColor: `${DANGER_SOFT}14` },
+                        }}
+                      >
                         <Delete />
                       </IconButton>
                     </Tooltip>

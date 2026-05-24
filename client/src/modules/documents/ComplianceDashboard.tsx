@@ -48,6 +48,15 @@ import {
   useTemplates,
   useCheckTemplateCompliance,
 } from './hooks/useDocuments';
+import { softChipSx } from '../../utils/statusUtils';
+
+// ─── Palette Clenzy (accents valides) ────────────────────────────────────────
+const PRIMARY = '#6B8A9A';
+const ACCENT_TEAL = '#4A9B8E';
+const SOFT_BLUE = '#7BA3C2';
+const WARM = '#D4A574';
+const NEUTRAL = '#8A8378';
+const DANGER_SOFT = '#C97A7A';
 
 // ─── Country display ─────────────────────────────────────────────────────────
 
@@ -227,26 +236,18 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
         {isAdmin ? (
           <>
             <Chip
-              icon={<Public size={16} strokeWidth={1.75} color="#1976d2" />}
+              icon={<Public size={14} strokeWidth={1.75} color={PRIMARY} />}
               label={`${countryFlag} ${countryLabel} \u2014 ${standardName}`}
-              deleteIcon={<ExpandMore color="#1976d2" />}
+              deleteIcon={<ExpandMore color={PRIMARY} />}
               onDelete={(e) => setCountryMenuAnchor(e.currentTarget as HTMLElement)}
               onClick={(e) => setCountryMenuAnchor(e.currentTarget)}
-              sx={{
-                backgroundColor: '#1976d218',
-                color: '#1976d2',
-                border: '1px solid #1976d240',
-                borderRadius: '6px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                '&:hover': { backgroundColor: '#1976d225' },
-              }}
+              sx={{ ...softChipSx(PRIMARY), cursor: 'pointer', '&:hover': { backgroundColor: `${PRIMARY}24` } }}
             />
             <Menu
               anchorEl={countryMenuAnchor}
               open={Boolean(countryMenuAnchor)}
               onClose={() => setCountryMenuAnchor(null)}
-              slotProps={{ paper: { sx: { borderRadius: 2, minWidth: 220, mt: 0.5 } } }}
+              slotProps={{ paper: { sx: { borderRadius: 1.5, minWidth: 220, mt: 0.5, boxShadow: '0 4px 12px rgba(107,138,154,0.12)' } } }}
             >
               {COUNTRY_OPTIONS.map((opt) => (
                 <MenuItem
@@ -265,7 +266,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                     secondaryTypographyProps={{ fontSize: '0.72rem' }}
                   />
                   {opt.code === countryCode && (
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', ml: 1 }}><Check size={18} strokeWidth={1.75} /></Box>
+                    <Box component="span" sx={{ display: 'inline-flex', color: ACCENT_TEAL, ml: 1 }}><Check size={18} strokeWidth={1.75} /></Box>
                   )}
                 </MenuItem>
               ))}
@@ -273,15 +274,9 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
           </>
         ) : (
           <Chip
-            icon={<Public size={16} strokeWidth={1.75} color="#1976d2" />}
+            icon={<Public size={14} strokeWidth={1.75} color={PRIMARY} />}
             label={`${countryFlag} ${countryLabel} \u2014 ${standardName}`}
-            sx={{
-              backgroundColor: '#1976d218',
-              color: '#1976d2',
-              border: '1px solid #1976d240',
-              borderRadius: '6px',
-              fontWeight: 600,
-            }}
+            sx={softChipSx(PRIMARY)}
           />
         )}
       </Box>
@@ -290,40 +285,40 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
       {stats && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mb: 1 }}><Description size={40} strokeWidth={1.75} /></Box>
-                <Typography variant="h4" fontWeight={700}>{stats.totalDocuments}</Typography>
-                <Typography variant="body2" color="text.secondary">{t('documents.compliance.totalDocuments')}</Typography>
+            <Card variant="outlined" sx={{ borderRadius: 1.5, boxShadow: 'none' }}>
+              <CardContent sx={{ textAlign: 'center', py: 2.5 }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: PRIMARY, mb: 1 }}><Description size={32} strokeWidth={1.75} /></Box>
+                <Typography variant="h4" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>{stats.totalDocuments}</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem' }}>{t('documents.compliance.totalDocuments')}</Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main', mb: 1 }}><Lock size={40} strokeWidth={1.75} /></Box>
-                <Typography variant="h4" fontWeight={700}>{stats.totalLocked}</Typography>
-                <Typography variant="body2" color="text.secondary">{t('documents.compliance.totalLocked')}</Typography>
+            <Card variant="outlined" sx={{ borderRadius: 1.5, boxShadow: 'none' }}>
+              <CardContent sx={{ textAlign: 'center', py: 2.5 }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: WARM, mb: 1 }}><Lock size={32} strokeWidth={1.75} /></Box>
+                <Typography variant="h4" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>{stats.totalLocked}</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem' }}>{t('documents.compliance.totalLocked')}</Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'info.main', mb: 1 }}><Receipt size={40} strokeWidth={1.75} /></Box>
-                <Typography variant="h4" fontWeight={700}>
+            <Card variant="outlined" sx={{ borderRadius: 1.5, boxShadow: 'none' }}>
+              <CardContent sx={{ textAlign: 'center', py: 2.5 }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: SOFT_BLUE, mb: 1 }}><Receipt size={32} strokeWidth={1.75} /></Box>
+                <Typography variant="h4" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>
                   {stats.totalFacturesLocked}/{stats.totalFactures}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">{t('documents.compliance.invoicesLocked')}</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem' }}>{t('documents.compliance.invoicesLocked')}</Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 1 }}><GppGood size={40} strokeWidth={1.75} /></Box>
-                <Typography variant="h4" fontWeight={700}>{stats.averageComplianceScore}%</Typography>
-                <Typography variant="body2" color="text.secondary">{t('documents.compliance.averageScore')}</Typography>
+            <Card variant="outlined" sx={{ borderRadius: 1.5, boxShadow: 'none' }}>
+              <CardContent sx={{ textAlign: 'center', py: 2.5 }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: ACCENT_TEAL, mb: 1 }}><GppGood size={32} strokeWidth={1.75} /></Box>
+                <Typography variant="h4" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>{stats.averageComplianceScore}%</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem' }}>{t('documents.compliance.averageScore')}</Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -341,9 +336,9 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             <strong>Date :</strong> {formatDate(searchResult.createdAt)} &nbsp;|&nbsp;
             <strong>{t('documents.compliance.locked')} :</strong>{' '}
             {searchResult.locked ? (
-              <Chip icon={<Lock size={14} strokeWidth={1.75} color="#ED6C02" />} label={t('common.yes')} size="small" sx={{ backgroundColor: '#ED6C0218', color: '#ED6C02', border: '1px solid #ED6C0240', borderRadius: '6px', fontWeight: 600, '& .MuiChip-label': { px: 1 } }} />
+              <Chip icon={<Lock size={14} strokeWidth={1.75} color={WARM} />} label={t('common.yes')} size="small" sx={softChipSx(WARM)} />
             ) : (
-              <Chip label={t('common.no')} size="small" sx={{ backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', fontWeight: 600, '& .MuiChip-label': { px: 1 } }} />
+              <Chip label={t('common.no')} size="small" sx={softChipSx(NEUTRAL)} />
             )}
           </Typography>
         </Box>
@@ -356,12 +351,13 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             <Typography variant="subtitle1" fontWeight={600}>
               {t('documents.compliance.templateVerification')}
             </Typography>
-            <Tooltip title="Relancer la verification">
+            <Tooltip title="Relancer la verification" arrow>
               <IconButton
                 size="small"
                 onClick={handleManualRecheck}
                 disabled={autoCheckRunning}
-                sx={{ color: 'primary.main' }}
+                aria-label="Relancer la verification"
+                sx={{ cursor: 'pointer', color: PRIMARY, '&:hover': { backgroundColor: `${PRIMARY}14` } }}
               >
                 <Box component="span" sx={{ display: 'inline-flex', animation: autoCheckRunning ? 'spin 1s linear infinite' : 'none', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }}>
                   <Refresh size={20} strokeWidth={1.75} />
@@ -377,7 +373,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                 <Typography variant="caption" color="text.secondary">
                   Verification en cours... {autoCheckProgress}/{autoCheckTotal}
                 </Typography>
-                <Typography variant="caption" fontWeight={600} color="primary.main">
+                <Typography variant="caption" fontWeight={600} sx={{ color: PRIMARY, fontVariantNumeric: 'tabular-nums' }}>
                   {autoCheckTotal > 0 ? Math.round((autoCheckProgress / autoCheckTotal) * 100) : 0}%
                 </Typography>
               </Box>
@@ -387,9 +383,11 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                 sx={{
                   height: 6,
                   borderRadius: 3,
+                  backgroundColor: `${PRIMARY}14`,
                   '& .MuiLinearProgress-bar': {
                     transition: 'transform 0.6s ease',
                     borderRadius: 3,
+                    backgroundColor: PRIMARY,
                   },
                 }}
               />
@@ -433,9 +431,8 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                         sx={{
                           transition: 'all 0.4s ease',
                           ...(isChecking && {
-                            backgroundColor: 'action.hover',
-                            boxShadow: 'inset 3px 0 0 0',
-                            boxShadowColor: 'primary.main',
+                            backgroundColor: `${PRIMARY}0A`,
+                            boxShadow: `inset 3px 0 0 0 ${PRIMARY}`,
                           }),
                           '@keyframes fadeIn': {
                             from: { opacity: 0, transform: 'translateX(-8px)' },
@@ -447,38 +444,45 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                           <Typography variant="body2" fontWeight={500}>{tpl.name}</Typography>
                         </TableCell>
                         <TableCell>
-                          <Chip label={tpl.documentType} size="small"
-                            sx={{ backgroundColor: '#1976d218', color: '#1976d2', border: '1px solid #1976d240', borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }} />
+                          <Chip label={tpl.documentType} size="small" sx={softChipSx(PRIMARY)} />
                         </TableCell>
                         <TableCell>
-                          {(() => { const c = tpl.active ? '#4A9B8E' : '#757575'; return (
                           <Chip
                             label={tpl.active ? t('documents.compliance.active') : t('documents.compliance.inactive')}
                             size="small"
-                            sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }}
+                            sx={softChipSx(tpl.active ? ACCENT_TEAL : NEUTRAL)}
                           />
-                          ); })()}
                         </TableCell>
                         <TableCell>
                           {isChecking ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <CircularProgress size={16} />
+                              <CircularProgress size={16} sx={{ color: PRIMARY }} />
                               <Typography variant="caption" color="text.secondary">Verification...</Typography>
                             </Box>
                           ) : report ? (
-                            <Tooltip title={
-                              report.compliant
-                                ? t('documents.compliance.allMentionsPresent')
-                                : `${t('documents.compliance.missingMentionsLabel')} : ${report.missingMentions.join(', ')}`
-                            }>
-                              {(() => { const c = report.compliant ? '#4A9B8E' : '#d32f2f'; return (
-                              <Chip
-                                icon={report.compliant ? <Box component="span" sx={{ display: 'inline-flex', color: `${c} !important` }}><GppGood  /></Box> : <Box component="span" sx={{ display: 'inline-flex', color: `${c} !important` }}><GppBad  /></Box>}
-                                label={report.compliant ? t('documents.compliance.compliant') : t('documents.compliance.nonCompliant')}
-                                size="small"
-                                sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 }, animation: 'fadeIn 0.4s ease' }}
-                              />
-                              ); })()}
+                            <Tooltip
+                              arrow
+                              title={
+                                report.compliant
+                                  ? t('documents.compliance.allMentionsPresent')
+                                  : `${t('documents.compliance.missingMentionsLabel')} : ${report.missingMentions.join(', ')}`
+                              }
+                            >
+                              {(() => {
+                                const hex = report.compliant ? ACCENT_TEAL : DANGER_SOFT;
+                                return (
+                                  <Chip
+                                    icon={
+                                      report.compliant
+                                        ? <Box component="span" sx={{ display: 'inline-flex', color: hex }}><GppGood size={12} strokeWidth={1.75} /></Box>
+                                        : <Box component="span" sx={{ display: 'inline-flex', color: hex }}><GppBad size={12} strokeWidth={1.75} /></Box>
+                                    }
+                                    label={report.compliant ? t('documents.compliance.compliant') : t('documents.compliance.nonCompliant')}
+                                    size="small"
+                                    sx={{ ...softChipSx(hex), animation: 'fadeIn 0.4s ease' }}
+                                  />
+                                );
+                              })()}
                             </Tooltip>
                           ) : (
                             <Typography variant="caption" color="text.secondary">En attente</Typography>
@@ -486,13 +490,16 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                         </TableCell>
                         <TableCell>
                           {isChecking ? (
-                            <CircularProgress size={16} />
+                            <CircularProgress size={16} sx={{ color: PRIMARY }} />
                           ) : report ? (
                             <Typography
                               variant="body2"
-                              fontWeight={600}
-                              color={report.score >= 80 ? 'success.main' : report.score >= 50 ? 'warning.main' : 'error.main'}
-                              sx={{ animation: 'fadeIn 0.4s ease' }}
+                              fontWeight={700}
+                              sx={{
+                                fontVariantNumeric: 'tabular-nums',
+                                color: report.score >= 80 ? ACCENT_TEAL : report.score >= 50 ? WARM : DANGER_SOFT,
+                                animation: 'fadeIn 0.4s ease',
+                              }}
                             >
                               {report.score}%
                             </Typography>
@@ -500,19 +507,19 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                         </TableCell>
                         <TableCell align="right">
                           {report ? (
-                            <Tooltip title={report.compliant ? 'Conforme' : 'Non conforme'}>
+                            <Tooltip title={report.compliant ? 'Conforme' : 'Non conforme'} arrow>
                               {report.compliant ? (
-                                <Box component="span" sx={{ display: 'inline-flex', color: '#4A9B8E', animation: 'fadeIn 0.4s ease' }}>
+                                <Box component="span" sx={{ display: 'inline-flex', color: ACCENT_TEAL, animation: 'fadeIn 0.4s ease' }}>
                                   <GppGood size={20} strokeWidth={1.75} />
                                 </Box>
                               ) : (
-                                <Box component="span" sx={{ display: 'inline-flex', color: '#d32f2f', animation: 'fadeIn 0.4s ease' }}>
+                                <Box component="span" sx={{ display: 'inline-flex', color: DANGER_SOFT, animation: 'fadeIn 0.4s ease' }}>
                                   <GppBad size={20} strokeWidth={1.75} />
                                 </Box>
                               )}
                             </Tooltip>
                           ) : isChecking ? (
-                            <CircularProgress size={18} />
+                            <CircularProgress size={18} sx={{ color: PRIMARY }} />
                           ) : (
                             <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><VerifiedUser size={20} strokeWidth={1.75} /></Box>
                           )}

@@ -245,7 +245,7 @@ const TemplateDetails: React.FC = () => {
 
   if (fetchError || !template) {
     return (
-      <Box sx={{ p: 3 }}>
+      <Box>
         <Alert severity="error">Template introuvable</Alert>
         <Button startIcon={<ArrowBack />} onClick={() => navigate('/documents')} size="small" sx={{ mt: 2 }}>
           Retour
@@ -261,7 +261,7 @@ const TemplateDetails: React.FC = () => {
   const reparsePending = reparseMutation.isPending;
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <PageHeader
         title={template.name}
         subtitle={`Modèle de document · v${template.version}`}
@@ -357,7 +357,7 @@ const TemplateDetails: React.FC = () => {
         <Grid item xs={12} md={6}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* Informations */}
-            <Paper sx={{ p: 3 }}>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, boxShadow: 'none' }}>
               <Typography variant="h6" sx={{ mb: 2 }}>Informations</Typography>
 
               {editing ? (
@@ -386,7 +386,7 @@ const TemplateDetails: React.FC = () => {
             </Paper>
 
             {/* Apercu PDF — affiche systematiquement sous les Informations */}
-            <Paper sx={{ p: 3 }}>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, boxShadow: 'none' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
                 <Box>
                   <Typography variant="h6">Aperçu</Typography>

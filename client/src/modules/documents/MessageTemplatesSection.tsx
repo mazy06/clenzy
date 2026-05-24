@@ -28,14 +28,23 @@ import {
   type MessageTemplate,
 } from '../../services/api/guestMessagingApi';
 import MessageTemplateEditor from '../messaging/MessageTemplateEditor';
+import { softChipSx } from '../../utils/statusUtils';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
+// Palette Clenzy : remplace les couleurs MUI brutes (ED6C02, 0288d1...) par
+// les accents valides du produit.
+const ACCENT_TEAL = '#4A9B8E';
+const WARM = '#D4A574';
+const SOFT_BLUE = '#7BA3C2';
+const NEUTRAL = '#8A8378';
+const DANGER_SOFT = '#C97A7A';
+
 const TYPE_HEX: Record<string, string> = {
-  CHECK_IN: '#4A9B8E',
-  CHECK_OUT: '#ED6C02',
-  WELCOME: '#0288d1',
-  CUSTOM: '#757575',
+  CHECK_IN: ACCENT_TEAL,
+  CHECK_OUT: WARM,
+  WELCOME: SOFT_BLUE,
+  CUSTOM: NEUTRAL,
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -169,59 +178,54 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    {(() => { const c = TYPE_HEX[template.type] ?? '#757575'; return (
                     <Chip
                       label={TYPE_LABELS[template.type] || template.type}
                       size="small"
-                      sx={{
-                        backgroundColor: `${c}18`,
-                        color: c,
-                        border: `1px solid ${c}40`,
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        fontSize: '0.75rem',
-                        height: 24,
-                        '& .MuiChip-label': { px: 1 },
-                      }}
+                      sx={softChipSx(TYPE_HEX[template.type] ?? NEUTRAL)}
                     />
-                    ); })()}
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" noWrap sx={{ maxWidth: 250 }}>
+                    <Typography variant="body2" noWrap sx={{ maxWidth: 250, fontSize: '0.8125rem' }}>
                       {template.subject}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" textTransform="uppercase">
-                      {template.language}
-                    </Typography>
+                    {/* Langue affichee en chip neutre (lieu de uppercase brut) */}
+                    <Chip
+                      label={template.language?.toUpperCase()}
+                      size="small"
+                      sx={softChipSx(NEUTRAL)}
+                    />
                   </TableCell>
                   <TableCell align="center">
-                    {(() => { const c = template.isActive ? '#4A9B8E' : '#757575'; return (
                     <Chip
                       label={template.isActive ? t('messaging.templates.active') : t('messaging.templates.inactive')}
                       size="small"
-                      sx={{
-                        backgroundColor: `${c}18`,
-                        color: c,
-                        border: `1px solid ${c}40`,
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        fontSize: '0.75rem',
-                        height: 24,
-                        '& .MuiChip-label': { px: 1 },
-                      }}
+                      sx={softChipSx(template.isActive ? ACCENT_TEAL : NEUTRAL)}
                     />
-                    ); })()}
                   </TableCell>
                   <TableCell align="right">
-                    <Tooltip title={t('common.edit')}>
-                      <IconButton size="small" onClick={() => handleEdit(template)}>
+                    <Tooltip title={t('common.edit')} arrow>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEdit(template)}
+                        aria-label={t('common.edit')}
+                        sx={{ cursor: 'pointer', '&:hover': { color: ACCENT_TEAL } }}
+                      >
                         <Edit fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title={t('common.delete')}>
-                      <IconButton size="small" color="error" onClick={() => handleDelete(template.id)}>
+                    <Tooltip title={t('common.delete')} arrow>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDelete(template.id)}
+                        aria-label={t('common.delete')}
+                        sx={{
+                          cursor: 'pointer',
+                          color: 'text.secondary',
+                          '&:hover': { color: DANGER_SOFT, backgroundColor: `${DANGER_SOFT}14` },
+                        }}
+                      >
                         <Delete fontSize="small" />
                       </IconButton>
                     </Tooltip>
