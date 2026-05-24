@@ -25,7 +25,8 @@ class AnthropicProviderTest {
         aiProperties.getAnthropic().setApiKey("sk-ant-test");
         aiProperties.getAnthropic().setModel("claude-sonnet-4-20250514");
         objectMapper = new ObjectMapper();
-        provider = new AnthropicProvider(aiProperties, objectMapper);
+        provider = new AnthropicProvider(aiProperties, objectMapper,
+                org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class));
     }
 
     @Test

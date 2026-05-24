@@ -34,6 +34,11 @@ import {
   amenitiesManagementApi,
   type ChannexFacilityOption,
 } from '../../../services/api/amenitiesManagementApi';
+import AmenityIconPicker from './AmenityIconPicker';
+import { ICON_REGISTRY } from './amenityIcons';
+import { useAmenityIconOverrides } from './useAmenityIconOverrides';
+import { useAuth } from '../../../hooks/useAuth';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const ACCENT = '#0F766E';
 
@@ -68,6 +73,12 @@ function slugifyCode(label: string): string {
 export default function CreateCustomAmenityModal({
   open, prefillRawName, prefillAffectedCount = 0, onClose, onCreated,
 }: CreateCustomAmenityModalProps) {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const { setIcon: setIconOverride } = useAmenityIconOverrides(
+    user?.organizationId ?? null,
+  );
+
   const [labelFr, setLabelFr] = useState('');
   const [labelEn, setLabelEn] = useState('');
   const [category, setCategory] = useState('custom');
@@ -76,6 +87,11 @@ export default function CreateCustomAmenityModal({
   const [applyNow, setApplyNow] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Icone choisie par l'utilisateur pour la commodite (Sparkles par defaut).
+  // Persiste apres creation reussie via useAmenityIconOverrides (cle = code).
+  const [selectedIconName, setSelectedIconName] = useState<string>('Sparkles');
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
 
   // Catalogue Channex pour autocomplete labelEn (suggestions standardisees)
   const [channexCatalog, setChannexCatalog] = useState<ChannexFacilityOption[]>([]);
@@ -90,6 +106,7 @@ export default function CreateCustomAmenityModal({
       setCode('');
       setAutoAlias(!!prefillRawName);
       setApplyNow(prefillAffectedCount > 0);
+      setSelectedIconName('Sparkles');
       setError(null);
     }
   }, [open, prefillRawName, prefillAffectedCount]);
@@ -126,6 +143,12 @@ export default function CreateCustomAmenityModal({
         createAliasForRaw: autoAlias && prefillRawName ? prefillRawName : undefined,
         applyToProperties: applyNow,
       });
+      // Persiste le choix d'icone si != defaut (Sparkles). La cle est le code
+      // resolu (previewCode) — meme cle utilisee par AmenityMappingPage pour
+      // resoudre l'icone via resolveAmenityIcon.
+      if (selectedIconName !== 'Sparkles' && previewCode) {
+        setIconOverride(previewCode, selectedIconName);
+      }
       onCreated();
       onClose();
     } catch (e: unknown) {
@@ -134,6 +157,9 @@ export default function CreateCustomAmenityModal({
       setSubmitting(false);
     }
   };
+
+  // Composant icone preview pour le bouton "Choisir une icône"
+  const PreviewIcon = ICON_REGISTRY[selectedIconName] ?? Sparkles;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -240,6 +266,56 @@ export default function CreateCustomAmenityModal({
             InputProps={{ sx: { fontFamily: 'monospace', fontSize: '0.85rem' } }}
           />
 
+          {/* Icone : preview cliquable + label + bouton "Choisir" */}
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Box
+              onClick={() => setIconPickerOpen(true)}
+              role="button"
+              tabIndex={0}
+              aria-label={t('settings.amenities.changeIcon', "Changer l'icône")}
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: `${ACCENT}14`,
+                color: ACCENT,
+                cursor: 'pointer',
+                border: '1px solid',
+                borderColor: `${ACCENT}33`,
+                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                '&:hover': { bgcolor: `${ACCENT}24`, borderColor: ACCENT },
+                '&:focus-visible': { boxShadow: `0 0 0 3px ${ACCENT}33`, outline: 'none' },
+              }}
+            >
+              <PreviewIcon size={20} strokeWidth={1.75} />
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography sx={{ fontSize: '0.78rem', fontWeight: 600 }}>
+                {t('settings.amenities.iconLabel', 'Icône')}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                {selectedIconName}
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setIconPickerOpen(true)}
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.78rem',
+                borderColor: `${ACCENT}66`,
+                color: ACCENT,
+                '&:hover': { borderColor: ACCENT, backgroundColor: `${ACCENT}0A` },
+              }}
+            >
+              {t('settings.amenities.changeIcon', "Changer l'icône")}
+            </Button>
+          </Stack>
+
           {prefillRawName && (
             <Stack spacing={0.5}>
               <FormControlLabel
@@ -305,6 +381,19 @@ export default function CreateCustomAmenityModal({
           {submitting ? 'Création…' : 'Créer la commodité'}
         </Button>
       </DialogActions>
+
+      {/* Picker d'icone — meme composant que sur le tab Reference. Le choix est
+          persiste localement apres creation reussie via setIconOverride. */}
+      <AmenityIconPicker
+        open={iconPickerOpen}
+        amenityLabel={labelFr || t('settings.amenities.iconPicker.title', 'Choisir une icône')}
+        amenityCode={previewCode || '—'}
+        currentIcon={selectedIconName}
+        isOverridden={selectedIconName !== 'Sparkles'}
+        onClose={() => setIconPickerOpen(false)}
+        onSelect={(name) => setSelectedIconName(name)}
+        onReset={() => setSelectedIconName('Sparkles')}
+      />
     </Dialog>
   );
 }

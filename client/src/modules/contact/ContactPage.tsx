@@ -62,24 +62,8 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
-// Clef = LABEL traduit du tab (string stable face aux filtres roles/permissions).
-const CONTACT_TAB_META: Record<string, TabHeaderMeta> = {
-  'Messagerie': {
-    subtitle: 'Conversations internes entre membres de votre organisation : equipes, supervision et coordination.',
-  },
-  'Messages archivés': {
-    subtitle: 'Historique des conversations archivees : consultation en lecture seule, recherche et restauration.',
-  },
-  'Formulaires reçus': {
-    subtitle: 'Demandes entrantes via vos formulaires publics (contact, devis, signalement) : tri et reponse.',
-  },
-  'Messagerie OTA': {
-    subtitle: 'Messages voyageurs venant de vos canaux OTA (Airbnb, Booking) centralises dans une inbox unique.',
-  },
-};
-const CONTACT_ROOT_TITLE = 'Contact';
-const CONTACT_DEFAULT_SUBTITLE = 'Messages de contact';
+// La metadata par tab (breadcrumb + subtitle) est construite dans le composant
+// via t() pour reagir au changement de langue (cf. contactTabMeta plus bas).
 
 const ContactPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
@@ -113,16 +97,31 @@ const ContactPage: React.FC = () => {
   const tabs = [
     { label: t('contact.internalChat'),    icon: <ChatIcon />,      badge: internalUnread, badgeColor: 'error' as const, hidden: false },
     { label: t('contact.archived'),        icon: <ArchiveIcon />,                                                       hidden: false },
-    { label: 'Formulaires reçus',          icon: <FormsIcon />,     badge: newFormsCount,  badgeColor: 'warning' as const, hidden: !isAdminOrManager },
+    { label: t('tabHeaders.contact.tabs.receivedForms', 'Formulaires reçus'), icon: <FormsIcon />, badge: newFormsCount, badgeColor: 'warning' as const, hidden: !isAdminOrManager },
     { label: t('contact.channelMessages'), icon: <ChannelsIcon />,                                                      hidden: !canAccessOta },
   ];
   const visibleTabs = tabs.filter((tab) => !tab.hidden);
+  // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
+  const contactTabMeta: Record<string, TabHeaderMeta> = {
+    [t('contact.internalChat')]: {
+      subtitle: t('tabHeaders.contact.subtitle.internalChat', 'Conversations internes entre membres de votre organisation : equipes, supervision et coordination.'),
+    },
+    [t('contact.archived')]: {
+      subtitle: t('tabHeaders.contact.subtitle.archived', 'Historique des conversations archivees : consultation en lecture seule, recherche et restauration.'),
+    },
+    [t('tabHeaders.contact.tabs.receivedForms', 'Formulaires reçus')]: {
+      subtitle: t('tabHeaders.contact.subtitle.receivedForms', 'Demandes entrantes via vos formulaires publics (contact, devis, signalement) : tri et reponse.'),
+    },
+    [t('contact.channelMessages')]: {
+      subtitle: t('tabHeaders.contact.subtitle.channelMessages', 'Messages voyageurs venant de vos canaux OTA (Airbnb, Booking) centralises dans une inbox unique.'),
+    },
+  };
   const { title, subtitle } = resolveTabHeader(
-    CONTACT_ROOT_TITLE,
-    CONTACT_DEFAULT_SUBTITLE,
+    t('tabHeaders.contact.title', 'Contact'),
+    t('tabHeaders.contact.default', 'Messages de contact'),
     visibleTabs.map((tab) => tab.label),
     tabValue,
-    CONTACT_TAB_META,
+    contactTabMeta,
   );
 
   return (

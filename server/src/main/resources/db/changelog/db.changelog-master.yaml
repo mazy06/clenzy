@@ -1254,3 +1254,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0134 : Personnalisation des icones de commodites par organisation ---
+  - changeSet:
+      id: "0134-add-amenity-icon-overrides"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0134__add_amenity_icon_overrides.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

@@ -374,7 +374,7 @@ export default function AmenityMappingPage() {
           <Tab label={`Mes mappings (${aliases.length})`} value="aliases" />
           <Tab label={`Commodités custom (${customs.length})`} value="custom" />
           <Tab label={`Ignorés (${ignored.length})`} value="ignored" />
-          <Tab label={`Référentiel Clenzy (${BUILT_IN_AMENITIES.length})`} value="reference" />
+          <Tab label={`${t('settings.amenities.tabs.reference', 'Référentiel Clenzy')} (${BUILT_IN_AMENITIES.length})`} value="reference" />
         </Tabs>
       </Box>
 
@@ -559,34 +559,86 @@ export default function AmenityMappingPage() {
             <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 1 }} />
           ) : customs.length === 0 ? (
             <EmptyState
-              title="Aucune commodité custom"
-              subtitle="Créez vos propres commodités quand le référentiel Clenzy ne couvre pas un équipement."
+              title={t('settings.amenities.custom.emptyTitle', 'Aucune commodité custom')}
+              subtitle={t('settings.amenities.custom.emptySubtitle', 'Créez vos propres commodités quand le référentiel Clenzy ne couvre pas un équipement.')}
             />
           ) : (
-            customs.map((c) => (
-              <Box key={c.id} sx={SX_LIST_ROW}>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>{c.labelFr}</Typography>
-                    {c.labelEn && (
-                      <Typography variant="caption" color="text.secondary">/ {c.labelEn}</Typography>
-                    )}
-                    <Chip size="small"
-                          label={AMENITY_CATEGORY_LABELS[c.category as AmenityCategory] ?? c.category}
-                          sx={{ height: 18, fontSize: '0.65rem',
-                                bgcolor: 'rgba(107, 138, 154, 0.15)', color: PRIMARY }} />
-                  </Stack>
-                  <Typography variant="caption" sx={{
-                    display: 'block', fontFamily: 'monospace', color: 'text.disabled', mt: 0.25,
-                  }}>
-                    {c.code}
-                  </Typography>
+            customs.map((c) => {
+              const Icon = resolveAmenityIcon(c.code, iconOverrides);
+              const isOverridden = c.code in iconOverrides;
+              return (
+                <Box key={c.id} sx={SX_LIST_ROW}>
+                  {/* Icone (cliquable = ouvre le picker) — meme pattern que tab Reference */}
+                  <Tooltip title={t('settings.amenities.changeIcon', "Changer l'icône")} arrow>
+                    <Box
+                      onClick={() => setIconPicker({ open: true, code: c.code, label: c.labelFr })}
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 1,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: isOverridden ? `${PRIMARY}14` : `${ACCENT}14`,
+                        color: isOverridden ? PRIMARY : ACCENT,
+                        flexShrink: 0,
+                        cursor: 'pointer',
+                        transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        '&:hover': {
+                          bgcolor: isOverridden ? `${PRIMARY}24` : `${ACCENT}24`,
+                        },
+                      }}
+                    >
+                      <Icon size={18} strokeWidth={1.75} />
+                    </Box>
+                  </Tooltip>
+
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>{c.labelFr}</Typography>
+                      {c.labelEn && (
+                        <Typography variant="caption" color="text.secondary">/ {c.labelEn}</Typography>
+                      )}
+                      <Chip size="small"
+                            label={AMENITY_CATEGORY_LABELS[c.category as AmenityCategory] ?? c.category}
+                            sx={{ height: 18, fontSize: '0.65rem',
+                                  bgcolor: 'rgba(107, 138, 154, 0.15)', color: PRIMARY }} />
+                    </Stack>
+                    <Typography variant="caption" sx={{
+                      display: 'block', fontFamily: 'monospace', color: 'text.disabled', mt: 0.25,
+                    }}>
+                      {c.code}
+                    </Typography>
+                  </Box>
+
+                  {/* Reset icon (uniquement si override actif) */}
+                  {isOverridden && (
+                    <Tooltip title={t('settings.amenities.iconPicker.resetToDefault', "Revenir à l'icône par défaut")} arrow>
+                      <IconButton
+                        size="small"
+                        onClick={() => resetIconOverride(c.code)}
+                        aria-label={t('settings.amenities.resetIcon', "Réinitialiser l'icône")}
+                        sx={{
+                          width: 22, height: 22, cursor: 'pointer', color: 'text.secondary',
+                          '&:hover': { color: PRIMARY, backgroundColor: `${PRIMARY}0F` },
+                        }}
+                      >
+                        <RotateCcw size={12} strokeWidth={1.75} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDeleteCustom(c.id)}
+                    aria-label={t('common.delete', 'Supprimer')}
+                    sx={{ cursor: 'pointer', color: '#EF4444' }}
+                  >
+                    <Trash2 size={14} />
+                  </IconButton>
                 </Box>
-                <IconButton size="small" onClick={() => handleDeleteCustom(c.id)} sx={{ color: '#EF4444' }}>
-                  <Trash2 size={14} />
-                </IconButton>
-              </Box>
-            ))
+              );
+            })
           )}
         </Stack>
       )}
@@ -598,8 +650,8 @@ export default function AmenityMappingPage() {
             <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 1 }} />
           ) : ignored.length === 0 ? (
             <EmptyState
-              title="Aucune amenity ignorée"
-              subtitle="Marquez « Ignorer » sur une amenity OTA pour la masquer définitivement."
+              title={t('settings.amenities.ignored.emptyTitle', 'Aucune amenity ignorée')}
+              subtitle={t('settings.amenities.ignored.emptySubtitle', 'Marquez « Ignorer » sur une amenity OTA pour la masquer définitivement.')}
             />
           ) : (
             ignored.map((i) => (
@@ -614,7 +666,7 @@ export default function AmenityMappingPage() {
                     )}
                   </Stack>
                 </Box>
-                <Tooltip title="Réintroduire dans la liste à mapper">
+                <Tooltip title={t('settings.amenities.ignored.reintroduce', 'Réintroduire dans la liste à mapper')}>
                   <IconButton size="small" onClick={() => handleDeleteIgnored(i.id)} sx={{ color: ACCENT }}>
                     <RotateCcw size={14} />
                   </IconButton>
@@ -629,9 +681,11 @@ export default function AmenityMappingPage() {
       {tab === 'reference' && (
         <Stack spacing={2}>
           <Alert severity="info" variant="outlined" sx={{ borderRadius: 1, fontSize: '0.78rem', py: 0.5 }}>
-            Référentiel Clenzy : {BUILT_IN_AMENITIES.length} commodités prêtes à l'emploi.
-            Cliquez sur une icône pour la personnaliser (catalogue lucide-react, ~80 icônes).
-            Le code de la commodité reste invariant — seule l'icône change.
+            {t(
+              'settings.amenities.reference.intro',
+              "Référentiel Clenzy : {{count}} commodités prêtes à l'emploi. Cliquez sur une icône pour la personnaliser (catalogue lucide-react, ~80 icônes). Le code de la commodité reste invariant — seule l'icône change.",
+              { count: BUILT_IN_AMENITIES.length },
+            )}
           </Alert>
 
           {(['comfort', 'kitchen', 'appliances', 'outdoor', 'safetyFamily'] as AmenityCategory[]).map((cat) => {
@@ -689,7 +743,7 @@ export default function AmenityMappingPage() {
                         }}
                       >
                         {/* Icone (cliquable = ouvre le picker) */}
-                        <Tooltip title="Changer l'icône" arrow>
+                        <Tooltip title={t('settings.amenities.changeIcon', "Changer l'icône")} arrow>
                           <Box
                             onClick={() => setIconPicker({ open: true, code: a.code, label })}
                             sx={{
@@ -747,11 +801,11 @@ export default function AmenityMappingPage() {
                         {/* Edit pencil (visible au hover) + badge override si actif */}
                         <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexShrink: 0 }}>
                           {isOverridden && (
-                            <Tooltip title="Icône personnalisée — revenir à l'icône par défaut" arrow>
+                            <Tooltip title={t('settings.amenities.reference.customizedTooltip', "Icône personnalisée — revenir à l'icône par défaut")} arrow>
                               <IconButton
                                 size="small"
                                 onClick={() => resetIconOverride(a.code)}
-                                aria-label="Réinitialiser l'icône"
+                                aria-label={t('settings.amenities.resetIcon', "Réinitialiser l'icône")}
                                 sx={{
                                   width: 22,
                                   height: 22,
@@ -764,12 +818,12 @@ export default function AmenityMappingPage() {
                               </IconButton>
                             </Tooltip>
                           )}
-                          <Tooltip title="Changer l'icône" arrow>
+                          <Tooltip title={t('settings.amenities.changeIcon', "Changer l'icône")} arrow>
                             <IconButton
                               className="icon-edit-btn"
                               size="small"
                               onClick={() => setIconPicker({ open: true, code: a.code, label })}
-                              aria-label="Changer l'icône"
+                              aria-label={t('settings.amenities.changeIcon', "Changer l'icône")}
                               sx={{
                                 width: 22,
                                 height: 22,

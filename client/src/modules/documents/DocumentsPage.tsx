@@ -44,30 +44,8 @@ const TAB_HISTORY = 3;
 const TAB_VARIABLES = 4;
 const TAB_COMPLIANCE = 5;
 
-// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
-// Clef = LABEL traduit du tab (string stable face aux changements d'index visible).
-const DOCUMENTS_TAB_META: Record<string, TabHeaderMeta> = {
-  'Catalogue': {
-    subtitle: 'Catalogue des templates par étape du parcours voyageur : messagerie, documents, communications.',
-  },
-  'Templates messages': {
-    subtitle: 'Templates de messagerie automatique (check-in, bienvenue, push tarification) déclenchés par évènement.',
-  },
-  'Templates documents': {
-    subtitle: 'Bibliothèque des templates PDF (factures, attestations, état des lieux) versionnés et réutilisables.',
-  },
-  'Historique': {
-    subtitle: "Historique unifié des messages envoyés et documents générés, filtrable par canal et statut.",
-  },
-  'Variables & Tags': {
-    subtitle: 'Référence des variables disponibles ({{guest.name}}, {{property.address}}…) pour personnaliser vos templates.',
-  },
-  'Conformite': {
-    subtitle: "Tableau de bord conformité : factures NF, attestations légales, recherche par numéro de document.",
-  },
-};
-const DOCUMENTS_ROOT_TITLE = 'Documents & Communications';
-const DOCUMENTS_DEFAULT_SUBTITLE = 'Templates, historique et conformite reglementaire';
+// La metadata par tab (breadcrumb + subtitle) est construite dans le composant
+// via t() pour reagir au changement de langue (cf. documentsTabMeta plus bas).
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -124,12 +102,33 @@ const DocumentsPage: React.FC = () => {
     { value: TAB_VARIABLES,     label: t('documents.tabs.variablesAndTags'),  icon: <LocalOffer /> },
     { value: TAB_COMPLIANCE,    label: t('documents.tabs.compliance'),        icon: <GppGood /> },
   ];
+  // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
+  const documentsTabMeta: Record<string, TabHeaderMeta> = {
+    [t('documents.tabs.catalog')]: {
+      subtitle: t('tabHeaders.documents.subtitle.catalog', 'Catalogue des templates par étape du parcours voyageur : messagerie, documents, communications.'),
+    },
+    [t('documents.tabs.messageTemplates')]: {
+      subtitle: t('tabHeaders.documents.subtitle.messageTemplates', 'Templates de messagerie automatique (check-in, bienvenue, push tarification) déclenchés par évènement.'),
+    },
+    [t('documents.tabs.documentTemplates')]: {
+      subtitle: t('tabHeaders.documents.subtitle.documentTemplates', 'Bibliothèque des templates PDF (factures, attestations, état des lieux) versionnés et réutilisables.'),
+    },
+    [t('documents.tabs.history')]: {
+      subtitle: t('tabHeaders.documents.subtitle.history', 'Historique unifié des messages envoyés et documents générés, filtrable par canal et statut.'),
+    },
+    [t('documents.tabs.variablesAndTags')]: {
+      subtitle: t('tabHeaders.documents.subtitle.variablesAndTags', 'Référence des variables disponibles ({{guest.name}}, {{property.address}}…) pour personnaliser vos templates.'),
+    },
+    [t('documents.tabs.compliance')]: {
+      subtitle: t('tabHeaders.documents.subtitle.compliance', 'Tableau de bord conformité : factures NF, attestations légales, recherche par numéro de document.'),
+    },
+  };
   const { title, subtitle } = resolveTabHeader(
-    DOCUMENTS_ROOT_TITLE,
-    DOCUMENTS_DEFAULT_SUBTITLE,
+    t('tabHeaders.documents.title', 'Documents & Communications'),
+    t('tabHeaders.documents.default', 'Templates, historique et conformite reglementaire'),
     tabs.map((tab) => tab.label),
     activeTab,
-    DOCUMENTS_TAB_META,
+    documentsTabMeta,
   );
 
   // Inline actions per tab

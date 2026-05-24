@@ -56,50 +56,12 @@ import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import { SettingsHeaderProvider, useSettingsHeaderActionsSlot } from './SettingsHeaderContext';
 
-// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
-// Clef = LABEL du tab (string stable), pas un index. Les indexes visibles
-// shiftent selon le role utilisateur (hidden tabs filtrees par PageTabs),
-// donc un mapping numerique serait fragile.
+// Type re-export pour la metadata des tabs. Le mapping concret est construit
+// dans le composant via {@code useMemo} pour pouvoir appeler {@code t()}.
 interface SettingsTabMeta {
   /** Sous-titre affiche dans le PageHeader pour ce tab. */
   subtitle: string;
 }
-const SETTINGS_TAB_META: Record<string, SettingsTabMeta> = {
-  'Général': {
-    subtitle: 'Identité, organisation, préférences régionales et affichage.',
-  },
-  'Notifications': {
-    subtitle: 'Configurez vos canaux (in-app, email, push) et la granularité par type d\'événement.',
-  },
-  'Messagerie': {
-    subtitle: 'Automatisations de messages voyageurs (check-in, bienvenue, push tarification) et templates.',
-  },
-  'Mes reversements': {
-    subtitle: 'Paramètres de vos virements bancaires : IBAN, fréquence, seuil minimum.',
-  },
-  'IA': {
-    subtitle: 'Connectez votre clé OpenAI/Anthropic ou utilisez le quota partagé. Modèles assignés par feature.',
-  },
-  'Fiscal': {
-    subtitle: 'Profil fiscal de votre organisation : régime TVA, mentions légales, conformité NF 525 / ZATCA.',
-  },
-  'Organisation': {
-    subtitle: 'Informations légales, branding, équipe et permissions de votre organisation.',
-  },
-  'Paiement': {
-    subtitle: 'Fournisseurs de paiement (Stripe, PayPal, PayTabs, CMI…) et règles de répartition.',
-  },
-  'Intégrations': {
-    subtitle: 'Connectez vos outils tiers : signature électronique, comptabilité, KYC, conformité légale, channels OTA.',
-  },
-  'Reversements': {
-    subtitle: 'Calendrier et règles de calcul des reversements aux propriétaires.',
-  },
-  'Commodités OTA': {
-    subtitle: "Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Clenzy. Créez vos propres commodités si rien ne correspond.",
-  },
-};
-const SETTINGS_DEFAULT_SUBTITLE = 'Configurez votre application selon vos préférences';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
 import OrganizationSection from '../organization/OrganizationSection';
@@ -649,26 +611,66 @@ export default function Settings() {
   // ET pour resoudre le tab actif (via son label, stable face aux roles qui
   // cachent certains tabs).
   const settingsTabs = [
-    { label: 'Général', icon: <TuneOutlined />, hidden: false },
-    { label: 'Notifications', icon: <Notifications />, hidden: false },
-    { label: 'Messagerie', icon: <ChatBubbleOutline />, hidden: false },
+    { label: t('tabHeaders.settings.tabs.general', 'Général'), icon: <TuneOutlined />, hidden: false },
+    { label: t('tabHeaders.settings.tabs.notifications', 'Notifications'), icon: <Notifications />, hidden: false },
+    { label: t('tabHeaders.settings.tabs.messaging', 'Messagerie'), icon: <ChatBubbleOutline />, hidden: false },
     { label: t('settings.myPayout.tabLabel', 'Mes reversements'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOST']) },
-    { label: 'IA', icon: <SmartToy />, hidden: !canViewAi },
-    { label: 'Fiscal', icon: <AccountBalance />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { label: 'Organisation', icon: <GroupAdd />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { label: 'Paiement', icon: <Payment />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { label: 'Intégrations', icon: <Extension />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { label: 'Reversements', icon: <CalendarMonth />, hidden: !hasAnyRole(['SUPER_ADMIN']) },
-    { label: 'Commodités OTA', icon: <LocalOffer />, hidden: !hasAnyRole(['HOST', 'SUPERVISOR', 'SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { label: t('tabHeaders.settings.tabs.ai', 'IA'), icon: <SmartToy />, hidden: !canViewAi },
+    { label: t('tabHeaders.settings.tabs.fiscal', 'Fiscal'), icon: <AccountBalance />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { label: t('tabHeaders.settings.tabs.organization', 'Organisation'), icon: <GroupAdd />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { label: t('tabHeaders.settings.tabs.payment', 'Paiement'), icon: <Payment />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { label: t('tabHeaders.settings.tabs.integrations', 'Intégrations'), icon: <Extension />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { label: t('tabHeaders.settings.tabs.payouts', 'Reversements'), icon: <CalendarMonth />, hidden: !hasAnyRole(['SUPER_ADMIN']) },
+    { label: t('tabHeaders.settings.tabs.amenitiesOta', 'Commodités OTA'), icon: <LocalOffer />, hidden: !hasAnyRole(['HOST', 'SUPERVISOR', 'SUPER_ADMIN', 'SUPER_MANAGER']) },
   ];
-  const visibleSettingsTabs = settingsTabs.filter((t) => !t.hidden);
+  const visibleSettingsTabs = settingsTabs.filter((tab) => !tab.hidden);
+
+  // Mapping label → subtitle traduit. Construit dynamiquement pour reagir au
+  // changement de langue (les labels sont resolus via t() juste au-dessus).
+  const settingsTabMeta: Record<string, SettingsTabMeta> = {
+    [t('tabHeaders.settings.tabs.general', 'Général')]: {
+      subtitle: t('tabHeaders.settings.subtitle.general', 'Identité, organisation, préférences régionales et affichage.'),
+    },
+    [t('tabHeaders.settings.tabs.notifications', 'Notifications')]: {
+      subtitle: t('tabHeaders.settings.subtitle.notifications', "Configurez vos canaux (in-app, email, push) et la granularité par type d'événement."),
+    },
+    [t('tabHeaders.settings.tabs.messaging', 'Messagerie')]: {
+      subtitle: t('tabHeaders.settings.subtitle.messaging', 'Automatisations de messages voyageurs (check-in, bienvenue, push tarification) et templates.'),
+    },
+    [t('settings.myPayout.tabLabel', 'Mes reversements')]: {
+      subtitle: t('tabHeaders.settings.subtitle.myPayout', 'Paramètres de vos virements bancaires : IBAN, fréquence, seuil minimum.'),
+    },
+    [t('tabHeaders.settings.tabs.ai', 'IA')]: {
+      subtitle: t('tabHeaders.settings.subtitle.ai', 'Connectez votre clé OpenAI/Anthropic ou utilisez le quota partagé. Modèles assignés par feature.'),
+    },
+    [t('tabHeaders.settings.tabs.fiscal', 'Fiscal')]: {
+      subtitle: t('tabHeaders.settings.subtitle.fiscal', 'Profil fiscal de votre organisation : régime TVA, mentions légales, conformité NF 525 / ZATCA.'),
+    },
+    [t('tabHeaders.settings.tabs.organization', 'Organisation')]: {
+      subtitle: t('tabHeaders.settings.subtitle.organization', 'Informations légales, branding, équipe et permissions de votre organisation.'),
+    },
+    [t('tabHeaders.settings.tabs.payment', 'Paiement')]: {
+      subtitle: t('tabHeaders.settings.subtitle.payment', 'Fournisseurs de paiement (Stripe, PayPal, PayTabs, CMI…) et règles de répartition.'),
+    },
+    [t('tabHeaders.settings.tabs.integrations', 'Intégrations')]: {
+      subtitle: t('tabHeaders.settings.subtitle.integrations', 'Connectez vos outils tiers : signature électronique, comptabilité, KYC, conformité légale, channels OTA.'),
+    },
+    [t('tabHeaders.settings.tabs.payouts', 'Reversements')]: {
+      subtitle: t('tabHeaders.settings.subtitle.payouts', 'Calendrier et règles de calcul des reversements aux propriétaires.'),
+    },
+    [t('tabHeaders.settings.tabs.amenitiesOta', 'Commodités OTA')]: {
+      subtitle: t('tabHeaders.settings.subtitle.amenitiesOta', 'Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Clenzy. Créez vos propres commodités si rien ne correspond.'),
+    },
+  };
+  const settingsRootTitle = t('tabHeaders.settings.title', 'Paramètres');
+  const settingsDefaultSubtitle = t('tabHeaders.settings.default', 'Configurez votre application selon vos préférences');
 
   // Breadcrumb : "Paramètres" (root = Général) ou "Paramètres › <label>" sinon.
   // On indexe par label car tabValue est le visible-index (filtree par role).
   const activeTabLabel = visibleSettingsTabs[tabValue]?.label;
-  const activeTabMeta = activeTabLabel ? SETTINGS_TAB_META[activeTabLabel] : undefined;
-  const headerTitle = activeTabLabel && tabValue > 0 ? `Paramètres › ${activeTabLabel}` : 'Paramètres';
-  const headerSubtitle = activeTabMeta?.subtitle ?? SETTINGS_DEFAULT_SUBTITLE;
+  const activeTabMeta = activeTabLabel ? settingsTabMeta[activeTabLabel] : undefined;
+  const headerTitle = activeTabLabel && tabValue > 0 ? `${settingsRootTitle} › ${activeTabLabel}` : settingsRootTitle;
+  const headerSubtitle = activeTabMeta?.subtitle ?? settingsDefaultSubtitle;
 
   // Actions : un tab a-t-il deja inline son bouton via headerActions (tab 1/4/8)
   // OU bien il portale via le slot ? Si headerActions est defini ET le slot est

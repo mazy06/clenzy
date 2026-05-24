@@ -12,6 +12,7 @@ import {
   resolveTabHeader,
   type TabHeaderMeta,
 } from '../../components/PageHeaderActionsContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import TokenMonitoring from '../../components/TokenMonitoring';
 import KeycloakMetrics from '../../components/KeycloakMetrics';
 import AuditLogging from '../../components/AuditLogging';
@@ -34,34 +35,17 @@ const MonitoringHeaderContext = createContext<MonitoringHeaderApi>({
 export const useMonitoringHeader = (): MonitoringHeaderApi => useContext(MonitoringHeaderContext);
 
 // ─── Tab definitions (source of truth) ──────────────────────────────────────
-
-const MONITORING_TABS = [
-  { label: 'Monitoring des Tokens', icon: <Security /> },
-  { label: 'Métriques Keycloak',    icon: <TrendingUp /> },
-  { label: 'Audit et Logging',      icon: <Assignment /> },
-  { label: 'Health Checks Avancés', icon: <HealthAndSafety /> },
+// Les labels et la metadata sont construits dans le composant via t() pour
+// reagir au changement de langue.
+const TAB_ICONS = [
+  <Security />,
+  <TrendingUp />,
+  <Assignment />,
+  <HealthAndSafety />,
 ] as const;
 
-// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
-// Clef = LABEL du tab (string stable face aux changements d'index).
-const MONITORING_TAB_META: Record<string, TabHeaderMeta> = {
-  'Monitoring des Tokens': {
-    subtitle: "Surveillance des tokens IA consommés par feature : compteurs, coûts et rotation des clés.",
-  },
-  'Métriques Keycloak': {
-    subtitle: "Métriques Keycloak (sessions, login, refresh) et couverture des tests d'intégration.",
-  },
-  'Audit et Logging': {
-    subtitle: "Journal d'audit horodaté : connexions, accès aux données, actions admin et permissions refusées.",
-  },
-  'Health Checks Avancés': {
-    subtitle: 'Health checks des services dépendants (DB, Redis, Kafka, OAuth) et métriques système temps réel.',
-  },
-};
-const MONITORING_ROOT_TITLE = 'Monitoring Système';
-const MONITORING_DEFAULT_SUBTITLE = 'Surveillance complète de la plateforme Clenzy';
-
 const MonitoringPage: React.FC = () => {
+  const { t } = useTranslation();
   const [tabValue, setTabValue] = useState(0);
   const [headerActions, setHeaderActions] = useState<React.ReactNode>(null);
   const [headerLastUpdate, setHeaderLastUpdate] = useState<Date | null>(null);
@@ -77,20 +61,44 @@ const MonitoringPage: React.FC = () => {
     [],
   );
 
+  // Source de verite des tabs — construite via t() pour reagir au changement
+  // de langue. Les labels sont matchee a la meta par cle stable (label traduit).
+  const monitoringTabs = [
+    { label: t('tabHeaders.monitoring.tabs.tokens', 'Monitoring des Tokens'), icon: TAB_ICONS[0] },
+    { label: t('tabHeaders.monitoring.tabs.keycloak', 'Métriques Keycloak'), icon: TAB_ICONS[1] },
+    { label: t('tabHeaders.monitoring.tabs.audit', 'Audit et Logging'), icon: TAB_ICONS[2] },
+    { label: t('tabHeaders.monitoring.tabs.healthChecks', 'Health Checks Avancés'), icon: TAB_ICONS[3] },
+  ];
+  // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
+  const monitoringTabMeta: Record<string, TabHeaderMeta> = {
+    [t('tabHeaders.monitoring.tabs.tokens', 'Monitoring des Tokens')]: {
+      subtitle: t('tabHeaders.monitoring.subtitle.tokens', 'Surveillance des tokens IA consommés par feature : compteurs, coûts et rotation des clés.'),
+    },
+    [t('tabHeaders.monitoring.tabs.keycloak', 'Métriques Keycloak')]: {
+      subtitle: t('tabHeaders.monitoring.subtitle.keycloak', "Métriques Keycloak (sessions, login, refresh) et couverture des tests d'intégration."),
+    },
+    [t('tabHeaders.monitoring.tabs.audit', 'Audit et Logging')]: {
+      subtitle: t('tabHeaders.monitoring.subtitle.audit', "Journal d'audit horodaté : connexions, accès aux données, actions admin et permissions refusées."),
+    },
+    [t('tabHeaders.monitoring.tabs.healthChecks', 'Health Checks Avancés')]: {
+      subtitle: t('tabHeaders.monitoring.subtitle.healthChecks', 'Health checks des services dépendants (DB, Redis, Kafka, OAuth) et métriques système temps réel.'),
+    },
+  };
+
   // Resolution title/subtitle en fonction du tab actif.
   const { title, subtitle } = resolveTabHeader(
-    MONITORING_ROOT_TITLE,
-    MONITORING_DEFAULT_SUBTITLE,
-    MONITORING_TABS.map((tab) => tab.label),
+    t('tabHeaders.monitoring.title', 'Monitoring Système'),
+    t('tabHeaders.monitoring.default', 'Surveillance complète de la plateforme Clenzy'),
+    monitoringTabs.map((tab) => tab.label),
     tabValue,
-    MONITORING_TAB_META,
+    monitoringTabMeta,
   );
 
   const headerActionsSlot = (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       {headerLastUpdate && (
         <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-          Dernière mise à jour: {headerLastUpdate.toLocaleTimeString()}
+          {t('tabHeaders.monitoring.lastUpdate', 'Dernière mise à jour')}: {headerLastUpdate.toLocaleTimeString()}
         </Typography>
       )}
       {headerActions}
@@ -109,7 +117,7 @@ const MonitoringPage: React.FC = () => {
       />
 
       <PageTabs
-        options={MONITORING_TABS.map((tab) => ({ label: tab.label, icon: tab.icon }))}
+        options={monitoringTabs}
         value={tabValue}
         onChange={setTabValue}
         ariaLabel="Monitoring tabs"

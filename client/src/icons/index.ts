@@ -19,6 +19,22 @@
  *   - Verifier d'abord dans Lucide : https://lucide.dev/icons/
  *   - Sinon, ajouter via Iconify (cf. README.md de ce dossier)
  *   - Ajouter l'export ici avec un nom semantique stable
+ *
+ * /!\ VERSION PIN : lucide-react@^1.14.0
+ *
+ * Le pin est important — Lucide renomme regulierement ses icones entre
+ * versions majeures (ex: `Home` -> `House`, `Tv2` -> `TvMinimal`,
+ * `Waves` -> `WavesHorizontal`, `AlertTriangle` -> `TriangleAlert`,
+ * `ParkingCircle` -> `CircleParking`). En v1.14 les anciens noms sont
+ * toujours exposes comme aliases ; un bump vers une version future peut
+ * casser les imports.
+ *
+ * Avant tout bump de lucide-react :
+ *   1. Verifier le CHANGELOG : https://github.com/lucide-icons/lucide/blob/main/CHANGELOG.md
+ *   2. Run `grep -rh "from 'lucide-react'" client/src | grep -oE '[A-Z][a-zA-Z0-9]+' | sort -u`
+ *      pour lister TOUS les noms utilises, et croiser avec les exports
+ *      de la nouvelle version.
+ *   3. Lancer `npm run build` puis Vitest pour detecter les imports casses.
  */
 
 // ─── Actions CRUD ───────────────────────────────────────────────────────────
