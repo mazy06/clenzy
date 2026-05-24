@@ -8,6 +8,7 @@ import com.clenzy.model.Property;
 import com.clenzy.model.RatePlan;
 import com.clenzy.model.RatePlanType;
 import com.clenzy.repository.LengthOfStayDiscountRepository;
+import com.clenzy.repository.BookingRestrictionRepository;
 import com.clenzy.repository.OccupancyPricingRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.PropertyPhotoRepository;
@@ -58,6 +59,7 @@ class ChannexImportServicePricingTest {
     @Mock private RatePlanRepository ratePlanRepository;
     @Mock private OccupancyPricingRepository occupancyPricingRepository;
     @Mock private RateOverrideRepository rateOverrideRepository;
+    @Mock private BookingRestrictionRepository bookingRestrictionRepository;
     @Mock private AmenityManagementService amenityManagementService;
 
     private ChannexImportService service;
@@ -68,6 +70,7 @@ class ChannexImportServicePricingTest {
             channexClient, mappingRepository, propertyRepository, propertyPhotoRepository,
             connectService, userRepository, lengthOfStayDiscountRepository,
             ratePlanRepository, occupancyPricingRepository, rateOverrideRepository,
+            bookingRestrictionRepository,
             new ObjectMapper(), amenityManagementService
         );
     }
@@ -98,7 +101,25 @@ class ChannexImportServicePricingTest {
             null, null,    // min/max nights
             null, null, null, // check-in*/out
             null, null,    // cancellation/instantBooking
-            null, null, null // pets/smoking/events
+            null, null, null, // pets/smoking/events
+            java.util.List.of() // additionalRatePlans (Phase 4 #4)
+        );
+    }
+
+    /** Variante avec rate plans additionnels pour les tests Phase 4 #4. */
+    private ChannexImportService.ChannelListingInfo infoWithAdditionalRatePlans(
+            BigDecimal defaultPrice,
+            java.util.List<ChannexImportService.AdditionalRatePlan> additional) {
+        return new ChannexImportService.ChannelListingInfo(
+            "AirBNB", "listing-1", "channel-1", "house",
+            defaultPrice, null, "EUR",
+            null, null,
+            null, null,
+            null, null,
+            null, null, null,
+            null, null,
+            null, null, null,
+            additional
         );
     }
 
@@ -395,6 +416,198 @@ class ChannexImportServicePricingTest {
 
         int created = service.importRateOverridesFromOta(prop, 42L, mapping,
             info(null, null, null, null));
+
+        assertThat(created).isZero();
+        verify(channexClient, never()).fetchRatesForRange(any(), any(), any(), any());
+    }
+
+    // ─── importAdditionalRatePlansFromOta (Phase 4 #4) ───────────────────────
+
+    @Test
+    @DisplayName("importAdditionalRatePlansFromOta: 2 variantes -> cree 2 PROMOTIONAL avec name 'OTA — ...'")
+    void additionalRatePlans_creates2Variants() {
+        Property prop = property(100L);
+        when(ratePlanRepository.findByPropertyIdAndType(100L, com.clenzy.model.RatePlanType.PROMOTIONAL, 42L))
+            .thenReturn(java.util.List.of());
+
+        var additional = java.util.List.of(
+            new ChannexImportService.AdditionalRatePlan("rp-2", "Non-refundable -10%",
+                new BigDecimal("80.10"), "EUR"),
+            new ChannexImportService.AdditionalRatePlan("rp-3", "Long stay -15%",
+                new BigDecimal("75.65"), "EUR")
+        );
+
+        int created = service.importAdditionalRatePlansFromOta(prop, 42L,
+            infoWithAdditionalRatePlans(new BigDecimal("89.00"), additional));
+
+        assertThat(created).isEqualTo(2);
+        ArgumentCaptor<com.clenzy.model.RatePlan> captor =
+            ArgumentCaptor.forClass(com.clenzy.model.RatePlan.class);
+        verify(ratePlanRepository, org.mockito.Mockito.times(2)).save(captor.capture());
+        assertThat(captor.getAllValues()).allSatisfy(rp -> {
+            assertThat(rp.getType()).isEqualTo(com.clenzy.model.RatePlanType.PROMOTIONAL);
+            assertThat(rp.getName()).startsWith("OTA — ");
+            assertThat(rp.getPriority()).isEqualTo(5);
+            assertThat(rp.getCurrency()).isEqualTo("EUR");
+        });
+    }
+
+    @Test
+    @DisplayName("importAdditionalRatePlansFromOta: variante avec nom deja existant -> skip idempotent")
+    void additionalRatePlans_skipDuplicateName() {
+        Property prop = property(100L);
+        com.clenzy.model.RatePlan existingPromo = new com.clenzy.model.RatePlan();
+        existingPromo.setName("OTA — Non-refundable -10%");
+        when(ratePlanRepository.findByPropertyIdAndType(100L, com.clenzy.model.RatePlanType.PROMOTIONAL, 42L))
+            .thenReturn(java.util.List.of(existingPromo));
+
+        var additional = java.util.List.of(
+            new ChannexImportService.AdditionalRatePlan("rp-2", "Non-refundable -10%",
+                new BigDecimal("80.10"), "EUR")
+        );
+
+        int created = service.importAdditionalRatePlansFromOta(prop, 42L,
+            infoWithAdditionalRatePlans(new BigDecimal("89.00"), additional));
+
+        assertThat(created).isZero();
+        verify(ratePlanRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("importAdditionalRatePlansFromOta: variante avec defaultPrice null/zero -> skip")
+    void additionalRatePlans_skipIfNoPrice() {
+        Property prop = property(100L);
+        when(ratePlanRepository.findByPropertyIdAndType(any(), any(), any()))
+            .thenReturn(java.util.List.of());
+
+        var additional = java.util.List.of(
+            new ChannexImportService.AdditionalRatePlan("rp-2", "Free", null, "EUR"),
+            new ChannexImportService.AdditionalRatePlan("rp-3", "Zero", BigDecimal.ZERO, "EUR")
+        );
+
+        int created = service.importAdditionalRatePlansFromOta(prop, 42L,
+            infoWithAdditionalRatePlans(new BigDecimal("89.00"), additional));
+
+        assertThat(created).isZero();
+        verify(ratePlanRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("importAdditionalRatePlansFromOta: liste vide ou null -> 0 sans appel repo")
+    void additionalRatePlans_skipIfNoData() {
+        assertThat(service.importAdditionalRatePlansFromOta(property(100L), 42L,
+            infoWithAdditionalRatePlans(new BigDecimal("89.00"), java.util.List.of())))
+            .isZero();
+        verify(ratePlanRepository, never()).findByPropertyIdAndType(any(), any(), any());
+    }
+
+    // ─── importBookingRestrictionsFromOta (Phase 4 #5) ───────────────────────
+
+    private com.fasterxml.jackson.databind.JsonNode restrictionEntry(String date,
+                                                                       Integer minStay,
+                                                                       boolean cta,
+                                                                       boolean ctd) throws Exception {
+        StringBuilder sb = new StringBuilder("{\"id\":\"r-").append(date)
+            .append("\",\"attributes\":{\"date\":\"").append(date).append("\"");
+        if (minStay != null) sb.append(",\"min_stay_through\":").append(minStay);
+        sb.append(",\"closed_to_arrival\":").append(cta);
+        sb.append(",\"closed_to_departure\":").append(ctd);
+        sb.append("}}");
+        return new ObjectMapper().readTree(sb.toString());
+    }
+
+    @Test
+    @DisplayName("importBookingRestrictionsFromOta: 3 dates consecutives min_stay=3 -> 1 BookingRestriction range")
+    void bookingRestrictions_groupsConsecutive() throws Exception {
+        Property prop = property(100L);
+        var mapping = mapping("rp-1");
+        when(channexClient.fetchRatesForRange(any(), any(), any(), any()))
+            .thenReturn(java.util.Optional.of(java.util.List.of(
+                restrictionEntry("2026-07-01", 3, false, false),
+                restrictionEntry("2026-07-02", 3, false, false),
+                restrictionEntry("2026-07-03", 3, false, false)
+            )));
+        when(bookingRestrictionRepository.findApplicable(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(java.util.List.of());
+
+        int created = service.importBookingRestrictionsFromOta(prop, 42L, mapping);
+
+        assertThat(created).isEqualTo(1);
+        ArgumentCaptor<com.clenzy.model.BookingRestriction> captor =
+            ArgumentCaptor.forClass(com.clenzy.model.BookingRestriction.class);
+        verify(bookingRestrictionRepository).save(captor.capture());
+        var br = captor.getValue();
+        assertThat(br.getStartDate()).isEqualTo(java.time.LocalDate.of(2026, 7, 1));
+        assertThat(br.getEndDate()).isEqualTo(java.time.LocalDate.of(2026, 7, 3));
+        assertThat(br.getMinStay()).isEqualTo(3);
+        assertThat(br.getClosedToArrival()).isFalse();
+        assertThat(br.getClosedToDeparture()).isFalse();
+    }
+
+    @Test
+    @DisplayName("importBookingRestrictionsFromOta: 2 dates consecutives + 1 ailleurs + min_stay different -> 3 groupes")
+    void bookingRestrictions_separatesNonConsecutiveAndDifferent() throws Exception {
+        Property prop = property(100L);
+        var mapping = mapping("rp-1");
+        when(channexClient.fetchRatesForRange(any(), any(), any(), any()))
+            .thenReturn(java.util.Optional.of(java.util.List.of(
+                restrictionEntry("2026-07-01", 3, false, false),
+                restrictionEntry("2026-07-02", 3, false, false),
+                // saute 07-03 (defaut)
+                restrictionEntry("2026-07-04", 5, false, false),  // min different
+                restrictionEntry("2026-07-05", 5, false, true)    // ctd different
+            )));
+        when(bookingRestrictionRepository.findApplicable(any(), any(), any(), any()))
+            .thenReturn(java.util.List.of());
+
+        int created = service.importBookingRestrictionsFromOta(prop, 42L, mapping);
+
+        assertThat(created).isEqualTo(3);
+        verify(bookingRestrictionRepository, org.mockito.Mockito.times(3)).save(any());
+    }
+
+    @Test
+    @DisplayName("importBookingRestrictionsFromOta: aucune restriction non-defaut -> 0 BookingRestriction")
+    void bookingRestrictions_skipIfAllDefault() throws Exception {
+        Property prop = property(100L);
+        var mapping = mapping("rp-1");
+        when(channexClient.fetchRatesForRange(any(), any(), any(), any()))
+            .thenReturn(java.util.Optional.of(java.util.List.of(
+                restrictionEntry("2026-07-01", null, false, false),
+                restrictionEntry("2026-07-02", null, false, false)
+            )));
+
+        int created = service.importBookingRestrictionsFromOta(prop, 42L, mapping);
+
+        assertThat(created).isZero();
+        verify(bookingRestrictionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("importBookingRestrictionsFromOta: range deja couvert par BookingRestriction existante -> skip")
+    void bookingRestrictions_skipIfExistingApplicable() throws Exception {
+        Property prop = property(100L);
+        var mapping = mapping("rp-1");
+        when(channexClient.fetchRatesForRange(any(), any(), any(), any()))
+            .thenReturn(java.util.Optional.of(java.util.List.of(
+                restrictionEntry("2026-07-01", 3, false, false)
+            )));
+        when(bookingRestrictionRepository.findApplicable(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(java.util.List.of(new com.clenzy.model.BookingRestriction()));
+
+        int created = service.importBookingRestrictionsFromOta(prop, 42L, mapping);
+
+        assertThat(created).isZero();
+        verify(bookingRestrictionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("importBookingRestrictionsFromOta: pas de rate_plan_id mapping -> skip sans appel API")
+    void bookingRestrictions_skipIfNoRatePlanId() {
+        Property prop = property(100L);
+        var mapping = mapping(null);
+
+        int created = service.importBookingRestrictionsFromOta(prop, 42L, mapping);
 
         assertThat(created).isZero();
         verify(channexClient, never()).fetchRatesForRange(any(), any(), any(), any());
