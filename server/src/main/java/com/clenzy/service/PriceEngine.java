@@ -19,13 +19,30 @@ import java.util.stream.Collectors;
 /**
  * Moteur de resolution de prix par nuit.
  *
- * Algorithme de resolution pour un (propertyId, date) :
- * 1. RateOverride (prix specifique par date — priorite maximale)
- * 2. RatePlan PROMOTIONAL (offre promo active, plus haute priorite)
- * 3. RatePlan SEASONAL (tarif saisonnier)
- * 4. RatePlan LAST_MINUTE (tarif derniere minute)
- * 5. RatePlan BASE (tarif de base)
- * 6. Property.nightlyPrice (fallback compatibilite arriere)
+ * Algorithme de resolution pour un (propertyId, date), en cascade :
+ * <ol>
+ *   <li>{@link com.clenzy.model.RateOverride} (prix exact par date — priorite max)</li>
+ *   <li>{@link RatePlanType#PROMOTIONAL} (promo explicite avec plage de dates)</li>
+ *   <li>{@link RatePlanType#EVENT} (event-specific dates, ex: festival local)</li>
+ *   <li>{@link RatePlanType#WEEKEND} (day-of-week recurrent, fri/sat/sun)</li>
+ *   <li>{@link RatePlanType#SEASONAL} (broad season, ete/hiver)</li>
+ *   <li>{@link RatePlanType#EARLY_BIRD} (reservation X jours a l'avance)</li>
+ *   <li>{@link RatePlanType#LAST_MINUTE} (booking proche check-in)</li>
+ *   <li>{@link RatePlanType#BASE} (tarif de base configurable)</li>
+ *   <li>{@link com.clenzy.model.Property#getNightlyPrice} (fallback compat)</li>
+ * </ol>
+ *
+ * <p><b>Phase 5 OTA pricing</b> : ajout de {@link RatePlanType#EVENT},
+ * {@link RatePlanType#WEEKEND} et {@link RatePlanType#EARLY_BIRD} dans
+ * {@link #TYPE_PRIORITY}. WEEKEND est notamment cree a l'import OTA
+ * depuis {@code rate_plan.settings.weekend_price} (Phase 1) mais n'etait
+ * pas resolu — le PriceEngine ignorait le tarif weekend.</p>
+ *
+ * <p>{@link RatePlanType#OCCUPANCY_BASED} et {@link RatePlanType#LONG_STAY}
+ * restent hors de TYPE_PRIORITY car ce sont des AJUSTEMENTS (per-guest et
+ * per-night-count) et non des rates par-date. Ils sont calcules separement
+ * par {@link com.clenzy.model.OccupancyPricing#calculateAdjustment} et
+ * {@link com.clenzy.model.LengthOfStayDiscount#appliesTo}.</p>
  *
  * Pour les calculs sur plage, les queries sont batch-optimisees :
  * 2 queries max (overrides + plans) puis resolution en memoire.
@@ -36,10 +53,20 @@ public class PriceEngine {
 
     private static final Logger log = LoggerFactory.getLogger(PriceEngine.class);
 
-    /** Ordre de resolution des types de plans (du plus prioritaire au fallback) */
+    /**
+     * Ordre de resolution des types de plans, du plus prioritaire au fallback.
+     *
+     * <p>Phase 5 OTA pricing : ajout de EVENT (entre PROMOTIONAL et WEEKEND),
+     * WEEKEND (entre EVENT et SEASONAL) et EARLY_BIRD (entre SEASONAL et
+     * LAST_MINUTE). Rationale : EVENT > WEEKEND > SEASONAL car plus la
+     * granularite temporelle est specifique, plus la priorite est haute.</p>
+     */
     private static final List<RatePlanType> TYPE_PRIORITY = List.of(
             RatePlanType.PROMOTIONAL,
+            RatePlanType.EVENT,
+            RatePlanType.WEEKEND,
             RatePlanType.SEASONAL,
+            RatePlanType.EARLY_BIRD,
             RatePlanType.LAST_MINUTE,
             RatePlanType.BASE
     );

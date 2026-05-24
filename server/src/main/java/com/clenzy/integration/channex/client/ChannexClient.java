@@ -423,6 +423,35 @@ public class ChannexClient {
      * Cree un Rate Plan cote Channex, lie a un Room Type.
      * Au moins 1 rate_plan est requis avant de pouvoir push des prix.
      */
+    /**
+     * Update partiel des settings d'un rate_plan Channex existant — Phase 5
+     * OTA pricing (push complet bidirectionnel).
+     *
+     * <p>Permet de pousser vers l'OTA les modifs faites cote Clenzy sur :
+     * weekend_price, guests_included, price_per_extra_person, weekly/monthly
+     * factors, default_min/max_nights. Seuls les champs non-null dans
+     * {@code update} sont inclus dans le payload (partial update).</p>
+     *
+     * <p>Best-effort cote caller : Channex peut rejeter si l'API ne supporte
+     * pas l'update sur un rate_plan provenant d'OAuth Airbnb (read-only cote
+     * channel managed). On laisse l'exception remonter pour que le caller log.</p>
+     *
+     * @param channexRatePlanId UUID du rate_plan a updater
+     * @param update            settings a pousser (au moins 1 champ non-null)
+     * @throws IllegalArgumentException si {@code update.hasContent() == false}
+     */
+    public void updateRatePlanSettings(String channexRatePlanId,
+                                         com.clenzy.integration.channex.dto.ChannexRatePlanSettingsUpdate update) {
+        if (update == null || !update.hasContent()) {
+            throw new IllegalArgumentException(
+                "updateRatePlanSettings: payload vide (au moins 1 champ requis)");
+        }
+        String url = props.getBaseUrl() + "/rate_plans/" + channexRatePlanId;
+        exchange(HttpMethod.PUT, url, update.toApiPayload(), Void.class);
+        log.info("Channex: rate_plan settings updated id={} (fields applied via partial update)",
+            channexRatePlanId);
+    }
+
     public ChannexRatePlanDto createRatePlan(ChannexCreateRatePlanRequest req) {
         String url = props.getBaseUrl() + "/rate_plans";
         ChannexRatePlanDto created = exchange(HttpMethod.POST, url, req.toApiPayload(), ChannexRatePlanDto.class);
@@ -1029,6 +1058,7 @@ public class ChannexClient {
         if (path.contains("/properties/") && method == HttpMethod.DELETE) return "delete_property";
         if (path.endsWith("/room_types") && method == HttpMethod.POST) return "create_room_type";
         if (path.endsWith("/rate_plans") && method == HttpMethod.POST) return "create_rate_plan";
+        if (path.contains("/rate_plans/") && method == HttpMethod.PUT) return "update_rate_plan_settings";
         if (path.endsWith("/availability")) return "push_availability";
         if (path.endsWith("/restrictions")) return "push_rates";
         if (path.contains("/bookings/")) return "get_booking";

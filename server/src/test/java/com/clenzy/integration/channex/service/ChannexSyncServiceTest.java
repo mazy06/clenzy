@@ -64,11 +64,27 @@ class ChannexSyncServiceTest {
         propStub.setPriceSourceOfTruth(com.clenzy.model.PriceSourceOfTruth.CLENZY);
         org.mockito.Mockito.lenient().when(propertyRepo.findById(org.mockito.ArgumentMatchers.anyLong()))
             .thenReturn(java.util.Optional.of(propStub));
+        // Phase 5 : nouvelles deps pushRatesForRange (BookingRestriction) + pushPricingSettings
+        com.clenzy.repository.BookingRestrictionRepository brRepo =
+            org.mockito.Mockito.mock(com.clenzy.repository.BookingRestrictionRepository.class);
+        org.mockito.Mockito.lenient().when(brRepo.findApplicable(
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyLong()))
+            .thenReturn(java.util.List.of());
+        com.clenzy.repository.OccupancyPricingRepository opRepo =
+            org.mockito.Mockito.mock(com.clenzy.repository.OccupancyPricingRepository.class);
+        com.clenzy.repository.LengthOfStayDiscountRepository losRepo =
+            org.mockito.Mockito.mock(com.clenzy.repository.LengthOfStayDiscountRepository.class);
+        com.clenzy.repository.RatePlanRepository rpRepo =
+            org.mockito.Mockito.mock(com.clenzy.repository.RatePlanRepository.class);
         service = new ChannexSyncService(
             channexClient, mappingRepository, calendarDayRepository, priceEngine, new ObjectMapper(),
             new ChannexMetrics(new SimpleMeterRegistry()),
             noopLogs,
-            propertyRepo
+            propertyRepo,
+            brRepo, opRepo, losRepo, rpRepo
         );
 
         mapping = new ChannexPropertyMapping();

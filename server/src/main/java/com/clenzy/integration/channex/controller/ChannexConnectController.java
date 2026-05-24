@@ -44,19 +44,22 @@ public class ChannexConnectController {
     private final com.clenzy.integration.channex.service.ChannexCapabilityService capabilityService;
     private final com.clenzy.integration.channex.repository.ChannexSyncLogRepository syncLogRepository;
     private final com.clenzy.integration.channex.service.ChannexPriceDriftService priceDriftService;
+    private final com.clenzy.integration.channex.service.ChannexSyncService syncService;
 
     public ChannexConnectController(ChannexConnectService connectService,
                                       ChannexImportService importService,
                                       TenantContext tenantContext,
                                       com.clenzy.integration.channex.service.ChannexCapabilityService capabilityService,
                                       com.clenzy.integration.channex.repository.ChannexSyncLogRepository syncLogRepository,
-                                      com.clenzy.integration.channex.service.ChannexPriceDriftService priceDriftService) {
+                                      com.clenzy.integration.channex.service.ChannexPriceDriftService priceDriftService,
+                                      com.clenzy.integration.channex.service.ChannexSyncService syncService) {
         this.connectService = connectService;
         this.importService = importService;
         this.tenantContext = tenantContext;
         this.capabilityService = capabilityService;
         this.syncLogRepository = syncLogRepository;
         this.priceDriftService = priceDriftService;
+        this.syncService = syncService;
     }
 
     /**
@@ -264,6 +267,21 @@ public class ChannexConnectController {
                                                         @RequestParam(defaultValue = "6") int months) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return connectService.resync(clenzyPropertyId, orgId, months);
+    }
+
+    /**
+     * Push les settings tarifaires (Phase 5 OTA pricing) vers Channex via
+     * PUT /rate_plans/{id} : weekend_price + occupancy + LOS factors + min/max nights.
+     *
+     * <p>Complement de {@link #resync} qui ne pousse QUE les rates par date.
+     * A appeler quand l'admin modifie un RatePlan(WEEKEND), OccupancyPricing
+     * ou LengthOfStayDiscount cote Clenzy et veut le repercuter sur l'OTA.</p>
+     */
+    @PostMapping("/properties/{clenzyPropertyId}/push-pricing-settings")
+    @Operation(summary = "Push les pricing settings (weekend/occupancy/LOS/min-max) vers Channex")
+    public ChannexSyncService.ChannexSyncResult pushPricingSettings(@PathVariable Long clenzyPropertyId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return syncService.pushPricingSettings(clenzyPropertyId, orgId);
     }
 
     /**
