@@ -47,6 +47,7 @@ public class ChannexWatchdogScheduler {
 
     private final ChannexConnectService connectService;
     private final NotificationService notificationService;
+    private final com.clenzy.integration.channex.config.ChannexProperties channexProperties;
     private final MeterRegistry registry;
 
     /** Gauges Prometheus : nb de mappings par etat + nb d'items meritant attention. */
@@ -66,9 +67,11 @@ public class ChannexWatchdogScheduler {
 
     public ChannexWatchdogScheduler(ChannexConnectService connectService,
                                      NotificationService notificationService,
+                                     com.clenzy.integration.channex.config.ChannexProperties channexProperties,
                                      MeterRegistry registry) {
         this.connectService = connectService;
         this.notificationService = notificationService;
+        this.channexProperties = channexProperties;
         this.registry = registry;
         // Pre-initialise les gauges (une par statut). On bind chacune au registry
         // pour exposer channex.watchdog.mappings{status="ACTIVE|PENDING|ERROR|DISABLED"}
@@ -92,6 +95,13 @@ public class ChannexWatchdogScheduler {
     @Scheduled(fixedRateString = "#{${clenzy.channex.watchdog.interval-minutes:15} * 60000}",
                initialDelayString = "${clenzy.channex.watchdog.initial-delay-ms:60000}")
     public void scan() {
+        // Phase 5 audit fix O5 : skip si l'API key Channex n'est pas configuree.
+        // Evite d'inonder les logs en dev/staging sans clef + de polluer les gauges
+        // Prometheus avec des valeurs eronnees.
+        if (!channexProperties.isConfigured()) {
+            log.debug("ChannexWatchdog: scan skip (CHANNEX_API_KEY non configuree)");
+            return;
+        }
         long start = System.currentTimeMillis();
         try {
             // null = cross-tenant (tous les orgs)

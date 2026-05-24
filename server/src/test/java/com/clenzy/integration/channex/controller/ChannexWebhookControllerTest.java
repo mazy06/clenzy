@@ -61,8 +61,16 @@ class ChannexWebhookControllerTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
+        // Sprint A2-A3 : ChannexWebhookController a 3 nouvelles deps (ChannexClient,
+        // mappingRepo, syncLogService). On les mocke vides — les tests existants
+        // ne couvrent que les events booking_* qui ne les utilisent pas.
         controller = new ChannexWebhookController(signatureValidator, bookingService, objectMapper,
-            new ChannexMetrics(new SimpleMeterRegistry()));
+            new ChannexMetrics(new SimpleMeterRegistry()),
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.client.ChannexClient.class),
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository.class),
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexSyncLogService.class),
+            // Item 2 Messages service mocked
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexMessagingService.class));
     }
 
     @Test

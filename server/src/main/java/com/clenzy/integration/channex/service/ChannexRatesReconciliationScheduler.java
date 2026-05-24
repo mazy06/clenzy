@@ -64,19 +64,22 @@ public class ChannexRatesReconciliationScheduler {
     private final PriceEngine priceEngine;
     private final PropertyRepository propertyRepository;
     private final NotificationService notificationService;
+    private final com.clenzy.integration.channex.config.ChannexProperties channexProperties;
 
     public ChannexRatesReconciliationScheduler(ChannexPropertyMappingRepository mappingRepository,
                                                  ChannexPriceDriftRepository driftRepository,
                                                  ChannexClient channexClient,
                                                  PriceEngine priceEngine,
                                                  PropertyRepository propertyRepository,
-                                                 NotificationService notificationService) {
+                                                 NotificationService notificationService,
+                                                 com.clenzy.integration.channex.config.ChannexProperties channexProperties) {
         this.mappingRepository = mappingRepository;
         this.driftRepository = driftRepository;
         this.channexClient = channexClient;
         this.priceEngine = priceEngine;
         this.propertyRepository = propertyRepository;
         this.notificationService = notificationService;
+        this.channexProperties = channexProperties;
     }
 
     /**
@@ -86,6 +89,11 @@ public class ChannexRatesReconciliationScheduler {
     @Scheduled(fixedRateString = "#{${clenzy.channex.reconciliation.interval-minutes:60} * 60000}",
                initialDelayString = "${clenzy.channex.reconciliation.initial-delay-ms:120000}")
     public void scan() {
+        // Phase 5 audit fix O5 : skip si l'API key Channex n'est pas configuree.
+        if (!channexProperties.isConfigured()) {
+            log.debug("ChannexReconciliation: scan skip (CHANNEX_API_KEY non configuree)");
+            return;
+        }
         long start = System.currentTimeMillis();
         try {
             List<ChannexPropertyMapping> mappings = mappingRepository.findAllAcrossOrgs();

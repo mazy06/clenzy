@@ -20,6 +20,11 @@ import {
   type ServiceCategory,
   getServicesByCategory,
 } from '../../../services/integrations/servicesCatalog';
+import {
+  COMING_SOON_CHIP_SX,
+  DISABLED_CARDS_SX,
+  blockInteraction,
+} from './disabledIntegration';
 
 /**
  * Section generique pour le catalogue de services dans l'onglet Integrations.
@@ -54,6 +59,12 @@ interface ServiceCatalogSectionProps {
    * entiere ne rend rien.
    */
   serviceFilter?: string | null;
+  /**
+   * Si true, grise toutes les cards et bloque clic + clavier. Affiche une
+   * chip "Bientot disponible" a cote du titre. Les tooltips d'info au survol
+   * restent disponibles.
+   */
+  disabled?: boolean;
 }
 
 export default function ServiceCatalogSection({
@@ -61,6 +72,7 @@ export default function ServiceCatalogSection({
   title,
   description,
   serviceFilter = null,
+  disabled = false,
 }: ServiceCatalogSectionProps) {
   const allServices = getServicesByCategory(category);
   const services = serviceFilter
@@ -95,18 +107,27 @@ export default function ServiceCatalogSection({
           py: 1.75,
         }}
       >
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
-          {title}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+            {title}
+          </Typography>
+          {disabled && (
+            <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
+          )}
+        </Box>
         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
           {description}
         </Typography>
         <Box
+          aria-disabled={disabled || undefined}
+          onClickCapture={disabled ? blockInteraction : undefined}
+          onKeyDownCapture={disabled ? blockInteraction : undefined}
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
             gap: 1,
             mt: 1,
+            ...(disabled && DISABLED_CARDS_SX),
           }}
         >
           {services.map((service) => (

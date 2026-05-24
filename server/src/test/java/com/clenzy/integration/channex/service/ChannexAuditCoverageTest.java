@@ -191,13 +191,17 @@ class ChannexAuditCoverageTest {
         @Mock private PriceEngine priceEngine;
         @Mock private PropertyRepository propertyRepository;
         @Mock private NotificationService notificationService;
+        @Mock private com.clenzy.integration.channex.config.ChannexProperties channexProperties;
 
         private ChannexRatesReconciliationScheduler scheduler;
 
         @BeforeEach
         void setUp() {
+            // Defaut : api key configuree (skip O5 deactive)
+            org.mockito.Mockito.lenient().when(channexProperties.isConfigured()).thenReturn(true);
             scheduler = new ChannexRatesReconciliationScheduler(mappingRepository, driftRepository,
-                channexClient, priceEngine, propertyRepository, notificationService);
+                channexClient, priceEngine, propertyRepository, notificationService,
+                channexProperties);
         }
 
         private ChannexPropertyMapping mappingActive() {
@@ -294,6 +298,17 @@ class ChannexAuditCoverageTest {
 
             scheduler.scan();
 
+            verify(channexClient, never()).fetchRatesForRange(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("O5 : CHANNEX_API_KEY non configuree -> scan skip total sans appel repository")
+        void scan_skipIfApiKeyMissing() {
+            when(channexProperties.isConfigured()).thenReturn(false);
+
+            scheduler.scan();
+
+            verify(mappingRepository, never()).findAllAcrossOrgs();
             verify(channexClient, never()).fetchRatesForRange(any(), any(), any(), any());
         }
     }

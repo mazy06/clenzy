@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Paper, Typography, Button } from '@mui/material';
+import { Box, Paper, Typography, Button, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { ArrowForward as ArrowRightIcon, CheckCircle as CheckCircleIcon } from '../../../icons';
 import { OTA_CHANNELS, type OtaChannel } from '../../../services/channels/otaChannels';
@@ -8,6 +8,11 @@ import { useAirbnbConnectionStatus } from '../../../hooks/useAirbnb';
 import { CONNECTABLE_CHANNELS, type ChannelId } from '../../../services/api/channelConnectionApi';
 import OtaInfoDialog from './OtaInfoDialog';
 import ServiceTooltip from './ServiceTooltip';
+import {
+  COMING_SOON_CHIP_SX,
+  DISABLED_CARDS_SX,
+  blockInteraction,
+} from './disabledIntegration';
 
 /**
  * Vitrine visuelle des OTAs dans l'onglet Integrations.
@@ -32,9 +37,15 @@ interface OtaShowcaseSectionProps {
    * les cards visibles (comportement par defaut).
    */
   serviceFilter?: string | null;
+  /**
+   * Si true, grise toutes les cards OTA et bloque clic + clavier. Affiche une
+   * chip "Bientot disponible" a cote du titre. Les tooltips d'info au survol
+   * restent disponibles.
+   */
+  disabled?: boolean;
 }
 
-export default function OtaShowcaseSection({ serviceFilter = null }: OtaShowcaseSectionProps = {}) {
+export default function OtaShowcaseSection({ serviceFilter = null, disabled = false }: OtaShowcaseSectionProps = {}) {
   const navigate = useNavigate();
   const { isConnected, getStatus } = useChannelConnections();
   const { data: airbnbStatus } = useAirbnbConnectionStatus();
@@ -71,9 +82,14 @@ export default function OtaShowcaseSection({ serviceFilter = null }: OtaShowcase
       >
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
-              Canaux de réservation (OTAs)
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+              <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                Canaux de réservation (OTAs)
+              </Typography>
+              {disabled && (
+                <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
+              )}
+            </Box>
             <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
               Connectez vos OTAs ici ou depuis l'onglet <strong>Channels</strong> dédié. Les modifications sont synchronisées entre les deux vues.
             </Typography>
@@ -101,11 +117,15 @@ export default function OtaShowcaseSection({ serviceFilter = null }: OtaShowcase
         </Box>
 
         <Box
+          aria-disabled={disabled || undefined}
+          onClickCapture={disabled ? blockInteraction : undefined}
+          onKeyDownCapture={disabled ? blockInteraction : undefined}
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
             gap: 1,
             mt: 1,
+            ...(disabled && DISABLED_CARDS_SX),
           }}
         >
           {visibleChannels.map((ota) => {

@@ -55,6 +55,7 @@ public class ChannexBookingService {
     private final CalendarEngine calendarEngine;
     private final NotificationService notificationService;
     private final ChannexMetrics metrics;
+    private final com.clenzy.integration.channex.client.ChannexClient channexClient;
 
     public ChannexBookingService(ChannexPropertyMappingRepository mappingRepository,
                                    ReservationRepository reservationRepository,
@@ -62,7 +63,8 @@ public class ChannexBookingService {
                                    GuestService guestService,
                                    CalendarEngine calendarEngine,
                                    NotificationService notificationService,
-                                   ChannexMetrics metrics) {
+                                   ChannexMetrics metrics,
+                                   com.clenzy.integration.channex.client.ChannexClient channexClient) {
         this.mappingRepository = mappingRepository;
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
@@ -70,6 +72,7 @@ public class ChannexBookingService {
         this.calendarEngine = calendarEngine;
         this.notificationService = notificationService;
         this.metrics = metrics;
+        this.channexClient = channexClient;
     }
 
     // ─── New booking ────────────────────────────────────────────────────────
@@ -130,6 +133,17 @@ public class ChannexBookingService {
             booking.otaName(), booking.arrivalDate(), booking.departureDate(),
             booking.amount(), booking.currency());
         metrics.recordBookingProcessed("new");
+
+        // Sprint A1 (Quick Win) — Acknowledge le booking aupres de Channex.
+        // Sans ack, Channex re-envoie un event non_acked_booking et certains OTAs
+        // (Airbnb notamment) interpretent ca comme "reservation perdue" -> escalations.
+        // Best-effort : un echec d'ack n'invalide pas la reservation deja creee.
+        try {
+            channexClient.acknowledgeBooking(booking.id());
+        } catch (Exception e) {
+            log.warn("ChannexBooking: ack KO booking={} (sera re-tente sur non_acked_booking event): {}",
+                booking.id(), e.getMessage());
+        }
 
         // Notifier l'equipe
         try {
