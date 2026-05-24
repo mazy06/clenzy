@@ -28,6 +28,7 @@ import com.clenzy.model.PropertyPhoto;
 import com.clenzy.model.PropertyStatus;
 import com.clenzy.model.PropertyType;
 import com.clenzy.model.User;
+import com.clenzy.repository.BookingRestrictionRepository;
 import com.clenzy.repository.LengthOfStayDiscountRepository;
 import com.clenzy.repository.OccupancyPricingRepository;
 import com.clenzy.repository.RateOverrideRepository;
@@ -95,6 +96,7 @@ public class ChannexImportService {
     private final RatePlanRepository ratePlanRepository;
     private final OccupancyPricingRepository occupancyPricingRepository;
     private final RateOverrideRepository rateOverrideRepository;
+    private final BookingRestrictionRepository bookingRestrictionRepository;
     private final ObjectMapper objectMapper;
     private final AmenityManagementService amenityManagementService;
 
@@ -114,6 +116,7 @@ public class ChannexImportService {
                                   RatePlanRepository ratePlanRepository,
                                   OccupancyPricingRepository occupancyPricingRepository,
                                   RateOverrideRepository rateOverrideRepository,
+                                  BookingRestrictionRepository bookingRestrictionRepository,
                                   ObjectMapper objectMapper,
                                   AmenityManagementService amenityManagementService) {
         this.channexClient = channexClient;
@@ -126,6 +129,7 @@ public class ChannexImportService {
         this.ratePlanRepository = ratePlanRepository;
         this.occupancyPricingRepository = occupancyPricingRepository;
         this.rateOverrideRepository = rateOverrideRepository;
+        this.bookingRestrictionRepository = bookingRestrictionRepository;
         this.objectMapper = objectMapper;
         this.amenityManagementService = amenityManagementService;
     }
@@ -167,7 +171,24 @@ public class ChannexImportService {
         // Regles du logement (guest_controls)
         Boolean allowsPets,         // guest_controls.allows_pets_as_host
         Boolean allowsSmoking,      // guest_controls.allows_smoking_as_host
-        Boolean allowsEvents        // guest_controls.allows_events_as_host
+        Boolean allowsEvents,       // guest_controls.allows_events_as_host
+
+        // Phase 4 #4 : rate plans additionnels (au-dela de rate_plans[0]).
+        // Typique : "Standard" + "Non-refundable -10%". On les expose pour
+        // creer 1 RatePlan(type=PROMOTIONAL) Clenzy par variante.
+        java.util.List<AdditionalRatePlan> additionalRatePlans
+    ) {}
+
+    /**
+     * Une variante de rate_plan OTA au-dela du primaire (rate_plans[0]).
+     * Cas typique : tarif "Non-refundable" ou "Long stay" avec un default_daily_price
+     * different du tarif standard.
+     */
+    record AdditionalRatePlan(
+        String channexRatePlanId,    // settings.id du rate plan Channex
+        String title,                // attributes.title (humain)
+        BigDecimal defaultPrice,     // settings.pricing_setting.default_daily_price
+        String currency              // settings.pricing_setting.listing_currency
     ) {}
 
     /**
@@ -714,6 +735,10 @@ public class ChannexImportService {
                 boolean weekendRatePlanCreated = createWeekendRatePlan(prop, orgId, info);
                 boolean occupancyPricingCreated = createOccupancyPricingFromOta(prop, orgId, info);
                 int rateOverridesCreated = importRateOverridesFromOta(prop, orgId, mapping, info);
+                // Phase 4 #4 : rate_plans additionnels (variantes "Non-refundable", etc.)
+                int additionalRatePlansCreated = importAdditionalRatePlansFromOta(prop, orgId, info);
+                // Phase 4 #5 : BookingRestriction par range groupes par dates consecutives
+                int bookingRestrictionsCreated = importBookingRestrictionsFromOta(prop, orgId, mapping);
 
                 // 7. Pull initial des reservations OTA (Airbnb / Booking / Vrbo).
                 //    Plage : [1er janvier annee courante → aujourd'hui + 12 mois]
@@ -785,6 +810,16 @@ public class ChannexImportService {
                     msg += ", " + rateOverridesCreated + " prix par date OTA importe"
                         + (rateOverridesCreated > 1 ? "s" : "")
                         + " (festivals/evenements/ajustements host)";
+                }
+                if (additionalRatePlansCreated > 0) {
+                    msg += ", " + additionalRatePlansCreated + " rate plan PROMOTIONAL OTA"
+                        + (additionalRatePlansCreated > 1 ? "s" : "")
+                        + " (variantes: refundable/non-refundable/etc.)";
+                }
+                if (bookingRestrictionsCreated > 0) {
+                    msg += ", " + bookingRestrictionsCreated + " restriction"
+                        + (bookingRestrictionsCreated > 1 ? "s" : "")
+                        + " de booking par range (min_stay/CTA/CTD)";
                 }
                 int mappedCount = resolvedAmenities.mapped.size();
                 int unmappedCount = resolvedAmenities.stillUnmapped.size();
@@ -1398,6 +1433,25 @@ public class ChannexImportService {
 
                 String channelId = ch.path("id").asText(null);
 
+                // Phase 4 #4 : extract additional rate_plans beyond [0]. On iterate
+                // rate_plans[1..n] et on capture (id, title, default_daily_price)
+                // pour materialiser des RatePlan(type=PROMOTIONAL) Clenzy.
+                java.util.List<AdditionalRatePlan> additionalRatePlans = new java.util.ArrayList<>();
+                for (int i = 1; i < ratePlans.size(); i++) {
+                    JsonNode rp = ratePlans.get(i);
+                    JsonNode rpAttrs = rp.path("attributes");
+                    JsonNode rpSettings = rp.path("settings");
+                    JsonNode rpPricing = rpSettings.path("pricing_setting");
+                    String rpId = rp.path("id").asText(null);
+                    String rpTitle = rpAttrs.path("title").asText(null);
+                    if (rpTitle == null || rpTitle.isBlank()) {
+                        rpTitle = rpSettings.path("title").asText("OTA Variant #" + (i + 1));
+                    }
+                    BigDecimal rpPrice = bigDecimalOrNull(rpPricing, "default_daily_price");
+                    String rpCurrency = rpPricing.path("listing_currency").asText(null);
+                    additionalRatePlans.add(new AdditionalRatePlan(rpId, rpTitle, rpPrice, rpCurrency));
+                }
+
                 ChannelListingInfo info = new ChannelListingInfo(
                     otaName,
                     listingId,
@@ -1423,7 +1477,9 @@ public class ChannexImportService {
                     // Regles
                     boolOrNull(controls, "allows_pets_as_host"),
                     boolOrNull(controls, "allows_smoking_as_host"),
-                    boolOrNull(controls, "allows_events_as_host")
+                    boolOrNull(controls, "allows_events_as_host"),
+                    // Phase 4 #4
+                    additionalRatePlans
                 );
 
                 Set<String> propIds = new HashSet<>();
@@ -2049,6 +2105,210 @@ public class ChannexImportService {
         log.info("ChannexImport[RATE_OVERRIDES]: property={} created={} skippedSameAsDefault={} skippedExisting={} totalEntries={}",
             prop.getId(), created, skippedSame, skippedExisting, entries.size());
         return created;
+    }
+
+    /**
+     * Phase 4 #4 — Multi rate_plans : pour chaque rate_plan additionnel cote
+     * OTA au-dela du primaire (typique : "Standard" + "Non-refundable -10%"),
+     * cree un {@link RatePlan}(type=PROMOTIONAL) Clenzy avec son default_daily_price.
+     *
+     * <p>Priorite = 5 (entre BASE qui est a 0 et WEEKEND qui est a 10) :
+     * suffisamment haut pour battre le BASE par defaut, suffisamment bas pour
+     * permettre a un override admin ou un WEEKEND de dominer si applicable.</p>
+     *
+     * <p>Idempotent : skip si un RatePlan(type=PROMOTIONAL, name=...) existe
+     * deja avec le meme nom (on detecte par {@code RatePlan.name} qui contient
+     * le titre OTA).</p>
+     *
+     * @return nb de RatePlan PROMOTIONAL crees
+     */
+    int importAdditionalRatePlansFromOta(Property prop, Long orgId, ChannelListingInfo info) {
+        if (info == null || info.additionalRatePlans() == null
+            || info.additionalRatePlans().isEmpty()) {
+            return 0;
+        }
+        java.util.List<RatePlan> existingPromos = ratePlanRepository
+            .findByPropertyIdAndType(prop.getId(), RatePlanType.PROMOTIONAL, orgId);
+        int created = 0;
+        for (AdditionalRatePlan arp : info.additionalRatePlans()) {
+            if (arp.defaultPrice() == null || arp.defaultPrice().signum() <= 0) continue;
+            String name = "OTA — " + (arp.title() != null ? arp.title() : "Variant");
+            boolean alreadyExists = existingPromos.stream()
+                .anyMatch(rp -> name.equals(rp.getName()));
+            if (alreadyExists) {
+                log.debug("ChannexImport[ADDITIONAL_RP]: skip duplicate name='{}' pour property={}",
+                    name, prop.getId());
+                continue;
+            }
+            try {
+                RatePlan plan = new RatePlan();
+                plan.setProperty(prop);
+                plan.setOrganizationId(orgId);
+                plan.setName(name);
+                plan.setType(RatePlanType.PROMOTIONAL);
+                plan.setPriority(5);
+                plan.setNightlyPrice(arp.defaultPrice());
+                plan.setCurrency(arp.currency() != null
+                    ? arp.currency().toUpperCase()
+                    : (info.currency() != null ? info.currency() : prop.getDefaultCurrency()));
+                plan.setIsActive(true);
+                ratePlanRepository.save(plan);
+                created++;
+                log.info("ChannexImport[ADDITIONAL_RP]: created PROMOTIONAL '{}' price={}{} property={}",
+                    name, plan.getNightlyPrice(), plan.getCurrency(), prop.getId());
+            } catch (Exception e) {
+                log.warn("ChannexImport[ADDITIONAL_RP]: erreur creation '{}' property={}: {}",
+                    name, prop.getId(), e.getMessage());
+            }
+        }
+        return created;
+    }
+
+    /**
+     * Phase 4 #5 — Import des {@link com.clenzy.model.BookingRestriction} par
+     * range depuis les rates Channex (champs min_stay_through, min_stay_arrival,
+     * closed_to_arrival, closed_to_departure).
+     *
+     * <p>Strategie : pull les rates 12 mois → groupe les dates consecutives
+     * avec des restrictions identiques → cree 1 BookingRestriction par groupe
+     * (start_date=group.first, end_date=group.last). Limite le bruit en DB
+     * (1 BookingRestriction range plutot que 365 par-date).</p>
+     *
+     * <p>Skip si aucune restriction non-defaut detectee. Idempotent par
+     * verification de l'existence d'une restriction couvrant la meme date
+     * de debut.</p>
+     *
+     * @return nb de BookingRestriction crees
+     */
+    int importBookingRestrictionsFromOta(Property prop, Long orgId,
+                                          com.clenzy.integration.channex.model.ChannexPropertyMapping mapping) {
+        if (mapping == null || mapping.getChannexDefaultRatePlanId() == null) {
+            return 0;
+        }
+        java.time.LocalDate from = java.time.LocalDate.now();
+        java.time.LocalDate to = from.plusMonths(12);
+
+        java.util.Optional<java.util.List<com.fasterxml.jackson.databind.JsonNode>> opt =
+            channexClient.fetchRatesForRange(mapping.getChannexPropertyId(),
+                mapping.getChannexDefaultRatePlanId(), from, to);
+        if (opt.isEmpty() || opt.get().isEmpty()) {
+            return 0;
+        }
+
+        // Pour chaque date, extraire (min_stay, closed_to_arrival, closed_to_departure)
+        // — on ignore les entries sans restrictions non-defaut.
+        java.util.TreeMap<java.time.LocalDate, Restriction> perDate = new java.util.TreeMap<>();
+        for (com.fasterxml.jackson.databind.JsonNode entry : opt.get()) {
+            try {
+                com.fasterxml.jackson.databind.JsonNode attrs = entry.path("attributes");
+                String dateStr = attrs.path("date").asText(null);
+                if (dateStr == null) continue;
+                Integer minStay = intOrNullFromAttr(attrs, "min_stay_through");
+                if (minStay == null) minStay = intOrNullFromAttr(attrs, "min_stay_arrival");
+                boolean cta = attrs.path("closed_to_arrival").asBoolean(false);
+                boolean ctd = attrs.path("closed_to_departure").asBoolean(false);
+                if (minStay == null && !cta && !ctd) continue; // defaut, skip
+                perDate.put(java.time.LocalDate.parse(dateStr),
+                    new Restriction(minStay, cta, ctd));
+            } catch (Exception e) {
+                log.debug("ChannexImport[BOOKING_RESTRICT]: parse KO entry: {}", e.getMessage());
+            }
+        }
+
+        if (perDate.isEmpty()) {
+            log.info("ChannexImport[BOOKING_RESTRICT]: aucune restriction non-defaut property={}",
+                prop.getId());
+            return 0;
+        }
+
+        // Groupe dates consecutives avec meme Restriction
+        int created = 0;
+        java.time.LocalDate groupStart = null;
+        java.time.LocalDate groupEnd = null;
+        Restriction groupRestriction = null;
+        java.time.LocalDate prevDate = null;
+
+        for (var entry : perDate.entrySet()) {
+            java.time.LocalDate date = entry.getKey();
+            Restriction r = entry.getValue();
+
+            boolean newGroup = groupStart == null
+                || !r.equals(groupRestriction)
+                || !date.equals(prevDate.plusDays(1));
+            if (newGroup) {
+                // Flush le groupe precedent
+                if (groupStart != null) {
+                    if (createBookingRestrictionIfNew(prop, orgId, groupStart, groupEnd, groupRestriction)) {
+                        created++;
+                    }
+                }
+                groupStart = date;
+                groupRestriction = r;
+            }
+            groupEnd = date;
+            prevDate = date;
+        }
+        // Flush final
+        if (groupStart != null) {
+            if (createBookingRestrictionIfNew(prop, orgId, groupStart, groupEnd, groupRestriction)) {
+                created++;
+            }
+        }
+
+        log.info("ChannexImport[BOOKING_RESTRICT]: property={} groups_created={} from {} datapoints",
+            prop.getId(), created, perDate.size());
+        return created;
+    }
+
+    /** Tuple immutable des restrictions pour grouping. */
+    private record Restriction(Integer minStay, boolean closedToArrival, boolean closedToDeparture) {}
+
+    /**
+     * Cree une BookingRestriction range si aucune restriction existante ne
+     * couvre deja le {@code startDate} (idempotence simple par date de debut).
+     */
+    private boolean createBookingRestrictionIfNew(Property prop, Long orgId,
+                                                    java.time.LocalDate startDate,
+                                                    java.time.LocalDate endDate,
+                                                    Restriction r) {
+        try {
+            // Idempotence basique : si une restriction couvre deja startDate, skip
+            var existing = bookingRestrictionRepository.findApplicable(
+                prop.getId(), startDate, startDate.plusDays(1), orgId);
+            if (!existing.isEmpty()) {
+                log.debug("ChannexImport[BOOKING_RESTRICT]: skip range [{}, {}] (existant)",
+                    startDate, endDate);
+                return false;
+            }
+            com.clenzy.model.BookingRestriction br =
+                new com.clenzy.model.BookingRestriction(prop, startDate, endDate, orgId);
+            br.setMinStay(r.minStay());
+            br.setClosedToArrival(r.closedToArrival());
+            br.setClosedToDeparture(r.closedToDeparture());
+            br.setPriority(5); // au-dessus du defaut 0
+            bookingRestrictionRepository.save(br);
+            log.info("ChannexImport[BOOKING_RESTRICT]: created [{}-{}] minStay={} CTA={} CTD={} property={}",
+                startDate, endDate, r.minStay(), r.closedToArrival(), r.closedToDeparture(), prop.getId());
+            return true;
+        } catch (Exception e) {
+            log.warn("ChannexImport[BOOKING_RESTRICT]: erreur creation [{}, {}] property={}: {}",
+                startDate, endDate, prop.getId(), e.getMessage());
+            return false;
+        }
+    }
+
+    /** Helper local pour parser un int depuis un attribut JSON, null si absent ou "null". */
+    private static Integer intOrNullFromAttr(com.fasterxml.jackson.databind.JsonNode attrs, String key) {
+        com.fasterxml.jackson.databind.JsonNode n = attrs.path(key);
+        if (n.isMissingNode() || n.isNull()) return null;
+        if (n.isInt()) return n.intValue();
+        try {
+            String s = n.asText();
+            if (s == null || s.isBlank() || "null".equalsIgnoreCase(s)) return null;
+            return Integer.parseInt(s);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     boolean createOccupancyPricingFromOta(Property prop, Long orgId,
