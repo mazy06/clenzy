@@ -48,27 +48,8 @@ const TAB_ICONS: Record<string, React.ReactElement> = {
   simulator: <CalculateIcon size={16} strokeWidth={1.75} />,
 };
 
-// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
-// Clef = LABEL traduit du tab (string stable face aux changements d'index visible).
-// Le titre racine reste dynamique (role-based via getDashboardTitle()) — seul le
-// subtitle change selon le tab actif.
-const DASHBOARD_TAB_META: Record<string, TabHeaderMeta> = {
-  "Vue d'ensemble": {
-    subtitle: "Vue d'ensemble : KPIs, planning, alertes critiques et accès rapides à votre activité.",
-  },
-  'Nuisance sonore': {
-    subtitle: 'Monitoring sonore Minut sur vos propriétés : alertes en temps réel, historique et seuils par bien.',
-  },
-  'Serrures connectées': {
-    subtitle: 'État et contrôle de vos serrures connectées (Tuya, Nuki) : verrouillage à distance et batterie.',
-  },
-  'Gestion des clés': {
-    subtitle: "Échange de clés via KeyNest et boîtes à clés : suivi des transferts entre guests et équipes.",
-  },
-  'Simulateur': {
-    subtitle: 'Simulateur analytique : projection revenus, occupation et performance sur scenarios variables.',
-  },
-};
+// La metadata par tab (breadcrumb + subtitle) est construite dans le composant
+// via t() pour reagir au changement de langue (cf. dashboardTabMeta plus bas).
 
 // ─── Tab helpers ────────────────────────────────────────────────────────────
 
@@ -154,12 +135,30 @@ const Dashboard: React.FC = () => {
   // Title racine = role-based (getDashboardTitle), subtitle racine = role-based
   // (getDashboardDescription) — utilises comme fallback quand le tab n'a pas de meta.
   const visibleTabLabels = visibleTabs.map((tab) => t(tab.labelKey) || tab.key);
+  // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
+  const dashboardTabMeta: Record<string, TabHeaderMeta> = {
+    [t('dashboard.tabs.overview', "Vue d'ensemble")]: {
+      subtitle: t('tabHeaders.dashboard.subtitle.overview', "Vue d'ensemble : KPIs, planning, alertes critiques et accès rapides à votre activité."),
+    },
+    [t('dashboard.tabs.noise', 'Nuisance sonore')]: {
+      subtitle: t('tabHeaders.dashboard.subtitle.noise', 'Monitoring sonore Minut sur vos propriétés : alertes en temps réel, historique et seuils par bien.'),
+    },
+    [t('dashboard.tabs.smartLock', 'Serrures connectées')]: {
+      subtitle: t('tabHeaders.dashboard.subtitle.smartLock', 'État et contrôle de vos serrures connectées (Tuya, Nuki) : verrouillage à distance et batterie.'),
+    },
+    [t('dashboard.tabs.keyExchange', 'Gestion des clés')]: {
+      subtitle: t('tabHeaders.dashboard.subtitle.keyExchange', 'Échange de clés via KeyNest et boîtes à clés : suivi des transferts entre guests et équipes.'),
+    },
+    [t('dashboard.tabs.simulator', 'Simulateur')]: {
+      subtitle: t('tabHeaders.dashboard.subtitle.simulator', 'Simulateur analytique : projection revenus, occupation et performance sur scenarios variables.'),
+    },
+  };
   const { title, subtitle } = resolveTabHeader(
     getDashboardTitle(),
     getDashboardDescription(),
     visibleTabLabels,
     tabValue,
-    DASHBOARD_TAB_META,
+    dashboardTabMeta,
   );
 
   // ─── Date filter: period chips on Overview and Simulator

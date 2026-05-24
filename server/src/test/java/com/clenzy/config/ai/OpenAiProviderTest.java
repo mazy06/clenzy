@@ -25,7 +25,8 @@ class OpenAiProviderTest {
         aiProperties.getOpenai().setApiKey("sk-test");
         aiProperties.getOpenai().setModel("gpt-4o");
         objectMapper = new ObjectMapper();
-        provider = new OpenAiProvider(aiProperties, objectMapper);
+        provider = new OpenAiProvider(aiProperties, objectMapper,
+                org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class));
     }
 
     @Test

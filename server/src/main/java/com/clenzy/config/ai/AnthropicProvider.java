@@ -5,8 +5,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
@@ -30,11 +32,14 @@ public class AnthropicProvider implements AiProvider {
 
     private final AiProperties aiProperties;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
     private RestClient restClient;
 
-    public AnthropicProvider(AiProperties aiProperties, ObjectMapper objectMapper) {
+    public AnthropicProvider(AiProperties aiProperties, ObjectMapper objectMapper,
+                             ApplicationEventPublisher eventPublisher) {
         this.aiProperties = aiProperties;
         this.objectMapper = objectMapper;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -91,9 +96,11 @@ public class AnthropicProvider implements AiProvider {
                     .body(requestBody)
                     .retrieve()
                     .body(String.class);
+        } catch (HttpClientErrorException.Gone e) {
+            // Modele Anthropic EOL (ex: claude-2 retired in 2025).
+            throw AiProviderErrorHandler.handleGone(eventPublisher, "anthropic", model, e);
         } catch (Exception e) {
-            log.error("Anthropic API call failed: {}", e.getMessage());
-            throw new AiProviderException("anthropic", "API call failed: " + e.getMessage(), e);
+            throw AiProviderErrorHandler.handleGeneric("anthropic", e);
         }
 
         try {
