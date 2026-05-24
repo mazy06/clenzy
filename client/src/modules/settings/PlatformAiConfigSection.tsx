@@ -77,12 +77,14 @@ const PROVIDER_BASE_URLS: Record<string, string> = {
 
 const MODELS_BY_PROVIDER: Record<string, Array<{ id: string; label: string; desc: string }>> = {
   nvidia: [
-    { id: 'qwen/qwen2.5-coder-32b-instruct', label: 'Qwen 2.5 Coder 32B', desc: 'Specialise code (CSS/JS)' },
-    { id: 'deepseek-ai/deepseek-r1-distill-qwen-32b', label: 'DeepSeek R1 32B', desc: 'Raisonnement avance' },
-    { id: 'meta/llama-3.1-70b-instruct', label: 'Llama 3.1 70B', desc: 'Haute qualite generaliste' },
+    // Qwen 2.5 famille en EOL chez NVIDIA Build (depuis 2026-05-12) -> Qwen 3
+    { id: 'qwen/qwen3-coder-480b-a35b-instruct', label: 'Qwen 3 Coder 480B', desc: 'Specialise code (CSS/JS), successeur de Qwen 2.5 Coder' },
+    { id: 'qwen/qwen3-235b-a22b', label: 'Qwen 3 235B', desc: 'Multilingue, analytique, generaliste' },
+    { id: 'deepseek-ai/deepseek-r1', label: 'DeepSeek R1', desc: 'Raisonnement avance (full model)' },
+    { id: 'deepseek-ai/deepseek-r1-distill-qwen-32b', label: 'DeepSeek R1 Distill 32B', desc: 'Raisonnement, plus leger' },
+    { id: 'meta/llama-3.3-70b-instruct', label: 'Llama 3.3 70B', desc: 'Haute qualite generaliste' },
     { id: 'meta/llama-3.1-8b-instruct', label: 'Llama 3.1 8B', desc: 'Rapide et economique' },
-    { id: 'mistralai/mixtral-8x7b-instruct-v0.1', label: 'Mixtral 8x7B', desc: 'Bon rapport qualite/prix' },
-    { id: 'qwen/qwen2.5-72b-instruct', label: 'Qwen 2.5 72B', desc: 'Multilingue, analytique' },
+    { id: 'nvidia/llama-3.3-nemotron-super-49b-v1', label: 'Nemotron Super 49B', desc: 'NVIDIA, reasoning-tuned' },
     { id: 'google/gemma-2-9b-it', label: 'Gemma 2 9B', desc: 'Google, compact' },
   ],
   bedrock: [
