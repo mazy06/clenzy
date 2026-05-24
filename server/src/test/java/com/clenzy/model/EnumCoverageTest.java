@@ -202,7 +202,7 @@ class EnumCoverageTest {
     @DisplayName("PropertyType")
     class PropertyTypeTests {
         @Test void allValues() {
-            assertThat(PropertyType.values()).hasSize(10);
+            assertThat(PropertyType.values()).hasSize(14);
         }
         @Test void displayNames() {
             for (PropertyType t : PropertyType.values()) {

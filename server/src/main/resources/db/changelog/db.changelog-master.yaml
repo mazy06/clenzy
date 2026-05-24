@@ -1175,3 +1175,82 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  - changeSet:
+      id: "0126-add-external-url-to-property-photos"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0126__add_external_url_to_property_photos.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0127 : OTA raw amenities (transparence des amenities non mappees) ---
+  - changeSet:
+      id: "0127-add-ota-raw-amenities-to-properties"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0127__add_ota_raw_amenities_to_properties.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0128 : Gestion des commodites OTA (aliases + custom + ignored) ---
+  - changeSet:
+      id: "0128-add-amenity-management-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0128__add_amenity_management_tables.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0129 : Channex sync logs (historique des push par property) ---
+  - changeSet:
+      id: "0129-add-channex-sync-logs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0129__add_channex_sync_logs.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0130 : Extend rate_plans.type CHECK aux 9 valeurs enum Java ---
+  - changeSet:
+      id: "0130-extend-rate-plans-type-check"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0130__extend_rate_plans_type_check.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0131 : Price source of truth + table de detection des drifts OTA ---
+  - changeSet:
+      id: "0131-add-price-source-of-truth"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0131__add_price_source_of_truth.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0132 : Metadonnees booking OTA sur properties (Phase 4) ---
+  - changeSet:
+      id: "0132-add-property-ota-booking-metadata"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0132__add_property_ota_booking_metadata.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0133 : Fix partial unique sur channex_price_drifts (audit Phase 5) ---
+  - changeSet:
+      id: "0133-fix-channex-price-drift-partial-unique"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0133__fix_channex_price_drift_partial_unique.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

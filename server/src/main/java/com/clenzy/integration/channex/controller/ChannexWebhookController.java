@@ -17,10 +17,11 @@ import java.util.Map;
  *
  * <p><b>Endpoint :</b> {@code POST /api/webhooks/channex}</p>
  *
- * <p><b>Securite :</b> validation HMAC-SHA256 du body brut via
- * {@link ChannexSignatureValidator}. Endpoint dans {@code permitAll()} cote
- * Spring Security (auth = signature, pas JWT). Doit etre dans la whitelist
- * de {@code SecurityConfigProd.java}.</p>
+ * <p><b>Securite :</b> validation par token statique partage envoye dans le
+ * header {@code X-Channex-Token}, configure cote Channex dashboard (Settings →
+ * Webhooks → Headers). Endpoint dans {@code permitAll()} cote Spring Security
+ * (auth = token, pas JWT). Doit etre dans la whitelist de
+ * {@code SecurityConfigProd.java}.</p>
  *
  * <p><b>Events supportes :</b></p>
  * <ul>
@@ -62,16 +63,16 @@ public class ChannexWebhookController {
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> handleWebhook(
-            @RequestHeader(value = "X-Channex-Signature", required = false) String signature,
+            @RequestHeader(value = "X-Channex-Token", required = false) String token,
             @RequestBody String rawBody) {
 
-        // 1. Validation signature (anti spoof + LCB-FT)
-        if (!signatureValidator.isValid(rawBody, signature)) {
-            log.warn("Channex webhook: signature invalide refusee (body length {})", rawBody.length());
+        // 1. Validation token (anti spoof) — header statique partage configure dans Channex dashboard
+        if (!signatureValidator.isValid(token)) {
+            log.warn("Channex webhook: token invalide refuse (body length {})", rawBody.length());
             metrics.recordWebhookReceived("unknown", "invalid_signature");
             return ResponseEntity.status(401).body(Map.of(
-                "error", "invalid_signature",
-                "message", "X-Channex-Signature header missing or invalid"
+                "error", "invalid_token",
+                "message", "X-Channex-Token header missing or invalid"
             ));
         }
 

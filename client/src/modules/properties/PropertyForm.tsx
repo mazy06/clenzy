@@ -21,6 +21,7 @@ import { usePropertyForm } from '../../hooks/usePropertyForm';
 import type { FormUser } from '../../hooks/usePropertyForm';
 import { PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
+import { PROPERTY_TYPES } from '../../utils/statusUtils';
 
 import PropertyFormBasicInfo from './PropertyFormBasicInfo';
 import PropertyFormAddress from './PropertyFormAddress';
@@ -147,18 +148,12 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
   };
 
   // ─── Option lists ─────────────────────────────────────────────────────
-  const propertyTypes = [
-    { value: 'APARTMENT', label: t('properties.types.apartment') },
-    { value: 'HOUSE', label: t('properties.types.house') },
-    { value: 'VILLA', label: t('properties.types.villa') },
-    { value: 'STUDIO', label: t('properties.types.studio') },
-    { value: 'LOFT', label: t('properties.types.loft') },
-    { value: 'GUEST_ROOM', label: t('properties.types.guestRoom') },
-    { value: 'COTTAGE', label: t('properties.types.cottage') },
-    { value: 'CHALET', label: t('properties.types.chalet') },
-    { value: 'BOAT', label: t('properties.types.boat') },
-    { value: 'OTHER', label: t('properties.types.other') },
-  ];
+  // Source unique de verite : PROPERTY_TYPES dans utils/statusUtils.ts.
+  // Synchronisee avec l'enum PropertyType cote backend.
+  const propertyTypes = PROPERTY_TYPES.map(pt => ({
+    value: pt.value,
+    label: t(pt.i18nKey),
+  }));
 
   const propertyStatuses = PROPERTY_STATUS_OPTIONS.map(option => ({
     value: option.value,

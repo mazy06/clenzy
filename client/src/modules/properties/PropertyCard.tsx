@@ -48,6 +48,7 @@ import {
   getCleaningFrequencyHex,
   getAmenityHex,
 } from '../../utils/statusUtils';
+import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
 import ThemedTooltip from '../../components/ThemedTooltip';
 
 // Interface pour les propriétés détaillées
@@ -88,6 +89,14 @@ interface PropertyCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onView?: () => void;
+  /**
+   * Mapping Channex de cette propriete (si elle est connectee au Channel Manager).
+   * Quand fourni, un petit badge de sante est affiche pres du nom (Quick Win #4).
+   * Pour les roles non-SUPER_*, ce sera toujours undefined → aucun badge.
+   */
+  channexMapping?: import('../../services/api/channexApi').ChannexMappingDto | null;
+  /** Callback declenche quand l'utilisateur clique sur le badge Channex. */
+  onChannexBadgeClick?: () => void;
 }
 
 // Gradient par type de propriété
@@ -352,7 +361,7 @@ export function formatDuration(mins: number): string {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit, onDelete, onView }) => {
+const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit, onDelete, onView, channexMapping, onChannexBadgeClick }) => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
@@ -530,15 +539,32 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
         {/* ─── Zone info ─── */}
         <CardContent sx={styles.infoContent}>
-          {/* Nom */}
-          <Typography
-            variant="subtitle1"
-            fontWeight={700}
-            sx={styles.nameText}
-            title={property.name}
+          {/* Nom + health badge Channex (Quick Win #4) */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.75,
+              minWidth: 0,
+            }}
           >
-            {property.name}
-          </Typography>
+            <Typography
+              variant="subtitle1"
+              fontWeight={700}
+              sx={{ ...styles.nameText, minWidth: 0, flex: 1 }}
+              title={property.name}
+            >
+              {property.name}
+            </Typography>
+            {channexMapping && (
+              <ChannexHealthBadge
+                mapping={channexMapping}
+                size={10}
+                variant="dot"
+                onClick={onChannexBadgeClick}
+              />
+            )}
+          </Box>
 
           {/* Adresse */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.25 }}>

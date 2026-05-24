@@ -1,0 +1,2459 @@
+package com.clenzy.integration.channex.service;
+
+import com.clenzy.integration.channex.client.ChannexClient;
+import com.clenzy.integration.channex.dto.ChannexCreateRatePlanRequest;
+import com.clenzy.integration.channex.dto.ChannexCreateRoomTypeRequest;
+import com.clenzy.integration.channex.dto.ChannexDiscoveredProperty;
+import com.clenzy.integration.channex.dto.ChannexConnectedOta;
+import com.clenzy.integration.channex.dto.ChannexPropertyOtaSync;
+import com.clenzy.integration.channex.dto.ChannexCreatePropertyRequest;
+import com.clenzy.integration.channex.dto.ChannexDiscoveryResponse;
+import com.clenzy.integration.channex.dto.ChannexOauthSetupResponse;
+import com.clenzy.integration.channex.dto.ChannexPropertyDto;
+import com.clenzy.integration.channex.dto.ChannexImportRequest;
+import com.clenzy.integration.channex.dto.ChannexImportResult;
+import com.clenzy.integration.channex.dto.ChannexRatePlanDto;
+import com.clenzy.integration.channex.dto.ChannexRoomTypeDto;
+import com.clenzy.integration.channex.exception.ChannexException;
+import com.clenzy.integration.channex.model.ChannexPropertyMapping;
+import com.clenzy.integration.channex.model.ChannexSyncStatus;
+import com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository;
+import com.clenzy.model.LengthOfStayDiscount;
+import com.clenzy.model.OccupancyPricing;
+import com.clenzy.model.RateOverride;
+import com.clenzy.model.RatePlan;
+import com.clenzy.model.RatePlanType;
+import com.clenzy.model.Property;
+import com.clenzy.model.PropertyPhoto;
+import com.clenzy.model.PropertyStatus;
+import com.clenzy.model.PropertyType;
+import com.clenzy.model.User;
+import com.clenzy.repository.BookingRestrictionRepository;
+import com.clenzy.repository.LengthOfStayDiscountRepository;
+import com.clenzy.repository.OccupancyPricingRepository;
+import com.clenzy.repository.RateOverrideRepository;
+import com.clenzy.repository.RatePlanRepository;
+import com.clenzy.repository.PropertyPhotoRepository;
+import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.UserRepository;
+import com.clenzy.service.AmenityManagementService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpMethod;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Import bulk de properties Channex existantes vers Clenzy (discovery).
+ *
+ * <p><b>Cas d'usage</b> : apres OAuth Airbnb (via le picker + iframe sur une
+ * property Clenzy existante), Channex cree automatiquement des properties pour
+ * tous les listings Airbnb detectes dans le compte de l'utilisateur. Ces
+ * properties Channex ne sont pas encore connectees a Clenzy. Ce service permet
+ * de les detecter et de les importer en masse comme Properties Clenzy.</p>
+ *
+ * <p><b>Flow utilisateur</b> :</p>
+ * <ol>
+ *   <li>L'admin clique "Importer depuis Channex" dans la UI Clenzy</li>
+ *   <li>Frontend appelle {@link #discoverUnmappedProperties}</li>
+ *   <li>Modal affiche les properties Channex non-mappees avec checkboxes</li>
+ *   <li>L'admin coche + override les types Clenzy → POST {@link #importProperties}</li>
+ *   <li>Pour chaque coche : creation Property Clenzy + ChannexPropertyMapping</li>
+ * </ol>
+ */
+@Service
+public class ChannexImportService {
+
+    private static final Logger log = LoggerFactory.getLogger(ChannexImportService.class);
+
+    private final ChannexClient channexClient;
+    private final ChannexPropertyMappingRepository mappingRepository;
+    private final PropertyRepository propertyRepository;
+    private final PropertyPhotoRepository propertyPhotoRepository;
+    private final ChannexConnectService connectService;
+    private final UserRepository userRepository;
+    private final LengthOfStayDiscountRepository lengthOfStayDiscountRepository;
+    private final RatePlanRepository ratePlanRepository;
+    private final OccupancyPricingRepository occupancyPricingRepository;
+    private final RateOverrideRepository rateOverrideRepository;
+    private final BookingRestrictionRepository bookingRestrictionRepository;
+    private final ObjectMapper objectMapper;
+    private final AmenityManagementService amenityManagementService;
+
+    /** HttpClient reuse pour le scrape Airbnb (og:title). Pool persistant + suit redirects. */
+    private final HttpClient httpClient = HttpClient.newBuilder()
+        .followRedirects(HttpClient.Redirect.NORMAL)
+        .connectTimeout(Duration.ofSeconds(5))
+        .build();
+
+    public ChannexImportService(ChannexClient channexClient,
+                                  ChannexPropertyMappingRepository mappingRepository,
+                                  PropertyRepository propertyRepository,
+                                  PropertyPhotoRepository propertyPhotoRepository,
+                                  ChannexConnectService connectService,
+                                  UserRepository userRepository,
+                                  LengthOfStayDiscountRepository lengthOfStayDiscountRepository,
+                                  RatePlanRepository ratePlanRepository,
+                                  OccupancyPricingRepository occupancyPricingRepository,
+                                  RateOverrideRepository rateOverrideRepository,
+                                  BookingRestrictionRepository bookingRestrictionRepository,
+                                  ObjectMapper objectMapper,
+                                  AmenityManagementService amenityManagementService) {
+        this.channexClient = channexClient;
+        this.mappingRepository = mappingRepository;
+        this.propertyRepository = propertyRepository;
+        this.propertyPhotoRepository = propertyPhotoRepository;
+        this.connectService = connectService;
+        this.userRepository = userRepository;
+        this.lengthOfStayDiscountRepository = lengthOfStayDiscountRepository;
+        this.ratePlanRepository = ratePlanRepository;
+        this.occupancyPricingRepository = occupancyPricingRepository;
+        this.rateOverrideRepository = rateOverrideRepository;
+        this.bookingRestrictionRepository = bookingRestrictionRepository;
+        this.objectMapper = objectMapper;
+        this.amenityManagementService = amenityManagementService;
+    }
+
+    /**
+     * Donnees structurees d'un channel actif Channex, indexees par propertyId.
+     * Extraites depuis {@code attributes.rate_plans[0].settings.*} — TOUTES
+     * ces valeurs sont des champs structures de l'API Channex, pas du scraping.
+     * Si Channex ne les fournit pas (rate_plan absent / channel inactif), les
+     * champs sont {@code null} (pas de fabrication).
+     */
+    record ChannelListingInfo(
+        // Identite OTA
+        String otaName,             // "AirBNB", "BookingCom", ...
+        String listingId,           // settings.listing_id (ex Airbnb: "1512384244344462850")
+        String channelId,           // ID du channel Channex (necessaire pour API whitelabel)
+        String listingType,         // settings.listing_type ("house", "apartment", ...)
+
+        // Tarifs (pricing_setting)
+        BigDecimal defaultPrice,    // pricing_setting.default_daily_price
+        BigDecimal weekendPrice,    // pricing_setting.weekend_price
+        String currency,            // pricing_setting.listing_currency
+        Integer guestsIncluded,     // pricing_setting.guests_included (BASE, pas max)
+        BigDecimal pricePerExtraPerson, // pricing_setting.price_per_extra_person
+        Double weeklyPriceFactor,   // pricing_setting.weekly_price_factor
+        Double monthlyPriceFactor,  // pricing_setting.monthly_price_factor
+
+        // Sejour (availability_rule)
+        Integer minNights,          // availability_rule.default_min_nights
+        Integer maxNights,          // availability_rule.default_max_nights
+
+        // Reservation (booking_setting)
+        String checkInTimeStart,    // booking_setting.check_in_time_start ("FLEXIBLE" ou heure)
+        String checkInTimeEnd,      // booking_setting.check_in_time_end
+        Integer checkOutTime,       // booking_setting.check_out_time (heure, ex: 11)
+        String cancellationPolicy,  // booking_setting.cancellation_policy_settings.cancellation_policy_category
+        String instantBookingPolicy,// booking_setting.instant_booking_allowed_category
+
+        // Regles du logement (guest_controls)
+        Boolean allowsPets,         // guest_controls.allows_pets_as_host
+        Boolean allowsSmoking,      // guest_controls.allows_smoking_as_host
+        Boolean allowsEvents,       // guest_controls.allows_events_as_host
+
+        // Phase 4 #4 : rate plans additionnels (au-dela de rate_plans[0]).
+        // Typique : "Standard" + "Non-refundable -10%". On les expose pour
+        // creer 1 RatePlan(type=PROMOTIONAL) Clenzy par variante.
+        java.util.List<AdditionalRatePlan> additionalRatePlans
+    ) {}
+
+    /**
+     * Une variante de rate_plan OTA au-dela du primaire (rate_plans[0]).
+     * Cas typique : tarif "Non-refundable" ou "Long stay" avec un default_daily_price
+     * different du tarif standard.
+     */
+    record AdditionalRatePlan(
+        String channexRatePlanId,    // settings.id du rate plan Channex
+        String title,                // attributes.title (humain)
+        BigDecimal defaultPrice,     // settings.pricing_setting.default_daily_price
+        String currency              // settings.pricing_setting.listing_currency
+    ) {}
+
+    /**
+     * Liste les properties Channex qui n'ont pas encore de mapping local Clenzy.
+     *
+     * <p>Strategie : GET /properties Channex (toutes les properties du compte) puis
+     * filtre celles dont l'UUID n'apparait dans aucun ChannexPropertyMapping de
+     * cette organisation.</p>
+     */
+    public ChannexDiscoveryResponse discoverUnmappedProperties(Long orgId) {
+        // 1. Recupere toutes les properties cote Channex (raw JsonNode pour acceder
+        //    aux relationships qui ne sont pas dans nos DTOs).
+        JsonNode raw = channexClient.fetchAllPropertiesRaw();
+        if (raw == null || !raw.path("data").isArray()) {
+            return ChannexDiscoveryResponse.of(List.of(), 0);
+        }
+        int totalInHub = raw.path("data").size();
+
+        // 2. Map des UUIDs Channex deja mappes dans Clenzy pour cette org → infos Property Clenzy
+        Map<String, com.clenzy.integration.channex.model.ChannexPropertyMapping> mappingsByChannexId = new HashMap<>();
+        for (com.clenzy.integration.channex.model.ChannexPropertyMapping m
+                : mappingRepository.findAllByOrgId(orgId)) {
+            mappingsByChannexId.put(m.getChannexPropertyId(), m);
+        }
+
+        // 3. Resoudre les noms des Property Clenzy pour les mappings existants
+        Map<Long, String> clenzyPropertyNames = new HashMap<>();
+        for (var mapping : mappingsByChannexId.values()) {
+            propertyRepository.findById(mapping.getClenzyPropertyId())
+                .ifPresent(p -> clenzyPropertyNames.put(p.getId(), p.getName()));
+        }
+
+        // 4. Construit le map propertyId → List<OTAs> via les channels du hub
+        //    (un channel par OTA, lie a 1+ properties via attributes.properties[]).
+        // Map propertyId → infos OTA enrichies (otaName, listingId, pricing)
+        // — utilise plus bas pour overrider le titre technique des pivots et
+        // afficher le vrai nom de la listing (scrape Airbnb).
+        Map<String, ChannelListingInfo> listingInfoByPropertyId = buildListingInfoMap();
+
+        Map<String, List<ChannexPropertyOtaSync>> otasByPropertyId = new HashMap<>();
+        JsonNode channelsRaw = channexClient.fetchAllChannelsRaw();
+        if (channelsRaw != null && channelsRaw.path("data").isArray()) {
+            for (JsonNode ch : channelsRaw.path("data")) {
+                JsonNode chAttrs = ch.path("attributes");
+                String otaName = chAttrs.path("channel").asText("");
+                if (otaName.isEmpty()) continue;
+                boolean chActive = chAttrs.path("is_active").asBoolean(false);
+                boolean chHasToken = chAttrs.path("settings").path("tokens")
+                    .path("access_token").isTextual();
+
+                Set<String> propIds = new HashSet<>();
+                JsonNode propsArr = chAttrs.path("properties");
+                if (propsArr.isArray()) {
+                    for (JsonNode pid : propsArr) propIds.add(pid.asText(""));
+                }
+                JsonNode rels = ch.path("relationships").path("properties").path("data");
+                if (rels.isArray()) {
+                    for (JsonNode r : rels) propIds.add(r.path("id").asText(""));
+                }
+                for (String pid : propIds) {
+                    if (pid.isEmpty()) continue;
+                    otasByPropertyId
+                        .computeIfAbsent(pid, k -> new ArrayList<>())
+                        .add(new ChannexPropertyOtaSync(otaName, chActive, chHasToken));
+                }
+            }
+        }
+
+        // 5. Transforme en DTOs : on garde TOUTES les properties (importees + non),
+        //    chacune avec un flag isImported pour distinguer cote UI.
+        List<ChannexDiscoveredProperty> result = new ArrayList<>();
+        for (JsonNode prop : raw.path("data")) {
+            String channexId = prop.path("id").asText(null);
+            if (channexId == null) continue;
+
+            JsonNode attrs = prop.path("attributes");
+            String title = attrs.path("title").asText("");
+
+            // Filtrer les properties techniques Clenzy (containers OAuth) :
+            //  - "[Clenzy Hub] OAuth Bridge" : container legacy partage
+            //  - "[Clenzy] OAuth Container ..." : pivot consomme (rename apres usage)
+            // Strategie unifiee : un pivot devient IMPORTABLE des qu'il a un OTA
+            // actif (= l'utilisateur a mappe au moins un listing Airbnb/Booking/
+            // Vrbo sur sa room dans le wizard Channex). Sinon il reste cache
+            // (dormant). Le user pourra alors l'importer dans Clenzy en lui
+            // donnant un vrai nom (Channex ne propose pas de creer une nouvelle
+            // property inline dans son wizard de mapping).
+            boolean isPivot = title.startsWith("[Clenzy Hub]") || title.startsWith("[Clenzy]");
+
+            // Verifier si OTA actif sur cette property (best-effort).
+            // Pour les pivots : conditionne la visibilite (cf. filtre ci-dessous).
+            // Pour les autres : info contextuelle pour le user.
+            boolean hasOta = false;
+            try {
+                hasOta = channexClient.hasActiveOtaChannel(channexId);
+            } catch (Exception e) {
+                log.debug("ChannexImport: check OTA actif KO pour {} : {}", channexId, e.getMessage());
+            }
+
+            // Pivot sans OTA actif = container dormant cree pour faciliter un
+            // OAuth qui n'a pas encore donne lieu a un mapping. On le cache.
+            if (isPivot && !hasOta) {
+                continue;
+            }
+
+            String currency = attrs.path("currency").asText("EUR");
+            String country = attrs.path("country").asText("FR");
+            String timezone = attrs.path("timezone").asText("Europe/Paris");
+            Integer maxOcc = attrs.has("max_count_of_occupancies")
+                ? attrs.get("max_count_of_occupancies").asInt() : null;
+
+            // Verifier la presence de room_type / rate_plan (info pour l'admin :
+            // s'ils sont absents, l'import les creera automatiquement).
+            boolean hasRoomType = false;
+            boolean hasRatePlan = false;
+            try {
+                hasRoomType = !channexClient.fetchRoomTypesForProperty(channexId).isEmpty();
+                hasRatePlan = !channexClient.fetchRatePlansForProperty(channexId).isEmpty();
+            } catch (Exception e) {
+                log.debug("ChannexImport: check structures KO pour {} : {}", channexId, e.getMessage());
+            }
+
+            // Indicateurs de richesse du contenu Channex (anticipe le tier payant
+            // qui sync depuis Airbnb : photos, description, address rempliront ces
+            // flags et le frontend les affichera avec un compteur visuel).
+            JsonNode content = attrs.path("content");
+            JsonNode photos = content.path("photos");
+            int photoCount = photos.isArray() ? photos.size() : 0;
+            String desc = content.path("description").asText(null);
+            boolean hasDescription = desc != null && !desc.isBlank();
+            String address = attrs.path("address").asText(null);
+            boolean hasAddress = address != null && !address.isBlank();
+
+            // Flag isImported : true si cette property hub a deja un mapping local
+            var mapping = mappingsByChannexId.get(channexId);
+            boolean isImported = mapping != null;
+            Long clenzyId = isImported ? mapping.getClenzyPropertyId() : null;
+            String clenzyName = isImported ? clenzyPropertyNames.get(clenzyId) : null;
+
+            List<ChannexPropertyOtaSync> connectedOtasForProp =
+                otasByPropertyId.getOrDefault(channexId, List.of());
+
+            // UX : pour un pivot mappé à une listing OTA, on remplace le titre
+            // technique ([Clenzy Hub] OAuth Bridge) par le VRAI nom de la
+            // listing — recupere via scrape de la page Airbnb publique (Channex
+            // ne l'expose pas via l'API publique). Et on prefere la capacite
+            // explicite Airbnb (og:description "Jusqu'a X voyageurs").
+            String displayTitle = title;
+            String listingTypeRaw = null;
+            ChannelListingInfo info = listingInfoByPropertyId.get(channexId);
+            if (info != null) {
+                listingTypeRaw = info.listingType();
+            }
+            if (isPivot) {
+                if (info != null && "AirBNB".equalsIgnoreCase(info.otaName())) {
+                    // resolveListingData : prefere l'API whitelabel si dispo
+                    // (capability CHANNEL_DETAILS), sinon scrape Airbnb JSON-LD.
+                    AirbnbListingData data = resolveListingData(info);
+                    displayTitle = data != null && data.name() != null
+                        ? data.name()
+                        : "Listing AirBNB #" + info.listingId();
+                } else if (info != null) {
+                    displayTitle = "Listing " + info.otaName() + " #" + info.listingId();
+                } else {
+                    displayTitle = "Pivot OAuth (sans listing mappee)";
+                }
+            }
+            // maxOccupancy reste celui de la property Channex (donnee structuree).
+            // Pour un pivot c'est notre defaut (10) — pas reliable mais c'est ce
+            // que Channex nous donne. Bedrooms/beds/bathrooms ne sont PAS dispo
+            // via l'API publique (whitelabel-only) → on les laisse null.
+            Integer displayMaxOcc = maxOcc;
+            // Type Clenzy suggere : mapping prioritaire depuis listing_type OTA
+            // (donnee structuree, plus fiable que parser le titre). Fallback
+            // sur l'heuristique titre si l'OTA ne nous donne rien.
+            String suggested = suggestPropertyTypeFromOta(listingTypeRaw);
+            if (suggested == null) {
+                suggested = suggestPropertyType(displayTitle);
+            }
+
+            result.add(new ChannexDiscoveredProperty(
+                channexId, displayTitle, currency, country, timezone, displayMaxOcc, suggested,
+                hasOta, hasRoomType, hasRatePlan,
+                photoCount, hasDescription, hasAddress,
+                isImported, clenzyId, clenzyName,
+                connectedOtasForProp,
+                listingTypeRaw,
+                info != null ? info.defaultPrice() : null,
+                info != null ? info.weekendPrice() : null,
+                info != null ? info.guestsIncluded() : null,
+                info != null ? info.pricePerExtraPerson() : null,
+                info != null ? info.weeklyPriceFactor() : null,
+                info != null ? info.monthlyPriceFactor() : null,
+                info != null ? info.minNights() : null,
+                info != null ? info.maxNights() : null,
+                info != null ? info.checkInTimeStart() : null,
+                info != null ? info.checkInTimeEnd() : null,
+                info != null ? info.checkOutTime() : null,
+                info != null ? info.cancellationPolicy() : null,
+                info != null ? info.instantBookingPolicy() : null,
+                info != null ? info.allowsPets() : null,
+                info != null ? info.allowsSmoking() : null,
+                info != null ? info.allowsEvents() : null));
+        }
+
+        long unmappedCount = result.stream().filter(p -> !p.isImported()).count();
+        log.info("ChannexImport: discovery org={} -> {} non-importees + {} importees (sur {} totales hub)",
+            orgId, unmappedCount, result.size() - unmappedCount, totalInHub);
+        return ChannexDiscoveryResponse.of(result, totalInHub);
+    }
+
+    /**
+     * Importe les properties Channex selectionnees comme Properties Clenzy.
+     *
+     * <p>Pour chaque ID Channex :</p>
+     * <ol>
+     *   <li>Verifie qu'aucun mapping n'existe deja (idempotent — skip si oui)</li>
+     *   <li>Recupere les details Channex via API pour auto-filler la Property</li>
+     *   <li>Cree la Property Clenzy + sauvegarde</li>
+     *   <li>Cree le ChannexPropertyMapping (sync_status=PENDING)</li>
+     * </ol>
+     *
+     * <p>Si une etape echoue pour un ID, on continue avec les suivants (best-effort).
+     * Le resultat detaille le statut de chaque ID.</p>
+     */
+    @Transactional
+    public ChannexImportResult importProperties(Long orgId, ChannexImportRequest request,
+                                                  String requesterKeycloakId,
+                                                  boolean isPlatformStaff) {
+        List<ChannexImportResult.Item> details = new ArrayList<>();
+        int created = 0;
+        int skipped = 0;
+        int errors = 0;
+
+        // Resolve current user (besoin pour audit + fallback owner si pas d'override)
+        if (requesterKeycloakId == null || requesterKeycloakId.isBlank()) {
+            throw new IllegalStateException(
+                "Import Channex impossible : identite utilisateur manquante dans le JWT.");
+        }
+        User currentUser = userRepository.findByKeycloakId(requesterKeycloakId)
+            .orElseThrow(() -> new IllegalStateException(
+                "Import Channex impossible : aucun User Clenzy pour keycloakId="
+                + requesterKeycloakId + ". Verifiez que le compte est bien provisionne."));
+
+        // ─── Resolution org + owner cibles ──────────────────────────────────
+        // Override autorise uniquement pour platform staff (SUPER_ADMIN/SUPER_MANAGER).
+        // Pour les autres roles, target* sont ignores et on prend les valeurs
+        // du contexte courant (= self attribution dans l'org courante).
+        final Long resolvedOrgId;
+        final User owner;
+        if (isPlatformStaff
+            && (request.targetOrganizationId() != null || request.targetOwnerId() != null)) {
+            // Cas override : staff veut reattribuer. Les deux champs DOIVENT etre
+            // fournis ensemble pour eviter les incoherences (ex: owner de l'org A
+            // attribue a une property de l'org B).
+            if (request.targetOrganizationId() == null) {
+                throw new IllegalArgumentException(
+                    "targetOrganizationId est requis si targetOwnerId est fourni.");
+            }
+            if (request.targetOwnerId() == null) {
+                throw new IllegalArgumentException(
+                    "targetOwnerId est requis si targetOrganizationId est fourni.");
+            }
+            resolvedOrgId = request.targetOrganizationId();
+            owner = userRepository.findById(request.targetOwnerId())
+                .orElseThrow(() -> new IllegalStateException(
+                    "Owner cible introuvable : userId=" + request.targetOwnerId()));
+            // Coherence : le user cible DOIT appartenir a l'org cible.
+            if (owner.getOrganizationId() == null
+                || !owner.getOrganizationId().equals(resolvedOrgId)) {
+                throw new IllegalArgumentException(
+                    "Incoherence : l'user " + owner.getId() + " (org="
+                    + owner.getOrganizationId() + ") n'appartient pas a l'org cible "
+                    + resolvedOrgId + ".");
+            }
+            log.info("ChannexImport[STAFF-OVERRIDE] requester={} → cible org={} owner={}",
+                currentUser.getId(), resolvedOrgId, owner.getId());
+        } else {
+            // Cas standard : utilise le contexte courant + l'user qui a clique.
+            // Si non-staff a tente de fournir target* on log un warning.
+            if (!isPlatformStaff
+                && (request.targetOrganizationId() != null || request.targetOwnerId() != null)) {
+                log.warn("ChannexImport: champs target* ignores pour user non-staff {}",
+                    currentUser.getId());
+            }
+            resolvedOrgId = orgId;
+            owner = currentUser;
+        }
+        // Remplace l'orgId du parametre par celui resolu (override staff peut
+        // changer la cible).
+        orgId = resolvedOrgId;
+
+        // Pre-fetch les channels OTA pour resoudre listing_id + pricing en bloc
+        // (utile au moment de nommer + setter le tarif de chaque Property Clenzy).
+        Map<String, ChannelListingInfo> listingInfoByPropertyId = buildListingInfoMap();
+
+        // Pre-charge les aliases admin + ignored de l'org : appliques au moment
+        // de classer les amenities scrapees (cf. resolveAmenities()).
+        Map<String, String> userAliases = amenityManagementService.loadAliasesByOrg(orgId);
+        Set<String> userIgnored = amenityManagementService.loadIgnoredByOrg(orgId);
+
+        for (ChannexImportRequest.Item item : request.imports()) {
+            String channexId = item.channexPropertyId();
+            try {
+                // Idempotence : si deja mappe, skip
+                if (mappingRepository.findByChannexPropertyId(channexId, orgId).isPresent()) {
+                    details.add(new ChannexImportResult.Item(channexId,
+                        "SKIPPED_ALREADY_MAPPED", null, "Mapping existant"));
+                    skipped++;
+                    continue;
+                }
+
+                // Fetch les details Channex pour auto-filler la Property
+                JsonNode channexProp = channexClient.fetchPropertyRaw(channexId);
+                if (channexProp == null) {
+                    throw new ChannexException(ChannexException.Kind.NOT_FOUND,
+                        "Property Channex " + channexId + " introuvable");
+                }
+                JsonNode attrs = channexProp.path("data").path("attributes");
+
+                // 1. Resoudre (ou creer) le room_type Channex
+                //    Sans room_type, push availability/rates est impossible.
+                String title = attrs.path("title").asText("Sans titre");
+                int maxOccupancy = attrs.has("max_count_of_occupancies")
+                    ? attrs.get("max_count_of_occupancies").asInt() : 2;
+
+                String roomTypeId = resolveOrCreateRoomType(channexId, title, maxOccupancy);
+
+                // 2. Resoudre (ou creer) le rate_plan Channex
+                //    Sans rate_plan, push rates est impossible.
+                String currency = attrs.path("currency").asText("EUR");
+                String ratePlanId = resolveOrCreateRatePlan(channexId, roomTypeId, currency, maxOccupancy);
+
+                // 3. Creer Property Clenzy auto-fillee depuis les data STRUCTUREES
+                // Channex (rate_plan). Le nom textuel est le SEUL champ pour lequel
+                // on scrape la page Airbnb publique (Channex non-whitelabel ne le
+                // donne pas). Tout le reste vient des structures fiables.
+                ChannelListingInfo info = listingInfoByPropertyId.get(channexId);
+                boolean isPivotImport = title.startsWith("[Clenzy]")
+                    || title.startsWith("[Clenzy Hub]");
+                String displayTitle;
+                AirbnbListingData airbnbData = null;
+                if (isPivotImport) {
+                    if (info != null && "AirBNB".equalsIgnoreCase(info.otaName())) {
+                        // resolveListingData : whitelabel d'abord, fallback scrape
+                        airbnbData = resolveListingData(info);
+                    }
+                    if (airbnbData != null && airbnbData.name() != null) {
+                        displayTitle = airbnbData.name();
+                    } else if (info != null) {
+                        displayTitle = "Listing " + info.otaName() + " #" + info.listingId();
+                    } else {
+                        displayTitle = "Property a renommer (OAuth import)";
+                    }
+                } else {
+                    displayTitle = title;
+                }
+
+                // Enrichment Channex API : room_type detail (capacites fiables)
+                // + hotel_policies (horaires, pets, smoking). Ces 2 endpoints
+                // exposent les valeurs structurees SAISIES dans le wizard
+                // Channex — bien plus fiables que les defaults qu'on met sur
+                // le pivot. Pour un pivot pur c'est notre default, pour une
+                // vraie property creee dans le wizard c'est les valeurs reelles.
+                com.clenzy.integration.channex.dto.ChannexRoomTypeDetailDto roomDetail =
+                    channexClient.fetchRoomTypeDetail(roomTypeId);
+                List<com.clenzy.integration.channex.dto.ChannexHotelPolicyDto> hotelPolicies =
+                    channexClient.fetchHotelPoliciesForProperty(channexId);
+
+                Property prop = new Property();
+                prop.setOrganizationId(orgId);
+                prop.setOwner(owner);
+                prop.setName(displayTitle);
+                // Currency : prefere celle du rate_plan OTA si dispo (ex EUR pour
+                // un listing Airbnb FR), sinon celle de la property Channex.
+                String resolvedCurrency = (info != null && info.currency() != null)
+                    ? info.currency() : currency;
+                prop.setDefaultCurrency(resolvedCurrency);
+                // Capacite : priorite room_type.occ_* > hotel_policy.max_count_of_guests
+                // > property.max_count_of_occupancies (fallback).
+                int resolvedMaxGuests = maxOccupancy;
+                if (roomDetail != null && roomDetail.resolveMaxGuests() != null) {
+                    resolvedMaxGuests = roomDetail.resolveMaxGuests();
+                } else if (!hotelPolicies.isEmpty()
+                    && hotelPolicies.get(0).maxCountOfGuests() != null) {
+                    resolvedMaxGuests = hotelPolicies.get(0).maxCountOfGuests();
+                }
+                prop.setMaxGuests(resolvedMaxGuests);
+                prop.setType(parsePropertyType(item.propertyType()));
+                prop.setStatus(PropertyStatus.ACTIVE);
+
+                // --- Tarifs + sejour : extraits du rate_plan OTA mappe (structure) ---
+                if (info != null) {
+                    if (info.defaultPrice() != null) {
+                        prop.setNightlyPrice(info.defaultPrice());
+                    }
+                    if (info.minNights() != null && info.minNights() > 0) {
+                        prop.setMinimumNights(info.minNights());
+                    }
+                    // Phase 4 OTA metadata : 6 champs additionnels importes depuis le rate_plan
+                    if (info.maxNights() != null && info.maxNights() > 0) {
+                        prop.setMaximumNights(info.maxNights());
+                    }
+                    if (info.cancellationPolicy() != null && !info.cancellationPolicy().isBlank()) {
+                        prop.setCancellationPolicy(info.cancellationPolicy());
+                    }
+                    if (info.instantBookingPolicy() != null && !info.instantBookingPolicy().isBlank()) {
+                        prop.setInstantBookingPolicy(info.instantBookingPolicy());
+                    }
+                    if (info.allowsPets() != null) prop.setAllowsPets(info.allowsPets());
+                    if (info.allowsSmoking() != null) prop.setAllowsSmoking(info.allowsSmoking());
+                    if (info.allowsEvents() != null) prop.setAllowsEvents(info.allowsEvents());
+                    // Lien retour vers la fiche Airbnb publique (pour affichage UX)
+                    if ("AirBNB".equalsIgnoreCase(info.otaName())) {
+                        prop.setAirbnbListingId(info.listingId());
+                        prop.setAirbnbUrl("https://www.airbnb.com/rooms/" + info.listingId());
+                    }
+                }
+
+                // --- Localisation (address est NOT NULL en BDD : fallback safe) ---
+                String addressFromChannex = attrs.path("address").asText(null);
+                prop.setAddress(addressFromChannex != null && !addressFromChannex.isBlank()
+                    ? addressFromChannex
+                    : "Adresse a completer");
+                prop.setCity(emptyToNull(attrs.path("city").asText(null)));
+                prop.setPostalCode(emptyToNull(attrs.path("zip_code").asText(null)));
+                prop.setCountryCode(attrs.path("country").asText("FR"));
+                // Coordonnees GPS : Channex les stocke en string, on parse en BigDecimal
+                prop.setLatitude(parseBigDecimal(attrs.path("latitude").asText(null)));
+                prop.setLongitude(parseBigDecimal(attrs.path("longitude").asText(null)));
+
+                // --- Contenu (description) : prefere property.content.description,
+                //     fallback room_type.content.description (Channex stocke parfois
+                //     les contenus au niveau room plutot que property pour les
+                //     vacation rentals single-room).
+                JsonNode content = attrs.path("content");
+                String description = content.path("description").asText(null);
+                if ((description == null || description.isBlank()) && roomDetail != null
+                    && roomDetail.content() != null) {
+                    description = roomDetail.content().path("description").asText(null);
+                }
+                if (description != null && !description.isBlank()) {
+                    prop.setDescription(description);
+                }
+
+                // --- bedroom : depuis room_type.count_of_rooms si dispo
+                //     (donnee structuree Channex saisie au wizard).
+                //     bathroom : Channex public ne l'expose pas → defaut 1.
+                int resolvedBedrooms = roomDetail != null && roomDetail.countOfRooms() != null
+                    && roomDetail.countOfRooms() > 0
+                    ? roomDetail.countOfRooms() : 1;
+                prop.setBedroomCount(resolvedBedrooms);
+                prop.setBathroomCount(1);
+
+                // --- check-in/out : depuis hotel_policies si renseigne
+                //     (sinon defaults Property = 15:00/11:00).
+                if (!hotelPolicies.isEmpty()) {
+                    var hp = hotelPolicies.get(0);
+                    if (hp.checkinTime() != null && !hp.checkinTime().isBlank()) {
+                        prop.setDefaultCheckInTime(hp.checkinTime());
+                    }
+                    if (hp.checkoutTime() != null && !hp.checkoutTime().isBlank()) {
+                        prop.setDefaultCheckOutTime(hp.checkoutTime());
+                    }
+                }
+                // Fallback : rate_plan.booking_setting.check_out_time donne aussi
+                // l'heure de checkout (entier ex 11 → "11:00").
+                if ((hotelPolicies.isEmpty() || hotelPolicies.get(0).checkoutTime() == null)
+                    && info != null && info.checkOutTime() != null) {
+                    prop.setDefaultCheckOutTime(String.format("%02d:00", info.checkOutTime()));
+                }
+
+                // --- Amenities : depuis JSON-LD Schema.org de la page Airbnb.
+                //     Classification en 3 buckets :
+                //       1. mappees (built-in static + alias admin) → `amenities`
+                //       2. ignorees (admin) → silencieusement droppees
+                //       3. non mappees restantes → `ota_raw_amenities`
+                //          (pour review via UI Settings > Commodites OTA)
+                ResolvedAmenities resolvedAmenities = resolveAmenitiesWithUserConfig(
+                    airbnbData, userAliases, userIgnored);
+                if (airbnbData != null) {
+                    try {
+                        if (!resolvedAmenities.mapped.isEmpty()) {
+                            prop.setAmenities(objectMapper.writeValueAsString(resolvedAmenities.mapped));
+                        }
+                        if (!resolvedAmenities.stillUnmapped.isEmpty()) {
+                            prop.setOtaRawAmenities(
+                                objectMapper.writeValueAsString(resolvedAmenities.stillUnmapped));
+                        }
+                    } catch (Exception e) {
+                        log.warn("ChannexImport: serialisation amenities KO property={} : {}",
+                            channexId, e.getMessage());
+                    }
+                }
+
+                prop = propertyRepository.save(prop);
+
+                // 4. Importer les photos Channex (URLs externes, pas de download bytea).
+                //    Source 1 : property.content.photos (photos uploadees au niveau property)
+                //    Source 2 : room_type.content.photos (photos liees au room)
+                //    Source 3 : endpoint plat /photos?filter[property_id]=... (cross-check)
+                int photoCount = importPhotos(prop, orgId, content.path("photos"));
+                if (roomDetail != null && roomDetail.content() != null) {
+                    photoCount += importPhotos(prop, orgId, roomDetail.content().path("photos"));
+                }
+                // Cross-check avec l'endpoint plat /photos (best-effort).
+                // Channex ne sync PAS automatiquement les photos OTA, mais l'admin
+                // peut en avoir uploade via API/wizard sans qu'elles soient dans
+                // content.photos. On les rapatrie ici.
+                try {
+                    var flatPhotos = channexClient.fetchPhotosForProperty(channexId);
+                    if (!flatPhotos.isEmpty()) {
+                        // Convertit en JsonNode pour reutiliser importPhotos
+                        var photosArray = objectMapper.valueToTree(flatPhotos);
+                        photoCount += importPhotos(prop, orgId, photosArray);
+                    }
+                } catch (Exception e) {
+                    log.debug("ChannexImport: fetch flat photos KO property={} : {}",
+                        channexId, e.getMessage());
+                }
+
+                // 5. Creer le mapping Channex avec les 3 IDs resolus
+                ChannexPropertyMapping mapping = new ChannexPropertyMapping();
+                mapping.setOrganizationId(orgId);
+                mapping.setClenzyPropertyId(prop.getId());
+                mapping.setChannexPropertyId(channexId);
+                mapping.setChannexRoomTypeId(roomTypeId);
+                mapping.setChannexDefaultRatePlanId(ratePlanId);
+                mapping.setSyncStatus(ChannexSyncStatus.PENDING);
+                mappingRepository.save(mapping);
+
+                // 6. Creer les artefacts tarifaires Clenzy depuis le rate_plan OTA :
+                //    a) LengthOfStayDiscount (weekly/monthly factors)
+                //    b) RatePlan(type=BASE)  ← Phase 1 : tracker l'origine OTA
+                //    c) RatePlan(type=WEEKEND) si weekend_price differe du default
+                //    d) OccupancyPricing si guests_included + extra_person_price
+                //    e) RateOverride par date  ← Phase 2 : capture le calendrier
+                //       OTA exact au moment de la connexion (festivals, evenements,
+                //       ajustements manuels du host). Best-effort si endpoint
+                //       /restrictions GET non supporte par Channex.
+                //    Tous sont idempotents (skip si deja present pour ce property).
+                int discountsCreated = createLengthOfStayDiscounts(prop, orgId, info);
+                boolean baseRatePlanCreated = createBaseRatePlan(prop, orgId, info);
+                boolean weekendRatePlanCreated = createWeekendRatePlan(prop, orgId, info);
+                boolean occupancyPricingCreated = createOccupancyPricingFromOta(prop, orgId, info);
+                int rateOverridesCreated = importRateOverridesFromOta(prop, orgId, mapping, info);
+                // Phase 4 #4 : rate_plans additionnels (variantes "Non-refundable", etc.)
+                int additionalRatePlansCreated = importAdditionalRatePlansFromOta(prop, orgId, info);
+                // Phase 4 #5 : BookingRestriction par range groupes par dates consecutives
+                int bookingRestrictionsCreated = importBookingRestrictionsFromOta(prop, orgId, mapping);
+
+                // 7. Pull initial des reservations OTA (Airbnb / Booking / Vrbo).
+                //    Plage : [1er janvier annee courante → aujourd'hui + 12 mois]
+                //      - Passe : toutes les reservations de l'annee fiscale en
+                //        cours (declaration LMNP / compta : on a besoin du
+                //        passe de l'annee meme apres l'import).
+                //      - Futur : 12 mois d'avenir pour la visibilite calendrier.
+                //    Best-effort : un echec ici ne doit pas faire planter
+                //    l'import (la property est deja creee). L'admin peut
+                //    re-trigger un pull manuel depuis le module Channels.
+                int importedBookings = 0;
+                try {
+                    LocalDate arrivalFrom = LocalDate.of(LocalDate.now().getYear(), 1, 1);
+                    LocalDate arrivalTo = LocalDate.now().plusMonths(12);
+                    var pullResult = connectService.pullBookings(prop.getId(), orgId,
+                        arrivalFrom, arrivalTo);
+                    importedBookings = pullResult.importedOrIdempotent();
+                    log.info("ChannexImport: pull bookings OK property={} periode=[{},{}] total={} imported={} skipped={}",
+                        prop.getId(), arrivalFrom, arrivalTo, pullResult.totalReceived(),
+                        pullResult.importedOrIdempotent(), pullResult.skipped());
+                } catch (Exception bex) {
+                    log.warn("ChannexImport: pull bookings KO property={} : {} "
+                        + "(import termine, l'admin peut re-trigger manuellement)",
+                        prop.getId(), bex.getMessage());
+                }
+
+                // 7. PUSH INITIAL availability + rates sur 12 mois.
+                //    CRITIQUE : sans ce push, Channex sert "0 inventaire" aux
+                //    OTAs des que le mapping listing est actif → Airbnb bloque
+                //    TOUTES les dates par defaut (le listing devient
+                //    invisible/inreservable). On debloque immediatement en
+                //    publiant 12 mois d'availability=1 + les tarifs PriceEngine.
+                //    Best-effort : si OTA pas encore actif, le gate dans
+                //    pushProperty skip silencieusement (sera retente plus tard
+                //    via les events Kafka calendar.update).
+                try {
+                    LocalDate pushFrom = LocalDate.now();
+                    LocalDate pushTo = LocalDate.now().plusMonths(12);
+                    var pushResult = connectService.resync(prop.getId(), orgId, 12);
+                    log.info("ChannexImport: push initial availability+rates property={} periode=[{},{}] success={}",
+                        prop.getId(), pushFrom, pushTo, pushResult.success());
+                } catch (Exception pex) {
+                    log.warn("ChannexImport: push initial KO property={} : {} "
+                        + "(import termine — relancer 'Re-pousser prix + dispo' depuis l'UI)",
+                        prop.getId(), pex.getMessage());
+                }
+
+                String msg = "Property Clenzy " + prop.getId() + " creee (room="
+                    + roomTypeId.substring(0, 8) + ", rate=" + ratePlanId.substring(0, 8) + ")";
+                if (photoCount > 0) msg += ", " + photoCount + " photo" + (photoCount > 1 ? "s" : "");
+                if (description != null && !description.isBlank()) msg += ", description importee";
+                if (importedBookings > 0) msg += ", " + importedBookings + " reservation"
+                    + (importedBookings > 1 ? "s" : "") + " importee" + (importedBookings > 1 ? "s" : "");
+                if (discountsCreated > 0) msg += ", " + discountsCreated + " campagne"
+                    + (discountsCreated > 1 ? "s" : "") + " de prix";
+                // Phase 1 OTA pricing : counters concis sur ce qui a ete cree depuis le rate_plan
+                int pricingArtefacts = (baseRatePlanCreated ? 1 : 0)
+                    + (weekendRatePlanCreated ? 1 : 0)
+                    + (occupancyPricingCreated ? 1 : 0);
+                if (pricingArtefacts > 0) {
+                    java.util.List<String> labels = new java.util.ArrayList<>();
+                    if (baseRatePlanCreated) labels.add("BASE rate plan");
+                    if (weekendRatePlanCreated) labels.add("WEEKEND rate plan");
+                    if (occupancyPricingCreated) labels.add("Occupancy pricing");
+                    msg += ", " + String.join(" + ", labels) + " importe"
+                        + (pricingArtefacts > 1 ? "s" : "") + " depuis OTA";
+                }
+                if (rateOverridesCreated > 0) {
+                    msg += ", " + rateOverridesCreated + " prix par date OTA importe"
+                        + (rateOverridesCreated > 1 ? "s" : "")
+                        + " (festivals/evenements/ajustements host)";
+                }
+                if (additionalRatePlansCreated > 0) {
+                    msg += ", " + additionalRatePlansCreated + " rate plan PROMOTIONAL OTA"
+                        + (additionalRatePlansCreated > 1 ? "s" : "")
+                        + " (variantes: refundable/non-refundable/etc.)";
+                }
+                if (bookingRestrictionsCreated > 0) {
+                    msg += ", " + bookingRestrictionsCreated + " restriction"
+                        + (bookingRestrictionsCreated > 1 ? "s" : "")
+                        + " de booking par range (min_stay/CTA/CTD)";
+                }
+                int mappedCount = resolvedAmenities.mapped.size();
+                int unmappedCount = resolvedAmenities.stillUnmapped.size();
+                int totalAmenities = mappedCount + unmappedCount;
+                if (totalAmenities > 0) {
+                    msg += ", " + totalAmenities + " commodite"
+                        + (totalAmenities > 1 ? "s" : "")
+                        + " (" + mappedCount + " mappees + " + unmappedCount + " brutes a mapper)";
+                }
+                if (info != null && info.defaultPrice() != null) {
+                    msg += ", tarif=" + info.defaultPrice() + " " + resolvedCurrency;
+                }
+
+                details.add(new ChannexImportResult.Item(channexId, "CREATED", prop.getId(), msg));
+                created++;
+
+                log.info("ChannexImport: property Channex {} -> Clenzy property {} (room={} rate={}, {} photos, desc={}, {} bookings)",
+                    channexId, prop.getId(), roomTypeId, ratePlanId, photoCount,
+                    description != null && !description.isBlank() ? "oui" : "non", importedBookings);
+
+            } catch (Exception e) {
+                log.error("ChannexImport: echec import {} pour org {} : {}",
+                    channexId, orgId, e.getMessage());
+                details.add(new ChannexImportResult.Item(channexId, "ERROR", null, e.getMessage()));
+                errors++;
+            }
+        }
+
+        return new ChannexImportResult(request.imports().size(), created, skipped, errors, details);
+    }
+
+    // ─── Re-sync content (re-scrape OTA + apply aliases) ────────────────────
+
+    /**
+     * Re-synchronise le contenu OTA d'une property deja importee :
+     *
+     * <ol>
+     *   <li>Resoud le {@code listing_id} OTA via le mapping Channex + channels</li>
+     *   <li>Re-scrape la page Airbnb publique (nom + amenities JSON-LD)</li>
+     *   <li>Charge les aliases + ignored de l'org</li>
+     *   <li>Resout les amenities en 3 buckets (mapped / ignored / unmapped)</li>
+     *   <li>Met a jour {@code property.amenities} + {@code property.otaRawAmenities}
+     *       (ainsi que le name si Airbnb donne un meilleur titre)</li>
+     * </ol>
+     *
+     * <p>Utile dans 2 cas :</p>
+     * <ul>
+     *   <li>Property importee AVANT que le scraping d'amenities soit en place</li>
+     *   <li>Listing OTA modifie cote Airbnb (nouvel equipement ajoute par le host)</li>
+     * </ul>
+     */
+    @Transactional
+    public com.clenzy.integration.channex.dto.ChannexResyncContentResult resyncPropertyContent(
+            Long clenzyPropertyId, Long orgId) {
+        Property prop = propertyRepository.findById(clenzyPropertyId)
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Property " + clenzyPropertyId + " introuvable"));
+        if (!Objects.equals(prop.getOrganizationId(), orgId)) {
+            throw new SecurityException("Cette property n'appartient pas a votre organisation.");
+        }
+        var mapping = mappingRepository.findByClenzyPropertyId(clenzyPropertyId, orgId)
+            .orElseThrow(() -> new IllegalStateException(
+                "Aucun mapping Channex pour la property " + clenzyPropertyId));
+
+        // Resoud le listing_id depuis le channel actif liee a la property Channex
+        ChannelListingInfo info = buildListingInfoMap().get(mapping.getChannexPropertyId());
+        if (info == null || !"AirBNB".equalsIgnoreCase(info.otaName())) {
+            throw new IllegalStateException(
+                "Cette property n'a pas de listing Airbnb actif sur le hub.");
+        }
+
+        // Re-sync : whitelabel API en priorite, scrape Airbnb en fallback
+        AirbnbListingData data = resolveListingData(info);
+        if (data == null) {
+            throw new IllegalStateException(
+                "Impossible de recuperer les donnees Airbnb pour cette listing.");
+        }
+
+        // Resout avec les aliases + ignored actuels
+        Map<String, String> aliases = amenityManagementService.loadAliasesByOrg(orgId);
+        Set<String> ignored = amenityManagementService.loadIgnoredByOrg(orgId);
+        ResolvedAmenities resolved = resolveAmenitiesWithUserConfig(data, aliases, ignored);
+
+        // Met a jour le nom si scrape OK et different
+        if (data.name() != null && !data.name().isBlank()
+            && !data.name().equals(prop.getName())) {
+            log.info("Resync: rename property {} '{}' → '{}'",
+                clenzyPropertyId, prop.getName(), data.name());
+            prop.setName(data.name());
+        }
+
+        // Enrichment Channex API : room_type detail + hotel_policies
+        // MAJ uniquement si la valeur est plus precise que l'existant (merge,
+        // on n'ECRASE PAS les valeurs corrigees manuellement par l'admin).
+        var roomDetail = channexClient.fetchRoomTypeDetail(mapping.getChannexRoomTypeId());
+        if (roomDetail != null) {
+            if (roomDetail.countOfRooms() != null && roomDetail.countOfRooms() > 0) {
+                prop.setBedroomCount(roomDetail.countOfRooms());
+            }
+            Integer maxGuests = roomDetail.resolveMaxGuests();
+            if (maxGuests != null && maxGuests > 0) {
+                prop.setMaxGuests(maxGuests);
+            }
+            if (roomDetail.content() != null) {
+                String desc = roomDetail.content().path("description").asText(null);
+                if (desc != null && !desc.isBlank() && (prop.getDescription() == null
+                    || prop.getDescription().isBlank())) {
+                    prop.setDescription(desc);
+                }
+            }
+        }
+        var hotelPolicies = channexClient.fetchHotelPoliciesForProperty(mapping.getChannexPropertyId());
+        if (!hotelPolicies.isEmpty()) {
+            var hp = hotelPolicies.get(0);
+            if (hp.checkinTime() != null && !hp.checkinTime().isBlank()) {
+                prop.setDefaultCheckInTime(hp.checkinTime());
+            }
+            if (hp.checkoutTime() != null && !hp.checkoutTime().isBlank()) {
+                prop.setDefaultCheckOutTime(hp.checkoutTime());
+            }
+        }
+
+        // Met a jour amenities + ota_raw_amenities (merge avec l'existant : on
+        // n'ECRASE PAS les codes deja mis manuellement par l'admin).
+        try {
+            Set<String> currentCodes = new LinkedHashSet<>(parseAmenitiesJson(prop.getAmenities()));
+            currentCodes.addAll(resolved.mapped);
+            prop.setAmenities(currentCodes.isEmpty()
+                ? null : objectMapper.writeValueAsString(currentCodes));
+            prop.setOtaRawAmenities(resolved.stillUnmapped.isEmpty()
+                ? null : objectMapper.writeValueAsString(resolved.stillUnmapped));
+            propertyRepository.save(prop);
+        } catch (Exception e) {
+            log.warn("Resync: serialisation KO property={} : {}", clenzyPropertyId, e.getMessage());
+        }
+
+        int ignoredCount = (data.unmappedAmenities() == null ? 0
+            : data.unmappedAmenities().size()) - resolved.mapped.size() + (data.mappedAmenities() == null
+                ? 0 : data.mappedAmenities().size()) - resolved.stillUnmapped.size();
+        // Simpler: ignoredCount = (unmapped raws) - (alias-mapped) - (stillUnmapped)
+        int totalRaw = data.unmappedAmenities() != null ? data.unmappedAmenities().size() : 0;
+        int aliasMapped = resolved.mapped.size() - (data.mappedAmenities() != null
+            ? data.mappedAmenities().size() : 0);
+        if (aliasMapped < 0) aliasMapped = 0;
+        ignoredCount = totalRaw - aliasMapped - resolved.stillUnmapped.size();
+        if (ignoredCount < 0) ignoredCount = 0;
+
+        log.info("Resync OK property={} : mapped={} stillRaw={} ignored={}",
+            clenzyPropertyId, resolved.mapped.size(), resolved.stillUnmapped.size(), ignoredCount);
+
+        return new com.clenzy.integration.channex.dto.ChannexResyncContentResult(
+            prop.getId(),
+            prop.getName(),
+            data.name(),
+            new java.util.ArrayList<>(resolved.mapped),
+            new java.util.ArrayList<>(resolved.stillUnmapped),
+            ignoredCount
+        );
+    }
+
+    /**
+     * Bulk : re-sync content de TOUTES les properties de l'org qui ont un
+     * mapping Channex + un listing OTA actif. Best-effort : un echec sur une
+     * property ne stoppe pas les autres.
+     */
+    @Transactional
+    public List<com.clenzy.integration.channex.dto.ChannexResyncContentResult> resyncAllPropertiesContent(Long orgId) {
+        List<com.clenzy.integration.channex.dto.ChannexResyncContentResult> results = new java.util.ArrayList<>();
+        // Toutes les mappings de l'org (= toutes les properties importees Channex)
+        var mappings = mappingRepository.findAllByOrgId(orgId);
+        Map<String, ChannelListingInfo> infos = buildListingInfoMap();
+        for (var m : mappings) {
+            ChannelListingInfo info = infos.get(m.getChannexPropertyId());
+            if (info == null || !"AirBNB".equalsIgnoreCase(info.otaName())) {
+                continue;
+            }
+            try {
+                results.add(resyncPropertyContent(m.getClenzyPropertyId(), orgId));
+            } catch (Exception e) {
+                log.warn("Resync bulk: KO property={} : {}", m.getClenzyPropertyId(), e.getMessage());
+            }
+        }
+        log.info("Resync bulk org={} : {} properties re-synchronisees", orgId, results.size());
+        return results;
+    }
+
+    /** Helper local : parse safely un JSON array de strings (amenities). */
+    private List<String> parseAmenitiesJson(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            return objectMapper.readValue(json,
+                new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Retourne l'ID du 1er room_type existant pour la property, ou en cree un
+     * par defaut si la liste est vide.
+     *
+     * <p>Cas typique d'auto-create : property Channex creee automatiquement
+     * apres OAuth Airbnb (Channex ne pre-cree pas systematiquement les
+     * room_types pour les listings detectes — depend de la maturite du sync OTA).</p>
+     */
+    private String resolveOrCreateRoomType(String channexPropertyId, String propertyTitle, int maxOccupancy) {
+        List<ChannexRoomTypeDto> existing = channexClient.fetchRoomTypesForProperty(channexPropertyId);
+        if (!existing.isEmpty()) {
+            ChannexRoomTypeDto first = existing.get(0);
+            log.info("ChannexImport: room_type existant trouve pour property {} : {} ({})",
+                channexPropertyId, first.id(), first.title());
+            return first.id();
+        }
+
+        // Aucun room_type → on cree un room_type par defaut (1 unite, capacite = maxOccupancy)
+        log.info("ChannexImport: aucun room_type pour property {} → creation auto",
+            channexPropertyId);
+        ChannexRoomTypeDto created = channexClient.createRoomType(
+            ChannexCreateRoomTypeRequest.simple(channexPropertyId, propertyTitle, maxOccupancy));
+        return created.id();
+    }
+
+    /**
+     * Retourne l'ID du 1er rate_plan existant pour la property, ou en cree un
+     * par defaut si la liste est vide.
+     */
+    private String resolveOrCreateRatePlan(String channexPropertyId, String roomTypeId,
+                                             String currency, int maxOccupancy) {
+        List<ChannexRatePlanDto> existing = channexClient.fetchRatePlansForProperty(channexPropertyId);
+        if (!existing.isEmpty()) {
+            // Si plusieurs rate_plans existent, on prend celui lie au room_type qu'on a resolu
+            // (ou le 1er a defaut, pour ne pas planter — l'admin pourra corriger via la UI)
+            ChannexRatePlanDto preferred = existing.stream()
+                .filter(rp -> roomTypeId.equals(rp.roomTypeId()))
+                .findFirst()
+                .orElse(existing.get(0));
+            log.info("ChannexImport: rate_plan existant trouve pour property {} : {} ({})",
+                channexPropertyId, preferred.id(), preferred.title());
+            return preferred.id();
+        }
+
+        // Aucun rate_plan → on cree un "Standard Rate" par defaut (per_room, occupancy max)
+        log.info("ChannexImport: aucun rate_plan pour property {} → creation auto",
+            channexPropertyId);
+        ChannexRatePlanDto created = channexClient.createRatePlan(
+            ChannexCreateRatePlanRequest.standard(channexPropertyId, roomTypeId, currency, maxOccupancy));
+        return created.id();
+    }
+
+    /**
+     * Demarre un flux OAuth OTA "global" sans necessiter de property Clenzy preexistante.
+     *
+     * <p>Cas d'usage : un nouvel utilisateur sans aucune property Clenzy/Channex
+     * veut importer ses listings Airbnb. Il ne peut pas faire l'OAuth via une
+     * property cible (Channex exige {@code property_id} pour le one-time-token).</p>
+     *
+     * <p>Workaround : on cree (ou reutilise) une property Channex "pivot"
+     * intitulee {@code [Clenzy Hub] OAuth Bridge} qui sert juste de container
+     * pour l'OAuth. Apres OAuth Airbnb, Channex cree automatiquement des
+     * properties pour chaque listing detecte du compte. La pivot reste vide
+     * et n'est pas mappee a Clenzy (donc invisible dans la discovery).</p>
+     *
+     * @param channelCode code 3 lettres OTA (ABB/BDC/...) pour pre-filtrer le wizard
+     * @return URL iframe + ID de la pivot (cleanup futur)
+     */
+    public ChannexOauthSetupResponse setupGlobalOauth(Long orgId, String username,
+                                                        String channelCode, String language,
+                                                        String existingChannelId) {
+        // Cas "re-detection" : un OTA est deja connecte (OAuth fait), l'utilisateur
+        // veut juste revenir dans le wizard pour mapper de nouveaux listings ajoutes
+        // recemment cote OTA (Airbnb par ex). On reutilise le channel existant
+        // (avec ses tokens OAuth) au lieu de tout recreer.
+        if (existingChannelId != null && !existingChannelId.isBlank()) {
+            log.info("ChannexImport: re-detection listings via channel existant {}", existingChannelId);
+            // On recupere la property pivot attachee au channel pour generer l'URL iframe
+            JsonNode channels = channexClient.fetchAllChannelsRaw();
+            String attachedPropertyId = null;
+            if (channels != null && channels.path("data").isArray()) {
+                for (JsonNode ch : channels.path("data")) {
+                    if (existingChannelId.equals(ch.path("id").asText(null))) {
+                        JsonNode propsArr = ch.path("attributes").path("properties");
+                        if (propsArr.isArray() && propsArr.size() > 0) {
+                            attachedPropertyId = propsArr.get(0).asText(null);
+                        }
+                        break;
+                    }
+                }
+            }
+            if (attachedPropertyId == null) {
+                throw new IllegalStateException(
+                    "Channel " + existingChannelId + " introuvable ou sans property attachee — "
+                        + "impossible de generer le lien iframe");
+            }
+            String embedUrl = channexClient.createChannelEmbedUrl(
+                attachedPropertyId, existingChannelId, username, language);
+            return ChannexOauthSetupResponse.of(embedUrl, attachedPropertyId);
+        }
+
+        // Cas standard : pas de channel existant → flow OAuth complet via pivot
+        // Conventions de naming :
+        //   - PIVOT_TITLE : pivot active (libre, prete pour OAuth)
+        //   - CONSUMED_PREFIX : prefixe d'une pivot deja utilisee (avec channel OAuth attache)
+        //     → renommee pour liberer le nom canonique, l'utilisateur sait que c'est
+        //       un container OAuth ancien et qu'il ne doit pas la confondre avec une
+        //       vraie property.
+        final String PIVOT_TITLE = "[Clenzy Hub] OAuth Bridge";
+        final String CONSUMED_PREFIX = "[Clenzy] OAuth Container ";
+
+        // 1. Cherche une pivot existante par titre canonique
+        String existingPivotId = findPivotPropertyId(PIVOT_TITLE);
+
+        if (existingPivotId != null) {
+            // 2. Tenter une suppression directe (cas : pivot orpheline sans channel attache)
+            try {
+                channexClient.deleteProperty(existingPivotId);
+                log.info("ChannexImport: pivot orpheline {} supprimee (pas de channel attache)", existingPivotId);
+            } catch (Exception deleteEx) {
+                // 3. Suppression bloquee → c'est qu'un channel OAuth y est attache.
+                //    On renomme avec un timestamp pour liberer le nom canonique sans
+                //    casser le channel (et donc preserver les tokens OAuth).
+                String newName = CONSUMED_PREFIX + java.time.LocalDateTime.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+                try {
+                    channexClient.updatePropertyTitle(existingPivotId, newName);
+                    log.info("ChannexImport: pivot {} avec channel attache renommee en '{}' "
+                        + "(suppression bloquee : {})", existingPivotId, newName, deleteEx.getMessage());
+                } catch (Exception renameEx) {
+                    // Si meme le rename echoue, on continue : la pivot existante reste
+                    // en place mais on va creer une nouvelle ci-dessous, donc le nom
+                    // canonique sera duplique. Pas critique : findPivotPropertyId prendra
+                    // la 1ere trouvee la prochaine fois.
+                    log.warn("ChannexImport: rename de la pivot {} a echoue ({}), une duplication "
+                        + "de nom est possible", existingPivotId, renameEx.getMessage());
+                }
+            }
+        }
+
+        // 4. Crée une nouvelle pivot fraiche (parametres minimaux, jamais distribuee)
+        log.info("ChannexImport: creation d'une nouvelle pivot OAuth pour org={}", orgId);
+        ChannexPropertyDto created = channexClient.createProperty(new ChannexCreatePropertyRequest(
+            PIVOT_TITLE, "EUR", "FR", "Europe/Paris", null
+        ));
+        String pivotId = created.id();
+
+        // 5. Genere l'URL iframe pre-filtree sur l'OTA choisi
+        String embedUrl = channexClient.createEmbedUrl(pivotId, username, language, channelCode);
+        return ChannexOauthSetupResponse.of(embedUrl, pivotId);
+    }
+
+    /**
+     * Liste tous les channels OTA actuellement connectes dans le hub.
+     *
+     * <p>Affiche par la vue "Gerer les OTAs connectes" du modal Distribution.
+     * Permet a l'admin de voir ses OAuth Airbnb/Booking/Vrbo actifs et de les
+     * deconnecter (suppression du channel hub + tokens).</p>
+     */
+    public List<ChannexConnectedOta> listConnectedOtaChannels(Long orgId) {
+        JsonNode raw = channexClient.fetchAllChannelsRaw();
+        if (raw == null || !raw.path("data").isArray()) {
+            return List.of();
+        }
+
+        // Pre-fetch les titres des properties du hub pour enrichir le DTO
+        Map<String, String> propertyTitles = new HashMap<>();
+        JsonNode propsRaw = channexClient.fetchAllPropertiesRaw();
+        if (propsRaw != null && propsRaw.path("data").isArray()) {
+            for (JsonNode p : propsRaw.path("data")) {
+                propertyTitles.put(
+                    p.path("id").asText(""),
+                    p.path("attributes").path("title").asText("")
+                );
+            }
+        }
+
+        List<ChannexConnectedOta> result = new ArrayList<>();
+        for (JsonNode channel : raw.path("data")) {
+            JsonNode attrs = channel.path("attributes");
+            String channelId = channel.path("id").asText(null);
+            if (channelId == null) continue;
+
+            // Recupere la 1ere property liee (s'il y en a) pour traçabilite
+            String firstPropId = null;
+            JsonNode propsArr = attrs.path("properties");
+            if (propsArr.isArray() && propsArr.size() > 0) {
+                firstPropId = propsArr.get(0).asText(null);
+            }
+            if (firstPropId == null) {
+                JsonNode rels = channel.path("relationships").path("properties").path("data");
+                if (rels.isArray() && rels.size() > 0) {
+                    firstPropId = rels.get(0).path("id").asText(null);
+                }
+            }
+
+            boolean hasToken = attrs.path("settings").path("tokens").path("access_token").isTextual();
+
+            result.add(new ChannexConnectedOta(
+                channelId,
+                attrs.path("title").asText(""),
+                attrs.path("channel").asText(""),
+                attrs.path("is_active").asBoolean(false),
+                hasToken,
+                firstPropId != null ? propertyTitles.getOrDefault(firstPropId, "") : "",
+                firstPropId
+            ));
+        }
+        log.info("ChannexImport: listConnectedOtaChannels org={} -> {} channels", orgId, result.size());
+        return result;
+    }
+
+    /**
+     * Deconnecte un OTA en 2 etapes pour respecter la contrainte Channex
+     * (refus de DELETE sur un channel {@code is_active=true}) :
+     *
+     * <ol>
+     *   <li><b>PUT</b> {@code /channels/{id}} avec {@code is_active=false} —
+     *       desactive le channel. Effet immediat : Channex arrete de pusher
+     *       vers l'OTA, l'OTA (Airbnb) reprend le controle du listing.</li>
+     *   <li><b>DELETE</b> {@code /channels/{id}} — supprime le channel + tokens
+     *       OAuth. L'utilisateur devra refaire l'OAuth pour reconnecter.</li>
+     * </ol>
+     *
+     * <p>Si l'etape 1 reussit mais 2 echoue, le channel reste juste desactive
+     * (etat fonctionnel pour le user : Airbnb est libere). On log un warning.</p>
+     */
+    public void disconnectOtaChannel(Long orgId, String channelId) {
+        log.info("ChannexImport: disconnect OTA channel {} demande par org {} (2-step: deactivate + delete)",
+            channelId, orgId);
+        // Etape 1 : desactiver (toujours requis, meme si deja inactif → no-op cote Channex)
+        try {
+            channexClient.deactivateChannel(channelId);
+        } catch (Exception e) {
+            log.warn("ChannexImport: deactivate channel {} KO : {} — on tente DELETE quand meme",
+                channelId, e.getMessage());
+        }
+        // Etape 2 : supprimer (Channex accepte maintenant que c'est inactif)
+        try {
+            channexClient.deleteChannel(channelId);
+        } catch (Exception e) {
+            log.warn("ChannexImport: delete channel {} KO : {} — le channel reste DESACTIVE "
+                + "(OTA libere). Re-tenter manuellement le DELETE plus tard ou supprimer "
+                + "directement sur le dashboard Channex.", channelId, e.getMessage());
+            // Re-throw pour informer l'UI que le delete a echoue (le channel reste neanmoins
+            // inactif → Airbnb a repris la main, ce qui etait le but principal)
+            throw e;
+        }
+    }
+
+    /** Cherche dans toutes les properties du hub celle qui sert de pivot OAuth (par titre). */
+    private String findPivotPropertyId(String pivotTitle) {
+        JsonNode raw = channexClient.fetchAllPropertiesRaw();
+        if (raw == null || !raw.path("data").isArray()) return null;
+        for (JsonNode prop : raw.path("data")) {
+            String title = prop.path("attributes").path("title").asText("");
+            if (pivotTitle.equals(title)) {
+                return prop.path("id").asText(null);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Cree un PropertyPhoto par photo Channex avec son URL externe.
+     *
+     * <p>Format attendu Channex : array d'objets avec champs :</p>
+     * <ul>
+     *   <li>{@code url} (string)</li>
+     *   <li>{@code position} (int, 0 = cover)</li>
+     *   <li>{@code description} (string, optionnel) → mappe en caption Clenzy</li>
+     *   <li>{@code author_name}, {@code kind} (ignores ici)</li>
+     * </ul>
+     *
+     * <p>On ne telecharge PAS les bytes : on stocke uniquement l'URL Airbnb
+     * dans {@code external_url}. {@link PropertyPhoto#getUrl()} la retourne
+     * directement aux clients API (booking engine, frontend, etc.).</p>
+     *
+     * @return nombre de photos importees (0 si liste vide ou null)
+     */
+    private int importPhotos(Property property, Long orgId, JsonNode photosArray) {
+        if (!photosArray.isArray() || photosArray.isEmpty()) {
+            return 0;
+        }
+        int count = 0;
+        for (JsonNode photo : photosArray) {
+            String url = photo.path("url").asText(null);
+            if (url == null || url.isBlank()) continue;
+
+            PropertyPhoto pp = new PropertyPhoto();
+            pp.setOrganizationId(orgId);
+            pp.setProperty(property);
+            pp.setExternalUrl(url);
+            pp.setSortOrder(photo.path("position").asInt(count));
+            String caption = photo.path("description").asText(null);
+            if (caption != null && !caption.isBlank()) {
+                pp.setCaption(caption);
+            }
+            pp.setSource(PropertyPhoto.PhotoSource.AIRBNB);
+            pp.setContentType("image/jpeg"); // defaut Airbnb (champ NOT NULL en DB)
+            propertyPhotoRepository.save(pp);
+            count++;
+        }
+        return count;
+    }
+
+    /** Parse une string en BigDecimal de facon safe (null si invalide). */
+    private static java.math.BigDecimal parseBigDecimal(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return new java.math.BigDecimal(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** Normalise : "" / null → null. */
+    private static String emptyToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value;
+    }
+
+    /** Heuristique simple pour suggerer le type Clenzy a partir du titre. */
+    private static String suggestPropertyType(String title) {
+        if (title == null) return "APARTMENT";
+        String lower = title.toLowerCase();
+        if (lower.contains("riad")) return "RIAD";
+        if (lower.contains("duplex")) return "DUPLEX";
+        if (lower.contains("villa")) return "VILLA";
+        if (lower.contains("maison") || lower.contains("house")) return "HOUSE";
+        if (lower.contains("studio")) return "STUDIO";
+        if (lower.contains("loft")) return "LOFT";
+        if (lower.contains("chalet")) return "CHALET";
+        if (lower.contains("bungalow")) return "BUNGALOW";
+        if (lower.contains("townhouse")) return "TOWNHOUSE";
+        return "APARTMENT";
+    }
+
+    /**
+     * Map le listing_type brut d'un OTA (Airbnb / Booking / ...) vers un
+     * PropertyType Clenzy. Plus fiable que parser un titre car c'est de la
+     * donnee structuree fournie par l'OTA.
+     *
+     * <p>Listing types Airbnb communs : apartment, house, secondary_unit,
+     * loft, townhouse, condohotel, serviced_apartment, villa, bungalow,
+     * cottage, chalet, riad, bed_and_breakfast, boutique_hotel, etc.</p>
+     *
+     * @return code PropertyType Clenzy ou {@code null} si pas de mapping
+     *         connu (le caller fera fallback sur l'heuristique titre)
+     */
+    private static String suggestPropertyTypeFromOta(String listingType) {
+        if (listingType == null || listingType.isBlank()) return null;
+        return switch (listingType.toLowerCase()) {
+            case "apartment", "condo", "condohotel", "serviced_apartment" -> "APARTMENT";
+            case "house", "secondary_unit" -> "HOUSE";
+            case "studio", "studio_apartment" -> "STUDIO";
+            case "loft" -> "LOFT";
+            case "villa" -> "VILLA";
+            case "duplex" -> "DUPLEX";
+            case "townhouse", "townhome" -> "TOWNHOUSE";
+            case "bungalow" -> "BUNGALOW";
+            case "riad" -> "RIAD";
+            case "chalet" -> "CHALET";
+            case "cottage" -> "COTTAGE";
+            case "bed_and_breakfast", "guest_suite", "guesthouse" -> "GUEST_ROOM";
+            case "boat", "houseboat" -> "BOAT";
+            default -> null;
+        };
+    }
+
+    /** Parse le type Clenzy depuis la string (fallback APARTMENT si invalide). */
+    private static PropertyType parsePropertyType(String value) {
+        if (value == null) return PropertyType.APARTMENT;
+        try {
+            return PropertyType.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return PropertyType.APARTMENT;
+        }
+    }
+
+    /**
+     * Pre-fetch les channels OTA actifs et compile pour chaque propertyId
+     * Channex les infos extraites de son rate_plan : nom OTA, listing_id,
+     * prix de base, min nights, devise.
+     *
+     * <p>Channex ne renvoie pas le NOM textuel des listings via l'API publique
+     * (whitelabel-only), mais expose ces champs dans
+     * {@code attributes.rate_plans[].settings.*}. Combine avec un scrape de la
+     * page Airbnb publique (cf. {@link #fetchAirbnbListingTitle}) pour obtenir
+     * le titre humain.</p>
+     */
+    private Map<String, ChannelListingInfo> buildListingInfoMap() {
+        Map<String, ChannelListingInfo> result = new HashMap<>();
+        try {
+            JsonNode channelsRaw = channexClient.fetchAllChannelsRaw();
+            if (channelsRaw == null || !channelsRaw.path("data").isArray()) {
+                return result;
+            }
+            for (JsonNode ch : channelsRaw.path("data")) {
+                JsonNode chAttrs = ch.path("attributes");
+                String otaName = chAttrs.path("channel").asText("");
+                if (otaName.isEmpty()) continue;
+
+                JsonNode ratePlans = chAttrs.path("rate_plans");
+                if (!ratePlans.isArray() || ratePlans.size() == 0) continue;
+                JsonNode rp0Settings = ratePlans.get(0).path("settings");
+                String listingId = rp0Settings.path("listing_id").asText("");
+                if (listingId.isEmpty()) continue;
+
+                JsonNode pricing = rp0Settings.path("pricing_setting");
+                JsonNode availRule = rp0Settings.path("availability_rule");
+                JsonNode booking = rp0Settings.path("booking_setting");
+                JsonNode controls = booking.path("guest_controls");
+                JsonNode cancelPol = booking.path("cancellation_policy_settings");
+
+                String channelId = ch.path("id").asText(null);
+
+                // Phase 4 #4 : extract additional rate_plans beyond [0]. On iterate
+                // rate_plans[1..n] et on capture (id, title, default_daily_price)
+                // pour materialiser des RatePlan(type=PROMOTIONAL) Clenzy.
+                java.util.List<AdditionalRatePlan> additionalRatePlans = new java.util.ArrayList<>();
+                for (int i = 1; i < ratePlans.size(); i++) {
+                    JsonNode rp = ratePlans.get(i);
+                    JsonNode rpAttrs = rp.path("attributes");
+                    JsonNode rpSettings = rp.path("settings");
+                    JsonNode rpPricing = rpSettings.path("pricing_setting");
+                    String rpId = rp.path("id").asText(null);
+                    String rpTitle = rpAttrs.path("title").asText(null);
+                    if (rpTitle == null || rpTitle.isBlank()) {
+                        rpTitle = rpSettings.path("title").asText("OTA Variant #" + (i + 1));
+                    }
+                    BigDecimal rpPrice = bigDecimalOrNull(rpPricing, "default_daily_price");
+                    String rpCurrency = rpPricing.path("listing_currency").asText(null);
+                    additionalRatePlans.add(new AdditionalRatePlan(rpId, rpTitle, rpPrice, rpCurrency));
+                }
+
+                ChannelListingInfo info = new ChannelListingInfo(
+                    otaName,
+                    listingId,
+                    channelId,
+                    rp0Settings.path("listing_type").asText(null),
+                    // Tarifs
+                    bigDecimalOrNull(pricing, "default_daily_price"),
+                    bigDecimalOrNull(pricing, "weekend_price"),
+                    pricing.path("listing_currency").asText(null),
+                    intOrNull(pricing, "guests_included"),
+                    bigDecimalOrNull(pricing, "price_per_extra_person"),
+                    doubleOrNull(pricing, "weekly_price_factor"),
+                    doubleOrNull(pricing, "monthly_price_factor"),
+                    // Sejour
+                    intOrNull(availRule, "default_min_nights"),
+                    intOrNull(availRule, "default_max_nights"),
+                    // Reservation
+                    booking.path("check_in_time_start").asText(null),
+                    booking.path("check_in_time_end").asText(null),
+                    intOrNull(booking, "check_out_time"),
+                    cancelPol.path("cancellation_policy_category").asText(null),
+                    booking.path("instant_booking_allowed_category").asText(null),
+                    // Regles
+                    boolOrNull(controls, "allows_pets_as_host"),
+                    boolOrNull(controls, "allows_smoking_as_host"),
+                    boolOrNull(controls, "allows_events_as_host"),
+                    // Phase 4 #4
+                    additionalRatePlans
+                );
+
+                Set<String> propIds = new HashSet<>();
+                JsonNode propsArr = chAttrs.path("properties");
+                if (propsArr.isArray()) {
+                    for (JsonNode pid : propsArr) propIds.add(pid.asText(""));
+                }
+                JsonNode rels = ch.path("relationships").path("properties").path("data");
+                if (rels.isArray()) {
+                    for (JsonNode r : rels) propIds.add(r.path("id").asText(""));
+                }
+                for (String pid : propIds) {
+                    if (pid.isEmpty()) continue;
+                    result.putIfAbsent(pid, info);
+                }
+            }
+        } catch (Exception e) {
+            log.debug("ChannexImport: buildListingInfoMap KO : {}", e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * Donnees scrapees depuis la page Airbnb publique. Toutes nullables —
+     * best-effort, dependant de la presence de balises Schema.org JSON-LD
+     * (donnee structuree par Airbnb, pas du regex sur du texte libre).
+     *
+     * @param mappedAmenities  codes Clenzy reconnus (WIFI, TV, ...)
+     * @param unmappedAmenities noms OTA bruts non reconnus (ex: "Smoke alarm")
+     *                          — stockes pour transparence + futur mapping
+     */
+    private record AirbnbListingData(
+        String name,
+        java.util.Set<String> mappedAmenities,
+        java.util.Set<String> unmappedAmenities
+    ) {}
+
+    /**
+     * Resolution de listing data avec circuit-breaker whitelabel automatique.
+     *
+     * <p><b>Strategie</b> : on tente toujours l'API whitelabel en premier
+     * ({@code GET /channels/{id}/listings/{lid}}) qui donne le NOM textuel
+     * directement. Si elle echoue (401/403 → compte public) le client
+     * automatiquement cache l'indisponibilite 1h et retourne {@code empty}.
+     * On bascule alors sur le scraping Airbnb JSON-LD.</p>
+     *
+     * <p>Aucune config a toucher : si demain Channex active votre acces WL,
+     * le scraping s'arrete automatiquement au prochain call (cache expire),
+     * et tout passe par l'API structuree.</p>
+     */
+    private AirbnbListingData resolveListingData(ChannelListingInfo info) {
+        if (info == null) return null;
+        // Tentative whitelabel (auto-detect : si cache=unavailable → empty direct)
+        if (info.channelId() != null) {
+            var detail = channexClient.fetchChannelListingDetail(info.channelId(), info.listingId());
+            if (detail.isPresent() && detail.get().title() != null) {
+                log.info("Channex WL: listing data direct (no scrape) listing={}", info.listingId());
+                // Pour les amenities on garde le scrape : la facilities relation
+                // Channex couvre seulement ~180 standards et pas le riche
+                // catalogue Airbnb. Nom via WL, amenities via scrape.
+                java.util.Set<String> mapped = java.util.Collections.emptySet();
+                java.util.Set<String> unmapped = java.util.Collections.emptySet();
+                AirbnbListingData scraped = fetchAirbnbListingData(info.listingId());
+                if (scraped != null) {
+                    mapped = scraped.mappedAmenities();
+                    unmapped = scraped.unmappedAmenities();
+                }
+                return new AirbnbListingData(detail.get().title(), mapped, unmapped);
+            }
+        }
+        // Fallback : scrape complet (cas standard sur compte public)
+        return fetchAirbnbListingData(info.listingId());
+    }
+
+    /**
+     * Best-effort : recupere les donnees publiques d'une listing Airbnb
+     * (nom + amenities) via le JSON-LD Schema.org embarque dans la page.
+     *
+     * <p><b>Pourquoi scraper :</b> Channex (non-whitelabel) n'expose ni le
+     * titre humain ni les amenities d'une listing OTA. Le champ Channex
+     * {@code facilities} (relations) est documente mais toujours vide dans
+     * la pratique. Le seul champ structure qu'on a est le {@code listing_id}.</p>
+     *
+     * <p><b>Pourquoi le JSON-LD est OK :</b> contrairement aux meta og:* qui
+     * sont du texte libre (regex fragile), JSON-LD est de la donnee
+     * Schema.org standard ({@code "@type":"LodgingBusiness"} avec
+     * {@code amenityFeature: [{name: "Wifi"}, ...]}). Airbnb suit ce schema.</p>
+     *
+     * <p>Timeout 8s. Retourne {@code null} si scrape echoue completement.</p>
+     */
+    private AirbnbListingData fetchAirbnbListingData(String listingId) {
+        if (listingId == null || listingId.isBlank()) return null;
+        String url = "https://www.airbnb.com/rooms/" + listingId;
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                // User-Agent realiste : Airbnb sert un 403 si l'UA ressemble a un bot.
+                .header("User-Agent",
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+                    + " (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .header("Accept",
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .header("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.8")
+                .timeout(Duration.ofSeconds(8))
+                .GET()
+                .build();
+            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() != 200) {
+                log.debug("Airbnb scrape: HTTP {} pour listing {}", resp.statusCode(), listingId);
+                return null;
+            }
+            String body = resp.body();
+            String name = extractAirbnbListingName(body);
+            // Split mapped/unmapped pour transparence : rien ignore silencieusement.
+            java.util.Set<String> allAmenities = extractAirbnbAmenitiesRaw(body);
+            java.util.Set<String> mapped = new java.util.LinkedHashSet<>();
+            java.util.Set<String> unmapped = new java.util.LinkedHashSet<>();
+            for (String raw : allAmenities) {
+                String clenzyCode = AIRBNB_AMENITY_TO_CLENZY.get(raw.toLowerCase().trim());
+                if (clenzyCode != null) {
+                    mapped.add(clenzyCode);
+                } else {
+                    unmapped.add(raw);
+                }
+            }
+            if (!unmapped.isEmpty()) {
+                log.info("Airbnb scrape : {} amenities NON MAPPEES pour listing {} "
+                    + "(stockees dans ota_raw_amenities pour review) : {}",
+                    unmapped.size(), listingId, unmapped);
+            }
+            log.info("Airbnb scrape OK listing={} name='{}' mapped={} unmapped={}",
+                listingId, name, mapped, unmapped);
+            return new AirbnbListingData(name, mapped, unmapped);
+        } catch (Exception e) {
+            log.debug("Airbnb scrape KO listing={}: {}", listingId, e.getMessage());
+            return null;
+        }
+    }
+
+    /** Mapping Airbnb amenity name (en/fr) → code Clenzy. Toutes les cles en minuscule. */
+    private static final Map<String, String> AIRBNB_AMENITY_TO_CLENZY = Map.ofEntries(
+        // Comfort
+        Map.entry("wifi", "WIFI"),
+        Map.entry("wi-fi", "WIFI"),
+        Map.entry("tv", "TV"),
+        Map.entry("hdtv", "TV"),
+        Map.entry("television", "TV"),
+        Map.entry("air conditioning", "AIR_CONDITIONING"),
+        Map.entry("climatisation", "AIR_CONDITIONING"),
+        Map.entry("heating", "HEATING"),
+        Map.entry("chauffage", "HEATING"),
+        Map.entry("central heating", "HEATING"),
+        // Kitchen
+        Map.entry("kitchen", "EQUIPPED_KITCHEN"),
+        Map.entry("cuisine", "EQUIPPED_KITCHEN"),
+        Map.entry("cuisine equipee", "EQUIPPED_KITCHEN"),
+        Map.entry("dishwasher", "DISHWASHER"),
+        Map.entry("lave-vaisselle", "DISHWASHER"),
+        Map.entry("microwave", "MICROWAVE"),
+        Map.entry("micro-ondes", "MICROWAVE"),
+        Map.entry("oven", "OVEN"),
+        Map.entry("four", "OVEN"),
+        Map.entry("stove", "OVEN"),
+        // Appliances
+        Map.entry("washer", "WASHING_MACHINE"),
+        Map.entry("washing machine", "WASHING_MACHINE"),
+        Map.entry("lave-linge", "WASHING_MACHINE"),
+        Map.entry("dryer", "DRYER"),
+        Map.entry("seche-linge", "DRYER"),
+        Map.entry("iron", "IRON"),
+        Map.entry("fer a repasser", "IRON"),
+        Map.entry("hair dryer", "HAIR_DRYER"),
+        Map.entry("seche-cheveux", "HAIR_DRYER"),
+        // Outdoor
+        Map.entry("free parking on premises", "PARKING"),
+        Map.entry("parking", "PARKING"),
+        Map.entry("paid parking", "PARKING"),
+        Map.entry("parking gratuit sur place", "PARKING"),
+        Map.entry("pool", "POOL"),
+        Map.entry("private pool", "POOL"),
+        Map.entry("shared pool", "POOL"),
+        Map.entry("piscine", "POOL"),
+        Map.entry("hot tub", "JACUZZI"),
+        Map.entry("jacuzzi", "JACUZZI"),
+        Map.entry("bain a remous", "JACUZZI"),
+        Map.entry("garden", "GARDEN_TERRACE"),
+        Map.entry("backyard", "GARDEN_TERRACE"),
+        Map.entry("patio or balcony", "GARDEN_TERRACE"),
+        Map.entry("patio", "GARDEN_TERRACE"),
+        Map.entry("balcony", "GARDEN_TERRACE"),
+        Map.entry("terrace", "GARDEN_TERRACE"),
+        Map.entry("jardin", "GARDEN_TERRACE"),
+        Map.entry("terrasse", "GARDEN_TERRACE"),
+        Map.entry("bbq grill", "BARBECUE"),
+        Map.entry("barbecue", "BARBECUE"),
+        Map.entry("barbeque utensils", "BARBECUE"),
+        // Safety / Family
+        Map.entry("safe", "SAFE"),
+        Map.entry("coffre-fort", "SAFE"),
+        Map.entry("crib", "BABY_BED"),
+        Map.entry("cot", "BABY_BED"),
+        Map.entry("lit bebe", "BABY_BED"),
+        Map.entry("high chair", "HIGH_CHAIR"),
+        Map.entry("chaise haute", "HIGH_CHAIR")
+    );
+
+    /**
+     * Extrait les noms d'amenities BRUTS depuis JSON-LD Schema.org embarque
+     * dans la page Airbnb. Schema standard : {@code amenityFeature: [{name: "Wifi"}, ...]}.
+     *
+     * <p>Retourne les noms tels que renvoyes par Airbnb (pas de transformation
+     * ni de mapping). Le caller fait le split mapped/unmapped via
+     * {@link #AIRBNB_AMENITY_TO_CLENZY}.</p>
+     */
+    private static java.util.Set<String> extractAirbnbAmenitiesRaw(String html) {
+        java.util.Set<String> result = new java.util.LinkedHashSet<>();
+        if (html == null) return result;
+        Pattern ldPattern = Pattern.compile(
+            "<script[^>]+type=\"application/ld\\+json\"[^>]*>(.*?)</script>",
+            Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+        Matcher ldMatcher = ldPattern.matcher(html);
+        Pattern amenityNamePattern = Pattern.compile(
+            "\"name\"\\s*:\\s*\"([^\"\\\\]{1,80}(?:\\\\.[^\"\\\\]{0,80})*)\"");
+        while (ldMatcher.find()) {
+            String json = ldMatcher.group(1);
+            int idx = json.indexOf("\"amenityFeature\"");
+            if (idx < 0) continue;
+            int bracketStart = json.indexOf('[', idx);
+            if (bracketStart < 0) continue;
+            int depth = 1;
+            int end = bracketStart + 1;
+            while (end < json.length() && depth > 0) {
+                char c = json.charAt(end);
+                if (c == '[') depth++;
+                else if (c == ']') depth--;
+                end++;
+            }
+            String featuresBlock = json.substring(bracketStart, Math.min(end, json.length()));
+            Matcher nm = amenityNamePattern.matcher(featuresBlock);
+            while (nm.find()) {
+                String rawName = nm.group(1).trim();
+                if (!rawName.isEmpty()) result.add(rawName);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Extrait le nom du listing en testant plusieurs sources, par ordre de
+     * fiabilite : JSON-LD (data structuree Schema.org), &lt;title&gt; (strip
+     * suffixe), og:title (fallback metadata).
+     */
+    private static String extractAirbnbListingName(String html) {
+        // 1. JSON-LD : Airbnb embed un Schema.org LodgingBusiness/Product avec name
+        Pattern ldPattern = Pattern.compile(
+            "<script[^>]+type=\"application/ld\\+json\"[^>]*>(.*?)</script>",
+            Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+        Matcher ldMatcher = ldPattern.matcher(html);
+        while (ldMatcher.find()) {
+            String json = ldMatcher.group(1);
+            // Match "name":"..." (gerant les escapes simples)
+            Matcher nameMatcher = Pattern.compile(
+                "\"name\"\\s*:\\s*\"([^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\""
+            ).matcher(json);
+            if (nameMatcher.find()) {
+                String name = nameMatcher.group(1)
+                    .replace("\\\"", "\"")
+                    .replace("\\\\", "\\");
+                if (!name.isBlank() && name.length() > 3) {
+                    return decodeHtmlEntities(name);
+                }
+            }
+        }
+
+        // 2. <title>...</title> — strip suffixe Airbnb commun
+        Matcher titleMatcher = Pattern.compile(
+            "<title[^>]*>([^<]+)</title>", Pattern.CASE_INSENSITIVE
+        ).matcher(html);
+        if (titleMatcher.find()) {
+            String title = titleMatcher.group(1).trim();
+            // Patterns de suffixe Airbnb : " - Houses for Rent in...", " - Airbnb", " | Airbnb"
+            int sepIdx = -1;
+            for (String sep : new String[]{" - Houses for Rent", " - Apartments for Rent",
+                                            " - Vacation Rentals", " | Airbnb", " - Airbnb"}) {
+                int idx = title.indexOf(sep);
+                if (idx > 0 && (sepIdx == -1 || idx < sepIdx)) sepIdx = idx;
+            }
+            if (sepIdx > 0) title = title.substring(0, sepIdx);
+            if (!title.isBlank() && title.length() > 3) {
+                return decodeHtmlEntities(title);
+            }
+        }
+
+        // 3. Fallback : og:title (metadata structuree, pas le vrai nom mais mieux que rien)
+        return extractMetaContent(html, "og:title");
+    }
+
+    /** Extrait le content d'une meta tag par property (og:title, etc.). */
+    private static String extractMetaContent(String html, String propertyName) {
+        // Pattern bidirectionnel : content avant ou apres l'attribut property
+        String escaped = Pattern.quote(propertyName);
+        Pattern p1 = Pattern.compile(
+            "<meta[^>]+(?:property|name)=[\"']" + escaped + "[\"'][^>]+content=[\"']([^\"']+)[\"']",
+            Pattern.CASE_INSENSITIVE);
+        Pattern p2 = Pattern.compile(
+            "<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+(?:property|name)=[\"']" + escaped + "[\"']",
+            Pattern.CASE_INSENSITIVE);
+        Matcher m = p1.matcher(html);
+        if (m.find()) return decodeHtmlEntities(m.group(1));
+        m = p2.matcher(html);
+        if (m.find()) return decodeHtmlEntities(m.group(1));
+        return null;
+    }
+
+    /**
+     * Cree les campagnes de prix Clenzy ({@link LengthOfStayDiscount}) a partir
+     * des facteurs de remise expose par Channex dans le rate_plan settings.
+     *
+     * <p>Channex stocke les remises long-sejour dans :</p>
+     * <ul>
+     *   <li>{@code pricing_setting.weekly_price_factor}  : % de remise pour
+     *       sejours de 7+ nuits (0 = pas de remise)</li>
+     *   <li>{@code pricing_setting.monthly_price_factor} : % de remise pour
+     *       sejours de 28+ nuits (0 = pas de remise)</li>
+     * </ul>
+     *
+     * <p>On les materialise en {@link LengthOfStayDiscount} actifs avec :</p>
+     * <ul>
+     *   <li>weekly  : minNights=7, maxNights=27, type=PERCENTAGE</li>
+     *   <li>monthly : minNights=28, maxNights=null, type=PERCENTAGE</li>
+     * </ul>
+     *
+     * <p>Idempotent : si une discount existe deja pour cette property avec
+     * meme minNights, on skip (evite les doublons si re-import).</p>
+     *
+     * @return nb de campagnes effectivement creees
+     */
+    private int createLengthOfStayDiscounts(Property prop, Long orgId, ChannelListingInfo info) {
+        if (info == null) return 0;
+        int created = 0;
+        try {
+            // Weekly discount [7, 27] nuits
+            if (info.weeklyPriceFactor() != null && info.weeklyPriceFactor() > 0) {
+                if (!hasExistingDiscount(prop.getId(), orgId, 7)) {
+                    var d = new LengthOfStayDiscount();
+                    d.setOrganizationId(orgId);
+                    d.setProperty(prop);
+                    d.setMinNights(7);
+                    d.setMaxNights(27);
+                    d.setDiscountType(LengthOfStayDiscount.DiscountType.PERCENTAGE);
+                    d.setDiscountValue(BigDecimal.valueOf(info.weeklyPriceFactor()));
+                    d.setActive(true);
+                    lengthOfStayDiscountRepository.save(d);
+                    created++;
+                    log.info("ChannexImport: created LengthOfStayDiscount weekly property={} -{}%",
+                        prop.getId(), info.weeklyPriceFactor());
+                }
+            }
+            // Monthly discount [28, +∞[ nuits
+            if (info.monthlyPriceFactor() != null && info.monthlyPriceFactor() > 0) {
+                if (!hasExistingDiscount(prop.getId(), orgId, 28)) {
+                    var d = new LengthOfStayDiscount();
+                    d.setOrganizationId(orgId);
+                    d.setProperty(prop);
+                    d.setMinNights(28);
+                    d.setMaxNights(null);
+                    d.setDiscountType(LengthOfStayDiscount.DiscountType.PERCENTAGE);
+                    d.setDiscountValue(BigDecimal.valueOf(info.monthlyPriceFactor()));
+                    d.setActive(true);
+                    lengthOfStayDiscountRepository.save(d);
+                    created++;
+                    log.info("ChannexImport: created LengthOfStayDiscount monthly property={} -{}%",
+                        prop.getId(), info.monthlyPriceFactor());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("ChannexImport: creation LengthOfStayDiscount KO property={} : {}",
+                prop.getId(), e.getMessage());
+        }
+        return created;
+    }
+
+    /** Idempotence check : evite de creer une 2e discount avec le meme minNights. */
+    private boolean hasExistingDiscount(Long propertyId, Long orgId, int minNights) {
+        return lengthOfStayDiscountRepository.findByPropertyId(propertyId, orgId).stream()
+            .anyMatch(d -> d.getMinNights() == minNights);
+    }
+
+    // ─── Phase 1 OTA pricing import — RatePlan + OccupancyPricing ─────────────
+
+    /**
+     * Cree un {@link RatePlan} de type {@link RatePlanType#BASE} a partir de
+     * {@code info.defaultPrice} pour permettre au {@link com.clenzy.service.PriceEngine}
+     * de resoudre via le niveau 5 (BASE) plutot que via le fallback property.nightlyPrice.
+     *
+     * <p><b>Pourquoi un RatePlan en plus de Property.nightlyPrice</b> :</p>
+     * <ul>
+     *   <li>Tracking d'origine via {@code name} ("OTA Base — {otaName}")</li>
+     *   <li>Currency explicite stockee separement</li>
+     *   <li>Foundation pour Phase 4 : un RatePlan par variante Channex (refundable/non-refundable)</li>
+     * </ul>
+     *
+     * <p>Idempotent : skip si un BASE plan existe deja pour cette property.</p>
+     *
+     * @return true si un RatePlan a ete cree
+     */
+    boolean createBaseRatePlan(Property prop, Long orgId, ChannelListingInfo info) {
+        if (info == null || info.defaultPrice() == null || info.defaultPrice().signum() <= 0) {
+            return false;
+        }
+        try {
+            boolean exists = !ratePlanRepository
+                .findByPropertyIdAndType(prop.getId(), RatePlanType.BASE, orgId).isEmpty();
+            if (exists) {
+                log.debug("ChannexImport: BASE rate plan deja present pour property={}, skip",
+                    prop.getId());
+                return false;
+            }
+            RatePlan plan = new RatePlan();
+            plan.setProperty(prop);
+            plan.setOrganizationId(orgId);
+            plan.setName("OTA Base — " + (info.otaName() != null ? info.otaName() : "Channex"));
+            plan.setType(RatePlanType.BASE);
+            plan.setPriority(0);
+            plan.setNightlyPrice(info.defaultPrice());
+            plan.setCurrency(info.currency() != null
+                ? info.currency().toUpperCase() : prop.getDefaultCurrency());
+            plan.setIsActive(true);
+            ratePlanRepository.save(plan);
+            log.info("ChannexImport: created BASE RatePlan property={} price={}{} (source OTA {})",
+                prop.getId(), plan.getNightlyPrice(), plan.getCurrency(), info.otaName());
+            return true;
+        } catch (Exception e) {
+            log.warn("ChannexImport: creation BASE RatePlan KO property={} : {}",
+                prop.getId(), e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Cree un {@link RatePlan} de type {@link RatePlanType#WEEKEND} depuis
+     * {@code info.weekendPrice} (le tarif vendredi-dimanche cote Airbnb).
+     *
+     * <p>{@code daysOfWeek = [5, 6, 7]} (vendredi, samedi, dimanche) selon la
+     * convention ISO ({@code DayOfWeek.getValue()} : 1=Lundi … 7=Dimanche).
+     * Priority = 10 (au-dessus du BASE qui est a 0) — le PriceEngine ne resoud
+     * pas WEEKEND directement, mais via le tri par priority au sein du type BASE.</p>
+     *
+     * <p><b>Note importante</b> : le {@link com.clenzy.service.PriceEngine} actuel ne
+     * resoud QUE les types PROMOTIONAL/SEASONAL/LAST_MINUTE/BASE. WEEKEND n'est
+     * pas dans son ordre de resolution. Pour que le tarif weekend soit applique
+     * un cron/Resolver future devra l'integrer. En attendant, le RatePlan est
+     * cree pour la visibilite UI + futur usage.</p>
+     *
+     * <p>Skip si : weekendPrice null OU egal au defaultPrice (pas de differenciation)
+     * OU WEEKEND plan deja present.</p>
+     *
+     * @return true si un RatePlan a ete cree
+     */
+    boolean createWeekendRatePlan(Property prop, Long orgId, ChannelListingInfo info) {
+        if (info == null || info.weekendPrice() == null
+            || info.weekendPrice().signum() <= 0) {
+            return false;
+        }
+        // Pas de differenciation weekend → inutile de creer le plan
+        if (info.defaultPrice() != null
+            && info.weekendPrice().compareTo(info.defaultPrice()) == 0) {
+            return false;
+        }
+        try {
+            boolean exists = !ratePlanRepository
+                .findByPropertyIdAndType(prop.getId(), RatePlanType.WEEKEND, orgId).isEmpty();
+            if (exists) {
+                log.debug("ChannexImport: WEEKEND rate plan deja present pour property={}, skip",
+                    prop.getId());
+                return false;
+            }
+            RatePlan plan = new RatePlan();
+            plan.setProperty(prop);
+            plan.setOrganizationId(orgId);
+            plan.setName("OTA Weekend — " + (info.otaName() != null ? info.otaName() : "Channex"));
+            plan.setType(RatePlanType.WEEKEND);
+            plan.setPriority(10);
+            plan.setNightlyPrice(info.weekendPrice());
+            plan.setCurrency(info.currency() != null
+                ? info.currency().toUpperCase() : prop.getDefaultCurrency());
+            // Vendredi, samedi, dimanche
+            plan.setDaysOfWeek(new Integer[] { 5, 6, 7 });
+            plan.setIsActive(true);
+            ratePlanRepository.save(plan);
+            log.info("ChannexImport: created WEEKEND RatePlan property={} price={}{} (vs base {})",
+                prop.getId(), plan.getNightlyPrice(), plan.getCurrency(), info.defaultPrice());
+            return true;
+        } catch (Exception e) {
+            log.warn("ChannexImport: creation WEEKEND RatePlan KO property={} : {}",
+                prop.getId(), e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Cree une {@link OccupancyPricing} depuis les champs {@code guestsIncluded}
+     * et {@code pricePerExtraPerson} du rate_plan Channex.
+     *
+     * <p>Mapping :</p>
+     * <ul>
+     *   <li>{@code info.guestsIncluded}      → {@code baseOccupancy}
+     *       (nombre de voyageurs inclus dans le tarif de base)</li>
+     *   <li>{@code info.pricePerExtraPerson} → {@code extraGuestFee}</li>
+     *   <li>{@code property.maxGuests}       → {@code maxOccupancy}</li>
+     * </ul>
+     *
+     * <p>Skip si : guestsIncluded null OU pricePerExtraPerson null/zero (pas de
+     * surcharge a appliquer) OU OccupancyPricing existe deja.</p>
+     *
+     * @return true si une OccupancyPricing a ete creee
+     */
+    /**
+     * Phase 2 OTA pricing — Pull du calendrier de prix Channex et creation de
+     * {@link RateOverride} pour les dates ou le prix differe du tarif de base.
+     *
+     * <p>Capture fidelement ce qui etait dans Airbnb au moment de la connexion :
+     * dates de festival, evenements locaux, ajustements manuels du host, etc.
+     * Sans ce pull, on perdrait ce calendrier et le PriceEngine pousserait son
+     * propre prix uniforme.</p>
+     *
+     * <p><b>Conditions</b> :</p>
+     * <ul>
+     *   <li>{@code mapping.channexDefaultRatePlanId} requis (sinon skip)</li>
+     *   <li>{@code info.defaultPrice} requis comme reference de comparaison
+     *       (on ne cree des overrides QUE pour les dates ou rate ≠ defaultPrice)</li>
+     * </ul>
+     *
+     * <p><b>Idempotence</b> : si un {@link RateOverride} existe deja pour
+     * (property, date), on skip silencieusement — l'admin a peut-etre deja
+     * personnalise ce prix entre 2 imports.</p>
+     *
+     * @return nb de RateOverride creees (0 si endpoint Channex non supporte
+     *         ou aucune date avec prix override cote OTA)
+     */
+    int importRateOverridesFromOta(Property prop, Long orgId,
+                                     com.clenzy.integration.channex.model.ChannexPropertyMapping mapping,
+                                     ChannelListingInfo info) {
+        if (mapping == null || mapping.getChannexDefaultRatePlanId() == null) {
+            log.debug("ChannexImport[RATE_OVERRIDES]: pas de rate_plan_id mapping, skip property={}",
+                prop.getId());
+            return 0;
+        }
+        if (info == null || info.defaultPrice() == null) {
+            log.debug("ChannexImport[RATE_OVERRIDES]: pas de defaultPrice reference, skip property={}",
+                prop.getId());
+            return 0;
+        }
+        java.time.LocalDate from = java.time.LocalDate.now();
+        java.time.LocalDate to = from.plusMonths(12);
+
+        java.util.Optional<java.util.List<com.fasterxml.jackson.databind.JsonNode>> opt =
+            channexClient.fetchRatesForRange(mapping.getChannexPropertyId(),
+                mapping.getChannexDefaultRatePlanId(), from, to);
+        if (opt.isEmpty()) {
+            log.info("ChannexImport[RATE_OVERRIDES]: endpoint Channex /restrictions non supporte, skip property={}",
+                prop.getId());
+            return 0;
+        }
+        java.util.List<com.fasterxml.jackson.databind.JsonNode> entries = opt.get();
+        if (entries.isEmpty()) {
+            log.info("ChannexImport[RATE_OVERRIDES]: aucune entry rate cote Channex property={} sur 12 mois",
+                prop.getId());
+            return 0;
+        }
+
+        BigDecimal defaultPrice = info.defaultPrice();
+        int created = 0;
+        int skippedSame = 0;
+        int skippedExisting = 0;
+
+        for (com.fasterxml.jackson.databind.JsonNode entry : entries) {
+            try {
+                // Channex JSON:API : { attributes: { date, rate, ... } }
+                com.fasterxml.jackson.databind.JsonNode attrs = entry.path("attributes");
+                String dateStr = attrs.path("date").asText(null);
+                String rateStr = attrs.path("rate").asText(null);
+                if (dateStr == null || rateStr == null || rateStr.isBlank()) continue;
+
+                java.time.LocalDate date;
+                BigDecimal rate;
+                try {
+                    date = java.time.LocalDate.parse(dateStr);
+                    rate = new BigDecimal(rateStr);
+                } catch (Exception parseError) {
+                    log.debug("ChannexImport[RATE_OVERRIDES]: parse KO date={} rate={}, skip",
+                        dateStr, rateStr);
+                    continue;
+                }
+
+                // Skip si meme prix que le default (pas d'override utile)
+                if (rate.compareTo(defaultPrice) == 0) {
+                    skippedSame++;
+                    continue;
+                }
+                // Skip si un override existe deja (admin peut l'avoir personnalise)
+                if (rateOverrideRepository.findByPropertyIdAndDate(prop.getId(), date, orgId).isPresent()) {
+                    skippedExisting++;
+                    continue;
+                }
+
+                RateOverride override = new RateOverride();
+                override.setProperty(prop);
+                override.setOrganizationId(orgId);
+                override.setDate(date);
+                override.setNightlyPrice(rate);
+                override.setSource("OTA:" + (info.otaName() != null ? info.otaName() : "Channex"));
+                override.setCurrency(info.currency() != null
+                    ? info.currency().toUpperCase() : prop.getDefaultCurrency());
+                override.setCreatedBy("channex-import");
+                rateOverrideRepository.save(override);
+                created++;
+            } catch (Exception e) {
+                log.warn("ChannexImport[RATE_OVERRIDES]: erreur sur entry property={}: {}",
+                    prop.getId(), e.getMessage());
+            }
+        }
+        log.info("ChannexImport[RATE_OVERRIDES]: property={} created={} skippedSameAsDefault={} skippedExisting={} totalEntries={}",
+            prop.getId(), created, skippedSame, skippedExisting, entries.size());
+        return created;
+    }
+
+    /**
+     * Phase 4 #4 — Multi rate_plans : pour chaque rate_plan additionnel cote
+     * OTA au-dela du primaire (typique : "Standard" + "Non-refundable -10%"),
+     * cree un {@link RatePlan}(type=PROMOTIONAL) Clenzy avec son default_daily_price.
+     *
+     * <p>Priorite = 5 (entre BASE qui est a 0 et WEEKEND qui est a 10) :
+     * suffisamment haut pour battre le BASE par defaut, suffisamment bas pour
+     * permettre a un override admin ou un WEEKEND de dominer si applicable.</p>
+     *
+     * <p>Idempotent : skip si un RatePlan(type=PROMOTIONAL, name=...) existe
+     * deja avec le meme nom (on detecte par {@code RatePlan.name} qui contient
+     * le titre OTA).</p>
+     *
+     * @return nb de RatePlan PROMOTIONAL crees
+     */
+    int importAdditionalRatePlansFromOta(Property prop, Long orgId, ChannelListingInfo info) {
+        if (info == null || info.additionalRatePlans() == null
+            || info.additionalRatePlans().isEmpty()) {
+            return 0;
+        }
+        java.util.List<RatePlan> existingPromos = ratePlanRepository
+            .findByPropertyIdAndType(prop.getId(), RatePlanType.PROMOTIONAL, orgId);
+        int created = 0;
+        for (AdditionalRatePlan arp : info.additionalRatePlans()) {
+            if (arp.defaultPrice() == null || arp.defaultPrice().signum() <= 0) continue;
+            // Phase 5 audit fix : idempotence basee sur le Channex rate_plan_id
+            // (stable cote OTA) en plus du nom (qui peut changer si l'host renomme
+            // son rate plan dans Airbnb). Le nom est encode entre [] dans le name
+            // Clenzy pour permettre la detection idempotente sans nouveau champ DB.
+            String stableTitle = arp.title() != null ? arp.title() : "Variant";
+            String otaIdTag = arp.channexRatePlanId() != null
+                ? "[" + arp.channexRatePlanId().substring(0, Math.min(8, arp.channexRatePlanId().length())) + "]"
+                : "";
+            String name = "OTA " + otaIdTag + " — " + stableTitle;
+            // Match si le name existant contient le meme prefixe ID (le titre humain
+            // peut avoir change, on detecte par l'ID stable Channex).
+            boolean alreadyExists = arp.channexRatePlanId() != null
+                && existingPromos.stream().anyMatch(rp ->
+                    rp.getName() != null && rp.getName().contains(otaIdTag));
+            if (alreadyExists) {
+                log.debug("ChannexImport[ADDITIONAL_RP]: skip duplicate id={} pour property={}",
+                    arp.channexRatePlanId(), prop.getId());
+                continue;
+            }
+            try {
+                RatePlan plan = new RatePlan();
+                plan.setProperty(prop);
+                plan.setOrganizationId(orgId);
+                plan.setName(name);
+                plan.setType(RatePlanType.PROMOTIONAL);
+                plan.setPriority(5);
+                plan.setNightlyPrice(arp.defaultPrice());
+                plan.setCurrency(arp.currency() != null
+                    ? arp.currency().toUpperCase()
+                    : (info.currency() != null ? info.currency() : prop.getDefaultCurrency()));
+                plan.setIsActive(true);
+                ratePlanRepository.save(plan);
+                created++;
+                log.info("ChannexImport[ADDITIONAL_RP]: created PROMOTIONAL '{}' price={}{} property={}",
+                    name, plan.getNightlyPrice(), plan.getCurrency(), prop.getId());
+            } catch (Exception e) {
+                log.warn("ChannexImport[ADDITIONAL_RP]: erreur creation '{}' property={}: {}",
+                    name, prop.getId(), e.getMessage());
+            }
+        }
+        return created;
+    }
+
+    /**
+     * Phase 4 #5 — Import des {@link com.clenzy.model.BookingRestriction} par
+     * range depuis les rates Channex (champs min_stay_through, min_stay_arrival,
+     * closed_to_arrival, closed_to_departure).
+     *
+     * <p>Strategie : pull les rates 12 mois → groupe les dates consecutives
+     * avec des restrictions identiques → cree 1 BookingRestriction par groupe
+     * (start_date=group.first, end_date=group.last). Limite le bruit en DB
+     * (1 BookingRestriction range plutot que 365 par-date).</p>
+     *
+     * <p>Skip si aucune restriction non-defaut detectee. Idempotent par
+     * verification de l'existence d'une restriction couvrant la meme date
+     * de debut.</p>
+     *
+     * @return nb de BookingRestriction crees
+     */
+    int importBookingRestrictionsFromOta(Property prop, Long orgId,
+                                          com.clenzy.integration.channex.model.ChannexPropertyMapping mapping) {
+        if (mapping == null || mapping.getChannexDefaultRatePlanId() == null) {
+            return 0;
+        }
+        java.time.LocalDate from = java.time.LocalDate.now();
+        java.time.LocalDate to = from.plusMonths(12);
+
+        java.util.Optional<java.util.List<com.fasterxml.jackson.databind.JsonNode>> opt =
+            channexClient.fetchRatesForRange(mapping.getChannexPropertyId(),
+                mapping.getChannexDefaultRatePlanId(), from, to);
+        if (opt.isEmpty() || opt.get().isEmpty()) {
+            return 0;
+        }
+
+        // Pour chaque date, extraire (min_stay, closed_to_arrival, closed_to_departure)
+        // — on ignore les entries sans restrictions non-defaut.
+        java.util.TreeMap<java.time.LocalDate, Restriction> perDate = new java.util.TreeMap<>();
+        for (com.fasterxml.jackson.databind.JsonNode entry : opt.get()) {
+            try {
+                com.fasterxml.jackson.databind.JsonNode attrs = entry.path("attributes");
+                String dateStr = attrs.path("date").asText(null);
+                if (dateStr == null) continue;
+                Integer minStay = intOrNullFromAttr(attrs, "min_stay_through");
+                if (minStay == null) minStay = intOrNullFromAttr(attrs, "min_stay_arrival");
+                boolean cta = attrs.path("closed_to_arrival").asBoolean(false);
+                boolean ctd = attrs.path("closed_to_departure").asBoolean(false);
+                if (minStay == null && !cta && !ctd) continue; // defaut, skip
+                perDate.put(java.time.LocalDate.parse(dateStr),
+                    new Restriction(minStay, cta, ctd));
+            } catch (Exception e) {
+                log.debug("ChannexImport[BOOKING_RESTRICT]: parse KO entry: {}", e.getMessage());
+            }
+        }
+
+        if (perDate.isEmpty()) {
+            log.info("ChannexImport[BOOKING_RESTRICT]: aucune restriction non-defaut property={}",
+                prop.getId());
+            return 0;
+        }
+
+        // Groupe dates consecutives avec meme Restriction
+        int created = 0;
+        java.time.LocalDate groupStart = null;
+        java.time.LocalDate groupEnd = null;
+        Restriction groupRestriction = null;
+        java.time.LocalDate prevDate = null;
+
+        for (var entry : perDate.entrySet()) {
+            java.time.LocalDate date = entry.getKey();
+            Restriction r = entry.getValue();
+
+            boolean newGroup = groupStart == null
+                || !r.equals(groupRestriction)
+                || !date.equals(prevDate.plusDays(1));
+            if (newGroup) {
+                // Flush le groupe precedent
+                if (groupStart != null) {
+                    if (createBookingRestrictionIfNew(prop, orgId, groupStart, groupEnd, groupRestriction)) {
+                        created++;
+                    }
+                }
+                groupStart = date;
+                groupRestriction = r;
+            }
+            groupEnd = date;
+            prevDate = date;
+        }
+        // Flush final
+        if (groupStart != null) {
+            if (createBookingRestrictionIfNew(prop, orgId, groupStart, groupEnd, groupRestriction)) {
+                created++;
+            }
+        }
+
+        log.info("ChannexImport[BOOKING_RESTRICT]: property={} groups_created={} from {} datapoints",
+            prop.getId(), created, perDate.size());
+        return created;
+    }
+
+    /** Tuple immutable des restrictions pour grouping. */
+    private record Restriction(Integer minStay, boolean closedToArrival, boolean closedToDeparture) {}
+
+    /**
+     * Cree une BookingRestriction range si aucune restriction existante ne
+     * couvre deja le {@code startDate} (idempotence simple par date de debut).
+     */
+    private boolean createBookingRestrictionIfNew(Property prop, Long orgId,
+                                                    java.time.LocalDate startDate,
+                                                    java.time.LocalDate endDate,
+                                                    Restriction r) {
+        try {
+            // Idempotence basique : si une restriction couvre deja startDate, skip
+            var existing = bookingRestrictionRepository.findApplicable(
+                prop.getId(), startDate, startDate.plusDays(1), orgId);
+            if (!existing.isEmpty()) {
+                log.debug("ChannexImport[BOOKING_RESTRICT]: skip range [{}, {}] (existant)",
+                    startDate, endDate);
+                return false;
+            }
+            com.clenzy.model.BookingRestriction br =
+                new com.clenzy.model.BookingRestriction(prop, startDate, endDate, orgId);
+            br.setMinStay(r.minStay());
+            br.setClosedToArrival(r.closedToArrival());
+            br.setClosedToDeparture(r.closedToDeparture());
+            br.setPriority(5); // au-dessus du defaut 0
+            bookingRestrictionRepository.save(br);
+            log.info("ChannexImport[BOOKING_RESTRICT]: created [{}-{}] minStay={} CTA={} CTD={} property={}",
+                startDate, endDate, r.minStay(), r.closedToArrival(), r.closedToDeparture(), prop.getId());
+            return true;
+        } catch (Exception e) {
+            log.warn("ChannexImport[BOOKING_RESTRICT]: erreur creation [{}, {}] property={}: {}",
+                startDate, endDate, prop.getId(), e.getMessage());
+            return false;
+        }
+    }
+
+    /** Helper local pour parser un int depuis un attribut JSON, null si absent ou "null". */
+    private static Integer intOrNullFromAttr(com.fasterxml.jackson.databind.JsonNode attrs, String key) {
+        com.fasterxml.jackson.databind.JsonNode n = attrs.path(key);
+        if (n.isMissingNode() || n.isNull()) return null;
+        if (n.isInt()) return n.intValue();
+        try {
+            String s = n.asText();
+            if (s == null || s.isBlank() || "null".equalsIgnoreCase(s)) return null;
+            return Integer.parseInt(s);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    boolean createOccupancyPricingFromOta(Property prop, Long orgId,
+                                            ChannelListingInfo info) {
+        if (info == null || info.guestsIncluded() == null || info.guestsIncluded() <= 0) {
+            return false;
+        }
+        if (info.pricePerExtraPerson() == null || info.pricePerExtraPerson().signum() <= 0) {
+            // Pas de surcharge → inutile de creer (l'algo PriceEngine retourne
+            // ZERO ajustement dans ce cas, autant ne pas polluer la DB).
+            return false;
+        }
+        try {
+            boolean exists = occupancyPricingRepository
+                .findByPropertyId(prop.getId(), orgId).isPresent();
+            if (exists) {
+                log.debug("ChannexImport: OccupancyPricing deja present pour property={}, skip",
+                    prop.getId());
+                return false;
+            }
+            int maxOccupancy = prop.getMaxGuests() != null && prop.getMaxGuests() > 0
+                ? prop.getMaxGuests()
+                : Math.max(info.guestsIncluded() + 4, 6); // fallback safe : base + 4 ou min 6
+            OccupancyPricing op = new OccupancyPricing();
+            op.setProperty(prop);
+            op.setOrganizationId(orgId);
+            op.setBaseOccupancy(info.guestsIncluded());
+            op.setExtraGuestFee(info.pricePerExtraPerson());
+            op.setMaxOccupancy(maxOccupancy);
+            op.setActive(true);
+            occupancyPricingRepository.save(op);
+            log.info("ChannexImport: created OccupancyPricing property={} base={} extra={}{} max={}",
+                prop.getId(), op.getBaseOccupancy(), op.getExtraGuestFee(),
+                info.currency() != null ? info.currency() : "", op.getMaxOccupancy());
+            return true;
+        } catch (Exception e) {
+            log.warn("ChannexImport: creation OccupancyPricing KO property={} : {}",
+                prop.getId(), e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Resultat de la resolution d'amenities en 3 buckets : codes Clenzy mappes
+     * (built-in + aliases admin), noms bruts ignores silencieusement, noms
+     * bruts qui restent a mapper (stockes dans ota_raw_amenities).
+     */
+    private static final class ResolvedAmenities {
+        java.util.Set<String> mapped = new java.util.LinkedHashSet<>();
+        java.util.Set<String> stillUnmapped = new java.util.LinkedHashSet<>();
+    }
+
+    /**
+     * Classe les amenities scrapees en appliquant, dans l'ordre :
+     * <ol>
+     *   <li>Le mapping built-in {@link #AIRBNB_AMENITY_TO_CLENZY} → mapped</li>
+     *   <li>Les aliases admin de l'org → mapped</li>
+     *   <li>Les ignored admin de l'org → droppe</li>
+     *   <li>Reste → stillUnmapped (pour ota_raw_amenities)</li>
+     * </ol>
+     */
+    private static ResolvedAmenities resolveAmenitiesWithUserConfig(
+            AirbnbListingData data,
+            Map<String, String> userAliases,
+            Set<String> userIgnored) {
+        ResolvedAmenities r = new ResolvedAmenities();
+        if (data == null) return r;
+
+        // Bucket 1 : deja mappes par le built-in (WIFI, TV, ...)
+        if (data.mappedAmenities() != null) {
+            r.mapped.addAll(data.mappedAmenities());
+        }
+
+        // Bucket 2 : applique aliases admin + ignored sur les unmapped restants
+        if (data.unmappedAmenities() != null) {
+            for (String raw : data.unmappedAmenities()) {
+                String lower = raw.toLowerCase().trim();
+                if (userIgnored.contains(lower)) {
+                    continue; // explicitement droppe par l'admin
+                }
+                String aliasedCode = userAliases.get(lower);
+                if (aliasedCode != null) {
+                    r.mapped.add(aliasedCode);
+                } else {
+                    r.stillUnmapped.add(raw); // a mapper plus tard via UI
+                }
+            }
+        }
+        return r;
+    }
+
+    // ─── Helpers null-safe pour extraction structuree JsonNode ──────────────
+    // Channex peut renvoyer le champ absent, null, ou type wrong — ces helpers
+    // retournent null dans tous ces cas plutot que de lever une exception.
+
+    private static BigDecimal bigDecimalOrNull(JsonNode parent, String fieldName) {
+        JsonNode node = parent.path(fieldName);
+        if (node.isMissingNode() || node.isNull()) return null;
+        try {
+            return BigDecimal.valueOf(node.asDouble());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static Integer intOrNull(JsonNode parent, String fieldName) {
+        JsonNode node = parent.path(fieldName);
+        if (node.isMissingNode() || node.isNull() || !node.canConvertToInt()) return null;
+        return node.asInt();
+    }
+
+    private static Double doubleOrNull(JsonNode parent, String fieldName) {
+        JsonNode node = parent.path(fieldName);
+        if (node.isMissingNode() || node.isNull()) return null;
+        try {
+            return node.asDouble();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static Boolean boolOrNull(JsonNode parent, String fieldName) {
+        JsonNode node = parent.path(fieldName);
+        if (node.isMissingNode() || node.isNull() || !node.isBoolean()) return null;
+        return node.asBoolean();
+    }
+
+    /** Decode les entites HTML basiques rencontrees dans og:title. */
+    private static String decodeHtmlEntities(String s) {
+        return s.replace("&amp;", "&")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&nbsp;", " ");
+    }
+}

@@ -36,4 +36,13 @@ public interface ChannexPropertyMappingRepository extends JpaRepository<ChannexP
     /** Pour le scheduler de rattrapage : mappings avec sync_status='error' a re-tenter. */
     @Query("SELECT m FROM ChannexPropertyMapping m WHERE m.syncStatus = 'error' ORDER BY m.updatedAt ASC")
     List<ChannexPropertyMapping> findAllInError();
+
+    /**
+     * Cross-tenant : tous les mappings de toutes les orgs. Reserve aux jobs de
+     * type watchdog/health-summary qui doivent calculer des agregats globaux.
+     * <b>Ne PAS utiliser dans des endpoints user-facing</b> (bypass le filtre
+     * d'organisation).
+     */
+    @Query("SELECT m FROM ChannexPropertyMapping m ORDER BY m.organizationId ASC, m.updatedAt DESC")
+    List<ChannexPropertyMapping> findAllAcrossOrgs();
 }

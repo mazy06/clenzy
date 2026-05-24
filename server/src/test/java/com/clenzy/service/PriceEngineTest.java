@@ -251,4 +251,131 @@ class PriceEngineTest {
         // Should fall back to property price since plan doesn't apply
         assertEquals(new BigDecimal("100.00"), result);
     }
+
+    // ─── Phase 5 audit : tests pour les types ajoutes dans TYPE_PRIORITY ─────
+    // (WEEKEND, EVENT, EARLY_BIRD)
+
+    /** Helper : RatePlan minimal active sans contraintes de date. */
+    private RatePlan plan(RatePlanType type, BigDecimal price, int priority) {
+        RatePlan rp = new RatePlan();
+        rp.setType(type);
+        rp.setNightlyPrice(price);
+        rp.setPriority(priority);
+        rp.setIsActive(true);
+        return rp;
+    }
+
+    @Test
+    void resolvePrice_WEEKEND_beats_BASE_when_both_apply() {
+        Property property = new Property();
+        property.setId(propertyId);
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, date, orgId))
+            .thenReturn(Optional.empty());
+        // BASE plan + WEEKEND plan, les 2 actifs sans contrainte date/dow
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(
+                plan(RatePlanType.BASE, new BigDecimal("80.00"), 0),
+                plan(RatePlanType.WEEKEND, new BigDecimal("120.00"), 10)
+            ));
+
+        BigDecimal result = priceEngine.resolvePrice(propertyId, date, orgId);
+        // WEEKEND est plus haut dans TYPE_PRIORITY → 120 gagne
+        assertEquals(new BigDecimal("120.00"), result);
+    }
+
+    @Test
+    void resolvePrice_EVENT_beats_WEEKEND_beats_SEASONAL() {
+        Property property = new Property();
+        property.setId(propertyId);
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, date, orgId))
+            .thenReturn(Optional.empty());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(
+                plan(RatePlanType.SEASONAL, new BigDecimal("150.00"), 0),
+                plan(RatePlanType.WEEKEND, new BigDecimal("130.00"), 0),
+                plan(RatePlanType.EVENT, new BigDecimal("250.00"), 0)
+            ));
+
+        BigDecimal result = priceEngine.resolvePrice(propertyId, date, orgId);
+        // EVENT > WEEKEND > SEASONAL → 250 gagne
+        assertEquals(new BigDecimal("250.00"), result);
+    }
+
+    @Test
+    void resolvePrice_EARLY_BIRD_beats_LAST_MINUTE() {
+        Property property = new Property();
+        property.setId(propertyId);
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, date, orgId))
+            .thenReturn(Optional.empty());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(
+                plan(RatePlanType.LAST_MINUTE, new BigDecimal("70.00"), 0),
+                plan(RatePlanType.EARLY_BIRD, new BigDecimal("60.00"), 0)
+            ));
+
+        BigDecimal result = priceEngine.resolvePrice(propertyId, date, orgId);
+        // EARLY_BIRD avant LAST_MINUTE dans TYPE_PRIORITY → 60 gagne
+        assertEquals(new BigDecimal("60.00"), result);
+    }
+
+    @Test
+    void resolvePrice_PROMOTIONAL_beats_EVENT() {
+        Property property = new Property();
+        property.setId(propertyId);
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, date, orgId))
+            .thenReturn(Optional.empty());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(
+                plan(RatePlanType.EVENT, new BigDecimal("250.00"), 100),
+                plan(RatePlanType.PROMOTIONAL, new BigDecimal("50.00"), 0)
+            ));
+
+        BigDecimal result = priceEngine.resolvePrice(propertyId, date, orgId);
+        // PROMOTIONAL reste tout en haut, meme avec priority basse vs EVENT priority 100
+        // (le tri par priorite est INTRA-type, pas inter-type)
+        assertEquals(new BigDecimal("50.00"), result);
+    }
+
+    @Test
+    void resolvePrice_WEEKEND_with_dow_filter_friday_matches() {
+        Property property = new Property();
+        property.setId(propertyId);
+        // Vendredi 13 juin 2025 (DayOfWeek=5)
+        LocalDate friday = LocalDate.of(2025, 6, 13);
+        RatePlan weekend = plan(RatePlanType.WEEKEND, new BigDecimal("120.00"), 0);
+        weekend.setDaysOfWeek(new Integer[] { 5, 6, 7 });
+
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, friday, orgId))
+            .thenReturn(Optional.empty());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(
+                plan(RatePlanType.BASE, new BigDecimal("80.00"), 0),
+                weekend
+            ));
+
+        BigDecimal result = priceEngine.resolvePrice(propertyId, friday, orgId);
+        assertEquals(new BigDecimal("120.00"), result);
+    }
+
+    @Test
+    void resolvePrice_WEEKEND_with_dow_filter_monday_does_not_match() {
+        Property property = new Property();
+        property.setId(propertyId);
+        // Lundi 16 juin 2025 (DayOfWeek=1)
+        LocalDate monday = LocalDate.of(2025, 6, 16);
+        RatePlan weekend = plan(RatePlanType.WEEKEND, new BigDecimal("120.00"), 0);
+        weekend.setDaysOfWeek(new Integer[] { 5, 6, 7 });
+
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, monday, orgId))
+            .thenReturn(Optional.empty());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(
+                plan(RatePlanType.BASE, new BigDecimal("80.00"), 0),
+                weekend
+            ));
+
+        BigDecimal result = priceEngine.resolvePrice(propertyId, monday, orgId);
+        // Lundi ne matche pas le filtre [5,6,7] → fallback sur BASE
+        assertEquals(new BigDecimal("80.00"), result);
+    }
 }
