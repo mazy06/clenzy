@@ -50,15 +50,29 @@ public class ChannexWebhookController {
     private final ChannexBookingService bookingService;
     private final ObjectMapper objectMapper;
     private final ChannexMetrics metrics;
+    // Sprint A2 + A3 deps : pour re-ack + flag sync errors sur mapping
+    private final com.clenzy.integration.channex.client.ChannexClient channexClient;
+    private final com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository mappingRepository;
+    private final com.clenzy.integration.channex.service.ChannexSyncLogService syncLogService;
+    // Item 2 + 3 (paid apps) : routing webhooks Messages + Reviews
+    private final com.clenzy.integration.channex.service.ChannexMessagingService messagingService;
 
     public ChannexWebhookController(ChannexSignatureValidator signatureValidator,
                                       ChannexBookingService bookingService,
                                       ObjectMapper objectMapper,
-                                      ChannexMetrics metrics) {
+                                      ChannexMetrics metrics,
+                                      com.clenzy.integration.channex.client.ChannexClient channexClient,
+                                      com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository mappingRepository,
+                                      com.clenzy.integration.channex.service.ChannexSyncLogService syncLogService,
+                                      com.clenzy.integration.channex.service.ChannexMessagingService messagingService) {
         this.signatureValidator = signatureValidator;
         this.bookingService = bookingService;
         this.objectMapper = objectMapper;
         this.metrics = metrics;
+        this.channexClient = channexClient;
+        this.mappingRepository = mappingRepository;
+        this.syncLogService = syncLogService;
+        this.messagingService = messagingService;
     }
 
     @PostMapping
@@ -106,6 +120,16 @@ public class ChannexWebhookController {
                 case "booking_new" -> handleNewBooking(payload);
                 case "booking_modification" -> handleModification(payload);
                 case "booking_cancellation" -> handleCancellation(payload);
+                // Sprint A2 (Quick Win) — Channex notifie que le booking n'a pas
+                // ete acknowledged. On re-tente l'ack pour eviter les escalations OTA.
+                case "non_acked_booking" -> handleNonAckedBooking(payload);
+                // Sprint A3 (Quick Win) — Channex notifie qu'un push availability/rates
+                // a echoue cote OTA. On flag le mapping en ERROR avec le detail.
+                case "sync_error" -> handleSyncError(payload);
+                // Item 2 (Messages App) — nouveau message guest OTA recu via Channex
+                case "message" -> handleChannexMessage(rawBody);
+                // Item 3 (Reviews App) — nouvelle review ou mise a jour
+                case "review", "updated_review" -> handleChannexReview(rawBody);
                 default -> {
                     log.debug("Channex webhook: event '{}' ignore (non gere)", payload.event());
                     metrics.recordWebhookReceived(payload.event(), "ignored");
@@ -174,5 +198,133 @@ public class ChannexWebhookController {
                 "reservationId", (Object) r.getId()
             ))
             .orElse(Map.of("status", "not_found", "event", "booking_cancellation")));
+    }
+
+    /**
+     * Sprint A2 — Channex notifie qu'un booking n'a pas ete acknowledged.
+     * On re-tente l'ack pour eviter qu'Airbnb escalade. Best-effort : si
+     * l'ack echoue (booking deja confirme, 404, etc.), on log mais on retourne
+     * 200 OK pour ne pas que Channex re-tente en boucle.
+     */
+    private ResponseEntity<Map<String, Object>> handleNonAckedBooking(ChannexWebhookPayload payload) {
+        String bookingId = payload.payload() != null ? payload.payload().id() : null;
+        if (bookingId == null || bookingId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "missing_booking_id"));
+        }
+        try {
+            channexClient.acknowledgeBooking(bookingId);
+            log.info("Channex webhook[non_acked_booking]: booking={} re-acknowledged", bookingId);
+            return ResponseEntity.ok(Map.of(
+                "status", "ok",
+                "event", "non_acked_booking",
+                "bookingId", bookingId,
+                "action", "re_acknowledged"
+            ));
+        } catch (Exception e) {
+            log.warn("Channex webhook[non_acked_booking]: re-ack KO booking={}: {}",
+                bookingId, e.getMessage());
+            // 200 OK quand meme : on a essaye notre best, pas de retry Channex utile
+            return ResponseEntity.ok(Map.of(
+                "status", "ok_swallowed",
+                "event", "non_acked_booking",
+                "bookingId", bookingId,
+                "error", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Item 2 (Messages App) — Channex notifie un nouveau message guest OTA.
+     * On persiste dans la table conversations Clenzy existante (channel=AIRBNB/BOOKING)
+     * pour que l'UI ChannelInboxTab le voie transparently.
+     */
+    private ResponseEntity<Map<String, Object>> handleChannexMessage(String rawBody) {
+        try {
+            // Parse en JsonNode pour eviter de typer un nouveau payload (Channex envoie
+            // {event, payload: {thread_id, message, ...}}).
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(rawBody);
+            com.fasterxml.jackson.databind.JsonNode messagePayload = root.path("payload");
+            var saved = messagingService.onChannexMessage(messagePayload);
+            return ResponseEntity.ok(Map.of(
+                "status", "ok",
+                "event", "message",
+                "persisted", saved.isPresent()
+            ));
+        } catch (Exception e) {
+            log.warn("Channex webhook[message]: parse KO: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of("status", "ignored", "error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Item 3 (Reviews App) — Channex notifie une nouvelle review ou un update.
+     * Pour l'instant on log + return 200. La persistance Reviews est faite par
+     * le scheduler periodique (Phase 3 reviews) qui pull les data.
+     */
+    private ResponseEntity<Map<String, Object>> handleChannexReview(String rawBody) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(rawBody);
+            com.fasterxml.jackson.databind.JsonNode reviewPayload = root.path("payload");
+            String reviewId = reviewPayload.path("id").asText("?");
+            String channel = reviewPayload.path("channel").asText("?");
+            log.info("Channex webhook[review]: review_id={} channel={} (TODO persist via ChannexReviewsService)",
+                reviewId, channel);
+            return ResponseEntity.ok(Map.of(
+                "status", "ok",
+                "event", "review",
+                "reviewId", reviewId
+            ));
+        } catch (Exception e) {
+            log.warn("Channex webhook[review]: parse KO: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of("status", "ignored", "error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Sprint A3 — Channex notifie qu'un push availability/rates a echoue cote OTA.
+     * On met a jour le {@code mapping.lastSyncError} + on enregistre un sync_log
+     * FAIL pour que l'admin voie le detail dans le diagnose dialog.
+     */
+    private ResponseEntity<Map<String, Object>> handleSyncError(ChannexWebhookPayload payload) {
+        // Le payload sync_error a une structure custom (pas booking). On extrait
+        // l'identite de la property + un message generique. Le detail de l'erreur
+        // sera consultable dans /channels/{id}/logs (Sprint A4) cote UI Channex.
+        String channexPropertyId = payload.propertyId();
+        String errorMessage = "OTA sync error notified by Channex (voir channel logs pour le detail)";
+        if (channexPropertyId == null || channexPropertyId.isBlank()) {
+            log.warn("Channex webhook[sync_error]: pas de property_id, ignore");
+            return ResponseEntity.ok(Map.of("status", "ignored", "reason", "no_property_id"));
+        }
+        // Tenant-agnostic lookup (sync_error arrive sans tenant context)
+        var mappingOpt = mappingRepository.findByChannexPropertyIdAnyOrg(channexPropertyId);
+        if (mappingOpt.isEmpty()) {
+            log.warn("Channex webhook[sync_error]: mapping introuvable pour property={}", channexPropertyId);
+            return ResponseEntity.ok(Map.of("status", "ignored", "reason", "no_mapping"));
+        }
+        var mapping = mappingOpt.get();
+        try {
+            mapping.setSyncStatus(com.clenzy.integration.channex.model.ChannexSyncStatus.ERROR);
+            mapping.setLastSyncError("OTA sync error: " + errorMessage);
+            mapping.setLastSyncAt(java.time.Instant.now());
+            mappingRepository.save(mapping);
+            // Sync log FAIL pour l'historique consultable dans le diagnose dialog
+            syncLogService.record(mapping.getOrganizationId(), mapping.getClenzyPropertyId(),
+                mapping.getId(),
+                com.clenzy.integration.channex.model.ChannexSyncLog.SyncType.PUSH_PROPERTY,
+                com.clenzy.integration.channex.model.ChannexSyncLog.Status.FAIL,
+                0, java.time.Instant.now(), errorMessage);
+            log.warn("Channex webhook[sync_error]: mapping={} property={} flagged ERROR: {}",
+                mapping.getId(), mapping.getClenzyPropertyId(), errorMessage);
+            return ResponseEntity.ok(Map.of(
+                "status", "ok",
+                "event", "sync_error",
+                "mappingId", mapping.getId().toString(),
+                "action", "flagged_error"
+            ));
+        } catch (Exception e) {
+            log.error("Channex webhook[sync_error]: erreur DB property={}: {}",
+                channexPropertyId, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
     }
 }

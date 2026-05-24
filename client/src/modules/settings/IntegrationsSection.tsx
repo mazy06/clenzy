@@ -44,6 +44,11 @@ import { complianceConnectionApi, type ComplianceProvider } from '../../services
 import ComplianceProviderCard from './components/ComplianceProviderCard';
 import { kycConnectionApi, type KycProvider } from '../../services/api/kycConnectionApi';
 import KycProviderCard from './components/KycProviderCard';
+import {
+  COMING_SOON_CHIP_SX,
+  DISABLED_CARDS_SX,
+  blockInteraction,
+} from './components/disabledIntegration';
 import { channelManagerConnectionApi, type ChannelManagerProvider } from '../../services/api/channelManagerConnectionApi';
 import ChannelManagerProviderCard from './components/ChannelManagerProviderCard';
 import ChannexMappingDialog from './components/ChannexMappingDialog';
@@ -58,6 +63,10 @@ const PRIMARY = '#6B8A9A';
 const DANGER = '#C97A7A';
 const NEUTRAL = '#8A8378';
 const WARM = '#D4A574';
+
+// Channex est la seule integration fonctionnelle pour l'instant ; toutes les
+// autres sections affichent l'etat "Bientot disponible" via les utilitaires
+// partages dans disabledIntegration.ts.
 
 const refinedContainedSx = (color: string) => ({
   textTransform: 'none' as const,
@@ -500,22 +509,31 @@ export default function IntegrationsSection({
           scrollMarginTop: 80,
         }}
       >
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
-          {t('settings.integrations.signatureProvider.title', 'Signature electronique')}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+            {t('settings.integrations.signatureProvider.title', 'Signature electronique')}
+          </Typography>
+          <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
+        </Box>
         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
           {t(
             'settings.integrations.signatureProvider.description',
             'Activez et configurez plusieurs fournisseurs en parallele. Chaque connexion est independante.',
           )}
         </Typography>
-        <SignatureProviderCards
-          value={openSignatureProvider}
-          onChange={(next) => setOpenSignatureProvider(next)}
-          connectedSet={connectedProviders}
-          disabled={providerLoading}
-          serviceFilter={selectedServiceId}
-        />
+        <Box
+          sx={DISABLED_CARDS_SX}
+          aria-disabled="true"
+          onClickCapture={blockInteraction}
+          onKeyDownCapture={blockInteraction}
+        >
+          <SignatureProviderCards
+            value={openSignatureProvider}
+            onChange={(next) => setOpenSignatureProvider(next)}
+            connectedSet={connectedProviders}
+            serviceFilter={selectedServiceId}
+          />
+        </Box>
         {providerMessage && (
           <Alert
             severity={providerMessage.type}
@@ -839,18 +857,25 @@ export default function IntegrationsSection({
           scrollMarginTop: 80,
         }}
       >
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
-          Tarification dynamique
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+            Tarification dynamique
+          </Typography>
+          <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
+        </Box>
         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
           Connectez un moteur de revenue management pour des recommandations de prix automatiques (saisonnalité, demande, événements).
         </Typography>
         <Box
+          aria-disabled="true"
+          onClickCapture={blockInteraction}
+          onKeyDownCapture={blockInteraction}
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
             gap: 1,
             mt: 1,
+            ...DISABLED_CARDS_SX,
           }}
         >
           {([
@@ -945,18 +970,25 @@ export default function IntegrationsSection({
           scrollMarginTop: 80,
         }}
       >
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
-          Comptabilité
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+            Comptabilité
+          </Typography>
+          <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
+        </Box>
         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
           Synchronisez factures et dépenses vers votre logiciel comptable. Pennylane est aussi disponible dans la section signature ci-dessus.
         </Typography>
         <Box
+          aria-disabled="true"
+          onClickCapture={blockInteraction}
+          onKeyDownCapture={blockInteraction}
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
             gap: 1,
             mt: 1,
+            ...DISABLED_CARDS_SX,
           }}
         >
           {([
@@ -1072,18 +1104,25 @@ export default function IntegrationsSection({
           scrollMarginTop: 80,
         }}
       >
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
-          Conformité légale
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+            Conformité légale
+          </Typography>
+          <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
+        </Box>
         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
           Automatisez la déclaration légale des voyageurs auprès des autorités locales (fiche police France, DGSN Maroc, Absher Arabie Saoudite). Évite les amendes et les contrôles surprises.
         </Typography>
         <Box
+          aria-disabled="true"
+          onClickCapture={blockInteraction}
+          onKeyDownCapture={blockInteraction}
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
             gap: 1,
             mt: 1,
+            ...DISABLED_CARDS_SX,
           }}
         >
           {([
@@ -1180,18 +1219,25 @@ export default function IntegrationsSection({
           scrollMarginTop: 80,
         }}
       >
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
-          Vérification d'identité (KYC)
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+            Vérification d'identité (KYC)
+          </Typography>
+          <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
+        </Box>
         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
           Vérification automatique des pièces d'identité des voyageurs (lutte contre la fraude, conformité LCB-FT). Indispensable pour les paiements sur compte et les réservations à forte valeur.
         </Typography>
         <Box
+          aria-disabled="true"
+          onClickCapture={blockInteraction}
+          onKeyDownCapture={blockInteraction}
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
             gap: 1,
             mt: 1,
+            ...DISABLED_CARDS_SX,
           }}
         >
           {([
@@ -1300,20 +1346,21 @@ export default function IntegrationsSection({
           }}
         >
           {([
-            { id: 'CHANNEX',        label: 'Channex',        desc: '100+ OTAs · REST moderne · ~12 €/bien' },
-            { id: 'RENTALS_UNITED', label: 'Rentals United', desc: '60+ OTAs · EU + MENA' },
-            { id: 'HOSTAWAY',       label: 'Hostaway',       desc: 'Focus STR · Airbnb natif' },
-            { id: 'SITEMINDER',     label: 'SiteMinder',     desc: '~250 OTAs · leader mondial' },
-          ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc }) => (
+            { id: 'CHANNEX',        label: 'Channex',        desc: '100+ OTAs · REST moderne · ~12 €/bien', comingSoon: false },
+            { id: 'RENTALS_UNITED', label: 'Rentals United', desc: '60+ OTAs · EU + MENA',                  comingSoon: true  },
+            { id: 'HOSTAWAY',       label: 'Hostaway',       desc: 'Focus STR · Airbnb natif',              comingSoon: true  },
+            { id: 'SITEMINDER',     label: 'SiteMinder',     desc: '~250 OTAs · leader mondial',            comingSoon: true  },
+          ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc, comingSoon }) => (
             <ServiceTooltip key={p} providerId={p} name={label}>
             <Box
               role="button"
-              tabIndex={0}
-              onClick={() => {
+              tabIndex={comingSoon ? -1 : 0}
+              aria-disabled={comingSoon || undefined}
+              onClick={comingSoon ? undefined : () => {
                 if (p === 'CHANNEX') setChannexDialogOpen(true);
                 else setOpenChannelManagerProvider(p);
               }}
-              onKeyDown={(e) => {
+              onKeyDown={comingSoon ? undefined : (e) => {
                 if (e.key === ' ' || e.key === 'Enter') {
                   e.preventDefault();
                   if (p === 'CHANNEX') setChannexDialogOpen(true);
@@ -1322,7 +1369,7 @@ export default function IntegrationsSection({
               }}
               sx={{
                 position: 'relative',
-                cursor: 'pointer',
+                cursor: comingSoon ? 'not-allowed' : 'pointer',
                 p: 1,
                 borderRadius: '10px',
                 border: '1px solid',
@@ -1336,14 +1383,17 @@ export default function IntegrationsSection({
                 alignItems: 'center',
                 gap: 1,
                 minHeight: 56,
+                opacity: comingSoon ? 0.55 : 1,
+                filter: comingSoon ? 'grayscale(0.7)' : 'none',
+                userSelect: comingSoon ? 'none' : 'auto',
                 outline: 'none',
                 transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': {
+                '&:hover': comingSoon ? {} : {
                   borderColor: ACCENT,
                   backgroundColor: openChannelManagerProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
                   boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
                 },
-                '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
+                '&:focus-visible': comingSoon ? {} : { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
               }}
             >
               <ProviderLogo provider={p} size={32} />
@@ -1355,7 +1405,9 @@ export default function IntegrationsSection({
                   {desc}
                 </Typography>
               </Box>
-              {connectedChannelManager.has(p) && (
+              {comingSoon ? (
+                <Chip label="Bientôt" size="small" sx={{ ...COMING_SOON_CHIP_SX, position: 'absolute', top: 4, right: 4 }} />
+              ) : connectedChannelManager.has(p) && (
                 <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
                   <CheckCircleIcon size={14} strokeWidth={2.5} />
                 </Box>
@@ -1398,7 +1450,7 @@ export default function IntegrationsSection({
       {/* ─── Section : OTAs (vitrine — gestion dans tab Channels) ────── */}
       {showSection('ota') && (
         <Box id="section-ota" sx={{ scrollMarginTop: 80 }}>
-          <OtaShowcaseSection serviceFilter={selectedServiceId} />
+          <OtaShowcaseSection serviceFilter={selectedServiceId} disabled />
         </Box>
       )}
 
@@ -1406,6 +1458,7 @@ export default function IntegrationsSection({
       {showSection('messaging') && (
         <Box id="section-messaging" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
+            disabled
             serviceFilter={selectedServiceId}
             category="messaging"
             title="Messagerie"
@@ -1416,6 +1469,7 @@ export default function IntegrationsSection({
       {showSection('market_intelligence') && (
         <Box id="section-market-intelligence" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
+            disabled
             serviceFilter={selectedServiceId}
             category="market_intelligence"
             title="Intelligence de marché"
@@ -1426,6 +1480,7 @@ export default function IntegrationsSection({
       {showSection('tax_automation') && (
       <Box id="section-tax" sx={{ scrollMarginTop: 80 }}>
         <ServiceCatalogSection
+          disabled
           serviceFilter={selectedServiceId}
           category="tax_automation"
           title="Fiscalité — Taxe de séjour"
@@ -1436,6 +1491,7 @@ export default function IntegrationsSection({
       {showSection('insurance') && (
         <Box id="section-insurance" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
+            disabled
             serviceFilter={selectedServiceId}
             category="insurance"
             title="Assurance & screening"
@@ -1446,6 +1502,7 @@ export default function IntegrationsSection({
       {showSection('cleaning_operations') && (
         <Box id="section-cleaning" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
+            disabled
             serviceFilter={selectedServiceId}
             category="cleaning_operations"
             title="Ménage & opérations"
@@ -1456,6 +1513,7 @@ export default function IntegrationsSection({
       {showSection('smart_locks_iot') && (
         <Box id="section-smart-locks" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
+            disabled
             serviceFilter={selectedServiceId}
             category="smart_locks_iot"
             title="Serrures connectées & IoT"
@@ -1466,6 +1524,7 @@ export default function IntegrationsSection({
       {showSection('key_management') && (
         <Box id="section-key-management" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
+            disabled
             serviceFilter={selectedServiceId}
             category="key_management"
             title="Gestion des clés"
@@ -1476,6 +1535,7 @@ export default function IntegrationsSection({
       {showSection('noise_monitoring') && (
         <Box id="section-noise" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
+            disabled
             serviceFilter={selectedServiceId}
             category="noise_monitoring"
             title="Monitoring sonore"
@@ -1486,6 +1546,7 @@ export default function IntegrationsSection({
       {showSection('activities_affiliate') && (
         <Box id="section-activities" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
+            disabled
             serviceFilter={selectedServiceId}
             category="activities_affiliate"
             title="Activités & affiliation"
@@ -1496,6 +1557,7 @@ export default function IntegrationsSection({
       {showSection('reviews_reputation') && (
         <Box id="section-reviews" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
+            disabled
             serviceFilter={selectedServiceId}
             category="reviews_reputation"
             title="Avis & réputation"
@@ -1506,6 +1568,7 @@ export default function IntegrationsSection({
       {showSection('marketing_crm') && (
         <Box id="section-marketing" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
+            disabled
             serviceFilter={selectedServiceId}
             category="marketing_crm"
             title="Marketing & CRM"

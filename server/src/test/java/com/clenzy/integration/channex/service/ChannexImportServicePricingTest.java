@@ -63,15 +63,25 @@ class ChannexImportServicePricingTest {
     @Mock private AmenityManagementService amenityManagementService;
 
     private ChannexImportService service;
+    private ChannexPricingImporter realPricingImporter;
 
     @BeforeEach
     void setUp() {
+        // Phase 5 audit O6 : ChannexImportService delegue desormais au
+        // ChannexPricingImporter pour les helpers pricing. On instancie un
+        // vrai ChannexPricingImporter (pas un mock) pour que les tests
+        // existants continuent a verifier le comportement de bout en bout.
+        realPricingImporter = new ChannexPricingImporter(
+            channexClient, ratePlanRepository, occupancyPricingRepository,
+            lengthOfStayDiscountRepository, rateOverrideRepository,
+            bookingRestrictionRepository);
         service = new ChannexImportService(
             channexClient, mappingRepository, propertyRepository, propertyPhotoRepository,
             connectService, userRepository, lengthOfStayDiscountRepository,
             ratePlanRepository, occupancyPricingRepository, rateOverrideRepository,
             bookingRestrictionRepository,
-            new ObjectMapper(), amenityManagementService
+            new ObjectMapper(), amenityManagementService,
+            realPricingImporter
         );
     }
 

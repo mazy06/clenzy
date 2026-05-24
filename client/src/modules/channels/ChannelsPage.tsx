@@ -44,7 +44,6 @@ import { useNavigate } from 'react-router-dom';
 import { Star as StarIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
-import { SPACING } from '../../theme/spacing';
 import type { AirbnbConnectionStatus, AirbnbListingMapping } from '../../services/api/airbnbApi';
 import type { Property } from '../../services/api/propertiesApi';
 import {
@@ -284,7 +283,7 @@ const ChannelsPage: React.FC = () => {
   const unlinkableProperties = properties.filter((p) => !linkedPropertyIds.has(p.id));
 
   return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
+    <Box>
       <PageHeader
         title={t('channels.title')}
         subtitle={t('channels.subtitle')}

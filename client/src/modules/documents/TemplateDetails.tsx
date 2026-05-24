@@ -13,6 +13,8 @@ import {
   TextField,
   IconButton,
   Tooltip,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -25,6 +27,8 @@ import {
   Download,
   Visibility,
   Upload,
+  Description,
+  MoreVert,
 } from '../../icons';
 import {
   useTemplate,
@@ -36,6 +40,7 @@ import {
 } from './hooks/useDocuments';
 import TemplateTagsViewer from './TemplateTagsViewer';
 import ConfirmationModal from '../../components/ConfirmationModal';
+import PageHeader from '../../components/PageHeader';
 import { documentsApi } from '../../services/api/documentsApi';
 
 const TemplateDetails: React.FC = () => {
@@ -53,6 +58,15 @@ const TemplateDetails: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   // Modal de confirmation pour le remplacement du fichier (remplace window.confirm)
   const [pendingReplaceFile, setPendingReplaceFile] = useState<File | null>(null);
+
+  // Kebab menu (regroupe les actions secondaires du header pour reduire l'encombrement)
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const handleMenuOpen = (e: React.MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget);
+  const handleMenuClose = () => setMenuAnchor(null);
+  const runFromMenu = (fn: () => void | Promise<void>) => () => {
+    handleMenuClose();
+    void fn();
+  };
 
   const [editing, setEditing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -242,83 +256,101 @@ const TemplateDetails: React.FC = () => {
 
   const error = actionError;
 
+  const statusColor = template.active ? '#4A9B8E' : '#757575';
+  const replacePending = replaceFileMutation.isPending;
+  const reparsePending = reparseMutation.isPending;
+
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Button startIcon={<ArrowBack />} onClick={() => navigate('/documents')} size="small">
-            Retour
-          </Button>
-          <Typography variant="h5" fontWeight={600}>{template.name}</Typography>
-          {(() => { const c = template.active ? '#4A9B8E' : '#757575'; return (
+      <PageHeader
+        title={template.name}
+        subtitle={`Modèle de document · v${template.version}`}
+        iconBadge={<Description />}
+        backPath="/documents"
+        backLabel="Documents"
+        titleAdornment={
           <Chip
             label={template.active ? 'Actif' : 'Inactif'}
             size="small"
-            sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }}
+            sx={{
+              backgroundColor: `${statusColor}18`,
+              color: statusColor,
+              border: `1px solid ${statusColor}40`,
+              borderRadius: '6px',
+              fontWeight: 600,
+              fontSize: '0.7rem',
+              height: 22,
+              '& .MuiChip-label': { px: 1 },
+            }}
           />
-          ); })()}
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {!template.active && (
-            <Button variant="contained" color="success" startIcon={<CheckCircle />} onClick={handleActivate} size="small">
-              Activer
-            </Button>
-          )}
-          <Tooltip title="Telecharger le fichier source (.odt)">
-            <span>
-              <Button startIcon={<Download />} onClick={handleDownloadOriginal} variant="outlined" size="small">
-                Telecharger
-              </Button>
-            </span>
-          </Tooltip>
-          <Tooltip title="Telecharger l'apercu PDF (donnees factices)">
-            <span>
-              <Button startIcon={<Visibility />} onClick={handleDownloadPreview} variant="outlined" size="small">
-                Telecharger l'apercu
-              </Button>
-            </span>
-          </Tooltip>
-          <Tooltip title="Remplacer le fichier .odt par une nouvelle version (les tags seront re-scannes)">
-            <span>
+        }
+        actions={
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {!template.active && (
               <Button
-                startIcon={replaceFileMutation.isPending ? <CircularProgress size={14} /> : <Upload />}
-                onClick={handleReplaceFileClick}
-                variant="outlined"
+                variant="contained"
+                color="success"
+                startIcon={<CheckCircle size={14} strokeWidth={1.75} />}
+                onClick={handleActivate}
                 size="small"
-                disabled={replaceFileMutation.isPending}
               >
-                {replaceFileMutation.isPending ? 'Remplacement...' : 'Remplacer le fichier'}
+                Activer
               </Button>
-            </span>
-          </Tooltip>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".odt,application/vnd.oasis.opendocument.text"
-            style={{ display: 'none' }}
-            onChange={handleReplaceFileChange}
-          />
-          <Button startIcon={<Refresh />} onClick={handleReparse} variant="outlined" size="small">
-            Re-scanner tags
-          </Button>
-          {editing ? (
-            <>
-              <Button startIcon={<Save />} variant="contained" onClick={handleSave} size="small">Sauvegarder</Button>
-              <Button startIcon={<Cancel />} onClick={() => setEditing(false)} size="small">Annuler</Button>
-            </>
-          ) : (
-            <Button startIcon={<Edit />} onClick={() => setEditing(true)} size="small">Modifier</Button>
-          )}
-          <Tooltip title="Supprimer">
-            <IconButton color="error" onClick={handleDelete}>
-              <Delete />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
+            )}
+            {editing ? (
+              <>
+                <Button startIcon={<Save size={14} strokeWidth={1.75} />} variant="contained" onClick={handleSave} size="small">
+                  Sauvegarder
+                </Button>
+                <Button startIcon={<Cancel size={14} strokeWidth={1.75} />} variant="outlined" onClick={() => setEditing(false)} size="small">
+                  Annuler
+                </Button>
+              </>
+            ) : (
+              <Button
+                startIcon={<Edit size={14} strokeWidth={1.75} />}
+                variant="outlined"
+                onClick={() => setEditing(true)}
+                size="small"
+              >
+                Modifier
+              </Button>
+            )}
+            <Tooltip title="Plus d'actions" arrow>
+              <IconButton
+                size="small"
+                onClick={handleMenuOpen}
+                aria-label="Plus d'actions"
+                aria-haspopup="menu"
+                aria-expanded={Boolean(menuAnchor)}
+                sx={{
+                  width: 30,
+                  height: 30,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  cursor: 'pointer',
+                  '&:hover': {
+                    borderColor: 'text.secondary',
+                    backgroundColor: 'action.hover',
+                  },
+                }}
+              >
+                <MoreVert size={16} strokeWidth={1.75} />
+              </IconButton>
+            </Tooltip>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".odt,application/vnd.oasis.opendocument.text"
+              style={{ display: 'none' }}
+              onChange={handleReplaceFileChange}
+            />
+          </Box>
+        }
+      />
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mt: 2, mb: 2 }} onClose={() => setActionError(null)}>{error}</Alert>}
 
       <Grid container spacing={3} alignItems="flex-start">
         {/* Colonne gauche : Informations + Apercu PDF empiles */}
@@ -460,6 +492,61 @@ const TemplateDetails: React.FC = () => {
           </Box>
         </Grid>
       </Grid>
+
+      {/* ── Menu kebab : actions secondaires du header ─────────────── */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{ paper: { sx: { minWidth: 240, borderRadius: 1.5, mt: 0.5 } } }}
+      >
+        <MenuItem onClick={runFromMenu(handleDownloadOriginal)} sx={{ fontSize: '0.85rem', py: 0.75 }}>
+          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
+            <Download size={18} strokeWidth={1.75} />
+          </Box>
+          Télécharger le fichier source (.odt)
+        </MenuItem>
+        <MenuItem onClick={runFromMenu(handleDownloadPreview)} sx={{ fontSize: '0.85rem', py: 0.75 }}>
+          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
+            <Visibility size={18} strokeWidth={1.75} />
+          </Box>
+          Télécharger l'aperçu PDF
+        </MenuItem>
+        <Divider sx={{ my: 0.5 }} />
+        <MenuItem
+          onClick={runFromMenu(handleReplaceFileClick)}
+          disabled={replacePending}
+          sx={{ fontSize: '0.85rem', py: 0.75 }}
+        >
+          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
+            {replacePending ? <CircularProgress size={16} /> : <Upload size={18} strokeWidth={1.75} />}
+          </Box>
+          {replacePending ? 'Remplacement…' : 'Remplacer le fichier (.odt)'}
+        </MenuItem>
+        <MenuItem
+          onClick={runFromMenu(handleReparse)}
+          disabled={reparsePending}
+          sx={{ fontSize: '0.85rem', py: 0.75 }}
+        >
+          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
+            {reparsePending ? <CircularProgress size={16} /> : <Refresh size={18} strokeWidth={1.75} />}
+          </Box>
+          Re-scanner les tags
+        </MenuItem>
+        <Divider sx={{ my: 0.5 }} />
+        <MenuItem
+          onClick={runFromMenu(handleDelete)}
+          disabled={deleteMutation.isPending}
+          sx={{ fontSize: '0.85rem', py: 0.75, color: 'error.main' }}
+        >
+          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'error.main' }}>
+            <Delete size={18} strokeWidth={1.75} />
+          </Box>
+          Supprimer
+        </MenuItem>
+      </Menu>
 
       {/* ── Modal de confirmation du remplacement de fichier ─────────── */}
       <ConfirmationModal
