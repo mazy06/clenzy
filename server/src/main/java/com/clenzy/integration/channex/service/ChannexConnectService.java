@@ -949,6 +949,36 @@ public class ChannexConnectService {
         return new ChannexHealthSummary(mappings.size(), counts, attention, now);
     }
 
+    /**
+     * Phase 5 audit fix — Modifie le {@link com.clenzy.model.PriceSourceOfTruth}
+     * d'une property. Cf. {@link com.clenzy.integration.channex.controller.ChannexConnectController}
+     * pour le PATCH endpoint.
+     *
+     * <p>Validation cross-tenant : la property doit appartenir a l'organisation
+     * du caller.</p>
+     *
+     * @return le mode applique (== source)
+     * @throws IllegalStateException si property introuvable ou autre org
+     */
+    @Transactional
+    public com.clenzy.model.PriceSourceOfTruth updatePriceSourceOfTruth(Long clenzyPropertyId,
+                                                                          Long orgId,
+                                                                          com.clenzy.model.PriceSourceOfTruth source) {
+        Property property = propertyRepository.findById(clenzyPropertyId)
+            .orElseThrow(() -> new IllegalStateException(
+                "Property " + clenzyPropertyId + " introuvable"));
+        if (!orgId.equals(property.getOrganizationId())) {
+            throw new IllegalStateException("Property " + clenzyPropertyId
+                + " n'appartient pas a l'organisation " + orgId);
+        }
+        com.clenzy.model.PriceSourceOfTruth previous = property.getPriceSourceOfTruth();
+        property.setPriceSourceOfTruth(source);
+        propertyRepository.save(property);
+        log.info("ChannexConnect: property={} priceSourceOfTruth {} → {}",
+            clenzyPropertyId, previous, source);
+        return source;
+    }
+
     // ─── Pull bookings (reverse sync OTA → Channex → Clenzy) ───────────────
 
     /**

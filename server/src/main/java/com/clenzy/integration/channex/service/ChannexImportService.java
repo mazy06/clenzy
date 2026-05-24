@@ -2132,12 +2132,23 @@ public class ChannexImportService {
         int created = 0;
         for (AdditionalRatePlan arp : info.additionalRatePlans()) {
             if (arp.defaultPrice() == null || arp.defaultPrice().signum() <= 0) continue;
-            String name = "OTA — " + (arp.title() != null ? arp.title() : "Variant");
-            boolean alreadyExists = existingPromos.stream()
-                .anyMatch(rp -> name.equals(rp.getName()));
+            // Phase 5 audit fix : idempotence basee sur le Channex rate_plan_id
+            // (stable cote OTA) en plus du nom (qui peut changer si l'host renomme
+            // son rate plan dans Airbnb). Le nom est encode entre [] dans le name
+            // Clenzy pour permettre la detection idempotente sans nouveau champ DB.
+            String stableTitle = arp.title() != null ? arp.title() : "Variant";
+            String otaIdTag = arp.channexRatePlanId() != null
+                ? "[" + arp.channexRatePlanId().substring(0, Math.min(8, arp.channexRatePlanId().length())) + "]"
+                : "";
+            String name = "OTA " + otaIdTag + " — " + stableTitle;
+            // Match si le name existant contient le meme prefixe ID (le titre humain
+            // peut avoir change, on detecte par l'ID stable Channex).
+            boolean alreadyExists = arp.channexRatePlanId() != null
+                && existingPromos.stream().anyMatch(rp ->
+                    rp.getName() != null && rp.getName().contains(otaIdTag));
             if (alreadyExists) {
-                log.debug("ChannexImport[ADDITIONAL_RP]: skip duplicate name='{}' pour property={}",
-                    name, prop.getId());
+                log.debug("ChannexImport[ADDITIONAL_RP]: skip duplicate id={} pour property={}",
+                    arp.channexRatePlanId(), prop.getId());
                 continue;
             }
             try {

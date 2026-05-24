@@ -237,4 +237,74 @@ class ChannexSyncServicePricingPushTest {
         assertThat(result.message()).contains("rate_plan_id");
         verify(channexClient, never()).updateRatePlanSettings(any(), any());
     }
+
+    // ─── T2 : pushRatesForRange avec BookingRestriction (Phase 5) ──────────
+
+    @org.mockito.Mock private com.clenzy.repository.CalendarDayRepository calendarDayRepoMock;
+
+    @Test
+    @DisplayName("pushRatesForRange : BookingRestriction applicable -> ChannexRateUpdate enrichi avec min_stay + CTA + CTD")
+    void pushRates_enrichedWithBookingRestriction() {
+        // Setup mapping + property en mode CLENZY
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.of(mapping()));
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(true);
+
+        // PriceEngine resoud 3 jours
+        java.time.LocalDate d1 = java.time.LocalDate.of(2026, 7, 1);
+        java.time.LocalDate d2 = java.time.LocalDate.of(2026, 7, 2);
+        java.time.LocalDate d3 = java.time.LocalDate.of(2026, 7, 3);
+        when(priceEngine.resolvePriceRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(java.util.Map.of(
+                d1, new BigDecimal("100"),
+                d2, new BigDecimal("110"),
+                d3, new BigDecimal("120")
+            ));
+
+        // Une BookingRestriction couvre les 3 jours : min=3, CTA=false, CTD=true
+        com.clenzy.model.BookingRestriction br = new com.clenzy.model.BookingRestriction();
+        br.setStartDate(d1);
+        br.setEndDate(d3);
+        br.setMinStay(3);
+        br.setClosedToArrival(false);
+        br.setClosedToDeparture(true);
+        br.setPriority(10);
+        when(bookingRestrictionRepository.findApplicable(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(java.util.List.of(br));
+
+        ChannexSyncService.ChannexSyncResult result = service.pushProperty(100L, 42L, d1, d3);
+
+        assertThat(result.success()).isTrue();
+        ArgumentCaptor<java.util.List<com.clenzy.integration.channex.dto.ChannexRateUpdate>> captor =
+            ArgumentCaptor.forClass(java.util.List.class);
+        verify(channexClient).pushRates(captor.capture());
+        java.util.List<com.clenzy.integration.channex.dto.ChannexRateUpdate> sent = captor.getValue();
+        assertThat(sent).allSatisfy(u -> {
+            assertThat(u.minStayThrough()).isEqualTo(3);
+            assertThat(u.closedToArrival()).isFalse();
+            assertThat(u.closedToDeparture()).isTrue();
+        });
+    }
+
+    @Test
+    @DisplayName("pushRatesForRange : aucune BookingRestriction -> ChannexRateUpdate avec restrictions null")
+    void pushRates_noBookingRestriction_nullFields() {
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.of(mapping()));
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(true);
+        java.time.LocalDate d = java.time.LocalDate.of(2026, 7, 1);
+        when(priceEngine.resolvePriceRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(java.util.Map.of(d, new BigDecimal("100")));
+        when(bookingRestrictionRepository.findApplicable(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(java.util.List.of());
+
+        service.pushProperty(100L, 42L, d, d);
+
+        ArgumentCaptor<java.util.List<com.clenzy.integration.channex.dto.ChannexRateUpdate>> captor =
+            ArgumentCaptor.forClass(java.util.List.class);
+        verify(channexClient).pushRates(captor.capture());
+        assertThat(captor.getValue().get(0).minStayThrough()).isNull();
+        assertThat(captor.getValue().get(0).closedToArrival()).isNull();
+        assertThat(captor.getValue().get(0).closedToDeparture()).isNull();
+    }
 }

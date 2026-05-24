@@ -285,6 +285,42 @@ public class ChannexConnectController {
     }
 
     /**
+     * Modifie le mode {@link com.clenzy.model.PriceSourceOfTruth} d'une property
+     * — qui pilote les prix : Clenzy (push vers OTA), OTA (pull depuis OTA),
+     * MANUAL (aucune sync auto).
+     *
+     * <p>Cas d'usage : l'admin a un Pricelabs/Wheelhouse connecte directement
+     * a Airbnb → passe sa property en mode OTA pour que Clenzy ne push pas.</p>
+     */
+    @org.springframework.web.bind.annotation.PatchMapping(
+        "/properties/{clenzyPropertyId}/price-source-of-truth")
+    @Operation(summary = "Change le pilote des prix (CLENZY/OTA/MANUAL) d'une property")
+    public PriceSourceResponse setPriceSourceOfTruth(@PathVariable Long clenzyPropertyId,
+                                                       @RequestBody PriceSourceBody body) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        if (body == null || body.source() == null || body.source().isBlank()) {
+            throw new IllegalArgumentException(
+                "Body requis : { \"source\": \"CLENZY|OTA|MANUAL\" }");
+        }
+        com.clenzy.model.PriceSourceOfTruth source;
+        try {
+            source = com.clenzy.model.PriceSourceOfTruth.valueOf(body.source());
+        } catch (IllegalArgumentException iae) {
+            throw new IllegalArgumentException(
+                "source doit etre CLENZY, OTA ou MANUAL — recu : " + body.source());
+        }
+        com.clenzy.model.PriceSourceOfTruth applied = connectService
+            .updatePriceSourceOfTruth(clenzyPropertyId, orgId, source);
+        return new PriceSourceResponse(clenzyPropertyId, applied.name());
+    }
+
+    /** Body pour PATCH /properties/{id}/price-source-of-truth. */
+    public record PriceSourceBody(String source) {}
+
+    /** Reponse simple : property + nouveau mode applique. */
+    public record PriceSourceResponse(Long clenzyPropertyId, String priceSourceOfTruth) {}
+
+    /**
      * Re-synchronise le contenu OTA d'une property deja importee :
      * re-scrape Airbnb (nom + amenities JSON-LD), applique les aliases admin,
      * met a jour {@code property.amenities} + {@code ota_raw_amenities}.
