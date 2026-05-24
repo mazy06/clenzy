@@ -8,7 +8,6 @@ import {
   Chip,
   Button,
   Divider,
-  alpha,
 } from '@mui/material';
 import {
   ExpandMore,
@@ -26,6 +25,18 @@ import {
 } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import type { DocumentTemplate } from '../../services/api/documentsApi';
+import { softChipSx } from '../../utils/statusUtils';
+
+// ─── Clenzy palette (accents valides) ───────────────────────────────────────
+// Toutes les couleurs respectent l'identite Clenzy (primer.md + Impeccable).
+// On evite les couleurs MUI brutes (#1976d2, #2e7d32...) au profit des accents
+// du produit pour eviter le rendu "templated" / generique.
+const ACCENT_TEAL = '#4A9B8E';   // teal — actions positives, welcoming
+const PRIMARY = '#6B8A9A';        // bleu-gris Clenzy — etat principal
+const WARM = '#D4A574';           // warm sand — transition/important
+const SOFT_BLUE = '#7BA3C2';      // bleu doux — info passive
+const NEUTRAL = '#8A8378';        // warm-gray Clenzy — secondaire/inactif
+const VIOLET = '#8b5cf6';         // violet — docs commerciaux (categorie distincte)
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -68,7 +79,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'pre-stay',
     label: 'Avant le sejour',
     icon: <EventAvailable />,
-    color: '#1976d2',
+    color: ACCENT_TEAL,
     items: [
       {
         id: 'checkin-instructions',
@@ -122,7 +133,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'during-stay',
     label: 'Pendant le sejour',
     icon: <Hotel />,
-    color: '#2e7d32',
+    color: PRIMARY,
     items: [
       {
         id: 'noise-alert-owner',
@@ -168,7 +179,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'post-stay',
     label: 'Fin du sejour',
     icon: <ExitToApp />,
-    color: '#ed6c02',
+    color: WARM,
     items: [
       {
         id: 'checkout-instructions',
@@ -193,7 +204,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'documents',
     label: 'Documents commerciaux',
     icon: <Description />,
-    color: '#7b1fa2',
+    color: VIOLET,
     items: [
       {
         id: 'doc-devis',
@@ -289,7 +300,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'admin',
     label: 'Administration',
     icon: <AdminPanelSettings />,
-    color: '#616161',
+    color: NEUTRAL,
     items: [
       {
         id: 'invitation-org',
@@ -331,18 +342,24 @@ const CATALOG_GROUPS: CatalogGroup[] = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const TRIGGER_CONFIG: Record<string, { label: string; color: 'info' | 'default' | 'warning' | 'secondary' }> = {
-  auto: { label: 'Automatique', color: 'info' },
-  manual: { label: 'Manuel', color: 'default' },
-  form: { label: 'Formulaire', color: 'warning' },
-  'auto+manual': { label: 'Auto / Manuel', color: 'secondary' },
+// Couleurs des chips alignees sur la palette Clenzy via softChipSx.
+// Semantic mapping :
+//   auto      = PRIMARY (action systeme reguliere)
+//   manual    = NEUTRAL (action humaine)
+//   form      = WARM (declenchement externe)
+//   document  = VIOLET (canal physique)
+const TRIGGER_CONFIG: Record<string, { label: string; hex: string }> = {
+  auto: { label: 'Automatique', hex: PRIMARY },
+  manual: { label: 'Manuel', hex: NEUTRAL },
+  form: { label: 'Formulaire', hex: WARM },
+  'auto+manual': { label: 'Auto / Manuel', hex: ACCENT_TEAL },
 };
 
-const CHANNEL_CONFIG: Record<string, { label: string; color: 'primary' | 'success' | 'secondary' }> = {
-  email: { label: 'Email', color: 'primary' },
-  'in-app': { label: 'In-app', color: 'success' },
-  'email+in-app': { label: 'Email + In-app', color: 'success' },
-  document: { label: 'Document .odt', color: 'secondary' },
+const CHANNEL_CONFIG: Record<string, { label: string; hex: string }> = {
+  email: { label: 'Email', hex: SOFT_BLUE },
+  'in-app': { label: 'In-app', hex: ACCENT_TEAL },
+  'email+in-app': { label: 'Email + In-app', hex: ACCENT_TEAL },
+  document: { label: 'Document .odt', hex: VIOLET },
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -366,8 +383,12 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
 
   return (
     <Box sx={{ mb: 4 }}>
-      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.75rem', fontWeight: 700 }}>
-        Catalogue des templates par etape du parcours
+      {/* Section title — no forced uppercase, no aggressive letter-spacing (anti-pattern templated) */}
+      <Typography
+        variant="subtitle2"
+        sx={{ mb: 1.5, color: 'text.secondary', fontSize: '0.78rem', fontWeight: 600 }}
+      >
+        Catalogue des templates par étape du parcours
       </Typography>
 
       {CATALOG_GROUPS.map((group) => (
@@ -376,6 +397,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
           expanded={expandedGroup === group.id}
           onChange={(_, isExpanded) => setExpandedGroup(isExpanded ? group.id : false)}
           disableGutters
+          elevation={0}
           sx={{
             mb: 1,
             border: '1px solid',
@@ -383,29 +405,47 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
             borderRadius: '8px !important',
             '&:before': { display: 'none' },
             '&.Mui-expanded': { mb: 1 },
+            transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+            '&:hover': { borderColor: 'text.disabled' },
           }}
         >
           <AccordionSummary
-            expandIcon={<ExpandMore />}
+            expandIcon={<ExpandMore size={18} strokeWidth={1.75} />}
             sx={{
               borderRadius: '8px',
-              '&.Mui-expanded': { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
-              bgcolor: alpha(group.color, 0.04),
-              '&:hover': { bgcolor: alpha(group.color, 0.08) },
+              cursor: 'pointer',
+              '&.Mui-expanded': { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: '1px solid', borderColor: 'divider' },
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
-              <Box sx={{ color: group.color, display: 'flex' }}>
-                {group.icon}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%' }}>
+              {/* Badge icone Clenzy (tile 26x26, accent color, contraste WCAG AA+) */}
+              <Box
+                sx={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: `${group.color}14`,
+                  color: group.color,
+                  flexShrink: 0,
+                }}
+              >
+                {React.isValidElement(group.icon)
+                  ? React.cloneElement(group.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
+                      size: 16,
+                      strokeWidth: 1.75,
+                    })
+                  : group.icon}
               </Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', flex: 1 }}>
+              <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', flex: 1, color: 'text.primary' }}>
                 {group.label}
               </Typography>
               <Chip
                 label={`${group.items.length} template${group.items.length > 1 ? 's' : ''}`}
                 size="small"
-                variant="outlined"
-                sx={{ fontSize: '0.6875rem', height: 22, borderColor: group.color, color: group.color }}
+                sx={softChipSx(group.color)}
               />
             </Box>
           </AccordionSummary>
@@ -419,138 +459,180 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                 <Box key={item.id}>
                   {idx > 0 && <Divider />}
                   <Box sx={{ p: 2 }}>
-                    {/* Header */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Typography sx={{ fontWeight: 600, fontSize: '0.8125rem', flex: 1 }}>
+                    {/* Header : titre + chips meta uniformes (toutes en softChipSx) */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1, flexWrap: 'wrap' }}>
+                      <Typography sx={{ fontWeight: 600, fontSize: '0.8125rem', flex: 1, minWidth: 0 }}>
                         {item.name}
                       </Typography>
-                      <Chip label={trigger.label} size="small" color={trigger.color} variant="outlined" sx={{ fontSize: '0.625rem', height: 20 }} />
-                      <Chip label={channel.label} size="small" color={channel.color} variant="outlined" sx={{ fontSize: '0.625rem', height: 20 }} />
-                      <Chip label={item.recipient} size="small" variant="outlined" sx={{ fontSize: '0.625rem', height: 20 }} />
+                      <Chip label={trigger.label} size="small" sx={softChipSx(trigger.hex)} />
+                      <Chip label={channel.label} size="small" sx={softChipSx(channel.hex)} />
+                      <Chip label={item.recipient} size="small" sx={softChipSx(NEUTRAL)} />
                     </Box>
 
                     {/* Description */}
-                    <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8125rem', mb: 1.5, lineHeight: 1.5 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8125rem', mb: 1.25, lineHeight: 1.5 }}>
                       {item.description}
                     </Typography>
 
                     {/* Trigger detail */}
                     <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 0.5 }}>
-                      <strong>Declencheur :</strong> {item.triggerDetail}
+                      <Box component="strong" sx={{ color: 'text.primary', fontWeight: 600 }}>Déclencheur :</Box> {item.triggerDetail}
                     </Typography>
 
-                    {/* Variables */}
+                    {/* Variables — chips tres legeres (variant pure tag, font 10px, no border) */}
                     {item.variables && item.variables.length > 0 && (
-                      <Box sx={{ mt: 1.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Code size={14} strokeWidth={1.75} /></Box>
-                          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                            Variables disponibles :
+                      <Box sx={{ mt: 1.25 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.625 }}>
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+                            <Code size={13} strokeWidth={1.75} />
+                          </Box>
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.7rem' }}>
+                            Variables disponibles
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                           {item.variables.map((v) => (
-                            <Chip
+                            <Box
                               key={v}
-                              label={`{${v}}`}
-                              size="small"
-                              variant="outlined"
+                              component="code"
                               sx={{
-                                fontSize: '0.625rem',
-                                height: 20,
-                                fontFamily: 'monospace',
-                                borderColor: 'grey.300',
-                                color: 'text.secondary',
+                                fontFamily: '"SF Mono", Menlo, Consolas, monospace',
+                                fontSize: '0.6875rem',
+                                color: PRIMARY,
+                                backgroundColor: `${PRIMARY}0F`,
+                                border: '1px solid',
+                                borderColor: `${PRIMARY}26`,
+                                borderRadius: '4px',
+                                px: 0.625,
+                                py: '2px',
+                                lineHeight: 1.5,
+                                whiteSpace: 'nowrap',
                               }}
-                            />
+                            >
+                              {`{${v}}`}
+                            </Box>
                           ))}
                         </Box>
                       </Box>
                     )}
 
-                    {/* Template link / upload zone */}
-                    <Box
-                      sx={{
-                        mt: 2,
-                        p: 1.5,
-                        borderRadius: 1,
-                        bgcolor: 'grey.50',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                      }}
-                    >
-                      {item.templateKind === 'document' && linkedTemplate && (
-                        <>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                              {linkedTemplate.originalFilename}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {linkedTemplate.active ? 'Actif' : 'Inactif'} — v{linkedTemplate.version}
-                            </Typography>
+                    {/* Footer status row — couleur tintee selon l'etat (palette Clenzy) */}
+                    {(() => {
+                      // Etat = couleur d'accent + icone choisis selon le type de template
+                      const status =
+                        item.templateKind === 'document' && linkedTemplate
+                          ? { hex: ACCENT_TEAL, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
+                          : item.templateKind === 'document' && !linkedTemplate
+                          ? { hex: WARM, icon: <Warning size={16} strokeWidth={1.75} /> }
+                          : item.templateKind === 'message'
+                          ? { hex: SOFT_BLUE, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
+                          : { hex: NEUTRAL, icon: <CheckCircle size={16} strokeWidth={1.75} /> };
+
+                      return (
+                        <Box
+                          sx={{
+                            mt: 1.5,
+                            px: 1.25,
+                            py: 1,
+                            borderRadius: 1.25,
+                            backgroundColor: `${status.hex}0C`,
+                            border: '1px solid',
+                            borderColor: `${status.hex}26`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                          }}
+                        >
+                          <Box component="span" sx={{ display: 'inline-flex', color: status.hex, flexShrink: 0 }}>
+                            {status.icon}
                           </Box>
-                          <Button
-                            size="small"
-                            startIcon={<Visibility size={14} strokeWidth={1.75} />}
-                            onClick={() => navigate(`/documents/templates/${linkedTemplate.id}`)}
-                            sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
-                          >
-                            Voir
-                          </Button>
-                        </>
-                      )}
 
-                      {item.templateKind === 'document' && !linkedTemplate && (
-                        <>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Warning size={18} strokeWidth={1.75} /></Box>
-                          <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
-                            Aucun template uploade
-                          </Typography>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<CloudUpload size={14} strokeWidth={1.75} />}
-                            onClick={onOpenUpload}
-                            sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
-                          >
-                            Uploader un template .odt
-                          </Button>
-                        </>
-                      )}
-
-                      {item.templateKind === 'message' && (
-                        <>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>
-                          <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
-                            Template de messagerie — configurable dans l'onglet "Templates messages"
-                          </Typography>
-                          {onSwitchToMessagingTab && (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<OpenInNew size={14} strokeWidth={1.75} />}
-                              onClick={onSwitchToMessagingTab}
-                              sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
-                            >
-                              Gerer
-                            </Button>
+                          {item.templateKind === 'document' && linkedTemplate && (
+                            <>
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {linkedTemplate.originalFilename}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6875rem' }}>
+                                  {linkedTemplate.active ? 'Actif' : 'Inactif'} · v{linkedTemplate.version}
+                                </Typography>
+                              </Box>
+                              <Button
+                                size="small"
+                                startIcon={<Visibility size={13} strokeWidth={1.75} />}
+                                onClick={() => navigate(`/documents/templates/${linkedTemplate.id}`)}
+                                sx={{
+                                  fontSize: '0.6875rem',
+                                  textTransform: 'none',
+                                  fontWeight: 600,
+                                  color: status.hex,
+                                  cursor: 'pointer',
+                                  '&:hover': { backgroundColor: `${status.hex}14` },
+                                }}
+                              >
+                                Voir
+                              </Button>
+                            </>
                           )}
-                        </>
-                      )}
 
-                      {item.templateKind === 'hardcoded' && (
-                        <>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>
-                          <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
-                            Template integre au systeme — non modifiable
-                          </Typography>
-                        </>
-                      )}
-                    </Box>
+                          {item.templateKind === 'document' && !linkedTemplate && (
+                            <>
+                              <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.primary', fontWeight: 500 }}>
+                                Aucun template uploadé
+                              </Typography>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<CloudUpload size={13} strokeWidth={1.75} />}
+                                onClick={onOpenUpload}
+                                sx={{
+                                  fontSize: '0.6875rem',
+                                  textTransform: 'none',
+                                  fontWeight: 600,
+                                  borderColor: `${status.hex}66`,
+                                  color: status.hex,
+                                  cursor: 'pointer',
+                                  '&:hover': { borderColor: status.hex, backgroundColor: `${status.hex}14` },
+                                }}
+                              >
+                                Uploader un template .odt
+                              </Button>
+                            </>
+                          )}
+
+                          {item.templateKind === 'message' && (
+                            <>
+                              <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.primary' }}>
+                                Template de messagerie — configurable dans <Box component="span" sx={{ fontWeight: 600 }}>Templates messages</Box>
+                              </Typography>
+                              {onSwitchToMessagingTab && (
+                                <Button
+                                  size="small"
+                                  startIcon={<OpenInNew size={13} strokeWidth={1.75} />}
+                                  onClick={onSwitchToMessagingTab}
+                                  sx={{
+                                    fontSize: '0.6875rem',
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    color: status.hex,
+                                    cursor: 'pointer',
+                                    '&:hover': { backgroundColor: `${status.hex}14` },
+                                  }}
+                                >
+                                  Gérer
+                                </Button>
+                              )}
+                            </>
+                          )}
+
+                          {item.templateKind === 'hardcoded' && (
+                            <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
+                              Template intégré au système — non modifiable
+                            </Typography>
+                          )}
+                        </Box>
+                      );
+                    })()}
                   </Box>
                 </Box>
               );

@@ -41,6 +41,7 @@ import { guestsApi } from '../../services/api/guestsApi';
 import { documentsApi, type DocumentGeneration } from '../../services/api/documentsApi';
 import { useGenerations, useVerifyDocumentIntegrity } from './hooks/useDocuments';
 import GenerateDialog from './GenerateDialog';
+import { softChipSx } from '../../utils/statusUtils';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -70,22 +71,31 @@ interface UnifiedRow {
 
 // ─── Status Configs ─────────────────────────────────────────────────────────
 
+// Palette Clenzy : remplace les couleurs MUI (#d32f2f, #ED6C02, #0288d1)
+// par les accents valides du produit.
+const ACCENT_TEAL = '#4A9B8E';
+const WARM = '#D4A574';
+const SOFT_BLUE = '#7BA3C2';
+const NEUTRAL = '#8A8378';
+const DANGER_SOFT = '#C97A7A';
+const PRIMARY = '#6B8A9A';
+
 const MSG_STATUS: Record<string, { hex: string; label: string }> = {
-  SENT: { hex: '#4A9B8E', label: 'Envoye' },
-  DELIVERED: { hex: '#4A9B8E', label: 'Delivre' },
-  PENDING: { hex: '#ED6C02', label: 'En attente' },
-  FAILED: { hex: '#d32f2f', label: 'Echoue' },
-  BOUNCED: { hex: '#d32f2f', label: 'Rebondi' },
+  SENT: { hex: ACCENT_TEAL, label: 'Envoye' },
+  DELIVERED: { hex: ACCENT_TEAL, label: 'Delivre' },
+  PENDING: { hex: WARM, label: 'En attente' },
+  FAILED: { hex: DANGER_SOFT, label: 'Echoue' },
+  BOUNCED: { hex: DANGER_SOFT, label: 'Rebondi' },
 };
 
 const DOC_STATUS: Record<string, { hex: string; label: string }> = {
-  PENDING: { hex: '#757575', label: 'En attente' },
-  GENERATING: { hex: '#0288d1', label: 'En cours' },
-  COMPLETED: { hex: '#4A9B8E', label: 'Termine' },
-  FAILED: { hex: '#d32f2f', label: 'Echoue' },
-  SENT: { hex: '#4A9B8E', label: 'Envoye' },
-  LOCKED: { hex: '#ED6C02', label: 'Verrouille' },
-  ARCHIVED: { hex: '#757575', label: 'Archive' },
+  PENDING: { hex: NEUTRAL, label: 'En attente' },
+  GENERATING: { hex: SOFT_BLUE, label: 'En cours' },
+  COMPLETED: { hex: ACCENT_TEAL, label: 'Termine' },
+  FAILED: { hex: DANGER_SOFT, label: 'Echoue' },
+  SENT: { hex: ACCENT_TEAL, label: 'Envoye' },
+  LOCKED: { hex: WARM, label: 'Verrouille' },
+  ARCHIVED: { hex: NEUTRAL, label: 'Archive' },
 };
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -325,18 +335,25 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
         </Alert>
       )}
 
-      {/* Filter chips */}
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-        {FILTER_OPTIONS.map((opt) => (
-          <Chip
-            key={opt.key}
-            label={opt.label}
-            variant={filter === opt.key ? 'filled' : 'outlined'}
-            color={filter === opt.key ? 'primary' : 'default'}
-            onClick={() => setFilter(opt.key)}
-            sx={{ fontWeight: filter === opt.key ? 600 : 400, cursor: 'pointer' }}
-          />
-        ))}
+      {/* Filter chips — Clenzy soft palette, active = PRIMARY tinted, inactif = NEUTRAL */}
+      <Box sx={{ display: 'flex', gap: 0.75, mb: 2 }}>
+        {FILTER_OPTIONS.map((opt) => {
+          const active = filter === opt.key;
+          return (
+            <Chip
+              key={opt.key}
+              label={opt.label}
+              onClick={() => setFilter(opt.key)}
+              sx={{
+                ...softChipSx(active ? PRIMARY : NEUTRAL),
+                cursor: 'pointer',
+                opacity: active ? 1 : 0.7,
+                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                '&:hover': { opacity: 1, backgroundColor: active ? `${PRIMARY}24` : `${NEUTRAL}24` },
+              }}
+            />
+          );
+        })}
       </Box>
 
       {isLoading ? (
@@ -371,12 +388,12 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               <TableBody>
                 {unifiedRows.map((row) => (
                   <TableRow key={row.id} hover>
-                    {/* Type icon */}
+                    {/* Type icon (Clenzy palette : message = SOFT_BLUE, document = VIOLET) */}
                     <TableCell sx={{ pr: 0 }}>
-                      <Tooltip title={row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')}>
+                      <Tooltip title={row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')} arrow>
                         {row.kind === 'message'
-                          ? <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><EmailIcon size={18} strokeWidth={1.75} /></Box>
-                          : <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><DocIcon size={18} strokeWidth={1.75} /></Box>
+                          ? <Box component="span" sx={{ display: 'inline-flex', color: SOFT_BLUE }}><EmailIcon size={18} strokeWidth={1.75} /></Box>
+                          : <Box component="span" sx={{ display: 'inline-flex', color: '#8b5cf6' }}><DocIcon size={18} strokeWidth={1.75} /></Box>
                         }
                       </Tooltip>
                     </TableCell>
@@ -388,14 +405,20 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         <Typography variant="body2" fontWeight={500} noWrap sx={{ maxWidth: 200 }}>
                           {row.name}
                         </Typography>
-                        {row.legalNumber && (() => { const c = row.locked ? '#ED6C02' : '#757575'; return (
-                          <Chip
-                            icon={row.locked ? <Lock size={12} strokeWidth={1.75} color={c} /> : undefined}
-                            label={row.legalNumber}
-                            size="small"
-                            sx={{ fontFamily: 'monospace', fontSize: '0.625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-                          />
-                        ); })()}
+                        {row.legalNumber && (() => {
+                          const hex = row.locked ? WARM : NEUTRAL;
+                          return (
+                            <Chip
+                              icon={row.locked ? <Lock size={12} strokeWidth={1.75} color={hex} /> : undefined}
+                              label={row.legalNumber}
+                              size="small"
+                              sx={{
+                                ...softChipSx(hex),
+                                fontFamily: '"SF Mono", Menlo, Consolas, monospace',
+                              }}
+                            />
+                          );
+                        })()}
                       </Box>
                       {row.fileSize ? (
                         <Typography variant="caption" color="text.secondary">
@@ -409,15 +432,11 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Chip label={row.channel} size="small" sx={{ backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }} />
+                      <Chip label={row.channel} size="small" sx={softChipSx(SOFT_BLUE)} />
                     </TableCell>
                     <TableCell align="center">
-                      <Tooltip title={row.errorMessage || ''}>
-                        <Chip
-                          label={row.status}
-                          size="small"
-                          sx={{ backgroundColor: `${row.statusHex}18`, color: row.statusHex, border: `1px solid ${row.statusHex}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }}
-                        />
+                      <Tooltip title={row.errorMessage || ''} arrow>
+                        <Chip label={row.status} size="small" sx={softChipSx(row.statusHex)} />
                       </Tooltip>
                     </TableCell>
                     <TableCell align="right">
@@ -425,20 +444,26 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         {/* ── Message actions ── */}
                         {row.kind === 'message' && row.messageLog && (
                           <>
-                            <Tooltip title="Voir les details">
-                              <IconButton size="small" color="info" onClick={() => setDetailLog(row.messageLog!)}>
+                            <Tooltip title="Voir les details" arrow>
+                              <IconButton
+                                size="small"
+                                onClick={() => setDetailLog(row.messageLog!)}
+                                aria-label="Voir les details"
+                                sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: SOFT_BLUE, backgroundColor: `${SOFT_BLUE}14` } }}
+                              >
                                 <Visibility fontSize="small" />
                               </IconButton>
                             </Tooltip>
                             {row.messageLog.status === 'FAILED' && row.messageLog.guestId && (
-                              <Tooltip title="Modifier l'email et renvoyer">
+                              <Tooltip title="Modifier l'email et renvoyer" arrow>
                                 <IconButton
                                   size="small"
-                                  color="warning"
                                   onClick={() => {
                                     setEditEmailLog(row.messageLog!);
                                     setEditEmailValue(row.messageLog!.recipient === 'N/A' ? '' : row.messageLog!.recipient);
                                   }}
+                                  aria-label="Modifier l'email"
+                                  sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: WARM, backgroundColor: `${WARM}14` } }}
                                 >
                                   <EditIcon fontSize="small" />
                                 </IconButton>
@@ -459,13 +484,18 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                 ? "Renvoyer le message"
                                 : "Pas de destinataire — ajoute un email guest avant de renvoyer";
                               return (
-                                <Tooltip title={tip}>
+                                <Tooltip title={tip} arrow>
                                   <span>
                                     <IconButton
                                       size="small"
-                                      color={canResend ? 'success' : 'default'}
                                       disabled={!canResend || resendingId === row.messageLog!.id}
                                       onClick={() => canResend && handleResend(row.messageLog!)}
+                                      aria-label="Renvoyer"
+                                      sx={{
+                                        cursor: canResend ? 'pointer' : 'not-allowed',
+                                        color: canResend ? ACCENT_TEAL : 'text.disabled',
+                                        '&:hover': canResend ? { backgroundColor: `${ACCENT_TEAL}14` } : {},
+                                      }}
                                     >
                                       {resendingId === row.messageLog!.id
                                         ? <CircularProgress size={16} />
@@ -481,15 +511,25 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         {row.kind === 'document' && row.documentGeneration && (
                           <>
                             {['COMPLETED', 'SENT', 'LOCKED'].includes(row.documentGeneration.status) && (
-                              <Tooltip title="Telecharger">
-                                <IconButton size="small" color="primary" onClick={() => handleDownload(row.documentGeneration!)}>
+                              <Tooltip title="Telecharger" arrow>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleDownload(row.documentGeneration!)}
+                                  aria-label="Telecharger"
+                                  sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: PRIMARY, backgroundColor: `${PRIMARY}14` } }}
+                                >
                                   <Download fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                             )}
                             {row.locked && row.documentHash && (
-                              <Tooltip title="Verifier l'integrite">
-                                <IconButton size="small" color="info" onClick={() => handleVerify(row.documentGeneration!)}>
+                              <Tooltip title="Verifier l'integrite" arrow>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleVerify(row.documentGeneration!)}
+                                  aria-label="Verifier l'integrite"
+                                  sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: SOFT_BLUE, backgroundColor: `${SOFT_BLUE}14` } }}
+                                >
                                   <Fingerprint fontSize="small" />
                                 </IconButton>
                               </Tooltip>
