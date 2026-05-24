@@ -99,6 +99,7 @@ public class ChannexImportService {
     private final BookingRestrictionRepository bookingRestrictionRepository;
     private final ObjectMapper objectMapper;
     private final AmenityManagementService amenityManagementService;
+    private final ChannexPricingImporter pricingImporter;
 
     /** HttpClient reuse pour le scrape Airbnb (og:title). Pool persistant + suit redirects. */
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -118,7 +119,8 @@ public class ChannexImportService {
                                   RateOverrideRepository rateOverrideRepository,
                                   BookingRestrictionRepository bookingRestrictionRepository,
                                   ObjectMapper objectMapper,
-                                  AmenityManagementService amenityManagementService) {
+                                  AmenityManagementService amenityManagementService,
+                                  ChannexPricingImporter pricingImporter) {
         this.channexClient = channexClient;
         this.mappingRepository = mappingRepository;
         this.propertyRepository = propertyRepository;
@@ -132,6 +134,7 @@ public class ChannexImportService {
         this.bookingRestrictionRepository = bookingRestrictionRepository;
         this.objectMapper = objectMapper;
         this.amenityManagementService = amenityManagementService;
+        this.pricingImporter = pricingImporter;
     }
 
     /**
@@ -730,15 +733,16 @@ public class ChannexImportService {
                 //       ajustements manuels du host). Best-effort si endpoint
                 //       /restrictions GET non supporte par Channex.
                 //    Tous sont idempotents (skip si deja present pour ce property).
-                int discountsCreated = createLengthOfStayDiscounts(prop, orgId, info);
-                boolean baseRatePlanCreated = createBaseRatePlan(prop, orgId, info);
-                boolean weekendRatePlanCreated = createWeekendRatePlan(prop, orgId, info);
-                boolean occupancyPricingCreated = createOccupancyPricingFromOta(prop, orgId, info);
-                int rateOverridesCreated = importRateOverridesFromOta(prop, orgId, mapping, info);
+                // Phase 5 audit O6 : delegation au ChannexPricingImporter dedie
+                int discountsCreated = pricingImporter.createLengthOfStayDiscounts(prop, orgId, info);
+                boolean baseRatePlanCreated = pricingImporter.createBaseRatePlan(prop, orgId, info);
+                boolean weekendRatePlanCreated = pricingImporter.createWeekendRatePlan(prop, orgId, info);
+                boolean occupancyPricingCreated = pricingImporter.createOccupancyPricingFromOta(prop, orgId, info);
+                int rateOverridesCreated = pricingImporter.importRateOverridesFromOta(prop, orgId, mapping, info);
                 // Phase 4 #4 : rate_plans additionnels (variantes "Non-refundable", etc.)
-                int additionalRatePlansCreated = importAdditionalRatePlansFromOta(prop, orgId, info);
+                int additionalRatePlansCreated = pricingImporter.importAdditionalRatePlansFromOta(prop, orgId, info);
                 // Phase 4 #5 : BookingRestriction par range groupes par dates consecutives
-                int bookingRestrictionsCreated = importBookingRestrictionsFromOta(prop, orgId, mapping);
+                int bookingRestrictionsCreated = pricingImporter.importBookingRestrictionsFromOta(prop, orgId, mapping);
 
                 // 7. Pull initial des reservations OTA (Airbnb / Booking / Vrbo).
                 //    Plage : [1er janvier annee courante → aujourd'hui + 12 mois]
@@ -1794,572 +1798,43 @@ public class ChannexImportService {
         return null;
     }
 
-    /**
-     * Cree les campagnes de prix Clenzy ({@link LengthOfStayDiscount}) a partir
-     * des facteurs de remise expose par Channex dans le rate_plan settings.
-     *
-     * <p>Channex stocke les remises long-sejour dans :</p>
-     * <ul>
-     *   <li>{@code pricing_setting.weekly_price_factor}  : % de remise pour
-     *       sejours de 7+ nuits (0 = pas de remise)</li>
-     *   <li>{@code pricing_setting.monthly_price_factor} : % de remise pour
-     *       sejours de 28+ nuits (0 = pas de remise)</li>
-     * </ul>
-     *
-     * <p>On les materialise en {@link LengthOfStayDiscount} actifs avec :</p>
-     * <ul>
-     *   <li>weekly  : minNights=7, maxNights=27, type=PERCENTAGE</li>
-     *   <li>monthly : minNights=28, maxNights=null, type=PERCENTAGE</li>
-     * </ul>
-     *
-     * <p>Idempotent : si une discount existe deja pour cette property avec
-     * meme minNights, on skip (evite les doublons si re-import).</p>
-     *
-     * @return nb de campagnes effectivement creees
-     */
-    private int createLengthOfStayDiscounts(Property prop, Long orgId, ChannelListingInfo info) {
-        if (info == null) return 0;
-        int created = 0;
-        try {
-            // Weekly discount [7, 27] nuits
-            if (info.weeklyPriceFactor() != null && info.weeklyPriceFactor() > 0) {
-                if (!hasExistingDiscount(prop.getId(), orgId, 7)) {
-                    var d = new LengthOfStayDiscount();
-                    d.setOrganizationId(orgId);
-                    d.setProperty(prop);
-                    d.setMinNights(7);
-                    d.setMaxNights(27);
-                    d.setDiscountType(LengthOfStayDiscount.DiscountType.PERCENTAGE);
-                    d.setDiscountValue(BigDecimal.valueOf(info.weeklyPriceFactor()));
-                    d.setActive(true);
-                    lengthOfStayDiscountRepository.save(d);
-                    created++;
-                    log.info("ChannexImport: created LengthOfStayDiscount weekly property={} -{}%",
-                        prop.getId(), info.weeklyPriceFactor());
-                }
-            }
-            // Monthly discount [28, +∞[ nuits
-            if (info.monthlyPriceFactor() != null && info.monthlyPriceFactor() > 0) {
-                if (!hasExistingDiscount(prop.getId(), orgId, 28)) {
-                    var d = new LengthOfStayDiscount();
-                    d.setOrganizationId(orgId);
-                    d.setProperty(prop);
-                    d.setMinNights(28);
-                    d.setMaxNights(null);
-                    d.setDiscountType(LengthOfStayDiscount.DiscountType.PERCENTAGE);
-                    d.setDiscountValue(BigDecimal.valueOf(info.monthlyPriceFactor()));
-                    d.setActive(true);
-                    lengthOfStayDiscountRepository.save(d);
-                    created++;
-                    log.info("ChannexImport: created LengthOfStayDiscount monthly property={} -{}%",
-                        prop.getId(), info.monthlyPriceFactor());
-                }
-            }
-        } catch (Exception e) {
-            log.warn("ChannexImport: creation LengthOfStayDiscount KO property={} : {}",
-                prop.getId(), e.getMessage());
-        }
-        return created;
+    // ─── Phase 5 audit O6 — Pricing helpers refactor (delegation) ───────────
+    //
+    // Les 7 helpers d'import pricing ont ete extraits dans ChannexPricingImporter
+    // pour reduire la complexite de ChannexImportService (14 deps -> 11).
+    // Ces wrappers gardent les signatures package-private pour compat tests +
+    // permettent au orchestrator interne ChannexImportService.importProperties
+    // d'avoir un seul point d'appel par helper.
+
+    int createLengthOfStayDiscounts(Property prop, Long orgId, ChannelListingInfo info) {
+        return pricingImporter.createLengthOfStayDiscounts(prop, orgId, info);
     }
 
-    /** Idempotence check : evite de creer une 2e discount avec le meme minNights. */
-    private boolean hasExistingDiscount(Long propertyId, Long orgId, int minNights) {
-        return lengthOfStayDiscountRepository.findByPropertyId(propertyId, orgId).stream()
-            .anyMatch(d -> d.getMinNights() == minNights);
-    }
-
-    // ─── Phase 1 OTA pricing import — RatePlan + OccupancyPricing ─────────────
-
-    /**
-     * Cree un {@link RatePlan} de type {@link RatePlanType#BASE} a partir de
-     * {@code info.defaultPrice} pour permettre au {@link com.clenzy.service.PriceEngine}
-     * de resoudre via le niveau 5 (BASE) plutot que via le fallback property.nightlyPrice.
-     *
-     * <p><b>Pourquoi un RatePlan en plus de Property.nightlyPrice</b> :</p>
-     * <ul>
-     *   <li>Tracking d'origine via {@code name} ("OTA Base — {otaName}")</li>
-     *   <li>Currency explicite stockee separement</li>
-     *   <li>Foundation pour Phase 4 : un RatePlan par variante Channex (refundable/non-refundable)</li>
-     * </ul>
-     *
-     * <p>Idempotent : skip si un BASE plan existe deja pour cette property.</p>
-     *
-     * @return true si un RatePlan a ete cree
-     */
     boolean createBaseRatePlan(Property prop, Long orgId, ChannelListingInfo info) {
-        if (info == null || info.defaultPrice() == null || info.defaultPrice().signum() <= 0) {
-            return false;
-        }
-        try {
-            boolean exists = !ratePlanRepository
-                .findByPropertyIdAndType(prop.getId(), RatePlanType.BASE, orgId).isEmpty();
-            if (exists) {
-                log.debug("ChannexImport: BASE rate plan deja present pour property={}, skip",
-                    prop.getId());
-                return false;
-            }
-            RatePlan plan = new RatePlan();
-            plan.setProperty(prop);
-            plan.setOrganizationId(orgId);
-            plan.setName("OTA Base — " + (info.otaName() != null ? info.otaName() : "Channex"));
-            plan.setType(RatePlanType.BASE);
-            plan.setPriority(0);
-            plan.setNightlyPrice(info.defaultPrice());
-            plan.setCurrency(info.currency() != null
-                ? info.currency().toUpperCase() : prop.getDefaultCurrency());
-            plan.setIsActive(true);
-            ratePlanRepository.save(plan);
-            log.info("ChannexImport: created BASE RatePlan property={} price={}{} (source OTA {})",
-                prop.getId(), plan.getNightlyPrice(), plan.getCurrency(), info.otaName());
-            return true;
-        } catch (Exception e) {
-            log.warn("ChannexImport: creation BASE RatePlan KO property={} : {}",
-                prop.getId(), e.getMessage());
-            return false;
-        }
+        return pricingImporter.createBaseRatePlan(prop, orgId, info);
     }
 
-    /**
-     * Cree un {@link RatePlan} de type {@link RatePlanType#WEEKEND} depuis
-     * {@code info.weekendPrice} (le tarif vendredi-dimanche cote Airbnb).
-     *
-     * <p>{@code daysOfWeek = [5, 6, 7]} (vendredi, samedi, dimanche) selon la
-     * convention ISO ({@code DayOfWeek.getValue()} : 1=Lundi … 7=Dimanche).
-     * Priority = 10 (au-dessus du BASE qui est a 0) — le PriceEngine ne resoud
-     * pas WEEKEND directement, mais via le tri par priority au sein du type BASE.</p>
-     *
-     * <p><b>Note importante</b> : le {@link com.clenzy.service.PriceEngine} actuel ne
-     * resoud QUE les types PROMOTIONAL/SEASONAL/LAST_MINUTE/BASE. WEEKEND n'est
-     * pas dans son ordre de resolution. Pour que le tarif weekend soit applique
-     * un cron/Resolver future devra l'integrer. En attendant, le RatePlan est
-     * cree pour la visibilite UI + futur usage.</p>
-     *
-     * <p>Skip si : weekendPrice null OU egal au defaultPrice (pas de differenciation)
-     * OU WEEKEND plan deja present.</p>
-     *
-     * @return true si un RatePlan a ete cree
-     */
     boolean createWeekendRatePlan(Property prop, Long orgId, ChannelListingInfo info) {
-        if (info == null || info.weekendPrice() == null
-            || info.weekendPrice().signum() <= 0) {
-            return false;
-        }
-        // Pas de differenciation weekend → inutile de creer le plan
-        if (info.defaultPrice() != null
-            && info.weekendPrice().compareTo(info.defaultPrice()) == 0) {
-            return false;
-        }
-        try {
-            boolean exists = !ratePlanRepository
-                .findByPropertyIdAndType(prop.getId(), RatePlanType.WEEKEND, orgId).isEmpty();
-            if (exists) {
-                log.debug("ChannexImport: WEEKEND rate plan deja present pour property={}, skip",
-                    prop.getId());
-                return false;
-            }
-            RatePlan plan = new RatePlan();
-            plan.setProperty(prop);
-            plan.setOrganizationId(orgId);
-            plan.setName("OTA Weekend — " + (info.otaName() != null ? info.otaName() : "Channex"));
-            plan.setType(RatePlanType.WEEKEND);
-            plan.setPriority(10);
-            plan.setNightlyPrice(info.weekendPrice());
-            plan.setCurrency(info.currency() != null
-                ? info.currency().toUpperCase() : prop.getDefaultCurrency());
-            // Vendredi, samedi, dimanche
-            plan.setDaysOfWeek(new Integer[] { 5, 6, 7 });
-            plan.setIsActive(true);
-            ratePlanRepository.save(plan);
-            log.info("ChannexImport: created WEEKEND RatePlan property={} price={}{} (vs base {})",
-                prop.getId(), plan.getNightlyPrice(), plan.getCurrency(), info.defaultPrice());
-            return true;
-        } catch (Exception e) {
-            log.warn("ChannexImport: creation WEEKEND RatePlan KO property={} : {}",
-                prop.getId(), e.getMessage());
-            return false;
-        }
+        return pricingImporter.createWeekendRatePlan(prop, orgId, info);
     }
 
-    /**
-     * Cree une {@link OccupancyPricing} depuis les champs {@code guestsIncluded}
-     * et {@code pricePerExtraPerson} du rate_plan Channex.
-     *
-     * <p>Mapping :</p>
-     * <ul>
-     *   <li>{@code info.guestsIncluded}      → {@code baseOccupancy}
-     *       (nombre de voyageurs inclus dans le tarif de base)</li>
-     *   <li>{@code info.pricePerExtraPerson} → {@code extraGuestFee}</li>
-     *   <li>{@code property.maxGuests}       → {@code maxOccupancy}</li>
-     * </ul>
-     *
-     * <p>Skip si : guestsIncluded null OU pricePerExtraPerson null/zero (pas de
-     * surcharge a appliquer) OU OccupancyPricing existe deja.</p>
-     *
-     * @return true si une OccupancyPricing a ete creee
-     */
-    /**
-     * Phase 2 OTA pricing — Pull du calendrier de prix Channex et creation de
-     * {@link RateOverride} pour les dates ou le prix differe du tarif de base.
-     *
-     * <p>Capture fidelement ce qui etait dans Airbnb au moment de la connexion :
-     * dates de festival, evenements locaux, ajustements manuels du host, etc.
-     * Sans ce pull, on perdrait ce calendrier et le PriceEngine pousserait son
-     * propre prix uniforme.</p>
-     *
-     * <p><b>Conditions</b> :</p>
-     * <ul>
-     *   <li>{@code mapping.channexDefaultRatePlanId} requis (sinon skip)</li>
-     *   <li>{@code info.defaultPrice} requis comme reference de comparaison
-     *       (on ne cree des overrides QUE pour les dates ou rate ≠ defaultPrice)</li>
-     * </ul>
-     *
-     * <p><b>Idempotence</b> : si un {@link RateOverride} existe deja pour
-     * (property, date), on skip silencieusement — l'admin a peut-etre deja
-     * personnalise ce prix entre 2 imports.</p>
-     *
-     * @return nb de RateOverride creees (0 si endpoint Channex non supporte
-     *         ou aucune date avec prix override cote OTA)
-     */
+    boolean createOccupancyPricingFromOta(Property prop, Long orgId, ChannelListingInfo info) {
+        return pricingImporter.createOccupancyPricingFromOta(prop, orgId, info);
+    }
+
     int importRateOverridesFromOta(Property prop, Long orgId,
                                      com.clenzy.integration.channex.model.ChannexPropertyMapping mapping,
                                      ChannelListingInfo info) {
-        if (mapping == null || mapping.getChannexDefaultRatePlanId() == null) {
-            log.debug("ChannexImport[RATE_OVERRIDES]: pas de rate_plan_id mapping, skip property={}",
-                prop.getId());
-            return 0;
-        }
-        if (info == null || info.defaultPrice() == null) {
-            log.debug("ChannexImport[RATE_OVERRIDES]: pas de defaultPrice reference, skip property={}",
-                prop.getId());
-            return 0;
-        }
-        java.time.LocalDate from = java.time.LocalDate.now();
-        java.time.LocalDate to = from.plusMonths(12);
-
-        java.util.Optional<java.util.List<com.fasterxml.jackson.databind.JsonNode>> opt =
-            channexClient.fetchRatesForRange(mapping.getChannexPropertyId(),
-                mapping.getChannexDefaultRatePlanId(), from, to);
-        if (opt.isEmpty()) {
-            log.info("ChannexImport[RATE_OVERRIDES]: endpoint Channex /restrictions non supporte, skip property={}",
-                prop.getId());
-            return 0;
-        }
-        java.util.List<com.fasterxml.jackson.databind.JsonNode> entries = opt.get();
-        if (entries.isEmpty()) {
-            log.info("ChannexImport[RATE_OVERRIDES]: aucune entry rate cote Channex property={} sur 12 mois",
-                prop.getId());
-            return 0;
-        }
-
-        BigDecimal defaultPrice = info.defaultPrice();
-        int created = 0;
-        int skippedSame = 0;
-        int skippedExisting = 0;
-
-        for (com.fasterxml.jackson.databind.JsonNode entry : entries) {
-            try {
-                // Channex JSON:API : { attributes: { date, rate, ... } }
-                com.fasterxml.jackson.databind.JsonNode attrs = entry.path("attributes");
-                String dateStr = attrs.path("date").asText(null);
-                String rateStr = attrs.path("rate").asText(null);
-                if (dateStr == null || rateStr == null || rateStr.isBlank()) continue;
-
-                java.time.LocalDate date;
-                BigDecimal rate;
-                try {
-                    date = java.time.LocalDate.parse(dateStr);
-                    rate = new BigDecimal(rateStr);
-                } catch (Exception parseError) {
-                    log.debug("ChannexImport[RATE_OVERRIDES]: parse KO date={} rate={}, skip",
-                        dateStr, rateStr);
-                    continue;
-                }
-
-                // Skip si meme prix que le default (pas d'override utile)
-                if (rate.compareTo(defaultPrice) == 0) {
-                    skippedSame++;
-                    continue;
-                }
-                // Skip si un override existe deja (admin peut l'avoir personnalise)
-                if (rateOverrideRepository.findByPropertyIdAndDate(prop.getId(), date, orgId).isPresent()) {
-                    skippedExisting++;
-                    continue;
-                }
-
-                RateOverride override = new RateOverride();
-                override.setProperty(prop);
-                override.setOrganizationId(orgId);
-                override.setDate(date);
-                override.setNightlyPrice(rate);
-                override.setSource("OTA:" + (info.otaName() != null ? info.otaName() : "Channex"));
-                override.setCurrency(info.currency() != null
-                    ? info.currency().toUpperCase() : prop.getDefaultCurrency());
-                override.setCreatedBy("channex-import");
-                rateOverrideRepository.save(override);
-                created++;
-            } catch (Exception e) {
-                log.warn("ChannexImport[RATE_OVERRIDES]: erreur sur entry property={}: {}",
-                    prop.getId(), e.getMessage());
-            }
-        }
-        log.info("ChannexImport[RATE_OVERRIDES]: property={} created={} skippedSameAsDefault={} skippedExisting={} totalEntries={}",
-            prop.getId(), created, skippedSame, skippedExisting, entries.size());
-        return created;
+        return pricingImporter.importRateOverridesFromOta(prop, orgId, mapping, info);
     }
 
-    /**
-     * Phase 4 #4 — Multi rate_plans : pour chaque rate_plan additionnel cote
-     * OTA au-dela du primaire (typique : "Standard" + "Non-refundable -10%"),
-     * cree un {@link RatePlan}(type=PROMOTIONAL) Clenzy avec son default_daily_price.
-     *
-     * <p>Priorite = 5 (entre BASE qui est a 0 et WEEKEND qui est a 10) :
-     * suffisamment haut pour battre le BASE par defaut, suffisamment bas pour
-     * permettre a un override admin ou un WEEKEND de dominer si applicable.</p>
-     *
-     * <p>Idempotent : skip si un RatePlan(type=PROMOTIONAL, name=...) existe
-     * deja avec le meme nom (on detecte par {@code RatePlan.name} qui contient
-     * le titre OTA).</p>
-     *
-     * @return nb de RatePlan PROMOTIONAL crees
-     */
     int importAdditionalRatePlansFromOta(Property prop, Long orgId, ChannelListingInfo info) {
-        if (info == null || info.additionalRatePlans() == null
-            || info.additionalRatePlans().isEmpty()) {
-            return 0;
-        }
-        java.util.List<RatePlan> existingPromos = ratePlanRepository
-            .findByPropertyIdAndType(prop.getId(), RatePlanType.PROMOTIONAL, orgId);
-        int created = 0;
-        for (AdditionalRatePlan arp : info.additionalRatePlans()) {
-            if (arp.defaultPrice() == null || arp.defaultPrice().signum() <= 0) continue;
-            // Phase 5 audit fix : idempotence basee sur le Channex rate_plan_id
-            // (stable cote OTA) en plus du nom (qui peut changer si l'host renomme
-            // son rate plan dans Airbnb). Le nom est encode entre [] dans le name
-            // Clenzy pour permettre la detection idempotente sans nouveau champ DB.
-            String stableTitle = arp.title() != null ? arp.title() : "Variant";
-            String otaIdTag = arp.channexRatePlanId() != null
-                ? "[" + arp.channexRatePlanId().substring(0, Math.min(8, arp.channexRatePlanId().length())) + "]"
-                : "";
-            String name = "OTA " + otaIdTag + " — " + stableTitle;
-            // Match si le name existant contient le meme prefixe ID (le titre humain
-            // peut avoir change, on detecte par l'ID stable Channex).
-            boolean alreadyExists = arp.channexRatePlanId() != null
-                && existingPromos.stream().anyMatch(rp ->
-                    rp.getName() != null && rp.getName().contains(otaIdTag));
-            if (alreadyExists) {
-                log.debug("ChannexImport[ADDITIONAL_RP]: skip duplicate id={} pour property={}",
-                    arp.channexRatePlanId(), prop.getId());
-                continue;
-            }
-            try {
-                RatePlan plan = new RatePlan();
-                plan.setProperty(prop);
-                plan.setOrganizationId(orgId);
-                plan.setName(name);
-                plan.setType(RatePlanType.PROMOTIONAL);
-                plan.setPriority(5);
-                plan.setNightlyPrice(arp.defaultPrice());
-                plan.setCurrency(arp.currency() != null
-                    ? arp.currency().toUpperCase()
-                    : (info.currency() != null ? info.currency() : prop.getDefaultCurrency()));
-                plan.setIsActive(true);
-                ratePlanRepository.save(plan);
-                created++;
-                log.info("ChannexImport[ADDITIONAL_RP]: created PROMOTIONAL '{}' price={}{} property={}",
-                    name, plan.getNightlyPrice(), plan.getCurrency(), prop.getId());
-            } catch (Exception e) {
-                log.warn("ChannexImport[ADDITIONAL_RP]: erreur creation '{}' property={}: {}",
-                    name, prop.getId(), e.getMessage());
-            }
-        }
-        return created;
+        return pricingImporter.importAdditionalRatePlansFromOta(prop, orgId, info);
     }
 
-    /**
-     * Phase 4 #5 — Import des {@link com.clenzy.model.BookingRestriction} par
-     * range depuis les rates Channex (champs min_stay_through, min_stay_arrival,
-     * closed_to_arrival, closed_to_departure).
-     *
-     * <p>Strategie : pull les rates 12 mois → groupe les dates consecutives
-     * avec des restrictions identiques → cree 1 BookingRestriction par groupe
-     * (start_date=group.first, end_date=group.last). Limite le bruit en DB
-     * (1 BookingRestriction range plutot que 365 par-date).</p>
-     *
-     * <p>Skip si aucune restriction non-defaut detectee. Idempotent par
-     * verification de l'existence d'une restriction couvrant la meme date
-     * de debut.</p>
-     *
-     * @return nb de BookingRestriction crees
-     */
     int importBookingRestrictionsFromOta(Property prop, Long orgId,
-                                          com.clenzy.integration.channex.model.ChannexPropertyMapping mapping) {
-        if (mapping == null || mapping.getChannexDefaultRatePlanId() == null) {
-            return 0;
-        }
-        java.time.LocalDate from = java.time.LocalDate.now();
-        java.time.LocalDate to = from.plusMonths(12);
-
-        java.util.Optional<java.util.List<com.fasterxml.jackson.databind.JsonNode>> opt =
-            channexClient.fetchRatesForRange(mapping.getChannexPropertyId(),
-                mapping.getChannexDefaultRatePlanId(), from, to);
-        if (opt.isEmpty() || opt.get().isEmpty()) {
-            return 0;
-        }
-
-        // Pour chaque date, extraire (min_stay, closed_to_arrival, closed_to_departure)
-        // — on ignore les entries sans restrictions non-defaut.
-        java.util.TreeMap<java.time.LocalDate, Restriction> perDate = new java.util.TreeMap<>();
-        for (com.fasterxml.jackson.databind.JsonNode entry : opt.get()) {
-            try {
-                com.fasterxml.jackson.databind.JsonNode attrs = entry.path("attributes");
-                String dateStr = attrs.path("date").asText(null);
-                if (dateStr == null) continue;
-                Integer minStay = intOrNullFromAttr(attrs, "min_stay_through");
-                if (minStay == null) minStay = intOrNullFromAttr(attrs, "min_stay_arrival");
-                boolean cta = attrs.path("closed_to_arrival").asBoolean(false);
-                boolean ctd = attrs.path("closed_to_departure").asBoolean(false);
-                if (minStay == null && !cta && !ctd) continue; // defaut, skip
-                perDate.put(java.time.LocalDate.parse(dateStr),
-                    new Restriction(minStay, cta, ctd));
-            } catch (Exception e) {
-                log.debug("ChannexImport[BOOKING_RESTRICT]: parse KO entry: {}", e.getMessage());
-            }
-        }
-
-        if (perDate.isEmpty()) {
-            log.info("ChannexImport[BOOKING_RESTRICT]: aucune restriction non-defaut property={}",
-                prop.getId());
-            return 0;
-        }
-
-        // Groupe dates consecutives avec meme Restriction
-        int created = 0;
-        java.time.LocalDate groupStart = null;
-        java.time.LocalDate groupEnd = null;
-        Restriction groupRestriction = null;
-        java.time.LocalDate prevDate = null;
-
-        for (var entry : perDate.entrySet()) {
-            java.time.LocalDate date = entry.getKey();
-            Restriction r = entry.getValue();
-
-            boolean newGroup = groupStart == null
-                || !r.equals(groupRestriction)
-                || !date.equals(prevDate.plusDays(1));
-            if (newGroup) {
-                // Flush le groupe precedent
-                if (groupStart != null) {
-                    if (createBookingRestrictionIfNew(prop, orgId, groupStart, groupEnd, groupRestriction)) {
-                        created++;
-                    }
-                }
-                groupStart = date;
-                groupRestriction = r;
-            }
-            groupEnd = date;
-            prevDate = date;
-        }
-        // Flush final
-        if (groupStart != null) {
-            if (createBookingRestrictionIfNew(prop, orgId, groupStart, groupEnd, groupRestriction)) {
-                created++;
-            }
-        }
-
-        log.info("ChannexImport[BOOKING_RESTRICT]: property={} groups_created={} from {} datapoints",
-            prop.getId(), created, perDate.size());
-        return created;
-    }
-
-    /** Tuple immutable des restrictions pour grouping. */
-    private record Restriction(Integer minStay, boolean closedToArrival, boolean closedToDeparture) {}
-
-    /**
-     * Cree une BookingRestriction range si aucune restriction existante ne
-     * couvre deja le {@code startDate} (idempotence simple par date de debut).
-     */
-    private boolean createBookingRestrictionIfNew(Property prop, Long orgId,
-                                                    java.time.LocalDate startDate,
-                                                    java.time.LocalDate endDate,
-                                                    Restriction r) {
-        try {
-            // Idempotence basique : si une restriction couvre deja startDate, skip
-            var existing = bookingRestrictionRepository.findApplicable(
-                prop.getId(), startDate, startDate.plusDays(1), orgId);
-            if (!existing.isEmpty()) {
-                log.debug("ChannexImport[BOOKING_RESTRICT]: skip range [{}, {}] (existant)",
-                    startDate, endDate);
-                return false;
-            }
-            com.clenzy.model.BookingRestriction br =
-                new com.clenzy.model.BookingRestriction(prop, startDate, endDate, orgId);
-            br.setMinStay(r.minStay());
-            br.setClosedToArrival(r.closedToArrival());
-            br.setClosedToDeparture(r.closedToDeparture());
-            br.setPriority(5); // au-dessus du defaut 0
-            bookingRestrictionRepository.save(br);
-            log.info("ChannexImport[BOOKING_RESTRICT]: created [{}-{}] minStay={} CTA={} CTD={} property={}",
-                startDate, endDate, r.minStay(), r.closedToArrival(), r.closedToDeparture(), prop.getId());
-            return true;
-        } catch (Exception e) {
-            log.warn("ChannexImport[BOOKING_RESTRICT]: erreur creation [{}, {}] property={}: {}",
-                startDate, endDate, prop.getId(), e.getMessage());
-            return false;
-        }
-    }
-
-    /** Helper local pour parser un int depuis un attribut JSON, null si absent ou "null". */
-    private static Integer intOrNullFromAttr(com.fasterxml.jackson.databind.JsonNode attrs, String key) {
-        com.fasterxml.jackson.databind.JsonNode n = attrs.path(key);
-        if (n.isMissingNode() || n.isNull()) return null;
-        if (n.isInt()) return n.intValue();
-        try {
-            String s = n.asText();
-            if (s == null || s.isBlank() || "null".equalsIgnoreCase(s)) return null;
-            return Integer.parseInt(s);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    boolean createOccupancyPricingFromOta(Property prop, Long orgId,
-                                            ChannelListingInfo info) {
-        if (info == null || info.guestsIncluded() == null || info.guestsIncluded() <= 0) {
-            return false;
-        }
-        if (info.pricePerExtraPerson() == null || info.pricePerExtraPerson().signum() <= 0) {
-            // Pas de surcharge → inutile de creer (l'algo PriceEngine retourne
-            // ZERO ajustement dans ce cas, autant ne pas polluer la DB).
-            return false;
-        }
-        try {
-            boolean exists = occupancyPricingRepository
-                .findByPropertyId(prop.getId(), orgId).isPresent();
-            if (exists) {
-                log.debug("ChannexImport: OccupancyPricing deja present pour property={}, skip",
-                    prop.getId());
-                return false;
-            }
-            int maxOccupancy = prop.getMaxGuests() != null && prop.getMaxGuests() > 0
-                ? prop.getMaxGuests()
-                : Math.max(info.guestsIncluded() + 4, 6); // fallback safe : base + 4 ou min 6
-            OccupancyPricing op = new OccupancyPricing();
-            op.setProperty(prop);
-            op.setOrganizationId(orgId);
-            op.setBaseOccupancy(info.guestsIncluded());
-            op.setExtraGuestFee(info.pricePerExtraPerson());
-            op.setMaxOccupancy(maxOccupancy);
-            op.setActive(true);
-            occupancyPricingRepository.save(op);
-            log.info("ChannexImport: created OccupancyPricing property={} base={} extra={}{} max={}",
-                prop.getId(), op.getBaseOccupancy(), op.getExtraGuestFee(),
-                info.currency() != null ? info.currency() : "", op.getMaxOccupancy());
-            return true;
-        } catch (Exception e) {
-            log.warn("ChannexImport: creation OccupancyPricing KO property={} : {}",
-                prop.getId(), e.getMessage());
-            return false;
-        }
+                                           com.clenzy.integration.channex.model.ChannexPropertyMapping mapping) {
+        return pricingImporter.importBookingRestrictionsFromOta(prop, orgId, mapping);
     }
 
     /**

@@ -14,6 +14,12 @@ interface PageHeaderProps {
   iconBadge?: React.ReactNode;
   /** Couleur du badge icone. Default : primary. */
   iconBadgeColor?: string;
+  /**
+   * Element optionnel rendu inline a droite du titre (meme ligne que le h1).
+   * Typiquement une Chip de statut decrivant l'entite (Actif/Inactif, Brouillon, etc.).
+   * Sert a separer ce que l'entite EST (titre + adornment) de ce qu'on peut FAIRE (actions).
+   */
+  titleAdornment?: React.ReactNode;
   backPath?: string;
   backLabel?: string;
   /** Callback invoked when the back button is clicked. Takes priority over backPath. */
@@ -44,6 +50,7 @@ export default function PageHeader({
   subtitle,
   iconBadge,
   iconBadgeColor,
+  titleAdornment,
   backPath,
   backLabel = 'Retour',
   onBack,
@@ -89,22 +96,29 @@ export default function PageHeader({
             </Box>
           )}
           <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="h5"
-              component="h1"
-              sx={{
-                letterSpacing: '-0.01em',
-                color: 'text.primary',
-                lineHeight: 1.2,
-                ...(isCompact && {
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }),
-              }}
-            >
-              {title}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+              <Typography
+                variant="h5"
+                component="h1"
+                sx={{
+                  letterSpacing: '-0.01em',
+                  color: 'text.primary',
+                  lineHeight: 1.2,
+                  ...(isCompact && {
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }),
+                }}
+              >
+                {title}
+              </Typography>
+              {titleAdornment && (
+                <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                  {titleAdornment}
+                </Box>
+              )}
+            </Box>
             {subtitle && (
               <Typography
                 variant="caption"

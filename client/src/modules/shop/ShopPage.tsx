@@ -125,7 +125,7 @@ const ShopPage: React.FC = () => {
   }, []);
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <Box>
       <PageHeader
         title={t('shop.title')}
         subtitle={t('shop.subtitle')}

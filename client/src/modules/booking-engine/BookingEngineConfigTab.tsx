@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
 import type { TransitionProps } from '@mui/material/transitions';
 import {
-  Box, Typography, Snackbar, Alert, Dialog, Slide, alpha,
+  Box, Snackbar, Alert, Dialog, Slide,
 } from '@mui/material';
+import PageTabs from '../../components/PageTabs';
 
 const SlideUpTransition = forwardRef(function SlideUpTransition(
   props: TransitionProps & { children: React.ReactElement },
@@ -233,32 +234,17 @@ const BookingEngineConfigTab = forwardRef<BookingEngineConfigTabHandle, BookingE
   // ─── Render ───────────────────────────────────────────────────────
   return (
     <Box>
-      {/* Tab Navigation */}
-      <Box sx={{
-        display: 'flex', gap: 0.5, mb: 2.5, borderBottom: '1px solid', borderColor: 'divider', pb: 0,
-      }}>
-        {WIZARD_STEPS.map((step, index) => (
-          <Box
-            key={step.labelKey}
-            onClick={() => setActiveStep(index)}
-            sx={{
-              display: 'flex', alignItems: 'center', gap: 0.75,
-              px: 2, py: 1, cursor: 'pointer',
-              borderBottom: '2px solid',
-              borderColor: index === activeStep ? 'primary.main' : 'transparent',
-              color: index === activeStep ? 'primary.main' : 'text.secondary',
-              transition: 'all 0.15s ease',
-              '&:hover': { color: 'primary.main', bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) },
-              '& .MuiSvgIcon-root': { fontSize: 16 },
-            }}
-          >
-            {step.icon}
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: index === activeStep ? 700 : 500 }}>
-              {t(step.labelKey)}
-            </Typography>
-          </Box>
-        ))}
-      </Box>
+      {/* Tab Navigation — utilise le primitive PageTabs commun a tout le PMS */}
+      <PageTabs
+        options={WIZARD_STEPS.map((step, index) => ({
+          value: index,
+          label: t(step.labelKey),
+          icon: step.icon,
+        }))}
+        value={activeStep}
+        onChange={(v) => setActiveStep(v)}
+        ariaLabel="Booking engine configuration steps"
+      />
 
       {/* Active step content */}
       <Box sx={{ minHeight: 300 }}>

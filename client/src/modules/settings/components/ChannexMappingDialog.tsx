@@ -31,7 +31,7 @@ import {
   Tooltip,
   Chip,
 } from '@mui/material';
-import { X, Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles } from 'lucide-react';
+import { X, Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
 import {
@@ -50,6 +50,7 @@ import ChannexFullDisconnectDialog from './ChannexFullDisconnectDialog';
 import ChannexPreflightBanner from './ChannexPreflightBanner';
 import ChannexHealthSummaryPanel from './ChannexHealthSummaryPanel';
 import ChannexDiagnoseDialog from './ChannexDiagnoseDialog';
+import ChannexPriceDriftsDialog from './ChannexPriceDriftsDialog';
 import { OTA_LOGO_BY_CODE } from './OtaSyncBadges';
 
 interface ChannexMappingDialogProps {
@@ -153,6 +154,14 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
     propertyId: number;
     propertyName: string;
   } | null>(null);
+  /** Phase 5 audit O1 : dialog Price Drifts (liste + resolution). */
+  const [priceDriftsOpen, setPriceDriftsOpen] = useState(false);
+  /**
+   * Phase 5 audit UX fix : compteur de drifts actifs. On masque le bouton
+   * "Voir les conflits" tant qu'il n'y en a aucun pour eviter la confusion
+   * (un bouton orange visible signifierait un probleme alors qu'il n'y en a pas).
+   */
+  const [activeDriftsCount, setActiveDriftsCount] = useState<number>(0);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   /**
    * Vue principale du dialog :
@@ -214,6 +223,20 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
     }
   };
 
+  /**
+   * Fetch le compteur de drifts actifs en best-effort. Si l'API renvoie une
+   * erreur (role insuffisant, network, etc.) on garde 0 (= le bouton reste
+   * masque) plutot que de polluer la UI avec un message d'erreur secondaire.
+   */
+  const refreshDriftsCount = useCallback(async () => {
+    try {
+      const drifts = await channexApi.listPriceDrifts();
+      setActiveDriftsCount(Array.isArray(drifts) ? drifts.length : 0);
+    } catch {
+      setActiveDriftsCount(0);
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     setGlobalError(null);
@@ -232,7 +255,9 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
     } finally {
       setLoading(false);
     }
-  }, []);
+    // Fetch parallele du compteur de drifts (best-effort, ne bloque pas le main)
+    void refreshDriftsCount();
+  }, [refreshDriftsCount]);
 
   useEffect(() => {
     if (open) refresh();
@@ -350,6 +375,28 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
     }
   };
 
+  /**
+   * Phase 5 — push pricing settings (weekend price, occupancy, LOS factors,
+   * min/max nights) vers Channex. Bouton dans la row property.
+   */
+  const handlePushPricingSettings = async (property: Property) => {
+    setBusyPropertyId(property.id);
+    setGlobalError(null);
+    try {
+      const result = await channexApi.pushPricingSettings(property.id);
+      // ChannexSyncResult.success indique le statut + message contient le detail
+      if (!result.success) {
+        setGlobalError(`Push pricing settings KO : ${result.message}`);
+      }
+    } catch (err) {
+      setGlobalError(err instanceof Error
+        ? `Push pricing settings KO : ${err.message}`
+        : 'Push pricing settings KO');
+    } finally {
+      setBusyPropertyId(null);
+    }
+  };
+
   const handleResyncContent = async (property: Property) => {
     setBusyPropertyId(property.id);
     setGlobalError(null);
@@ -431,6 +478,27 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                   propertyName: item.propertyName,
                 })}
               />
+
+              {/* Phase 5 audit O1 : bouton ouverture du dialog Price Drifts.
+                  Phase 5 audit UX fix : masque le bouton tant qu'il n'y a aucun
+                  drift actif — un bouton orange visible suggererait un probleme
+                  alors qu'il n'y en a pas. Affiche le count en suffixe quand > 0. */}
+              {activeDriftsCount > 0 && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button
+                    size="small"
+                    startIcon={<AlertCircle size={14} />}
+                    onClick={() => setPriceDriftsOpen(true)}
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '0.78rem',
+                      color: '#D97706',
+                    }}
+                  >
+                    Voir les conflits de prix Clenzy ↔ OTA ({activeDriftsCount})
+                  </Button>
+                </Box>
+              )}
 
               <Typography
                 variant="caption"
@@ -990,6 +1058,18 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                               </IconButton>
                             </span>
                           </Tooltip>
+                          <Tooltip title="Push pricing settings (weekend / occupancy / LOS / min-max nights) vers Channex">
+                            <span>
+                              <IconButton
+                                size="small"
+                                disabled={isBusy}
+                                onClick={() => handlePushPricingSettings(property)}
+                                sx={{ color: '#10B981' }}
+                              >
+                                <SettingsIcon size={14} />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
                           <Tooltip title="Deconnecter">
                             <span>
                               <IconButton
@@ -1292,6 +1372,15 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
           onSuccess={handleSmartDisconnectSuccess}
         />
       )}
+
+      {/* Phase 5 audit O1 : Price Drifts dialog (liste tous les drifts actifs de l'org).
+          UX fix : a chaque resolution on decremente le count local pour que le bouton
+          du parent disparaisse en temps reel des qu'il n'y a plus de drift. */}
+      <ChannexPriceDriftsDialog
+        open={priceDriftsOpen}
+        onClose={() => setPriceDriftsOpen(false)}
+        onDriftResolved={() => setActiveDriftsCount((c) => Math.max(0, c - 1))}
+      />
 
       {/* Diagnose dialog (Quick Win #5) declenche depuis le HealthSummaryPanel.
           Reuse les memes handlers que le full disconnect (le user peut faire

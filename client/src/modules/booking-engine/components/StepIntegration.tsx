@@ -135,12 +135,12 @@ const StepIntegration: React.FC<StepIntegrationProps> = ({
                       <InputAdornment position="end">
                         <Tooltip title={showApiKey ? t('common.hide') : t('common.show')}>
                           <IconButton size="small" onClick={() => setShowApiKey(!showApiKey)}>
-                            {showApiKey ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                            {showApiKey ? <VisibilityOff size={16} strokeWidth={1.75} /> : <Visibility size={16} strokeWidth={1.75} />}
                           </IconButton>
                         </Tooltip>
                         <Tooltip title={t('bookingEngine.fields.copyKey')}>
                           <IconButton size="small" onClick={onCopyKey}>
-                            <ContentCopy fontSize="small" />
+                            <ContentCopy size={16} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                       </InputAdornment>
@@ -152,10 +152,10 @@ const StepIntegration: React.FC<StepIntegrationProps> = ({
                 variant="outlined"
                 color="warning"
                 size="small"
-                startIcon={isRegeneratingKey ? <CircularProgress size={14} /> : <Refresh />}
+                startIcon={isRegeneratingKey ? <CircularProgress size={14} /> : <Refresh size={14} strokeWidth={1.75} />}
                 onClick={() => setConfirmRegenerate(true)}
                 disabled={isRegeneratingKey}
-                sx={{ textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}
+                sx={{ whiteSpace: 'nowrap' }}
               >
                 {t('bookingEngine.fields.regenerateKey')}
               </Button>
@@ -194,9 +194,9 @@ const StepIntegration: React.FC<StepIntegrationProps> = ({
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
             <Button
               variant="contained"
-              startIcon={<Preview />}
+              size="small"
+              startIcon={<Preview size={14} strokeWidth={1.75} />}
               onClick={onOpenPreview}
-              sx={{ px: 4, py: 1.25, borderRadius: 2, textTransform: 'none', fontSize: '0.9375rem', fontWeight: 600 }}
             >
               {t('bookingEngine.actions.preview', 'Aperçu en temps réel')}
             </Button>

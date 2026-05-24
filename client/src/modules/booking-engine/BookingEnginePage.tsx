@@ -1,11 +1,10 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
   Box,
+  Button,
   Chip,
-  IconButton,
   InputAdornment,
   TextField,
-  Tooltip,
   CircularProgress,
 } from '@mui/material';
 import { Add, Save, Visibility, EventNote, Search as SearchIcon } from '../../icons';
@@ -50,37 +49,34 @@ const BookingEnginePage: React.FC = () => {
   }, []);
 
   const headerActions = isEditing ? (
-    <Box sx={{ display: 'flex', gap: 0.5 }}>
-      <Tooltip title={t('bookingEngine.actions.preview', 'Aperçu')}>
-        <IconButton size="small" onClick={() => configTabRef.current?.openPreview()} sx={{ bgcolor: 'action.hover' }}>
-          <Visibility fontSize="small" />
-        </IconButton>
-      </Tooltip>
-      <Tooltip title={isSaving ? t('bookingEngine.saving') : t('bookingEngine.save')}>
-        <span>
-          <IconButton
-            size="small"
-            onClick={() => configTabRef.current?.save()}
-            disabled={isSaving}
-            color="primary"
-            sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': { bgcolor: 'primary.dark' }, '&.Mui-disabled': { bgcolor: 'action.disabledBackground' } }}
-          >
-            {isSaving ? <CircularProgress size={18} color="inherit" /> : <Save fontSize="small" />}
-          </IconButton>
-        </span>
-      </Tooltip>
+    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<Visibility size={14} strokeWidth={1.75} />}
+        onClick={() => configTabRef.current?.openPreview()}
+      >
+        {t('bookingEngine.actions.preview', 'Aperçu')}
+      </Button>
+      <Button
+        variant="contained"
+        size="small"
+        startIcon={isSaving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
+        onClick={() => configTabRef.current?.save()}
+        disabled={isSaving}
+      >
+        {isSaving ? t('bookingEngine.saving', 'Sauvegarde…') : t('bookingEngine.save', 'Sauvegarder')}
+      </Button>
     </Box>
   ) : (
-    <Tooltip title={t('bookingEngine.actions.newTemplate')}>
-      <IconButton
-        size="small"
-        onClick={handleCreate}
-        color="primary"
-        sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': { bgcolor: 'primary.dark' } }}
-      >
-        <Add fontSize="small" />
-      </IconButton>
-    </Tooltip>
+    <Button
+      variant="contained"
+      size="small"
+      startIcon={<Add size={14} strokeWidth={1.75} />}
+      onClick={handleCreate}
+    >
+      {t('bookingEngine.actions.newTemplate', 'Nouveau template')}
+    </Button>
   );
 
   const listFilters = showListFilters ? (

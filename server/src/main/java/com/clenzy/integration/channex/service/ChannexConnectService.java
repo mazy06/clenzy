@@ -83,6 +83,7 @@ public class ChannexConnectService {
     private final PropertyRepository propertyRepository;
     private final ChannexMetrics metrics;
     private final ChannexCapabilityService capabilityService;
+    private final com.clenzy.integration.channex.repository.ChannexPriceDriftRepository priceDriftRepository;
 
     public ChannexConnectService(ChannexClient channexClient,
                                    ChannexPropertyMappingRepository mappingRepository,
@@ -91,7 +92,8 @@ public class ChannexConnectService {
                                    ChannexBookingService bookingService,
                                    PropertyRepository propertyRepository,
                                    ChannexMetrics metrics,
-                                   ChannexCapabilityService capabilityService) {
+                                   ChannexCapabilityService capabilityService,
+                                   com.clenzy.integration.channex.repository.ChannexPriceDriftRepository priceDriftRepository) {
         this.channexClient = channexClient;
         this.mappingRepository = mappingRepository;
         this.otaChannelRepository = otaChannelRepository;
@@ -100,6 +102,7 @@ public class ChannexConnectService {
         this.propertyRepository = propertyRepository;
         this.metrics = metrics;
         this.capabilityService = capabilityService;
+        this.priceDriftRepository = priceDriftRepository;
     }
 
     // ─── Connect ────────────────────────────────────────────────────────────
@@ -567,7 +570,33 @@ public class ChannexConnectService {
                     + mappedCount + " deja mappee(s) sur cette organisation"));
         }
 
-        // ── 4. Checks per-property (si propertyId fourni) ───────────────────
+        // ── 4. Alignement des prix Clenzy ↔ Channex (Phase 5 audit UX) ──────
+        // Compte les drifts actifs (non-resolus) detectes par le scheduler de
+        // reconciliation. OK si 0 (= Clenzy et OTA alignes), WARNING sinon
+        // avec remediation pointant vers le dialog de resolution.
+        try {
+            int activeDrifts = clenzyPropertyId != null
+                ? priceDriftRepository.findActiveByProperty(orgId, clenzyPropertyId).size()
+                : priceDriftRepository.findActiveByOrg(orgId).size();
+            if (activeDrifts == 0) {
+                checks.add(PreflightCheck.ok("PRICE_DRIFTS_ALIGNMENT",
+                    "Alignement prix Clenzy ↔ OTA",
+                    "Tous les prix sont alignes (aucun drift actif)"));
+            } else {
+                checks.add(PreflightCheck.warning("PRICE_DRIFTS_ALIGNMENT",
+                    "Ecarts de prix detectes",
+                    activeDrifts + " drift" + (activeDrifts > 1 ? "s" : "")
+                        + " entre les prix Clenzy et les prix retournes par l'OTA",
+                    "Ouvrir 'Voir les conflits de prix Clenzy ↔ OTA' pour resoudre "
+                        + "(KEEP_CLENZY / KEEP_OTA / DISMISSED par drift)."));
+            }
+        } catch (Exception e) {
+            // Best-effort : si le repo plante, on log mais on ne bloque pas le preflight.
+            log.warn("ChannexConnect[PREFLIGHT]: PRICE_DRIFTS_ALIGNMENT check KO : {}",
+                e.getMessage());
+        }
+
+        // ── 5. Checks per-property (si propertyId fourni) ───────────────────
         if (clenzyPropertyId != null) {
             runPerPropertyChecks(clenzyPropertyId, orgId, checks);
         }
