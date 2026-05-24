@@ -59,19 +59,22 @@ public class ChannexSyncService {
     private final PriceEngine priceEngine;
     private final ObjectMapper objectMapper;
     private final ChannexMetrics metrics;
+    private final ChannexSyncLogService syncLogService;
 
     public ChannexSyncService(ChannexClient channexClient,
                                 ChannexPropertyMappingRepository mappingRepository,
                                 CalendarDayRepository calendarDayRepository,
                                 PriceEngine priceEngine,
                                 ObjectMapper objectMapper,
-                                ChannexMetrics metrics) {
+                                ChannexMetrics metrics,
+                                ChannexSyncLogService syncLogService) {
         this.channexClient = channexClient;
         this.mappingRepository = mappingRepository;
         this.calendarDayRepository = calendarDayRepository;
         this.priceEngine = priceEngine;
         this.objectMapper = objectMapper;
         this.metrics = metrics;
+        this.syncLogService = syncLogService;
     }
 
     // ─── Kafka consumer ─────────────────────────────────────────────────────
@@ -118,6 +121,20 @@ public class ChannexSyncService {
                 return;
             }
 
+            // Gate OTA : meme regle que pushProperty() — pas de push tant qu'aucun
+            // OTA n'est branche cote Channex (sinon les events Kafka generent des
+            // appels API gaspilles vers Channex sans aucune distribution OTA).
+            try {
+                if (!channexClient.hasActiveOtaChannel(mapping.getChannexPropertyId())) {
+                    log.debug("ChannexSync: event skip property={} (aucun OTA actif cote Channex)",
+                        propertyId);
+                    return;
+                }
+            } catch (Exception e) {
+                // En cas d'erreur sur le check : continuer le push (preferable a un skip silencieux)
+                log.warn("ChannexSync: check OTA actif KO ({}), push tente quand meme", e.getMessage());
+            }
+
             log.info("ChannexSync: push declenche action={} property={} period=[{},{}]",
                 action, propertyId, from, to);
 
@@ -140,22 +157,59 @@ public class ChannexSyncService {
      */
     @Transactional
     public ChannexSyncResult pushProperty(Long propertyId, Long orgId, LocalDate from, LocalDate to) {
+        java.time.Instant startedAt = java.time.Instant.now();
         Optional<ChannexPropertyMapping> mappingOpt =
             mappingRepository.findByClenzyPropertyId(propertyId, orgId);
         if (mappingOpt.isEmpty()) {
+            syncLogService.record(orgId, propertyId, null,
+                com.clenzy.integration.channex.model.ChannexSyncLog.SyncType.PUSH_PROPERTY,
+                com.clenzy.integration.channex.model.ChannexSyncLog.Status.FAIL,
+                0, startedAt, "No Channex mapping for property " + propertyId);
             return new ChannexSyncResult(false, "No Channex mapping for property " + propertyId, 0, 0);
         }
         ChannexPropertyMapping mapping = mappingOpt.get();
 
+        // Gate : ne push que si au moins un OTA (Airbnb, Booking, ...) est actif
+        // pour cette property cote Channex. Tant qu'aucun OTA n'est branche,
+        // push availability/rates est inutile (les donnees n'iront nulle part).
+        // On evite ainsi les appels API gaspilles + la pollution Channex au stade
+        // ou l'utilisateur n'a fait que connecter la property mais pas encore
+        // l'OAuth Airbnb / les credentials Booking.
+        try {
+            if (!channexClient.hasActiveOtaChannel(mapping.getChannexPropertyId())) {
+                log.info("ChannexSync: skip push property={} (aucun OTA actif cote Channex)",
+                    propertyId);
+                syncLogService.record(orgId, propertyId, mapping.getId(),
+                    com.clenzy.integration.channex.model.ChannexSyncLog.SyncType.PUSH_PROPERTY,
+                    com.clenzy.integration.channex.model.ChannexSyncLog.Status.SKIPPED,
+                    0, startedAt, "Aucun OTA actif cote Channex");
+                return new ChannexSyncResult(true,
+                    "Skipped: no active OTA channel — connect Airbnb/Booking first", 0, 0);
+            }
+        } catch (Exception e) {
+            // En cas d'erreur sur le check (network, 5xx Channex), on log mais on
+            // continue le push : preferable de tenter qu'echouer silencieusement.
+            log.warn("ChannexSync: impossible de verifier les OTA actifs ({}), on tente le push quand meme",
+                e.getMessage());
+        }
+
         boolean availOk = pushAvailabilityForRange(mapping, from, to);
         boolean ratesOk = pushRatesForRange(mapping, from, to);
         long days = java.time.temporal.ChronoUnit.DAYS.between(from, to.plusDays(1));
+        boolean overallOk = availOk && ratesOk;
 
-        updateMappingStatus(mapping, availOk && ratesOk, null);
+        updateMappingStatus(mapping, overallOk, null);
+
+        syncLogService.record(orgId, propertyId, mapping.getId(),
+            com.clenzy.integration.channex.model.ChannexSyncLog.SyncType.PUSH_PROPERTY,
+            overallOk ? com.clenzy.integration.channex.model.ChannexSyncLog.Status.SUCCESS
+                       : com.clenzy.integration.channex.model.ChannexSyncLog.Status.FAIL,
+            (int) days, startedAt,
+            overallOk ? null : "partial failure: avail=" + availOk + " rates=" + ratesOk);
 
         return new ChannexSyncResult(
-            availOk && ratesOk,
-            availOk && ratesOk ? "ok" : "partial failure (see logs)",
+            overallOk,
+            overallOk ? "ok" : "partial failure (see logs)",
             (int) days,
             (int) days
         );

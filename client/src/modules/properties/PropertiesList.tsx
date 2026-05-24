@@ -45,6 +45,10 @@ import type { ExportColumn } from '../../utils/exportUtils';
 import PropertyCard from './PropertyCard';
 import type { PropertyDetails } from './PropertyCard';
 import { estimateCleaningPrice, estimateCleaningDuration, formatDuration } from './PropertyCard';
+import { useChannexMappings } from '../../hooks/useChannexMappings';
+import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
+import ChannexDiagnoseDialog from '../settings/components/ChannexDiagnoseDialog';
+import ChannexFullDisconnectDialog from '../settings/components/ChannexFullDisconnectDialog';
 import ThemedTooltip from '../../components/ThemedTooltip';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
@@ -122,6 +126,31 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   // ─── React Query ──────────────────────────────────────────────────
   const { properties, isLoading, deleteProperty } = usePropertiesList();
 
+  // Quick Win #4 : health badges Channex. Le hook gate l'appel sur le role
+  // (SUPER_ADMIN/SUPER_MANAGER uniquement) → map vide pour les autres roles.
+  const { mappings: channexMappings, refresh: refreshChannexMappings } = useChannexMappings();
+
+  // Quick Win #5 : Diagnose + Repair. Le clic sur le badge ouvre un dialog qui
+  // fetche le diagnostic et propose 1-3 actions (re-sync / full disconnect /
+  // ouvrir le hub) en 1 clic chacune.
+  const [diagnoseTarget, setDiagnoseTarget] = useState<{
+    propertyId: number;
+    propertyName: string;
+  } | null>(null);
+  const [fullDisconnectTarget, setFullDisconnectTarget] = useState<{
+    propertyId: number;
+    propertyName: string;
+  } | null>(null);
+
+  const openDiagnoseFor = useCallback((propertyId: number, propertyName: string) => {
+    setDiagnoseTarget({ propertyId, propertyName });
+  }, []);
+  const handleDiagnoseFullDisconnect = useCallback(() => {
+    if (!diagnoseTarget) return;
+    setFullDisconnectTarget(diagnoseTarget);
+  }, [diagnoseTarget]);
+  // handleDiagnoseOpenHub est defini plus bas (apres const navigate = useNavigate()).
+
   // ─── Local UI state ───────────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
@@ -151,6 +180,30 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   const { isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
   const theme = useTheme();
+
+  // Quick Win #5 suite : OPEN_HUB action depuis le diagnose dialog → on
+  // navigate vers les settings. Requiert `navigate` declaree juste au-dessus.
+  const handleDiagnoseOpenHub = useCallback(() => {
+    navigate('/settings?tab=integrations');
+  }, [navigate]);
+
+  // Phase 3 — Deep-link depuis les notifications Channex. Quand le watchdog
+  // notifie l'admin d'une erreur de sync, l'actionUrl est /properties?diagnoseChannex=42.
+  // On lit le param au mount + on ouvre auto le diagnose dialog pour cette property.
+  // Le mapping doit etre charge (channexMappings) pour qu'on connaisse le nom.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const target = url.searchParams.get('diagnoseChannex');
+    if (!target || diagnoseTarget) return;
+    const propertyId = Number(target);
+    if (Number.isNaN(propertyId) || propertyId <= 0) return;
+    const property = properties.find((p) => Number(p.id) === propertyId);
+    if (!property) return; // pas encore charge ou ne nous appartient pas
+    openDiagnoseFor(propertyId, property.name);
+    // Nettoie le param de l'URL pour eviter une re-ouverture au prochain mount.
+    url.searchParams.delete('diagnoseChannex');
+    window.history.replaceState({}, '', url.toString());
+  }, [properties, diagnoseTarget, openDiagnoseFor]);
 
   // ─── Filtering ────────────────────────────────────────────────────
 
@@ -463,13 +516,24 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                           {/* Nom + adresse */}
                           <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography
-                              variant="body2"
-                              fontWeight={600}
-                              sx={{ fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                            >
-                              {property.name}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                              <Typography
+                                variant="body2"
+                                fontWeight={600}
+                                sx={{ fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
+                              >
+                                {property.name}
+                              </Typography>
+                              {/* Quick Win #4 : badge sante Channex */}
+                              {channexMappings.get(Number(property.id)) && (
+                                <ChannexHealthBadge
+                                  mapping={channexMappings.get(Number(property.id)) ?? null}
+                                  size={9}
+                                  variant="dot"
+                                  onClick={() => openDiagnoseFor(Number(property.id), property.name)}
+                                />
+                              )}
+                            </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
                               <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
                               <Typography
@@ -556,6 +620,8 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                     setDeleteDialogOpen(true);
                   }}
                   onView={() => navigate(`/properties/${property.id}`)}
+                  channexMapping={channexMappings.get(Number(property.id)) ?? null}
+                  onChannexBadgeClick={() => openDiagnoseFor(Number(property.id), property.name)}
                 />
               </Grid>
             ))}
@@ -628,7 +694,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                       <TableCell sx={{ p: 0, pr: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
                           <PropertyImageCarousel photoUrls={property.photoUrls} alt={property.name} />
-                          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, pl: 1.25 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, pl: 1.25, gap: 0.75 }}>
                             <Typography
                               variant="body2"
                               fontWeight={600}
@@ -642,6 +708,15 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                             >
                               {property.name}
                             </Typography>
+                            {/* Quick Win #4 : badge sante Channex (visible si mapping present) */}
+                            {channexMappings.get(Number(property.id)) && (
+                              <ChannexHealthBadge
+                                mapping={channexMappings.get(Number(property.id)) ?? null}
+                                size={9}
+                                variant="dot"
+                                onClick={() => navigate('/settings?tab=integrations')}
+                              />
+                            )}
                           </Box>
                         </Box>
                       </TableCell>
@@ -901,6 +976,30 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
         >
           <Add size={20} strokeWidth={1.75} />
         </Fab>
+      )}
+
+      {/* Quick Win #5 : Diagnose + Repair dialog (declenche par clic sur health badge) */}
+      {diagnoseTarget && (
+        <ChannexDiagnoseDialog
+          open={diagnoseTarget !== null}
+          onClose={() => setDiagnoseTarget(null)}
+          propertyId={diagnoseTarget.propertyId}
+          onFullDisconnect={handleDiagnoseFullDisconnect}
+          onOpenHub={handleDiagnoseOpenHub}
+          onResyncSuccess={() => { void refreshChannexMappings(); }}
+        />
+      )}
+
+      {/* Quick Win #2 : Smart Disconnect declenche depuis le diagnostic
+          (l'utilisateur clique "Deconnecter completement" dans le diagnose dialog). */}
+      {fullDisconnectTarget && (
+        <ChannexFullDisconnectDialog
+          open={fullDisconnectTarget !== null}
+          onClose={() => setFullDisconnectTarget(null)}
+          propertyId={fullDisconnectTarget.propertyId}
+          propertyName={fullDisconnectTarget.propertyName}
+          onSuccess={() => { void refreshChannexMappings(); }}
+        />
       )}
     </Box>
   );

@@ -177,6 +177,15 @@ public class Property {
     @Column(name = "amenities", columnDefinition = "TEXT")
     private String amenities;
 
+    /**
+     * Amenities OTA brutes (noms tels que renvoyes par Airbnb/Booking/Vrbo),
+     * stockees pour audit + futur mapping vers les codes Clenzy.
+     * Format : JSON array de strings, ex: ["Smoke alarm","Bed linens"].
+     * @see com.clenzy.integration.channex.service.ChannexImportService
+     */
+    @Column(name = "ota_raw_amenities", columnDefinition = "TEXT")
+    private String otaRawAmenities;
+
     // ─── Booking Engine ─────────────────────────────────────────────────────────
 
     @Column(name = "booking_engine_visible", nullable = false)
@@ -625,6 +634,14 @@ public class Property {
 
     public void setHasDisinfection(Boolean hasDisinfection) {
         this.hasDisinfection = hasDisinfection;
+    }
+
+    public String getOtaRawAmenities() {
+        return otaRawAmenities;
+    }
+
+    public void setOtaRawAmenities(String otaRawAmenities) {
+        this.otaRawAmenities = otaRawAmenities;
     }
 
     public String getAmenities() {

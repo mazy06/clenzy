@@ -8,5 +8,5 @@ public record ChannexRoomTypeDto(
     String id,
     String title,
     @JsonProperty("property_id") String propertyId,
-    @JsonProperty("count") Integer count
+    @JsonProperty("count_of_rooms") Integer countOfRooms
 ) {}

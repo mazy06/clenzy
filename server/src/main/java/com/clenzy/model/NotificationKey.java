@@ -65,6 +65,14 @@ public enum NotificationKey {
     ICAL_FEED_DELETED(NotificationType.INFO, NotificationCategory.SYSTEM, true),
     ICAL_AUTO_INTERVENTIONS_TOGGLED(NotificationType.INFO, NotificationCategory.SYSTEM, true),
 
+    // ─── CHANNEX / CHANNEL MANAGER (2 cles) ────────────────────────────────────
+    // Emises par ChannexWatchdogScheduler (Phase 3 — proactivite).
+    // CHANNEX_SYNC_ERROR    : mapping passe en ERROR (transition vers cet etat)
+    // CHANNEX_SYNC_RECOVERED: mapping etait en ERROR notifie, revient en ACTIVE
+
+    CHANNEX_SYNC_ERROR(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+    CHANNEX_SYNC_RECOVERED(NotificationType.SUCCESS, NotificationCategory.SYSTEM, true),
+
     // ─── TEAM (8 cles) ─────────────────────────────────────────────────────────
 
     TEAM_CREATED(NotificationType.INFO, NotificationCategory.TEAM, true),

@@ -36,7 +36,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
  *
  * <p>Couvre :</p>
  * <ul>
- *   <li>Auth Bearer token + headers (User-Agent, Content-Type)</li>
+ *   <li>Auth user-api-key header + autres headers (User-Agent, Content-Type)</li>
  *   <li>Creation property (POST /properties)</li>
  *   <li>Push availability + rates (POST /availability, /restrictions) avec chunking</li>
  *   <li>Mapping d'erreurs HTTP -> ChannexException.Kind</li>
@@ -62,22 +62,35 @@ class ChannexClientTest {
         props.setBaseUrl(BASE);
         props.setApiKey("test-api-key-secret");
         props.setMaxRetries(3);
-        client = new ChannexClient(restTemplate, props, new ChannexMetrics(new SimpleMeterRegistry()));
+        client = new ChannexClient(restTemplate, props, new ChannexMetrics(new SimpleMeterRegistry()),
+            new com.fasterxml.jackson.databind.ObjectMapper(),
+            new com.clenzy.integration.channex.service.ChannexCapabilityService());
     }
 
     // ─── createProperty ─────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("createProperty envoie POST /properties avec Bearer auth + body JSON")
-    void createProperty_sendsBearerAuthAndBody() {
+    @DisplayName("createProperty envoie POST /properties avec user-api-key + body JSON")
+    void createProperty_sendsApiKeyHeaderAndBody() {
+        // Channex renvoie au format JSON:API : data.id + data.attributes.{...}
         String responseBody = """
-            { "id": "prop-123", "title": "Studio Marais", "currency": "EUR",
-              "group_id": null, "timezone": "Europe/Paris" }
+            {
+              "data": {
+                "id": "prop-123",
+                "type": "property",
+                "attributes": {
+                  "title": "Studio Marais",
+                  "currency": "EUR",
+                  "group_id": null,
+                  "timezone": "Europe/Paris"
+                }
+              }
+            }
             """;
 
         mockServer.expect(requestTo(BASE + "/properties"))
             .andExpect(method(HttpMethod.POST))
-            .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer test-api-key-secret"))
+            .andExpect(header("user-api-key", "test-api-key-secret"))
             .andExpect(header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
             .andExpect(header("User-Agent", "Clenzy-PMS/1.0 (channex-client)"))
             .andRespond(withSuccess(responseBody, MediaType.APPLICATION_JSON));
@@ -106,6 +119,107 @@ class ChannexClientTest {
             .isInstanceOf(ChannexException.class)
             .satisfies(e -> assertThat(((ChannexException) e).getKind())
                 .isEqualTo(ChannexException.Kind.UNAUTHORIZED));
+    }
+
+    // ─── createEmbedUrl (Channel iframe) ────────────────────────────────────
+
+    @Test
+    @DisplayName("createEmbedUrl POST /auth/one_time_token puis construit l'URL iframe")
+    void createEmbedUrl_buildsIframeUrl() {
+        String tokenResponse = """
+            {
+              "data": { "token": "abc-123-token" },
+              "meta": { "message": "OK" }
+            }
+            """;
+
+        mockServer.expect(requestTo(BASE + "/auth/one_time_token"))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(header("user-api-key", "test-api-key-secret"))
+            .andRespond(withSuccess(tokenResponse, MediaType.APPLICATION_JSON));
+
+        String url = client.createEmbedUrl("prop-uuid-1", "admin@clenzy.fr", "fr");
+
+        // L'URL est sur le domaine sans suffixe /api/v1
+        assertThat(url).startsWith("https://staging.channex.io/auth/exchange");
+        // Token integre depuis data.token
+        assertThat(url).contains("oauth_session_key=abc-123-token");
+        // Property ID propage
+        assertThat(url).contains("property_id=prop-uuid-1");
+        // Mode headless + redirect vers /channels par defaut
+        assertThat(url).contains("app_mode=headless");
+        assertThat(url).contains("redirect_to=/channels");
+        // Langue propagee
+        assertThat(url).contains("lng=fr");
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("createEmbedUrl utilise 'fr' par defaut si langue null/blank")
+    void createEmbedUrl_defaultsToFrenchLang() {
+        mockServer.expect(requestTo(BASE + "/auth/one_time_token"))
+            .andRespond(withSuccess(
+                "{\"data\":{\"token\":\"tok\"}}", MediaType.APPLICATION_JSON));
+
+        String url = client.createEmbedUrl("prop-1", "admin@clenzy.fr", null);
+
+        assertThat(url).contains("lng=fr");
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("createEmbedUrl leve une ChannexException si Channex ne renvoie pas de token")
+    void createEmbedUrl_throwsIfNoToken() {
+        // Reponse sans champ data.token
+        mockServer.expect(requestTo(BASE + "/auth/one_time_token"))
+            .andRespond(withSuccess("{\"meta\":{\"message\":\"oups\"}}", MediaType.APPLICATION_JSON));
+
+        assertThatThrownBy(() -> client.createEmbedUrl("prop-1", "admin@clenzy.fr", "fr"))
+            .isInstanceOf(ChannexException.class)
+            .satisfies(e -> assertThat(((ChannexException) e).getKind())
+                .isEqualTo(ChannexException.Kind.SERVER_ERROR));
+    }
+
+    @Test
+    @DisplayName("createEmbedUrl supporte une base URL sans /api/v1 (origine deja propre)")
+    void createEmbedUrl_handlesBareBaseUrl() {
+        props.setBaseUrl("https://app.channex.io");  // pas de /api/v1
+        mockServer = MockRestServiceServer.createServer(restTemplate);
+
+        mockServer.expect(requestTo("https://app.channex.io/auth/one_time_token"))
+            .andRespond(withSuccess(
+                "{\"data\":{\"token\":\"t\"}}", MediaType.APPLICATION_JSON));
+
+        String url = client.createEmbedUrl("prop-1", "admin@clenzy.fr", "fr");
+
+        assertThat(url).startsWith("https://app.channex.io/auth/exchange");
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("createEmbedUrl(channelCode='ABB') ajoute available_channels=ABB pour pre-filtrer le wizard")
+    void createEmbedUrl_appendsAvailableChannelsFilter() {
+        mockServer.expect(requestTo(BASE + "/auth/one_time_token"))
+            .andRespond(withSuccess(
+                "{\"data\":{\"token\":\"tok\"}}", MediaType.APPLICATION_JSON));
+
+        String url = client.createEmbedUrl("prop-1", "admin@clenzy.fr", "fr", "ABB");
+
+        assertThat(url).contains("available_channels=ABB");
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("createEmbedUrl(channelCode=null) n'ajoute PAS available_channels (tous OTAs visibles)")
+    void createEmbedUrl_omitsFilterWhenNull() {
+        mockServer.expect(requestTo(BASE + "/auth/one_time_token"))
+            .andRespond(withSuccess(
+                "{\"data\":{\"token\":\"tok\"}}", MediaType.APPLICATION_JSON));
+
+        String url = client.createEmbedUrl("prop-1", "admin@clenzy.fr", "fr", null);
+
+        assertThat(url).doesNotContain("available_channels");
+        mockServer.verify();
     }
 
     // ─── pushAvailability ───────────────────────────────────────────────────

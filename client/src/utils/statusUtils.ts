@@ -52,34 +52,49 @@ export function getPropertyStatusLabel(status: string, t: TranslationFn): string
   return translated !== key ? translated : status;
 }
 
+/**
+ * Source unique de verite des types de propriete cote frontend.
+ * Doit etre synchrone avec l'enum {@code com.clenzy.model.PropertyType} cote backend.
+ *
+ * <p>Utilisee partout (PropertyForm, ChannexImportDiscoveryDialog, filtres,
+ * etc.) pour eviter les doublons. Ajouter un nouveau type ICI = ajouter dans :</p>
+ * <ol>
+ *   <li>Backend : {@code PropertyType.java} enum</li>
+ *   <li>i18n : {@code properties.types.<camelCase>} dans fr/en/ar.json</li>
+ *   <li>Cette constante (entree dans PROPERTY_TYPES)</li>
+ * </ol>
+ */
+export const PROPERTY_TYPES = [
+  { value: 'APARTMENT', i18nKey: 'properties.types.apartment', hex: '#1976d2' },
+  { value: 'HOUSE',     i18nKey: 'properties.types.house',     hex: '#4A9B8E' },
+  { value: 'VILLA',     i18nKey: 'properties.types.villa',     hex: '#7B61FF' },
+  { value: 'STUDIO',    i18nKey: 'properties.types.studio',    hex: '#0288d1' },
+  { value: 'LOFT',      i18nKey: 'properties.types.loft',      hex: '#D4A574' },
+  { value: 'DUPLEX',    i18nKey: 'properties.types.duplex',    hex: '#8B5CF6' },
+  { value: 'TOWNHOUSE', i18nKey: 'properties.types.townhouse', hex: '#6366F1' },
+  { value: 'BUNGALOW',  i18nKey: 'properties.types.bungalow',  hex: '#10B981' },
+  { value: 'RIAD',      i18nKey: 'properties.types.riad',      hex: '#F59E0B' },
+  { value: 'CHALET',    i18nKey: 'properties.types.chalet',    hex: '#D4A574' },
+  { value: 'COTTAGE',   i18nKey: 'properties.types.cottage',   hex: '#2E7D32' },
+  { value: 'GUEST_ROOM', i18nKey: 'properties.types.guestRoom', hex: '#ED6C02' },
+  { value: 'BOAT',      i18nKey: 'properties.types.boat',      hex: '#0288d1' },
+  { value: 'OTHER',     i18nKey: 'properties.types.other',     hex: '#757575' },
+] as const;
+
+export type PropertyTypeValue = (typeof PROPERTY_TYPES)[number]['value'];
+
+// Maps derivees pour lookup rapide (genere depuis PROPERTY_TYPES, pas de doublons)
 const PROPERTY_TYPE_KEYS: Record<string, string> = {
-  APARTMENT: 'properties.types.apartment',
+  ...Object.fromEntries(PROPERTY_TYPES.map(t => [t.value, t.i18nKey])),
+  // Alias FR (legacy data en BDD avec valeurs francisees)
   APPARTEMENT: 'properties.types.apartment',
-  HOUSE: 'properties.types.house',
   MAISON: 'properties.types.house',
-  VILLA: 'properties.types.villa',
-  STUDIO: 'properties.types.studio',
-  LOFT: 'properties.types.loft',
-  GUEST_ROOM: 'properties.types.guestRoom',
-  COTTAGE: 'properties.types.cottage',
-  CHALET: 'properties.types.chalet',
-  BOAT: 'properties.types.boat',
-  OTHER: 'properties.types.other',
 };
 
 const PROPERTY_TYPE_HEX: Record<string, string> = {
-  APARTMENT: '#1976d2',
+  ...Object.fromEntries(PROPERTY_TYPES.map(t => [t.value, t.hex])),
   APPARTEMENT: '#1976d2',
-  HOUSE: '#4A9B8E',
   MAISON: '#4A9B8E',
-  VILLA: '#7B61FF',
-  STUDIO: '#0288d1',
-  LOFT: '#D4A574',
-  GUEST_ROOM: '#ED6C02',
-  COTTAGE: '#2E7D32',
-  CHALET: '#D4A574',
-  BOAT: '#0288d1',
-  OTHER: '#757575',
 };
 
 export function getPropertyTypeHex(type: string): string {
