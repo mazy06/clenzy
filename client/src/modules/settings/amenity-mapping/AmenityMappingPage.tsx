@@ -4,10 +4,13 @@
  * Page de gestion du mapping entre les amenities OTA brutes (detectees a
  * l'import depuis Channex) et le referentiel Clenzy + custom amenities.
  *
- * 3 onglets :
+ * 5 onglets :
  *   - "À mapper" : amenities OTA detectees sans alias ni ignored (focus principal)
  *   - "Mes mappings" : aliases rawName → code Clenzy deja crees
- *   - "Custom" : commodites Clenzy custom definies par l'org
+ *   - "Commodites custom" : commodites Clenzy custom definies par l'org
+ *   - "Ignores" : amenities marquees comme a masquer definitivement
+ *   - "Referentiel Clenzy" : commodites built-in disponibles (lecture seule)
+ *     -> permet de savoir quelles commodites existent deja avant de creer un custom
  *
  * Header avec 4 KPI tuiles (À mapper / Aliases / Custom / Properties affectees).
  */
@@ -41,12 +44,17 @@ import {
   Plus,
   Ban,
   Trash2,
-  Tags,
   RotateCcw,
   Wand2,
   AlertCircle,
   Sparkles,
+  Pencil,
 } from 'lucide-react';
+import AmenityIconPicker from './AmenityIconPicker';
+import { resolveAmenityIcon, getCurrentIconName, DEFAULT_AMENITY_ICONS } from './amenityIcons';
+import { useAmenityIconOverrides } from './useAmenityIconOverrides';
+import { useAuth } from '../../../hooks/useAuth';
+import { useSettingsHeaderActions } from '../SettingsHeaderContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
   amenitiesManagementApi,
@@ -71,10 +79,15 @@ const SUCCESS = '#10B981';
 const WARN = '#F59E0B';
 const SURFACE = '#FAFAFA';
 
-type TabKey = 'unmapped' | 'aliases' | 'custom' | 'ignored';
+type TabKey = 'unmapped' | 'aliases' | 'custom' | 'ignored' | 'reference';
 
 export default function AmenityMappingPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const orgId = user?.organizationId ?? null;
+  const { overrides: iconOverrides, setIcon: setIconOverride, resetIcon: resetIconOverride } =
+    useAmenityIconOverrides(orgId);
+  const [iconPicker, setIconPicker] = useState<{ open: boolean; code: string; label: string } | null>(null);
   const [tab, setTab] = useState<TabKey>('unmapped');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -280,62 +293,57 @@ export default function AmenityMappingPage() {
     }
   };
 
+  // Boutons d'action portales dans le PageHeader de Settings (titre +
+  // description sont aussi fournis par Settings via SETTINGS_TAB_META).
+  // Voir SettingsHeaderContext.tsx pour le pattern.
+  const headerActionsPortal = useSettingsHeaderActions(
+    <>
+      <Tooltip title="Re-scrape Airbnb pour TOUTES vos propriétés importées (récupère nom + commodités fraîches)" arrow>
+        <span>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<Sparkles size={14} />}
+            onClick={() => setConfirmRescrape(true)}
+            disabled={rescraping}
+            sx={{
+              textTransform: 'none',
+              borderColor: '#8B5CF6',
+              color: '#8B5CF6',
+              '&:hover': { borderColor: '#7C3AED', backgroundColor: 'rgba(139, 92, 246, 0.04)' },
+            }}
+          >
+            {rescraping ? 'Re-scrape en cours…' : 'Re-scrape OTA'}
+          </Button>
+        </span>
+      </Tooltip>
+      <Tooltip title="Applique tous vos aliases + ignored sur les propriétés existantes (utile après modifications)" arrow>
+        <span>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<RotateCcw size={14} />}
+            onClick={() => setConfirmReprocess(true)}
+            disabled={reprocessing || (aliases.length === 0 && ignored.length === 0)}
+            sx={{
+              textTransform: 'none',
+              borderColor: ACCENT,
+              color: ACCENT,
+              '&:hover': { borderColor: '#0d645e', backgroundColor: 'rgba(15, 118, 110, 0.04)' },
+            }}
+          >
+            Re-traiter
+          </Button>
+        </span>
+      </Tooltip>
+    </>
+  );
+
   // ─── Render ────────────────────────────────────────────────────────────
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1280, mx: 'auto' }}>
-      {/* Header */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" spacing={2} sx={{ mb: 3 }}>
-        <Box>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Tags size={20} color={ACCENT} strokeWidth={1.8} />
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>Commodités OTA</Typography>
-          </Stack>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, maxWidth: 700 }}>
-            Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Clenzy.
-            Créez vos propres commodités si rien ne correspond.
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1}>
-          <Tooltip title="Re-scrape Airbnb pour TOUTES vos propriétés importées (récupère nom + commodités fraîches)">
-            <span>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Sparkles size={14} />}
-                onClick={() => setConfirmRescrape(true)}
-                disabled={rescraping}
-                sx={{
-                  textTransform: 'none',
-                  borderColor: '#8B5CF6',
-                  color: '#8B5CF6',
-                  '&:hover': { borderColor: '#7C3AED', backgroundColor: 'rgba(139, 92, 246, 0.04)' },
-                }}
-              >
-                {rescraping ? 'Re-scrape en cours…' : 'Re-scrape OTA'}
-              </Button>
-            </span>
-          </Tooltip>
-          <Tooltip title="Applique tous vos aliases + ignored sur les propriétés existantes (utile après modifications)">
-            <span>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<RotateCcw size={14} />}
-                onClick={() => setConfirmReprocess(true)}
-                disabled={reprocessing || (aliases.length === 0 && ignored.length === 0)}
-                sx={{
-                  textTransform: 'none',
-                  borderColor: ACCENT,
-                  color: ACCENT,
-                  '&:hover': { borderColor: '#0d645e', backgroundColor: 'rgba(15, 118, 110, 0.04)' },
-                }}
-              >
-                Re-traiter
-              </Button>
-            </span>
-          </Tooltip>
-        </Stack>
-      </Stack>
+    <Box sx={{ p: { xs: 0, md: 1 }, maxWidth: 1280, mx: 'auto' }}>
+      {/* Header (titre + actions) deporte dans le PageHeader Settings via portal */}
+      {headerActionsPortal}
 
       {/* KPIs */}
       <Stack
@@ -366,6 +374,7 @@ export default function AmenityMappingPage() {
           <Tab label={`Mes mappings (${aliases.length})`} value="aliases" />
           <Tab label={`Commodités custom (${customs.length})`} value="custom" />
           <Tab label={`Ignorés (${ignored.length})`} value="ignored" />
+          <Tab label={`Référentiel Clenzy (${BUILT_IN_AMENITIES.length})`} value="reference" />
         </Tabs>
       </Box>
 
@@ -614,6 +623,189 @@ export default function AmenityMappingPage() {
             ))
           )}
         </Stack>
+      )}
+
+      {/* TAB : Référentiel Clenzy (grille compacte avec icones editables) ─── */}
+      {tab === 'reference' && (
+        <Stack spacing={2}>
+          <Alert severity="info" variant="outlined" sx={{ borderRadius: 1, fontSize: '0.78rem', py: 0.5 }}>
+            Référentiel Clenzy : {BUILT_IN_AMENITIES.length} commodités prêtes à l'emploi.
+            Cliquez sur une icône pour la personnaliser (catalogue lucide-react, ~80 icônes).
+            Le code de la commodité reste invariant — seule l'icône change.
+          </Alert>
+
+          {(['comfort', 'kitchen', 'appliances', 'outdoor', 'safetyFamily'] as AmenityCategory[]).map((cat) => {
+            const items = BUILT_IN_AMENITIES.filter((a) => a.category === cat);
+            if (items.length === 0) return null;
+            return (
+              <Box key={cat}>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.875 }}>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'text.primary' }}>
+                    {AMENITY_CATEGORY_LABELS[cat]}
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={items.length}
+                    sx={{
+                      height: 18,
+                      fontSize: '0.65rem',
+                      fontWeight: 600,
+                      bgcolor: 'rgba(107,138,154,0.12)',
+                      color: PRIMARY,
+                      '& .MuiChip-label': { px: 0.75 },
+                    }}
+                  />
+                </Stack>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' },
+                    gap: 1,
+                  }}
+                >
+                  {items.map((a) => {
+                    const Icon = resolveAmenityIcon(a.code, iconOverrides);
+                    const isOverridden = a.code in iconOverrides && iconOverrides[a.code] !== DEFAULT_AMENITY_ICONS[a.code];
+                    const label = t(`properties.amenities.items.${a.i18nKey}`);
+                    return (
+                      <Box
+                        key={a.code}
+                        sx={{
+                          position: 'relative',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          px: 1.25,
+                          py: 0.875,
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          backgroundColor: 'background.paper',
+                          transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                          '&:hover': {
+                            borderColor: ACCENT,
+                            '& .icon-edit-btn': { opacity: 1 },
+                          },
+                        }}
+                      >
+                        {/* Icone (cliquable = ouvre le picker) */}
+                        <Tooltip title="Changer l'icône" arrow>
+                          <Box
+                            onClick={() => setIconPicker({ open: true, code: a.code, label })}
+                            sx={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 1,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              bgcolor: isOverridden ? `${PRIMARY}14` : `${ACCENT}14`,
+                              color: isOverridden ? PRIMARY : ACCENT,
+                              flexShrink: 0,
+                              cursor: 'pointer',
+                              transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                              '&:hover': {
+                                bgcolor: isOverridden ? `${PRIMARY}24` : `${ACCENT}24`,
+                              },
+                            }}
+                          >
+                            <Icon size={18} strokeWidth={1.75} />
+                          </Box>
+                        </Tooltip>
+
+                        {/* Label + code */}
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography
+                            sx={{
+                              fontSize: '0.82rem',
+                              fontWeight: 500,
+                              color: 'text.primary',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {label}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: 'block',
+                              fontFamily: '"SF Mono", Menlo, Consolas, monospace',
+                              fontSize: '0.65rem',
+                              color: 'text.disabled',
+                              lineHeight: 1.3,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {a.code}
+                          </Typography>
+                        </Box>
+
+                        {/* Edit pencil (visible au hover) + badge override si actif */}
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexShrink: 0 }}>
+                          {isOverridden && (
+                            <Tooltip title="Icône personnalisée — revenir à l'icône par défaut" arrow>
+                              <IconButton
+                                size="small"
+                                onClick={() => resetIconOverride(a.code)}
+                                aria-label="Réinitialiser l'icône"
+                                sx={{
+                                  width: 22,
+                                  height: 22,
+                                  cursor: 'pointer',
+                                  color: 'text.secondary',
+                                  '&:hover': { color: PRIMARY, backgroundColor: `${PRIMARY}0F` },
+                                }}
+                              >
+                                <RotateCcw size={12} strokeWidth={1.75} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          <Tooltip title="Changer l'icône" arrow>
+                            <IconButton
+                              className="icon-edit-btn"
+                              size="small"
+                              onClick={() => setIconPicker({ open: true, code: a.code, label })}
+                              aria-label="Changer l'icône"
+                              sx={{
+                                width: 22,
+                                height: 22,
+                                opacity: 0,
+                                cursor: 'pointer',
+                                color: 'text.secondary',
+                                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                '&:hover': { color: ACCENT, backgroundColor: `${ACCENT}0F` },
+                              }}
+                            >
+                              <Pencil size={12} strokeWidth={1.75} />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+            );
+          })}
+        </Stack>
+      )}
+
+      {/* Dialog : icon picker (catalogue lucide groupé par theme + recherche) */}
+      {iconPicker && (
+        <AmenityIconPicker
+          open={iconPicker.open}
+          amenityLabel={iconPicker.label}
+          amenityCode={iconPicker.code}
+          currentIcon={getCurrentIconName(iconPicker.code, iconOverrides)}
+          isOverridden={iconPicker.code in iconOverrides && iconOverrides[iconPicker.code] !== DEFAULT_AMENITY_ICONS[iconPicker.code]}
+          onClose={() => setIconPicker(null)}
+          onSelect={(iconName) => setIconOverride(iconPicker.code, iconName)}
+          onReset={() => resetIconOverride(iconPicker.code)}
+        />
       )}
 
       {/* Modales */}

@@ -9,7 +9,14 @@ import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.repository.DocumentTemplateRepository;
 import com.clenzy.repository.DocumentTemplateTagRepository;
 import com.clenzy.repository.FiscalProfileRepository;
+import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ProviderExpenseRepository;
+import com.clenzy.repository.ReceivedFormRepository;
+import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.tenant.TenantContext;
+import jakarta.persistence.EntityManager;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -57,6 +64,13 @@ class DocumentGeneratorServiceTest {
     @Mock private TaxRulePreValidator taxRulePreValidator;
     @Mock private TenantContext tenantContext;
     @Mock private FiscalProfileRepository fiscalProfileRepository;
+    @Mock private InterventionRepository interventionRepository;
+    @Mock private ReceivedFormRepository receivedFormRepository;
+    @Mock private ServiceRequestRepository serviceRequestRepository;
+    @Mock private ReservationRepository reservationRepository;
+    @Mock private PropertyRepository propertyRepository;
+    @Mock private ProviderExpenseRepository providerExpenseRepository;
+    @Mock private EntityManager entityManager;
 
     private DocumentGeneratorService service;
     private Jwt jwt;
@@ -70,7 +84,10 @@ class DocumentGeneratorServiceTest {
                 templateParserService, tagResolverService, conversionService,
                 emailService, notificationService, auditLogService,
                 kafkaTemplate, numberingService, complianceService,
-                invoiceGeneratorService, taxRulePreValidator, tenantContext, fiscalProfileRepository, meterRegistry
+                invoiceGeneratorService, taxRulePreValidator, tenantContext, fiscalProfileRepository,
+                interventionRepository, receivedFormRepository, serviceRequestRepository,
+                reservationRepository, propertyRepository, providerExpenseRepository,
+                entityManager, meterRegistry
         );
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")

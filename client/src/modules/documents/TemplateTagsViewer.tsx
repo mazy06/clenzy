@@ -14,21 +14,28 @@ import {
 } from '@mui/material';
 import { ExpandMore } from '../../icons';
 import { DocumentTemplateTag } from '../../services/api/documentsApi';
+import { softChipSx } from '../../utils/statusUtils';
 
 interface TemplateTagsViewerProps {
   tags: DocumentTemplateTag[];
 }
 
+// Palette Clenzy (alignee sur les accents valides) — primary bleu-gris,
+// teal pour propriete/intervention, warm sand pour DEVIS, neutral pour SYSTEM.
 const CATEGORY_COLORS: Record<string, string> = {
-  CLIENT: '#3b82f6',
-  PROPERTY: '#10b981',
-  INTERVENTION: '#f59e0b',
-  DEVIS: '#8b5cf6',
-  FACTURE: '#ef4444',
-  PAIEMENT: '#ec4899',
-  ENTREPRISE: '#6366f1',
-  SYSTEM: '#6b7280',
+  CLIENT: '#7BA3C2',       // bleu doux
+  PROPERTY: '#4A9B8E',     // teal Clenzy
+  INTERVENTION: '#D4A574', // warm sand
+  DEVIS: '#8b5cf6',        // violet (reste branche pour les docs commerciaux)
+  FACTURE: '#C97A7A',      // rouge doux Clenzy
+  PAIEMENT: '#ec4899',     // pink (documents financiers)
+  ENTREPRISE: '#6B8A9A',   // primary Clenzy
+  SYSTEM: '#8A8378',       // neutral warm-gray Clenzy
 };
+
+const NEUTRAL = '#8A8378';
+const WARM = '#D4A574';
+const PRIMARY = '#6B8A9A';
 
 const CATEGORY_LABELS: Record<string, string> = {
   CLIENT: 'Client',
@@ -84,10 +91,10 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
   };
 
   return (
-    <Paper sx={{ p: 3 }}>
+    <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, boxShadow: 'none' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">Tags détectés</Typography>
-        <Chip label={`${tags.length} tags`} size="small" color="info" />
+        <Chip label={`${tags.length} tags`} size="small" sx={softChipSx(PRIMARY)} />
       </Box>
 
       {categories.length === 0 ? (
@@ -110,7 +117,11 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
                 <Typography fontWeight={500}>
                   {CATEGORY_LABELS[cat] || cat}
                 </Typography>
-                <Chip label={groupedTags[cat].length} size="small" sx={{ ml: 1 }} />
+                <Chip
+                  label={groupedTags[cat].length}
+                  size="small"
+                  sx={{ ml: 1, ...softChipSx(CATEGORY_COLORS[cat] || NEUTRAL) }}
+                />
               </Box>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 0 }}>
@@ -125,13 +136,12 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
                         <Chip
                           label={TYPE_LABELS[tag.tagType] || tag.tagType}
                           size="small"
-                          variant="outlined"
-                          sx={{ fontSize: '0.7rem' }}
+                          sx={softChipSx(NEUTRAL)}
                         />
                       </TableCell>
                       <TableCell>
                         {tag.required && (
-                          <Chip label="Requis" size="small" color="warning" sx={{ fontSize: '0.7rem' }} />
+                          <Chip label="Requis" size="small" sx={softChipSx(WARM)} />
                         )}
                       </TableCell>
                     </TableRow>

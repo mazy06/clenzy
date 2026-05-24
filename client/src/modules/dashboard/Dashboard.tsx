@@ -20,6 +20,12 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import PageHeader from '../../components/PageHeader';
+import {
+  PageHeaderActionsProvider,
+  usePageHeaderActionsSlot,
+  resolveTabHeader,
+  type TabHeaderMeta,
+} from '../../components/PageHeaderActionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import DashboardNoiseTab from './DashboardNoiseTab';
 import DashboardSmartLockTab from './DashboardSmartLockTab';
@@ -40,6 +46,28 @@ const TAB_ICONS: Record<string, React.ReactElement> = {
   smartlock: <LockOutlinedIcon size={16} strokeWidth={1.75} />,
   keyexchange: <VpnKeyIcon size={16} strokeWidth={1.75} />,
   simulator: <CalculateIcon size={16} strokeWidth={1.75} />,
+};
+
+// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
+// Clef = LABEL traduit du tab (string stable face aux changements d'index visible).
+// Le titre racine reste dynamique (role-based via getDashboardTitle()) — seul le
+// subtitle change selon le tab actif.
+const DASHBOARD_TAB_META: Record<string, TabHeaderMeta> = {
+  "Vue d'ensemble": {
+    subtitle: "Vue d'ensemble : KPIs, planning, alertes critiques et accès rapides à votre activité.",
+  },
+  'Nuisance sonore': {
+    subtitle: 'Monitoring sonore Minut sur vos propriétés : alertes en temps réel, historique et seuils par bien.',
+  },
+  'Serrures connectées': {
+    subtitle: 'État et contrôle de vos serrures connectées (Tuya, Nuki) : verrouillage à distance et batterie.',
+  },
+  'Gestion des clés': {
+    subtitle: "Échange de clés via KeyNest et boîtes à clés : suivi des transferts entre guests et équipes.",
+  },
+  'Simulateur': {
+    subtitle: 'Simulateur analytique : projection revenus, occupation et performance sur scenarios variables.',
+  },
 };
 
 // ─── Tab helpers ────────────────────────────────────────────────────────────
@@ -72,6 +100,10 @@ const Dashboard: React.FC = () => {
 
   const [period, setPeriod] = useState<DashboardPeriod>('month');
   const [tabValue, setTabValue] = useState(0);
+
+  // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
+  // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
+  const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = usePageHeaderActionsSlot();
 
   // Roles
   const isAdmin = user?.roles?.includes('SUPER_ADMIN') || false;
@@ -118,6 +150,18 @@ const Dashboard: React.FC = () => {
     return t('dashboard.subtitle');
   };
 
+  // Resolution du title/subtitle en fonction du tab actif.
+  // Title racine = role-based (getDashboardTitle), subtitle racine = role-based
+  // (getDashboardDescription) — utilises comme fallback quand le tab n'a pas de meta.
+  const visibleTabLabels = visibleTabs.map((tab) => t(tab.labelKey) || tab.key);
+  const { title, subtitle } = resolveTabHeader(
+    getDashboardTitle(),
+    getDashboardDescription(),
+    visibleTabLabels,
+    tabValue,
+    DASHBOARD_TAB_META,
+  );
+
   // ─── Date filter: period chips on Overview and Simulator
   const showDateFilter = activeTabKey === 'overview' || activeTabKey === 'simulator';
   const dateFilterElement = useMemo(() => {
@@ -142,150 +186,153 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        minHeight: 0,
-      }}
-    >
-      {/* ─── Header ────────────────────────────────────────────────────── */}
-      <Box sx={{ flexShrink: 0 }}>
-        <PageHeader
-          title={getDashboardTitle()}
-          subtitle={getDashboardDescription()}
-          iconBadge={<DashboardIcon />}
-          backPath="/"
-          showBackButton={false}
-          actions={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              {(isAdmin || isManager || isHost) && (
-                <Tooltip title="Channel Manager (bientôt disponible)" arrow>
-                  <span>
-                    <Chip
-                      icon={<SyncIcon size={14} strokeWidth={1.75} />}
-                      label="Channel Manager"
-                      size="small"
-                      variant="outlined"
-                      disabled
-                      sx={{
-                        fontSize: '0.6875rem',
-                        fontWeight: 600,
-                        height: 28,
-                        borderColor: 'divider',
-                        color: 'text.disabled',
-                        '& .MuiChip-icon': { fontSize: 14, color: 'text.disabled' },
-                      }}
-                    />
-                  </span>
-                </Tooltip>
-              )}
-              {dateFilterElement && (
-                <>
-                  <Box sx={{ width: '1px', height: 20, backgroundColor: 'divider', mx: 0.25 }} />
-                  {dateFilterElement}
-                </>
-              )}
-            </Box>
-          }
-        />
-      </Box>
+    <PageHeaderActionsProvider slot={headerActionsSlot}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          minHeight: 0,
+        }}
+      >
+        {/* ─── Header ────────────────────────────────────────────────────── */}
+        <Box sx={{ flexShrink: 0 }}>
+          <PageHeader
+            title={title}
+            subtitle={subtitle}
+            iconBadge={<DashboardIcon />}
+            backPath="/"
+            showBackButton={false}
+            actions={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                {headerActionsPortal}
+                {(isAdmin || isManager || isHost) && (
+                  <Tooltip title="Channel Manager (bientôt disponible)" arrow>
+                    <span>
+                      <Chip
+                        icon={<SyncIcon size={14} strokeWidth={1.75} />}
+                        label="Channel Manager"
+                        size="small"
+                        variant="outlined"
+                        disabled
+                        sx={{
+                          fontSize: '0.6875rem',
+                          fontWeight: 600,
+                          height: 28,
+                          borderColor: 'divider',
+                          color: 'text.disabled',
+                          '& .MuiChip-icon': { fontSize: 14, color: 'text.disabled' },
+                        }}
+                      />
+                    </span>
+                  </Tooltip>
+                )}
+                {dateFilterElement && (
+                  <>
+                    <Box sx={{ width: '1px', height: 20, backgroundColor: 'divider', mx: 0.25 }} />
+                    {dateFilterElement}
+                  </>
+                )}
+              </Box>
+            }
+          />
+        </Box>
 
-      {/* ─── Tabs (dynamic per role) ──────────────────────────────────── */}
-      {visibleTabs.length > 1 && (
-        <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0, flexShrink: 0 }}>
-          <Tabs
-            value={tabValue}
-            onChange={(_, v) => setTabValue(v)}
-            sx={{
-              minHeight: 36,
-              '& .MuiTab-root': {
+        {/* ─── Tabs (dynamic per role) ──────────────────────────────────── */}
+        {visibleTabs.length > 1 && (
+          <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0, flexShrink: 0 }}>
+            <Tabs
+              value={tabValue}
+              onChange={(_, v) => setTabValue(v)}
+              sx={{
                 minHeight: 36,
-                py: 0.5,
-                px: 2,
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                textTransform: 'none',
-                letterSpacing: '0.01em',
-                color: 'text.secondary',
-                '&.Mui-selected': {
-                  fontWeight: 700,
-                  color: 'primary.main',
+                '& .MuiTab-root': {
+                  minHeight: 36,
+                  py: 0.5,
+                  px: 2,
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  letterSpacing: '0.01em',
+                  color: 'text.secondary',
+                  '&.Mui-selected': {
+                    fontWeight: 700,
+                    color: 'primary.main',
+                  },
                 },
-              },
-              '& .MuiTabs-indicator': {
-                height: 2,
-                borderRadius: 1,
-              },
-            }}
+                '& .MuiTabs-indicator': {
+                  height: 2,
+                  borderRadius: 1,
+                },
+              }}
+            >
+              {visibleTabs.map((tab, idx) => (
+                <Tab
+                  key={tab.key}
+                  icon={TAB_ICONS[tab.key]}
+                  iconPosition="start"
+                  label={t(tab.labelKey) || tab.key}
+                  {...a11yProps(idx)}
+                />
+              ))}
+            </Tabs>
+          </Paper>
+        )}
+
+        {/* ─── Tab content ────────────────────────────────────────────────── */}
+        {activeTabKey === 'overview' && (
+          <Box
+            role="tabpanel"
+            id="dashboard-tabpanel-0"
+            sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
           >
-            {visibleTabs.map((tab, idx) => (
-              <Tab
-                key={tab.key}
-                icon={TAB_ICONS[tab.key]}
-                iconPosition="start"
-                label={t(tab.labelKey) || tab.key}
-                {...a11yProps(idx)}
-              />
-            ))}
-          </Tabs>
-        </Paper>
-      )}
+            {isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
+              <UpgradeBanner currentForfait={user.forfait} />
+            )}
+            <DashboardOverview period={period} onNavigateTab={handleNavigateTab} />
+          </Box>
+        )}
 
-      {/* ─── Tab content ────────────────────────────────────────────────── */}
-      {activeTabKey === 'overview' && (
-        <Box
-          role="tabpanel"
-          id="dashboard-tabpanel-0"
-          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
-        >
-          {isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
-            <UpgradeBanner currentForfait={user.forfait} />
-          )}
-          <DashboardOverview period={period} onNavigateTab={handleNavigateTab} />
-        </Box>
-      )}
+        {activeTabKey === 'noise' && (
+          <Box
+            role="tabpanel"
+            sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
+          >
+            <DashboardNoiseTab />
+          </Box>
+        )}
 
-      {activeTabKey === 'noise' && (
-        <Box
-          role="tabpanel"
-          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
-        >
-          <DashboardNoiseTab />
-        </Box>
-      )}
+        {activeTabKey === 'smartlock' && (
+          <Box
+            role="tabpanel"
+            sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
+          >
+            <DashboardSmartLockTab />
+          </Box>
+        )}
 
-      {activeTabKey === 'smartlock' && (
-        <Box
-          role="tabpanel"
-          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
-        >
-          <DashboardSmartLockTab />
-        </Box>
-      )}
+        {activeTabKey === 'keyexchange' && (
+          <Box
+            role="tabpanel"
+            sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
+          >
+            <DashboardKeyExchangeTab />
+          </Box>
+        )}
 
-      {activeTabKey === 'keyexchange' && (
-        <Box
-          role="tabpanel"
-          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
-        >
-          <DashboardKeyExchangeTab />
-        </Box>
-      )}
+        {activeTabKey === 'simulator' && (
+          <Box
+            role="tabpanel"
+            sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
+          >
+            <DashboardErrorBoundary widgetName="Simulateur">
+              <AnalyticsSimulator data={analytics} />
+            </DashboardErrorBoundary>
+          </Box>
+        )}
 
-      {activeTabKey === 'simulator' && (
-        <Box
-          role="tabpanel"
-          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
-        >
-          <DashboardErrorBoundary widgetName="Simulateur">
-            <AnalyticsSimulator data={analytics} />
-          </DashboardErrorBoundary>
-        </Box>
-      )}
-
-    </Box>
+      </Box>
+    </PageHeaderActionsProvider>
   );
 };
 
