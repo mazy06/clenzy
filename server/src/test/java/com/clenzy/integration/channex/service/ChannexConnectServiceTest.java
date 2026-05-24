@@ -50,6 +50,7 @@ class ChannexConnectServiceTest {
     @Mock private ChannexSyncService syncService;
     @Mock private ChannexBookingService bookingService;
     @Mock private PropertyRepository propertyRepository;
+    @Mock private com.clenzy.integration.channex.repository.ChannexPriceDriftRepository priceDriftRepository;
 
     private ChannexConnectService service;
 
@@ -59,8 +60,15 @@ class ChannexConnectServiceTest {
             channexClient, mappingRepository, otaChannelRepository, syncService, bookingService,
             propertyRepository,
             new ChannexMetrics(new SimpleMeterRegistry()),
-            new ChannexCapabilityService()
+            new ChannexCapabilityService(),
+            priceDriftRepository
         );
+        // Defaut : 0 drift actif (PRICE_DRIFTS_ALIGNMENT check -> OK)
+        org.mockito.Mockito.lenient().when(priceDriftRepository.findActiveByOrg(org.mockito.ArgumentMatchers.anyLong()))
+            .thenReturn(java.util.List.of());
+        org.mockito.Mockito.lenient().when(priceDriftRepository.findActiveByProperty(
+                org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyLong()))
+            .thenReturn(java.util.List.of());
     }
 
     private Property property(Long id, Long orgId) {
@@ -436,6 +444,46 @@ class ChannexConnectServiceTest {
     // ─── Tiny helper for ArgumentMatchers.eq ────────────────────────────────
     private static <T> T eq(T value) { return org.mockito.ArgumentMatchers.eq(value); }
 
+    // ─── Phase 5 audit : updatePriceSourceOfTruth ──────────────────────────
+
+    @Test
+    @DisplayName("updatePriceSourceOfTruth : property valide -> applique le mode + save")
+    void updatePriceSource_valid() {
+        Property p = property(100L, 42L);
+        p.setPriceSourceOfTruth(com.clenzy.model.PriceSourceOfTruth.CLENZY);
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(p));
+
+        com.clenzy.model.PriceSourceOfTruth result = service.updatePriceSourceOfTruth(
+            100L, 42L, com.clenzy.model.PriceSourceOfTruth.OTA);
+
+        assertThat(result).isEqualTo(com.clenzy.model.PriceSourceOfTruth.OTA);
+        assertThat(p.getPriceSourceOfTruth()).isEqualTo(com.clenzy.model.PriceSourceOfTruth.OTA);
+        verify(propertyRepository).save(p);
+    }
+
+    @Test
+    @DisplayName("updatePriceSourceOfTruth : property inexistante -> IllegalStateException")
+    void updatePriceSource_notFound() {
+        when(propertyRepository.findById(999L)).thenReturn(Optional.empty());
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+            service.updatePriceSourceOfTruth(999L, 42L, com.clenzy.model.PriceSourceOfTruth.OTA))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("introuvable");
+    }
+
+    @Test
+    @DisplayName("updatePriceSourceOfTruth : property d'une autre org -> IllegalStateException (tenant violation)")
+    void updatePriceSource_crossTenant() {
+        Property p = property(100L, 99L); // autre org
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(p));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+            service.updatePriceSourceOfTruth(100L, 42L, com.clenzy.model.PriceSourceOfTruth.OTA))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("organisation");
+    }
+
     // ─── Phase 1-3 : fullDisconnect / runPreflight / diagnose / health ──────
 
     private static com.fasterxml.jackson.databind.JsonNode channelsJsonWithProperty(String propertyId,
@@ -546,7 +594,7 @@ class ChannexConnectServiceTest {
     }
 
     @Test
-    @DisplayName("runPreflight: global only (no propertyId) + API OK -> canProceed=true avec 3 checks")
+    @DisplayName("runPreflight: global only (no propertyId) + API OK + 0 drift -> canProceed=true avec 4 checks tous OK")
     void runPreflight_globalOk() throws Exception {
         when(channexClient.fetchAllPropertiesRaw())
             .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper()
@@ -556,9 +604,63 @@ class ChannexConnectServiceTest {
         var report = service.runPreflight(42L, null);
 
         assertThat(report.canProceed()).isTrue();
-        assertThat(report.checks()).hasSize(3); // API + CAPABILITIES + HUB
+        assertThat(report.checks()).hasSize(4); // API + CAPABILITIES + HUB + PRICE_DRIFTS_ALIGNMENT
         assertThat(report.checks()).allMatch(c ->
             c.severity() == com.clenzy.integration.channex.dto.ChannexPreflightReport.Severity.OK);
+        assertThat(report.checks()).anySatisfy(c ->
+            assertThat(c.code()).isEqualTo("PRICE_DRIFTS_ALIGNMENT"));
+    }
+
+    @Test
+    @DisplayName("runPreflight: drifts actifs > 0 -> check PRICE_DRIFTS_ALIGNMENT en WARNING + canProceed reste true")
+    void runPreflight_warnIfActiveDrifts() throws Exception {
+        when(channexClient.fetchAllPropertiesRaw())
+            .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"data\":[]}"));
+        when(mappingRepository.findAllByOrgId(42L)).thenReturn(List.of());
+        // 3 drifts actifs
+        when(priceDriftRepository.findActiveByOrg(42L)).thenReturn(List.of(
+            new com.clenzy.integration.channex.model.ChannexPriceDrift(),
+            new com.clenzy.integration.channex.model.ChannexPriceDrift(),
+            new com.clenzy.integration.channex.model.ChannexPriceDrift()
+        ));
+
+        var report = service.runPreflight(42L, null);
+
+        // WARNING ne bloque pas canProceed (= true)
+        assertThat(report.canProceed()).isTrue();
+        assertThat(report.checks()).anySatisfy(c -> {
+            assertThat(c.code()).isEqualTo("PRICE_DRIFTS_ALIGNMENT");
+            assertThat(c.severity())
+                .isEqualTo(com.clenzy.integration.channex.dto.ChannexPreflightReport.Severity.WARNING);
+            assertThat(c.detail()).contains("3 drifts");
+            assertThat(c.remediation()).contains("Voir les conflits");
+        });
+    }
+
+    @Test
+    @DisplayName("runPreflight: avec propertyId -> PRICE_DRIFTS_ALIGNMENT scope sur la property")
+    void runPreflight_perPropertyDriftScope() throws Exception {
+        when(channexClient.fetchAllPropertiesRaw())
+            .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"data\":[]}"));
+        when(mappingRepository.findAllByOrgId(42L)).thenReturn(List.of());
+        Property p = property(100L, 42L);
+        p.setDefaultCurrency("EUR");
+        p.setCountryCode("FR");
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(p));
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.empty());
+        when(priceDriftRepository.findActiveByProperty(42L, 100L)).thenReturn(List.of(
+            new com.clenzy.integration.channex.model.ChannexPriceDrift()
+        ));
+
+        var report = service.runPreflight(42L, 100L);
+
+        // Verifie qu'on a bien utilise findActiveByProperty (scope) et pas findActiveByOrg
+        verify(priceDriftRepository).findActiveByProperty(42L, 100L);
+        verify(priceDriftRepository, org.mockito.Mockito.never()).findActiveByOrg(org.mockito.ArgumentMatchers.anyLong());
+        assertThat(report.checks()).anySatisfy(c -> {
+            assertThat(c.code()).isEqualTo("PRICE_DRIFTS_ALIGNMENT");
+            assertThat(c.detail()).contains("1 drift");
+        });
     }
 
     @Test

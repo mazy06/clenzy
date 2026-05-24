@@ -45,6 +45,12 @@ public class ChannexConnectController {
     private final com.clenzy.integration.channex.repository.ChannexSyncLogRepository syncLogRepository;
     private final com.clenzy.integration.channex.service.ChannexPriceDriftService priceDriftService;
     private final com.clenzy.integration.channex.service.ChannexSyncService syncService;
+    // Sprint A4-A7 (Quick Wins) : access direct au client pour logs/usage/test webhook
+    private final com.clenzy.integration.channex.client.ChannexClient channexClient;
+    // Items 2-3-4 paid apps : services injectes dans le constructor (pas @Autowired sur param)
+    private final com.clenzy.integration.channex.service.ChannexMessagingService messagingService;
+    private final com.clenzy.integration.channex.service.ChannexReviewsService reviewsService;
+    private final com.clenzy.integration.channex.service.ChannexStripeTokenizationService tokenService;
 
     public ChannexConnectController(ChannexConnectService connectService,
                                       ChannexImportService importService,
@@ -52,7 +58,11 @@ public class ChannexConnectController {
                                       com.clenzy.integration.channex.service.ChannexCapabilityService capabilityService,
                                       com.clenzy.integration.channex.repository.ChannexSyncLogRepository syncLogRepository,
                                       com.clenzy.integration.channex.service.ChannexPriceDriftService priceDriftService,
-                                      com.clenzy.integration.channex.service.ChannexSyncService syncService) {
+                                      com.clenzy.integration.channex.service.ChannexSyncService syncService,
+                                      com.clenzy.integration.channex.client.ChannexClient channexClient,
+                                      com.clenzy.integration.channex.service.ChannexMessagingService messagingService,
+                                      com.clenzy.integration.channex.service.ChannexReviewsService reviewsService,
+                                      com.clenzy.integration.channex.service.ChannexStripeTokenizationService tokenService) {
         this.connectService = connectService;
         this.importService = importService;
         this.tenantContext = tenantContext;
@@ -60,6 +70,10 @@ public class ChannexConnectController {
         this.syncLogRepository = syncLogRepository;
         this.priceDriftService = priceDriftService;
         this.syncService = syncService;
+        this.channexClient = channexClient;
+        this.messagingService = messagingService;
+        this.reviewsService = reviewsService;
+        this.tokenService = tokenService;
     }
 
     /**
@@ -283,6 +297,142 @@ public class ChannexConnectController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return syncService.pushPricingSettings(clenzyPropertyId, orgId);
     }
+
+    // ─── Sprint A4-A7 Quick Wins : logs Channex + usage + webhook test ─────
+
+    /**
+     * Sprint A4 — Historique des events Channex pour un channel donne.
+     * Aide au debugging des push availability/rates KO cote OTA.
+     */
+    @GetMapping("/channels/{channelId}/logs")
+    @Operation(summary = "Logs Channex d'un channel (debug push/pull OTA)")
+    public com.fasterxml.jackson.databind.JsonNode channelLogs(@PathVariable String channelId,
+                                                                @RequestParam(defaultValue = "50") int limit) {
+        // Tenant context valide via @PreAuthorize sur la classe (SUPER_ADMIN/MANAGER)
+        // On retourne le JsonNode brut Channex (l'UI parse les champs qui l'interessent).
+        return channexClient.fetchChannelLogs(channelId, limit)
+            .orElseGet(() -> new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode()
+                .put("status", "not_supported")
+                .put("message", "Channex /channels/{id}/logs non disponible pour ce compte"));
+    }
+
+    /**
+     * Sprint A5 — Historique des webhooks envoyes par Channex pour ce channel.
+     * Permet de voir si Channex retry parce que notre endpoint repond 500.
+     */
+    @GetMapping("/channels/{channelId}/webhook-logs")
+    @Operation(summary = "Webhook logs Channex (verifier retries / 5xx)")
+    public com.fasterxml.jackson.databind.JsonNode channelWebhookLogs(@PathVariable String channelId,
+                                                                       @RequestParam(defaultValue = "50") int limit) {
+        return channexClient.fetchChannelWebhookLogs(channelId, limit)
+            .orElseGet(() -> new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode()
+                .put("status", "not_supported")
+                .put("message", "Channex /channels/{id}/webhook_logs non disponible"));
+    }
+
+    /**
+     * Sprint A6 — Quota API Channex consomme (utile dans le Diagnostic).
+     */
+    @GetMapping("/usage")
+    @Operation(summary = "Quota API Channex (calls consommes / plafond)")
+    public com.fasterxml.jackson.databind.JsonNode channexUsage() {
+        return channexClient.fetchBillingUsage()
+            .orElseGet(() -> new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode()
+                .put("status", "not_available")
+                .put("message", "Pas de billing_account_id ou endpoint non supporte"));
+    }
+
+    /**
+     * Sprint A7 — Test d'un webhook (Channex envoie un event "test" et retourne le status).
+     */
+    @PostMapping("/webhooks/{webhookId}/test")
+    @Operation(summary = "Test la connectivite d'un webhook configure cote Channex")
+    public com.fasterxml.jackson.databind.JsonNode testWebhook(@PathVariable String webhookId) {
+        return channexClient.testWebhook(webhookId)
+            .orElseGet(() -> new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode()
+                .put("status", "ko")
+                .put("message", "Test webhook KO ou non supporte"));
+    }
+
+    // ─── Item 2 (Messages App, paid) ────────────────────────────────────────
+
+    @GetMapping("/properties/{clenzyPropertyId}/messaging/threads")
+    @Operation(summary = "Liste les threads de messaging OTA d'une property (Channex Messages App)")
+    public com.fasterxml.jackson.databind.JsonNode listMessagingThreads(
+            @PathVariable Long clenzyPropertyId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return messagingService.listThreadsForProperty(clenzyPropertyId, orgId)
+            .orElseGet(() -> new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode()
+                .put("status", "not_available")
+                .put("message", "Messages App non installee ou pas de mapping"));
+    }
+
+    // ─── Item 3 (Reviews App, paid) ─────────────────────────────────────────
+
+    @GetMapping("/reviews")
+    @Operation(summary = "Liste paginee des reviews OTA (Channex Reviews App)")
+    public com.fasterxml.jackson.databind.JsonNode listReviews(
+            @RequestParam(required = false) Long propertyId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int limit) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return reviewsService.listReviews(propertyId, orgId, page, limit)
+            .orElseGet(() -> new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode()
+                .put("status", "not_available")
+                .put("message", "Reviews App non installee"));
+    }
+
+    @PostMapping("/reviews/{reviewId}/reply")
+    @Operation(summary = "Reponse host a une review OTA")
+    public com.fasterxml.jackson.databind.JsonNode replyToReview(
+            @PathVariable String reviewId,
+            @RequestBody ReviewReplyBody body) {
+        if (body == null || body.text() == null || body.text().isBlank()) {
+            throw new IllegalArgumentException("Body requis : { \"text\": \"...\" }");
+        }
+        return reviewsService.replyToReview(reviewId, body.text())
+            .orElseGet(() -> new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode()
+                .put("status", "ko").put("message", "Reply KO"));
+    }
+
+    @GetMapping("/properties/{clenzyPropertyId}/reviews/score")
+    @Operation(summary = "Score Reviews d'une property (agrege ou detaille)")
+    public com.fasterxml.jackson.databind.JsonNode propertyScore(
+            @PathVariable Long clenzyPropertyId,
+            @RequestParam(defaultValue = "false") boolean detailed) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        var opt = detailed
+            ? reviewsService.getPropertyScoreDetailed(clenzyPropertyId, orgId)
+            : reviewsService.getPropertyScore(clenzyPropertyId, orgId);
+        return opt.orElseGet(() -> new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode()
+            .put("status", "not_available")
+            .put("message", "Reviews App non installee ou pas de score disponible"));
+    }
+
+    public record ReviewReplyBody(String text) {}
+
+    // ─── Item 4 (Stripe Tokenization App, paid) ─────────────────────────────
+
+    @PostMapping("/bookings/{bookingId}/stripe-tokenize")
+    @Operation(summary = "Tokenize la CC d'un booking en PaymentMethod Stripe")
+    public com.fasterxml.jackson.databind.JsonNode tokenizeBooking(
+            @PathVariable String bookingId,
+            @RequestBody(required = false) StripeTokenizeBody body) {
+        String stripeAccountId = body != null ? body.stripeAccountId() : null;
+        var pmId = tokenService.tokenize(bookingId, stripeAccountId);
+        com.fasterxml.jackson.databind.node.ObjectNode result =
+            new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode();
+        if (pmId.isEmpty()) {
+            return result.put("status", "ko")
+                .put("message", "Tokenize KO (Stripe Tokenization App non installee, "
+                    + "pas de CC dans le booking, ou Stripe account non configure)");
+        }
+        return result.put("status", "ok")
+            .put("bookingId", bookingId)
+            .put("paymentMethodId", pmId.get());
+    }
+
+    public record StripeTokenizeBody(String stripeAccountId) {}
 
     /**
      * Modifie le mode {@link com.clenzy.model.PriceSourceOfTruth} d'une property

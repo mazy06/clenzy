@@ -133,6 +133,65 @@ export const channexApi = {
   },
 
   /**
+   * Push les pricing settings (weekend_price, occupancy, LOS factors,
+   * min/max nights) vers Channex via PUT /rate_plans/{id} — Phase 5.
+   *
+   * <p>A appeler quand l'admin modifie un RatePlan(WEEKEND), OccupancyPricing
+   * ou LengthOfStayDiscount cote Clenzy et veut le repercuter sur l'OTA.</p>
+   */
+  pushPricingSettings(clenzyPropertyId: number): Promise<ChannexSyncResult> {
+    return apiClient.post<ChannexSyncResult>(
+      `/integrations/channex/properties/${clenzyPropertyId}/push-pricing-settings`,
+    );
+  },
+
+  /**
+   * Change le mode {@link PriceSourceOfTruth} d'une property (qui pilote les
+   * prix : CLENZY/OTA/MANUAL) — Phase 5 audit fix.
+   */
+  setPriceSourceOfTruth(
+    clenzyPropertyId: number,
+    source: PriceSourceOfTruth,
+  ): Promise<{ clenzyPropertyId: number; priceSourceOfTruth: PriceSourceOfTruth }> {
+    return apiClient.patch<{ clenzyPropertyId: number; priceSourceOfTruth: PriceSourceOfTruth }>(
+      `/integrations/channex/properties/${clenzyPropertyId}/price-source-of-truth`,
+      { source },
+    );
+  },
+
+  /**
+   * Liste les drifts de prix actifs (non resolus) pour l'organisation — Phase 3.
+   */
+  listPriceDrifts(): Promise<ChannexPriceDriftDto[]> {
+    return apiClient.get<ChannexPriceDriftDto[]>(
+      `/integrations/channex/price-drifts`,
+    );
+  },
+
+  /**
+   * Liste les drifts actifs pour une property specifique — Phase 3.
+   */
+  listPriceDriftsForProperty(clenzyPropertyId: number): Promise<ChannexPriceDriftDto[]> {
+    return apiClient.get<ChannexPriceDriftDto[]>(
+      `/integrations/channex/properties/${clenzyPropertyId}/price-drifts`,
+    );
+  },
+
+  /**
+   * Resout un drift : KEEP_CLENZY (force push au prochain cycle),
+   * KEEP_OTA (cree un RateOverride avec le prix OTA), DISMISSED (ignore).
+   */
+  resolvePriceDrift(
+    driftId: number,
+    resolution: ChannexPriceDriftResolution,
+  ): Promise<ChannexPriceDriftDto> {
+    return apiClient.post<ChannexPriceDriftDto>(
+      `/integrations/channex/price-drifts/${driftId}/resolve`,
+      { resolution },
+    );
+  },
+
+  /**
    * Resume agrege de la sante Channex pour l'organisation courante (Phase 2).
    * Counts par sync_status + liste des items meritant attention (ERROR
    * persistant, PENDING bloque > 24h, ACTIVE stale > 6h).
@@ -140,6 +199,97 @@ export const channexApi = {
   healthSummary(): Promise<ChannexHealthSummary> {
     return apiClient.get<ChannexHealthSummary>(
       '/integrations/channex/health-summary',
+    );
+  },
+
+  /**
+   * Sprint A4 — Logs Channex d'un channel (debug push/pull OTA).
+   * Retourne le JsonNode brut Channex (l'UI parse les champs interessants).
+   */
+  channelLogs(channelId: string, limit: number = 50): Promise<unknown> {
+    return apiClient.get<unknown>(
+      `/integrations/channex/channels/${channelId}/logs`,
+      { params: { limit: String(Math.min(Math.max(1, limit), 200)) } },
+    );
+  },
+
+  /**
+   * Sprint A5 — Historique des webhooks envoyes par Channex pour ce channel
+   * (verifier retries / 5xx cote notre endpoint).
+   */
+  channelWebhookLogs(channelId: string, limit: number = 50): Promise<unknown> {
+    return apiClient.get<unknown>(
+      `/integrations/channex/channels/${channelId}/webhook-logs`,
+      { params: { limit: String(Math.min(Math.max(1, limit), 200)) } },
+    );
+  },
+
+  /**
+   * Sprint A6 — Quota API Channex consomme.
+   */
+  channexUsage(): Promise<unknown> {
+    return apiClient.get<unknown>('/integrations/channex/usage');
+  },
+
+  /**
+   * Sprint A7 — Test la connectivite d'un webhook configure cote Channex.
+   * Channex envoie un event "test" sur l'URL configuree et retourne le status.
+   */
+  testWebhook(webhookId: string): Promise<unknown> {
+    return apiClient.post<unknown>(
+      `/integrations/channex/webhooks/${webhookId}/test`,
+    );
+  },
+
+  // ─── Item 2 (Messages App, paid) ───────────────────────────────────────
+  /**
+   * Liste les threads de messaging OTA Channex d'une property.
+   * Requires Messages App active cote Channex. Fallback: status=not_available
+   * si l'app n'est pas installee.
+   */
+  listMessagingThreads(clenzyPropertyId: number): Promise<unknown> {
+    return apiClient.get<unknown>(
+      `/integrations/channex/properties/${clenzyPropertyId}/messaging/threads`,
+    );
+  },
+
+  // ─── Item 3 (Reviews App, paid) ────────────────────────────────────────
+  /** Liste paginee des reviews OTA (Channex Reviews App). */
+  listReviews(propertyId?: number, page: number = 1, limit: number = 20): Promise<unknown> {
+    const params: Record<string, string> = {
+      page: String(page),
+      limit: String(Math.min(Math.max(1, limit), 100)),
+    };
+    if (propertyId != null) params.propertyId = String(propertyId);
+    return apiClient.get<unknown>('/integrations/channex/reviews', { params });
+  },
+
+  /** Reponse host a une review OTA. */
+  replyToReview(reviewId: string, text: string): Promise<unknown> {
+    return apiClient.post<unknown>(
+      `/integrations/channex/reviews/${reviewId}/reply`,
+      { text },
+    );
+  },
+
+  /** Score Reviews d'une property (agrege ou detaille per-OTA). */
+  reviewsScore(clenzyPropertyId: number, detailed: boolean = false): Promise<unknown> {
+    return apiClient.get<unknown>(
+      `/integrations/channex/properties/${clenzyPropertyId}/reviews/score`,
+      { params: { detailed: String(detailed) } },
+    );
+  },
+
+  // ─── Item 4 (Stripe Tokenization App, paid) ────────────────────────────
+  /**
+   * Tokenize la CC d'un booking en PaymentMethod Stripe (pm_xxx).
+   * Use case Booking.com : la CC est dans le vault Channex, on la deplace
+   * vers notre Stripe Connect sans certif PCI necessaire.
+   */
+  stripeTokenizeBooking(bookingId: string, stripeAccountId?: string): Promise<unknown> {
+    return apiClient.post<unknown>(
+      `/integrations/channex/bookings/${bookingId}/stripe-tokenize`,
+      stripeAccountId ? { stripeAccountId } : undefined,
     );
   },
 
@@ -598,6 +748,7 @@ export interface ChannexPreflightCheck {
     | 'API_REACHABLE'
     | 'WHITELABEL_CAPABILITIES'
     | 'HUB_STATE'
+    | 'PRICE_DRIFTS_ALIGNMENT'  // Phase 5 audit UX : detecte les ecarts Clenzy ↔ OTA
     | 'PROPERTY_EXISTS'
     | 'PROPERTY_NOT_MAPPED'
     | 'PROPERTY_NAME'
@@ -675,6 +826,35 @@ export interface ChannexHealthSummary {
   attentionItems: ChannexAttentionItem[];
   /** ISO instant — quand le snapshot a ete calcule. */
   computedAt: string;
+}
+
+/**
+ * Qui pilote les prix d'une property — Phase 5 audit.
+ *
+ * - CLENZY : Clenzy push vers OTA (defaut, comportement historique)
+ * - OTA    : Channex pull vers RateOverride, push desactive
+ * - MANUAL : aucune sync auto
+ */
+export type PriceSourceOfTruth = 'CLENZY' | 'OTA' | 'MANUAL';
+
+/** Strategie de resolution d'un drift de prix Clenzy vs OTA. */
+export type ChannexPriceDriftResolution = 'KEEP_CLENZY' | 'KEEP_OTA' | 'DISMISSED';
+
+/** DTO d'un drift de prix retourne par GET /price-drifts. */
+export interface ChannexPriceDriftDto {
+  id: number;
+  clenzyPropertyId: number;
+  mappingId: string;
+  driftDate: string;          // ISO yyyy-MM-dd
+  clenzyPrice: number;
+  otaPrice: number;
+  diffAmount: number;
+  diffPercent: number;
+  currency: string;
+  detectedAt: string;         // ISO instant
+  resolution: ChannexPriceDriftResolution | null;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
 }
 
 /** Type d'operation sync persistee dans channex_sync_logs. */

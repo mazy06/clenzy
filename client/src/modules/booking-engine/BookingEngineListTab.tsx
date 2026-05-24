@@ -458,7 +458,12 @@ const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             {t('bookingEngine.list.emptyDescription')}
           </Typography>
-          <Button variant="contained" startIcon={<Add />} onClick={onCreate} sx={{ textTransform: 'none' }}>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<Add size={14} strokeWidth={1.75} />}
+            onClick={onCreate}
+          >
             {t('bookingEngine.actions.newTemplate')}
           </Button>
         </Box>

@@ -920,6 +920,290 @@ public class ChannexClient {
     }
 
     /**
+     * Acknowledge un booking aupres de Channex — Sprint A1 (Quick Win).
+     *
+     * <p>Sans ce call, Channex envoie un event {@code non_acked_booking} pour
+     * indiquer que le booking n'a pas ete confirme par le PMS, ce qui peut
+     * etre interprete par certains OTAs (Airbnb notamment) comme "reservation
+     * potentiellement perdue" et declencher des reminders/escalations.</p>
+     *
+     * <p>A appeler systematiquement apres avoir persiste la {@code Reservation}
+     * Clenzy depuis {@link com.clenzy.integration.channex.service.ChannexBookingService#handleNewBooking}.</p>
+     *
+     * <p>Best-effort cote caller : si Channex repond 404 (booking pas encore
+     * indexe), ou si le booking a deja ete acknowledge, on n'echoue pas.</p>
+     */
+    public void acknowledgeBooking(String bookingId) {
+        String url = props.getBaseUrl() + "/bookings/" + bookingId + "/ack";
+        exchange(HttpMethod.POST, url, null, Void.class);
+        log.info("Channex: booking acknowledged id={}", bookingId);
+    }
+
+    /**
+     * Sprint A4 (Quick Win) — Recupere les logs d'events d'un channel Channex.
+     *
+     * <p>Permet de debugger les push/pull rate sur un OTA specifique : historique
+     * des events Channex avec timestamps, succes/erreurs, payload.</p>
+     *
+     * <p>Best-effort : si Channex ne supporte pas l'endpoint pour le compte (public
+     * vs whitelabel), retourne Optional.empty.</p>
+     */
+    public java.util.Optional<JsonNode> fetchChannelLogs(String channelId, int limit) {
+        try {
+            int safeLimit = Math.min(Math.max(1, limit), 200);
+            String url = props.getBaseUrl() + "/channels/" + channelId
+                + "/logs?pagination[limit]=" + safeLimit;
+            JsonNode response = exchange(HttpMethod.GET, url, null, JsonNode.class);
+            return java.util.Optional.ofNullable(response);
+        } catch (ChannexException e) {
+            log.warn("Channex: fetchChannelLogs KO channel={}: {}", channelId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /**
+     * Sprint A5 (Quick Win) — Historique des webhooks transmis par Channex
+     * (utile pour comprendre les retries Channex sur notre endpoint).
+     */
+    public java.util.Optional<JsonNode> fetchChannelWebhookLogs(String channelId, int limit) {
+        try {
+            int safeLimit = Math.min(Math.max(1, limit), 200);
+            String url = props.getBaseUrl() + "/channels/" + channelId
+                + "/webhook_logs?pagination[limit]=" + safeLimit;
+            JsonNode response = exchange(HttpMethod.GET, url, null, JsonNode.class);
+            return java.util.Optional.ofNullable(response);
+        } catch (ChannexException e) {
+            log.warn("Channex: fetchChannelWebhookLogs KO channel={}: {}", channelId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /**
+     * Sprint A6 (Quick Win) — Quota API consomme.
+     *
+     * <p>Retourne le {@code billing_account} stats : nb d'appels API consommes
+     * sur la periode courante, plafond, etc. Utile pour eviter le rate-limit en prod
+     * + afficher au admin un indicateur de consommation dans le diagnostic.</p>
+     *
+     * <p>Best-effort : Channex peut exiger un billing_account_id specifique ;
+     * sans config explicite on retourne Optional.empty.</p>
+     */
+    public java.util.Optional<JsonNode> fetchBillingUsage() {
+        try {
+            // Pour la plupart des comptes, l'endpoint /user_profile expose le
+            // billing_account default. On commence par recuperer le profile.
+            String profileUrl = props.getBaseUrl() + "/user_profile";
+            JsonNode profile = exchange(HttpMethod.GET, profileUrl, null, JsonNode.class);
+            String billingAccountId = profile != null
+                ? profile.path("data").path("billing_account_id").asText(null)
+                : null;
+            if (billingAccountId == null || billingAccountId.isBlank()) {
+                log.debug("Channex: pas de billing_account_id dans le profile");
+                return java.util.Optional.empty();
+            }
+            String usageUrl = props.getBaseUrl() + "/billing_accounts/" + billingAccountId + "/usage";
+            JsonNode usage = exchange(HttpMethod.GET, usageUrl, null, JsonNode.class);
+            return java.util.Optional.ofNullable(usage);
+        } catch (ChannexException e) {
+            log.warn("Channex: fetchBillingUsage KO: {}", e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /**
+     * Sprint A7 (Quick Win) — Test la connectivite d'un webhook configure.
+     *
+     * <p>Channex envoie un event "test" sur l'URL du webhook, retourne
+     * status_code + duration de la reponse. Utile pour valider la config
+     * apres avoir set le X-Channex-Token + nginx + endpoint.</p>
+     */
+    public java.util.Optional<JsonNode> testWebhook(String webhookId) {
+        try {
+            String url = props.getBaseUrl() + "/webhooks/" + webhookId + "/test";
+            JsonNode response = exchange(HttpMethod.POST, url, null, JsonNode.class);
+            return java.util.Optional.ofNullable(response);
+        } catch (ChannexException e) {
+            log.warn("Channex: testWebhook KO id={}: {}", webhookId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    // ─── Item 2 : Messages App (paid) ───────────────────────────────────────
+
+    /** Liste les messages d'un booking. App Messages requise. */
+    public java.util.Optional<JsonNode> fetchBookingMessages(String bookingId) {
+        try {
+            String url = props.getBaseUrl() + "/bookings/" + bookingId + "/messages";
+            return java.util.Optional.ofNullable(exchange(HttpMethod.GET, url, null, JsonNode.class));
+        } catch (ChannexException e) {
+            log.warn("Channex: fetchBookingMessages KO booking={}: {}", bookingId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /** Envoie un message a un booking. App Messages requise + OTA support requis. */
+    public java.util.Optional<JsonNode> sendBookingMessage(String bookingId, String message) {
+        try {
+            String url = props.getBaseUrl() + "/bookings/" + bookingId + "/messages";
+            java.util.Map<String, Object> body = java.util.Map.of(
+                "message", java.util.Map.of("message", message != null ? message : "")
+            );
+            return java.util.Optional.ofNullable(exchange(HttpMethod.POST, url, body, JsonNode.class));
+        } catch (ChannexException e) {
+            log.warn("Channex: sendBookingMessage KO booking={}: {}", bookingId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /** Liste tous les message_threads d'une property (necessite App Messages). */
+    public java.util.Optional<JsonNode> fetchMessageThreads(String channexPropertyId) {
+        try {
+            String url = props.getBaseUrl() + "/message_threads"
+                + (channexPropertyId != null ? "?filter[property_id]=" + channexPropertyId : "");
+            return java.util.Optional.ofNullable(exchange(HttpMethod.GET, url, null, JsonNode.class));
+        } catch (ChannexException e) {
+            log.warn("Channex: fetchMessageThreads KO property={}: {}",
+                channexPropertyId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /** Liste les messages d'un thread specifique. */
+    public java.util.Optional<JsonNode> fetchThreadMessages(String threadId) {
+        try {
+            String url = props.getBaseUrl() + "/message_threads/" + threadId + "/messages";
+            return java.util.Optional.ofNullable(exchange(HttpMethod.GET, url, null, JsonNode.class));
+        } catch (ChannexException e) {
+            log.warn("Channex: fetchThreadMessages KO thread={}: {}", threadId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /** Upload un attachment (base64) → recoit une URL utilisable dans sendMessage. */
+    public java.util.Optional<JsonNode> uploadAttachment(String fileName, String contentType,
+                                                          String base64Content) {
+        try {
+            String url = props.getBaseUrl() + "/attachments";
+            java.util.Map<String, Object> body = java.util.Map.of(
+                "attachment", java.util.Map.of(
+                    "file_name", fileName != null ? fileName : "attachment",
+                    "content_type", contentType != null ? contentType : "application/octet-stream",
+                    "data", base64Content != null ? base64Content : ""
+                )
+            );
+            return java.util.Optional.ofNullable(exchange(HttpMethod.POST, url, body, JsonNode.class));
+        } catch (ChannexException e) {
+            log.warn("Channex: uploadAttachment KO: {}", e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    // ─── Item 3 : Reviews App (paid) ────────────────────────────────────────
+
+    /** Liste paginee des reviews (Airbnb + Expedia + Booking). App Reviews requise. */
+    public java.util.Optional<JsonNode> fetchReviews(String channexPropertyId, int page, int limit) {
+        try {
+            int safeLimit = Math.min(Math.max(1, limit), 100);
+            String url = props.getBaseUrl() + "/reviews?pagination[page]=" + page
+                + "&pagination[limit]=" + safeLimit
+                + (channexPropertyId != null ? "&filter[property_id]=" + channexPropertyId : "");
+            return java.util.Optional.ofNullable(exchange(HttpMethod.GET, url, null, JsonNode.class));
+        } catch (ChannexException e) {
+            log.warn("Channex: fetchReviews KO: {}", e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /** Detail d'une review specifique. */
+    public java.util.Optional<JsonNode> fetchReview(String reviewId) {
+        try {
+            String url = props.getBaseUrl() + "/reviews/" + reviewId;
+            return java.util.Optional.ofNullable(exchange(HttpMethod.GET, url, null, JsonNode.class));
+        } catch (ChannexException e) {
+            log.warn("Channex: fetchReview KO id={}: {}", reviewId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /** Reponse du host a une review. */
+    public java.util.Optional<JsonNode> replyToReview(String reviewId, String replyText) {
+        try {
+            String url = props.getBaseUrl() + "/reviews/" + reviewId + "/reply";
+            java.util.Map<String, Object> body = java.util.Map.of(
+                "reply", java.util.Map.of("text", replyText != null ? replyText : "")
+            );
+            return java.util.Optional.ofNullable(exchange(HttpMethod.POST, url, body, JsonNode.class));
+        } catch (ChannexException e) {
+            log.warn("Channex: replyToReview KO id={}: {}", reviewId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /** Score agrege d'une property (toutes OTAs). */
+    public java.util.Optional<JsonNode> fetchPropertyScore(String channexPropertyId) {
+        try {
+            String url = props.getBaseUrl() + "/scores/" + channexPropertyId;
+            return java.util.Optional.ofNullable(exchange(HttpMethod.GET, url, null, JsonNode.class));
+        } catch (ChannexException e) {
+            log.warn("Channex: fetchPropertyScore KO property={}: {}",
+                channexPropertyId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /** Score detaille par OTA (Airbnb / Booking / Expedia). */
+    public java.util.Optional<JsonNode> fetchPropertyScoreDetailed(String channexPropertyId) {
+        try {
+            String url = props.getBaseUrl() + "/scores/" + channexPropertyId + "/detailed";
+            return java.util.Optional.ofNullable(exchange(HttpMethod.GET, url, null, JsonNode.class));
+        } catch (ChannexException e) {
+            log.warn("Channex: fetchPropertyScoreDetailed KO property={}: {}",
+                channexPropertyId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    // ─── Item 4 : Stripe Tokenization App (paid) ────────────────────────────
+
+    /**
+     * Tokenize la CC d'un booking dans un Stripe token reutilisable.
+     * Usage : Booking.com transmet la CC dans le payload booking ; on l'envoie
+     * a Channex qui la tokenize cote Stripe Connect Clenzy (pas de PCI cote Clenzy).
+     */
+    public java.util.Optional<JsonNode> stripeTokenizeBooking(String bookingId,
+                                                                String stripeAccountId) {
+        try {
+            String url = props.getBaseUrl() + "/bookings/" + bookingId + "/stripe_token";
+            java.util.Map<String, Object> body = stripeAccountId != null
+                ? java.util.Map.of("stripe", java.util.Map.of("account_id", stripeAccountId))
+                : java.util.Map.of();
+            return java.util.Optional.ofNullable(exchange(HttpMethod.POST, url, body, JsonNode.class));
+        } catch (ChannexException e) {
+            log.warn("Channex: stripeTokenizeBooking KO booking={}: {}",
+                bookingId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /**
+     * Tokenize en PaymentMethod Stripe (recommande pour PaymentIntents API).
+     */
+    public java.util.Optional<JsonNode> stripeTokenizeBookingPaymentMethod(String bookingId,
+                                                                            String stripeAccountId) {
+        try {
+            String url = props.getBaseUrl() + "/bookings/" + bookingId + "/stripe_payment_method";
+            java.util.Map<String, Object> body = stripeAccountId != null
+                ? java.util.Map.of("stripe", java.util.Map.of("account_id", stripeAccountId))
+                : java.util.Map.of();
+            return java.util.Optional.ofNullable(exchange(HttpMethod.POST, url, body, JsonNode.class));
+        } catch (ChannexException e) {
+            log.warn("Channex: stripeTokenizeBookingPaymentMethod KO booking={}: {}",
+                bookingId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    /**
      * Liste les bookings d'une property sur une plage de dates.
      *
      * <p>Utilise pour l'import initial des reservations OTAs apres connexion
@@ -1061,6 +1345,7 @@ public class ChannexClient {
         if (path.contains("/rate_plans/") && method == HttpMethod.PUT) return "update_rate_plan_settings";
         if (path.endsWith("/availability")) return "push_availability";
         if (path.endsWith("/restrictions")) return "push_rates";
+        if (path.contains("/bookings/") && path.endsWith("/ack")) return "acknowledge_booking";
         if (path.contains("/bookings/")) return "get_booking";
         if (path.startsWith("/bookings") || path.contains("/bookings?")) return "list_bookings";
         return "other";

@@ -311,7 +311,7 @@ const ManagementContractsPage: React.FC = () => {
   const formValid = Boolean(form.propertyId) && Boolean(form.startDate) && form.commissionRate > 0;
 
   return (
-    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {/* ─── Header standardise (PageHeader) ──────────────────────────── */}
       <PageHeader
         title={t('contracts.title')}
