@@ -33,6 +33,7 @@ import {
   BarChart,
   StarRate,
   CheckCircle,
+  OpenInNew,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -73,6 +74,15 @@ const PROVIDER_BASE_URLS: Record<string, string> = {
   nvidia: 'https://integrate.api.nvidia.com/v1',
   openai: 'https://api.openai.com/v1',
   anthropic: 'https://api.anthropic.com/v1',
+};
+
+// Deep-link vers la page "API keys" du provider pour aider l'admin a recuperer
+// sa cle. Utilise dans le dialog Edit model (lien "Ou trouver ma cle ?").
+const PROVIDER_API_KEY_URLS: Record<string, { url: string; label: string }> = {
+  nvidia:    { url: 'https://build.nvidia.com/explore/discover',           label: 'NVIDIA Build : profil > Get API Key' },
+  bedrock:   { url: 'https://console.aws.amazon.com/iam/home#/security_credentials', label: 'AWS IAM : Security credentials > Create access key' },
+  openai:    { url: 'https://platform.openai.com/api-keys',                label: 'OpenAI Platform : API keys' },
+  anthropic: { url: 'https://console.anthropic.com/settings/keys',         label: 'Anthropic Console : Settings > API Keys' },
 };
 
 const MODELS_BY_PROVIDER: Record<string, Array<{ id: string; label: string; desc: string }>> = {
@@ -309,6 +319,33 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
               '& .MuiInputLabel-root.Mui-focused': { color: accent },
             }}
           />
+
+          {/* Lien contextuel "Ou trouver ma cle ?" — adapte au provider selectionne */}
+          {provider && PROVIDER_API_KEY_URLS[provider] && (
+            <Box sx={{ mt: -1, mb: -0.5 }}>
+              <Button
+                component="a"
+                href={PROVIDER_API_KEY_URLS[provider].url}
+                target="_blank"
+                rel="noopener noreferrer"
+                size="small"
+                endIcon={<OpenInNew size={12} strokeWidth={1.75} />}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.72rem',
+                  fontWeight: 500,
+                  color: 'text.secondary',
+                  px: 0.75,
+                  py: 0.25,
+                  minWidth: 0,
+                  cursor: 'pointer',
+                  '&:hover': { color: accent, backgroundColor: alpha(accent, 0.06) },
+                }}
+              >
+                Où trouver ma clé ? — {PROVIDER_API_KEY_URLS[provider].label}
+              </Button>
+            </Box>
+          )}
 
           {/* Base URL */}
           <TextField
