@@ -6,6 +6,7 @@ import com.clenzy.repository.UserPreferencesRepository;
 import com.clenzy.tenant.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -43,7 +44,7 @@ public class UserPreferencesController {
     @Operation(summary = "Mettre a jour les preferences de l'utilisateur courant")
     public ResponseEntity<UserPreferencesDto> updateMyPreferences(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody UserPreferencesDto dto) {
+            @Valid @RequestBody UserPreferencesDto dto) {
 
         final String keycloakId = jwt.getSubject();
         final UserPreferences entity = getOrCreate(keycloakId);

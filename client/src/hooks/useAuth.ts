@@ -157,11 +157,17 @@ export const useAuth = () => {
     // Écouter les changements d'état de Keycloak
     const handleAuthSuccess = () => {
       loadUserInfo();
+      // Re-broadcast l'evenement global pour useIsAuthenticated et autres
+      // consumers reactifs : Keycloak.onAuthSuccess est un singleton callback,
+      // les listeners window peuvent coexister sans conflit. Couvre le cas
+      // du restore SSO (check-sso) qui ne passe pas par Login.tsx.
+      window.dispatchEvent(new CustomEvent('keycloak-auth-success'));
     };
 
     const handleAuthLogout = () => {
       setUser(null);
       setLoading(false);
+      window.dispatchEvent(new CustomEvent('keycloak-auth-logout'));
     };
 
     // Écouter l'événement personnalisé de rechargement forcé
@@ -321,6 +327,9 @@ export const useAuth = () => {
 
     // Nettoyer le localStorage
     clearTokens();
+
+    // Broadcast pour useIsAuthenticated et autres consumers reactifs
+    window.dispatchEvent(new CustomEvent('keycloak-auth-logout'));
   }, []);
 
   return {

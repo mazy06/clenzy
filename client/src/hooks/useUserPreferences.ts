@@ -1,7 +1,8 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import userPreferencesApi from '../services/api/userPreferencesApi';
 import type { UserPreferencesDto } from '../services/api/userPreferencesApi';
+import { useIsAuthenticated } from './useIsAuthenticated';
 
 const QUERY_KEY = ['user-preferences', 'me'];
 
@@ -24,16 +25,40 @@ const DEFAULT_PREFERENCES: UserPreferencesDto = Object.freeze({
 
 /**
  * Hook pour les preferences utilisateur persistees en BDD.
- * Source de verite pour timezone, devise, langue et toggles notifications.
+ * Source de verite pour timezone, devise, langue, theme et toggles notifications.
  * Les preferences sont chargees depuis le backend et mises en cache par React Query.
+ *
+ * <h2>Gating auth (BUG-1)</h2>
+ * <p>La query est gatee par {@link useIsAuthenticated} pour ne pas spammer
+ * de 401 au boot avant que Keycloak soit pret. Quand l'auth devient
+ * disponible, react-query refetch automatiquement.</p>
+ *
+ * <h2>Distinction loaded vs default (BUG-2)</h2>
+ * <p>{@code preferences} retourne toujours une valeur (fallback DEFAULT_PREFERENCES)
+ * pour les consumers qui ont besoin d'une valeur a chaque render.
+ * {@code isLoaded} est {@code true} ssi le backend a repondu OK au moins
+ * une fois — les consumers qui veulent eviter d'ecraser une valeur locale
+ * avec les defaults (cf. CurrencyProvider, ThemeModeProvider) doivent
+ * gater leur sync sur ce flag.</p>
  */
 export function useUserPreferences() {
   const queryClient = useQueryClient();
+  const isAuthed = useIsAuthenticated();
 
-  const { data: preferences, isLoading } = useQuery<UserPreferencesDto>({
+  // Privacy : purge la cache react-query au logout pour eviter qu'un user B
+  // qui se connecte sur le meme tab apres user A voie les prefs de A (la
+  // cache reste sinon en memoire pendant gcTime = 5 min par defaut).
+  useEffect(() => {
+    if (!isAuthed) {
+      queryClient.removeQueries({ queryKey: QUERY_KEY });
+    }
+  }, [isAuthed, queryClient]);
+
+  const { data: preferences, isLoading, isSuccess } = useQuery<UserPreferencesDto>({
     queryKey: QUERY_KEY,
     queryFn: userPreferencesApi.getMyPreferences,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: isAuthed,
   });
 
   const updateMutation = useMutation({
@@ -51,6 +76,8 @@ export function useUserPreferences() {
 
   return {
     preferences: preferences ?? DEFAULT_PREFERENCES,
+    /** {@code true} ssi la query a recupere des donnees backend (vs fallback). */
+    isLoaded: isSuccess && preferences !== undefined,
     isLoading,
     isSaving: updateMutation.isPending,
     updatePreferences,

@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { userUiPreferencesApi } from '../services/api/userUiPreferencesApi';
-import keycloak from '../keycloak';
+import { useIsAuthenticated } from '../hooks/useIsAuthenticated';
 
 /**
  * Contexte des preferences UI persistees cote backend.
@@ -39,20 +39,23 @@ const DEBOUNCE_MS = 350;
 export function UserUiPreferencesProvider({ children }: { children: React.ReactNode }) {
   const [prefs, setPrefs] = useState<Prefs>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const isAuthed = useIsAuthenticated();
 
   // Map<key, NodeJS.Timeout> — timers de debounce par cle
   const debounceTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  // Charger toutes les preferences au mount (et au changement de user)
+  // Charger toutes les preferences quand l'utilisateur devient authentifie.
+  // Reactif via useIsAuthenticated → refetch automatique apres login (BUG-1).
   useEffect(() => {
-    let cancelled = false;
-
-    // Si pas authentifie, ne pas tenter le GET (eviterait un 401)
-    if (!keycloak.authenticated) {
+    if (!isAuthed) {
+      // Purge le cache prefs au logout pour eviter qu'un user B sur la meme
+      // session voie les prefs de user A avant son propre fetch.
+      setPrefs({});
       setIsLoading(false);
       return;
     }
 
+    let cancelled = false;
     setIsLoading(true);
     userUiPreferencesApi
       .list()
@@ -74,7 +77,7 @@ export function UserUiPreferencesProvider({ children }: { children: React.ReactN
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthed]);
 
   // Cleanup des timers en cas d'unmount
   useEffect(() => {
