@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { isMockEnabled } from '../services/storageService';
 import { reservationsApi } from '../services/api/reservationsApi';
 import { propertiesApi } from '../services/api/propertiesApi';
 import { interventionsApi } from '../services/api/interventionsApi';
@@ -59,7 +60,7 @@ interface UseAnalyticsEngineParams {
 
 export function useAnalyticsEngine({ period, interventions }: UseAnalyticsEngineParams) {
   const days = periodToDays(period);
-  const isMock = localStorage.getItem('clenzy_analytics_mock') === 'true';
+  const isMock = isMockEnabled('analytics');
 
   // Fetch reservations
   const reservationsQuery = useQuery({

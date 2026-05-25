@@ -8,6 +8,10 @@
  *
  * /!\ NE PAS REUTILISER ces cles pour ecrire un token. Respect de
  * CLAUDE.md regle securite #7.
+ *
+ * `kc_expires_in` est volontairement inclus pour le cleanup boot bien
+ * qu'il ne soit plus reference par {@link STORAGE_KEYS} : on purge tous
+ * les residus possibles.
  */
 const LEGACY_TOKEN_KEYS = [
   'kc_access_token',
@@ -20,10 +24,10 @@ export const STORAGE_KEYS = {
   // Auth / Keycloak — DEPRECATED
   // Conservees uniquement pour migration in-flight (TokenService.ts en cours
   // de refactor). A retirer une fois toutes les references nettoyees.
+  // `kc_expires_in` retire : aucun caller n'en a besoin (le TTL vient du JWT).
   ACCESS_TOKEN: 'kc_access_token',
   REFRESH_TOKEN: 'kc_refresh_token',
   ID_TOKEN: 'kc_id_token',
-  EXPIRES_IN: 'kc_expires_in',
 
   // App Settings
   SETTINGS: 'clenzy_settings',
@@ -222,6 +226,32 @@ export function clearMockFlags(): void {
   removeItem(STORAGE_KEYS.NOISE_MONITORING_MOCK);
 }
 
+// ─── Mock Flags (dev/demo) ──────────────────────────────────────────────────
+//
+// Centralisation des flags mock dispersés dans plusieurs api/ files. Les
+// callers doivent utiliser ces helpers plutot que de lire/ecrire la cle
+// localStorage en direct (eviter les `localStorage.getItem('clenzy_*_mock')`
+// dupliques avec leur propre constante).
+
+/** Noms identifiants des modes mock disponibles. */
+export type MockFlag = 'analytics' | 'planning' | 'noiseMonitoring';
+
+const MOCK_FLAG_KEYS: Record<MockFlag, StorageKey> = {
+  analytics: STORAGE_KEYS.ANALYTICS_MOCK,
+  planning: STORAGE_KEYS.PLANNING_MOCK,
+  noiseMonitoring: STORAGE_KEYS.NOISE_MONITORING_MOCK,
+};
+
+/** Retourne `true` si le mode mock est actif pour le flag donne. */
+export function isMockEnabled(flag: MockFlag): boolean {
+  return getItem(MOCK_FLAG_KEYS[flag]) === 'true';
+}
+
+/** Active ou desactive le mode mock pour le flag donne. */
+export function setMockEnabled(flag: MockFlag, enabled: boolean): void {
+  setItem(MOCK_FLAG_KEYS[flag], enabled ? 'true' : 'false');
+}
+
 // ─── Cross-domain Cookie (shared with landing page) ────────────────────────
 
 const SESSION_COOKIE = 'clenzy_session';
@@ -307,6 +337,8 @@ const storageService = {
   clearTokens,
   cleanupLegacyTokens,
   clearMockFlags,
+  isMockEnabled,
+  setMockEnabled,
   setSessionCookie,
   getSessionCookie,
   clearSessionCookie,

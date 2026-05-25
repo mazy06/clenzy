@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { isMockEnabled, setMockEnabled } from '../storageService';
 import type { InterventionDetailsData } from '../../modules/interventions/interventionUtils';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -67,8 +68,6 @@ export interface InterventionListParams {
 }
 
 // ─── Mock Data ──────────────────────────────────────────────────────────────
-
-const ANALYTICS_MOCK_KEY = 'clenzy_analytics_mock';
 
 function isoDate(year: number, month: number, day: number): string {
   return new Date(year, month, day).toISOString().split('T')[0];
@@ -230,16 +229,16 @@ function generateMockInterventions(): Intervention[] {
 export const interventionsApi = {
   /** Indique si le mode mock analytics est actif. */
   isMockMode(): boolean {
-    return localStorage.getItem(ANALYTICS_MOCK_KEY) === 'true';
+    return isMockEnabled('analytics');
   },
 
   /** Active ou désactive le mode mock analytics (persisté en localStorage). */
   setMockMode(enabled: boolean): void {
-    localStorage.setItem(ANALYTICS_MOCK_KEY, enabled ? 'true' : 'false');
+    setMockEnabled('analytics', enabled);
   },
 
   getAll(params?: InterventionListParams) {
-    if (import.meta.env.DEV && localStorage.getItem(ANALYTICS_MOCK_KEY) === 'true') {
+    if (import.meta.env.DEV && isMockEnabled('analytics')) {
       let data = generateMockInterventions();
       if (params?.propertyId) {
         data = data.filter((i) => i.propertyId === params.propertyId);
