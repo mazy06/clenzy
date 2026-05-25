@@ -287,6 +287,19 @@ export {
   MicOff,
 } from 'lucide-react';
 
+// ─── Meteo (Open-Meteo widget) ───────────────────────────────────────────────
+export {
+  Sun as WeatherSun,
+  CloudSun as WeatherCloudSun,
+  Cloud as WeatherCloud,
+  CloudRain as WeatherRain,
+  CloudDrizzle as WeatherDrizzle,
+  CloudSnow as WeatherSnow,
+  CloudLightning as WeatherStorm,
+  CloudFog as WeatherFog,
+  Droplets as WeatherDroplets,
+} from 'lucide-react';
+
 // ─── Reglages / parametres ──────────────────────────────────────────────────
 export {
   Settings,

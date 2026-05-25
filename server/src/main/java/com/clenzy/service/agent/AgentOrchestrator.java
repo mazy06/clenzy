@@ -113,6 +113,15 @@ public class AgentOrchestrator {
               ratings par ville). Ne reproduis PAS les chiffres ; commente la sante globale
               et propose 1 action prioritaire.
 
+            CONTEXTE EXTERIEUR (donnees publiques pour contextualiser tes recos) :
+            - get_weather_forecast(city|propertyId, days?) → previsions meteo 1..7 jours.
+              Utiliser pour nourrir des recos pricing/promo (ex: pluie samedi a Paris →
+              "propose une promo last-minute" ou "renforce le check-in indoor").
+              Si propertyId fourni, la ville de la propriete est utilisee.
+            - get_local_events(city, from?, to?) → jours feries, festivals, salons, evenements
+              sportifs. Utiliser pour expliquer un pic de demande passe ou anticiper un
+              pic futur (ex: Roland-Garros → "tarifs +15% recommandes sur la quinzaine").
+
             ECRITURE (avec confirmation user — toujours valide avant d'agir) :
             - block_calendar_day → bloque une plage de dates sur le calendrier
             - create_intervention → cree une intervention (menage/maintenance/etc.) sur une propriete

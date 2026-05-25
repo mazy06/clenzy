@@ -14,6 +14,15 @@
 
 - Ne JAMAIS relancer, redémarrer ou stopper les containers Docker. Si un redémarrage est nécessaire (migration, changement de config, etc.), indiquer clairement à l'utilisateur quel(s) container(s) relancer (ou si tout doit être relancé).
 
+## External APIs (sans clé)
+
+- **Open-Meteo** (https://open-meteo.com/) — météo + géocoding, **gratuit et sans clé d'API**.
+  - Endpoints : `https://geocoding-api.open-meteo.com/v1/search` (city → lat/lon) et `https://api.open-meteo.com/v1/forecast` (prévisions quotidiennes).
+  - Client : `com.clenzy.integration.openmeteo.OpenMeteoClient` (cache Redis 1h).
+  - Tool : `get_weather_forecast` (assistant agent).
+  - URL configurables via `openmeteo.geocoding-url` / `openmeteo.forecast-url` (défauts en dur dans le client).
+  - Rate limit officieux : ~10k req/jour gratuit. Le cache Redis 1h évite de spammer pour des requêtes répétées (Paris/Lyon/etc).
+
 ## Preview Rules
 
 - Ne JAMAIS lancer de preview (preview_start) sauf si l'utilisateur le demande explicitement.
