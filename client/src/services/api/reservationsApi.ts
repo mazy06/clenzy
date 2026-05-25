@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { isMockEnabled, setMockEnabled } from '../storageService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -170,9 +171,7 @@ export const INTERVENTION_STATUS_LABELS: Record<PlanningInterventionStatus, stri
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 // Le mode mock est contrôlé dynamiquement via localStorage.
 // L'admin peut l'activer/désactiver depuis Paramètres → Développement.
-
-const MOCK_STORAGE_KEY = 'clenzy_planning_mock';
-const ANALYTICS_MOCK_KEY = 'clenzy_analytics_mock';
+// Cf. helpers `isMockEnabled` / `setMockEnabled` dans storageService.
 
 function isoDate(year: number, month: number, day: number): string {
   return new Date(year, month, day).toISOString().split('T')[0];
@@ -542,22 +541,22 @@ function getMockPropertiesFromReservations(): MockPlanningProperty[] {
 export const reservationsApi = {
   /** Indique si on est en mode mock planning (data hardcodées). */
   isMockMode(): boolean {
-    return localStorage.getItem(MOCK_STORAGE_KEY) === 'true';
+    return isMockEnabled('planning');
   },
 
   /** Active ou désactive le mode mock planning (persisté en localStorage). */
   setMockMode(enabled: boolean): void {
-    localStorage.setItem(MOCK_STORAGE_KEY, enabled ? 'true' : 'false');
+    setMockEnabled('planning', enabled);
   },
 
   /** Indique si le mode mock analytics est actif. */
   isAnalyticsMockMode(): boolean {
-    return localStorage.getItem(ANALYTICS_MOCK_KEY) === 'true';
+    return isMockEnabled('analytics');
   },
 
   /** Active ou désactive le mode mock analytics (persisté en localStorage). */
   setAnalyticsMockMode(enabled: boolean): void {
-    localStorage.setItem(ANALYTICS_MOCK_KEY, enabled ? 'true' : 'false');
+    setMockEnabled('analytics', enabled);
   },
 
   /** Retourne les propriétés mock pour le planning (uniquement en mode mock). */
@@ -566,7 +565,7 @@ export const reservationsApi = {
   },
 
   async getAll(filters?: ReservationFilters): Promise<Reservation[]> {
-    if (localStorage.getItem(MOCK_STORAGE_KEY) === 'true' || localStorage.getItem(ANALYTICS_MOCK_KEY) === 'true') {
+    if (isMockEnabled('planning') || isMockEnabled('analytics')) {
       let data = generateMockReservations();
 
       if (filters?.propertyIds && filters.propertyIds.length > 0) {
@@ -603,7 +602,7 @@ export const reservationsApi = {
   },
 
   async getByProperty(propertyId: number): Promise<Reservation[]> {
-    if (localStorage.getItem(MOCK_STORAGE_KEY) === 'true') {
+    if (isMockEnabled('planning')) {
       const data = generateMockReservations().filter((r) => r.propertyId === propertyId);
       return new Promise((resolve) => setTimeout(() => resolve(data), 200));
     }
@@ -622,7 +621,7 @@ export const reservationsApi = {
     from?: string;
     to?: string;
   }): Promise<PlanningIntervention[]> {
-    if (localStorage.getItem(MOCK_STORAGE_KEY) === 'true') {
+    if (isMockEnabled('planning')) {
       let data = generateMockPlanningInterventions();
 
       if (filters?.propertyIds && filters.propertyIds.length > 0) {
