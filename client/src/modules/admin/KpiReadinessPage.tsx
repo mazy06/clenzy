@@ -41,6 +41,7 @@ import PageHeader from '../../components/PageHeader';
 import { kpiApi, KpiSnapshot, KpiItem, KpiHistory, KpiStatus } from '../../services/api/kpiApi';
 import { incidentApi, IncidentDto } from '../../services/api/incidentApi';
 import IncidentDetailDialog from '../dashboard/IncidentDetailDialog';
+import { formatDuration } from '../../utils/durationUtils';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -150,12 +151,30 @@ interface KpiCardProps {
   tooltipContent?: string;
 }
 
+/**
+ * Pour les KPI exprimes en minutes (ex: P1 Incident Resolution, API latency),
+ * le backend renvoie une valeur formatee "14944 min" — peu lisible des qu'on
+ * depasse l'heure. On reformate localement via {@link formatDuration} :
+ * "14944 min" → "10j 9h", "190 min" → "3h 10min", etc.
+ *
+ * Pour les autres unites (%, count, ms, etc.), on garde le format backend.
+ */
+function formatKpiValue(rawValue: number, unit: string, fallback: string): string {
+  if (unit === 'min') return formatDuration(rawValue);
+  return fallback;
+}
+
 const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipContent }) => {
   const chipColor = kpi.status === 'OK' ? 'success'
     : kpi.status === 'WARNING' ? 'warning' : 'error';
 
   const StatusIcon = kpi.status === 'OK' ? CheckCircle
     : kpi.status === 'WARNING' ? Warning : ErrorIcon;
+
+  const displayedValue = formatKpiValue(kpi.rawValue, kpi.unit, kpi.value);
+  const displayedTarget = kpi.unit === 'min'
+    ? `< ${formatDuration(kpi.targetValue)}`
+    : kpi.target;
 
   const cardContent = (
     <CardContent sx={{ pb: '12px !important' }}>
@@ -179,14 +198,14 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, color: STATUS_COLORS[kpi.status] }}>
-          {kpi.value}
+        <Typography variant="h4" sx={{ fontWeight: 700, color: STATUS_COLORS[kpi.status], fontVariantNumeric: 'tabular-nums' }}>
+          {displayedValue}
         </Typography>
       </Box>
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="caption" color="text.secondary">
-          Target: {kpi.target}
+          Target: {displayedTarget}
         </Typography>
         <Chip
           icon={<StatusIcon size={14} strokeWidth={1.75} />}

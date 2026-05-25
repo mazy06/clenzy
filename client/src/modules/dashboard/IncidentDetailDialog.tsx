@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -25,6 +25,7 @@ import { Close, Refresh, Delete } from '../../icons';
 import type { IncidentDto, IncidentStatus } from '../../services/api/incidentApi';
 import { incidentApi } from '../../services/api/incidentApi';
 import { useAuth } from '../../hooks/useAuth';
+import { formatDuration } from '../../utils/durationUtils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -48,17 +49,39 @@ const formatDate = (iso: string): string => {
   }
 };
 
-const formatDuration = (minutes: number | null): string => {
-  if (minutes === null || minutes === undefined) return '-';
-  // Arrondi au entier — la precision sub-minute n'a pas de valeur metier ici
-  // et provoque du bruit IEEE-754 ('4.040000000000873min') sur les longues durees.
-  const rounded = Math.round(minutes);
-  if (rounded < 60) return `${rounded} min`;
-  const hours = Math.floor(rounded / 60);
-  const remaining = rounded % 60;
-  if (remaining === 0) return `${hours}h`;
-  return `${hours}h ${remaining}min`;
-};
+/** True si un incident RESOLVED a une duree au-dessus de la cible. OPEN exclus. */
+function isOverTarget(incident: IncidentDto, targetMinutes: number): boolean {
+  return (
+    incident.status === 'RESOLVED'
+    && incident.resolutionMinutes !== null
+    && incident.resolutionMinutes !== undefined
+    && incident.resolutionMinutes > targetMinutes
+  );
+}
+
+/**
+ * Tri stable : OPEN en tete (urgence operationnelle), puis RESOLVED tries
+ * par duree DESC (les plus pollueurs en premier pour identifier les
+ * candidats au cleanup d'un coup d'oeil).
+ */
+function sortIncidents(incidents: IncidentDto[]): IncidentDto[] {
+  return [...incidents].sort((a, b) => {
+    // OPEN d'abord
+    const aOpen = a.status === 'OPEN' ? 0 : 1;
+    const bOpen = b.status === 'OPEN' ? 0 : 1;
+    if (aOpen !== bOpen) return aOpen - bOpen;
+
+    // Pour OPEN : par openedAt DESC
+    if (a.status === 'OPEN') {
+      return new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime();
+    }
+
+    // Pour RESOLVED : par duree DESC (hors cible en haut)
+    const aDur = a.resolutionMinutes ?? 0;
+    const bDur = b.resolutionMinutes ?? 0;
+    return bDur - aDur;
+  });
+}
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -100,11 +123,52 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
   const [retestingId, setRetestingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [confirmBulkOpen, setConfirmBulkOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
     severity: 'success' | 'warning' | 'error';
   }>({ open: false, message: '', severity: 'success' });
+
+  // ─── Derived state : tri + stats KPI ───────────────────────────────────────
+
+  const sortedIncidents = useMemo(() => sortIncidents(incidents), [incidents]);
+
+  const overTargetIncidents = useMemo(
+    () => sortedIncidents.filter((i) => isOverTarget(i, targetMinutes)),
+    [sortedIncidents, targetMinutes],
+  );
+
+  /**
+   * Stats KPI calculees localement a partir des incidents affiches.
+   * - currentAvg : moyenne actuelle des RESOLVED (matche le KPI backend)
+   * - projectedAvg : moyenne projetee si on supprime les hors cible
+   * Note : la projection est une estimation locale, le backend recalcule
+   * exactement apres la suppression effective.
+   */
+  const stats = useMemo(() => {
+    const resolved = sortedIncidents.filter(
+      (i) => i.status === 'RESOLVED'
+        && i.resolutionMinutes !== null
+        && i.resolutionMinutes !== undefined,
+    );
+    const total = resolved.length;
+    if (total === 0) {
+      return { currentAvg: 0, projectedAvg: 0, total: 0, projectedCount: 0 };
+    }
+    const currentSum = resolved.reduce((acc, i) => acc + (i.resolutionMinutes ?? 0), 0);
+    const currentAvg = currentSum / total;
+
+    const remaining = resolved.filter((i) => !isOverTarget(i, targetMinutes));
+    const projectedCount = remaining.length;
+    const projectedSum = remaining.reduce((acc, i) => acc + (i.resolutionMinutes ?? 0), 0);
+    const projectedAvg = projectedCount > 0 ? projectedSum / projectedCount : 0;
+
+    return { currentAvg, projectedAvg, total, projectedCount };
+  }, [sortedIncidents, targetMinutes]);
+
+  // ─── Handlers ──────────────────────────────────────────────────────────────
 
   const handleDelete = async (incidentId: number) => {
     setDeletingId(incidentId);
@@ -134,6 +198,50 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
       setDeletingId(null);
       setConfirmDeleteId(null);
     }
+  };
+
+  /**
+   * Bulk delete : supprime tous les incidents RESOLVED dont la duree depasse
+   * la cible. Iterate en serie pour pouvoir compter les succes/echecs et ne
+   * pas surcharger le backend (admin-only, rare). Refresh une seule fois a
+   * la fin pour eviter le flicker de plusieurs Promise.all sur le KPI.
+   */
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    let okCount = 0;
+    let failCount = 0;
+    for (const incident of overTargetIncidents) {
+      try {
+        await incidentApi.deleteIncident(incident.id);
+        okCount += 1;
+      } catch {
+        failCount += 1;
+      }
+    }
+    setBulkDeleting(false);
+    setConfirmBulkOpen(false);
+
+    if (failCount === 0) {
+      setSnackbar({
+        open: true,
+        message: `${okCount} incident${okCount > 1 ? 's' : ''} hors cible supprimé${okCount > 1 ? 's' : ''}.`,
+        severity: 'success',
+      });
+    } else if (okCount === 0) {
+      setSnackbar({
+        open: true,
+        message: `Echec de la suppression bulk (${failCount} erreurs).`,
+        severity: 'error',
+      });
+    } else {
+      setSnackbar({
+        open: true,
+        message: `${okCount} supprimé${okCount > 1 ? 's' : ''}, ${failCount} echec${failCount > 1 ? 's' : ''}.`,
+        severity: 'warning',
+      });
+    }
+
+    onRefresh?.();
   };
 
   const handleRetest = async (incidentId: number) => {
@@ -167,13 +275,29 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
     }
   };
 
+  // ─── Render ────────────────────────────────────────────────────────────────
+
+  const overTargetCount = overTargetIncidents.length;
+
   return (
     <>
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Détail des incidents P1
-          </Typography>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Détail des incidents P1
+            </Typography>
+            {overTargetCount > 0 && (
+              <Tooltip title={`Cible KPI : < ${formatDuration(targetMinutes)}. Ces incidents tirent la moyenne au-dessus du seuil.`}>
+                <Chip
+                  label={`${overTargetCount} hors cible à nettoyer`}
+                  color="error"
+                  size="small"
+                  sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600 }}
+                />
+              </Tooltip>
+            )}
+          </Box>
         </DialogTitle>
 
         <DialogContent dividers>
@@ -190,11 +314,61 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
             </Alert>
           )}
 
+          {/* Stats KPI + bulk action — uniquement si on a des hors cible */}
+          {!loading && overTargetCount > 0 && (
+            <Alert
+              severity="warning"
+              icon={false}
+              sx={{
+                mb: 2,
+                '& .MuiAlert-message': { width: '100%' },
+              }}
+              action={
+                canDelete && (
+                  <Button
+                    size="small"
+                    color="error"
+                    variant="contained"
+                    startIcon={bulkDeleting ? <CircularProgress size={14} color="inherit" /> : <Delete fontSize="small" />}
+                    onClick={() => setConfirmBulkOpen(true)}
+                    disabled={bulkDeleting}
+                  >
+                    Supprimer les {overTargetCount} hors cible
+                  </Button>
+                )
+              }
+            >
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Moyenne actuelle : {formatDuration(stats.currentAvg)}{' '}
+                  <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>
+                    (cible : &lt; {formatDuration(targetMinutes)})
+                  </Typography>
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  En supprimant les {overTargetCount} hors cible →{' '}
+                  <Typography
+                    component="span"
+                    variant="caption"
+                    sx={{
+                      fontWeight: 600,
+                      color: stats.projectedAvg <= targetMinutes ? 'success.main' : 'warning.main',
+                    }}
+                  >
+                    moyenne projetée {formatDuration(stats.projectedAvg)}
+                  </Typography>{' '}
+                  sur {stats.projectedCount} incident{stats.projectedCount > 1 ? 's' : ''} restant
+                  {stats.projectedCount > 1 ? 's' : ''}.
+                </Typography>
+              </Box>
+            </Alert>
+          )}
+
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
             </Box>
-          ) : incidents.length === 0 ? (
+          ) : sortedIncidents.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Typography color="text.secondary">
                 Aucun incident P1 récent.
@@ -215,18 +389,10 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {incidents.map((incident) => {
+                  {sortedIncidents.map((incident) => {
                     const statusConfig = STATUS_CONFIG[incident.status];
                     const isRetesting = retestingId === incident.id;
-                    // Indicateur "pollue le KPI" : RESOLVED dont la duree
-                    // depasse la cible (ex: target=60min, duree=84h).
-                    // OPEN n'a pas encore de duree → on l'exclut, leur badge
-                    // 'Ouvert' (rouge) signale deja l'urgence visuellement.
-                    const overTarget =
-                      incident.status === 'RESOLVED'
-                      && incident.resolutionMinutes !== null
-                      && incident.resolutionMinutes !== undefined
-                      && incident.resolutionMinutes > targetMinutes;
+                    const overTarget = isOverTarget(incident, targetMinutes);
                     return (
                       <TableRow
                         key={incident.id}
@@ -272,7 +438,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                             </Typography>
                             {overTarget && (
                               <Tooltip
-                                title={`Au-dessus de la cible (< ${targetMinutes}min) — pollue la moyenne KPI P1. Candidat a suppression pour purger le KPI.`}
+                                title={`Au-dessus de la cible (< ${formatDuration(targetMinutes)}) — pollue la moyenne KPI P1. Candidat à suppression pour purger le KPI.`}
                               >
                                 <Chip
                                   label="hors cible"
@@ -348,8 +514,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
         </DialogActions>
       </Dialog>
 
-      {/* Confirmation de suppression — guard contre un clic accidentel sur un
-          incident encore en cours d'investigation. */}
+      {/* Confirmation de suppression unitaire */}
       <Dialog
         open={confirmDeleteId !== null}
         onClose={() => setConfirmDeleteId(null)}
@@ -375,6 +540,49 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
             disabled={deletingId !== null}
           >
             Supprimer
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirmation de bulk delete */}
+      <Dialog
+        open={confirmBulkOpen}
+        onClose={() => !bulkDeleting && setConfirmBulkOpen(false)}
+        maxWidth="xs"
+      >
+        <DialogTitle>
+          Supprimer {overTargetCount} incident{overTargetCount > 1 ? 's' : ''} hors cible ?
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Tous les incidents RÉSOLUS dont la durée dépasse {formatDuration(targetMinutes)} seront supprimés :
+          </Typography>
+          <Typography variant="body2" component="ul" sx={{ pl: 2, color: 'text.secondary', mb: 1 }}>
+            {overTargetIncidents.slice(0, 5).map((i) => (
+              <li key={i.id}>
+                {i.serviceName} — {formatDuration(i.resolutionMinutes)}
+              </li>
+            ))}
+            {overTargetIncidents.length > 5 && (
+              <li><i>+ {overTargetIncidents.length - 5} autre{overTargetIncidents.length - 5 > 1 ? 's' : ''}</i></li>
+            )}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            Action irréversible. Moyenne KPI P1 après suppression : <b>{formatDuration(stats.projectedAvg)}</b>.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmBulkOpen(false)} disabled={bulkDeleting}>
+            Annuler
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting}
+            startIcon={bulkDeleting ? <CircularProgress size={14} color="inherit" /> : <Delete fontSize="small" />}
+          >
+            Supprimer tout
           </Button>
         </DialogActions>
       </Dialog>
