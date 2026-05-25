@@ -190,12 +190,25 @@ export const useAuth = () => {
       }, 100);
     };
 
+    // Écouter DIRECTEMENT keycloak-auth-success (dispatche par Login.tsx,
+    // InscriptionConfirm.tsx, useAuth.handleAuthSuccess). Cela rend le flow
+    // robuste meme si App.tsx ne dispatch pas `force-user-reload` (defensive :
+    // historiquement on dependait de cette chaine indirecte uniquement).
+    const handleKeycloakAuthSuccess = () => {
+      // Petit delai pour laisser le temps a Login.tsx de set keycloak.token
+      // avant que loadUserInfo le lise.
+      setTimeout(() => {
+        loadUserInfo();
+      }, 50);
+    };
+
     // Ajouter les écouteurs d'événements Keycloak
     keycloak.onAuthSuccess = handleAuthSuccess;
     keycloak.onAuthLogout = handleAuthLogout;
 
-    // Ajouter l'écouteur d'événement personnalisé
+    // Ajouter les écouteurs d'événements window personnalisés
     window.addEventListener('force-user-reload', handleForceUserReload);
+    window.addEventListener('keycloak-auth-success', handleKeycloakAuthSuccess);
 
         // Écouter les changements de permissions
     const handlePermissionsRefresh = () => {
@@ -223,6 +236,7 @@ export const useAuth = () => {
       keycloak.onAuthSuccess = undefined;
       keycloak.onAuthLogout = undefined;
       window.removeEventListener('force-user-reload', handleForceUserReload);
+      window.removeEventListener('keycloak-auth-success', handleKeycloakAuthSuccess);
       window.removeEventListener('permissions-refreshed', handlePermissionsRefresh);
       window.removeEventListener('permissions-updated', handlePermissionsUpdated);
 
