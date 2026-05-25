@@ -3,9 +3,11 @@ package com.clenzy.service;
 import com.clenzy.model.Incident;
 import com.clenzy.model.Incident.IncidentStatus;
 import com.clenzy.model.Incident.IncidentType;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.repository.IncidentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ import java.util.Optional;
  * - Ouverture d'incidents (deduplication par type + serviceName)
  * - Resolution automatique avec calcul du temps de resolution
  * - Statistiques de temps moyen de resolution P1
+ * - Notification des SUPER_ADMIN/SUPER_MANAGER (cf. INCIDENT_OPENED/RESOLVED)
  *
  * Cross-org : pas de TenantContext, pas de filtre organisation.
  */
@@ -33,9 +36,17 @@ public class IncidentService {
     private static final Logger log = LoggerFactory.getLogger(IncidentService.class);
 
     private final IncidentRepository incidentRepository;
+    /**
+     * NotificationService injecte via ObjectProvider pour eviter un cycle
+     * de dependances : NotificationService -> ... -> IncidentService au
+     * boot. ObjectProvider resout lazy au 1er appel.
+     */
+    private final ObjectProvider<NotificationService> notificationServiceProvider;
 
-    public IncidentService(IncidentRepository incidentRepository) {
+    public IncidentService(IncidentRepository incidentRepository,
+                           ObjectProvider<NotificationService> notificationServiceProvider) {
         this.incidentRepository = incidentRepository;
+        this.notificationServiceProvider = notificationServiceProvider;
     }
 
     /**
@@ -60,6 +71,25 @@ public class IncidentService {
 
         incident = incidentRepository.save(incident);
         log.warn("[Incident] Ouvert: type={}, service={}, title='{}'", type, serviceName, title);
+
+        // Notifier les SUPER_ADMIN/SUPER_MANAGER de la plateforme.
+        // Best-effort : si NotificationService throw, on log mais on garde
+        // l'incident persiste (la creation prime sur la notification).
+        try {
+            String message = description != null && !description.isBlank()
+                    ? description
+                    : "Service " + serviceName + " indisponible.";
+            notificationServiceProvider.ifAvailable(svc ->
+                svc.notifyAllPlatformStaff(
+                    NotificationKey.INCIDENT_OPENED,
+                    title,
+                    message,
+                    "/admin/monitoring"
+                )
+            );
+        } catch (Exception e) {
+            log.error("[Incident] Erreur dispatch notification INCIDENT_OPENED : {}", e.getMessage());
+        }
 
         return incident;
     }
@@ -91,6 +121,25 @@ public class IncidentService {
         incidentRepository.save(incident);
         log.warn("[Incident] Resolu: type={}, service={}, duration={}min",
                 type, serviceName, durationMinutes);
+
+        // Notifier les SUPER_ADMIN/SUPER_MANAGER de la resolution
+        try {
+            String title = "Incident resolu : " + (incident.getTitle() != null
+                    ? incident.getTitle()
+                    : serviceName);
+            String message = String.format("Service %s a nouveau OK (duree : %d min)",
+                    serviceName, durationMinutes);
+            notificationServiceProvider.ifAvailable(svc ->
+                svc.notifyAllPlatformStaff(
+                    NotificationKey.INCIDENT_RESOLVED,
+                    title,
+                    message,
+                    "/admin/monitoring"
+                )
+            );
+        } catch (Exception e) {
+            log.error("[Incident] Erreur dispatch notification INCIDENT_RESOLVED : {}", e.getMessage());
+        }
     }
 
     /**
