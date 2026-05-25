@@ -19,6 +19,7 @@ import {
   Tooltip,
   Snackbar,
   Alert,
+  alpha,
 } from '@mui/material';
 import { Close, Refresh, Delete } from '../../icons';
 import type { IncidentDto, IncidentStatus } from '../../services/api/incidentApi';
@@ -73,6 +74,13 @@ interface IncidentDetailDialogProps {
    * badge global ne matche pas le scope P1 du modal.
    */
   otherSeveritiesOpenCount?: number;
+  /**
+   * Seuil cible du KPI P1 Incident Resolution (en minutes). Les incidents
+   * RESOLVED avec une duree au-dessus de ce seuil polluent la moyenne
+   * et sont visuellement flagges (rouge) pour permettre a l'admin
+   * d'identifier immediatement les candidats au cleanup.
+   */
+  targetMinutes?: number;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -84,6 +92,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
   loading,
   onRefresh,
   otherSeveritiesOpenCount = 0,
+  targetMinutes = 60,
 }) => {
   const { isSuperAdmin } = useAuth();
   const canDelete = isSuperAdmin();
@@ -209,8 +218,23 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                   {incidents.map((incident) => {
                     const statusConfig = STATUS_CONFIG[incident.status];
                     const isRetesting = retestingId === incident.id;
+                    // Indicateur "pollue le KPI" : RESOLVED dont la duree
+                    // depasse la cible (ex: target=60min, duree=84h).
+                    // OPEN n'a pas encore de duree → on l'exclut, leur badge
+                    // 'Ouvert' (rouge) signale deja l'urgence visuellement.
+                    const overTarget =
+                      incident.status === 'RESOLVED'
+                      && incident.resolutionMinutes !== null
+                      && incident.resolutionMinutes !== undefined
+                      && incident.resolutionMinutes > targetMinutes;
                     return (
-                      <TableRow key={incident.id} hover>
+                      <TableRow
+                        key={incident.id}
+                        hover
+                        sx={overTarget ? {
+                          backgroundColor: (theme) => alpha(theme.palette.error.main, 0.04),
+                        } : undefined}
+                      >
                         <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
                           {formatDate(incident.openedAt)}
                         </TableCell>
@@ -234,7 +258,37 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                           />
                         </TableCell>
                         <TableCell sx={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                          {formatDuration(incident.resolutionMinutes)}
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography
+                              component="span"
+                              sx={{
+                                fontSize: '0.8rem',
+                                fontWeight: overTarget ? 600 : 400,
+                                color: overTarget ? 'error.main' : 'inherit',
+                                fontVariantNumeric: 'tabular-nums',
+                              }}
+                            >
+                              {formatDuration(incident.resolutionMinutes)}
+                            </Typography>
+                            {overTarget && (
+                              <Tooltip
+                                title={`Au-dessus de la cible (< ${targetMinutes}min) — pollue la moyenne KPI P1. Candidat a suppression pour purger le KPI.`}
+                              >
+                                <Chip
+                                  label="hors cible"
+                                  size="small"
+                                  color="error"
+                                  variant="outlined"
+                                  sx={{
+                                    height: 18,
+                                    fontSize: '0.625rem',
+                                    fontWeight: 600,
+                                    letterSpacing: '0.03em',
+                                  }}
+                                />
+                              </Tooltip>
+                            )}
+                          </Box>
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'inline-flex', gap: 0.25 }}>
