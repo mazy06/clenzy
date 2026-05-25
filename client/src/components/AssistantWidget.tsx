@@ -115,7 +115,8 @@ const AssistantWidget: React.FC = () => {
           },
         }}
       >
-        {/* Header */}
+        {/* Header — L2 panel teinte, pas de border-bottom (le contraste bg-vs-flux
+            de messages cree la separation visuelle) */}
         <Box
           sx={{
             display: 'flex',
@@ -123,8 +124,7 @@ const AssistantWidget: React.FC = () => {
             gap: 1,
             px: 2,
             py: 1.25,
-            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-            bgcolor: theme.palette.background.paper,
+            bgcolor: alpha(theme.palette.text.primary, 0.025),
             flexShrink: 0,
           }}
         >
@@ -210,16 +210,19 @@ const AssistantWidget: React.FC = () => {
           }
         />
 
-        {/* Error banner */}
+        {/* Error banner — bg solide, pas de border */}
         {error && (
           <Box
             sx={{
-              px: 2,
+              mx: 1.5,
+              mb: 1,
+              px: 1.5,
               py: 1,
-              bgcolor: alpha(theme.palette.error.main, 0.08),
-              color: theme.palette.error.main,
+              bgcolor: alpha(theme.palette.error.main, 0.10),
+              color: theme.palette.error.dark,
               fontSize: '0.8125rem',
-              borderTop: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+              fontWeight: 500,
+              borderRadius: 2,
             }}
           >
             {error}
@@ -234,15 +237,15 @@ const AssistantWidget: React.FC = () => {
           placeholder="Demande-moi quelque chose..."
         />
 
-        {/* Reset action visible only when there are messages */}
+        {/* Reset action visible only when there are messages — pas de border,
+            le bg L2 + l'input panel L2 se touchent (pas besoin de separation) */}
         {messages.length > 0 && (
           <Box
             sx={{
               display: 'flex',
               justifyContent: 'center',
               py: 0.5,
-              borderTop: `1px solid ${alpha(theme.palette.divider, 0.4)}`,
-              bgcolor: theme.palette.background.paper,
+              bgcolor: alpha(theme.palette.text.primary, 0.025),
               flexShrink: 0,
             }}
           >

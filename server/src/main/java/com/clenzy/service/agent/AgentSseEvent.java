@@ -33,19 +33,28 @@ public record AgentSseEvent(
         String finishReason,
         String error,
         String toolArgs,
-        String toolDescription
+        String toolDescription,
+        /**
+         * Contenu serialise (JSON typiquement) retourne par le tool. Le frontend
+         * le parse et rend un widget contextualise selon {@link #displayHint}
+         * (KpiSummaryWidget pour "summary", DataTableWidget pour "list", etc.).
+         * Null pour les tools en erreur (l'UI affiche juste l'erreur via toolError).
+         */
+        String toolResult
 ) {
 
     public static AgentSseEvent conversationCreated(Long id) {
-        return new AgentSseEvent("conversation_created", null, id, null, null, null, null, null, null, null, null);
+        return new AgentSseEvent("conversation_created", null, id, null, null, null, null, null, null, null, null, null);
     }
 
     public static AgentSseEvent textDelta(String delta) {
-        return new AgentSseEvent("text_delta", delta, null, null, null, null, null, null, null, null, null);
+        return new AgentSseEvent("text_delta", delta, null, null, null, null, null, null, null, null, null, null);
     }
 
-    public static AgentSseEvent toolCallExecuted(String name, String callId, boolean isError, String hint) {
-        return new AgentSseEvent("tool_call_executed", null, null, name, callId, isError, hint, null, null, null, null);
+    public static AgentSseEvent toolCallExecuted(String name, String callId, boolean isError,
+                                                  String hint, String toolResult) {
+        return new AgentSseEvent("tool_call_executed", null, null, name, callId, isError, hint,
+                null, null, null, null, toolResult);
     }
 
     /**
@@ -56,7 +65,7 @@ public record AgentSseEvent(
     public static AgentSseEvent toolConfirmationRequest(String name, String callId,
                                                          String toolArgs, String toolDescription) {
         return new AgentSseEvent("tool_confirmation_request", null, null, name, callId,
-                null, null, null, null, toolArgs, toolDescription);
+                null, null, null, null, toolArgs, toolDescription, null);
     }
 
     /**
@@ -65,14 +74,14 @@ public record AgentSseEvent(
      */
     public static AgentSseEvent pausedAwaitingConfirmation() {
         return new AgentSseEvent("paused_awaiting_confirmation", null, null, null, null,
-                null, null, null, null, null, null);
+                null, null, null, null, null, null, null);
     }
 
     public static AgentSseEvent done(String finishReason) {
-        return new AgentSseEvent("done", null, null, null, null, null, null, finishReason, null, null, null);
+        return new AgentSseEvent("done", null, null, null, null, null, null, finishReason, null, null, null, null);
     }
 
     public static AgentSseEvent error(String message) {
-        return new AgentSseEvent("error", null, null, null, null, null, null, null, message, null, null);
+        return new AgentSseEvent("error", null, null, null, null, null, null, null, message, null, null, null);
     }
 }

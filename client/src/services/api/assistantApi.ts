@@ -34,7 +34,7 @@ export interface AssistantMessage {
 export type AgentSseEvent =
   | { type: 'conversation_created'; conversationId: number }
   | { type: 'text_delta'; delta: string }
-  | { type: 'tool_call_executed'; toolName: string; toolCallId: string; toolError: boolean; displayHint?: string }
+  | { type: 'tool_call_executed'; toolName: string; toolCallId: string; toolError: boolean; displayHint?: string; toolResult?: string }
   | { type: 'tool_confirmation_request'; toolName: string; toolCallId: string; toolArgs: string; toolDescription: string }
   | { type: 'paused_awaiting_confirmation' }
   | { type: 'done'; finishReason: string }

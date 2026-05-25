@@ -52,14 +52,25 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <Box
       sx={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        gap: 1,
-        p: 1.5,
-        borderTop: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-        bgcolor: theme.palette.background.paper,
+        // L2 input panel : bg subtilement teinte par rapport au L1 Paper pour
+        // separer la zone d'input du flux de messages, SANS border-top.
+        // Le contraste tonal joue le role du divider.
+        bgcolor: alpha(theme.palette.text.primary, 0.025),
+        py: 1.5,
       }}
     >
+      {/* Conteneur centre, meme contrainte que MessageList (760px) pour
+          aligner visuellement input <-> messages. */}
+      <Box
+        sx={{
+          maxWidth: 760,
+          mx: 'auto',
+          px: { xs: 2, md: 3 },
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 1,
+        }}
+      >
       <TextField
         inputRef={inputRef}
         value={value}
@@ -73,9 +84,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         size="small"
         disabled={status === 'sending'}
         sx={{
-          '& .MuiInputBase-root': {
+          // TextField : retire l'outline MUI par defaut, utilise un bg blanc
+          // (Paper) pour ressortir sur le panel L2. Focus = anneau primary subtil.
+          '& .MuiOutlinedInput-root': {
             borderRadius: 2,
             fontSize: '0.875rem',
+            bgcolor: theme.palette.background.paper,
+            transition: 'box-shadow 180ms ease-out',
+            '& fieldset': { border: 'none' },
+            '&:hover fieldset': { border: 'none' },
+            '&.Mui-focused fieldset': { border: 'none' },
+            '&.Mui-focused': {
+              boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.35)}`,
+            },
           },
         }}
       />
@@ -118,6 +139,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <SendIcon size={18} />
         </IconButton>
       )}
+      </Box>
     </Box>
   );
 };
