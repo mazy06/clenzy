@@ -2,12 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { Paper, Typography, Button, Box, Slide, IconButton } from '@mui/material';
 import { Close as CloseIcon, GetApp as GetAppIcon } from '../icons';
 import { usePWA } from '../hooks/usePWA';
+import { useUserPreference } from '../hooks/useUserPreference';
 
-const DISMISS_KEY = 'pwa-banner-dismissed-at';
 const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export default function PWAInstallBanner() {
   const { canInstall, install } = usePWA();
+  // Persiste backend (user_ui_preferences) — la decision "ne pas reproposer
+  // l'installation PWA pendant 7j" suit l'utilisateur cross-devices. Note :
+  // `canInstall` reste device-specific (depend du browser + manifest), donc
+  // si le banner est dismissed sur device A et que l'user ouvre l'app sur
+  // device B PWA-capable, on respecte le delai de 7j la aussi.
+  const [dismissedAt, setDismissedAt] = useUserPreference<number | null>(
+    'pwa.installBannerDismissedAt',
+    null,
+  );
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -17,16 +26,12 @@ export default function PWAInstallBanner() {
     }
 
     // Check if user dismissed the banner recently
-    const dismissedAt = localStorage.getItem(DISMISS_KEY);
-    if (dismissedAt) {
-      const elapsed = Date.now() - Number(dismissedAt);
-      if (elapsed < DISMISS_DURATION_MS) {
-        return;
-      }
+    if (dismissedAt && Date.now() - dismissedAt < DISMISS_DURATION_MS) {
+      return;
     }
 
     setVisible(true);
-  }, [canInstall]);
+  }, [canInstall, dismissedAt]);
 
   const handleInstall = async () => {
     await install();
@@ -34,7 +39,7 @@ export default function PWAInstallBanner() {
   };
 
   const handleDismiss = () => {
-    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    setDismissedAt(Date.now());
     setVisible(false);
   };
 

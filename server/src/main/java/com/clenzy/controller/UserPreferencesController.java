@@ -51,6 +51,7 @@ public class UserPreferencesController {
         if (dto.getTimezone() != null) entity.setTimezone(dto.getTimezone());
         if (dto.getCurrency() != null) entity.setCurrency(dto.getCurrency());
         if (dto.getLanguage() != null) entity.setLanguage(dto.getLanguage());
+        if (dto.getThemeMode() != null) entity.setThemeMode(dto.getThemeMode());
         entity.setNotifyEmail(dto.isNotifyEmail());
         entity.setNotifyPush(dto.isNotifyPush());
         entity.setNotifySms(dto.isNotifySms());
@@ -74,6 +75,7 @@ public class UserPreferencesController {
                 entity.getTimezone(),
                 entity.getCurrency(),
                 entity.getLanguage(),
+                entity.getThemeMode(),
                 entity.isNotifyEmail(),
                 entity.isNotifyPush(),
                 entity.isNotifySms()

@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useEf
 import storageService, { STORAGE_KEYS } from '../services/storageService';
 import { CURRENCY_OPTIONS, formatCurrency } from '../utils/currencyUtils';
 import { exchangeRateApi, type RateMatrix } from '../services/api/exchangeRateApi';
+import { useUserPreferences } from './useUserPreferences';
+import keycloak from '../keycloak';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -58,15 +60,39 @@ interface CurrencyProviderProps {
 }
 
 export function CurrencyProvider({ children }: CurrencyProviderProps) {
+  // Boot synchrone depuis localStorage pour eviter le flash devise au mount.
+  // Le backend (user_preferences.currency) reste la source de verite et
+  // ecrase la valeur locale des qu'il repond (cf. useEffect ci-dessous).
   const [currency, setCurrencyState] = useState<CurrencyCode>(getSavedCurrency);
   const [rateMatrix, setRateMatrix] = useState<RateMatrix | null>(null);
   const [ratesLoading, setRatesLoading] = useState(false);
   const fetchedAt = useRef<number>(0);
 
+  // Sync backend → local (source de verite serveur). Ignore si pas authentifie
+  // (le hook tournerait en 401). On garde le cache localStorage comme fallback.
+  const { preferences, updatePreferences } = useUserPreferences();
+  useEffect(() => {
+    if (!keycloak.authenticated) return;
+    const serverCurrency = preferences.currency as CurrencyCode | undefined;
+    if (!serverCurrency) return;
+    if (!CURRENCY_OPTIONS.some((o) => o.code === serverCurrency)) return;
+    if (serverCurrency === currency) return;
+    setCurrencyState(serverCurrency);
+    storageService.setItem(STORAGE_KEYS.CURRENCY, serverCurrency);
+  }, [preferences.currency]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const setCurrency = useCallback((code: CurrencyCode) => {
+    // Optimistic update : local + cache immediatement, puis push backend
+    // en best-effort (le serveur reste source de verite au prochain reload).
     setCurrencyState(code);
     storageService.setItem(STORAGE_KEYS.CURRENCY, code);
-  }, []);
+    if (keycloak.authenticated) {
+      updatePreferences({ currency: code }).catch(() => {
+        // Best-effort : si la PUT echoue, la valeur locale persiste
+        // jusqu'au prochain sync backend.
+      });
+    }
+  }, [updatePreferences]);
 
   // Fetch rate matrix when needed (currency !== EUR or stale cache)
   useEffect(() => {
