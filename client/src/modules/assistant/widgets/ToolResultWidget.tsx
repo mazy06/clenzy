@@ -12,6 +12,7 @@ import { NavigationCardWidget } from './NavigationCardWidget';
 import { PortfolioOverviewWidget } from './PortfolioOverviewWidget';
 import { WeatherWidget } from './WeatherWidget';
 import { EventsWidget } from './EventsWidget';
+import { SimulationWidget } from './SimulationWidget';
 
 interface ToolResultWidgetProps {
   call: ToolCallExecuted;
@@ -30,6 +31,7 @@ interface ToolResultWidgetProps {
  *   <li>{@code "portfolio_overview"} → {@link PortfolioOverviewWidget}</li>
  *   <li>{@code "weather"}            → {@link WeatherWidget}</li>
  *   <li>{@code "events"}             → {@link EventsWidget}</li>
+ *   <li>{@code "simulation"}         → {@link SimulationWidget}</li>
  *   <li>autre / sans hint            → fallback minimal cle/valeur</li>
  * </ul>
  *
@@ -85,6 +87,9 @@ export const ToolResultWidget: React.FC<ToolResultWidgetProps> = ({ call }) => {
 
     case 'events':
       return <EventsWidget data={parsed as Parameters<typeof EventsWidget>[0]['data']} />;
+
+    case 'simulation':
+      return <SimulationWidget data={parsed as Parameters<typeof SimulationWidget>[0]['data']} />;
 
     default:
       // Hint inconnu : on tente de rendre une representation minimale

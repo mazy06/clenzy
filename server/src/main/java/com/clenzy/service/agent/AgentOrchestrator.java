@@ -104,6 +104,12 @@ public class AgentOrchestrator {
               proposer une strategie globale a l'utilisateur, pas juste lire.
             - get_occupancy_forecast(propertyId, days) → prevision occupation N jours.
               Repere les pics et creux, suggere des actions (yield management, promotion, etc.).
+            - simulate_pricing_change(propertyId, pctChange, from?, to?) → projection revenue
+              d'un changement de prix (-50..+50%). Modele d'elasticite 0.5.
+            - simulate_calendar_block(propertyId, from, to) → estimation de la perte revenue
+              si une plage de dates est bloquee (base sur l'annee precedente).
+            Utiliser ces simulations pour 'que se passe-t-il si', 'simulation', 'scenario',
+            'what if', 'combien je perds si je bloque', 'combien je gagne en baissant'.
 
             STRATEGIQUE PORTFOLIO :
             - analyze_portfolio(daysBack?) → vue d'ensemble cross-property + patterns + top
