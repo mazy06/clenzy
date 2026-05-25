@@ -84,6 +84,7 @@ vi.mock('../useCustomPermissions', () => ({
 }));
 
 import { useAuth } from '../useAuth';
+import { AuthProvider } from '../../contexts/AuthContext';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -98,8 +99,14 @@ const USER_FIXTURE = {
   organizationId: 2,
 };
 
+// Wrap dans React.StrictMode + AuthProvider — depuis le refactor 2026-05,
+// useAuth est un consumer de Context (plus de logique standalone).
 function wrapStrict({ children }: { children: React.ReactNode }) {
-  return <React.StrictMode>{children}</React.StrictMode>;
+  return (
+    <React.StrictMode>
+      <AuthProvider>{children}</AuthProvider>
+    </React.StrictMode>
+  );
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -232,5 +239,169 @@ describe('useAuth — StrictMode integration', () => {
     // Re-mount works
     const { result } = renderHook(() => useAuth(), { wrapper: wrapStrict });
     await waitFor(() => expect(result.current.loading).toBe(false));
+  });
+
+  // ─── Resilience aux erreurs transitoires (fix bug deconnexion /assistant) ───
+
+  it('429 rate limit on /api/me does NOT logout the user (resilience fix)', async () => {
+    // Phase 1 : login normal → user charge
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(USER_FIXTURE),
+    } as Response);
+
+    const { result } = renderHook(() => useAuth(), { wrapper: wrapStrict });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    keycloakMock.authenticated = true;
+    keycloakMock.token = 'fake-jwt-token';
+    act(() => { window.dispatchEvent(new CustomEvent('keycloak-auth-success')); });
+    await waitFor(() => expect(result.current.user).not.toBeNull());
+    const userBefore = result.current.user;
+
+    // Phase 2 : re-trigger un loadUserInfo qui hit le rate limit
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+      json: () => Promise.resolve({ error: 'Too Many Requests' }),
+    } as Response);
+
+    act(() => { window.dispatchEvent(new CustomEvent('force-user-reload')); });
+
+    // Attendre la fin du loadUserInfo (delay 100ms du handler force-user-reload)
+    await new Promise((r) => setTimeout(r, 250));
+
+    // User DOIT etre toujours charge — pas de deconnexion sur 429
+    expect(result.current.user).toEqual(userBefore);
+  });
+
+  it('500 server error on /api/me does NOT logout the user', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(USER_FIXTURE),
+    } as Response);
+    const { result } = renderHook(() => useAuth(), { wrapper: wrapStrict });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    keycloakMock.authenticated = true;
+    keycloakMock.token = 'fake-jwt-token';
+    act(() => { window.dispatchEvent(new CustomEvent('keycloak-auth-success')); });
+    await waitFor(() => expect(result.current.user).not.toBeNull());
+
+    // Trigger un /api/me qui retourne 503
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      json: () => Promise.resolve({ error: 'Service Unavailable' }),
+    } as Response);
+    act(() => { window.dispatchEvent(new CustomEvent('force-user-reload')); });
+    await new Promise((r) => setTimeout(r, 250));
+
+    expect(result.current.user).not.toBeNull();
+  });
+
+  it('network error (fetch throws) does NOT logout the user', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(USER_FIXTURE),
+    } as Response);
+    const { result } = renderHook(() => useAuth(), { wrapper: wrapStrict });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    keycloakMock.authenticated = true;
+    keycloakMock.token = 'fake-jwt-token';
+    act(() => { window.dispatchEvent(new CustomEvent('keycloak-auth-success')); });
+    await waitFor(() => expect(result.current.user).not.toBeNull());
+
+    // Trigger un /api/me qui leve une erreur reseau
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    act(() => { window.dispatchEvent(new CustomEvent('force-user-reload')); });
+    await new Promise((r) => setTimeout(r, 250));
+
+    expect(result.current.user).not.toBeNull();
+  });
+
+  it('CRITICAL: multiple useAuth() consumers share state — ONE /api/me, not N (storm fix)', async () => {
+    // Avant le refactor AuthContext : N consumers → N appels /api/me en parallele
+    // → rate limit (429) → deconnexion. Ce test verifie que le Context partage
+    // garantit UN SEUL appel quel que soit le nombre de consumers.
+    keycloakMock.authenticated = true;
+    keycloakMock.token = 'fake-jwt-token';
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(USER_FIXTURE),
+    } as Response);
+
+    // Wrap qui partage le MEME AuthProvider entre plusieurs consumers
+    const SharedProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+      <React.StrictMode>
+        <AuthProvider>
+          <>{children}</>
+        </AuthProvider>
+      </React.StrictMode>
+    );
+
+    // Simule 5 composants qui appellent tous useAuth() (comme MainLayout,
+    // Sidebar, ProtectedRoute, UserProfile, etc. font simultanement).
+    const MultiConsumer = () => {
+      useAuth(); useAuth(); useAuth(); useAuth(); useAuth();
+      return null;
+    };
+
+    const { result } = renderHook(
+      () => {
+        // Render le multi-consumer + le useAuth de test dans le meme arbre
+        return useAuth();
+      },
+      {
+        wrapper: ({ children }) => (
+          <SharedProviderWrapper>
+            <MultiConsumer />
+            {children}
+          </SharedProviderWrapper>
+        ),
+      },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // Compter les calls a /api/me — doit etre EXACTEMENT 1 (ou 2 en StrictMode
+    // a cause du double-invoke du Provider useEffect, mais PAS 6 = 1 + 5 consumers).
+    const meCalls = fetchMock.mock.calls.filter((args) => {
+      const url = args[0] as string;
+      return url.includes('/api/me');
+    });
+    // Tolerer 1-2 calls (StrictMode dev double-invoque le useEffect du Provider)
+    // mais doit etre << 6 (= ce qu'on aurait avec le standalone hook + 5 consumers).
+    expect(meCalls.length).toBeLessThanOrEqual(2);
+    expect(meCalls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('403 Forbidden on /api/me DOES logout the user (real auth issue)', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(USER_FIXTURE),
+    } as Response);
+    const { result } = renderHook(() => useAuth(), { wrapper: wrapStrict });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    keycloakMock.authenticated = true;
+    keycloakMock.token = 'fake-jwt-token';
+    act(() => { window.dispatchEvent(new CustomEvent('keycloak-auth-success')); });
+    await waitFor(() => expect(result.current.user).not.toBeNull());
+
+    // Trigger un /api/me qui retourne 403 → vraie erreur d'autorisation
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      json: () => Promise.resolve({ error: 'Forbidden' }),
+    } as Response);
+    act(() => { window.dispatchEvent(new CustomEvent('force-user-reload')); });
+
+    await waitFor(() => {
+      expect(result.current.user).toBeNull();
+    });
   });
 });

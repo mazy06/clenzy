@@ -28,6 +28,7 @@ import {
   Contacts,
   Public,
   StorefrontOutlined,
+  AutoAwesome,
 } from '../icons';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -81,6 +82,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     roles: ['all'],
     permission: 'dashboard:view',
     translationKey: 'navigation.dashboard',
+    group: 'main',
+  },
+  {
+    icon: <AutoAwesome />,
+    path: '/assistant',
+    roles: ['all'],
+    permission: 'ai:view',
+    translationKey: 'navigation.assistant',
     group: 'main',
   },
   {

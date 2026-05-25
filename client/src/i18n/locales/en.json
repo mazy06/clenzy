@@ -34,6 +34,7 @@
   },
   "navigation": {
     "dashboard": "Dashboard",
+    "assistant": "Assistant",
     "properties": "Properties",
     "serviceRequests": "Service Requests",
     "interventions": "Interventions",

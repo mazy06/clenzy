@@ -34,6 +34,7 @@
   },
   "navigation": {
     "dashboard": "Tableau de bord",
+    "assistant": "Assistant",
     "properties": "Propriétés",
     "serviceRequests": "Demandes de service",
     "interventions": "Interventions",
