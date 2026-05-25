@@ -1,15 +1,31 @@
 package com.clenzy.dto;
 
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
 /**
  * DTO pour les preferences utilisateur (timezone, devise, langue, theme, notifications).
  */
 public class UserPreferencesDto {
 
+    @Size(max = 50)
     private String timezone = "Europe/Paris";
+
+    /** ISO 4217 (3 chars). */
+    @Pattern(regexp = "^[A-Z]{3}$", message = "Currency must be a 3-letter ISO 4217 code")
     private String currency = "EUR";
+
+    /** Code langue (ex: fr, en, ar). */
+    @Pattern(regexp = "^[a-z]{2,5}$", message = "Language must be a 2-5 letter code")
     private String language = "fr";
-    /** Mode d'affichage UI : {@code light}, {@code dark} ou {@code auto}. */
+
+    /**
+     * Mode d'affichage UI : {@code light}, {@code dark} ou {@code auto}.
+     * Whitelist strict pour eviter qu'un client envoie n'importe quoi (Q3).
+     */
+    @Pattern(regexp = "^(light|dark|auto)$", message = "Theme mode must be 'light', 'dark' or 'auto'")
     private String themeMode = "auto";
+
     private boolean notifyEmail = true;
     private boolean notifyPush = false;
     private boolean notifySms = false;

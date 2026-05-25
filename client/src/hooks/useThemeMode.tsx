@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useUserPreferences } from './useUserPreferences';
-import keycloak from '../keycloak';
+import { useIsAuthenticated } from './useIsAuthenticated';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -77,12 +77,28 @@ export function ThemeModeProvider({ children }: ThemeModeProviderProps) {
   const [systemDark, setSystemDark] = useState<boolean>(getSystemPrefersDark);
 
   // Sync backend → local (source de verite = user_preferences.theme_mode).
-  // Ignore si pas authentifie. Le cache localStorage reste valide en fallback.
-  const { preferences, updatePreferences } = useUserPreferences();
+  // On ne sync que quand isLoaded=true pour ne pas ecraser local avec
+  // les DEFAULT_PREFERENCES (BUG-2). Le cache localStorage reste valide
+  // en fallback.
+  //
+  // BUG-3 : premier sync — si backend = defaut ('auto') ET local = explicite
+  // != 'auto', on pousse le local vers backend au lieu d'ecraser. Evite que
+  // les users perdent leur theme dark/light au premier login post-deploy 0136.
+  const { preferences, isLoaded, updatePreferences } = useUserPreferences();
+  const initialPushDoneRef = useRef(false);
   useEffect(() => {
-    if (!keycloak.authenticated) return;
+    if (!isLoaded) return;
     const serverMode = preferences.themeMode;
     if (!isValidMode(serverMode)) return;
+
+    // First-sync : backend = defaut, local = autre chose explicite → push local
+    if (!initialPushDoneRef.current && serverMode === 'auto' && mode !== 'auto') {
+      initialPushDoneRef.current = true;
+      updatePreferences({ themeMode: mode }).catch(() => { /* best-effort */ });
+      return;
+    }
+    initialPushDoneRef.current = true;
+
     if (serverMode === mode) return;
     setModeState(serverMode);
     try {
@@ -90,7 +106,7 @@ export function ThemeModeProvider({ children }: ThemeModeProviderProps) {
     } catch {
       // Silent fail
     }
-  }, [preferences.themeMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isLoaded, preferences.themeMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen for system color scheme changes (only relevant in 'auto' mode)
   useEffect(() => {
@@ -116,31 +132,22 @@ export function ThemeModeProvider({ children }: ThemeModeProviderProps) {
     };
   }, []);
 
+  const isAuthed = useIsAuthenticated();
   // Optimistic update : local + cache immediatement, puis push backend.
   const setMode = useCallback((newMode: ThemeMode) => {
     setModeState(newMode);
     try {
       localStorage.setItem(THEME_MODE_KEY, newMode);
-
-      // Also sync with clenzy_settings for backward compatibility
-      const settingsRaw = localStorage.getItem('clenzy_settings');
-      if (settingsRaw) {
-        const settings = JSON.parse(settingsRaw);
-        if (settings?.display) {
-          settings.display.theme = newMode === 'auto' ? 'auto' : newMode;
-          localStorage.setItem('clenzy_settings', JSON.stringify(settings));
-        }
-      }
     } catch {
       // Silent fail
     }
-    if (keycloak.authenticated) {
+    if (isAuthed) {
       updatePreferences({ themeMode: newMode }).catch(() => {
         // Best-effort : si la PUT echoue, la valeur locale persiste
         // jusqu'au prochain sync backend.
       });
     }
-  }, [updatePreferences]);
+  }, [isAuthed, updatePreferences]);
 
   // Resolve whether currently dark
   const isDark = useMemo(() => {
