@@ -6,10 +6,12 @@ import com.clenzy.config.ai.ChatLLMProvider;
 import com.clenzy.config.ai.ChatMessage;
 import com.clenzy.config.ai.ChatRequest;
 import com.clenzy.model.AssistantConversation;
+import com.clenzy.model.AssistantMemory;
 import com.clenzy.model.AssistantMessage;
 import com.clenzy.repository.AssistantConversationRepository;
 import com.clenzy.repository.AssistantMessageRepository;
 import com.clenzy.repository.OrgAiApiKeyRepository;
+import com.clenzy.service.AssistantMemoryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,7 +23,9 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class AgentOrchestratorTest {
@@ -31,6 +35,7 @@ class AgentOrchestratorTest {
     private AssistantConversationRepository convRepo;
     private AssistantMessageRepository msgRepo;
     private OrgAiApiKeyRepository keyRepo;
+    private AssistantMemoryService memoryService;
     private AgentOrchestrator orchestrator;
     private ObjectMapper om;
     private AgentContext ctx;
@@ -42,14 +47,18 @@ class AgentOrchestratorTest {
         convRepo = mock(AssistantConversationRepository.class);
         msgRepo = mock(AssistantMessageRepository.class);
         keyRepo = mock(OrgAiApiKeyRepository.class);
+        memoryService = mock(AssistantMemoryService.class);
         om = new ObjectMapper();
         orchestrator = new AgentOrchestrator(chatProvider, toolRegistry,
-                convRepo, msgRepo, om, keyRepo, new AiProperties(), new PendingToolStore());
+                convRepo, msgRepo, om, keyRepo, new AiProperties(), new PendingToolStore(),
+                memoryService);
         ctx = AgentContext.minimal(1L, "user-123");
 
         when(toolRegistry.listDescriptors()).thenReturn(List.of());
         // Pas de cle BYOK → plateforme
         when(keyRepo.findByOrganizationIdAndProvider(anyLong(), anyString())).thenReturn(Optional.empty());
+        // Memoire vide par defaut (les tests memoire surchargent)
+        when(memoryService.listForUser(anyString(), anyInt())).thenReturn(List.of());
     }
 
     @Test
@@ -252,6 +261,78 @@ class AgentOrchestratorTest {
                 () -> orchestrator.handleMessage(null, "  ", ctx, e -> {}));
         assertThrows(IllegalArgumentException.class,
                 () -> orchestrator.handleMessage(null, null, ctx, e -> {}));
+    }
+
+    @Test
+    void buildSystemPrompt_withNoMemory_returnsDefaultUnchanged() {
+        when(memoryService.listForUser("user-123", 30)).thenReturn(List.of());
+
+        String prompt = orchestrator.buildSystemPrompt(ctx);
+
+        assertFalse(prompt.startsWith("── Memoire utilisateur ──"),
+                "Sans memoire, pas de section memoire");
+        assertTrue(prompt.contains("Tu es l'assistant strategique Clenzy"),
+                "Le prompt par defaut doit etre present");
+    }
+
+    @Test
+    void buildSystemPrompt_withMemory_prependsGroupedSection() {
+        AssistantMemory pref = new AssistantMemory(1L, "user-123",
+                "briefing_time", "08:00", AssistantMemory.Scope.PREFERENCE);
+        AssistantMemory fact = new AssistantMemory(1L, "user-123",
+                "owner_42_difficile", "prefere les emails", AssistantMemory.Scope.FACT);
+        AssistantMemory goal = new AssistantMemory(1L, "user-123",
+                "Q3_target", "80% occupancy", AssistantMemory.Scope.GOAL);
+        AssistantMemory project = new AssistantMemory(1L, "user-123",
+                "renovation_paris", "juin 2026", AssistantMemory.Scope.PROJECT);
+
+        when(memoryService.listForUser("user-123", 30))
+                .thenReturn(List.of(pref, fact, goal, project));
+
+        String prompt = orchestrator.buildSystemPrompt(ctx);
+
+        assertTrue(prompt.startsWith("── Memoire utilisateur ──"),
+                "La section memoire doit etre en tete");
+        assertTrue(prompt.contains("Preferences : [briefing_time=08:00]"));
+        assertTrue(prompt.contains("Faits : [owner_42_difficile=prefere les emails]"));
+        assertTrue(prompt.contains("Objectifs : [Q3_target=80% occupancy]"));
+        assertTrue(prompt.contains("Projets : [renovation_paris=juin 2026]"));
+        assertTrue(prompt.contains("Tu es l'assistant strategique Clenzy"),
+                "Le prompt par defaut suit la memoire");
+    }
+
+    @Test
+    void buildSystemPrompt_memoryServiceFailure_fallsBackToDefault() {
+        when(memoryService.listForUser(anyString(), anyInt()))
+                .thenThrow(new RuntimeException("DB down"));
+
+        String prompt = orchestrator.buildSystemPrompt(ctx);
+
+        // Robustesse : on ne casse pas l'assistant si la memoire est ko
+        assertNotNull(prompt);
+        assertTrue(prompt.contains("Tu es l'assistant strategique Clenzy"));
+        assertFalse(prompt.contains("── Memoire utilisateur ──"));
+    }
+
+    @Test
+    void handleMessage_loadsMemoryFromService_limited30() {
+        AssistantConversation saved = new AssistantConversation(1L, "user-123");
+        saved.setId(99L);
+        when(convRepo.save(any())).thenReturn(saved);
+        when(msgRepo.findByConversation(99L)).thenReturn(List.of(
+                AssistantMessage.user(99L, 1L, "hi")));
+
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            consumer.accept(new ChatEvent.TextDelta("ok"));
+            consumer.accept(new ChatEvent.Done(10, 1, "claude", "end_turn", "ok"));
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any());
+
+        orchestrator.handleMessage(null, "hi", ctx, e -> {});
+
+        // Verifie que la memoire est chargee avec la limite de 30
+        verify(memoryService).listForUser(eq("user-123"), eq(30));
     }
 
     // helper to silence "anyLong unused"

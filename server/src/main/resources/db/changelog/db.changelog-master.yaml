@@ -1294,3 +1294,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0138 : Table assistant_memory (memoire long-terme assistant IA) ---
+  - changeSet:
+      id: "0138-add-assistant-memory"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0138__add_assistant_memory.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
