@@ -9,7 +9,6 @@
 
 - [ ] PR #157 merge sur `production` (clenzy repo)
 - [ ] Image Docker de l'API publiee (commit hash visible dans `production`)
-- [ ] Acces au workflow `Liquibase Bootstrap` sur **clenzy-infra** (necessaire car `SPRING_LIQUIBASE_ENABLED=false` en prod — cf. `feedback_no_manual_prod_fixes.md`)
 
 ## 1. Migrations Liquibase
 
@@ -22,29 +21,30 @@ Deux changesets a appliquer dans l'ordre :
 
 ### Procedure
 
-1. Aller sur **clenzy-infra** → Actions → workflow `Liquibase Bootstrap`
-2. Inputs :
-   - `environment` : `production`
-   - `sync_tag` : laisser vide (les changesets sont nouveaux, pas un sync)
-   - `dry_run` : `true` pour le 1er pass
-3. Verifier le log : on doit voir
-   ```
-   Reading from databasechangelog
-   Running Changeset: changes/0135__add_user_ui_preferences.sql::0135-add-user-ui-preferences::clenzy-team
-   Running Changeset: changes/0136__add_theme_mode_to_user_preferences.sql::0136-add-theme-mode-to-user-preferences::clenzy-team
-   ```
-4. Re-run avec `dry_run: false` pour appliquer
-5. Verifier :
-   ```sql
-   SELECT * FROM databasechangelog WHERE id IN ('0135-add-user-ui-preferences', '0136-add-theme-mode-to-user-preferences');
-   -- Doit retourner 2 lignes avec EXECTYPE = 'EXECUTED'
+Les migrations sont **appliquees automatiquement au boot de Spring** via le
+liquibase auto-run (`spring.liquibase.enabled=true`). Aucune intervention
+manuelle requise — le simple deploy de la nouvelle image declenche les
+migrations au demarrage du container.
 
-   \d user_ui_preferences
-   -- Doit montrer : id, keycloak_id, pref_key, pref_value (jsonb), created_at, updated_at
+### Verification post-deploy
 
-   \d user_preferences
-   -- Doit montrer la nouvelle colonne theme_mode varchar(20) NOT NULL DEFAULT 'auto'
-   ```
+```sql
+SELECT * FROM databasechangelog WHERE id IN ('0135-add-user-ui-preferences', '0136-add-theme-mode-to-user-preferences');
+-- Doit retourner 2 lignes avec EXECTYPE = 'EXECUTED'
+
+\d user_ui_preferences
+-- Doit montrer : id, keycloak_id, pref_key, pref_value (jsonb), created_at, updated_at
+
+\d user_preferences
+-- Doit montrer la nouvelle colonne theme_mode varchar(20) NOT NULL DEFAULT 'auto'
+```
+
+Les logs du container `pms-server` au boot doivent contenir :
+```
+INFO  liquibase.changelog : Reading from databasechangelog
+INFO  liquibase.changelog : Running Changeset: changes/0135__add_user_ui_preferences.sql::0135-add-user-ui-preferences::clenzy-team
+INFO  liquibase.changelog : Running Changeset: changes/0136__add_theme_mode_to_user_preferences.sql::0136-add-theme-mode-to-user-preferences::clenzy-team
+```
 
 ### Rollback (si necessaire)
 
@@ -56,6 +56,8 @@ DROP TABLE IF EXISTS user_ui_preferences;
 ALTER TABLE user_preferences DROP COLUMN IF EXISTS theme_mode;
 DELETE FROM databasechangelog WHERE id IN ('0135-add-user-ui-preferences', '0136-add-theme-mode-to-user-preferences');
 ```
+
+Une fois la DB rollback, redeploy l'image precedente (sans les migrations).
 
 ## 2. Deploy API + Frontend
 
