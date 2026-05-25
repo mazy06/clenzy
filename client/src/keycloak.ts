@@ -57,15 +57,6 @@ function decodeJwt(token?: string): KeycloakTokenParsed | undefined {
 }
 
 /**
- * @deprecated Les tokens ne sont plus persistes cote client. Le backend
- * emet un cookie HttpOnly `clenzy_auth` au login (cf. AuthSessionController).
- * No-op pour ne pas casser les callers existants — a retirer progressivement.
- */
-export function saveTokens(_accessToken: string, _refreshToken?: string) {
-  // VOLONTAIREMENT vide : cookie HttpOnly cote serveur + keycloak.token en memoire.
-}
-
-/**
  * Nettoyage local au logout : purge les eventuelles cles legacy et le cookie
  * cross-domain `clenzy_session`. Le cookie HttpOnly `clenzy_auth` est
  * invalide cote serveur via AuthSessionController#logout.
@@ -73,17 +64,6 @@ export function saveTokens(_accessToken: string, _refreshToken?: string) {
 export function clearTokens() {
   cleanupLegacyTokens()
   clearSessionCookie()
-}
-
-/**
- * @deprecated Plus de bootstrap depuis localStorage. La session est restauree
- * via le silent SSO de Keycloak (cf. keycloak.init `onLoad: 'check-sso'`)
- * et le cookie HttpOnly `clenzy_auth` cote serveur.
- *
- * Conservee comme no-op pour ne pas casser les callers existants.
- */
-export function bootstrapFromStorage() {
-  // VOLONTAIREMENT vide : session restauree via Keycloak SSO + cookie HttpOnly.
 }
 
 /**
