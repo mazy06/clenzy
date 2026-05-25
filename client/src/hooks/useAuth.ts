@@ -5,7 +5,7 @@ import { clearTokenCookie } from '../services/apiClient';
 import { CustomPermissionsContext } from './useCustomPermissions';
 import PermissionSyncService from '../services/PermissionSyncService';
 import RedisCacheService from '../services/RedisCacheService';
-import { clearTokens } from '../services/storageService';
+import { clearTokens, clearSessionCookie } from '../services/storageService';
 import { idbCache } from '../services/indexedDbCache';
 
 export interface UserRole {
@@ -168,6 +168,13 @@ export const useAuth = () => {
     const handleAuthLogout = () => {
       setUser(null);
       setLoading(false);
+      // Clear le cookie cross-domain partage avec la landing — Keycloak peut
+      // declencher onAuthLogout sans passer par clearUser (ex: session
+      // serveur expiree). Sans ce nettoyage, la landing penserait que la
+      // session est toujours active. (Bug pre-existant : useAuth ecrasait
+      // le `keycloak.onAuthLogout` defini dans keycloak.ts qui faisait ce
+      // cleanup, donc il etait silencieux.)
+      clearSessionCookie();
       window.dispatchEvent(new CustomEvent('keycloak-auth-logout'));
     };
 
