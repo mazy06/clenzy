@@ -7,11 +7,13 @@ import com.clenzy.config.ai.ChatMessage;
 import com.clenzy.config.ai.ChatRequest;
 import com.clenzy.config.ai.ToolDescriptor;
 import com.clenzy.model.AssistantConversation;
+import com.clenzy.model.AssistantMemory;
 import com.clenzy.model.AssistantMessage;
 import com.clenzy.model.OrgAiApiKey;
 import com.clenzy.repository.AssistantConversationRepository;
 import com.clenzy.repository.AssistantMessageRepository;
 import com.clenzy.repository.OrgAiApiKeyRepository;
+import com.clenzy.service.AssistantMemoryService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,8 +23,11 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -56,6 +61,7 @@ public class AgentOrchestrator {
     private static final int MAX_TOOL_ITERATIONS = 5;
     private static final int MAX_TOKENS_PER_TURN = 4096;
     private static final double DEFAULT_TEMPERATURE = 0.3;
+    private static final int MAX_MEMORY_ENTRIES = 30;
     private static final String DEFAULT_SYSTEM_PROMPT = """
             Tu es l'assistant strategique Clenzy, un PMS (Property Management System) pour la
             location courte duree. Ton role : aider l'utilisateur a COMPRENDRE ses donnees,
@@ -106,6 +112,20 @@ public class AgentOrchestrator {
             - cancel_reservation → annule une reservation (irreversible)
             - update_property_status → change statut propriete (ACTIVE/INACTIVE/UNDER_MAINTENANCE/ARCHIVED)
             - send_guest_message → envoie un message via template au guest d'une reservation
+            - forget_fact → supprime une entree de la memoire long-terme (irreversible, confirmation requise)
+
+            MEMOIRE LONG-TERME (personnalisation cross-conversations) :
+            Tu as une memoire long-terme. Utilise remember_fact des qu'un utilisateur te donne
+            une info utile pour le futur. Quatre categories (scope) :
+              * preference : preference d'usage (briefing_time=08:00, user_prefers_metric=true, currency=EUR)
+              * fact       : fait persistant (owner_42_difficile, villa_med_bruit_recurrent, guest_VIP_carlos)
+              * goal       : objectif business mesurable (Q3_target_80_occupancy, reduce_cleanings_cost_15pct)
+              * project    : chantier en cours avec deadline (renovation_appt_paris_juin, refonte_pricing_2026)
+            La cle (key) DOIT etre stable, explicite, en snake_case — elle sera ecrasee si reutilisee.
+            Ne demande pas la permission de retenir : retiens automatiquement et confirme brievement.
+            - remember_fact(key, value, scope) → enregistre/met a jour une entree (pas de confirmation)
+            - forget_fact(key) → supprime une entree (confirmation requise)
+            La memoire deja connue est listee en debut de system prompt (section "Memoire utilisateur").
 
             NAVIGATION (guide l'utilisateur dans le PMS) :
             - suggest_navigation(path, label, reason) → produit un BOUTON CLIQUABLE qui amene
@@ -174,6 +194,7 @@ public class AgentOrchestrator {
     private final OrgAiApiKeyRepository orgAiApiKeyRepository;
     private final AiProperties aiProperties;
     private final PendingToolStore pendingToolStore;
+    private final AssistantMemoryService memoryService;
 
     public AgentOrchestrator(ChatLLMProvider chatProvider,
                               ToolRegistry toolRegistry,
@@ -182,7 +203,8 @@ public class AgentOrchestrator {
                               ObjectMapper objectMapper,
                               OrgAiApiKeyRepository orgAiApiKeyRepository,
                               AiProperties aiProperties,
-                              PendingToolStore pendingToolStore) {
+                              PendingToolStore pendingToolStore,
+                              AssistantMemoryService memoryService) {
         this.chatProvider = chatProvider;
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
@@ -191,6 +213,7 @@ public class AgentOrchestrator {
         this.orgAiApiKeyRepository = orgAiApiKeyRepository;
         this.aiProperties = aiProperties;
         this.pendingToolStore = pendingToolStore;
+        this.memoryService = memoryService;
     }
 
     /**
@@ -228,8 +251,9 @@ public class AgentOrchestrator {
         // 4. Boucle tool-calling
         String apiKey = resolveApiKey(context.organizationId());
         List<ToolDescriptor> tools = toolRegistry.listDescriptors();
+        String systemPrompt = buildSystemPrompt(context);
         ChatRequest request = new ChatRequest(
-                DEFAULT_SYSTEM_PROMPT, chatMessages, tools, null,
+                systemPrompt, chatMessages, tools, null,
                 DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN);
 
         runToolLoop(request, conversation, context, apiKey, consumer);
@@ -311,7 +335,7 @@ public class AgentOrchestrator {
         messages.add(ChatMessage.tool(pending.toolCallId(), result.content()));
 
         ChatRequest request = new ChatRequest(
-                DEFAULT_SYSTEM_PROMPT, messages, toolRegistry.listDescriptors(),
+                buildSystemPrompt(context), messages, toolRegistry.listDescriptors(),
                 conversation.getModel(), DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN);
 
         String apiKey = resolveApiKey(context.organizationId());
@@ -464,6 +488,78 @@ public class AgentOrchestrator {
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────
+
+    /**
+     * Construit le system prompt pour cette conversation en prependant la section
+     * "Memoire utilisateur" (top {@value #MAX_MEMORY_ENTRIES} entrees triees par
+     * recence, groupees par scope) au prompt par defaut.
+     *
+     * <p>Si l'user n'a aucune memoire, retourne {@link #DEFAULT_SYSTEM_PROMPT}
+     * tel quel pour ne pas polluer le contexte avec une section vide.</p>
+     */
+    String buildSystemPrompt(AgentContext context) {
+        List<AssistantMemory> memories;
+        try {
+            memories = memoryService.listForUser(context.keycloakId(), MAX_MEMORY_ENTRIES);
+        } catch (Exception e) {
+            // Robustesse : la memoire est un nice-to-have, ne doit pas casser l'assistant.
+            log.warn("Failed to load memory for user {} : {}", context.keycloakId(), e.getMessage());
+            return DEFAULT_SYSTEM_PROMPT;
+        }
+        if (memories == null || memories.isEmpty()) {
+            return DEFAULT_SYSTEM_PROMPT;
+        }
+        return renderMemorySection(memories) + "\n\n" + DEFAULT_SYSTEM_PROMPT;
+    }
+
+    /**
+     * Genere la section markdown de memoire utilisateur. Format :
+     * <pre>
+     * ── Memoire utilisateur ──
+     *
+     * Preferences : [key1=value1, key2=value2]
+     * Faits : [...]
+     * Objectifs : [...]
+     * Projets : [...]
+     * </pre>
+     */
+    private String renderMemorySection(List<AssistantMemory> memories) {
+        Map<AssistantMemory.Scope, List<AssistantMemory>> byScope = new EnumMap<>(AssistantMemory.Scope.class);
+        for (AssistantMemory m : memories) {
+            AssistantMemory.Scope scope = m.getScopeEnum();
+            if (scope == null) continue;
+            byScope.computeIfAbsent(scope, k -> new ArrayList<>()).add(m);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("── Memoire utilisateur ──\n\n");
+
+        // Ordre stable : preference, fact, goal, project
+        Map<AssistantMemory.Scope, String> labels = new LinkedHashMap<>();
+        labels.put(AssistantMemory.Scope.PREFERENCE, "Preferences");
+        labels.put(AssistantMemory.Scope.FACT, "Faits");
+        labels.put(AssistantMemory.Scope.GOAL, "Objectifs");
+        labels.put(AssistantMemory.Scope.PROJECT, "Projets");
+
+        boolean any = false;
+        for (Map.Entry<AssistantMemory.Scope, String> entry : labels.entrySet()) {
+            List<AssistantMemory> bucket = byScope.get(entry.getKey());
+            if (bucket == null || bucket.isEmpty()) continue;
+            any = true;
+            sb.append(entry.getValue()).append(" : [");
+            for (int i = 0; i < bucket.size(); i++) {
+                if (i > 0) sb.append(", ");
+                AssistantMemory m = bucket.get(i);
+                sb.append(m.getMemoryKey()).append('=').append(m.getMemoryValue());
+            }
+            sb.append("]\n");
+        }
+        if (!any) {
+            // Toutes les memoires avaient un scope inconnu → fallback safe
+            return "";
+        }
+        return sb.toString();
+    }
 
     private AssistantConversation resolveOrCreateConversation(Long id, AgentContext ctx) {
         if (id == null) {

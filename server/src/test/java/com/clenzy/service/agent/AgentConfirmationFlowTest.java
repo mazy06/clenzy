@@ -10,6 +10,7 @@ import com.clenzy.model.AssistantConversation;
 import com.clenzy.repository.AssistantConversationRepository;
 import com.clenzy.repository.AssistantMessageRepository;
 import com.clenzy.repository.OrgAiApiKeyRepository;
+import com.clenzy.service.AssistantMemoryService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,8 +67,12 @@ class AgentConfirmationFlowTest {
         fakeWriteTool = new FakeWriteTool(om);
         toolRegistry = new ToolRegistry(List.of(fakeWriteTool));
 
+        AssistantMemoryService memoryService = mock(AssistantMemoryService.class);
+        when(memoryService.listForUser(anyString(), org.mockito.ArgumentMatchers.anyInt()))
+                .thenReturn(List.of());
+
         orchestrator = new AgentOrchestrator(chatProvider, toolRegistry,
-                convRepo, msgRepo, om, keyRepo, new AiProperties(), pendingStore);
+                convRepo, msgRepo, om, keyRepo, new AiProperties(), pendingStore, memoryService);
 
         ctx = AgentContext.minimal(1L, "user-confirm-test");
 
