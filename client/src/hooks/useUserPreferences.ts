@@ -16,6 +16,7 @@ const DEFAULT_PREFERENCES: UserPreferencesDto = Object.freeze({
   timezone: 'Europe/Paris',
   currency: 'EUR',
   language: 'fr',
+  themeMode: 'auto',
   notifyEmail: true,
   notifyPush: false,
   notifySms: false,

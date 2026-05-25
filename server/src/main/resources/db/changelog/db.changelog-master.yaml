@@ -1274,3 +1274,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0136 : Ajout de theme_mode sur user_preferences ---
+  - changeSet:
+      id: "0136-add-theme-mode-to-user-preferences"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0136__add_theme_mode_to_user_preferences.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
