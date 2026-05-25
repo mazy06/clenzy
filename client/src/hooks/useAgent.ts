@@ -29,6 +29,12 @@ export interface ToolCallExecuted {
   toolCallId: string;
   toolError: boolean;
   displayHint?: string;
+  /**
+   * Contenu JSON serialise renvoye par le tool. Le composant {@code MessageBubble}
+   * le parse et rend un widget contextualise via {@code ToolResultWidget}.
+   * Null si le tool a echoue (toolError=true).
+   */
+  toolResult?: string;
 }
 
 export type AgentStatus = 'idle' | 'sending' | 'streaming' | 'awaiting_confirmation' | 'error';
@@ -207,6 +213,7 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
             toolCallId: event.toolCallId,
             toolError: event.toolError,
             displayHint: event.displayHint,
+            toolResult: event.toolResult,
           };
           draftRef.current.toolCalls = [...(draftRef.current.toolCalls ?? []), tc];
           setMessages((prev) => prev.map((m) => (m === draft ? { ...draft } : m)));
@@ -315,6 +322,7 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
             toolCallId: event.toolCallId,
             toolError: event.toolError,
             displayHint: event.displayHint,
+            toolResult: event.toolResult,
           };
           draftRef.current.toolCalls = [...(draftRef.current.toolCalls ?? []), tc];
           setMessages((prev) => prev.map((m) => (m === draft ? { ...draft } : m)));

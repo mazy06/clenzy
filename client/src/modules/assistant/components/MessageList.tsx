@@ -50,8 +50,6 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, emptyState }
       sx={{
         flex: 1,
         overflow: 'auto',
-        px: 2,
-        py: 2,
         // Smooth scrollbar styling
         scrollbarWidth: 'thin',
         '&::-webkit-scrollbar': { width: 8 },
@@ -61,10 +59,22 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, emptyState }
         },
       }}
     >
-      {messages.map((m, idx) => (
-        <MessageBubble key={m.id ?? `pending-${idx}`} message={m} />
-      ))}
-      <div ref={bottomRef} />
+      {/* Centered reading column — pattern Claude.ai/ChatGPT : conversation
+          contrainte en largeur (max ~760px) pour preserver la longueur de
+          ligne optimale (60-80 caracteres). Hors-zone: bg L1 du Paper. */}
+      <Box
+        sx={{
+          maxWidth: 760,
+          mx: 'auto',
+          px: { xs: 2, md: 3 },
+          py: 3,
+        }}
+      >
+        {messages.map((m, idx) => (
+          <MessageBubble key={m.id ?? `pending-${idx}`} message={m} />
+        ))}
+        <div ref={bottomRef} />
+      </Box>
     </Box>
   );
 };

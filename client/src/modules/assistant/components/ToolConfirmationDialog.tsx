@@ -90,24 +90,26 @@ export const ToolConfirmationDialog: React.FC<ToolConfirmationDialogProps> = ({
         {parsedArgs && Object.keys(parsedArgs).length > 0 && (
           <Box
             sx={{
-              border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-              borderRadius: 1.5,
+              // L2 container args — bg tonal subtil sans border
+              borderRadius: 2,
               overflow: 'hidden',
-              bgcolor: alpha(theme.palette.text.primary, 0.025),
+              bgcolor: alpha(theme.palette.text.primary, 0.04),
             }}
           >
-            {Object.entries(parsedArgs).map(([key, value], index, arr) => (
+            {Object.entries(parsedArgs).map(([key, value], index) => (
               <Box
                 key={key}
                 sx={{
+                  // Rangees alternees : alpha legerement different pour separer
+                  // les lignes sans utiliser de border.
                   display: 'flex',
                   gap: 1.5,
                   px: 1.5,
                   py: 1,
-                  borderBottom:
-                    index < arr.length - 1
-                      ? `1px solid ${alpha(theme.palette.divider, 0.4)}`
-                      : 'none',
+                  bgcolor:
+                    index % 2 === 1
+                      ? alpha(theme.palette.text.primary, 0.025)
+                      : 'transparent',
                 }}
               >
                 <Typography

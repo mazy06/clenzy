@@ -62,20 +62,30 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
             component="button"
             onClick={() => onSuggest(prompt)}
             sx={{
-              px: 1.5,
+              // L4 chips suggerees : bg neutre subtil → bg primary teinte au hover.
+              // Pas de border, c'est le bg qui donne la presence visuelle.
+              px: 1.75,
               py: 1,
-              border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-              borderRadius: 2,
-              bgcolor: 'transparent',
+              border: 'none',
+              borderRadius: 999, // pill shape — plus elegant que rectangle arrondi
+              bgcolor: alpha(theme.palette.text.primary, 0.04),
               color: theme.palette.text.primary,
               fontFamily: 'inherit',
               fontSize: '0.8125rem',
+              fontWeight: 500,
               textAlign: 'left',
               cursor: 'pointer',
-              transition: 'background-color 180ms ease-out, border-color 180ms ease-out',
+              transition: 'background-color 180ms ease-out, color 180ms ease-out',
               '&:hover': {
-                bgcolor: alpha(theme.palette.primary.main, 0.06),
-                borderColor: theme.palette.primary.main,
+                bgcolor: alpha(theme.palette.primary.main, 0.12),
+                color: theme.palette.primary.dark,
+              },
+              '&:focus-visible': {
+                outline: `2px solid ${alpha(theme.palette.primary.main, 0.5)}`,
+                outlineOffset: 2,
+              },
+              '@media (prefers-reduced-motion: reduce)': {
+                transition: 'none',
               },
             }}
           >
@@ -111,14 +121,16 @@ const AssistantPage: React.FC = () => {
       <Paper
         elevation={0}
         sx={{
+          // Surface L1 (background.paper = white) sur fond L0 (background.default
+          // = light gray) : contraste de bg suffit pour delimiter la zone, pas de
+          // border. Approche Linear/Notion/Vercel.
           flex: 1,
           mx: { xs: 1, md: 2 },
           mb: { xs: 1, md: 2 },
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          borderRadius: 2,
-          border: (t) => `1px solid ${alpha(t.palette.divider, 0.5)}`,
+          borderRadius: 3,
         }}
       >
         <MessageList
@@ -129,15 +141,27 @@ const AssistantPage: React.FC = () => {
         {error && (
           <Box
             sx={{
-              px: 2,
-              py: 1,
-              bgcolor: (t) => alpha(t.palette.error.main, 0.08),
-              color: (t) => t.palette.error.main,
-              fontSize: '0.8125rem',
-              borderTop: (t) => `1px solid ${alpha(t.palette.error.main, 0.2)}`,
+              // Aligne avec la colonne de lecture (maxWidth 760)
+              maxWidth: 760,
+              mx: 'auto',
+              width: '100%',
+              px: { xs: 2, md: 3 },
+              mb: 1,
             }}
           >
-            {error}
+            <Box
+              sx={{
+                px: 1.75,
+                py: 1,
+                bgcolor: (t) => alpha(t.palette.error.main, 0.10),
+                color: (t) => t.palette.error.dark,
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                borderRadius: 2,
+              }}
+            >
+              {error}
+            </Box>
           </Box>
         )}
 
