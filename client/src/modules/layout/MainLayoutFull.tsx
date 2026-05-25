@@ -10,6 +10,7 @@ import Sidebar from '../../components/Sidebar';
 import { LoadingStates } from '../../components/LoadingStates';
 import OfflineBanner from '../../components/OfflineBanner';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
+import AssistantWidget from '../../components/AssistantWidget';
 
 interface MainLayoutFullProps {
   children: React.ReactNode;
@@ -148,6 +149,10 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
 
       {/* PWA install prompt */}
       <PWAInstallBanner />
+
+      {/* Assistant FAB + Drawer — accessible depuis toutes les pages
+          (auto-hide sur /assistant ou l'UI complete est deja affichee) */}
+      <AssistantWidget />
     </Box>
   );
 }

@@ -34,6 +34,7 @@
   },
   "navigation": {
     "dashboard": "لوحة التحكم",
+    "assistant": "المساعد",
     "properties": "العقارات",
     "serviceRequests": "طلبات الخدمة",
     "interventions": "التدخلات",

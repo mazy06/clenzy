@@ -5,6 +5,8 @@ import SmartRedirect from '../components/SmartRedirect';
 
 // Pages principales
 import Dashboard from './dashboard/Dashboard';
+import AssistantPage from './assistant/AssistantPage';
+import NotFoundPage from './NotFoundPage';
 import PropertiesPage from './properties/PropertiesPage';
 import PropertyCreate from './properties/PropertyCreate';
 import PropertyDetails from './properties/PropertyDetails';
@@ -125,7 +127,15 @@ const AuthenticatedApp: React.FC = () => {
       <Route path="/dashboard" element={
         <Dashboard />
       } />
-        
+
+        {/* Assistant conversationnel + redirect pour la typo courante */}
+        <Route path="/assistant" element={
+          <ErrorBoundary>
+            <AssistantPage />
+          </ErrorBoundary>
+        } />
+        <Route path="/assitant" element={<Navigate to="/assistant" replace />} />
+
         <Route path="/properties" element={
           <ErrorBoundary>
             <PropertiesPage />
@@ -473,6 +483,9 @@ const AuthenticatedApp: React.FC = () => {
 
         {/* Redirection intelligente vers la première page accessible selon les permissions */}
         <Route path="/" element={<SmartRedirect />} />
+
+        {/* Catch-all 404 — toute route non matchee atterrit ici (au lieu d'un ecran blanc) */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
   );
 };

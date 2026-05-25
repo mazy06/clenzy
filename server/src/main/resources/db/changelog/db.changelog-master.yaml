@@ -1284,3 +1284,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0137 : Tables assistant_conversation + assistant_message ---
+  - changeSet:
+      id: "0137-add-assistant-conversations"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0137__add_assistant_conversations.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
