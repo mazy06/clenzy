@@ -283,6 +283,8 @@ export {
   Circle,
   CalendarDays as EventNote,
   Languages as Language,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 
 // ─── Reglages / parametres ──────────────────────────────────────────────────
