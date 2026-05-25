@@ -115,12 +115,12 @@ describe('PanelPropertyDetails', () => {
     it('should display amenity chips', () => {
       render(<PanelPropertyDetails propertyId={42} />);
       expect(screen.getByText('Équipements')).toBeInTheDocument();
-      // formatAmenity replaces _ with space and uppercases word starts
-      // 'WIFI' → 'WIFI', 'EQUIPPED_KITCHEN' → 'EQUIPPED KITCHEN', etc.
-      expect(screen.getByText('WIFI')).toBeInTheDocument();
-      expect(screen.getByText('EQUIPPED KITCHEN')).toBeInTheDocument();
-      expect(screen.getByText('WASHING MACHINE')).toBeInTheDocument();
-      expect(screen.getByText('PARKING')).toBeInTheDocument();
+      // Le composant utilise i18n (`properties.amenities.items.<CODE>`) : on
+      // assert sur les libelles FR traduits, pas sur les codes bruts.
+      expect(screen.getByText('WiFi')).toBeInTheDocument();
+      expect(screen.getByText('Cuisine équipée')).toBeInTheDocument();
+      expect(screen.getByText('Lave-linge')).toBeInTheDocument();
+      expect(screen.getByText('Parking')).toBeInTheDocument();
     });
   });
 
@@ -191,15 +191,15 @@ describe('PanelPropertyDetails', () => {
 
   // ── External link ──────────────────────────────────────────────────────────
   describe('external link', () => {
-    it('should display "Voir page complète" button', () => {
+    it('should display "Voir la fiche logement" button', () => {
       render(<PanelPropertyDetails propertyId={42} />);
-      expect(screen.getByText('Voir page complète')).toBeInTheDocument();
+      expect(screen.getByText('Voir la fiche logement')).toBeInTheDocument();
     });
 
     it('should navigate to property page when clicked', () => {
       render(<PanelPropertyDetails propertyId={42} />);
 
-      fireEvent.click(screen.getByText('Voir page complète'));
+      fireEvent.click(screen.getByText('Voir la fiche logement'));
       expect(mockNavigate).toHaveBeenCalledWith('/properties/42');
     });
   });
