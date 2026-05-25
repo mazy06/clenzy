@@ -629,9 +629,27 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                   </TableCell>
                   <TableCell>{getTypeChip(payment)}</TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: C.textPrimary }}>
-                      {payment.description}
-                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.125 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 600, fontSize: '0.8125rem', color: C.textPrimary, lineHeight: 1.3 }}
+                      >
+                        {payment.description}
+                      </Typography>
+                      {payment.subDescription && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: '0.6875rem',
+                            color: C.textSecondary,
+                            fontVariantNumeric: 'tabular-nums',
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {payment.subDescription}
+                        </Typography>
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
