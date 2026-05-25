@@ -99,8 +99,13 @@ public class AgentOrchestrator {
             - get_occupancy_forecast(propertyId, days) → prevision occupation N jours.
               Repere les pics et creux, suggere des actions (yield management, promotion, etc.).
 
-            ECRITURE (avec confirmation user) :
-            - block_calendar_day → bloque le calendrier d'une propriete (confirmation requise).
+            ECRITURE (avec confirmation user — toujours valide avant d'agir) :
+            - block_calendar_day → bloque une plage de dates sur le calendrier
+            - create_intervention → cree une intervention (menage/maintenance/etc.) sur une propriete
+            - assign_intervention → assigne une intervention a un user OU une team
+            - cancel_reservation → annule une reservation (irreversible)
+            - update_property_status → change statut propriete (ACTIVE/INACTIVE/UNDER_MAINTENANCE/ARCHIVED)
+            - send_guest_message → envoie un message via template au guest d'une reservation
 
             NAVIGATION (guide l'utilisateur dans le PMS) :
             - suggest_navigation(path, label, reason) → produit un BOUTON CLIQUABLE qui amene
