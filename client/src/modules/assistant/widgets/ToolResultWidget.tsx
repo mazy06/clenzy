@@ -9,6 +9,7 @@ import { BarChartWidget } from './charts/BarChartWidget';
 import { LineChartWidget } from './charts/LineChartWidget';
 import { InsightsWidget } from './InsightsWidget';
 import { NavigationCardWidget } from './NavigationCardWidget';
+import { PortfolioOverviewWidget } from './PortfolioOverviewWidget';
 
 interface ToolResultWidgetProps {
   call: ToolCallExecuted;
@@ -19,9 +20,13 @@ interface ToolResultWidgetProps {
  * selon {@code displayHint} :
  *
  * <ul>
- *   <li>{@code "summary"} → {@link KpiSummaryWidget} (snapshot KPI dashboard)</li>
- *   <li>{@code "list"}    → {@link DataTableWidget} (table generique)</li>
- *   <li>autre / sans hint → rien (le texte de l'assistant suffira)</li>
+ *   <li>{@code "summary"}            → {@link KpiSummaryWidget} (snapshot KPI dashboard)</li>
+ *   <li>{@code "list"}               → {@link DataTableWidget} (table generique)</li>
+ *   <li>{@code "chart_pie/bar/line"} → charts</li>
+ *   <li>{@code "insights"}           → {@link InsightsWidget}</li>
+ *   <li>{@code "navigation"}         → {@link NavigationCardWidget}</li>
+ *   <li>{@code "portfolio_overview"} → {@link PortfolioOverviewWidget}</li>
+ *   <li>autre / sans hint            → fallback minimal cle/valeur</li>
  * </ul>
  *
  * <p>En cas de JSON invalide, le widget se replie silencieusement sur null —
@@ -67,6 +72,9 @@ export const ToolResultWidget: React.FC<ToolResultWidgetProps> = ({ call }) => {
 
     case 'navigation':
       return <NavigationCardWidget data={parsed as Parameters<typeof NavigationCardWidget>[0]['data']} />;
+
+    case 'portfolio_overview':
+      return <PortfolioOverviewWidget data={parsed as Parameters<typeof PortfolioOverviewWidget>[0]['data']} />;
 
     default:
       // Hint inconnu : on tente de rendre une representation minimale

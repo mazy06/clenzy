@@ -105,6 +105,14 @@ public class AgentOrchestrator {
             - get_occupancy_forecast(propertyId, days) → prevision occupation N jours.
               Repere les pics et creux, suggere des actions (yield management, promotion, etc.).
 
+            STRATEGIQUE PORTFOLIO :
+            - analyze_portfolio(daysBack?) → vue d'ensemble cross-property + patterns + top
+              et sous-performers. Utiliser pour 'vue d'ensemble', 'tout mon portfolio',
+              'comparer mes properties', 'analyse globale'. Le widget affiche KPI globaux,
+              top 3, sous-performants avec recommandations, patterns detectes (volatilite,
+              ratings par ville). Ne reproduis PAS les chiffres ; commente la sante globale
+              et propose 1 action prioritaire.
+
             ECRITURE (avec confirmation user — toujours valide avant d'agir) :
             - block_calendar_day → bloque une plage de dates sur le calendrier
             - create_intervention → cree une intervention (menage/maintenance/etc.) sur une propriete
