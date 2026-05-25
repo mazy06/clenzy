@@ -627,8 +627,11 @@ public class PaymentController {
         PaymentHistoryDto dto = new PaymentHistoryDto();
         dto.id = i.getId();
         dto.referenceId = i.getId();
-        dto.description = i.getTitle();
-        dto.propertyName = i.getProperty() != null ? i.getProperty().getName() : "N/A";
+        // description : titre nettoye du suffixe " — <property>" si present
+        // (eviter la redondance avec la colonne PROPRIETE).
+        String propertyName = i.getProperty() != null ? i.getProperty().getName() : null;
+        dto.description = stripPropertySuffix(i.getTitle(), propertyName);
+        dto.propertyName = propertyName != null ? propertyName : "N/A";
         dto.amount = i.getEstimatedCost();
         dto.status = i.getPaymentStatus() != null ? i.getPaymentStatus().name() : "PENDING";
         dto.type = "INTERVENTION";
@@ -654,9 +657,12 @@ public class PaymentController {
         PaymentHistoryDto dto = new PaymentHistoryDto();
         dto.id = sr.getId();
         dto.referenceId = sr.getId();
-        dto.description = sr.getTitle() + (sr.getProperty() != null
-            ? " — " + sr.getProperty().getName() : "");
-        dto.propertyName = sr.getProperty() != null ? sr.getProperty().getName() : "N/A";
+        // description : nettoyer le suffixe " — <property>" du titre — eviter
+        // la double redondance que produisait `title + " — " + propertyName`
+        // (le titre contient deja souvent " — <property>" via AirbnbReservationService).
+        String propertyName = sr.getProperty() != null ? sr.getProperty().getName() : null;
+        dto.description = stripPropertySuffix(sr.getTitle(), propertyName);
+        dto.propertyName = propertyName != null ? propertyName : "N/A";
         dto.amount = sr.getEstimatedCost();
         dto.status = sr.getPaymentStatus() != null ? sr.getPaymentStatus().name() : "PENDING";
         dto.type = "SERVICE_REQUEST";
@@ -676,8 +682,13 @@ public class PaymentController {
         PaymentHistoryDto dto = new PaymentHistoryDto();
         dto.id = r.getId();
         dto.referenceId = r.getId();
-        dto.description = "Reservation — " + (r.getProperty() != null ? r.getProperty().getName() : "N/A")
-                + " (" + (r.getGuestName() != null ? r.getGuestName() : "N/A") + ")";
+        // description : format riche sans redondance avec la colonne PROPRIETE.
+        //   Format : "<Source pretty> · <N> nuit(s)"  (ex: "Airbnb · 4 nuits")
+        //   Fallback si source manquante : "Reservation · <N> nuits"
+        //   Si pas de nuits calculables : "Reservation #<id>"
+        // subDescription : dates de sejour formatees (ex: "10/05 → 15/05")
+        dto.description = buildReservationDescription(r);
+        dto.subDescription = buildReservationSubDescription(r);
         dto.propertyName = r.getProperty() != null ? r.getProperty().getName() : "N/A";
         dto.amount = r.getTotalPrice();
         dto.currency = r.getCurrency() != null ? r.getCurrency() : "EUR";
@@ -703,4 +714,78 @@ public class PaymentController {
         return dto;
     }
 
+    // ─── Helpers de formatage de description ────────────────────────────────
+
+    /**
+     * Retire le suffixe {@code " — <propertyName>"} d'un titre si present, pour
+     * eviter la redondance avec la colonne PROPRIETE deja affichee a part dans
+     * le tableau d'historique des paiements.
+     *
+     * <p>Cas reels :</p>
+     * <ul>
+     *   <li>{@code stripPropertySuffix("Menage Airbnb — Duplex Paris", "Duplex Paris")} → {@code "Menage Airbnb"}</li>
+     *   <li>{@code stripPropertySuffix("Menage standard", "Duplex Paris")} → {@code "Menage standard"} (pas de suffixe)</li>
+     *   <li>{@code stripPropertySuffix(null, ...)} → {@code "—"}</li>
+     * </ul>
+     */
+    private static String stripPropertySuffix(String title, String propertyName) {
+        if (title == null || title.isBlank()) return "—";
+        if (propertyName == null || propertyName.isBlank()) return title;
+        String suffix = " — " + propertyName;
+        if (title.endsWith(suffix)) {
+            return title.substring(0, title.length() - suffix.length()).trim();
+        }
+        return title;
+    }
+
+    /**
+     * Joli libelle pour la source d'une reservation (Airbnb, Booking.com,
+     * Vrbo, etc.). Si {@code sourceName} est fourni (libre, ex: "Direct
+     * via Whatsapp"), on l'utilise tel quel. Sinon on mappe les sources
+     * connues vers leur libelle commercial. Fallback : "Reservation".
+     */
+    private static String prettySource(com.clenzy.model.Reservation r) {
+        if (r.getSourceName() != null && !r.getSourceName().isBlank()) {
+            return r.getSourceName();
+        }
+        String src = r.getSource() != null ? r.getSource().toLowerCase() : "";
+        return switch (src) {
+            case "airbnb"  -> "Airbnb";
+            case "booking" -> "Booking.com";
+            case "vrbo"    -> "Vrbo";
+            case "direct"  -> "Direct";
+            case "ical"    -> "iCal";
+            default        -> "Reservation";
+        };
+    }
+
+    /**
+     * Description principale d'une reservation : "Source · N nuit(s)".
+     * Si pas de dates calculables : "Source #id".
+     */
+    private static String buildReservationDescription(com.clenzy.model.Reservation r) {
+        String source = prettySource(r);
+        java.time.LocalDate in = r.getCheckIn();
+        java.time.LocalDate out = r.getCheckOut();
+        if (in == null || out == null) {
+            return source + " #" + r.getId();
+        }
+        long nights = java.time.temporal.ChronoUnit.DAYS.between(in, out);
+        if (nights <= 0) {
+            return source + " #" + r.getId();
+        }
+        return source + " · " + nights + " nuit" + (nights > 1 ? "s" : "");
+    }
+
+    /**
+     * Sous-description (caption) : plage de dates "JJ/MM → JJ/MM" si dispo,
+     * sinon {@code null} (le frontend masque la ligne caption).
+     */
+    private static String buildReservationSubDescription(com.clenzy.model.Reservation r) {
+        java.time.LocalDate in = r.getCheckIn();
+        java.time.LocalDate out = r.getCheckOut();
+        if (in == null || out == null) return null;
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM");
+        return in.format(fmt) + " → " + out.format(fmt);
+    }
 }
