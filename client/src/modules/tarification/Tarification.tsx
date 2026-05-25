@@ -45,30 +45,8 @@ const TAB_DEFS = [
   { key: 'monitoring',    icon: <VolumeUp /> },
 ] as const;
 
-// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
-// Clef = LABEL traduit du tab (string stable face aux changements d'index visible).
-const TARIFICATION_TAB_META: Record<string, TabHeaderMeta> = {
-  'Abonnement PMS': {
-    subtitle: 'Configuration tarifaire des prestations PMS : abonnements, paliers et options.',
-  },
-  'Entretien': {
-    subtitle: "Tarifs des prestations d'entretien et menage : forfaits, suppléments et coefficients.",
-  },
-  'Travaux': {
-    subtitle: 'Grille tarifaire des travaux et interventions techniques par typologie de chantier.',
-  },
-  'Extérieur': {
-    subtitle: 'Tarifs des prestations extérieures : jardinage, piscine, espaces verts.',
-  },
-  'Blanchisserie': {
-    subtitle: 'Tarification du linge : forfaits par type de pièce, lavage et livraison.',
-  },
-  'Monitoring': {
-    subtitle: 'Tarifs des offres de monitoring sonore (Minut, Roomonitor) propagés aux clients.',
-  },
-};
-const TARIFICATION_ROOT_TITLE = 'Configuration tarifaire';
-const TARIFICATION_DEFAULT_SUBTITLE = 'Gérez les coefficients de pondération, les prix de base et les abonnements';
+// La metadata par tab (breadcrumb + subtitle) est construite dans le composant
+// via t() pour reagir au changement de langue (cf. tarificationTabMeta plus bas).
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -100,12 +78,33 @@ export default function Tarification() {
     label: t(`tarification.tabs.${tab.key}`),
     icon: tab.icon,
   }));
+  // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
+  const tarificationTabMeta: Record<string, TabHeaderMeta> = {
+    [t('tarification.tabs.pms')]: {
+      subtitle: t('tabHeaders.tarification.subtitle.pms', 'Configuration tarifaire des prestations PMS : abonnements, paliers et options.'),
+    },
+    [t('tarification.tabs.entretien')]: {
+      subtitle: t('tabHeaders.tarification.subtitle.entretien', "Tarifs des prestations d'entretien et menage : forfaits, suppléments et coefficients."),
+    },
+    [t('tarification.tabs.travaux')]: {
+      subtitle: t('tabHeaders.tarification.subtitle.travaux', 'Grille tarifaire des travaux et interventions techniques par typologie de chantier.'),
+    },
+    [t('tarification.tabs.exterieur')]: {
+      subtitle: t('tabHeaders.tarification.subtitle.exterieur', 'Tarifs des prestations extérieures : jardinage, piscine, espaces verts.'),
+    },
+    [t('tarification.tabs.blanchisserie')]: {
+      subtitle: t('tabHeaders.tarification.subtitle.blanchisserie', 'Tarification du linge : forfaits par type de pièce, lavage et livraison.'),
+    },
+    [t('tarification.tabs.monitoring')]: {
+      subtitle: t('tabHeaders.tarification.subtitle.monitoring', 'Tarifs des offres de monitoring sonore (Minut, Roomonitor) propagés aux clients.'),
+    },
+  };
   const { title, subtitle } = resolveTabHeader(
-    TARIFICATION_ROOT_TITLE,
-    TARIFICATION_DEFAULT_SUBTITLE,
+    t('tabHeaders.tarification.title', 'Configuration tarifaire'),
+    t('tabHeaders.tarification.default', 'Gérez les coefficients de pondération, les prix de base et les abonnements'),
     tabs.map((tab) => tab.label),
     activeTab,
-    TARIFICATION_TAB_META,
+    tarificationTabMeta,
   );
 
   if (isLoading) {

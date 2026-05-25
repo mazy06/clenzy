@@ -1109,7 +1109,7 @@
   },
   "interventions": {
     "title": "Interventions",
-    "subtitle": "Gestion et suivi des interventions",
+    "subtitle": "Liste de toutes les interventions de votre organisation, filtrable par type, statut, priorité, équipe ou propriété. Création, planification et suivi en temps réel.",
     "create": "Nouvelle intervention",
     "createTitle": "Créer une intervention",
     "createSubtitle": "Formulaire de création d'une nouvelle intervention",
@@ -1858,6 +1858,34 @@
       "light": "Clair",
       "dark": "Sombre",
       "auto": "Automatique"
+    },
+    "amenities": {
+      "changeIcon": "Changer l'icône",
+      "resetIcon": "Réinitialiser l'icône",
+      "tabs": {
+        "reference": "Référentiel Clenzy"
+      },
+      "iconPicker": {
+        "title": "Choisir une icône",
+        "searchPlaceholder": "Rechercher une icône (ex: wifi, flame, lock)…",
+        "clearSearch": "Effacer la recherche",
+        "noMatch": "Aucune icône ne correspond à « {{query}} ».",
+        "pickIcon": "Choisir {{name}}",
+        "resetToDefault": "Revenir à l'icône par défaut"
+      },
+      "reference": {
+        "intro": "Référentiel Clenzy : {{count}} commodités prêtes à l'emploi. Cliquez sur une icône pour la personnaliser (catalogue lucide-react, ~80 icônes). Le code de la commodité reste invariant — seule l'icône change.",
+        "customizedTooltip": "Icône personnalisée — revenir à l'icône par défaut"
+      },
+      "custom": {
+        "emptyTitle": "Aucune commodité custom",
+        "emptySubtitle": "Créez vos propres commodités quand le référentiel Clenzy ne couvre pas un équipement."
+      },
+      "ignored": {
+        "emptyTitle": "Aucune amenity ignorée",
+        "emptySubtitle": "Marquez « Ignorer » sur une amenity OTA pour la masquer définitivement.",
+        "reintroduce": "Réintroduire dans la liste à mapper"
+      }
     },
     "split": {
       "title": "Répartition des revenus",
@@ -3943,6 +3971,164 @@
       "maxQuantity": "Quantité max",
       "mandatory": "Obligatoire",
       "active": "Actif"
+    }
+  },
+  "tabHeaders": {
+    "settings": {
+      "title": "Paramètres",
+      "default": "Configurez votre application selon vos préférences",
+      "tabs": {
+        "general": "Général",
+        "notifications": "Notifications",
+        "messaging": "Messagerie",
+        "ai": "IA",
+        "fiscal": "Fiscal",
+        "organization": "Organisation",
+        "payment": "Paiement",
+        "integrations": "Intégrations",
+        "payouts": "Reversements",
+        "amenitiesOta": "Commodités OTA"
+      },
+      "subtitle": {
+        "general": "Identité, organisation, préférences régionales et affichage.",
+        "notifications": "Configurez vos canaux (in-app, email, push) et la granularité par type d'événement.",
+        "messaging": "Automatisations de messages voyageurs (check-in, bienvenue, push tarification) et templates.",
+        "myPayout": "Paramètres de vos virements bancaires : IBAN, fréquence, seuil minimum.",
+        "ai": "Connectez votre clé OpenAI/Anthropic ou utilisez le quota partagé. Modèles assignés par feature.",
+        "fiscal": "Profil fiscal de votre organisation : régime TVA, mentions légales, conformité NF 525 / ZATCA.",
+        "organization": "Informations légales, branding, équipe et permissions de votre organisation.",
+        "payment": "Fournisseurs de paiement (Stripe, PayPal, PayTabs, CMI…) et règles de répartition.",
+        "integrations": "Connectez vos outils tiers : signature électronique, comptabilité, KYC, conformité légale, channels OTA.",
+        "payouts": "Calendrier et règles de calcul des reversements aux propriétaires.",
+        "amenitiesOta": "Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Clenzy. Créez vos propres commodités si rien ne correspond."
+      }
+    },
+    "dashboard": {
+      "subtitle": {
+        "overview": "Vue d'ensemble : KPIs, planning, alertes critiques et accès rapides à votre activité.",
+        "noise": "Monitoring sonore Minut sur vos propriétés : alertes en temps réel, historique et seuils par bien.",
+        "smartLock": "État et contrôle de vos serrures connectées (Tuya, Nuki) : verrouillage à distance et batterie.",
+        "keyExchange": "Échange de clés via KeyNest et boîtes à clés : suivi des transferts entre guests et équipes.",
+        "simulator": "Simulateur analytique : projection revenus, occupation et performance sur scenarios variables."
+      }
+    },
+    "properties": {
+      "title": "Propriétés",
+      "default": "Gestion des propriétés et des tarifs dynamiques",
+      "subtitle": {
+        "properties": "Liste de vos biens immobiliers avec leur statut, taux d'occupation et alertes.",
+        "pricing": "Configuration de la tarification dynamique par bien : prix de base, saisonnalité, ajustements."
+      }
+    },
+    "directory": {
+      "title": "Annuaire",
+      "default": "Gestion des équipes, portefeuilles, voyageurs, utilisateurs et organisations",
+      "subtitle": {
+        "users": "Comptes utilisateurs de la plateforme : rôles, permissions, activation et réinitialisation d'accès.",
+        "teams": "Équipes opérationnelles (ménage, maintenance, supervision) : composition, spécialités et disponibilités.",
+        "portfolios": "Regroupements de biens par propriétaire ou portefeuille de gestion pour faciliter le pilotage.",
+        "organizations": "Organisations clientes (multi-tenant) : informations légales, branding et configuration.",
+        "guests": "Base centralisée des voyageurs ayant séjourné ou contacté vos biens : historique et préférences.",
+        "prospection": "Pipeline commercial : imports CSV, enrichissement et suivi des prospects qualifiés."
+      }
+    },
+    "contact": {
+      "title": "Contact",
+      "default": "Messages de contact",
+      "tabs": {
+        "receivedForms": "Formulaires reçus"
+      },
+      "subtitle": {
+        "internalChat": "Conversations internes entre membres de votre organisation : équipes, supervision et coordination.",
+        "archived": "Historique des conversations archivées : consultation en lecture seule, recherche et restauration.",
+        "receivedForms": "Demandes entrantes via vos formulaires publics (contact, devis, signalement) : tri et réponse.",
+        "channelMessages": "Messages voyageurs venant de vos canaux OTA (Airbnb, Booking) centralisés dans une inbox unique."
+      }
+    },
+    "documents": {
+      "title": "Documents & Communications",
+      "default": "Templates, historique et conformité réglementaire",
+      "subtitle": {
+        "catalog": "Catalogue des templates par étape du parcours voyageur : messagerie, documents, communications.",
+        "messageTemplates": "Templates de messagerie automatique (check-in, bienvenue, push tarification) déclenchés par évènement.",
+        "documentTemplates": "Bibliothèque des templates PDF (factures, attestations, état des lieux) versionnés et réutilisables.",
+        "history": "Historique unifié des messages envoyés et documents générés, filtrable par canal et statut.",
+        "variablesAndTags": "Référence des variables disponibles ({{guest.name}}, {{property.address}}…) pour personnaliser vos templates.",
+        "compliance": "Tableau de bord conformité : factures NF, attestations légales, recherche par numéro de document."
+      }
+    },
+    "reports": {
+      "title": "Rapports",
+      "default": "Générez et consultez les rapports de votre plateforme Clenzy",
+      "subtitle": {
+        "financial": "Revenus par bien, coûts d'exploitation, marge nette et exports comptables sur la période choisie.",
+        "interventions": "Volume, délais moyens et taux de réalisation des interventions par type et par équipe.",
+        "teams": "Charge de travail, performance et disponibilités par équipe et par membre.",
+        "properties": "Taux d'occupation, RevPAR, alertes maintenance et indicateurs de santé par bien."
+      }
+    },
+    "tarification": {
+      "title": "Configuration tarifaire",
+      "default": "Gérez les coefficients de pondération, les prix de base et les abonnements",
+      "subtitle": {
+        "pms": "Configuration tarifaire des prestations PMS : abonnements, paliers et options.",
+        "entretien": "Tarifs des prestations d'entretien et ménage : forfaits, suppléments et coefficients.",
+        "travaux": "Grille tarifaire des travaux et interventions techniques par typologie de chantier.",
+        "exterieur": "Tarifs des prestations extérieures : jardinage, piscine, espaces verts.",
+        "blanchisserie": "Tarification du linge : forfaits par type de pièce, lavage et livraison.",
+        "monitoring": "Tarifs des offres de monitoring sonore (Minut, Roomonitor) propagés aux clients."
+      }
+    },
+    "billing": {
+      "title": "Facturation",
+      "default": "Paiements, factures, reversements, dépenses et rapports comptables",
+      "subtitle": {
+        "payments": "Historique des paiements voyageurs : statut, mode de règlement, remboursements et réconciliation.",
+        "invoices": "Factures émises (séjours, frais, services) et avoirs : édition PDF, envoi et suivi des règlements.",
+        "wallets": "Solde des portefeuilles par propriétaire : mouvements, blocages, retraits et historique détaillé.",
+        "payouts": "Calendrier des reversements aux propriétaires : calculs SEPA, statut, exports bancaires.",
+        "expenses": "Suivi des dépenses opérationnelles par catégorie et par bien : factures fournisseurs, refacturation.",
+        "reportsExports": "Rapport fiscal (TVA, taxes, NF 525) et exports comptables formatés pour vos outils tiers."
+      }
+    },
+    "monitoring": {
+      "title": "Monitoring Système",
+      "default": "Surveillance complète de la plateforme Clenzy",
+      "lastUpdate": "Dernière mise à jour",
+      "tabs": {
+        "tokens": "Monitoring des Tokens",
+        "keycloak": "Métriques Keycloak",
+        "audit": "Audit et Logging",
+        "healthChecks": "Health Checks Avancés"
+      },
+      "subtitle": {
+        "tokens": "Surveillance des tokens IA consommés par feature : compteurs, coûts et rotation des clés.",
+        "keycloak": "Métriques Keycloak (sessions, login, refresh) et couverture des tests d'intégration.",
+        "audit": "Journal d'audit horodaté : connexions, accès aux données, actions admin et permissions refusées.",
+        "healthChecks": "Health checks des services dépendants (DB, Redis, Kafka, OAuth) et métriques système temps réel."
+      }
+    },
+    "syncAdmin": {
+      "title": "Sync & Diagnostics",
+      "default": "Supervision de la synchronisation channel et diagnostic du système",
+      "tabs": {
+        "connections": "Connexions",
+        "syncEvents": "Sync Events",
+        "outbox": "Outbox",
+        "calendar": "Calendrier",
+        "mappings": "Mappings",
+        "diagnostics": "Diagnostics",
+        "reconciliation": "Réconciliation"
+      },
+      "subtitle": {
+        "connections": "Suivi en temps réel des connexions OTA (Airbnb, Booking, Channex) : statut, tokens, dernière sync.",
+        "syncEvents": "Évènements de synchronisation des calendriers (push/pull) : volumétrie par canal et statut.",
+        "outbox": "Outbox pattern Kafka : events en attente, envoyés ou échoués, avec retry à la demande.",
+        "calendar": "Audit des commandes calendrier (book, cancel, block, price) et détection des conflits multi-canal.",
+        "mappings": "Correspondances propriété ↔ listing externe par canal (Airbnb ID, Booking hotel ID, etc.).",
+        "diagnostics": "Diagnostics système : tâches planifiées, jobs en cours, erreurs récentes et état des intégrations.",
+        "reconciliation": "Runs de réconciliation calendrier : détection des divergences entre Clenzy et OTA, déclenchement manuel."
+      }
     }
   }
 }

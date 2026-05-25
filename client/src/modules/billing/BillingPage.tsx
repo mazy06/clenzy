@@ -39,33 +39,8 @@ const TAB_PAYOUTS = 3;
 const TAB_EXPENSES = 4;
 const TAB_REPORTS = 5;
 
-// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
-// Clef = LABEL traduit du tab (string stable face aux filtres roles/permissions).
-const BILLING_TAB_META: Record<string, TabHeaderMeta> = {
-  'Paiements': {
-    subtitle: "Historique des paiements voyageurs : statut, mode de reglement, remboursements et reconciliation.",
-  },
-  'Factures': {
-    subtitle: 'Factures emises (sejours, frais, services) et avoirs : edition PDF, envoi et suivi des reglements.',
-  },
-  'Portefeuille': {
-    subtitle: "Solde des portefeuilles par proprietaire : mouvements, blocages, retraits et historique detaille.",
-  },
-  'Reversements': {
-    subtitle: 'Calendrier des reversements aux proprietaires : calculs SEPA, statut, exports bancaires.',
-  },
-  'Dépenses': {
-    subtitle: 'Suivi des depenses operationnelles par categorie et par bien : factures fournisseurs, refacturation.',
-  },
-  'Depenses': {
-    subtitle: 'Suivi des depenses operationnelles par categorie et par bien : factures fournisseurs, refacturation.',
-  },
-  'Rapports & Exports': {
-    subtitle: 'Rapport fiscal (TVA, taxes, NF 525) et exports comptables formates pour vos outils tiers.',
-  },
-};
-const BILLING_ROOT_TITLE = 'Facturation';
-const BILLING_DEFAULT_SUBTITLE = 'Paiements, factures, reversements, dépenses et rapports comptables';
+// La metadata par tab (breadcrumb + subtitle) est construite dans le composant
+// via t() pour reagir au changement de langue (cf. billingTabMeta plus bas).
 
 // ─── Merged Reports & Exports Tab ──────────────────────────────────────────
 
@@ -173,12 +148,33 @@ const BillingPage: React.FC = () => {
     { label: t('billing.tabs.reportsExports', 'Rapports & Exports'), icon: <Assessment />,          hidden: !canViewAccounting },
   ];
   const visibleTabLabels = tabs.filter((tab) => !tab.hidden).map((tab) => tab.label);
+  // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
+  const billingTabMeta: Record<string, TabHeaderMeta> = {
+    [t('billing.tabs.payments')]: {
+      subtitle: t('tabHeaders.billing.subtitle.payments', 'Historique des paiements voyageurs : statut, mode de reglement, remboursements et reconciliation.'),
+    },
+    [t('billing.tabs.invoices')]: {
+      subtitle: t('tabHeaders.billing.subtitle.invoices', 'Factures emises (sejours, frais, services) et avoirs : edition PDF, envoi et suivi des reglements.'),
+    },
+    [t('navigation.wallets')]: {
+      subtitle: t('tabHeaders.billing.subtitle.wallets', 'Solde des portefeuilles par proprietaire : mouvements, blocages, retraits et historique detaille.'),
+    },
+    [t('billing.tabs.payouts', 'Reversements')]: {
+      subtitle: t('tabHeaders.billing.subtitle.payouts', 'Calendrier des reversements aux proprietaires : calculs SEPA, statut, exports bancaires.'),
+    },
+    [t('billing.tabs.expenses', 'Depenses')]: {
+      subtitle: t('tabHeaders.billing.subtitle.expenses', 'Suivi des depenses operationnelles par categorie et par bien : factures fournisseurs, refacturation.'),
+    },
+    [t('billing.tabs.reportsExports', 'Rapports & Exports')]: {
+      subtitle: t('tabHeaders.billing.subtitle.reportsExports', 'Rapport fiscal (TVA, taxes, NF 525) et exports comptables formates pour vos outils tiers.'),
+    },
+  };
   const { title, subtitle } = resolveTabHeader(
-    BILLING_ROOT_TITLE,
-    BILLING_DEFAULT_SUBTITLE,
+    t('tabHeaders.billing.title', 'Facturation'),
+    t('tabHeaders.billing.default', 'Paiements, factures, reversements, dépenses et rapports comptables'),
     visibleTabLabels,
     activePos,
-    BILLING_TAB_META,
+    billingTabMeta,
   );
 
   return (

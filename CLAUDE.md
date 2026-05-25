@@ -45,7 +45,78 @@
 2. **Charger le contexte Impeccable** : lire `PRODUCT.md` et `DESIGN.md` à la racine si présents (à créer une fois — voir `docs/`). Identifier le register (Clenzy = **product**, sauf landing/marketing = brand).
 3. **Vérifier les absolute bans Impeccable** avant d'écrire le moindre style : pas de side-stripe color, pas de gradient text, pas de glassmorphism par défaut, pas de hero-metric template, pas d'identical card grid, pas de modal en premier réflexe.
 4. **Consulter UI UX Pro Max** si la décision est ouverte (couleur, typo, pattern) : `--design-system` ou domaine ciblé.
-5. **Respecter l'identité Clenzy** : primary `#6B8A9A` (bleu-gris), palette accents validée (`#4A9B8E`, `#D4A574`, `#C97A7A`, `#7BA3C2`), typo responsive 3 paliers, échelle d'icônes via `useIconSize`, primitives partagées (`PageHeader`, `PageTabs`, `StatTile`, `EmptyState`, `FilterChipRow`).
+5. **Respecter l'identité Clenzy** : primary `#6B8A9A` (bleu-gris), palette accents validée (`#4A9B8E`, `#D4A574`, `#C97A7A`, `#7BA3C2`), typo responsive 3 paliers, échelle d'icônes via `useIconSize`, primitives partagées (`PageHeader`, `PageTabs`, `StatTile`, `EmptyState`, `FilterChipRow`, `PageHeaderActionsContext`, `softChipSx`).
+
+### Primitives multi-tabs : `PageHeaderActionsContext`
+
+> Pour toute page multi-tabs (Settings, Documents, Properties, Reports, Tarification, Billing, Monitoring, SyncAdmin, etc.) **utiliser le primitive partagé** `client/src/components/PageHeaderActionsContext.tsx`. Ne PAS réinventer un context custom par page.
+
+**Pattern provider (page racine)** :
+```tsx
+import {
+  PageHeaderActionsProvider,
+  usePageHeaderActionsSlot,
+  resolveTabHeader,
+  type TabHeaderMeta,
+} from '../../components/PageHeaderActionsContext';
+
+export default function MyPage() {
+  // ⚠️ DOIT être appelé AVANT les early returns (Rules of Hooks).
+  const { slot, portalContainer } = usePageHeaderActionsSlot();
+
+  // Source unique des tabs (utilisée pour PageTabs + résolution meta).
+  const tabs = [
+    { label: t('tabHeaders.myPage.tab1', 'Tab 1'), hidden: false },
+    { label: t('tabHeaders.myPage.tab2', 'Tab 2'), hidden: !hasRole(...) },
+  ];
+  const visibleTabs = tabs.filter((tab) => !tab.hidden);
+
+  // Meta keyée par LABEL (les indexes shiftent selon les rôles).
+  const tabMeta: Record<string, TabHeaderMeta> = {
+    [t('tabHeaders.myPage.tab1', 'Tab 1')]: { subtitle: t('tabHeaders.myPage.tab1Sub', '...') },
+  };
+
+  const { title, subtitle } = resolveTabHeader(
+    t('tabHeaders.myPage.title', 'Ma page'),
+    t('tabHeaders.myPage.default', 'Description par défaut'),
+    visibleTabs.map((tab) => tab.label),
+    activeTabIndex,
+    tabMeta,
+  );
+
+  return (
+    <PageHeaderActionsProvider slot={slot}>
+      <PageHeader title={title} subtitle={subtitle} actions={portalContainer} />
+      <PageTabs options={visibleTabs} value={activeTabIndex} onChange={setActiveTabIndex} />
+      <Tab1Content />
+      <Tab2Content />
+    </PageHeaderActionsProvider>
+  );
+}
+```
+
+**Pattern consumer (composant de tab)** :
+```tsx
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+
+export default function Tab1Content() {
+  // Portail les actions dans le PageHeader. Retourne `null` au 1er render
+  // (slot pas encore monté) puis le portal créé.
+  const headerActions = usePageHeaderActions(
+    <>
+      <Button onClick={handleRefresh}>Rafraîchir</Button>
+      <Button onClick={handleCreate}>Créer</Button>
+    </>
+  );
+
+  return <>{headerActions}<div>...contenu tab...</div></>;
+}
+```
+
+**Règles** :
+- i18n des labels et subtitles dans `client/src/i18n/locales/{fr,en,ar}.json` sous le namespace `tabHeaders.<page>.*`
+- Le breadcrumb `Root › TabLabel` est généré automatiquement (chevron typographique `›`, jamais ASCII `>`)
+- Si une page a 2 slots PageHeader distincts (`actions` + `filters`), créer un context dédié qui étend ce pattern (cf. `MonitoringHeaderContext`, `SyncAdminHeaderContext` pour les exceptions justifiées)
 6. **Pre-delivery checklist** :
    - [ ] Aucun emoji comme icône (lucide-react uniquement)
    - [ ] `cursor: pointer` sur tout ce qui est cliquable

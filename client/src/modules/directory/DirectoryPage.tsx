@@ -49,30 +49,8 @@ const ALL_TABS: TabDef[] = [
   { key: 'prospection', labelKey: 'directoryPage.tabs.prospection', icon: <TrendingUp />, permission: 'teams:view', roles: ['SUPER_ADMIN', 'SUPER_MANAGER'] },
 ];
 
-// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
-// Clef = LABEL traduit du tab (string stable face aux filtres roles/permissions).
-const DIRECTORY_TAB_META: Record<string, TabHeaderMeta> = {
-  'Utilisateurs': {
-    subtitle: "Comptes utilisateurs de la plateforme : roles, permissions, activation et reinitialisation d'acces.",
-  },
-  'Équipes': {
-    subtitle: 'Equipes operationnelles (menage, maintenance, supervision) : composition, specialites et disponibilites.',
-  },
-  'Portefeuilles': {
-    subtitle: 'Regroupements de biens par proprietaire ou portefeuille de gestion pour faciliter le pilotage.',
-  },
-  'Organisations': {
-    subtitle: 'Organisations clientes (multi-tenant) : informations legales, branding et configuration.',
-  },
-  'Voyageurs': {
-    subtitle: 'Base centralisee des voyageurs ayant sejourne ou contacte vos biens : historique et preferences.',
-  },
-  'Prospection': {
-    subtitle: 'Pipeline commercial : imports CSV, enrichissement et suivi des prospects qualifies.',
-  },
-};
-const DIRECTORY_ROOT_TITLE = 'Annuaire';
-const DIRECTORY_DEFAULT_SUBTITLE = 'Gestion des équipes, portefeuilles, voyageurs, utilisateurs et organisations';
+// La metadata par tab (breadcrumb + subtitle) est construite dans le composant
+// via t() pour reagir au changement de langue (cf. directoryTabMeta plus bas).
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -138,12 +116,33 @@ const DirectoryPage: React.FC = () => {
   // ── Multiple tabs visible ──
   const activeTabDef = visibleTabs[activeTab];
   const visibleTabLabels = visibleTabs.map((tab) => t(tab.labelKey));
+  // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
+  const directoryTabMeta: Record<string, TabHeaderMeta> = {
+    [t('directoryPage.tabs.users')]: {
+      subtitle: t('tabHeaders.directory.subtitle.users', "Comptes utilisateurs de la plateforme : roles, permissions, activation et reinitialisation d'acces."),
+    },
+    [t('directoryPage.tabs.teams')]: {
+      subtitle: t('tabHeaders.directory.subtitle.teams', 'Equipes operationnelles (menage, maintenance, supervision) : composition, specialites et disponibilites.'),
+    },
+    [t('directoryPage.tabs.portfolios')]: {
+      subtitle: t('tabHeaders.directory.subtitle.portfolios', 'Regroupements de biens par proprietaire ou portefeuille de gestion pour faciliter le pilotage.'),
+    },
+    [t('directoryPage.tabs.organizations')]: {
+      subtitle: t('tabHeaders.directory.subtitle.organizations', 'Organisations clientes (multi-tenant) : informations legales, branding et configuration.'),
+    },
+    [t('directoryPage.tabs.guests')]: {
+      subtitle: t('tabHeaders.directory.subtitle.guests', 'Base centralisee des voyageurs ayant sejourne ou contacte vos biens : historique et preferences.'),
+    },
+    [t('directoryPage.tabs.prospection')]: {
+      subtitle: t('tabHeaders.directory.subtitle.prospection', 'Pipeline commercial : imports CSV, enrichissement et suivi des prospects qualifies.'),
+    },
+  };
   const { title, subtitle } = resolveTabHeader(
-    DIRECTORY_ROOT_TITLE,
-    DIRECTORY_DEFAULT_SUBTITLE,
+    t('tabHeaders.directory.title', 'Annuaire'),
+    t('tabHeaders.directory.default', 'Gestion des équipes, portefeuilles, voyageurs, utilisateurs et organisations'),
     visibleTabLabels,
     activeTab,
-    DIRECTORY_TAB_META,
+    directoryTabMeta,
   );
 
   return (

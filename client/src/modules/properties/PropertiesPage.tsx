@@ -25,18 +25,8 @@ const PORTAL_STYLE = { display: 'contents' } as const;
 const TAB_PROPERTIES = 0;
 const TAB_PRICING = 1;
 
-// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
-// Clef = LABEL traduit du tab (string stable face aux changements d'index visible).
-const PROPERTIES_TAB_META: Record<string, TabHeaderMeta> = {
-  'Propriétés': {
-    subtitle: "Liste de vos biens immobiliers avec leur statut, taux d'occupation et alertes.",
-  },
-  'Prix dynamique': {
-    subtitle: 'Configuration de la tarification dynamique par bien : prix de base, saisonnalité, ajustements.',
-  },
-};
-const PROPERTIES_ROOT_TITLE = 'Propriétés';
-const PROPERTIES_DEFAULT_SUBTITLE = 'Gestion des propriétés et des tarifs dynamiques';
+// La metadata par tab (breadcrumb + subtitle) est construite dans le composant
+// via t() pour reagir au changement de langue (cf. propertiesTabMeta plus bas).
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -82,12 +72,21 @@ const PropertiesPage: React.FC = () => {
     { value: TAB_PRICING,    label: t('propertiesPage.tabs.pricing'),    icon: <TrendingUp /> },
   ];
   const visibleTabs = tabs.filter((tab) => !(tab as { hidden?: boolean }).hidden);
+  // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
+  const propertiesTabMeta: Record<string, TabHeaderMeta> = {
+    [t('propertiesPage.tabs.properties')]: {
+      subtitle: t('tabHeaders.properties.subtitle.properties', "Liste de vos biens immobiliers avec leur statut, taux d'occupation et alertes."),
+    },
+    [t('propertiesPage.tabs.pricing')]: {
+      subtitle: t('tabHeaders.properties.subtitle.pricing', 'Configuration de la tarification dynamique par bien : prix de base, saisonnalité, ajustements.'),
+    },
+  };
   const { title, subtitle } = resolveTabHeader(
-    PROPERTIES_ROOT_TITLE,
-    PROPERTIES_DEFAULT_SUBTITLE,
+    t('tabHeaders.properties.title', 'Propriétés'),
+    t('tabHeaders.properties.default', 'Gestion des propriétés et des tarifs dynamiques'),
     visibleTabs.map((tab) => tab.label),
     activeTab,
-    PROPERTIES_TAB_META,
+    propertiesTabMeta,
   );
 
   return (

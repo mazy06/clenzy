@@ -100,18 +100,10 @@ public class BedrockProvider implements AiProvider {
                     .body(String.class);
         } catch (HttpClientErrorException.Gone e) {
             // Provider a sunset le modele (ex: NVIDIA Build qui retire les anciens Qwen 2.5).
-            // On donne un message d'action clair plutot que de relayer le JSON brut.
-            String providerMessage = e.getResponseBodyAsString();
-            log.warn("{} API: modele '{}' obsolete (410 Gone). Reponse: {}", label, model, providerMessage);
-            // Publie un event async -> AiModelDeprecationListener notifie les SUPER_ADMIN
-            // (avec dedup par "label|model" pour eviter le spam si N requetes concurrentes).
-            eventPublisher.publishEvent(new AiModelDeprecatedEvent(label, model, providerMessage));
-            throw new AiProviderException(label,
-                    "Le modele '" + model + "' n'est plus disponible chez " + label
-                            + ". Selectionnez un nouveau modele dans Parametres > IA et sauvegardez.", e);
+            // Le helper publie l'event de deprecation et renvoie une exception au message clair.
+            throw AiProviderErrorHandler.handleGone(eventPublisher, label, model, e);
         } catch (Exception e) {
-            log.error("{} API call failed: {}", label, e.getMessage());
-            throw new AiProviderException(label, "API call failed: " + e.getMessage(), e);
+            throw AiProviderErrorHandler.handleGeneric(label, e);
         }
 
         try {

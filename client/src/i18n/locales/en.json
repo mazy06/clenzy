@@ -1087,7 +1087,7 @@
   },
   "interventions": {
     "title": "Interventions",
-    "subtitle": "Management and tracking of interventions",
+    "subtitle": "List of all interventions in your organization, filterable by type, status, priority, team or property. Real-time creation, scheduling and tracking.",
     "create": "New intervention",
     "createTitle": "Create intervention",
     "createSubtitle": "Form to create a new intervention",
@@ -1836,6 +1836,34 @@
       "light": "Light",
       "dark": "Dark",
       "auto": "Automatic"
+    },
+    "amenities": {
+      "changeIcon": "Change icon",
+      "resetIcon": "Reset icon",
+      "tabs": {
+        "reference": "Clenzy reference"
+      },
+      "iconPicker": {
+        "title": "Pick an icon",
+        "searchPlaceholder": "Search an icon (e.g. wifi, flame, lock)…",
+        "clearSearch": "Clear search",
+        "noMatch": "No icon matches \"{{query}}\".",
+        "pickIcon": "Pick {{name}}",
+        "resetToDefault": "Revert to default icon"
+      },
+      "reference": {
+        "intro": "Clenzy reference: {{count}} amenities ready to use. Click an icon to customize it (lucide-react catalog, ~80 icons). The amenity code is invariant — only the icon changes.",
+        "customizedTooltip": "Custom icon — revert to default"
+      },
+      "custom": {
+        "emptyTitle": "No custom amenity",
+        "emptySubtitle": "Create your own amenities when the Clenzy reference does not cover an equipment."
+      },
+      "ignored": {
+        "emptyTitle": "No ignored amenity",
+        "emptySubtitle": "Mark an OTA amenity as \"Ignore\" to hide it permanently.",
+        "reintroduce": "Reintroduce in the mapping list"
+      }
     },
     "split": {
       "title": "Revenue Split",
@@ -3888,5 +3916,163 @@
     },
     "skip": "Skip",
     "completionMessage": "Complete the initial setup to access the full dashboard"
+  },
+  "tabHeaders": {
+    "settings": {
+      "title": "Settings",
+      "default": "Configure your application to match your preferences",
+      "tabs": {
+        "general": "General",
+        "notifications": "Notifications",
+        "messaging": "Messaging",
+        "ai": "AI",
+        "fiscal": "Fiscal",
+        "organization": "Organization",
+        "payment": "Payment",
+        "integrations": "Integrations",
+        "payouts": "Payouts",
+        "amenitiesOta": "OTA Amenities"
+      },
+      "subtitle": {
+        "general": "Identity, organization, regional preferences and display.",
+        "notifications": "Configure your channels (in-app, email, push) and granularity per event type.",
+        "messaging": "Guest messaging automations (check-in, welcome, pricing push) and templates.",
+        "myPayout": "Your bank transfer settings: IBAN, frequency, minimum threshold.",
+        "ai": "Connect your OpenAI/Anthropic key or use the shared quota. Models assigned per feature.",
+        "fiscal": "Your organization's fiscal profile: VAT regime, legal notices, NF 525 / ZATCA compliance.",
+        "organization": "Legal information, branding, team and permissions for your organization.",
+        "payment": "Payment providers (Stripe, PayPal, PayTabs, CMI…) and split rules.",
+        "integrations": "Connect your third-party tools: e-signature, accounting, KYC, legal compliance, OTA channels.",
+        "payouts": "Schedule and calculation rules for owner payouts.",
+        "amenitiesOta": "Map amenities detected on your OTA listings (Airbnb, Booking, etc.) to the Clenzy reference. Create your own amenities if nothing matches."
+      }
+    },
+    "dashboard": {
+      "subtitle": {
+        "overview": "Overview: KPIs, planning, critical alerts and quick access to your activity.",
+        "noise": "Minut noise monitoring on your properties: real-time alerts, history and per-property thresholds.",
+        "smartLock": "Status and control of your smart locks (Tuya, Nuki): remote unlocking and battery.",
+        "keyExchange": "Key exchange via KeyNest and key boxes: tracking transfers between guests and teams.",
+        "simulator": "Analytical simulator: revenue, occupancy and performance projections on variable scenarios."
+      }
+    },
+    "properties": {
+      "title": "Properties",
+      "default": "Properties and dynamic pricing management",
+      "subtitle": {
+        "properties": "List of your properties with their status, occupancy rate and alerts.",
+        "pricing": "Dynamic pricing configuration per property: base price, seasonality, adjustments."
+      }
+    },
+    "directory": {
+      "title": "Directory",
+      "default": "Manage teams, portfolios, guests, users and organizations",
+      "subtitle": {
+        "users": "Platform user accounts: roles, permissions, activation and access reset.",
+        "teams": "Operational teams (cleaning, maintenance, supervision): composition, specialties and availability.",
+        "portfolios": "Property groupings by owner or management portfolio to ease oversight.",
+        "organizations": "Client organizations (multi-tenant): legal information, branding and configuration.",
+        "guests": "Centralized database of guests who stayed at or contacted your properties: history and preferences.",
+        "prospection": "Sales pipeline: CSV imports, enrichment and tracking of qualified prospects."
+      }
+    },
+    "contact": {
+      "title": "Contact",
+      "default": "Contact messages",
+      "tabs": {
+        "receivedForms": "Received forms"
+      },
+      "subtitle": {
+        "internalChat": "Internal conversations between members of your organization: teams, supervision and coordination.",
+        "archived": "Archived conversation history: read-only consultation, search and restoration.",
+        "receivedForms": "Incoming requests via your public forms (contact, quote, report): triage and response.",
+        "channelMessages": "Guest messages from your OTA channels (Airbnb, Booking) centralized in a unified inbox."
+      }
+    },
+    "documents": {
+      "title": "Documents & Communications",
+      "default": "Templates, history and regulatory compliance",
+      "subtitle": {
+        "catalog": "Template catalog by guest journey step: messaging, documents, communications.",
+        "messageTemplates": "Automated messaging templates (check-in, welcome, pricing push) triggered by events.",
+        "documentTemplates": "Library of PDF templates (invoices, certificates, inventory) versioned and reusable.",
+        "history": "Unified history of sent messages and generated documents, filterable by channel and status.",
+        "variablesAndTags": "Reference for available variables ({{guest.name}}, {{property.address}}…) to personalize your templates.",
+        "compliance": "Compliance dashboard: NF invoices, legal certificates, search by document number."
+      }
+    },
+    "reports": {
+      "title": "Reports",
+      "default": "Generate and view reports from your Clenzy platform",
+      "subtitle": {
+        "financial": "Revenue per property, operating costs, net margin and accounting exports for the chosen period.",
+        "interventions": "Volume, average delays and completion rates of interventions by type and team.",
+        "teams": "Workload, performance and availability per team and per member.",
+        "properties": "Occupancy rate, RevPAR, maintenance alerts and health indicators per property."
+      }
+    },
+    "tarification": {
+      "title": "Pricing Configuration",
+      "default": "Manage weighting coefficients, base prices and subscriptions",
+      "subtitle": {
+        "pms": "PMS services pricing configuration: subscriptions, tiers and options.",
+        "entretien": "Cleaning and maintenance services pricing: packages, surcharges and coefficients.",
+        "travaux": "Pricing grid for works and technical interventions by job category.",
+        "exterieur": "Outdoor services pricing: gardening, pool, green spaces.",
+        "blanchisserie": "Linen pricing: packages per item type, washing and delivery.",
+        "monitoring": "Noise monitoring offers pricing (Minut, Roomonitor) propagated to clients."
+      }
+    },
+    "billing": {
+      "title": "Billing",
+      "default": "Payments, invoices, payouts, expenses and accounting reports",
+      "subtitle": {
+        "payments": "Guest payment history: status, payment method, refunds and reconciliation.",
+        "invoices": "Issued invoices (stays, fees, services) and credit notes: PDF generation, sending and payment tracking.",
+        "wallets": "Wallet balance per owner: movements, holds, withdrawals and detailed history.",
+        "payouts": "Owner payouts schedule: SEPA calculations, status, bank exports.",
+        "expenses": "Tracking operational expenses by category and property: supplier invoices, rebilling.",
+        "reportsExports": "Fiscal report (VAT, taxes, NF 525) and accounting exports formatted for your third-party tools."
+      }
+    },
+    "monitoring": {
+      "title": "System Monitoring",
+      "default": "Complete monitoring of the Clenzy platform",
+      "lastUpdate": "Last update",
+      "tabs": {
+        "tokens": "Token Monitoring",
+        "keycloak": "Keycloak Metrics",
+        "audit": "Audit & Logging",
+        "healthChecks": "Advanced Health Checks"
+      },
+      "subtitle": {
+        "tokens": "Monitoring AI tokens consumed per feature: counters, costs and key rotation.",
+        "keycloak": "Keycloak metrics (sessions, login, refresh) and integration test coverage.",
+        "audit": "Timestamped audit log: connections, data access, admin actions and denied permissions.",
+        "healthChecks": "Health checks of dependent services (DB, Redis, Kafka, OAuth) and real-time system metrics."
+      }
+    },
+    "syncAdmin": {
+      "title": "Sync & Diagnostics",
+      "default": "Channel synchronization supervision and system diagnostics",
+      "tabs": {
+        "connections": "Connections",
+        "syncEvents": "Sync Events",
+        "outbox": "Outbox",
+        "calendar": "Calendar",
+        "mappings": "Mappings",
+        "diagnostics": "Diagnostics",
+        "reconciliation": "Reconciliation"
+      },
+      "subtitle": {
+        "connections": "Real-time tracking of OTA connections (Airbnb, Booking, Channex): status, tokens, last sync.",
+        "syncEvents": "Calendar synchronization events (push/pull): volume per channel and status.",
+        "outbox": "Kafka outbox pattern: events pending, sent or failed, with on-demand retry.",
+        "calendar": "Audit of calendar commands (book, cancel, block, price) and detection of multi-channel conflicts.",
+        "mappings": "Property ↔ external listing correspondences per channel (Airbnb ID, Booking hotel ID, etc.).",
+        "diagnostics": "System diagnostics: scheduled tasks, jobs in progress, recent errors and integrations status.",
+        "reconciliation": "Calendar reconciliation runs: detection of divergences between Clenzy and OTA, manual triggering."
+      }
+    }
   }
 }

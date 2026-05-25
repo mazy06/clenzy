@@ -5,8 +5,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.util.HashMap;
@@ -30,11 +32,14 @@ public class OpenAiProvider implements AiProvider {
 
     private final AiProperties aiProperties;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
     private RestClient restClient;
 
-    public OpenAiProvider(AiProperties aiProperties, ObjectMapper objectMapper) {
+    public OpenAiProvider(AiProperties aiProperties, ObjectMapper objectMapper,
+                          ApplicationEventPublisher eventPublisher) {
         this.aiProperties = aiProperties;
         this.objectMapper = objectMapper;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -84,9 +89,11 @@ public class OpenAiProvider implements AiProvider {
                     .body(requestBody)
                     .retrieve()
                     .body(String.class);
+        } catch (HttpClientErrorException.Gone e) {
+            // Modele OpenAI EOL (ex: gpt-4-vision-preview retired 2025).
+            throw AiProviderErrorHandler.handleGone(eventPublisher, "openai", model, e);
         } catch (Exception e) {
-            log.error("OpenAI API call failed: {}", e.getMessage());
-            throw new AiProviderException("openai", "API call failed: " + e.getMessage(), e);
+            throw AiProviderErrorHandler.handleGeneric("openai", e);
         }
 
         try {
