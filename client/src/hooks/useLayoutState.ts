@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth, AuthUser } from './useAuth';
-import keycloak from '../keycloak';
 
 export interface LayoutState {
   user: AuthUser | null;
@@ -18,7 +17,7 @@ interface UseLayoutStateReturn extends LayoutState {
 }
 
 export const useLayoutState = (): UseLayoutStateReturn => {
-  const { user, loading: authLoading, restoreKeycloakState } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [state, setState] = useState<LayoutState>({
     user: null,
@@ -57,14 +56,12 @@ export const useLayoutState = (): UseLayoutStateReturn => {
   }, []);
 
   // Fonction pour rafraîchir l'utilisateur
+  // Note : la restauration de session Keycloak est gerée par `check-sso`
+  // au boot (cf. keycloak.ts) + cookie HttpOnly serveur. On ne tente plus
+  // de restaurer manuellement depuis localStorage (supprime Bucket D).
   const refreshUser = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
-
-      // Tenter de restaurer l'état Keycloak si nécessaire
-      if (!user && !keycloak.authenticated) {
-        await restoreKeycloakState();
-      }
 
       // Mettre à jour l'état
       const functionsDefined = checkRoleFunctions(user);
@@ -87,7 +84,7 @@ export const useLayoutState = (): UseLayoutStateReturn => {
         error: errorMessage
       }));
     }
-  }, [user?.id, restoreKeycloakState, checkRoleFunctions, checkCanRender]);
+  }, [user?.id, checkRoleFunctions, checkCanRender]);
 
   // Fonction pour effacer les erreurs
   const clearError = useCallback(() => {

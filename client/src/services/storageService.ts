@@ -21,50 +21,34 @@ const LEGACY_TOKEN_KEYS = [
 ] as const;
 
 export const STORAGE_KEYS = {
-  // Auth / Keycloak — DEPRECATED
-  // Conservees uniquement pour migration in-flight (TokenService.ts en cours
-  // de refactor). A retirer une fois toutes les references nettoyees.
-  // `kc_expires_in` retire : aucun caller n'en a besoin (le TTL vient du JWT).
-  ACCESS_TOKEN: 'kc_access_token',
-  REFRESH_TOKEN: 'kc_refresh_token',
-  ID_TOKEN: 'kc_id_token',
-
-  // App Settings
+  // App Settings (per-device UI : compactMode, showAvatars, theme)
   SETTINGS: 'clenzy_settings',
-  WORKFLOW_SETTINGS: 'workflow-settings',
 
-  // i18n
+  // i18n (per-device, gere par i18next LanguageDetector)
   LANGUAGE: 'i18nextLng',
 
-  // Currency
+  // Currency d'affichage (per-device)
   CURRENCY: 'clenzy_currency',
 
-  // Planning mock mode
+  // Mocks dev/demo — utiliser isMockEnabled() / setMockEnabled() au lieu
+  // de lire/ecrire ces cles directement.
   PLANNING_MOCK: 'clenzy_planning_mock',
-
-  // Noise monitoring (Minut) mock mode
   NOISE_MONITORING_MOCK: 'clenzy_noise_monitoring_mock',
-
-  // Analytics dashboard mock mode
   ANALYTICS_MOCK: 'clenzy_analytics_mock',
 
-  // Noise devices (configured sensors)
+  // Cache backend (source de verite = serveur, fallback offline local)
   NOISE_DEVICES: 'clenzy_noise_devices',
-
-  // Smart lock devices (configured locks)
   SMART_LOCK_DEVICES: 'clenzy_smart_lock_devices',
 
-  // Geolocation
+  // Geolocation one-shot (detection IP au 1er login)
   GEO_COUNTRY: 'clenzy_geo_country',
   GEO_APPLIED: 'clenzy_geo_applied',
 
-  // Cross-tab sync
+  // Canal de communication cross-tabs pour la synchro des sessions
+  // (cf. TokenService.notifyOtherTabs — pas un "stockage" de pref)
   TOKEN_UPDATE: 'clenzy_token_update',
 
-  // Onboarding checklist dismissed
-  ONBOARDING_DISMISSED: 'clenzy_onboarding_dismissed',
-
-  // Contract CTA banner dismissed
+  // Contract CTA banner dismissed (per-device)
   CONTRACT_CTA_DISMISSED: 'clenzy_contract_cta_dismissed',
 } as const;
 

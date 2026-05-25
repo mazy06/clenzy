@@ -5,7 +5,7 @@ import { clearTokenCookie } from '../services/apiClient';
 import { CustomPermissionsContext } from './useCustomPermissions';
 import PermissionSyncService from '../services/PermissionSyncService';
 import RedisCacheService from '../services/RedisCacheService';
-import { getItem, clearTokens, saveTokens, STORAGE_KEYS } from '../services/storageService';
+import { clearTokens } from '../services/storageService';
 
 export interface UserRole {
   name: string;
@@ -45,22 +45,11 @@ export const useAuth = () => {
     isInitializedRef.current = true;
 
     const loadUserInfo = async () => {
-      // Vérifier d'abord si on a des tokens en localStorage
-      const storedToken = getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      const storedRefreshToken = getItem(STORAGE_KEYS.REFRESH_TOKEN);
-
-      // Vérifier d'abord l'état de Keycloak
+      // Source unique de verite pour la session : Keycloak en memoire
+      // (restaure via `check-sso` au boot, cf. keycloak.ts) + cookie HttpOnly
+      // `clenzy_auth` cote serveur. Plus de fallback localStorage (Bucket D).
       if (keycloak.authenticated && keycloak.token) {
         await loadUserFromKeycloak();
-      } else if (storedToken && storedRefreshToken) {
-        // Tenter de restaurer l'état Keycloak
-        const restored = restoreKeycloakState();
-        if (restored) {
-          await loadUserFromKeycloak();
-        } else {
-          setUser(null);
-          setLoading(false);
-        }
       } else {
         setUser(null);
         setLoading(false);
@@ -137,13 +126,8 @@ export const useAuth = () => {
             if (keycloak.refreshToken) {
               const refreshed = await keycloak.updateToken(30);
               if (refreshed && keycloak.token) {
-                // Persist refreshed tokens to localStorage so other consumers
-                // (beforeunload handlers, apiClient) read the fresh token
-                saveTokens({
-                  accessToken: keycloak.token,
-                  refreshToken: keycloak.refreshToken,
-                  idToken: keycloak.idToken,
-                });
+                // Sync le nouveau token au cookie HttpOnly serveur.
+                // Pas de localStorage : source unique = keycloak.token en memoire.
                 syncAuthCookie().catch(() => { /* best-effort */ });
                 await loadUserFromKeycloak();
                 return;
@@ -321,49 +305,6 @@ export const useAuth = () => {
   const isLaundry = useCallback((): boolean => hasRole('LAUNDRY'), [hasRole]);
   const isExteriorTech = useCallback((): boolean => hasRole('EXTERIOR_TECH'), [hasRole]);
 
-  // Fonction pour nettoyer l'état utilisateur lors de la déconnexion
-  // Fonction pour restaurer l'état Keycloak depuis le localStorage
-  const restoreKeycloakState = useCallback(() => {
-    const storedToken = getItem(STORAGE_KEYS.ACCESS_TOKEN);
-    const storedRefreshToken = getItem(STORAGE_KEYS.REFRESH_TOKEN);
-    const storedIdToken = getItem(STORAGE_KEYS.ID_TOKEN);
-
-    if (storedToken && storedRefreshToken) {
-      try {
-        // Vérifier si le token est expiré
-        const tokenData = JSON.parse(atob(storedToken.split('.')[1]));
-        const currentTime = Math.floor(Date.now() / 1000);
-
-        if (tokenData.exp && tokenData.exp < currentTime) {
-          clearUser();
-          return false;
-        }
-
-        // Restaurer l'état Keycloak
-        keycloak.token = storedToken;
-        keycloak.refreshToken = storedRefreshToken;
-        keycloak.idToken = storedIdToken ?? undefined;
-        keycloak.authenticated = true;
-
-        // Restaurer tokenParsed si possible
-        if (storedToken) {
-          try {
-            keycloak.tokenParsed = JSON.parse(atob(storedToken.split('.')[1]));
-          } catch {
-            // Token parsing failed silently
-          }
-        }
-
-        return true;
-      } catch (error) {
-        clearUser();
-        return false;
-      }
-    }
-
-    return false;
-  }, []);
-
   const clearUser = useCallback(() => {
     // Nettoyer l'état React
     setUser(null);
@@ -400,6 +341,5 @@ export const useAuth = () => {
     isLaundry,
     isExteriorTech,
     clearUser, // Exposer la fonction de nettoyage
-    restoreKeycloakState, // Exposer la fonction de restauration
   };
 };
