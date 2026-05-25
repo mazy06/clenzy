@@ -184,6 +184,10 @@ public class IncidentDetectionScheduler {
                     .build();
             com.stripe.model.Balance.retrieve(options);
             resolveIfOpen(serviceName);
+        } catch (com.stripe.exception.PermissionException e) {
+            // Cle restricted sans permission balance.read : la cle est valide
+            // (auth OK), simplement limitee. Pas un incident — on resolve.
+            resolveIfOpen(serviceName);
         } catch (Exception e) {
             openServiceDown(serviceName, "Stripe unreachable: " + e.getMessage());
         }
