@@ -10,6 +10,8 @@ import { LineChartWidget } from './charts/LineChartWidget';
 import { InsightsWidget } from './InsightsWidget';
 import { NavigationCardWidget } from './NavigationCardWidget';
 import { PortfolioOverviewWidget } from './PortfolioOverviewWidget';
+import { WeatherWidget } from './WeatherWidget';
+import { EventsWidget } from './EventsWidget';
 
 interface ToolResultWidgetProps {
   call: ToolCallExecuted;
@@ -26,6 +28,8 @@ interface ToolResultWidgetProps {
  *   <li>{@code "insights"}           → {@link InsightsWidget}</li>
  *   <li>{@code "navigation"}         → {@link NavigationCardWidget}</li>
  *   <li>{@code "portfolio_overview"} → {@link PortfolioOverviewWidget}</li>
+ *   <li>{@code "weather"}            → {@link WeatherWidget}</li>
+ *   <li>{@code "events"}             → {@link EventsWidget}</li>
  *   <li>autre / sans hint            → fallback minimal cle/valeur</li>
  * </ul>
  *
@@ -75,6 +79,12 @@ export const ToolResultWidget: React.FC<ToolResultWidgetProps> = ({ call }) => {
 
     case 'portfolio_overview':
       return <PortfolioOverviewWidget data={parsed as Parameters<typeof PortfolioOverviewWidget>[0]['data']} />;
+
+    case 'weather':
+      return <WeatherWidget data={parsed as Parameters<typeof WeatherWidget>[0]['data']} />;
+
+    case 'events':
+      return <EventsWidget data={parsed as Parameters<typeof EventsWidget>[0]['data']} />;
 
     default:
       // Hint inconnu : on tente de rendre une representation minimale
