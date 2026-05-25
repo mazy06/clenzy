@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import storageService, { STORAGE_KEYS } from '../services/storageService';
+import { isMockEnabled, setMockEnabled } from '../services/storageService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -159,15 +159,13 @@ function generateMockData(): NoiseMonitoringData {
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useNoiseMonitoring() {
-  const [enabled, setEnabledState] = useState(
-    () => localStorage.getItem(STORAGE_KEYS.NOISE_MONITORING_MOCK) === 'true'
-  );
+  const [enabled, setEnabledState] = useState(() => isMockEnabled('noiseMonitoring'));
 
   const [data, setData] = useState<NoiseMonitoringData | null>(null);
 
   const setEnabled = useCallback((value: boolean) => {
     setEnabledState(value);
-    storageService.setItem(STORAGE_KEYS.NOISE_MONITORING_MOCK, value ? 'true' : 'false');
+    setMockEnabled('noiseMonitoring', value);
   }, []);
 
   // Generate mock data when enabled
