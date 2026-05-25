@@ -1,48 +1,54 @@
 // ─── Storage Keys ───────────────────────────────────────────────────────────
 
+/**
+ * Anciennes cles de tokens Keycloak — utilisees pour le cleanup au boot
+ * uniquement. Les tokens sont desormais portes par un cookie HttpOnly
+ * (cf. TokenCookieFilter + AuthSessionController cote backend) + l'instance
+ * Keycloak en memoire (keycloak.token).
+ *
+ * /!\ NE PAS REUTILISER ces cles pour ecrire un token. Respect de
+ * CLAUDE.md regle securite #7.
+ *
+ * `kc_expires_in` est volontairement inclus pour le cleanup boot bien
+ * qu'il ne soit plus reference par {@link STORAGE_KEYS} : on purge tous
+ * les residus possibles.
+ */
+const LEGACY_TOKEN_KEYS = [
+  'kc_access_token',
+  'kc_refresh_token',
+  'kc_id_token',
+  'kc_expires_in',
+] as const;
+
 export const STORAGE_KEYS = {
-  // Auth / Keycloak
-  ACCESS_TOKEN: 'kc_access_token',
-  REFRESH_TOKEN: 'kc_refresh_token',
-  ID_TOKEN: 'kc_id_token',
-  EXPIRES_IN: 'kc_expires_in',
-
-  // App Settings
+  // App Settings (per-device UI : compactMode, showAvatars, theme)
   SETTINGS: 'clenzy_settings',
-  WORKFLOW_SETTINGS: 'workflow-settings',
 
-  // i18n
+  // i18n (per-device, gere par i18next LanguageDetector)
   LANGUAGE: 'i18nextLng',
 
-  // Currency
+  // Currency d'affichage (per-device)
   CURRENCY: 'clenzy_currency',
 
-  // Planning mock mode
+  // Mocks dev/demo — utiliser isMockEnabled() / setMockEnabled() au lieu
+  // de lire/ecrire ces cles directement.
   PLANNING_MOCK: 'clenzy_planning_mock',
-
-  // Noise monitoring (Minut) mock mode
   NOISE_MONITORING_MOCK: 'clenzy_noise_monitoring_mock',
-
-  // Analytics dashboard mock mode
   ANALYTICS_MOCK: 'clenzy_analytics_mock',
 
-  // Noise devices (configured sensors)
+  // Cache backend (source de verite = serveur, fallback offline local)
   NOISE_DEVICES: 'clenzy_noise_devices',
-
-  // Smart lock devices (configured locks)
   SMART_LOCK_DEVICES: 'clenzy_smart_lock_devices',
 
-  // Geolocation
+  // Geolocation one-shot (detection IP au 1er login)
   GEO_COUNTRY: 'clenzy_geo_country',
   GEO_APPLIED: 'clenzy_geo_applied',
 
-  // Cross-tab sync
+  // Canal de communication cross-tabs pour la synchro des sessions
+  // (cf. TokenService.notifyOtherTabs — pas un "stockage" de pref)
   TOKEN_UPDATE: 'clenzy_token_update',
 
-  // Onboarding checklist dismissed
-  ONBOARDING_DISMISSED: 'clenzy_onboarding_dismissed',
-
-  // Contract CTA banner dismissed
+  // Contract CTA banner dismissed (per-device)
   CONTRACT_CTA_DISMISSED: 'clenzy_contract_cta_dismissed',
 } as const;
 
@@ -107,16 +113,41 @@ export function setJSON<T>(key: StorageKey, value: T): void {
 }
 
 // ─── Auth Token Shortcuts ───────────────────────────────────────────────────
+//
+// SECURITE (CLAUDE.md regle #7) : les tokens ne sont PLUS stockes dans
+// localStorage. La source de verite est :
+//   - cookie HttpOnly `clenzy_auth` (cf. TokenCookieFilter + AuthSessionController)
+//   - instance Keycloak en memoire (keycloak.token)
+//
+// Les fonctions ci-dessous sont conservees uniquement pour ne pas casser
+// les callers existants pendant la transition (keycloak.ts, TokenService.ts,
+// useAuth.ts, etc.). Elles seront supprimees une fois tous les callers
+// migres. NE PAS APPELER dans du nouveau code.
 
+/**
+ * @deprecated Lire keycloak.token (memoire) au lieu de localStorage.
+ * Conservee pour compat — retourne toujours null car le token n'est plus
+ * persiste cote client.
+ */
 export function getAccessToken(): string | null {
-  return getItem(STORAGE_KEYS.ACCESS_TOKEN);
+  return null;
 }
 
+/**
+ * @deprecated Le refresh est gere par Keycloak en memoire (keycloak.refreshToken)
+ * + cookie HttpOnly cote serveur. Retourne toujours null.
+ */
 export function getRefreshToken(): string | null {
-  return getItem(STORAGE_KEYS.REFRESH_TOKEN);
+  return null;
 }
 
-export function saveTokens(tokens: {
+/**
+ * @deprecated NE PLUS ECRIRE de tokens en localStorage. Le cookie HttpOnly
+ * est emis par le backend via Set-Cookie au login. Cette fonction conserve
+ * uniquement l'effet de bord `clearMockFlags()` (reset des flags mock au
+ * changement de session) pour ne pas casser les callers existants.
+ */
+export function saveTokens(_tokens: {
   accessToken: string;
   refreshToken?: string;
   idToken?: string;
@@ -125,22 +156,47 @@ export function saveTokens(tokens: {
   // Reinitialiser les flags mock au changement de session
   // pour eviter qu'un non-admin herite du mode mock d'un admin
   clearMockFlags();
-  setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
-  if (tokens.refreshToken) setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
-  if (tokens.idToken) setItem(STORAGE_KEYS.ID_TOKEN, tokens.idToken);
-  if (tokens.expiresIn !== undefined) setItem(STORAGE_KEYS.EXPIRES_IN, String(tokens.expiresIn));
+  // VOLONTAIREMENT vide : les tokens vivent dans le cookie HttpOnly
+  // emis par le backend + l'instance Keycloak en memoire.
 }
 
+/**
+ * Nettoyage des effets de bord locaux au logout.
+ * Le cookie HttpOnly `clenzy_auth` est invalide cote serveur via
+ * AuthSessionController#logout. On nettoie ici :
+ *  - d'eventuelles cles legacy localStorage (residus de versions anterieures)
+ *  - les flags mock (analytics/planning/noise)
+ *  - le cookie cross-domain `clenzy_session` (partage avec la landing)
+ */
 export function clearTokens(): void {
-  removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-  removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-  removeItem(STORAGE_KEYS.ID_TOKEN);
-  removeItem(STORAGE_KEYS.EXPIRES_IN);
-  // Reinitialiser les flags mock pour eviter que les donnees de test
-  // persistent entre les sessions/utilisateurs
+  // Cleanup defensif des anciennes cles localStorage si elles existent
+  LEGACY_TOKEN_KEYS.forEach((k) => {
+    try {
+      localStorage.removeItem(k);
+    } catch {
+      // Silent fail
+    }
+  });
   clearMockFlags();
-  // Supprimer aussi le cookie partagé avec la landing page
   clearSessionCookie();
+}
+
+/**
+ * Nettoyage one-shot au boot pour purger les anciens tokens Keycloak
+ * stockes dans localStorage par les versions anterieures (avant la migration
+ * vers cookie HttpOnly). A appeler une seule fois au demarrage de l'app
+ * depuis `main.tsx` ou equivalent.
+ *
+ * Operation idempotente — peut etre appelee plusieurs fois sans effet.
+ */
+export function cleanupLegacyTokens(): void {
+  LEGACY_TOKEN_KEYS.forEach((k) => {
+    try {
+      localStorage.removeItem(k);
+    } catch {
+      // Silent fail
+    }
+  });
 }
 
 /**
@@ -152,6 +208,32 @@ export function clearMockFlags(): void {
   removeItem(STORAGE_KEYS.ANALYTICS_MOCK);
   removeItem(STORAGE_KEYS.PLANNING_MOCK);
   removeItem(STORAGE_KEYS.NOISE_MONITORING_MOCK);
+}
+
+// ─── Mock Flags (dev/demo) ──────────────────────────────────────────────────
+//
+// Centralisation des flags mock dispersés dans plusieurs api/ files. Les
+// callers doivent utiliser ces helpers plutot que de lire/ecrire la cle
+// localStorage en direct (eviter les `localStorage.getItem('clenzy_*_mock')`
+// dupliques avec leur propre constante).
+
+/** Noms identifiants des modes mock disponibles. */
+export type MockFlag = 'analytics' | 'planning' | 'noiseMonitoring';
+
+const MOCK_FLAG_KEYS: Record<MockFlag, StorageKey> = {
+  analytics: STORAGE_KEYS.ANALYTICS_MOCK,
+  planning: STORAGE_KEYS.PLANNING_MOCK,
+  noiseMonitoring: STORAGE_KEYS.NOISE_MONITORING_MOCK,
+};
+
+/** Retourne `true` si le mode mock est actif pour le flag donne. */
+export function isMockEnabled(flag: MockFlag): boolean {
+  return getItem(MOCK_FLAG_KEYS[flag]) === 'true';
+}
+
+/** Active ou desactive le mode mock pour le flag donne. */
+export function setMockEnabled(flag: MockFlag, enabled: boolean): void {
+  setItem(MOCK_FLAG_KEYS[flag], enabled ? 'true' : 'false');
 }
 
 // ─── Cross-domain Cookie (shared with landing page) ────────────────────────
@@ -237,7 +319,10 @@ const storageService = {
   getRefreshToken,
   saveTokens,
   clearTokens,
+  cleanupLegacyTokens,
   clearMockFlags,
+  isMockEnabled,
+  setMockEnabled,
   setSessionCookie,
   getSessionCookie,
   clearSessionCookie,

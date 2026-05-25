@@ -1,9 +1,55 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen, type RenderOptions } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// ─── Mocks ──────────────────────────────────────────────────────────────────
+
+// useCurrency depend de CurrencyProvider + react-query. Stub deterministe
+// pour eviter de monter tout le provider stack dans un test unitaire.
+vi.mock('../../../hooks/useCurrency', () => ({
+  useCurrency: () => ({
+    currency: 'EUR',
+    setCurrency: vi.fn(),
+    currencySymbol: '€',
+    currencyLabel: 'EUR (€)',
+    convertAndFormat: (amount: number | null | undefined) =>
+      amount == null ? '—' : `${amount.toFixed(2)} €`,
+    convert: (amount: number) => amount,
+    isConverting: false,
+    rateDate: null,
+    rates: null,
+    ratesLoading: false,
+  }),
+}));
+
 import PlanningActionPanel from '../PlanningActionPanel';
 import type { PlanningEvent, PanelTab } from '../types';
 
-// ─── Mocks ──────────────────────────────────────────────────────────────────
+// ─── Test wrapper ───────────────────────────────────────────────────────────
+//
+// Le composant rend `MessagingAutomationStatus` qui utilise `useQuery`
+// (cf. PanelReservationInfo). On enveloppe chaque render avec un
+// QueryClientProvider scope au test, avec retry desactive pour ne pas
+// retarder les assertions.
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0, staleTime: 0 },
+    },
+  });
+}
+
+const render = (ui: React.ReactElement, options?: RenderOptions) => {
+  const queryClient = makeQueryClient();
+  return rtlRender(ui, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
+    ...options,
+  });
+};
 
 vi.mock('../../../hooks/usePropertyDetails', () => ({
   usePropertyDetails: vi.fn(() => ({
@@ -239,11 +285,9 @@ describe('PlanningActionPanel', () => {
           event={makeReservationEvent()}
         />,
       );
-      const buttons = screen.getAllByRole('button');
-      const closeButton = buttons.find(
-        (btn) => btn.querySelector('[data-testid="CloseIcon"]'),
-      );
-      expect(closeButton).toBeTruthy();
+      // Le bouton expose `aria-label="Fermer"` pour l'accessibilite —
+      // selecteur stable independamment de l'icone (lucide-x vs MUI CloseIcon).
+      expect(screen.getByRole('button', { name: 'Fermer' })).toBeInTheDocument();
     });
   });
 

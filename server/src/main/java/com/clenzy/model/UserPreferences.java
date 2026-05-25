@@ -36,6 +36,13 @@ public class UserPreferences {
     @Column(nullable = false, length = 5)
     private String language = "fr";
 
+    /**
+     * Mode d'affichage UI : {@code light}, {@code dark} ou {@code auto}
+     * (suit {@code prefers-color-scheme} cote navigateur). Defaut "auto".
+     */
+    @Column(name = "theme_mode", nullable = false, length = 20)
+    private String themeMode = "auto";
+
     // ── Notification global toggles ──────────────────────────────────────
 
     @Column(name = "notify_email", nullable = false)
@@ -82,6 +89,9 @@ public class UserPreferences {
 
     public String getLanguage() { return language; }
     public void setLanguage(String language) { this.language = language; }
+
+    public String getThemeMode() { return themeMode; }
+    public void setThemeMode(String themeMode) { this.themeMode = themeMode; }
 
     public boolean isNotifyEmail() { return notifyEmail; }
     public void setNotifyEmail(boolean notifyEmail) { this.notifyEmail = notifyEmail; }

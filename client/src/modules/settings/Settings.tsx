@@ -42,7 +42,7 @@ import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 import { useNoiseMonitoring } from '../../hooks/useNoiseMonitoring';
 import { useAuth } from '../../hooks/useAuth';
 import { useThemeMode } from '../../hooks/useThemeMode';
-import storageService, { STORAGE_KEYS } from '../../services/storageService';
+import storageService, { STORAGE_KEYS, isMockEnabled } from '../../services/storageService';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useQueryClient } from '@tanstack/react-query';
@@ -296,7 +296,7 @@ export default function Settings() {
   }, [user?.organizationId]);
 
   const [planningMock, setPlanningMock] = useState(
-    () => localStorage.getItem(STORAGE_KEYS.PLANNING_MOCK) === 'true'
+    () => isMockEnabled('planning')
   );
 
   // Noise monitoring (Minut) mock
@@ -304,7 +304,7 @@ export default function Settings() {
 
   // Analytics mock
   const [analyticsMock, setAnalyticsMock] = useState(
-    () => localStorage.getItem(STORAGE_KEYS.ANALYTICS_MOCK) === 'true'
+    () => isMockEnabled('analytics')
   );
 
   // Auto-push pricing global toggle

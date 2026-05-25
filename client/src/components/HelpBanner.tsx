@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { Box, Typography, IconButton, alpha, useTheme } from '@mui/material';
 import { Close as CloseIcon } from '../icons';
 import { semanticToHex } from '../utils/statusUtils';
+import { useUserPreference } from '../hooks/useUserPreference';
 
 /**
  * Semantic colour for a help step. Determines the icon badge tint, the title accent,
@@ -39,7 +40,9 @@ const DEFAULT_ACCENT_CYCLE: HelpStepAccent[] = ['info', 'success', 'warning', 'p
 
 /**
  * Inline informational banner — used on admin / accounting / sync pages to teach the
- * user what a complex feature does. Dismissable per `storageKey` via localStorage.
+ * user what a complex feature does. Dismissable per `storageKey` via backend prefs
+ * (cf. UserUiPreferencesProvider) — la decision "j'ai compris cette aide" est
+ * portable cross-devices via la table `user_ui_preferences`.
  *
  * <h2>Design rules applied</h2>
  * <ul>
@@ -52,6 +55,11 @@ const DEFAULT_ACCENT_CYCLE: HelpStepAccent[] = ['info', 'success', 'warning', 'p
  *   <li>Chip "AIDE" en pattern soft pour signaler la nature informationnelle.</li>
  *   <li>`text-wrap: balance` sur les titres, `prefers-reduced-motion` sur les transitions.</li>
  * </ul>
+ *
+ * @param storageKey identifiant unique du banner (ex: `payouts_help`). Sera persiste
+ *                   sous la cle `help.<storageKey>` dans user_ui_preferences. Le prefixe
+ *                   legacy `clenzy_*_dismissed` est strippe automatiquement pour ne pas
+ *                   polluer les cles backend.
  */
 const HelpBanner: React.FC<HelpBannerProps> = ({
   storageKey,
@@ -61,16 +69,21 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
   dismissLabel = 'Ne plus afficher',
 }) => {
   const theme = useTheme();
-  const [dismissed, setDismissed] = useState(
-    () => {
-      try { return localStorage.getItem(storageKey) === '1'; } catch { return false; }
-    },
-  );
+  // Nettoyer le prefixe legacy `clenzy_` et le suffixe `_dismissed` pour
+  // produire une cle backend lisible (ex: `clenzy_payouts_help_dismissed`
+  // -> `help.payouts`). Backward-compat : on accepte les anciennes cles
+  // brutes pour ne pas casser des callers eventuels.
+  const normalized = storageKey
+    .replace(/^clenzy_/, '')
+    .replace(/_dismissed$/, '')
+    .replace(/_help$/, '');
+  const prefKey = `help.${normalized}`;
+
+  const [dismissed, setDismissed] = useUserPreference<boolean>(prefKey, false);
 
   const handleDismiss = useCallback(() => {
-    try { localStorage.setItem(storageKey, '1'); } catch { /* ignore */ }
     setDismissed(true);
-  }, [storageKey]);
+  }, [setDismissed]);
 
   if (dismissed) return null;
 

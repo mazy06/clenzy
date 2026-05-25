@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useUserPreferences } from './useUserPreferences';
+import { useIsAuthenticated } from './useIsAuthenticated';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -12,7 +14,14 @@ interface ThemeModeContextType {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
+// Cache localStorage : lecture synchrone au boot pour eviter le FOUC (flash
+// du theme par defaut avant que le backend reponde). Source de verite =
+// user_preferences.theme_mode cote backend (migration 0136).
 const THEME_MODE_KEY = 'clenzy_theme_mode';
+
+function isValidMode(value: unknown): value is ThemeMode {
+  return value === 'light' || value === 'dark' || value === 'auto';
+}
 
 // ─── Context ────────────────────────────────────────────────────────────────
 
@@ -62,8 +71,42 @@ interface ThemeModeProviderProps {
 }
 
 export function ThemeModeProvider({ children }: ThemeModeProviderProps) {
+  // Boot synchrone depuis localStorage (anti-FOUC). Le backend ecrasera
+  // cette valeur via le useEffect ci-dessous des qu'il repond.
   const [mode, setModeState] = useState<ThemeMode>(getSavedMode);
   const [systemDark, setSystemDark] = useState<boolean>(getSystemPrefersDark);
+
+  // Sync backend → local (source de verite = user_preferences.theme_mode).
+  // On ne sync que quand isLoaded=true pour ne pas ecraser local avec
+  // les DEFAULT_PREFERENCES (BUG-2). Le cache localStorage reste valide
+  // en fallback.
+  //
+  // BUG-3 : premier sync — si backend = defaut ('auto') ET local = explicite
+  // != 'auto', on pousse le local vers backend au lieu d'ecraser. Evite que
+  // les users perdent leur theme dark/light au premier login post-deploy 0136.
+  const { preferences, isLoaded, updatePreferences } = useUserPreferences();
+  const initialPushDoneRef = useRef(false);
+  useEffect(() => {
+    if (!isLoaded) return;
+    const serverMode = preferences.themeMode;
+    if (!isValidMode(serverMode)) return;
+
+    // First-sync : backend = defaut, local = autre chose explicite → push local
+    if (!initialPushDoneRef.current && serverMode === 'auto' && mode !== 'auto') {
+      initialPushDoneRef.current = true;
+      updatePreferences({ themeMode: mode }).catch(() => { /* best-effort */ });
+      return;
+    }
+    initialPushDoneRef.current = true;
+
+    if (serverMode === mode) return;
+    setModeState(serverMode);
+    try {
+      localStorage.setItem(THEME_MODE_KEY, serverMode);
+    } catch {
+      // Silent fail
+    }
+  }, [isLoaded, preferences.themeMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen for system color scheme changes (only relevant in 'auto' mode)
   useEffect(() => {
@@ -89,25 +132,22 @@ export function ThemeModeProvider({ children }: ThemeModeProviderProps) {
     };
   }, []);
 
-  // Persist mode to localStorage when it changes
+  const isAuthed = useIsAuthenticated();
+  // Optimistic update : local + cache immediatement, puis push backend.
   const setMode = useCallback((newMode: ThemeMode) => {
     setModeState(newMode);
     try {
       localStorage.setItem(THEME_MODE_KEY, newMode);
-
-      // Also sync with clenzy_settings for backward compatibility
-      const settingsRaw = localStorage.getItem('clenzy_settings');
-      if (settingsRaw) {
-        const settings = JSON.parse(settingsRaw);
-        if (settings?.display) {
-          settings.display.theme = newMode === 'auto' ? 'auto' : newMode;
-          localStorage.setItem('clenzy_settings', JSON.stringify(settings));
-        }
-      }
     } catch {
       // Silent fail
     }
-  }, []);
+    if (isAuthed) {
+      updatePreferences({ themeMode: newMode }).catch(() => {
+        // Best-effort : si la PUT echoue, la valeur locale persiste
+        // jusqu'au prochain sync backend.
+      });
+    }
+  }, [isAuthed, updatePreferences]);
 
   // Resolve whether currently dark
   const isDark = useMemo(() => {

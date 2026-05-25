@@ -1,51 +1,36 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { addDays, subDays } from 'date-fns';
-import { getParsedAccessToken } from '../../../keycloak';
+import { useUserPreference } from '../../../hooks/useUserPreference';
 import type { ZoomLevel, DensityMode } from '../types';
 import { ZOOM_CONFIGS } from '../constants';
 
-// ─── localStorage persistence (per-user) ────────────────────────────────────
+// ─── Backend-persisted prefs (cf. UserUiPreferencesProvider) ────────────────
 //
-// On persiste `zoom` et `density` (les preferences d'affichage), mais PAS
-// `currentDate` (le planning revient toujours sur aujourd'hui au reload) ni
-// `isFullscreen` (ephemere par session).
+// On persiste `zoom` et `density` (preferences d'affichage). `currentDate`
+// reste ephemere (le planning revient toujours sur aujourd'hui au reload)
+// et `isFullscreen` reste session-scoped.
 
-const STORAGE_KEY_PREFIX = 'clenzy.planning.nav';
+const PREF_KEY = 'planning.nav';
 
 interface PersistedNav {
   zoom: ZoomLevel;
   density: DensityMode;
 }
 
-function storageKey(): string {
-  const sub = getParsedAccessToken()?.sub ?? 'anon';
-  return `${STORAGE_KEY_PREFIX}.${sub}`;
-}
+const DEFAULT_NAV: PersistedNav = { zoom: 'week', density: 'normal' };
 
 const VALID_ZOOMS: ZoomLevel[] = ['day', 'week', 'month'];
 const VALID_DENSITIES: DensityMode[] = ['normal', 'compact'];
 
-function loadPersistedNav(): Partial<PersistedNav> {
-  try {
-    const raw = window.localStorage.getItem(storageKey());
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return {};
-    const out: Partial<PersistedNav> = {};
-    if (VALID_ZOOMS.includes(parsed.zoom)) out.zoom = parsed.zoom;
-    if (VALID_DENSITIES.includes(parsed.density)) out.density = parsed.density;
-    return out;
-  } catch {
-    return {};
-  }
-}
-
-function savePersistedNav(state: PersistedNav): void {
-  try {
-    window.localStorage.setItem(storageKey(), JSON.stringify(state));
-  } catch {
-    // ignore (quota, private mode)
-  }
+function sanitize(raw: unknown): PersistedNav {
+  if (!raw || typeof raw !== 'object') return DEFAULT_NAV;
+  const r = raw as Record<string, unknown>;
+  return {
+    zoom: VALID_ZOOMS.includes(r.zoom as ZoomLevel) ? (r.zoom as ZoomLevel) : DEFAULT_NAV.zoom,
+    density: VALID_DENSITIES.includes(r.density as DensityMode)
+      ? (r.density as DensityMode)
+      : DEFAULT_NAV.density,
+  };
 }
 
 export interface UsePlanningNavigationReturn {
@@ -64,17 +49,23 @@ export interface UsePlanningNavigationReturn {
 }
 
 export function usePlanningNavigation(): UsePlanningNavigationReturn {
+  const [persisted, setPersisted] = useUserPreference<PersistedNav>(PREF_KEY, DEFAULT_NAV);
+  const safe = useMemo(() => sanitize(persisted), [persisted]);
+
   const [currentDate, setCurrentDate] = useState(() => new Date());
-  const [zoom, setZoom] = useState<ZoomLevel>(() => loadPersistedNav().zoom ?? 'week');
-  const [density, setDensity] = useState<DensityMode>(() => loadPersistedNav().density ?? 'normal');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Persiste zoom + density a chaque changement.
-  useEffect(() => {
-    savePersistedNav({ zoom, density });
-  }, [zoom, density]);
+  const config = ZOOM_CONFIGS[safe.zoom];
 
-  const config = ZOOM_CONFIGS[zoom];
+  const setZoom = useCallback(
+    (zoom: ZoomLevel) => setPersisted({ ...safe, zoom }),
+    [safe, setPersisted],
+  );
+
+  const setDensity = useCallback(
+    (density: DensityMode) => setPersisted({ ...safe, density }),
+    [safe, setPersisted],
+  );
 
   const goToday = useCallback(() => {
     setCurrentDate(new Date());
@@ -94,8 +85,8 @@ export function usePlanningNavigation(): UsePlanningNavigationReturn {
 
   return {
     currentDate,
-    zoom,
-    density,
+    zoom: safe.zoom,
+    density: safe.density,
     isFullscreen,
     dayWidth: config.dayWidth,
     goToday,

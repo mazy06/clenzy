@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useEf
 import storageService, { STORAGE_KEYS } from '../services/storageService';
 import { CURRENCY_OPTIONS, formatCurrency } from '../utils/currencyUtils';
 import { exchangeRateApi, type RateMatrix } from '../services/api/exchangeRateApi';
+import { useUserPreferences } from './useUserPreferences';
+import { useIsAuthenticated } from './useIsAuthenticated';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -58,15 +60,57 @@ interface CurrencyProviderProps {
 }
 
 export function CurrencyProvider({ children }: CurrencyProviderProps) {
+  // Boot synchrone depuis localStorage pour eviter le flash devise au mount.
+  // Le backend (user_preferences.currency) reste la source de verite et
+  // ecrase la valeur locale des qu'il repond (cf. useEffect ci-dessous).
   const [currency, setCurrencyState] = useState<CurrencyCode>(getSavedCurrency);
   const [rateMatrix, setRateMatrix] = useState<RateMatrix | null>(null);
   const [ratesLoading, setRatesLoading] = useState(false);
   const fetchedAt = useRef<number>(0);
 
+  // Sync backend → local. Le backend (user_preferences.currency) est source
+  // de verite. On ne synchronise QUE quand la query a recupere les vraies
+  // donnees backend (isLoaded), sinon DEFAULT_PREFERENCES ecraserait la
+  // valeur locale legitime (BUG-2).
+  //
+  // BUG-3 : premier sync — si backend = defaut (EUR) ET local = explicite
+  // != EUR, on pousse le local vers backend au lieu d'ecraser. Garantit
+  // que l'user ne perd pas sa pref locale au premier login post-deploy
+  // de la migration backend.
+  const { preferences, isLoaded, updatePreferences } = useUserPreferences();
+  const initialPushDoneRef = useRef(false);
+  useEffect(() => {
+    if (!isLoaded) return;
+    const serverCurrency = preferences.currency as CurrencyCode | undefined;
+    if (!serverCurrency) return;
+    if (!CURRENCY_OPTIONS.some((o) => o.code === serverCurrency)) return;
+
+    // First-sync : backend = defaut, local = autre chose explicite → push local
+    if (!initialPushDoneRef.current && serverCurrency === 'EUR' && currency !== 'EUR') {
+      initialPushDoneRef.current = true;
+      updatePreferences({ currency }).catch(() => { /* best-effort */ });
+      return;
+    }
+    initialPushDoneRef.current = true;
+
+    if (serverCurrency === currency) return;
+    setCurrencyState(serverCurrency);
+    storageService.setItem(STORAGE_KEYS.CURRENCY, serverCurrency);
+  }, [isLoaded, preferences.currency]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isAuthed = useIsAuthenticated();
   const setCurrency = useCallback((code: CurrencyCode) => {
+    // Optimistic update : local + cache immediatement, puis push backend
+    // en best-effort (le serveur reste source de verite au prochain reload).
     setCurrencyState(code);
     storageService.setItem(STORAGE_KEYS.CURRENCY, code);
-  }, []);
+    if (isAuthed) {
+      updatePreferences({ currency: code }).catch(() => {
+        // Best-effort : si la PUT echoue, la valeur locale persiste
+        // jusqu'au prochain sync backend.
+      });
+    }
+  }, [isAuthed, updatePreferences]);
 
   // Fetch rate matrix when needed (currency !== EUR or stale cache)
   useEffect(() => {

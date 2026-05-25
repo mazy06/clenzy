@@ -1,6 +1,5 @@
 import { API_CONFIG } from '../config/api';
 import keycloak, { getAccessToken } from '../keycloak';
-import { saveTokens } from './storageService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -46,13 +45,9 @@ async function refreshTokenOnce(): Promise<boolean> {
       if (!keycloak.authenticated || !keycloak.refreshToken) return false;
       const refreshed = await keycloak.updateToken(30);
       if (refreshed && keycloak.token) {
-        // Persist to localStorage for backward compat (storageService consumers)
-        saveTokens({
-          accessToken: keycloak.token,
-          refreshToken: keycloak.refreshToken,
-          idToken: keycloak.idToken,
-        });
-        // Sync to HttpOnly cookie for secure storage
+        // Sync the fresh token to the HttpOnly cookie (source of truth).
+        // Le token vit aussi en memoire dans keycloak.token pour les
+        // callers qui injectent encore manuellement un header Authorization.
         await syncTokenCookie(keycloak.token);
         return true;
       }

@@ -11,12 +11,8 @@
  *   - POST   /api/integrations/external/{provider}/disconnect
  */
 import { API_CONFIG } from '../../config/api';
-import { getItem, STORAGE_KEYS } from '../storageService';
+import { getAccessToken } from '../../keycloak';
 import type { SignatureProvider } from './integrationsApi';
-
-function getAccessToken(): string | null {
-  return getItem(STORAGE_KEYS.ACCESS_TOKEN);
-}
 
 /** Providers supportes par cette API (rejette les autres). */
 export type ApiKeyProvider = Extract<

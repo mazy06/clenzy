@@ -1,6 +1,6 @@
 import Keycloak, { KeycloakTokenParsed } from 'keycloak-js'
 import { KEYCLOAK_CONFIG } from './config/api'
-import { setItem, removeItem, getItem, getAccessToken as storageGetAccessToken, STORAGE_KEYS, setSessionCookie, clearSessionCookie } from './services/storageService'
+import { setSessionCookie, clearSessionCookie, cleanupLegacyTokens } from './services/storageService'
 
 // Singleton Keycloak instance for the whole app
 const keycloak = new Keycloak({
@@ -19,6 +19,10 @@ keycloak.onAuthRefreshSuccess = () => {
 keycloak.onAuthLogout = () => {
   clearSessionCookie()
 }
+
+// Cleanup one-shot des anciens tokens stockes en localStorage par les
+// versions anterieures (avant la migration vers cookie HttpOnly). Idempotent.
+cleanupLegacyTokens()
 
 // Configuration Keycloak.
 // Apres l'init, si l'utilisateur est authentifie (via SSO check ou cookie KC),
@@ -52,38 +56,44 @@ function decodeJwt(token?: string): KeycloakTokenParsed | undefined {
   }
 }
 
-export function saveTokens(accessToken: string, refreshToken?: string) {
-  setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken)
-  if (refreshToken) setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
+/**
+ * @deprecated Les tokens ne sont plus persistes cote client. Le backend
+ * emet un cookie HttpOnly `clenzy_auth` au login (cf. AuthSessionController).
+ * No-op pour ne pas casser les callers existants — a retirer progressivement.
+ */
+export function saveTokens(_accessToken: string, _refreshToken?: string) {
+  // VOLONTAIREMENT vide : cookie HttpOnly cote serveur + keycloak.token en memoire.
 }
 
+/**
+ * Nettoyage local au logout : purge les eventuelles cles legacy et le cookie
+ * cross-domain `clenzy_session`. Le cookie HttpOnly `clenzy_auth` est
+ * invalide cote serveur via AuthSessionController#logout.
+ */
 export function clearTokens() {
-  removeItem(STORAGE_KEYS.ACCESS_TOKEN)
-  removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+  cleanupLegacyTokens()
+  clearSessionCookie()
 }
 
+/**
+ * @deprecated Plus de bootstrap depuis localStorage. La session est restauree
+ * via le silent SSO de Keycloak (cf. keycloak.init `onLoad: 'check-sso'`)
+ * et le cookie HttpOnly `clenzy_auth` cote serveur.
+ *
+ * Conservee comme no-op pour ne pas casser les callers existants.
+ */
 export function bootstrapFromStorage() {
-  const access = getItem(STORAGE_KEYS.ACCESS_TOKEN) || ''
-  const refresh = getItem(STORAGE_KEYS.REFRESH_TOKEN) || ''
-  if (!access) {
-    ;keycloak.authenticated = false
-    return
-  }
-  ;keycloak.token = access
-  ;keycloak.refreshToken = refresh
-  ;keycloak.authenticated = true
-  const parsed = decodeJwt(access)
-  const parsedR = decodeJwt(refresh)
-  ;keycloak.tokenParsed = parsed
-  ;keycloak.refreshTokenParsed = parsedR
-  if (parsed?.iat) {
-    const now = Math.floor(Date.now() / 1000)
-    ;keycloak.timeSkew = now - parsed.iat
-  }
+  // VOLONTAIREMENT vide : session restauree via Keycloak SSO + cookie HttpOnly.
 }
 
+/**
+ * Retourne le token Keycloak en memoire. Source unique de verite cote client.
+ * Pour les requetes API, prefere `credentials: 'include'` (cookie HttpOnly
+ * automatique via apiClient.ts) plutot que d'injecter ce token manuellement
+ * dans un header Authorization.
+ */
 export function getAccessToken(): string | null {
-  return keycloak.token || storageGetAccessToken()
+  return keycloak.token || null
 }
 
 export function getParsedAccessToken(): KeycloakTokenParsed | undefined {
