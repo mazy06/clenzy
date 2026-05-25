@@ -55,10 +55,27 @@ export const incidentApi = {
     return res.content ?? [];
   },
 
-  /** Nombre d'incidents ouverts */
-  getOpenCount: async (): Promise<number> => {
-    const res: { count: number } = await apiClient.get(`${BASE}/open/count`);
-    return res.count ?? 0;
+  /**
+   * Nombre d'incidents ouverts.
+   * Si {@code severity} est fourni, compte uniquement les incidents de cette severite.
+   * Si {@code includeBreakdown=true}, retourne aussi le total toutes severites.
+   */
+  getOpenCount: async (params?: {
+    severity?: IncidentSeverity;
+    includeBreakdown?: boolean;
+  }): Promise<{ count: number; totalAllSeverities?: number }> => {
+    const queryParams: Record<string, string | number | boolean | null | undefined> = {};
+    if (params?.severity) queryParams.severity = params.severity;
+    if (params?.includeBreakdown) queryParams.severityBreakdown = true;
+
+    const res: { count: number; totalAllSeverities?: number } = await apiClient.get(
+      `${BASE}/open/count`,
+      { params: queryParams },
+    );
+    return {
+      count: res.count ?? 0,
+      totalAllSeverities: res.totalAllSeverities,
+    };
   },
 
   /** Retester le service associe a un incident */

@@ -67,6 +67,12 @@ interface IncidentDetailDialogProps {
   incidents: IncidentDto[];
   loading: boolean;
   onRefresh?: () => void;
+  /**
+   * Nombre d'incidents OPEN d'autres severites (P2/P3) NON inclus dans
+   * la liste — utile pour afficher un avertissement diagnostic quand le
+   * badge global ne matche pas le scope P1 du modal.
+   */
+  otherSeveritiesOpenCount?: number;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -77,6 +83,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
   incidents,
   loading,
   onRefresh,
+  otherSeveritiesOpenCount = 0,
 }) => {
   const { isSuperAdmin } = useAuth();
   const canDelete = isSuperAdmin();
@@ -161,6 +168,19 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
         </DialogTitle>
 
         <DialogContent dividers>
+          {/* Avertissement diagnostic : des incidents OPEN existent dans
+              d'autres sévérités (P2/P3) mais ne sont pas listés ici car
+              le modal est scopé P1 (contexte du KPI 'P1 Incident Resolution'). */}
+          {otherSeveritiesOpenCount > 0 && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              {otherSeveritiesOpenCount} incident
+              {otherSeveritiesOpenCount > 1 ? 's' : ''} ouvert
+              {otherSeveritiesOpenCount > 1 ? 's' : ''} de sévérité autre que P1
+              {otherSeveritiesOpenCount > 1 ? ' ne sont pas affichés' : " n'est pas affiché"} ici
+              (ce tableau ne montre que les incidents P1).
+            </Alert>
+          )}
+
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
