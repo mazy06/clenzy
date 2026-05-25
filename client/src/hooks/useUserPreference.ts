@@ -12,11 +12,17 @@ import { useUserUiPreferences } from '../providers/UserUiPreferencesProvider';
  * la pref n'a pas encore ete chargee (initial loading) ou n'existe pas
  * cote serveur.</p>
  *
+ * <h2>Distinction loading vs vide (A1)</h2>
+ * <p>Le retour expose {@code isLoading} (transit reseau en cours) ET
+ * {@code isLoaded} (le backend a repondu OK au moins une fois). Les callers
+ * qui veulent eviter d'agir sur les defauts (push initial, migration legacy)
+ * doivent gater leur logique sur {@code isLoaded === true}.</p>
+ *
  * @example
  * const [zoom, setZoom] = useUserPreference<'day' | 'week' | 'month'>('planning.zoom', 'week');
  *
  * @example
- * const [filters, setFilters, { isLoading, reset }] = useUserPreference<MyFilters>(
+ * const [filters, setFilters, { isLoading, isLoaded, reset }] = useUserPreference<MyFilters>(
  *   'planning.filters',
  *   DEFAULT_FILTERS,
  * );
@@ -31,9 +37,9 @@ export function useUserPreference<T>(
 ): [
   T,
   (next: T) => void,
-  { isLoading: boolean; reset: () => void },
+  { isLoading: boolean; isLoaded: boolean; reset: () => void },
 ] {
-  const { prefs, isLoading, setPref, deletePref } = useUserUiPreferences();
+  const { prefs, isLoading, isLoaded, setPref, deletePref } = useUserUiPreferences();
 
   const raw = prefs[key];
   const value = (raw === undefined ? defaultValue : raw) as T;
@@ -49,5 +55,5 @@ export function useUserPreference<T>(
     deletePref(key);
   }, [key, deletePref]);
 
-  return [value, setValue, { isLoading, reset }];
+  return [value, setValue, { isLoading, isLoaded, reset }];
 }

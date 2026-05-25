@@ -23,7 +23,7 @@ import lightTheme from '../../theme/theme';
 import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
 import keycloak from '../../keycloak';
-import { saveTokens, setSessionCookie } from '../../services/storageService';
+import { clearMockFlags, setSessionCookie } from '../../services/storageService';
 
 interface InscriptionInfo {
   email: string;
@@ -111,13 +111,9 @@ export default function InscriptionConfirm() {
       keycloak.authenticated = true;
       keycloak.tokenParsed = JSON.parse(atob(data.access_token.split('.')[1]));
 
-      saveTokens({
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        idToken: data.id_token,
-        expiresIn: data.expires_in,
-      });
-
+      // Session vierge : reset des flags mock + session cookie partage avec
+      // la landing. Tokens vivent dans le cookie HttpOnly + keycloak.token.
+      clearMockFlags();
       setSessionCookie(data.access_token);
 
       // Forcer la mise a jour de l'etat global

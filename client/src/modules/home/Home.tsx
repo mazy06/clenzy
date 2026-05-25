@@ -3,7 +3,6 @@ import keycloak, { isAuthenticated, getParsedAccessToken, clearTokens, getAccess
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import apiClient, { type ApiError } from '../../services/apiClient'
-import { getRefreshToken } from '../../services/storageService'
 
 // keycloak instance is provided by src/keycloak.ts
 
@@ -33,7 +32,9 @@ export default function Home() {
             <Typography>Bonjour {profile?.firstName ?? 'Utilisateur'}</Typography>
             <Button variant="outlined" color="secondary" onClick={async () => {
               try {
-                const refreshToken = keycloak.refreshToken || getRefreshToken()
+                // Source unique : keycloak.refreshToken (memoire). Plus de
+                // fallback localStorage (Bucket D — tokens en cookie HttpOnly).
+                const refreshToken = keycloak.refreshToken
                 await apiClient.post('/logout', { refreshToken })
               } catch {}
               clearTokens()

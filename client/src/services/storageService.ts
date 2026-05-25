@@ -112,53 +112,16 @@ export function setJSON<T>(key: StorageKey, value: T): void {
   setItem(key, JSON.stringify(value));
 }
 
-// ─── Auth Token Shortcuts ───────────────────────────────────────────────────
+// ─── Auth session cleanup ───────────────────────────────────────────────────
 //
 // SECURITE (CLAUDE.md regle #7) : les tokens ne sont PLUS stockes dans
 // localStorage. La source de verite est :
 //   - cookie HttpOnly `clenzy_auth` (cf. TokenCookieFilter + AuthSessionController)
 //   - instance Keycloak en memoire (keycloak.token)
 //
-// Les fonctions ci-dessous sont conservees uniquement pour ne pas casser
-// les callers existants pendant la transition (keycloak.ts, TokenService.ts,
-// useAuth.ts, etc.). Elles seront supprimees une fois tous les callers
-// migres. NE PAS APPELER dans du nouveau code.
-
-/**
- * @deprecated Lire keycloak.token (memoire) au lieu de localStorage.
- * Conservee pour compat — retourne toujours null car le token n'est plus
- * persiste cote client.
- */
-export function getAccessToken(): string | null {
-  return null;
-}
-
-/**
- * @deprecated Le refresh est gere par Keycloak en memoire (keycloak.refreshToken)
- * + cookie HttpOnly cote serveur. Retourne toujours null.
- */
-export function getRefreshToken(): string | null {
-  return null;
-}
-
-/**
- * @deprecated NE PLUS ECRIRE de tokens en localStorage. Le cookie HttpOnly
- * est emis par le backend via Set-Cookie au login. Cette fonction conserve
- * uniquement l'effet de bord `clearMockFlags()` (reset des flags mock au
- * changement de session) pour ne pas casser les callers existants.
- */
-export function saveTokens(_tokens: {
-  accessToken: string;
-  refreshToken?: string;
-  idToken?: string;
-  expiresIn?: string | number;
-}): void {
-  // Reinitialiser les flags mock au changement de session
-  // pour eviter qu'un non-admin herite du mode mock d'un admin
-  clearMockFlags();
-  // VOLONTAIREMENT vide : les tokens vivent dans le cookie HttpOnly
-  // emis par le backend + l'instance Keycloak en memoire.
-}
+// Les helpers d'auth historiques (getAccessToken, getRefreshToken, saveTokens,
+// bootstrapFromStorage) ont ete supprimes : tous les callers sont passes par
+// keycloak.token (memoire) ou par le cookie HttpOnly via `credentials: 'include'`.
 
 /**
  * Nettoyage des effets de bord locaux au logout.
@@ -315,9 +278,6 @@ const storageService = {
   removeItem,
   getJSON,
   setJSON,
-  getAccessToken,
-  getRefreshToken,
-  saveTokens,
   clearTokens,
   cleanupLegacyTokens,
   clearMockFlags,

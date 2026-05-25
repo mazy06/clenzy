@@ -42,13 +42,6 @@ function getSavedMode(): ThemeMode {
     if (saved === 'light' || saved === 'dark' || saved === 'auto') {
       return saved;
     }
-    // Fallback: check legacy clenzy_settings for darkMode boolean
-    const settingsRaw = localStorage.getItem('clenzy_settings');
-    if (settingsRaw) {
-      const settings = JSON.parse(settingsRaw);
-      if (settings?.display?.theme === 'dark') return 'dark';
-      if (settings?.display?.theme === 'auto') return 'auto';
-    }
   } catch {
     // Silent fail
   }

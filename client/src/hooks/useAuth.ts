@@ -6,6 +6,7 @@ import { CustomPermissionsContext } from './useCustomPermissions';
 import PermissionSyncService from '../services/PermissionSyncService';
 import RedisCacheService from '../services/RedisCacheService';
 import { clearTokens } from '../services/storageService';
+import { idbCache } from '../services/indexedDbCache';
 
 export interface UserRole {
   name: string;
@@ -327,6 +328,11 @@ export const useAuth = () => {
 
     // Nettoyer le localStorage
     clearTokens();
+
+    // Cleanup IndexedDB : caches scope par organisation (amenity icons, etc.)
+    // doivent etre purges pour eviter qu'un user B voie les donnees de A
+    // s'il se logue dans le meme tab.
+    idbCache.deleteByPrefix('amenity-icons:').catch(() => { /* best-effort */ });
 
     // Broadcast pour useIsAuthenticated et autres consumers reactifs
     window.dispatchEvent(new CustomEvent('keycloak-auth-logout'));
