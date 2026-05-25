@@ -1264,3 +1264,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0135 : Table user_ui_preferences (key-value JSONB par utilisateur) ---
+  - changeSet:
+      id: "0135-add-user-ui-preferences"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0135__add_user_ui_preferences.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
