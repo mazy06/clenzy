@@ -90,24 +90,8 @@ const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
 
 const TAB_PANEL_SX = { pt: 1.5 } as const;
 
-// ─── Metadata par tab (breadcrumb + subtitle) ────────────────────────────────
-// Clef = LABEL traduit du tab (string stable).
-const REPORTS_TAB_META: Record<string, TabHeaderMeta> = {
-  'Rapports Financiers': {
-    subtitle: 'Revenus par bien, coûts d\'exploitation, marge nette et exports comptables sur la période choisie.',
-  },
-  'Rapports d\'Interventions': {
-    subtitle: 'Volume, délais moyens et taux de réalisation des interventions par type et par équipe.',
-  },
-  'Rapports d\'Équipes': {
-    subtitle: 'Charge de travail, performance et disponibilités par équipe et par membre.',
-  },
-  'Rapports de Propriétés': {
-    subtitle: 'Taux d\'occupation, RevPAR, alertes maintenance et indicateurs de santé par bien.',
-  },
-};
-const REPORTS_ROOT_TITLE = 'Rapports';
-const REPORTS_DEFAULT_SUBTITLE = 'Générez et consultez les rapports de votre plateforme Clenzy';
+// La metadata par tab (breadcrumb + subtitle) est construite dans le composant
+// via t() pour reagir au changement de langue (cf. reportsTabMeta plus bas).
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -183,12 +167,27 @@ const Reports: React.FC = () => {
     hidden: false,
   }));
   const visibleTabs = tabs.filter((tab) => !tab.hidden);
+  // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
+  const reportsTabMeta: Record<string, TabHeaderMeta> = {
+    [t('reports.sections.financial.title')]: {
+      subtitle: t('tabHeaders.reports.subtitle.financial', "Revenus par bien, coûts d'exploitation, marge nette et exports comptables sur la période choisie."),
+    },
+    [t('reports.sections.interventions.title')]: {
+      subtitle: t('tabHeaders.reports.subtitle.interventions', 'Volume, délais moyens et taux de réalisation des interventions par type et par équipe.'),
+    },
+    [t('reports.sections.teams.title')]: {
+      subtitle: t('tabHeaders.reports.subtitle.teams', 'Charge de travail, performance et disponibilités par équipe et par membre.'),
+    },
+    [t('reports.sections.properties.title')]: {
+      subtitle: t('tabHeaders.reports.subtitle.properties', "Taux d'occupation, RevPAR, alertes maintenance et indicateurs de santé par bien."),
+    },
+  };
   const { title, subtitle } = resolveTabHeader(
-    REPORTS_ROOT_TITLE,
-    REPORTS_DEFAULT_SUBTITLE,
+    t('tabHeaders.reports.title', 'Rapports'),
+    t('tabHeaders.reports.default', 'Générez et consultez les rapports de votre plateforme Clenzy'),
     visibleTabs.map((tab) => tab.label),
     activeTab,
-    REPORTS_TAB_META,
+    reportsTabMeta,
   );
 
   return (
