@@ -575,6 +575,9 @@ const KpiReadinessPage: React.FC = () => {
         loading={incidentsLoading}
         onRefresh={handleIncidentChange}
         otherSeveritiesOpenCount={Math.max(0, totalOpenAllSeverities - openIncidentCount)}
+        targetMinutes={
+          snapshot?.kpis.find((k) => k.id === 'P1_RESOLUTION')?.targetValue ?? 60
+        }
       />
     </Box>
   );
