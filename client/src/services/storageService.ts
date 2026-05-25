@@ -1,7 +1,25 @@
 // ─── Storage Keys ───────────────────────────────────────────────────────────
 
+/**
+ * Anciennes cles de tokens Keycloak — utilisees pour le cleanup au boot
+ * uniquement. Les tokens sont desormais portes par un cookie HttpOnly
+ * (cf. TokenCookieFilter + AuthSessionController cote backend) + l'instance
+ * Keycloak en memoire (keycloak.token).
+ *
+ * /!\ NE PAS REUTILISER ces cles pour ecrire un token. Respect de
+ * CLAUDE.md regle securite #7.
+ */
+const LEGACY_TOKEN_KEYS = [
+  'kc_access_token',
+  'kc_refresh_token',
+  'kc_id_token',
+  'kc_expires_in',
+] as const;
+
 export const STORAGE_KEYS = {
-  // Auth / Keycloak
+  // Auth / Keycloak — DEPRECATED
+  // Conservees uniquement pour migration in-flight (TokenService.ts en cours
+  // de refactor). A retirer une fois toutes les references nettoyees.
   ACCESS_TOKEN: 'kc_access_token',
   REFRESH_TOKEN: 'kc_refresh_token',
   ID_TOKEN: 'kc_id_token',
@@ -107,16 +125,41 @@ export function setJSON<T>(key: StorageKey, value: T): void {
 }
 
 // ─── Auth Token Shortcuts ───────────────────────────────────────────────────
+//
+// SECURITE (CLAUDE.md regle #7) : les tokens ne sont PLUS stockes dans
+// localStorage. La source de verite est :
+//   - cookie HttpOnly `clenzy_auth` (cf. TokenCookieFilter + AuthSessionController)
+//   - instance Keycloak en memoire (keycloak.token)
+//
+// Les fonctions ci-dessous sont conservees uniquement pour ne pas casser
+// les callers existants pendant la transition (keycloak.ts, TokenService.ts,
+// useAuth.ts, etc.). Elles seront supprimees une fois tous les callers
+// migres. NE PAS APPELER dans du nouveau code.
 
+/**
+ * @deprecated Lire keycloak.token (memoire) au lieu de localStorage.
+ * Conservee pour compat — retourne toujours null car le token n'est plus
+ * persiste cote client.
+ */
 export function getAccessToken(): string | null {
-  return getItem(STORAGE_KEYS.ACCESS_TOKEN);
+  return null;
 }
 
+/**
+ * @deprecated Le refresh est gere par Keycloak en memoire (keycloak.refreshToken)
+ * + cookie HttpOnly cote serveur. Retourne toujours null.
+ */
 export function getRefreshToken(): string | null {
-  return getItem(STORAGE_KEYS.REFRESH_TOKEN);
+  return null;
 }
 
-export function saveTokens(tokens: {
+/**
+ * @deprecated NE PLUS ECRIRE de tokens en localStorage. Le cookie HttpOnly
+ * est emis par le backend via Set-Cookie au login. Cette fonction conserve
+ * uniquement l'effet de bord `clearMockFlags()` (reset des flags mock au
+ * changement de session) pour ne pas casser les callers existants.
+ */
+export function saveTokens(_tokens: {
   accessToken: string;
   refreshToken?: string;
   idToken?: string;
@@ -125,22 +168,47 @@ export function saveTokens(tokens: {
   // Reinitialiser les flags mock au changement de session
   // pour eviter qu'un non-admin herite du mode mock d'un admin
   clearMockFlags();
-  setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
-  if (tokens.refreshToken) setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
-  if (tokens.idToken) setItem(STORAGE_KEYS.ID_TOKEN, tokens.idToken);
-  if (tokens.expiresIn !== undefined) setItem(STORAGE_KEYS.EXPIRES_IN, String(tokens.expiresIn));
+  // VOLONTAIREMENT vide : les tokens vivent dans le cookie HttpOnly
+  // emis par le backend + l'instance Keycloak en memoire.
 }
 
+/**
+ * Nettoyage des effets de bord locaux au logout.
+ * Le cookie HttpOnly `clenzy_auth` est invalide cote serveur via
+ * AuthSessionController#logout. On nettoie ici :
+ *  - d'eventuelles cles legacy localStorage (residus de versions anterieures)
+ *  - les flags mock (analytics/planning/noise)
+ *  - le cookie cross-domain `clenzy_session` (partage avec la landing)
+ */
 export function clearTokens(): void {
-  removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-  removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-  removeItem(STORAGE_KEYS.ID_TOKEN);
-  removeItem(STORAGE_KEYS.EXPIRES_IN);
-  // Reinitialiser les flags mock pour eviter que les donnees de test
-  // persistent entre les sessions/utilisateurs
+  // Cleanup defensif des anciennes cles localStorage si elles existent
+  LEGACY_TOKEN_KEYS.forEach((k) => {
+    try {
+      localStorage.removeItem(k);
+    } catch {
+      // Silent fail
+    }
+  });
   clearMockFlags();
-  // Supprimer aussi le cookie partagé avec la landing page
   clearSessionCookie();
+}
+
+/**
+ * Nettoyage one-shot au boot pour purger les anciens tokens Keycloak
+ * stockes dans localStorage par les versions anterieures (avant la migration
+ * vers cookie HttpOnly). A appeler une seule fois au demarrage de l'app
+ * depuis `main.tsx` ou equivalent.
+ *
+ * Operation idempotente — peut etre appelee plusieurs fois sans effet.
+ */
+export function cleanupLegacyTokens(): void {
+  LEGACY_TOKEN_KEYS.forEach((k) => {
+    try {
+      localStorage.removeItem(k);
+    } catch {
+      // Silent fail
+    }
+  });
 }
 
 /**
@@ -237,6 +305,7 @@ const storageService = {
   getRefreshToken,
   saveTokens,
   clearTokens,
+  cleanupLegacyTokens,
   clearMockFlags,
   setSessionCookie,
   getSessionCookie,
