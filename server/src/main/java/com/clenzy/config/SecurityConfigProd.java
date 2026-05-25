@@ -162,6 +162,9 @@ public class SecurityConfigProd {
                         .requestMatchers("/actuator/**").hasRole("SUPER_ADMIN")
                         // Endpoints authentifies
                         .requestMatchers("/api/me").authenticated()
+                        // Preferences UI personnelles : accessible a tout user authentifie,
+                        // independamment du role (un BOOKING_GUEST n'a pas de role PMS).
+                        .requestMatchers("/api/me/ui-preferences/**").authenticated()
                         .requestMatchers("/api/**").hasAnyRole("SUPER_ADMIN","SUPER_MANAGER","HOST","TECHNICIAN","HOUSEKEEPER","SUPERVISOR","LAUNDRY","EXTERIOR_TECH")
                         .anyRequest().denyAll()
                 )

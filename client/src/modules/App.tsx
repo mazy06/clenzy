@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTokenManagement } from '../hooks/useTokenManagement';
 import { configureConsole } from '../config/console';
 import { CustomPermissionsProvider } from '../hooks/useCustomPermissions';
+import { UserUiPreferencesProvider } from '../providers/UserUiPreferencesProvider';
 import { usePostHogIdentify, usePostHogPageTracking } from '../providers/PostHogProvider';
 import { useCrispIdentify } from '../hooks/useCrispIdentify';
 import Login from './auth/Login';
@@ -227,6 +228,7 @@ const App: React.FC = () => {
   // Rendu de l'application avec routage
   return (
     <CustomPermissionsProvider>
+      <UserUiPreferencesProvider>
         <Routes>
           {/* Route publique pour le login */}
           <Route
@@ -313,6 +315,7 @@ const App: React.FC = () => {
           } 
         />
         </Routes>
+      </UserUiPreferencesProvider>
     </CustomPermissionsProvider>
   );
 };
