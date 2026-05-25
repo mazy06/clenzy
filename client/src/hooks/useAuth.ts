@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useContext, useRef } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import keycloak, { syncAuthCookie } from '../keycloak';
 import { API_CONFIG } from '../config/api';
 import { clearTokenCookie } from '../services/apiClient';
@@ -39,12 +39,16 @@ export const useAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const permissionSyncService = PermissionSyncService.getInstance();
-  const isInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (isInitializedRef.current) return;
-    isInitializedRef.current = true;
-
+    // /!\ Pas de garde "ne run qu'une fois" via useRef ici. En React.StrictMode
+    // dev, useEffect est invoque 2 fois (setup → cleanup → setup) sur la meme
+    // instance, et un useRef garde-fou empecherait le 2e setup d'attacher les
+    // listeners alors que la cleanup les a deja detaches. Resultat : aucun
+    // listener apres le double-mount, et /api/me n'etait jamais appele apres
+    // login (force-user-reload event sans listener). On laisse le pattern
+    // classique cleanup → setup operer normalement, meme si loadUserInfo()
+    // est appele 2 fois au mount (operation idempotente).
     const loadUserInfo = async () => {
       // Source unique de verite pour la session : Keycloak en memoire
       // (restaure via `check-sso` au boot, cf. keycloak.ts) + cookie HttpOnly
