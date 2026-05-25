@@ -1,6 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
+
+// useCurrency depend de CurrencyProvider + react-query (taux de change). Pour
+// un unit test on injecte un stub deterministe qui retourne le symbole EUR.
+vi.mock('../../../hooks/useCurrency', () => ({
+  useCurrency: () => ({
+    currency: 'EUR',
+    setCurrency: vi.fn(),
+    currencySymbol: '€',
+    currencyLabel: 'EUR (€)',
+    convertAndFormat: (amount: number | null | undefined) =>
+      amount == null ? '—' : `${amount.toFixed(2)} €`,
+    convert: (amount: number) => amount,
+    isConverting: false,
+    rateDate: null,
+    rates: null,
+    ratesLoading: false,
+  }),
+}));
+
 import PanelPayment from '../PlanningActionPanel/PanelPayment';
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
