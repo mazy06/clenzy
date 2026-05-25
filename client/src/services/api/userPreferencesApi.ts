@@ -4,6 +4,8 @@ export interface UserPreferencesDto {
   timezone: string;
   currency: string;
   language: string;
+  /** Mode d'affichage UI : 'light' | 'dark' | 'auto'. */
+  themeMode: string;
   notifyEmail: boolean;
   notifyPush: boolean;
   notifySms: boolean;

@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { isMockEnabled, setMockEnabled } from '../storageService';
 import { extractApiList } from '../../types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -119,8 +120,6 @@ export interface PropertyFormData {
 // Données fictives cohérentes avec les réservations mock de reservationsApi.ts
 // (mêmes propertyId 1-10, mêmes noms).
 
-const ANALYTICS_MOCK_KEY = 'clenzy_analytics_mock';
-
 function generateMockProperties(): Property[] {
   const now = new Date().toISOString();
   return [
@@ -235,16 +234,16 @@ function generateMockProperties(): Property[] {
 export const propertiesApi = {
   /** Indique si le mode mock analytics est actif. */
   isMockMode(): boolean {
-    return localStorage.getItem(ANALYTICS_MOCK_KEY) === 'true';
+    return isMockEnabled('analytics');
   },
 
   /** Active ou désactive le mode mock analytics (persisté en localStorage). */
   setMockMode(enabled: boolean): void {
-    localStorage.setItem(ANALYTICS_MOCK_KEY, enabled ? 'true' : 'false');
+    setMockEnabled('analytics', enabled);
   },
 
   getAll(params?: { ownerId?: string | number; size?: number; sort?: string }) {
-    if (localStorage.getItem(ANALYTICS_MOCK_KEY) === 'true') {
+    if (isMockEnabled('analytics')) {
       let data = generateMockProperties();
 
       if (params?.ownerId) {
@@ -262,7 +261,7 @@ export const propertiesApi = {
   },
 
   getById(id: number) {
-    if (localStorage.getItem(ANALYTICS_MOCK_KEY) === 'true') {
+    if (isMockEnabled('analytics')) {
       const found = generateMockProperties().find((p) => p.id === id);
       if (found) return Promise.resolve(found);
     }

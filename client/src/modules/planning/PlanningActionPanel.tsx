@@ -380,7 +380,12 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
             </Typography>
           </Box>
         </Box>
-        <IconButton size="small" onClick={onClose} sx={{ flexShrink: 0, width: 22, height: 22 }}>
+        <IconButton
+          size="small"
+          onClick={onClose}
+          aria-label="Fermer"
+          sx={{ flexShrink: 0, width: 22, height: 22 }}
+        >
           <Close size={14} strokeWidth={1.75} />
         </IconButton>
       </Box>

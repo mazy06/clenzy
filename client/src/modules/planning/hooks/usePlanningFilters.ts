@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { getParsedAccessToken } from '../../../keycloak';
+import { useCallback, useMemo, useState } from 'react';
+import { useUserPreference } from '../../../hooks/useUserPreference';
 import type { ReservationStatus, PlanningInterventionType } from '../../../services/api';
 import type { PlanningEvent, PlanningFilters, PlanningProperty } from '../types';
 
@@ -12,56 +12,40 @@ const DEFAULT_FILTERS: PlanningFilters = {
   showPrices: true,
 };
 
-// ─── localStorage persistence (per-user) ────────────────────────────────────
+// ─── Backend-persisted prefs (cf. UserUiPreferencesProvider) ────────────────
+//
+// La cle dot-notation est stockee dans `user_ui_preferences.pref_key`
+// (migration 0135). Seuls les champs durables (filtres / toggles) sont
+// persistes : searchQuery et propertyIds restent ephemeres par session
+// (memes semantiques qu'avant la migration localStorage → backend).
 
-const STORAGE_KEY_PREFIX = 'clenzy.planning.filters';
+const PREF_KEY = 'planning.filters';
 
-/** Champs de PlanningFilters qui sont persistés. searchQuery / propertyIds
- *  restent éphémères (typés à chaque session). */
 type PersistedFilters = Pick<
   PlanningFilters,
   'statuses' | 'interventionTypes' | 'showInterventions' | 'showPrices'
 >;
 
-function storageKey(): string {
-  const sub = getParsedAccessToken()?.sub ?? 'anon';
-  return `${STORAGE_KEY_PREFIX}.${sub}`;
-}
+const DEFAULT_PERSISTED: PersistedFilters = {
+  statuses: DEFAULT_FILTERS.statuses,
+  interventionTypes: DEFAULT_FILTERS.interventionTypes,
+  showInterventions: DEFAULT_FILTERS.showInterventions,
+  showPrices: DEFAULT_FILTERS.showPrices,
+};
 
-function loadPersistedFilters(): Partial<PersistedFilters> {
-  try {
-    const raw = window.localStorage.getItem(storageKey());
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return {};
-    // Validation light — only known fields, correct types
-    const out: Partial<PersistedFilters> = {};
-    if (Array.isArray(parsed.statuses)) out.statuses = parsed.statuses as ReservationStatus[];
-    if (Array.isArray(parsed.interventionTypes)) out.interventionTypes = parsed.interventionTypes as PlanningInterventionType[];
-    if (typeof parsed.showInterventions === 'boolean') out.showInterventions = parsed.showInterventions;
-    if (typeof parsed.showPrices === 'boolean') out.showPrices = parsed.showPrices;
-    return out;
-  } catch {
-    return {};
-  }
-}
-
-function savePersistedFilters(filters: PlanningFilters): void {
-  try {
-    const toSave: PersistedFilters = {
-      statuses: filters.statuses,
-      interventionTypes: filters.interventionTypes,
-      showInterventions: filters.showInterventions,
-      showPrices: filters.showPrices,
-    };
-    window.localStorage.setItem(storageKey(), JSON.stringify(toSave));
-  } catch {
-    // ignore (quota, private mode)
-  }
-}
-
-function buildInitialFilters(): PlanningFilters {
-  return { ...DEFAULT_FILTERS, ...loadPersistedFilters() };
+/** Validation light : ne garde que les champs connus, types corrects. */
+function sanitize(raw: unknown): PersistedFilters {
+  if (!raw || typeof raw !== 'object') return DEFAULT_PERSISTED;
+  const r = raw as Record<string, unknown>;
+  return {
+    statuses: Array.isArray(r.statuses) ? (r.statuses as ReservationStatus[]) : DEFAULT_PERSISTED.statuses,
+    interventionTypes: Array.isArray(r.interventionTypes)
+      ? (r.interventionTypes as PlanningInterventionType[])
+      : DEFAULT_PERSISTED.interventionTypes,
+    showInterventions:
+      typeof r.showInterventions === 'boolean' ? r.showInterventions : DEFAULT_PERSISTED.showInterventions,
+    showPrices: typeof r.showPrices === 'boolean' ? r.showPrices : DEFAULT_PERSISTED.showPrices,
+  };
 }
 
 export interface UsePlanningFiltersReturn {
@@ -82,42 +66,51 @@ export function usePlanningFilters(
   events: PlanningEvent[],
   properties: PlanningProperty[],
 ): UsePlanningFiltersReturn {
-  const [filters, setFilters] = useState<PlanningFilters>(() => buildInitialFilters());
+  // Persistance backend des champs durables
+  const [persisted, setPersisted] = useUserPreference<PersistedFilters>(PREF_KEY, DEFAULT_PERSISTED);
+  const safePersisted = useMemo(() => sanitize(persisted), [persisted]);
 
-  // Persiste a chaque changement (champs persistés uniquement — voir PersistedFilters).
-  useEffect(() => {
-    savePersistedFilters(filters);
-  }, [filters.statuses, filters.interventionTypes, filters.showInterventions, filters.showPrices]);
+  // Champs ephemeres (session-scoped, pas persistes — meme comportement qu'avant)
+  const [propertyIds, setPropertyIds] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const setStatusFilter = useCallback((statuses: ReservationStatus[]) => {
-    setFilters((prev) => ({ ...prev, statuses }));
-  }, []);
+  const filters: PlanningFilters = useMemo(
+    () => ({ ...safePersisted, propertyIds, searchQuery }),
+    [safePersisted, propertyIds, searchQuery],
+  );
 
-  const setInterventionTypeFilter = useCallback((types: PlanningInterventionType[]) => {
-    setFilters((prev) => ({ ...prev, interventionTypes: types }));
-  }, []);
+  const setStatusFilter = useCallback(
+    (statuses: ReservationStatus[]) => setPersisted({ ...safePersisted, statuses }),
+    [safePersisted, setPersisted],
+  );
 
-  const setPropertyFilter = useCallback((propertyIds: number[]) => {
-    setFilters((prev) => ({ ...prev, propertyIds }));
-  }, []);
+  const setInterventionTypeFilter = useCallback(
+    (types: PlanningInterventionType[]) => setPersisted({ ...safePersisted, interventionTypes: types }),
+    [safePersisted, setPersisted],
+  );
 
-  const setSearchQuery = useCallback((query: string) => {
-    setFilters((prev) => ({ ...prev, searchQuery: query }));
-  }, []);
+  const setPropertyFilter = useCallback((ids: number[]) => setPropertyIds(ids), []);
 
-  const setShowInterventions = useCallback((show: boolean) => {
-    setFilters((prev) => ({ ...prev, showInterventions: show }));
-  }, []);
+  const setSearchQueryCb = useCallback((query: string) => setSearchQuery(query), []);
 
-  const setShowPrices = useCallback((show: boolean) => {
-    setFilters((prev) => ({ ...prev, showPrices: show }));
-  }, []);
+  const setShowInterventions = useCallback(
+    (show: boolean) => setPersisted({ ...safePersisted, showInterventions: show }),
+    [safePersisted, setPersisted],
+  );
+
+  const setShowPrices = useCallback(
+    (show: boolean) => setPersisted({ ...safePersisted, showPrices: show }),
+    [safePersisted, setPersisted],
+  );
 
   const clearFilters = useCallback(() => {
-    setFilters(DEFAULT_FILTERS);
-  }, []);
+    setPersisted(DEFAULT_PERSISTED);
+    setPropertyIds([]);
+    setSearchQuery('');
+  }, [setPersisted]);
 
-  const hasActiveFilters = filters.statuses.length > 0
+  const hasActiveFilters =
+    filters.statuses.length > 0
     || filters.interventionTypes.length > 0
     || filters.propertyIds.length > 0
     || filters.searchQuery.length > 0
@@ -127,28 +120,25 @@ export function usePlanningFilters(
   const filteredEvents = useMemo(() => {
     let result = events;
 
-    // Filter by status
     if (filters.statuses.length > 0) {
       result = result.filter((e) =>
         e.type !== 'reservation' || filters.statuses.includes(e.status as ReservationStatus),
       );
     }
 
-    // Filter by intervention type
     if (!filters.showInterventions) {
       result = result.filter((e) => e.type === 'reservation');
     } else if (filters.interventionTypes.length > 0) {
       result = result.filter((e) =>
-        e.type === 'reservation' || filters.interventionTypes.includes(e.type as PlanningInterventionType),
+        e.type === 'reservation'
+        || filters.interventionTypes.includes(e.type as PlanningInterventionType),
       );
     }
 
-    // Filter by property
     if (filters.propertyIds.length > 0) {
       result = result.filter((e) => filters.propertyIds.includes(e.propertyId));
     }
 
-    // Filter by search query
     if (filters.searchQuery) {
       const q = filters.searchQuery.toLowerCase();
       result = result.filter((e) =>
@@ -170,7 +160,7 @@ export function usePlanningFilters(
     setStatusFilter,
     setInterventionTypeFilter,
     setPropertyFilter,
-    setSearchQuery,
+    setSearchQuery: setSearchQueryCb,
     setShowInterventions,
     setShowPrices,
     clearFilters,

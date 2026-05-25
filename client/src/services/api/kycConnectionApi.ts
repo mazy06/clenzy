@@ -3,11 +3,7 @@
  * Routes /api/integrations/kyc/{provider}/{connect,status,disconnect}.
  */
 import { API_CONFIG } from '../../config/api';
-import { getItem, STORAGE_KEYS } from '../storageService';
-
-function getAccessToken(): string | null {
-  return getItem(STORAGE_KEYS.ACCESS_TOKEN);
-}
+import { getAccessToken } from '../../keycloak';
 
 export type KycProvider = 'SUMSUB' | 'VERIFF' | 'ONFIDO';
 

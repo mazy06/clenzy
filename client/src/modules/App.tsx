@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTokenManagement } from '../hooks/useTokenManagement';
 import { configureConsole } from '../config/console';
 import { CustomPermissionsProvider } from '../hooks/useCustomPermissions';
+import { UserUiPreferencesProvider } from '../providers/UserUiPreferencesProvider';
 import { usePostHogIdentify, usePostHogPageTracking } from '../providers/PostHogProvider';
 import { useCrispIdentify } from '../hooks/useCrispIdentify';
 import Login from './auth/Login';
@@ -18,7 +19,7 @@ import AcceptInvitationPage from './invitations/AcceptInvitationPage';
 import PublicKeyVerification from '../pages/PublicKeyVerification';
 import MainLayoutFull from './layout/MainLayoutFull';
 import AuthenticatedApp from './AuthenticatedApp';
-import { clearTokens, setItem, STORAGE_KEYS } from '../services/storageService';
+import { clearTokens } from '../services/storageService';
 
 // Routes publiques accessibles sans authentification
 const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/support', '/accept-invitation'];
@@ -183,13 +184,10 @@ const App: React.FC = () => {
             // Vérifier la santé du token
             checkTokenHealth();
 
-            // Sauvegarder les tokens en localStorage
-            if (keycloak.token) {
-              setItem(STORAGE_KEYS.ACCESS_TOKEN, keycloak.token);
-            }
-            if (keycloak.refreshToken) {
-              setItem(STORAGE_KEYS.REFRESH_TOKEN, keycloak.refreshToken);
-            }
+            // SECURITE (CLAUDE.md regle #7) : les tokens ne sont PLUS persistes
+            // en localStorage. Source unique : cookie HttpOnly `clenzy_auth`
+            // (cf. TokenCookieFilter + AuthSessionController) + keycloak.token
+            // en memoire.
           } else {
             setInitialized(true);
             setAuthenticated(false);
@@ -227,6 +225,7 @@ const App: React.FC = () => {
   // Rendu de l'application avec routage
   return (
     <CustomPermissionsProvider>
+      <UserUiPreferencesProvider>
         <Routes>
           {/* Route publique pour le login */}
           <Route
@@ -313,6 +312,7 @@ const App: React.FC = () => {
           } 
         />
         </Routes>
+      </UserUiPreferencesProvider>
     </CustomPermissionsProvider>
   );
 };

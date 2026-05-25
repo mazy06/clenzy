@@ -111,22 +111,20 @@ function AppWithTheme() {
 
   return (
     <CacheProvider value={emotionCache}>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider theme={currentTheme}>
-          <CssBaseline />
-          <CurrencyProvider>
-            <GeoDetectionInitializer>
-              <NotificationProvider>
-                <ThemeSafetyWrapper>
-                  <BrowserRouter>
-                    <App />
-                  </BrowserRouter>
-                </ThemeSafetyWrapper>
-              </NotificationProvider>
-            </GeoDetectionInitializer>
-          </CurrencyProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
+      <ThemeProvider theme={currentTheme}>
+        <CssBaseline />
+        <CurrencyProvider>
+          <GeoDetectionInitializer>
+            <NotificationProvider>
+              <ThemeSafetyWrapper>
+                <BrowserRouter>
+                  <App />
+                </BrowserRouter>
+              </ThemeSafetyWrapper>
+            </NotificationProvider>
+          </GeoDetectionInitializer>
+        </CurrencyProvider>
+      </ThemeProvider>
     </CacheProvider>
   );
 }
@@ -137,10 +135,17 @@ function GeoDetectionInitializer({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// QueryClientProvider est place en racine (avant ThemeModeProvider) car
+// ThemeModeProvider utilise useUserPreferences (react-query) pour sync le
+// theme avec user_preferences.theme_mode cote backend. CurrencyProvider
+// utilise aussi useUserPreferences, mais il est plus profond dans l'arbre
+// donc le QueryClient l'enveloppe deja naturellement.
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ThemeModeProvider>
-      <AppWithTheme />
-    </ThemeModeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeModeProvider>
+        <AppWithTheme />
+      </ThemeModeProvider>
+    </QueryClientProvider>
   </React.StrictMode>
 )
