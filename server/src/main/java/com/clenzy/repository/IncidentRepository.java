@@ -49,4 +49,7 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     List<Incident> findActiveSince(@Param("since") LocalDateTime since);
 
     long countByStatus(Incident.IncidentStatus status);
+
+    long countByStatusAndSeverity(
+            Incident.IncidentStatus status, Incident.IncidentSeverity severity);
 }
