@@ -26,9 +26,38 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Active immediatement le nouveau service worker sans attendre la
+        // fermeture de tous les onglets, ET prend le controle des onglets deja
+        // ouverts. Sans ces deux flags, l'utilisateur devait hard refresh
+        // apres chaque deploy pour voir la nouvelle version (le vieux SW
+        // continuait a servir l'ancien index.html depuis son cache).
+        skipWaiting: true,
+        clientsClaim: true,
+        // Cleanup des caches obsoletes au boot du nouveau SW (chunks JS d'une
+        // ancienne version qui ne sont plus referenced par le nouvel index.html).
+        cleanupOutdatedCaches: true,
+        // Strategie reseau-d'abord pour index.html : le SW tente le reseau
+        // (3s timeout) avant de tomber sur son cache. Garantit qu'un user
+        // online recoit toujours la derniere version.
+        navigateFallback: '/index.html',
+        navigationPreload: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MiB — index.js a depasse 3 MB suite aux ajouts payments+payouts P1/P2 (TODO: lazy-load PayoutMethodEditDialog + PaymentProviderConfigDialog via React.lazy pour reduire le bundle initial)
         runtimeCaching: [
+          {
+            // index.html : NetworkFirst avec fallback cache si offline.
+            // Empeche le cache aggresif du SW de servir l'ancien HTML apres deploy.
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-cache',
+              networkTimeoutSeconds: 3,
+              expiration: {
+                maxEntries: 5,
+                maxAgeSeconds: 60 * 60 * 24, // 1 jour max en fallback offline
+              },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
