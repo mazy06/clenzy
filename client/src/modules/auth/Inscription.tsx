@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box,
-  Paper,
   TextField,
   Button,
   Typography,
@@ -17,8 +16,6 @@ import {
   Divider,
   ToggleButtonGroup,
   ToggleButton,
-  ThemeProvider,
-  CssBaseline,
   Card,
   CardContent,
 } from '@mui/material';
@@ -31,9 +28,8 @@ import {
 } from '../../icons';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
-import lightTheme from '../../theme/theme';
-import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
+import AuthLayout from './AuthLayout';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -329,32 +325,8 @@ export default function Inscription() {
   };
 
   return (
-    <ThemeProvider theme={lightTheme}>
-      <CssBaseline />
-    <Box sx={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)',
-      p: 2,
-    }}>
-      <Paper elevation={8} sx={{
-        p: { xs: 3, sm: 4 },
-        width: '100%',
-        maxWidth: activeStep === 1 ? 960 : 640,
-        borderRadius: 3,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        transition: 'max-width 0.3s ease',
-      }}>
-        {/* Logo animé */}
-        <Box sx={{ textAlign: 'center', mb: 2 }}>
-          <ClenzyAnimatedLogo scale={1.1} />
-        </Box>
-
-        {/* Badge forfait selectionne */}
+    <AuthLayout maxFormWidth={activeStep === 1 ? 880 : 560}>
+      {/* Badge forfait selectionne */}
         {prefill.forfait && (
           <Box sx={{ textAlign: 'center', mb: 2 }}>
             <Chip
@@ -774,8 +746,6 @@ export default function Inscription() {
             </Typography>
           </Box>
         )}
-      </Paper>
-    </Box>
-    </ThemeProvider>
+    </AuthLayout>
   );
 }
