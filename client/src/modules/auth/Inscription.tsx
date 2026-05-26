@@ -30,6 +30,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import apiClient, { ApiError } from '../../services/apiClient';
 import AuthLayout from './AuthLayout';
+import OptionCard from './OptionCard';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -56,6 +57,18 @@ const ORG_TYPE_LABELS: Record<OrganizationTypeKey, string> = {
   INDIVIDUAL: 'Particulier',
   CONCIERGE: 'Conciergerie',
   CLEANING_COMPANY: 'Societe de menage',
+};
+
+const ORG_TYPE_DESCRIPTIONS: Record<OrganizationTypeKey, string> = {
+  INDIVIDUAL: 'Je gère mes propres locations',
+  CONCIERGE: 'J\'opère pour des propriétaires tiers',
+  CLEANING_COMPANY: 'Service ménage / multi-services',
+};
+
+const FORFAIT_TAGLINES: Record<string, string> = {
+  essentiel: 'Pour débuter sereinement',
+  confort: 'Le plus choisi',
+  premium: 'Tout inclus, sans limite',
 };
 
 /** Prix de base par forfait (aligné avec la landing page) */
@@ -423,32 +436,39 @@ export default function Inscription() {
 
             {/* Selection du type d'organisation */}
             <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5, display: 'block' }}>
-                Vous etes
+              <Typography
+                variant="overline"
+                sx={{
+                  fontWeight: 700,
+                  color: 'text.secondary',
+                  letterSpacing: 0.6,
+                  fontSize: '0.7rem',
+                  display: 'block',
+                  mb: 1,
+                }}
+              >
+                Vous êtes
               </Typography>
-              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+                  gap: 1.5,
+                }}
+              >
                 {(['INDIVIDUAL', 'CONCIERGE', 'CLEANING_COMPANY'] as const).map((t) => (
-                  <Chip
+                  <OptionCard
                     key={t}
-                    label={ORG_TYPE_LABELS[t]}
-                    clickable
+                    selected={organizationType === t}
                     onClick={() => {
                       setOrganizationType(t);
                       if (t === 'INDIVIDUAL') setCompanyName('');
                     }}
-                    sx={{
-                      backgroundColor: organizationType === t ? '#6B8A9A' : 'transparent',
-                      color: organizationType === t ? '#fff' : 'text.primary',
-                      fontWeight: organizationType === t ? 600 : 400,
-                      border: '1px solid',
-                      borderColor: organizationType === t ? 'transparent' : 'grey.300',
-                      '&:hover': {
-                        backgroundColor: organizationType === t ? '#6B8A9A' : 'grey.100',
-                      },
-                    }}
+                    label={ORG_TYPE_LABELS[t]}
+                    description={ORG_TYPE_DESCRIPTIONS[t]}
                   />
                 ))}
-              </Stack>
+              </Box>
             </Box>
 
             {/* Nom de la societe (conditionnel, requis pour type pro) */}
@@ -467,37 +487,50 @@ export default function Inscription() {
 
             {/* Selection du forfait si non pre-rempli */}
             {!prefill.forfait && (
-              <>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+              <Box>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    fontWeight: 700,
+                    color: 'text.secondary',
+                    letterSpacing: 0.6,
+                    fontSize: '0.7rem',
+                    display: 'block',
+                    mb: 1,
+                  }}
+                >
                   Choisissez votre forfait *
                 </Typography>
-                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+                    gap: 1.5,
+                  }}
+                >
                   {(['essentiel', 'confort', 'premium'] as const).map((f) => (
-                    <Chip
+                    <OptionCard
                       key={f}
-                      label={FORFAIT_LABELS[f]}
-                      clickable
+                      selected={forfait === f}
                       onClick={() => setForfait(f)}
-                      sx={{
-                        backgroundColor: forfait === f ? (FORFAIT_COLORS[f] || '#6B8A9A') : 'transparent',
-                        color: forfait === f ? '#fff' : 'text.primary',
-                        fontWeight: forfait === f ? 600 : 400,
-                        border: '1px solid',
-                        borderColor: forfait === f ? 'transparent' : 'grey.300',
-                        '&:hover': {
-                          backgroundColor: forfait === f ? (FORFAIT_COLORS[f] || '#6B8A9A') : 'grey.100',
-                        },
-                      }}
+                      label={FORFAIT_LABELS[f].replace('Forfait ', '')}
+                      description={FORFAIT_TAGLINES[f]}
+                      hint={
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 600,
+                            color: forfait === f ? 'primary.main' : 'text.secondary',
+                            fontSize: '0.75rem',
+                          }}
+                        >
+                          dès {FORFAIT_BASE_PRICES[f]}€/intervention
+                        </Typography>
+                      }
                     />
                   ))}
-                </Stack>
-                {forfait && (
-                  <Typography variant="caption" color="text.secondary">
-                    {getInterventionPriceLabel(forfait)}
-                  </Typography>
-                )}
-              </>
+                </Box>
+              </Box>
             )}
 
             {/* Selection de la periode de facturation */}
