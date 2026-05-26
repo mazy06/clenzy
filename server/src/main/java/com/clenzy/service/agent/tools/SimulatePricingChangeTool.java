@@ -110,6 +110,7 @@ public class SimulatePricingChangeTool implements ToolHandler {
         payload.put("propertyName", r.propertyName());
         payload.put("pctChange", round(r.pctChange(), 4));
         payload.put("elasticity", r.elasticity());
+        payload.put("elasticitySource", r.elasticitySource());
         payload.put("from", r.from().toString());
         payload.put("to", r.to().toString());
         payload.put("simulationDays", r.simulationDays());

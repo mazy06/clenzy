@@ -21,13 +21,21 @@ class SimulationServiceTest {
 
     private ReservationService reservationService;
     private PropertyService propertyService;
+    private com.clenzy.repository.PropertyPricingConfigRepository pricingConfigRepository;
+    private com.clenzy.repository.PropertyElasticityEstimateRepository elasticityEstimateRepository;
     private SimulationService service;
 
     @BeforeEach
     void setUp() {
         reservationService = mock(ReservationService.class);
         propertyService = mock(PropertyService.class);
-        service = new SimulationService(reservationService, propertyService);
+        pricingConfigRepository = mock(com.clenzy.repository.PropertyPricingConfigRepository.class);
+        elasticityEstimateRepository = mock(com.clenzy.repository.PropertyElasticityEstimateRepository.class);
+        // Par defaut : pas d'override + pas de cache empirique → DEFAULT_ELASTICITY
+        when(pricingConfigRepository.findByPropertyId(any())).thenReturn(java.util.Optional.empty());
+        when(elasticityEstimateRepository.findByPropertyId(any())).thenReturn(java.util.Optional.empty());
+        service = new SimulationService(reservationService, propertyService,
+                pricingConfigRepository, elasticityEstimateRepository);
     }
 
     private static PropertyDto property(Long id, String name, double nightlyPrice) {
@@ -332,5 +340,91 @@ class SimulationServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> service.simulateCalendarBlock("u", 1L,
                         LocalDate.now().plusDays(10), LocalDate.now()));
+    }
+
+    // ─── resolveElasticity : ordre override > empirique > default ───────────
+
+    @Test
+    void pricingChange_defaultElasticity_whenNoOverrideAndNoEmpirical() {
+        when(propertyService.getById(1L)).thenReturn(property(1L, "P", 100));
+        when(reservationService.getReservations(any(), any(), any(), any()))
+                .thenReturn(syntheticHistory(90, 100));
+
+        var result = service.simulatePricingChange("u", 1L, -0.10,
+                LocalDate.now(), LocalDate.now().plusDays(30));
+
+        assertEquals(0.5, result.elasticity(), 0.0001);
+        assertEquals("default", result.elasticitySource());
+    }
+
+    @Test
+    void pricingChange_usesOverride_whenPropertyPricingConfigPresent() {
+        when(propertyService.getById(1L)).thenReturn(property(1L, "P", 100));
+        when(reservationService.getReservations(any(), any(), any(), any()))
+                .thenReturn(syntheticHistory(90, 100));
+
+        com.clenzy.model.PropertyPricingConfig cfg = new com.clenzy.model.PropertyPricingConfig(1L, 0.8);
+        when(pricingConfigRepository.findByPropertyId(1L)).thenReturn(java.util.Optional.of(cfg));
+
+        var result = service.simulatePricingChange("u", 1L, -0.10,
+                LocalDate.now(), LocalDate.now().plusDays(30));
+
+        assertEquals(0.8, result.elasticity(), 0.0001);
+        assertEquals("override_manual", result.elasticitySource());
+        // L'empirique ne doit meme pas etre consulte
+        verify(elasticityEstimateRepository, never()).findByPropertyId(any());
+    }
+
+    @Test
+    void pricingChange_usesEmpirical_whenSampleSizeSufficient() {
+        when(propertyService.getById(1L)).thenReturn(property(1L, "P", 100));
+        when(reservationService.getReservations(any(), any(), any(), any()))
+                .thenReturn(syntheticHistory(90, 100));
+
+        com.clenzy.model.PropertyElasticityEstimate est =
+                new com.clenzy.model.PropertyElasticityEstimate(1L, 0.65, 5);
+        when(elasticityEstimateRepository.findByPropertyId(1L))
+                .thenReturn(java.util.Optional.of(est));
+
+        var result = service.simulatePricingChange("u", 1L, -0.10,
+                LocalDate.now(), LocalDate.now().plusDays(30));
+
+        assertEquals(0.65, result.elasticity(), 0.0001);
+        assertEquals("empirical_12mo", result.elasticitySource());
+    }
+
+    @Test
+    void pricingChange_ignoresEmpirical_whenSampleSizeBelowThreshold() {
+        when(propertyService.getById(1L)).thenReturn(property(1L, "P", 100));
+        when(reservationService.getReservations(any(), any(), any(), any()))
+                .thenReturn(syntheticHistory(90, 100));
+
+        // sampleSize=2 < 3 → ignore, fallback default
+        com.clenzy.model.PropertyElasticityEstimate weak =
+                new com.clenzy.model.PropertyElasticityEstimate(1L, 1.2, 2);
+        when(elasticityEstimateRepository.findByPropertyId(1L))
+                .thenReturn(java.util.Optional.of(weak));
+
+        var result = service.simulatePricingChange("u", 1L, -0.10,
+                LocalDate.now(), LocalDate.now().plusDays(30));
+
+        assertEquals(0.5, result.elasticity(), 0.0001);
+        assertEquals("default", result.elasticitySource());
+    }
+
+    @Test
+    void pricingChange_overrideRepoFailure_fallsBackGracefully() {
+        when(propertyService.getById(1L)).thenReturn(property(1L, "P", 100));
+        when(reservationService.getReservations(any(), any(), any(), any()))
+                .thenReturn(syntheticHistory(90, 100));
+        when(pricingConfigRepository.findByPropertyId(1L))
+                .thenThrow(new RuntimeException("DB down"));
+
+        // Ne doit pas casser la simulation — fallback empirique puis default
+        var result = service.simulatePricingChange("u", 1L, -0.10,
+                LocalDate.now(), LocalDate.now().plusDays(30));
+
+        assertEquals(0.5, result.elasticity(), 0.0001);
+        assertEquals("default", result.elasticitySource());
     }
 }

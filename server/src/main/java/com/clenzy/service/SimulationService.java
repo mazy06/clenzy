@@ -1,7 +1,11 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.PropertyDto;
+import com.clenzy.model.PropertyElasticityEstimate;
+import com.clenzy.model.PropertyPricingConfig;
 import com.clenzy.model.Reservation;
+import com.clenzy.repository.PropertyElasticityEstimateRepository;
+import com.clenzy.repository.PropertyPricingConfigRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -13,6 +17,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Simulations what-if pour les decisions strategiques pricing/blocage.
@@ -38,18 +43,26 @@ public class SimulationService {
 
     private static final Logger log = LoggerFactory.getLogger(SimulationService.class);
 
-    /** Elasticite prix-demande : 10% de baisse de prix → 5% de hausse occupation. */
-    private static final double DEFAULT_ELASTICITY = 0.5;
+    /** Elasticite par defaut : 10% de baisse de prix → 5% de hausse occupation. */
+    static final double DEFAULT_ELASTICITY = 0.5;
+    /** Sample size minimum pour qu'une estimation empirique soit consideree fiable. */
+    private static final int MIN_EMPIRICAL_SAMPLE = 3;
     private static final int HISTORICAL_WINDOW_MONTHS = 6;
     private static final String CANCELLED_STATUS = "cancelled";
 
     private final ReservationService reservationService;
     private final PropertyService propertyService;
+    private final PropertyPricingConfigRepository pricingConfigRepository;
+    private final PropertyElasticityEstimateRepository elasticityEstimateRepository;
 
     public SimulationService(ReservationService reservationService,
-                              PropertyService propertyService) {
+                              PropertyService propertyService,
+                              PropertyPricingConfigRepository pricingConfigRepository,
+                              PropertyElasticityEstimateRepository elasticityEstimateRepository) {
         this.reservationService = reservationService;
         this.propertyService = propertyService;
+        this.pricingConfigRepository = pricingConfigRepository;
+        this.elasticityEstimateRepository = elasticityEstimateRepository;
     }
 
     /**
@@ -83,6 +96,8 @@ public class SimulationService {
         long simulationDays = ChronoUnit.DAYS.between(from, to) + 1; // inclusif
         if (simulationDays <= 0) simulationDays = 1;
 
+        ElasticityResolution elasticity = resolveElasticity(propertyId);
+
         // Baseline : on projette la performance recente sur la fenetre cible
         double adr = hist.adr(property.nightlyPrice);
         double baselineOccupancy = hist.occupancyRate();
@@ -90,9 +105,9 @@ public class SimulationService {
         BigDecimal baselineRevenue = BigDecimal.valueOf(adr * baselineNights)
                 .setScale(2, RoundingMode.HALF_UP);
 
-        // Scenario : occupancy varie avec l'elasticite, ADR varie avec le pctChange
+        // Scenario : occupancy varie avec l'elasticite resolue, ADR varie avec le pctChange
         double newOccupancy = Math.max(0.0, Math.min(1.0,
-                baselineOccupancy * (1.0 - clampedChange * DEFAULT_ELASTICITY)));
+                baselineOccupancy * (1.0 - clampedChange * elasticity.value())));
         double newAdr = adr * (1.0 + clampedChange);
         long scenarioNights = Math.round(newOccupancy * simulationDays);
         BigDecimal scenarioRevenue = BigDecimal.valueOf(newAdr * scenarioNights)
@@ -104,9 +119,9 @@ public class SimulationService {
                 ? 0.0
                 : deltaRevenue.doubleValue() / baselineRevenue.doubleValue();
 
-        log.debug("simulatePricingChange propertyId={} pct={} : ADR {}→{} occ {}→{} rev {}→{}",
-                propertyId, clampedChange, adr, newAdr,
-                baselineOccupancy, newOccupancy, baselineRevenue, scenarioRevenue);
+        log.debug("simulatePricingChange propertyId={} pct={} elasticity={} ({}) : ADR {}→{} occ {}→{} rev {}→{}",
+                propertyId, clampedChange, elasticity.value(), elasticity.source(),
+                adr, newAdr, baselineOccupancy, newOccupancy, baselineRevenue, scenarioRevenue);
 
         Scenario baseline = new Scenario(adr, baselineOccupancy, baselineNights, baselineRevenue);
         Scenario scenario = new Scenario(newAdr, newOccupancy, scenarioNights, scenarioRevenue);
@@ -114,10 +129,48 @@ public class SimulationService {
         return new PricingChangeResult(
                 property.id, property.name, clampedChange,
                 from, to, simulationDays,
-                DEFAULT_ELASTICITY,
+                elasticity.value(), elasticity.source().label,
                 baseline, scenario,
                 deltaRevenue, deltaOccupancy, pctRevenueChange,
                 recommendation(clampedChange, pctRevenueChange, deltaOccupancy));
+    }
+
+    /**
+     * Resolution de l'elasticite a appliquer pour une propriete.
+     * Ordre de priorite :
+     * <ol>
+     *   <li>Override manuel ({@link PropertyPricingConfig#getElasticityOverride()})</li>
+     *   <li>Estimation empirique cachee ({@link PropertyElasticityEstimate}) si
+     *       {@code sampleSize >= 3}</li>
+     *   <li>{@link #DEFAULT_ELASTICITY}</li>
+     * </ol>
+     *
+     * <p>Echec silencieux : si les repos cassent, on revient au default — la
+     * simulation reste utilisable.</p>
+     */
+    ElasticityResolution resolveElasticity(Long propertyId) {
+        try {
+            Optional<PropertyPricingConfig> override = pricingConfigRepository.findByPropertyId(propertyId);
+            if (override.isPresent() && override.get().getElasticityOverride() != null) {
+                return new ElasticityResolution(override.get().getElasticityOverride(),
+                        ElasticitySource.OVERRIDE);
+            }
+        } catch (Exception e) {
+            log.debug("resolveElasticity: override lookup failed for {} : {}",
+                    propertyId, e.getMessage());
+        }
+        try {
+            Optional<PropertyElasticityEstimate> estimate =
+                    elasticityEstimateRepository.findByPropertyId(propertyId);
+            if (estimate.isPresent() && estimate.get().getSampleSize() >= MIN_EMPIRICAL_SAMPLE) {
+                return new ElasticityResolution(estimate.get().getElasticityValue(),
+                        ElasticitySource.EMPIRICAL);
+            }
+        } catch (Exception e) {
+            log.debug("resolveElasticity: empirical lookup failed for {} : {}",
+                    propertyId, e.getMessage());
+        }
+        return new ElasticityResolution(DEFAULT_ELASTICITY, ElasticitySource.DEFAULT);
     }
 
     /**
@@ -274,11 +327,28 @@ public class SimulationService {
     public record PricingChangeResult(
             Long propertyId, String propertyName, double pctChange,
             LocalDate from, LocalDate to, long simulationDays,
-            double elasticity,
+            double elasticity, String elasticitySource,
             Scenario baseline, Scenario scenario,
             BigDecimal deltaRevenue, double deltaOccupancy, double pctRevenueChange,
             String recommendation
     ) {}
+
+    /**
+     * Indique d'ou vient l'elasticite appliquee — propage au caller pour
+     * affichage et debug (le tool peut mentionner "estimee empiriquement
+     * sur 12 mois" au LLM).
+     */
+    public enum ElasticitySource {
+        OVERRIDE("override_manual"),
+        EMPIRICAL("empirical_12mo"),
+        DEFAULT("default");
+
+        public final String label;
+        ElasticitySource(String label) { this.label = label; }
+    }
+
+    /** Resultat de {@link #resolveElasticity(Long)}, package-private pour tests. */
+    record ElasticityResolution(double value, ElasticitySource source) {}
 
     public record CalendarBlockResult(
             Long propertyId, String propertyName,

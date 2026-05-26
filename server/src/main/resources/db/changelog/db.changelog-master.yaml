@@ -1375,3 +1375,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0147 : Pricing config par propriete + cache d'estimation empirique ---
+  - changeSet:
+      id: "0147-add-property-pricing-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0147__add_property_pricing_config.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

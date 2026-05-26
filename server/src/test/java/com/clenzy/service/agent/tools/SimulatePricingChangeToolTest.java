@@ -39,7 +39,8 @@ class SimulatePricingChangeToolTest {
         return new SimulationService.PricingChangeResult(
                 1L, "Loft Paris", pctFraction,
                 LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 30), 30L,
-                0.5, baseline, scenario,
+                0.5, "default",
+                baseline, scenario,
                 new BigDecimal("-60.00"), 0.025, -0.04,
                 "Impact modere — surveiller la concurrence");
     }
@@ -71,6 +72,7 @@ class SimulatePricingChangeToolTest {
         assertEquals(1L, payload.path("propertyId").asLong());
         assertEquals(-0.10, payload.path("pctChange").asDouble(), 0.001);
         assertEquals(0.5, payload.path("elasticity").asDouble(), 0.001);
+        assertEquals("default", payload.path("elasticitySource").asText());
         assertEquals(1500.0, payload.path("baseline").path("revenue").asDouble(), 0.01);
         assertEquals(1440.0, payload.path("scenario").path("revenue").asDouble(), 0.01);
         assertEquals(-60.0, payload.path("deltaRevenue").asDouble(), 0.01);
