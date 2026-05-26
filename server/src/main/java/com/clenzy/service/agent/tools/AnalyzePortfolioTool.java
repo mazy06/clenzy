@@ -11,6 +11,9 @@ import com.clenzy.service.agent.AgentContext;
 import com.clenzy.service.agent.ToolExecutionException;
 import com.clenzy.service.agent.ToolHandler;
 import com.clenzy.service.agent.ToolResult;
+import com.clenzy.service.agent.portfolio.PortfolioConfig;
+import com.clenzy.service.agent.portfolio.PortfolioPatternDetector;
+import com.clenzy.service.agent.portfolio.PortfolioPatternEvaluator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,30 +26,26 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
  * Tool {@code analyze_portfolio} — vue d'ensemble cross-property du portefeuille
  * de l'organisation sur une fenetre temporelle (defaut 30 jours).
  *
- * <p>Agrege par propriete :
+ * <p><b>Architecture</b> :
  * <ul>
- *   <li>Revenue : somme des {@code Reservation.totalPrice} sur la fenetre (statut != cancelled)</li>
- *   <li>Occupancy : nuits reservees / nuits potentielles</li>
- *   <li>Cancellation rate : reservations cancelled / total</li>
- *   <li>Rating moyen : via {@link GuestReviewRepository#averageRatingByPropertyId}</li>
- * </ul>
- *
- * <p>Detecte ensuite des patterns cross-portfolio :
- * <ul>
- *   <li>Top 3 par revenue</li>
- *   <li>Sous-performants : occupancy &lt; {@value #UNDERPERFORM_OCCUPANCY_THRESHOLD}</li>
- *   <li>Forte volatilite : cancellation rate &gt; {@value #VOLATILITY_CANCEL_THRESHOLD}</li>
- *   <li>Hot spots : villes avec rating moyen &lt; {@value #LOW_RATING_THRESHOLD}</li>
+ *   <li>Seuils metier externalises dans {@link PortfolioConfig} (properties Spring,
+ *       overridables par env)</li>
+ *   <li>Patterns externalises dans {@code resources/patterns/portfolio.yaml} via
+ *       {@link PortfolioPatternEvaluator} — ajouter/desactiver un pattern = YAML</li>
+ *   <li>Comparaison periode vs periode optionnelle (arg {@code comparePrevious}) :
+ *       on re-fetch la fenetre precedente de meme duree et on calcule les deltas</li>
  * </ul>
  *
  * <p>Read-only, pas de confirmation requise.</p>
@@ -58,25 +57,27 @@ public class AnalyzePortfolioTool implements ToolHandler {
     private static final String NAME = "analyze_portfolio";
     private static final int DEFAULT_DAYS_BACK = 30;
     private static final int MAX_DAYS_BACK = 365;
-    private static final int TOP_N = 3;
-    private static final double UNDERPERFORM_OCCUPANCY_THRESHOLD = 0.50;
-    private static final double VOLATILITY_CANCEL_THRESHOLD = 0.20;
-    private static final double LOW_RATING_THRESHOLD = 3.5;
     private static final String CANCELLED_STATUS = "cancelled";
 
     private final PropertyService propertyService;
     private final ReservationService reservationService;
     private final GuestReviewRepository guestReviewRepository;
+    private final PortfolioConfig portfolioConfig;
+    private final PortfolioPatternEvaluator patternEvaluator;
     private final ObjectMapper objectMapper;
     private final ToolDescriptor descriptor;
 
     public AnalyzePortfolioTool(PropertyService propertyService,
                                   ReservationService reservationService,
                                   GuestReviewRepository guestReviewRepository,
+                                  PortfolioConfig portfolioConfig,
+                                  PortfolioPatternEvaluator patternEvaluator,
                                   ObjectMapper objectMapper) {
         this.propertyService = propertyService;
         this.reservationService = reservationService;
         this.guestReviewRepository = guestReviewRepository;
+        this.portfolioConfig = portfolioConfig;
+        this.patternEvaluator = patternEvaluator;
         this.objectMapper = objectMapper;
         this.descriptor = buildDescriptor(objectMapper);
     }
@@ -95,55 +96,40 @@ public class AnalyzePortfolioTool implements ToolHandler {
     public ToolResult execute(JsonNode args, AgentContext context) {
         int daysBack = Math.min(MAX_DAYS_BACK,
                 Math.max(1, args.path("daysBack").asInt(DEFAULT_DAYS_BACK)));
+        // comparePrevious : defaut true (compute deltas vs periode N-1)
+        boolean comparePrevious = !args.has("comparePrevious")
+                || args.path("comparePrevious").asBoolean(true);
 
         LocalDate to = LocalDate.now();
         LocalDate from = to.minusDays(daysBack);
 
         try {
-            // 1. Toutes les proprietes de l'org
             List<PropertyDto> properties = propertyService.list();
             if (properties == null || properties.isEmpty()) {
-                return ToolResult.success(
-                        emptyPayloadJson(daysBack, from, to),
+                return ToolResult.success(emptyPayloadJson(daysBack, from, to),
                         "portfolio_overview");
             }
 
-            // 2. Toutes les reservations de l'user/role sur la fenetre
-            List<Reservation> reservations = reservationService.getReservations(
-                    context.keycloakId(), null, from, to);
+            // Phase 1 : metriques periode courante
+            Map<Long, PropertyMetrics> currentMetrics = computeMetrics(
+                    context, properties, from, to);
 
-            // 3. Aggregate par propertyId
-            Map<Long, PropertyMetrics> metricsById = new HashMap<>();
-            for (PropertyDto p : properties) {
-                if (p.id == null) continue;
-                metricsById.put(p.id, new PropertyMetrics(p));
-            }
-
-            for (Reservation r : reservations) {
-                if (r.getProperty() == null || r.getProperty().getId() == null) continue;
-                PropertyMetrics m = metricsById.get(r.getProperty().getId());
-                if (m == null) continue;
-                m.totalReservations++;
-                if (CANCELLED_STATUS.equalsIgnoreCase(r.getStatus())) {
-                    m.cancelledReservations++;
-                    continue;
+            // Phase 2 (optionnelle) : metriques periode precedente pour les deltas
+            PeriodAggregates previousAggregates = null;
+            if (comparePrevious) {
+                LocalDate prevTo = from;
+                LocalDate prevFrom = prevTo.minusDays(daysBack);
+                try {
+                    Map<Long, PropertyMetrics> previousMetrics = computeMetrics(
+                            context, properties, prevFrom, prevTo);
+                    previousAggregates = aggregate(previousMetrics.values(), daysBack);
+                } catch (Exception e) {
+                    log.debug("analyze_portfolio : compare previous skipped — {}", e.getMessage());
                 }
-                if (r.getTotalPrice() != null) {
-                    m.revenue = m.revenue.add(r.getTotalPrice());
-                }
-                m.bookedNights += nightsInWindow(r, from, to);
             }
 
-            // 4. Enrichir avec rating (par propriete, depuis le repo)
-            for (PropertyMetrics m : metricsById.values()) {
-                Double avg = guestReviewRepository.averageRatingByPropertyId(
-                        m.property.id, context.organizationId());
-                if (avg != null) m.avgRating = avg;
-            }
-
-            // 5. KPI globaux + categorisation
             return ToolResult.success(
-                    buildPayloadJson(metricsById.values(), daysBack, from, to),
+                    buildPayloadJson(currentMetrics.values(), daysBack, from, to, previousAggregates),
                     "portfolio_overview");
         } catch (JsonProcessingException e) {
             throw new ToolExecutionException(NAME, "Failed to serialize portfolio payload", e);
@@ -155,9 +141,46 @@ public class AnalyzePortfolioTool implements ToolHandler {
     }
 
     /**
-     * Nombre de nuits de la reservation tombant dans la fenetre [from, to).
-     * Si le sejour deborde de la fenetre, on ne compte que la partie incluse.
+     * Calcule les metriques par propriete sur une fenetre donnee.
+     * Externalisee pour pouvoir etre reappelee sur la fenetre N-1.
      */
+    private Map<Long, PropertyMetrics> computeMetrics(AgentContext context,
+                                                        List<PropertyDto> properties,
+                                                        LocalDate from, LocalDate to) {
+        Map<Long, PropertyMetrics> metricsById = new HashMap<>();
+        for (PropertyDto p : properties) {
+            if (p.id == null) continue;
+            metricsById.put(p.id, new PropertyMetrics(p));
+        }
+
+        List<Reservation> reservations = reservationService.getReservations(
+                context.keycloakId(), null, from, to);
+        for (Reservation r : reservations) {
+            if (r.getProperty() == null || r.getProperty().getId() == null) continue;
+            PropertyMetrics m = metricsById.get(r.getProperty().getId());
+            if (m == null) continue;
+            m.totalReservations++;
+            if (CANCELLED_STATUS.equalsIgnoreCase(r.getStatus())) {
+                m.cancelledReservations++;
+                continue;
+            }
+            if (r.getTotalPrice() != null) {
+                m.revenue = m.revenue.add(r.getTotalPrice());
+            }
+            m.bookedNights += nightsInWindow(r, from, to);
+        }
+
+        // Ratings : on les ne fetch que sur la periode courante (avg global,
+        // pas par fenetre — la moyenne historique est plus stable)
+        for (PropertyMetrics m : metricsById.values()) {
+            Double avg = guestReviewRepository.averageRatingByPropertyId(
+                    m.property.id, context.organizationId());
+            if (avg != null) m.avgRating = avg;
+        }
+        return metricsById;
+    }
+
+    /** Nombre de nuits de la reservation tombant dans la fenetre [from, to). */
     private static long nightsInWindow(Reservation r, LocalDate from, LocalDate to) {
         LocalDate start = r.getCheckIn();
         LocalDate end = r.getCheckOut();
@@ -168,54 +191,58 @@ public class AnalyzePortfolioTool implements ToolHandler {
         return ChronoUnit.DAYS.between(clampedStart, clampedEnd);
     }
 
-    private String buildPayloadJson(Iterable<PropertyMetrics> metrics, int daysBack,
-                                     LocalDate from, LocalDate to) throws JsonProcessingException {
-        List<PropertyMetrics> all = new ArrayList<>();
-        metrics.forEach(all::add);
+    /** KPI globaux d'une fenetre — utilises pour calculer les deltas. */
+    private PeriodAggregates aggregate(Collection<PropertyMetrics> all, int daysBack) {
+        int activeProperties = (int) all.stream()
+                .filter(m -> m.property.status == PropertyStatus.ACTIVE)
+                .count();
+        BigDecimal totalRevenue = all.stream().map(m -> m.revenue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long bookedNightsSum = all.stream().mapToLong(m -> m.bookedNights).sum();
+        long potentialNights = (long) daysBack * Math.max(1, activeProperties);
+        double avgOccupancy = potentialNights > 0
+                ? Math.min(1.0, (double) bookedNightsSum / potentialNights)
+                : 0.0;
+        BigDecimal avgAdr = bookedNightsSum > 0
+                ? totalRevenue.divide(BigDecimal.valueOf(bookedNightsSum), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        return new PeriodAggregates(totalRevenue, avgOccupancy, avgAdr);
+    }
 
+    private String buildPayloadJson(Collection<PropertyMetrics> metrics, int daysBack,
+                                     LocalDate from, LocalDate to,
+                                     PeriodAggregates previous) throws JsonProcessingException {
+        List<PropertyMetrics> all = new ArrayList<>(metrics);
+
+        PeriodAggregates current = aggregate(all, daysBack);
         int totalProperties = all.size();
         int activeProperties = (int) all.stream()
                 .filter(m -> m.property.status == PropertyStatus.ACTIVE)
                 .count();
 
-        BigDecimal totalRevenue = all.stream()
-                .map(m -> m.revenue)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        long bookedNightsSum = all.stream().mapToLong(m -> m.bookedNights).sum();
-        // Nuits potentielles = nb de jours × nb proprietes actives (les inactives
-        // ne devraient pas penaliser l'occupancy moyenne)
-        long potentialNights = (long) daysBack * Math.max(1, activeProperties);
-        double avgOccupancy = potentialNights > 0
-                ? Math.min(1.0, (double) bookedNightsSum / potentialNights)
-                : 0.0;
-
-        // ADR = revenue / booked nights
-        BigDecimal avgAdr = bookedNightsSum > 0
-                ? totalRevenue.divide(BigDecimal.valueOf(bookedNightsSum), 2, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO;
-
-        // Top performers : tri DESC par revenue, top 3
+        // Top performers : tri DESC par revenue, topN configurable
         List<PropertyMetrics> sortedByRevenue = new ArrayList<>(all);
         sortedByRevenue.sort(Comparator.<PropertyMetrics, BigDecimal>comparing(m -> m.revenue).reversed());
         List<Map<String, Object>> topPerformers = sortedByRevenue.stream()
                 .filter(m -> m.revenue.signum() > 0)
-                .limit(TOP_N)
+                .limit(portfolioConfig.getTopN())
                 .map(m -> topPerformerItem(m, daysBack))
                 .toList();
 
-        // Sous-performants : occupancy < seuil parmi les ACTIVE (sur fenetre)
+        // Sous-performants : occupancy < seuil configurable parmi les ACTIVE
         List<Map<String, Object>> underPerformers = new ArrayList<>();
+        double underThreshold = portfolioConfig.getUnderPerformerOccupancy();
         for (PropertyMetrics m : all) {
             if (m.property.status != PropertyStatus.ACTIVE) continue;
             double occupancy = m.occupancyOn(daysBack);
-            if (occupancy < UNDERPERFORM_OCCUPANCY_THRESHOLD) {
-                underPerformers.add(underPerformerItem(m, occupancy, daysBack));
+            if (occupancy < underThreshold) {
+                underPerformers.add(underPerformerItem(m, occupancy, daysBack, underThreshold));
             }
         }
 
-        // Patterns cross
-        List<Map<String, Object>> patterns = detectPatterns(all);
+        // Patterns : delegues au evaluator (YAML + detectors strategies)
+        List<Map<String, Object>> patterns = patternEvaluator.evaluateAll(
+                new PortfolioPatternDetector.PortfolioInput(toDetectorInput(all), portfolioConfig));
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("title",
@@ -225,14 +252,46 @@ public class AnalyzePortfolioTool implements ToolHandler {
         payload.put("to", to.toString());
         payload.put("totalProperties", totalProperties);
         payload.put("activeProperties", activeProperties);
-        payload.put("totalRevenue", totalRevenue.setScale(2, RoundingMode.HALF_UP).doubleValue());
-        payload.put("avgOccupancy", round(avgOccupancy, 3));
-        payload.put("avgADR", avgAdr.doubleValue());
+        payload.put("totalRevenue", current.totalRevenue.setScale(2, RoundingMode.HALF_UP).doubleValue());
+        payload.put("avgOccupancy", round(current.avgOccupancy, 3));
+        payload.put("avgADR", current.avgAdr.doubleValue());
+        // Deltas vs periode N-1 si fournie
+        if (previous != null) {
+            Map<String, Object> deltas = new LinkedHashMap<>();
+            deltas.put("revenue", roundCurrency(
+                    current.totalRevenue.subtract(previous.totalRevenue).doubleValue()));
+            deltas.put("revenuePct", percentDelta(previous.totalRevenue.doubleValue(),
+                    current.totalRevenue.doubleValue()));
+            deltas.put("occupancyPct", round(current.avgOccupancy - previous.avgOccupancy, 3));
+            deltas.put("adr", roundCurrency(
+                    current.avgAdr.subtract(previous.avgAdr).doubleValue()));
+            deltas.put("previousPeriod", Map.of(
+                    "totalRevenue", roundCurrency(previous.totalRevenue.doubleValue()),
+                    "avgOccupancy", round(previous.avgOccupancy, 3),
+                    "avgADR", roundCurrency(previous.avgAdr.doubleValue())));
+            payload.put("deltas", deltas);
+        }
         payload.put("topPerformers", topPerformers);
         payload.put("underPerformers", underPerformers);
         payload.put("patterns", patterns);
-
         return objectMapper.writeValueAsString(payload);
+    }
+
+    private List<PortfolioPatternDetector.PropertyMetric> toDetectorInput(List<PropertyMetrics> all) {
+        List<PortfolioPatternDetector.PropertyMetric> out = new ArrayList<>(all.size());
+        for (PropertyMetrics m : all) {
+            out.add(new PortfolioPatternDetector.PropertyMetric(
+                    m.property.id,
+                    m.property.name,
+                    m.property.city,
+                    m.property.status == null ? null : m.property.status.name(),
+                    m.revenue.doubleValue(),
+                    m.bookedNights,
+                    m.totalReservations,
+                    m.cancelledReservations,
+                    m.avgRating));
+        }
+        return out;
     }
 
     private Map<String, Object> topPerformerItem(PropertyMetrics m, int daysBack) {
@@ -246,7 +305,8 @@ public class AnalyzePortfolioTool implements ToolHandler {
         return item;
     }
 
-    private Map<String, Object> underPerformerItem(PropertyMetrics m, double occupancy, int daysBack) {
+    private Map<String, Object> underPerformerItem(PropertyMetrics m, double occupancy,
+                                                     int daysBack, double threshold) {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("id", m.property.id);
         item.put("name", m.property.name);
@@ -254,71 +314,23 @@ public class AnalyzePortfolioTool implements ToolHandler {
         item.put("occupancy", round(occupancy, 3));
         item.put("reservations", m.totalReservations - m.cancelledReservations);
 
-        // Raison + recommandation contextuelles
         String reason;
         String recommendation;
         if (m.totalReservations == 0) {
             reason = "Aucune reservation sur les " + daysBack + " derniers jours";
             recommendation = "Verifier la visibilite (channels actifs ?) et envisager une promotion lancement";
         } else if (occupancy < 0.20) {
-            reason = "Tres faible occupation (" + Math.round(occupancy * 100) + "%)";
+            reason = String.format(Locale.ROOT, "Tres faible occupation (%d%%)",
+                    Math.round(occupancy * 100));
             recommendation = "Baisser le tarif de base ou activer une regle last-minute -15%";
         } else {
-            reason = "Occupation sous la cible (" + Math.round(occupancy * 100) + "% < 50%)";
+            reason = String.format(Locale.ROOT, "Occupation sous la cible (%d%% < %d%%)",
+                    Math.round(occupancy * 100), Math.round(threshold * 100));
             recommendation = "Comparer le tarif aux concurrents et ajuster la duree minimale";
         }
         item.put("reason", reason);
         item.put("recommendation", recommendation);
         return item;
-    }
-
-    private List<Map<String, Object>> detectPatterns(List<PropertyMetrics> all) {
-        List<Map<String, Object>> patterns = new ArrayList<>();
-
-        // Pattern 1 : forte volatilite (cancellation rate)
-        List<String> volatileProps = new ArrayList<>();
-        for (PropertyMetrics m : all) {
-            if (m.totalReservations < 3) continue;
-            double cancelRate = (double) m.cancelledReservations / m.totalReservations;
-            if (cancelRate > VOLATILITY_CANCEL_THRESHOLD) {
-                volatileProps.add(m.property.name + " (" + Math.round(cancelRate * 100) + "%)");
-            }
-        }
-        if (!volatileProps.isEmpty()) {
-            Map<String, Object> p = new LinkedHashMap<>();
-            p.put("type", "HIGH_CANCELLATION_RATE");
-            p.put("severity", volatileProps.size() >= 3 ? "HIGH" : "MEDIUM");
-            p.put("title", "Taux d'annulation eleve");
-            p.put("description", volatileProps.size() + " propriete(s) avec >20% d'annulations");
-            p.put("items", volatileProps);
-            patterns.add(p);
-        }
-
-        // Pattern 2 : satisfaction faible par ville
-        Map<String, List<Double>> ratingsByCity = new HashMap<>();
-        for (PropertyMetrics m : all) {
-            if (m.property.city == null || m.avgRating == null) continue;
-            ratingsByCity.computeIfAbsent(m.property.city, k -> new ArrayList<>()).add(m.avgRating);
-        }
-        List<String> lowRatingCities = new ArrayList<>();
-        for (Map.Entry<String, List<Double>> e : ratingsByCity.entrySet()) {
-            double avg = e.getValue().stream().mapToDouble(Double::doubleValue).average().orElse(0);
-            if (avg < LOW_RATING_THRESHOLD && !e.getValue().isEmpty()) {
-                lowRatingCities.add(e.getKey() + " (" + round(avg, 2) + "/5)");
-            }
-        }
-        if (!lowRatingCities.isEmpty()) {
-            Map<String, Object> p = new LinkedHashMap<>();
-            p.put("type", "CITY_SATISFACTION_LOW");
-            p.put("severity", "HIGH");
-            p.put("title", "Satisfaction faible par ville");
-            p.put("description", lowRatingCities.size()
-                    + " ville(s) avec rating moyen <3.5/5");
-            p.put("items", lowRatingCities);
-            patterns.add(p);
-        }
-
-        return patterns;
     }
 
     private String emptyPayloadJson(int daysBack, LocalDate from, LocalDate to)
@@ -339,10 +351,20 @@ public class AnalyzePortfolioTool implements ToolHandler {
         return objectMapper.writeValueAsString(payload);
     }
 
+    /** Calcule le % de variation entre l'ancienne et la nouvelle valeur. */
+    private static double percentDelta(double previous, double current) {
+        if (previous == 0.0) {
+            return current == 0.0 ? 0.0 : 1.0; // +100% si on passe de 0 a >0
+        }
+        return round((current - previous) / Math.abs(previous), 3);
+    }
+
     private static double round(double value, int decimals) {
-        return BigDecimal.valueOf(value)
-                .setScale(decimals, RoundingMode.HALF_UP)
-                .doubleValue();
+        return BigDecimal.valueOf(value).setScale(decimals, RoundingMode.HALF_UP).doubleValue();
+    }
+
+    private static double roundCurrency(double value) {
+        return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 
     private static ToolDescriptor buildDescriptor(ObjectMapper om) {
@@ -351,14 +373,15 @@ public class AnalyzePortfolioTool implements ToolHandler {
                     {
                       "type": "object",
                       "properties": {
-                        "daysBack": {"type":"integer","minimum":1,"maximum":365,"description":"Taille de la fenetre d'analyse en jours (defaut 30, max 365)"}
+                        "daysBack":        {"type":"integer","minimum":1,"maximum":365,"description":"Taille de la fenetre d'analyse en jours (defaut 30, max 365)"},
+                        "comparePrevious": {"type":"boolean","description":"Si true (defaut), calcule les deltas vs la meme duree juste avant. Mettre false pour skip ce 2e fetch."}
                       },
                       "additionalProperties": false
                     }
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Vue d'ensemble cross-property du portefeuille : KPI globaux, top performers, proprietes sous-performantes, patterns detectes (volatilite, satisfaction par ville). Utiliser quand l'user demande 'vue d'ensemble', 'tout mon portfolio', 'compare mes proprietes', 'analyse globale'.",
+                    "Vue d'ensemble cross-property du portefeuille : KPI globaux, top performers, proprietes sous-performantes, patterns detectes (volatilite, satisfaction par ville), deltas vs periode precedente. Utiliser quand l'user demande 'vue d'ensemble', 'tout mon portfolio', 'compare mes proprietes', 'analyse globale', 'evolution'.",
                     schema
             );
         } catch (JsonProcessingException e) {
@@ -368,17 +391,17 @@ public class AnalyzePortfolioTool implements ToolHandler {
 
     // ─── Aggregation state ──────────────────────────────────────────────────
 
-    /**
-     * Etat d'agregation par propriete (visible aux tests pour faciliter
-     * la validation des comptages).
-     */
+    /** KPI agregees d'une periode — utilise pour les deltas. */
+    private record PeriodAggregates(BigDecimal totalRevenue, double avgOccupancy, BigDecimal avgAdr) {}
+
+    /** Etat d'agregation par propriete (visible aux tests). */
     static final class PropertyMetrics {
         final PropertyDto property;
         BigDecimal revenue = BigDecimal.ZERO;
         long bookedNights = 0;
         int totalReservations = 0;
         int cancelledReservations = 0;
-        Double avgRating; // null = pas de reviews
+        Double avgRating;
 
         PropertyMetrics(PropertyDto property) {
             this.property = property;
