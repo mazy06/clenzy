@@ -32,6 +32,18 @@
 - Flow chat : le frontend réinjecte les refs dans `ChatRequestBody.attachments`. L'orchestrateur résout les bytes via `PhotoStorageService.retrieve` et les fournit en base64 dans les content blocks Anthropic (`type: "image"`, `source: {type: "base64", media_type, data}`).
 - Compression côté client : Canvas-based, déclenchée si fichier > 2MB (`useImageUpload`), resize sur 1600px max, JPEG q=0.85. Pas de dépendance npm.
 
+## Assistant RAG (knowledge base + pgvector)
+
+- L'assistant peut citer la **documentation Clenzy** via une recherche par embeddings (RAG).
+- **Image Postgres requise** : `pgvector/pgvector:pg15` (voir `clenzy-infra/docker-compose.dev.yml`). Sans cette image, la migration `0143__add_pgvector_extension.sql` échoue au boot.
+- Tables : `kb_document` (org-scopé, NULL = doc globale Clenzy) + `kb_chunk` (vector(1024), index ivfflat cosine).
+- **Provider d'embeddings** configurable via `clenzy.ai.embeddings.provider=voyage|openai` (défaut `voyage`) :
+  - **Voyage AI** (`voyage-3-lite`, 1024d, ~$0.02/1M tokens) — recommandé pour Anthropic. Clé : `clenzy.ai.embeddings.voyage.api-key`.
+  - **OpenAI** (`text-embedding-3-small` avec `dimensions=1024`, ~$0.02/1M tokens). Clé : `clenzy.ai.embeddings.openai.api-key`.
+- **Tool** : `search_knowledge_base(query, topK?)` (read-only). Le LLM l'invoque explicitement OU l'orchestrateur fait une **auto-injection** dans le system prompt : avant chaque tour, recherche kb sur le dernier message user, injecte les chunks avec relevance > `clenzy.ai.embeddings.relevance-threshold` (défaut 0.70).
+- **Ingestion** : `POST /api/admin/kb/ingest` (multipart .md) + endpoint admin dans `/settings?tab=ai`. Découpage par sections `##` puis re-chunk à ~500 tokens. Idempotent (réindexe si même `source_path`).
+- **Coûts** : ingestion d'une doc ~5KB = 1-2 chunks = ~1k tokens = $0.00002. Auto-RAG par message = 1 embedding par tour utilisateur = ~10-100 tokens = $0.000002. Quasi-négligeable.
+
 ## Preview Rules
 
 - Ne JAMAIS lancer de preview (preview_start) sauf si l'utilisateur le demande explicitement.

@@ -14,6 +14,7 @@ import { WeatherWidget } from './WeatherWidget';
 import { EventsWidget } from './EventsWidget';
 import { SimulationWidget } from './SimulationWidget';
 import { WorkflowWidget } from './WorkflowWidget';
+import { KnowledgeWidget } from './KnowledgeWidget';
 
 interface ToolResultWidgetProps {
   call: ToolCallExecuted;
@@ -34,6 +35,7 @@ interface ToolResultWidgetProps {
  *   <li>{@code "events"}             → {@link EventsWidget}</li>
  *   <li>{@code "simulation"}         → {@link SimulationWidget}</li>
  *   <li>{@code "workflow_step"}      → {@link WorkflowWidget}</li>
+ *   <li>{@code "knowledge"}          → {@link KnowledgeWidget}</li>
  *   <li>autre / sans hint            → fallback minimal cle/valeur</li>
  * </ul>
  *
@@ -95,6 +97,9 @@ export const ToolResultWidget: React.FC<ToolResultWidgetProps> = ({ call }) => {
 
     case 'workflow_step':
       return <WorkflowWidget data={parsed as Parameters<typeof WorkflowWidget>[0]['data']} />;
+
+    case 'knowledge':
+      return <KnowledgeWidget data={parsed as Parameters<typeof KnowledgeWidget>[0]['data']} />;
 
     default:
       // Hint inconnu : on tente de rendre une representation minimale

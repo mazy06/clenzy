@@ -16,6 +16,7 @@ import com.clenzy.repository.AssistantMessageRepository;
 import com.clenzy.repository.OrgAiApiKeyRepository;
 import com.clenzy.service.AssistantMemoryService;
 import com.clenzy.service.PhotoStorageService;
+import com.clenzy.service.agent.kb.KbSearchService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -64,6 +65,10 @@ public class AgentOrchestrator {
     private static final int MAX_TOKENS_PER_TURN = 4096;
     private static final double DEFAULT_TEMPERATURE = 0.3;
     private static final int MAX_MEMORY_ENTRIES = 30;
+    /** Nombre de chunks RAG injectes dans le system prompt par tour. */
+    private static final int RAG_TOP_K = 4;
+    /** Seuil de relevance en dessous duquel un chunk RAG n'est pas injecte. */
+    private static final double RAG_RELEVANCE_MIN = 0.70;
     private static final String DEFAULT_SYSTEM_PROMPT = """
             Tu es l'assistant strategique Clenzy, un PMS (Property Management System) pour la
             location courte duree. Ton role : aider l'utilisateur a COMPRENDRE ses donnees,
@@ -129,6 +134,15 @@ public class AgentOrchestrator {
             - get_local_events(city, from?, to?) → jours feries, festivals, salons, evenements
               sportifs. Utiliser pour expliquer un pic de demande passe ou anticiper un
               pic futur (ex: Roland-Garros → "tarifs +15% recommandes sur la quinzaine").
+
+            DOCUMENTATION (RAG knowledge base) :
+            - search_knowledge_base(query, topK?) → recherche par embeddings dans la doc
+              Clenzy (globale) + les notes internes de l'org. Utilise quand l'user demande
+              "selon la doc...", "comment fonctionne X dans Clenzy", "quelle est la procedure
+              officielle pour Y". Cite tes sources : reprends le titre + sourcePath dans
+              ta reponse pour que l'user puisse verifier.
+            Bonne pratique : si tu cites du contenu provenant d'un resultat de ce tool,
+            formule sous la forme « Selon [titre](sourcePath), ... ».
 
             WORKFLOWS (procedures guidees multi-etapes) :
             Si l'user demande "aide-moi a...", "guide-moi pour...", "comment je fais pour...",
@@ -234,6 +248,7 @@ public class AgentOrchestrator {
     private final PendingToolStore pendingToolStore;
     private final AssistantMemoryService memoryService;
     private final PhotoStorageService photoStorageService;
+    private final KbSearchService kbSearchService;
 
     public AgentOrchestrator(ChatLLMProvider chatProvider,
                               ToolRegistry toolRegistry,
@@ -244,7 +259,8 @@ public class AgentOrchestrator {
                               AiProperties aiProperties,
                               PendingToolStore pendingToolStore,
                               AssistantMemoryService memoryService,
-                              PhotoStorageService photoStorageService) {
+                              PhotoStorageService photoStorageService,
+                              KbSearchService kbSearchService) {
         this.chatProvider = chatProvider;
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
@@ -255,6 +271,7 @@ public class AgentOrchestrator {
         this.pendingToolStore = pendingToolStore;
         this.memoryService = memoryService;
         this.photoStorageService = photoStorageService;
+        this.kbSearchService = kbSearchService;
     }
 
     /**
@@ -312,7 +329,7 @@ public class AgentOrchestrator {
         // 4. Boucle tool-calling
         String apiKey = resolveApiKey(context.organizationId());
         List<ToolDescriptor> tools = toolRegistry.listDescriptors();
-        String systemPrompt = buildSystemPrompt(context);
+        String systemPrompt = buildSystemPrompt(context, effectiveMessage);
         ChatRequest request = new ChatRequest(
                 systemPrompt, chatMessages, tools, null,
                 DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN);
@@ -559,18 +576,74 @@ public class AgentOrchestrator {
      * tel quel pour ne pas polluer le contexte avec une section vide.</p>
      */
     String buildSystemPrompt(AgentContext context) {
-        List<AssistantMemory> memories;
+        return buildSystemPrompt(context, null);
+    }
+
+    /**
+     * Variante avec auto-RAG : si {@code latestUserMessage} est non null/blank,
+     * on fait une recherche kb et on prepend les snippets pertinents (relevance
+     * > {@value #RAG_RELEVANCE_MIN}) sous "── Contexte documentation pertinente ──".
+     *
+     * <p>L'echec silencieux est OK (network/embed provider KO) : on tombe sur
+     * le prompt sans RAG. Le RAG est un bonus, pas un bloquant.</p>
+     */
+    String buildSystemPrompt(AgentContext context, String latestUserMessage) {
+        StringBuilder prefix = new StringBuilder();
+
+        // 1. Section memoire (preferences, faits, objectifs, projets)
         try {
-            memories = memoryService.listForUser(context.keycloakId(), MAX_MEMORY_ENTRIES);
+            List<AssistantMemory> memories = memoryService.listForUser(
+                    context.keycloakId(), MAX_MEMORY_ENTRIES);
+            if (memories != null && !memories.isEmpty()) {
+                prefix.append(renderMemorySection(memories)).append("\n\n");
+            }
         } catch (Exception e) {
-            // Robustesse : la memoire est un nice-to-have, ne doit pas casser l'assistant.
             log.warn("Failed to load memory for user {} : {}", context.keycloakId(), e.getMessage());
-            return DEFAULT_SYSTEM_PROMPT;
         }
-        if (memories == null || memories.isEmpty()) {
-            return DEFAULT_SYSTEM_PROMPT;
+
+        // 2. Section RAG documentation pertinente
+        if (latestUserMessage != null && !latestUserMessage.isBlank() && kbSearchService != null) {
+            String ragSection = renderKbContext(latestUserMessage, context.organizationId());
+            if (ragSection != null && !ragSection.isEmpty()) {
+                prefix.append(ragSection).append("\n\n");
+            }
         }
-        return renderMemorySection(memories) + "\n\n" + DEFAULT_SYSTEM_PROMPT;
+
+        if (prefix.length() == 0) return DEFAULT_SYSTEM_PROMPT;
+        return prefix.append(DEFAULT_SYSTEM_PROMPT).toString();
+    }
+
+    /**
+     * Recherche les snippets pertinents pour {@code query} et les serialise en
+     * section markdown. Retourne null si aucun chunk au-dessus du seuil ou si
+     * la recherche echoue (silencieux — RAG = nice-to-have).
+     */
+    private String renderKbContext(String query, Long organizationId) {
+        try {
+            List<KbSearchService.KbSearchHit> hits = kbSearchService.search(
+                    query, organizationId, RAG_TOP_K);
+            List<KbSearchService.KbSearchHit> relevant = hits.stream()
+                    .filter(h -> h.relevance() >= RAG_RELEVANCE_MIN)
+                    .toList();
+            if (relevant.isEmpty()) return null;
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("── Contexte documentation pertinente ──\n\n");
+            sb.append("Voici des extraits de la documentation Clenzy lies a la question. ")
+                    .append("Cite-les si tu les utilises sous la forme « selon [titre](sourcePath), ... ».\n\n");
+            for (int i = 0; i < relevant.size(); i++) {
+                KbSearchService.KbSearchHit h = relevant.get(i);
+                sb.append("[").append(i + 1).append("] ");
+                sb.append("**").append(h.title() != null ? h.title() : "Document")
+                        .append("** (").append(h.sourcePath()).append(") — ")
+                        .append("relevance ").append(Math.round(h.relevance() * 100)).append("%\n");
+                sb.append(h.snippet()).append("\n\n");
+            }
+            return sb.toString().trim();
+        } catch (Exception e) {
+            log.debug("RAG auto-injection skipped : {}", e.getMessage());
+            return null;
+        }
     }
 
     /**
