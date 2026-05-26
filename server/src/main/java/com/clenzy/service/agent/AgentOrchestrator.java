@@ -135,14 +135,26 @@ public class AgentOrchestrator {
               sportifs. Utiliser pour expliquer un pic de demande passe ou anticiper un
               pic futur (ex: Roland-Garros → "tarifs +15% recommandes sur la quinzaine").
 
-            DOCUMENTATION (RAG knowledge base) :
+            DOCUMENTATION (RAG knowledge base) — REGLES STRICTES :
             - search_knowledge_base(query, topK?) → recherche par embeddings dans la doc
-              Clenzy (globale) + les notes internes de l'org. Utilise quand l'user demande
-              "selon la doc...", "comment fonctionne X dans Clenzy", "quelle est la procedure
-              officielle pour Y". Cite tes sources : reprends le titre + sourcePath dans
-              ta reponse pour que l'user puisse verifier.
-            Bonne pratique : si tu cites du contenu provenant d'un resultat de ce tool,
-            formule sous la forme « Selon [titre](sourcePath), ... ».
+              Clenzy (globale) + les notes internes de l'org.
+            - Utilise-le quand l'user demande "selon la doc...", "comment fonctionne X dans
+              Clenzy", "quelle est la procedure officielle pour Y".
+
+            ANTI-HALLUCINATION (impératif) :
+            1. Si tu utilises un snippet retourne par ce tool OU fourni dans le "Contexte
+               documentation pertinente" du system prompt, tu DOIS le citer explicitement
+               sous la forme : « Selon [titre](sourcePath), ... ».
+            2. Si la question concerne un point precis (procedure, fonctionnalite specifique,
+               regle de pricing/billing/legal) et que la doc ne le couvre pas, dis
+               explicitement : "La documentation Clenzy ne couvre pas ce point precis,
+               je peux te donner mon analyse mais sans garantie d'exactitude."
+               N'invente JAMAIS une procedure, un numero d'article ou un nom de fonctionnalite
+               qui n'apparait pas dans les snippets fournis.
+            3. Si plusieurs snippets se contredisent, signale-le ("La doc presente deux
+               approches differentes : ...") au lieu de choisir arbitrairement.
+            4. La relevance affichee est indicative — un snippet a 60% peut etre faux. Si
+               le contenu ne repond pas vraiment a la question, dis-le.
 
             WORKFLOWS (procedures guidees multi-etapes) :
             Si l'user demande "aide-moi a...", "guide-moi pour...", "comment je fais pour...",
@@ -331,7 +343,7 @@ public class AgentOrchestrator {
         List<ToolDescriptor> tools = toolRegistry.listDescriptors();
         String systemPrompt = buildSystemPrompt(context, effectiveMessage);
         ChatRequest request = new ChatRequest(
-                systemPrompt, chatMessages, tools, null,
+                systemPrompt, chatMessages, tools, context.modelOverride(),
                 DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN);
 
         runToolLoop(request, conversation, context, apiKey, consumer);
@@ -630,7 +642,11 @@ public class AgentOrchestrator {
             StringBuilder sb = new StringBuilder();
             sb.append("── Contexte documentation pertinente ──\n\n");
             sb.append("Voici des extraits de la documentation Clenzy lies a la question. ")
-                    .append("Cite-les si tu les utilises sous la forme « selon [titre](sourcePath), ... ».\n\n");
+                    .append("REGLES :\n")
+                    .append("- Si tu utilises l'info d'un extrait, cite-le « Selon [titre](sourcePath), ... ».\n")
+                    .append("- Si aucun extrait ne repond a la question, dis explicitement que la doc ne le couvre pas ")
+                    .append("au lieu d'extrapoler ou d'inventer.\n")
+                    .append("- Ne reformule pas un fait absent des extraits comme s'il venait de la doc.\n\n");
             for (int i = 0; i < relevant.size(); i++) {
                 KbSearchService.KbSearchHit h = relevant.get(i);
                 sb.append("[").append(i + 1).append("] ");

@@ -10,6 +10,7 @@ import com.clenzy.service.agent.AgentOrchestrator;
 import com.clenzy.service.agent.AgentSseEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,13 +75,21 @@ public class BriefingComposer {
     private final AgentOrchestrator orchestrator;
     private final AssistantConversationRepository conversationRepository;
     private final AssistantMessageRepository messageRepository;
+    /**
+     * Modele LLM dedie aux briefings. Defaut : Haiku 4.5 (~10x moins cher que
+     * Sonnet 4, qualite largement suffisante pour un resume textuel). Override
+     * via {@code clenzy.assistant.briefing.model}.
+     */
+    private final String briefingModel;
 
     public BriefingComposer(AgentOrchestrator orchestrator,
                               AssistantConversationRepository conversationRepository,
-                              AssistantMessageRepository messageRepository) {
+                              AssistantMessageRepository messageRepository,
+                              @Value("${clenzy.assistant.briefing.model:claude-haiku-4-5-20251001}") String briefingModel) {
         this.orchestrator = orchestrator;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
+        this.briefingModel = briefingModel;
     }
 
     /**
@@ -95,13 +104,16 @@ public class BriefingComposer {
         AssistantBriefingPref.Frequency freq = pref.getFrequencyEnum();
         String prompt = promptFor(freq);
 
+        // Force le modele Haiku via modelOverride — gain de cout significatif
+        // sur un volume de briefings reguliers.
         AgentContext context = new AgentContext(
                 pref.getOrganizationId(),
                 pref.getKeycloakId(),
                 null, // pas de JWT en scheduled — les tools role-based feront du best-effort
                 "fr",
                 "assistant", // currentPage informatif
-                null
+                null,
+                briefingModel
         );
 
         // SSE consumer no-op : on lit le resultat en aval depuis la BDD (les
