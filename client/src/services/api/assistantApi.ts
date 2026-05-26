@@ -25,7 +25,29 @@ export interface AssistantMessage {
   content?: string;
   toolCalls?: string; // JSON string from backend
   toolCallId?: string;
+  /** JSON string array : [{ storageKey, mediaType, url, name }] */
+  attachments?: string;
   createdAt: string;
+}
+
+/**
+ * Reference vers une image uploadee au prealable via {@link uploadImage}.
+ * Le frontend la reinjecte dans {@link ChatRequestBody.attachments} pour
+ * que le backend resolve les bytes et les fournisse a Claude Vision.
+ */
+export interface AttachmentRef {
+  storageKey: string;
+  mediaType: string;
+  url: string;
+  name?: string;
+}
+
+export interface UploadResponse {
+  storageKey: string;
+  mediaType: string;
+  name?: string;
+  size: number;
+  url: string;
 }
 
 /**
@@ -45,6 +67,7 @@ export interface ChatRequestBody {
   message: string;
   currentPage?: string;
   selectedPropertyId?: number;
+  attachments?: AttachmentRef[];
 }
 
 export interface ToolConfirmBody {
@@ -65,6 +88,17 @@ export const assistantApi = {
 
   archiveConversation(conversationId: number): Promise<void> {
     return apiClient.delete<void>(`/assistant/conversations/${conversationId}`);
+  },
+
+  /**
+   * Upload une image pour usage dans le chat (vision). Le backend valide MIME +
+   * taille (max 5MB, formats jpeg/png/gif/webp) et retourne une reference a
+   * reinjecter dans le {@link ChatRequestBody.attachments}.
+   */
+  uploadImage(file: File): Promise<UploadResponse> {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.upload<UploadResponse>('/assistant/upload', form);
   },
 
   // ─── SSE chat ────────────────────────────────────────────────────────────

@@ -50,6 +50,15 @@ public class AssistantMessage {
     @Column(name = "tool_calls", columnDefinition = "jsonb")
     private String toolCalls;
 
+    /**
+     * Pieces jointes (images) du message user, serialisees en JSON array.
+     * Format : {@code [{"storageKey":"...","mediaType":"image/jpeg","url":"..."}]}.
+     * Null sauf si role=user et que l'user a uploade des images.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "attachments", columnDefinition = "jsonb")
+    private String attachments;
+
     /** Reference au tool_call.id quand role=tool. */
     @Column(name = "tool_call_id", length = 120)
     private String toolCallId;
@@ -74,6 +83,14 @@ public class AssistantMessage {
         m.organizationId = orgId;
         m.role = ROLE_USER;
         m.content = content;
+        return m;
+    }
+
+    /** User message avec pieces jointes JSON (peut etre null si pas d'attachments). */
+    public static AssistantMessage user(Long conversationId, Long orgId,
+                                          String content, String attachmentsJson) {
+        AssistantMessage m = user(conversationId, orgId, content);
+        m.attachments = attachmentsJson;
         return m;
     }
 
@@ -111,6 +128,8 @@ public class AssistantMessage {
     public void setContent(String content) { this.content = content; }
     public String getToolCalls() { return toolCalls; }
     public void setToolCalls(String toolCalls) { this.toolCalls = toolCalls; }
+    public String getAttachments() { return attachments; }
+    public void setAttachments(String attachments) { this.attachments = attachments; }
     public String getToolCallId() { return toolCallId; }
     public void setToolCallId(String toolCallId) { this.toolCallId = toolCallId; }
     public Integer getPromptTokens() { return promptTokens; }

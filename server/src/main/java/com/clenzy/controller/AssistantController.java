@@ -4,27 +4,32 @@ import com.clenzy.model.AssistantConversation;
 import com.clenzy.model.AssistantMessage;
 import com.clenzy.repository.AssistantConversationRepository;
 import com.clenzy.repository.AssistantMessageRepository;
+import com.clenzy.service.PhotoStorageService;
 import com.clenzy.service.agent.AgentContext;
 import com.clenzy.service.agent.AgentOrchestrator;
 import com.clenzy.service.agent.AgentSseEvent;
+import com.clenzy.service.agent.AttachmentRef;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -45,12 +50,17 @@ public class AssistantController {
 
     private static final Logger log = LoggerFactory.getLogger(AssistantController.class);
     private static final long SSE_TIMEOUT_MS = 5 * 60_000L; // 5 minutes
+    private static final long MAX_UPLOAD_BYTES = 5L * 1024 * 1024; // 5 MB (limite Anthropic)
+    private static final Set<String> ALLOWED_IMAGE_MIME = Set.of(
+            "image/jpeg", "image/png", "image/gif", "image/webp");
+    private static final int MAX_ATTACHMENTS_PER_MESSAGE = 3;
 
     private final AgentOrchestrator orchestrator;
     private final AssistantConversationRepository conversationRepository;
     private final AssistantMessageRepository messageRepository;
     private final TenantContext tenantContext;
     private final ObjectMapper objectMapper;
+    private final PhotoStorageService photoStorageService;
 
     /** Pool dedie pour les streams SSE — evite de bloquer les threads Tomcat. */
     private final Executor sseExecutor = Executors.newCachedThreadPool(r -> {
@@ -63,12 +73,14 @@ public class AssistantController {
                                 AssistantConversationRepository conversationRepository,
                                 AssistantMessageRepository messageRepository,
                                 TenantContext tenantContext,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                PhotoStorageService photoStorageService) {
         this.orchestrator = orchestrator;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
+        this.photoStorageService = photoStorageService;
     }
 
     // ─── Chat SSE ──────────────────────────────────────────────────────────
@@ -81,8 +93,15 @@ public class AssistantController {
      */
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chat(@RequestBody ChatRequestBody body, @AuthenticationPrincipal Jwt jwt) {
-        if (body == null || body.message() == null || body.message().isBlank()) {
-            throw new IllegalArgumentException("message is required");
+        // Le message peut etre blank si seules des images sont envoyees ("voici le frigo")
+        boolean hasMessage = body != null && body.message() != null && !body.message().isBlank();
+        boolean hasAttachments = body != null && body.attachments() != null && !body.attachments().isEmpty();
+        if (body == null || (!hasMessage && !hasAttachments)) {
+            throw new IllegalArgumentException("message ou attachments est requis");
+        }
+        if (hasAttachments && body.attachments().size() > MAX_ATTACHMENTS_PER_MESSAGE) {
+            throw new IllegalArgumentException(
+                    "Maximum " + MAX_ATTACHMENTS_PER_MESSAGE + " images par message");
         }
 
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
@@ -98,11 +117,17 @@ public class AssistantController {
                 body.selectedPropertyId()
         );
 
+        // Defaut : si l'user envoie que des images sans texte, on fournit un prompt minimal
+        // pour que le modele commente l'image.
+        String userMessage = hasMessage ? body.message() : "Analyse ces images.";
+        List<AttachmentRef> attachments = hasAttachments ? body.attachments() : List.of();
+
         sseExecutor.execute(() -> {
             try {
                 orchestrator.handleMessage(
                         body.conversationId(),
-                        body.message(),
+                        userMessage,
+                        attachments,
                         context,
                         event -> sendSseEvent(emitter, event)
                 );
@@ -236,20 +261,106 @@ public class AssistantController {
         m.put("role", msg.getRole());
         if (msg.getContent() != null) m.put("content", msg.getContent());
         if (msg.getToolCalls() != null) m.put("toolCalls", msg.getToolCalls());
+        if (msg.getAttachments() != null) m.put("attachments", msg.getAttachments());
         if (msg.getToolCallId() != null) m.put("toolCallId", msg.getToolCallId());
         m.put("createdAt", msg.getCreatedAt());
         return m;
+    }
+
+    // ─── Upload + retrieval pour les attachments (vision) ──────────────────
+
+    /**
+     * Upload d'une image pour usage dans le chat. Valide MIME + taille, persiste
+     * via {@link PhotoStorageService} et retourne la reference que le frontend
+     * doit reinjecter dans le body chat ({@code attachments}).
+     *
+     * <p>Limites :
+     * <ul>
+     *   <li>MIME : image/jpeg, image/png, image/gif, image/webp</li>
+     *   <li>Taille : 5 MB max (limite Anthropic Vision)</li>
+     * </ul>
+     */
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> upload(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal Jwt jwt) {
+        validateUpload(file);
+
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Lecture du fichier impossible");
+        }
+
+        String mediaType = file.getContentType();
+        String filename = file.getOriginalFilename();
+        String storageKey = photoStorageService.store(bytes, mediaType, filename);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("storageKey", storageKey);
+        response.put("mediaType", mediaType);
+        response.put("name", filename);
+        response.put("size", bytes.length);
+        // URL applicative pour re-rendu cote frontend (thumbnail dans MessageBubble)
+        response.put("url", "/api/assistant/attachments/" + storageKey);
+
+        log.info("Upload assistant : user={} mediaType={} size={}b key={}",
+                jwt.getSubject(), mediaType, bytes.length, storageKey);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Sert le binaire d'un attachment uploade — utilise par le frontend pour
+     * afficher les thumbnails dans l'historique de conversation. L'authentification
+     * suffit ; le secret reside dans la difficulte de deviner les storage keys
+     * (UUID).
+     */
+    @GetMapping("/attachments/{storageKey}")
+    public ResponseEntity<byte[]> serveAttachment(@PathVariable String storageKey) {
+        try {
+            byte[] data = photoStorageService.retrieve(storageKey);
+            // On ne connait pas le MIME exact ici (pas stocke), mais l'usage cote
+            // frontend est <img src="..."/> donc image/* fonctionne. Le browser
+            // sniff le contenu si necessaire.
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType("image/jpeg"))
+                    .header("Cache-Control", "private, max-age=3600")
+                    .body(data);
+        } catch (Exception e) {
+            log.debug("serveAttachment: storage key {} introuvable", storageKey);
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    private void validateUpload(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("file est requis");
+        }
+        if (file.getSize() > MAX_UPLOAD_BYTES) {
+            throw new IllegalArgumentException(
+                    "Fichier trop volumineux (max " + (MAX_UPLOAD_BYTES / (1024 * 1024)) + " MB)");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_IMAGE_MIME.contains(contentType.toLowerCase())) {
+            throw new IllegalArgumentException(
+                    "Type de fichier non supporte (MIME : " + contentType + "). "
+                            + "Formats acceptes : " + String.join(", ", ALLOWED_IMAGE_MIME));
+        }
     }
 
     // ─── Request body record ───────────────────────────────────────────────
 
     /**
      * Corps de requete chat. {@code conversationId} null = nouvelle conversation.
+     * {@code attachments} : liste optionnelle de refs d'images uploadees au prealable
+     * via {@code POST /upload}. Max {@value #MAX_ATTACHMENTS_PER_MESSAGE} par message.
      */
     public record ChatRequestBody(
             Long conversationId,
             String message,
             String currentPage,
-            Long selectedPropertyId
+            Long selectedPropertyId,
+            List<AttachmentRef> attachments
     ) {}
 }

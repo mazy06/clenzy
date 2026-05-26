@@ -23,6 +23,15 @@
   - URL configurables via `openmeteo.geocoding-url` / `openmeteo.forecast-url` (défauts en dur dans le client).
   - Rate limit officieux : ~10k req/jour gratuit. Le cache Redis 1h évite de spammer pour des requêtes répétées (Paris/Lyon/etc).
 
+## Assistant Vision (images uploadées)
+
+- L'utilisateur peut uploader jusqu'à **3 images** par message dans le chat assistant. Les images sont analysées par Claude Vision.
+- Limites Anthropic : **5 MB max par image**, formats acceptés `image/jpeg`, `image/png`, `image/gif`, `image/webp`.
+- **Modèle requis** : Claude 3.5 Sonnet ou supérieur (Claude 3 Haiku et antérieurs ne supportent pas la vision). Le défaut projet `claude-sonnet-4-20250514` est compatible.
+- Flow upload : `POST /api/assistant/upload` (multipart) → stocke via `PhotoStorageService` (S3 ou BYTEA selon profile) → retourne une `AttachmentRef` (`{storageKey, mediaType, url, name}`).
+- Flow chat : le frontend réinjecte les refs dans `ChatRequestBody.attachments`. L'orchestrateur résout les bytes via `PhotoStorageService.retrieve` et les fournit en base64 dans les content blocks Anthropic (`type: "image"`, `source: {type: "base64", media_type, data}`).
+- Compression côté client : Canvas-based, déclenchée si fichier > 2MB (`useImageUpload`), resize sur 1600px max, JPEG q=0.85. Pas de dépendance npm.
+
 ## Preview Rules
 
 - Ne JAMAIS lancer de preview (preview_start) sauf si l'utilisateur le demande explicitement.

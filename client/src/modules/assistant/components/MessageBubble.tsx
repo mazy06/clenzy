@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Typography, useTheme, alpha, CircularProgress } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, useTheme, alpha, CircularProgress, Dialog, DialogContent } from '@mui/material';
 import { AutoAwesome as SparklesIcon } from '../../../icons';
 import type { DisplayMessage } from '../../../hooks/useAgent';
 import { ToolCallCard } from './ToolCallCard';
@@ -29,38 +29,122 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const theme = useTheme();
   const isUser = message.role === 'user';
   const isStreaming = message.streaming === true;
+  const [fullSizeUrl, setFullSizeUrl] = useState<string | null>(null);
+  const [fullSizeAlt, setFullSizeAlt] = useState<string>('');
 
   // Tool messages (results) are hidden from the chat view — they live in ToolCallCard.
   if (message.role === 'tool') return null;
 
   // ── USER : carte alignee droite, max-width 78% ──────────────────────────
   if (isUser) {
+    const attachments = message.attachments ?? [];
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2.5 }}>
-        <Box
-          sx={{
-            maxWidth: '78%',
-            px: 1.75,
-            py: 1.25,
-            borderRadius: 2.5,
-            bgcolor: alpha(theme.palette.primary.main, 0.12),
-            color: theme.palette.text.primary,
-          }}
-        >
-          {message.content && (
-            <Typography
-              variant="body2"
-              sx={{
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                lineHeight: 1.55,
-              }}
-            >
-              {message.content}
-            </Typography>
-          )}
+      <>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2.5 }}>
+          <Box
+            sx={{
+              maxWidth: '78%',
+              px: 1.75,
+              py: 1.25,
+              borderRadius: 2.5,
+              bgcolor: alpha(theme.palette.primary.main, 0.12),
+              color: theme.palette.text.primary,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+            }}
+          >
+            {/* Attachments thumbnails 100x100 — au-dessus du texte */}
+            {attachments.length > 0 && (
+              <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                {attachments.map((att, idx) => (
+                  <Box
+                    key={`${att.storageKey}-${idx}`}
+                    component="button"
+                    onClick={() => {
+                      setFullSizeUrl(att.url);
+                      setFullSizeAlt(att.name ?? 'image jointe');
+                    }}
+                    aria-label={`Voir ${att.name ?? 'l\'image'} en grand`}
+                    sx={{
+                      width: 100,
+                      height: 100,
+                      borderRadius: 1.5,
+                      overflow: 'hidden',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      bgcolor: alpha(theme.palette.text.primary, 0.06),
+                      transition: 'opacity 180ms ease-out',
+                      '&:hover': { opacity: 0.85 },
+                      '&:focus-visible': {
+                        outline: `2px solid ${theme.palette.primary.main}`,
+                        outlineOffset: 2,
+                      },
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={att.url}
+                      alt={att.name ?? 'image jointe'}
+                      sx={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                  </Box>
+                ))}
+              </Box>
+            )}
+
+            {message.content && (
+              <Typography
+                variant="body2"
+                sx={{
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  lineHeight: 1.55,
+                }}
+              >
+                {message.content}
+              </Typography>
+            )}
+          </Box>
         </Box>
-      </Box>
+
+        {/* Modal full-size — declenche par clic sur un thumbnail */}
+        <Dialog
+          open={fullSizeUrl !== null}
+          onClose={() => setFullSizeUrl(null)}
+          maxWidth="lg"
+          aria-labelledby="attachment-fullsize-title"
+        >
+          <DialogContent sx={{ p: 1.5, bgcolor: theme.palette.background.default }}>
+            <Typography
+              id="attachment-fullsize-title"
+              variant="caption"
+              sx={{ display: 'block', mb: 1, color: theme.palette.text.secondary }}
+            >
+              {fullSizeAlt}
+            </Typography>
+            {fullSizeUrl && (
+              <Box
+                component="img"
+                src={fullSizeUrl}
+                alt={fullSizeAlt}
+                sx={{
+                  maxWidth: '100%',
+                  maxHeight: '80vh',
+                  display: 'block',
+                  mx: 'auto',
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 

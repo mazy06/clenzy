@@ -6,6 +6,7 @@ import com.clenzy.config.ai.ChatLLMProvider;
 import com.clenzy.config.ai.ChatMessage;
 import com.clenzy.config.ai.ChatRequest;
 import com.clenzy.config.ai.ToolDescriptor;
+import com.clenzy.config.ai.MessageAttachment;
 import com.clenzy.model.AssistantConversation;
 import com.clenzy.model.AssistantMemory;
 import com.clenzy.model.AssistantMessage;
@@ -14,6 +15,7 @@ import com.clenzy.repository.AssistantConversationRepository;
 import com.clenzy.repository.AssistantMessageRepository;
 import com.clenzy.repository.OrgAiApiKeyRepository;
 import com.clenzy.service.AssistantMemoryService;
+import com.clenzy.service.PhotoStorageService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -231,6 +233,7 @@ public class AgentOrchestrator {
     private final AiProperties aiProperties;
     private final PendingToolStore pendingToolStore;
     private final AssistantMemoryService memoryService;
+    private final PhotoStorageService photoStorageService;
 
     public AgentOrchestrator(ChatLLMProvider chatProvider,
                               ToolRegistry toolRegistry,
@@ -240,7 +243,8 @@ public class AgentOrchestrator {
                               OrgAiApiKeyRepository orgAiApiKeyRepository,
                               AiProperties aiProperties,
                               PendingToolStore pendingToolStore,
-                              AssistantMemoryService memoryService) {
+                              AssistantMemoryService memoryService,
+                              PhotoStorageService photoStorageService) {
         this.chatProvider = chatProvider;
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
@@ -250,6 +254,7 @@ public class AgentOrchestrator {
         this.aiProperties = aiProperties;
         this.pendingToolStore = pendingToolStore;
         this.memoryService = memoryService;
+        this.photoStorageService = photoStorageService;
     }
 
     /**
@@ -265,9 +270,26 @@ public class AgentOrchestrator {
                                String userMessage,
                                AgentContext context,
                                Consumer<AgentSseEvent> consumer) {
-        if (userMessage == null || userMessage.isBlank()) {
-            throw new IllegalArgumentException("userMessage cannot be blank");
+        return handleMessage(conversationId, userMessage, List.of(), context, consumer);
+    }
+
+    /**
+     * Variante avec attachments (images uploadees via {@code POST /assistant/upload}).
+     * Pour chaque attachment, on stocke la ref JSON sur l'AssistantMessage et on
+     * resout les bytes via {@link PhotoStorageService} pour les fournir en base64
+     * au LLM (uniquement pour le tour courant — les tours suivants re-resoudront
+     * depuis le storage en relisant l'historique).
+     */
+    public Long handleMessage(Long conversationId,
+                               String userMessage,
+                               List<AttachmentRef> attachments,
+                               AgentContext context,
+                               Consumer<AgentSseEvent> consumer) {
+        boolean hasAttachments = attachments != null && !attachments.isEmpty();
+        if ((userMessage == null || userMessage.isBlank()) && !hasAttachments) {
+            throw new IllegalArgumentException("userMessage or attachments required");
         }
+        String effectiveMessage = userMessage == null ? "" : userMessage;
 
         // 1. Resoudre la conversation (creer si null)
         AssistantConversation conversation = resolveOrCreateConversation(conversationId, context);
@@ -275,9 +297,12 @@ public class AgentOrchestrator {
             consumer.accept(AgentSseEvent.conversationCreated(conversation.getId()));
         }
 
-        // 2. Persister le message user
+        // 2. Persister le message user (+ refs attachments JSON si presentes)
+        String attachmentsJson = hasAttachments
+                ? serializeAttachmentsSafe(attachments)
+                : null;
         AssistantMessage userMsg = AssistantMessage.user(
-                conversation.getId(), context.organizationId(), userMessage);
+                conversation.getId(), context.organizationId(), effectiveMessage, attachmentsJson);
         messageRepository.save(userMsg);
 
         // 3. Charger l'historique complet (post-insert du user message)
@@ -297,7 +322,7 @@ public class AgentOrchestrator {
         // 5. Update conversation updatedAt + title si manquant
         conversation.setUpdatedAt(LocalDateTime.now());
         if (conversation.getTitle() == null) {
-            conversation.setTitle(deriveTitle(userMessage));
+            conversation.setTitle(deriveTitle(effectiveMessage.isBlank() ? "Photos" : effectiveMessage));
         }
         conversationRepository.save(conversation);
 
@@ -629,8 +654,15 @@ public class AgentOrchestrator {
         while (it.hasNext()) {
             AssistantMessage m = it.next();
             switch (m.getRole()) {
-                case AssistantMessage.ROLE_USER ->
-                        result.add(ChatMessage.user(m.getContent() != null ? m.getContent() : ""));
+                case AssistantMessage.ROLE_USER -> {
+                    String content = m.getContent() != null ? m.getContent() : "";
+                    List<MessageAttachment> atts = resolveAttachmentsSafe(m.getAttachments());
+                    if (atts.isEmpty()) {
+                        result.add(ChatMessage.user(content));
+                    } else {
+                        result.add(ChatMessage.user(content, atts));
+                    }
+                }
                 case AssistantMessage.ROLE_ASSISTANT -> {
                     List<ChatMessage.ToolCall> calls = parseToolCallsSafe(m.getToolCalls());
                     if (!calls.isEmpty()) {
@@ -646,6 +678,64 @@ public class AgentOrchestrator {
             }
         }
         return result;
+    }
+
+    /**
+     * Charge les attachments persistes (JSON array de refs storage) et resout
+     * chaque entree en bytes base64 via {@link PhotoStorageService}. Si une
+     * resolution echoue, l'attachment est skip (warn log) — le message texte
+     * passe quand meme.
+     */
+    private List<MessageAttachment> resolveAttachmentsSafe(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        List<MessageAttachment> out = new ArrayList<>();
+        try {
+            JsonNode arr = objectMapper.readTree(json);
+            if (!arr.isArray()) return List.of();
+            for (JsonNode node : arr) {
+                String storageKey = node.path("storageKey").asText(null);
+                String mediaType = node.path("mediaType").asText(null);
+                if (storageKey == null || storageKey.isBlank() || mediaType == null) continue;
+                try {
+                    byte[] bytes = photoStorageService.retrieve(storageKey);
+                    if (bytes == null || bytes.length == 0) continue;
+                    String base64 = java.util.Base64.getEncoder().encodeToString(bytes);
+                    out.add(MessageAttachment.imageBase64(mediaType, base64));
+                } catch (Exception e) {
+                    log.warn("Attachment storageKey '{}' indisponible : {}",
+                            storageKey, e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("attachments JSON invalide, ignored : {}", e.getMessage());
+        }
+        return out;
+    }
+
+    /**
+     * Serialise les {@link AttachmentRef} en JSON array a stocker dans la
+     * colonne {@code attachments} de l'AssistantMessage. On garde une forme
+     * resilient au schema (storageKey + mediaType minimum) pour pouvoir relire
+     * meme apres une evolution du modele.
+     */
+    private String serializeAttachmentsSafe(List<AttachmentRef> attachments) {
+        if (attachments == null || attachments.isEmpty()) return null;
+        try {
+            List<Map<String, Object>> list = new ArrayList<>(attachments.size());
+            for (AttachmentRef ref : attachments) {
+                if (ref == null || ref.storageKey() == null) continue;
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("storageKey", ref.storageKey());
+                m.put("mediaType", ref.mediaType());
+                if (ref.url() != null) m.put("url", ref.url());
+                if (ref.name() != null) m.put("name", ref.name());
+                list.add(m);
+            }
+            return list.isEmpty() ? null : objectMapper.writeValueAsString(list);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize attachments : {}", e.getMessage());
+            return null;
+        }
     }
 
     private ToolResult executeTool(ChatMessage.ToolCall call, AgentContext context) {
