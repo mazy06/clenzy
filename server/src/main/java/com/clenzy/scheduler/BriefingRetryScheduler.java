@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -95,12 +94,11 @@ public class BriefingRetryScheduler {
         }
 
         LocalDateTime now = LocalDateTime.now(clock.withZone(ZoneId.of("UTC")));
-        LocalDate today = now.toLocalDate();
         LocalDateTime since = now.minus(Duration.ofHours(RETRY_WINDOW_HOURS));
 
         List<AssistantBriefingLog> failed;
         try {
-            failed = logRepository.findFailedSince(today, since);
+            failed = logRepository.findFailedSince(since);
         } catch (Exception e) {
             log.error("BriefingRetryScheduler : lookup failed", e);
             return 0;

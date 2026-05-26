@@ -100,16 +100,28 @@ public class EmpiricalElasticityEstimator {
         }
 
         double sumElasticity = 0.0;
+        int usedPairs = 0;
         for (Pair p : pairs) {
+            // Defense en profondeur : le filtre buildConsecutivePairs garantit
+            // |deltaAdrPct| >= MIN_PRICE_DELTA_PCT, mais on garde un garde-fou
+            // explicite pour eviter Infinity/NaN si la precision flottante fait
+            // glisser une paire pile sur 0.
+            if (p.deltaAdrPct == 0.0) continue;
             // elasticite = -dOcc/dPrice (positif par convention industrie)
             sumElasticity += (-p.deltaOccPct / p.deltaAdrPct);
+            usedPairs++;
         }
-        double avg = sumElasticity / pairs.size();
+        if (usedPairs < MIN_SAMPLE_SIZE) {
+            log.debug("EmpiricalElasticityEstimator: propertyId={} only {} non-zero pairs after final guard",
+                    propertyId, usedPairs);
+            return Optional.empty();
+        }
+        double avg = sumElasticity / usedPairs;
         double clamped = Math.max(MIN_ELASTICITY, Math.min(MAX_ELASTICITY, avg));
 
         log.debug("EmpiricalElasticityEstimator: propertyId={} elasticity={} from {} pairs",
-                propertyId, clamped, pairs.size());
-        return Optional.of(new ElasticityEstimate(clamped, pairs.size()));
+                propertyId, clamped, usedPairs);
+        return Optional.of(new ElasticityEstimate(clamped, usedPairs));
     }
 
     /**

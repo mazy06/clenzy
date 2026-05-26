@@ -606,7 +606,8 @@ public class AgentOrchestrator {
         //    sinon fallback recency (cas resume after confirmation).
         try {
             List<AssistantMemory> memories = (latestUserMessage != null && !latestUserMessage.isBlank())
-                    ? memoryService.listMostRelevant(context.keycloakId(), latestUserMessage, MAX_MEMORY_ENTRIES)
+                    ? memoryService.listMostRelevant(context.organizationId(), context.keycloakId(),
+                            latestUserMessage, MAX_MEMORY_ENTRIES)
                     : memoryService.listForUser(context.keycloakId(), MAX_MEMORY_ENTRIES);
             if (memories != null && !memories.isEmpty()) {
                 prefix.append(renderMemorySection(memories)).append("\n\n");

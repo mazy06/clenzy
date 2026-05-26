@@ -21,14 +21,18 @@ public interface AssistantBriefingLogRepository extends JpaRepository<AssistantB
                                                                     LocalDate briefingDate);
 
     /**
-     * Logs FAILED a re-tenter : meme jour et tentative recente (le caller filtre
-     * sur la fenetre 6h). Utilise par {@code BriefingRetryScheduler}.
+     * Logs FAILED a re-tenter dans la fenetre {@code since}.
+     *
+     * <p>Ne filtre PAS sur {@code briefing_date} : un briefing echoue a 23h UTC
+     * et reverifie a 00h30 UTC le lendemain doit etre re-tente (sinon on perd
+     * le creneau de fin de soiree). La fenetre {@code sentAt >= since}
+     * (typiquement 6h glissantes) est la seule borne, et la garde idempotence
+     * BDD (unique sur {@code (keycloak_id, briefing_date)}) protege contre les
+     * doublons.</p>
      */
     @Query("SELECT l FROM AssistantBriefingLog l "
             + "WHERE l.status = 'FAILED' "
-            + "AND l.briefingDate = :date "
             + "AND l.sentAt >= :since "
             + "ORDER BY l.sentAt ASC")
-    List<AssistantBriefingLog> findFailedSince(@Param("date") LocalDate date,
-                                                  @Param("since") LocalDateTime since);
+    List<AssistantBriefingLog> findFailedSince(@Param("since") LocalDateTime since);
 }

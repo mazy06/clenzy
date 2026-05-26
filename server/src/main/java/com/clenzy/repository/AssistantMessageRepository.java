@@ -34,4 +34,28 @@ public interface AssistantMessageRepository extends JpaRepository<AssistantMessa
             nativeQuery = true)
     Long sumVisionPromptTokensSince(@Param("orgId") Long orgId,
                                       @Param("since") LocalDateTime since);
+
+    /**
+     * Retourne le JSON {@code attachments} du premier message d'une conversation
+     * du {@code keycloakId} qui reference le {@code storageKey} demande. Renvoie
+     * {@code null} si rien ne matche — equivalent securitaire de "pas autorise
+     * OU n'existe pas" (on ne distingue pas pour eviter l'enumeration de cles).
+     *
+     * <p>Use case : autoriser {@code GET /attachments/{storageKey}} en garantissant
+     * que la storage key appartient bien a une conversation du user JWT. Defense
+     * en profondeur contre la fuite cross-user des attachments.</p>
+     *
+     * <p>Native query : recherche par sous-chaine dans le champ jsonb cast en
+     * texte. Filtre par join sur {@code assistant_conversation.keycloak_id}
+     * (ownership remonte la conversation). On garde le JSON brut pour que le
+     * caller puisse extraire le mediaType apres validation.</p>
+     */
+    @Query(value = "SELECT m.attachments FROM assistant_message m "
+            + "JOIN assistant_conversation c ON c.id = m.conversation_id "
+            + "WHERE c.keycloak_id = :keycloakId "
+            + "AND m.attachments IS NOT NULL "
+            + "AND m.attachments::text LIKE CONCAT('%\"storageKey\":\"', :storageKey, '\"%') "
+            + "LIMIT 1", nativeQuery = true)
+    String findAttachmentsJsonByStorageKeyForUser(@Param("storageKey") String storageKey,
+                                                    @Param("keycloakId") String keycloakId);
 }

@@ -325,25 +325,79 @@ public class AssistantController {
 
     /**
      * Sert le binaire d'un attachment uploade — utilise par le frontend pour
-     * afficher les thumbnails dans l'historique de conversation. L'authentification
-     * suffit ; le secret reside dans la difficulte de deviner les storage keys
-     * (UUID).
+     * afficher les thumbnails dans l'historique.
+     *
+     * <p><b>Authorization stricte</b> : le {@code storageKey} doit appartenir a un
+     * message d'une conversation du {@code keycloakId} extrait du JWT. Un user A
+     * qui devine ou intercepte le storageKey d'un user B obtient un 404 (volontaire
+     * — on ne distingue pas "n'existe pas" de "pas autorise" pour eviter
+     * l'enumeration de cles).</p>
+     *
+     * <p>Le Content-Type est extrait du JSON {@code attachments} (champ
+     * {@code mediaType}) — fallback {@code image/jpeg} si parsing echoue, pour
+     * conserver l'ancien comportement en cas de cle legacy mal formee.</p>
      */
     @GetMapping("/attachments/{storageKey}")
-    public ResponseEntity<byte[]> serveAttachment(@PathVariable String storageKey) {
+    public ResponseEntity<byte[]> serveAttachment(@PathVariable String storageKey,
+                                                    @AuthenticationPrincipal Jwt jwt) {
+        if (jwt == null || jwt.getSubject() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String keycloakId = jwt.getSubject();
+
+        String attachmentsJson;
+        try {
+            attachmentsJson = messageRepository.findAttachmentsJsonByStorageKeyForUser(
+                    storageKey, keycloakId);
+        } catch (Exception e) {
+            log.warn("serveAttachment: ownership lookup failed for key {} user {} : {}",
+                    storageKey, keycloakId, e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+        if (attachmentsJson == null) {
+            // Soit la cle n'existe pas, soit elle appartient a un autre user.
+            // 404 dans les deux cas pour eviter l'enumeration.
+            log.debug("serveAttachment: storage key {} not owned by user {}",
+                    storageKey, keycloakId);
+            return ResponseEntity.notFound().build();
+        }
+
+        String mediaType = extractMediaType(attachmentsJson, storageKey);
+        if (mediaType == null) mediaType = "image/jpeg";
+
         try {
             byte[] data = photoStorageService.retrieve(storageKey);
-            // On ne connait pas le MIME exact ici (pas stocke), mais l'usage cote
-            // frontend est <img src="..."/> donc image/* fonctionne. Le browser
-            // sniff le contenu si necessaire.
             return ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType("image/jpeg"))
+                    .contentType(MediaType.parseMediaType(mediaType))
                     .header("Cache-Control", "private, max-age=3600")
                     .body(data);
         } catch (Exception e) {
-            log.debug("serveAttachment: storage key {} introuvable", storageKey);
+            log.debug("serveAttachment: storage key {} introuvable en storage", storageKey);
             return ResponseEntity.notFound().build();
         }
+    }
+
+    /**
+     * Extrait le {@code mediaType} associe a un {@code storageKey} dans une chaine
+     * JSON d'attachments. Retourne null si le parsing echoue ou la cle est absente.
+     * Volontairement defensif : ce parsing est sur le chemin chaud d'affichage des
+     * thumbnails, il ne doit jamais crasher.
+     */
+    private String extractMediaType(String attachmentsJson, String storageKey) {
+        if (attachmentsJson == null || storageKey == null) return null;
+        try {
+            com.fasterxml.jackson.databind.JsonNode arr = objectMapper.readTree(attachmentsJson);
+            if (!arr.isArray()) return null;
+            for (com.fasterxml.jackson.databind.JsonNode item : arr) {
+                if (storageKey.equals(item.path("storageKey").asText(null))) {
+                    String mt = item.path("mediaType").asText(null);
+                    return (mt != null && !mt.isBlank()) ? mt : null;
+                }
+            }
+        } catch (Exception e) {
+            log.debug("extractMediaType: parsing failed : {}", e.getMessage());
+        }
+        return null;
     }
 
     private void validateUpload(MultipartFile file) {

@@ -147,10 +147,16 @@ public class AssistantMemoryService {
      * </ul>
      * Le caller n'a pas a se preoccuper de ces cas — la methode renvoie toujours
      * une liste valide.</p>
+     *
+     * <p><b>Le {@code organizationId} est obligatoire</b> pour eviter une fuite
+     * cross-org dans la native query (le filtre Hibernate ne s'applique pas
+     * aux native queries pgvector).</p>
      */
-    public List<AssistantMemory> listMostRelevant(String keycloakId, String userMessage, int limit) {
+    public List<AssistantMemory> listMostRelevant(Long organizationId, String keycloakId,
+                                                    String userMessage, int limit) {
         if (!relevanceEnabled || embeddingService == null
-                || userMessage == null || userMessage.isBlank()) {
+                || userMessage == null || userMessage.isBlank()
+                || organizationId == null) {
             return listForUser(keycloakId, limit);
         }
         if (keycloakId == null || keycloakId.isBlank()) {
@@ -168,7 +174,8 @@ public class AssistantMemoryService {
 
         List<Object[]> rows;
         try {
-            rows = repository.searchByCosineSimilarity(queryEmbedding, keycloakId, safeLimit);
+            rows = repository.searchByCosineSimilarity(queryEmbedding, keycloakId,
+                    organizationId, safeLimit);
         } catch (Exception e) {
             log.warn("Memory relevance search failed ({}), fallback recency", e.getMessage());
             return listForUser(keycloakId, safeLimit);

@@ -136,12 +136,14 @@ public class BriefingComposer {
 
         if (conversationId == null) return null;
 
-        // Set un titre lisible "Briefing du JJ/MM/AAAA"
+        // Set un titre lisible "Briefing du JJ/MM/AAAA" — date en TZ user pour
+        // eviter qu'un user UTC+12 voie "Briefing du samedi" un dimanche matin.
         try {
+            LocalDate userToday = resolveUserToday(pref.getTimezone());
             conversationRepository.findById(conversationId).ifPresent(conv -> {
                 String label = freq == AssistantBriefingPref.Frequency.WEEKLY_SUNDAY
-                        ? "Weekly review du " + LocalDate.now().format(TITLE_DATE)
-                        : "Briefing du " + LocalDate.now().format(TITLE_DATE);
+                        ? "Weekly review du " + userToday.format(TITLE_DATE)
+                        : "Briefing du " + userToday.format(TITLE_DATE);
                 conv.setTitle(label);
                 conversationRepository.save(conv);
             });
@@ -152,6 +154,20 @@ public class BriefingComposer {
 
         String body = extractAssistantText(conversationId);
         return new BriefingResult(conversationId, body, freq);
+    }
+
+    /**
+     * Resout "aujourd'hui" dans la timezone du user. Si la timezone est invalide
+     * ou null, fallback Europe/Paris (defaut Clenzy). Package-private pour tests.
+     */
+    static LocalDate resolveUserToday(String tz) {
+        java.time.ZoneId zone;
+        try {
+            zone = java.time.ZoneId.of(tz != null && !tz.isBlank() ? tz : "Europe/Paris");
+        } catch (Exception e) {
+            zone = java.time.ZoneId.of("Europe/Paris");
+        }
+        return LocalDate.now(zone);
     }
 
     /** Extrait le texte concatene des messages assistant pour usage email/whatsapp. */
