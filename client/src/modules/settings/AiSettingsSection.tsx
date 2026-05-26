@@ -39,6 +39,7 @@ import { useAiKeyStatus, useTestAiKey, useSaveAiKey, useDeleteAiKey, useAiFeatur
 import type { AiApiKeyStatus, SaveAiApiKeyRequest } from '../../services/api/aiApi';
 import PlatformAiConfigSection from './PlatformAiConfigSection';
 import AssistantBriefingPrefs from './AssistantBriefingPrefs';
+import KnowledgeBaseAdmin from './KnowledgeBaseAdmin';
 
 // ─── Provider Brand Config ──────────────────────────────────────────────────
 
@@ -773,6 +774,11 @@ export default function AiSettingsSection() {
       {/* ─── Briefings proactifs (resumes IA aux horaires choisis) ─────── */}
       <Box sx={{ mt: 4 }}>
         <AssistantBriefingPrefs />
+      </Box>
+
+      {/* ─── Knowledge base RAG (citation doc Clenzy + notes internes) ── */}
+      <Box sx={{ mt: 4 }}>
+        <KnowledgeBaseAdmin />
       </Box>
     </Box>
   );

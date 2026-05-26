@@ -36,6 +36,7 @@ class AgentOrchestratorTest {
     private AssistantMessageRepository msgRepo;
     private OrgAiApiKeyRepository keyRepo;
     private AssistantMemoryService memoryService;
+    private com.clenzy.service.agent.kb.KbSearchService kbSearchService;
     private AgentOrchestrator orchestrator;
     private ObjectMapper om;
     private AgentContext ctx;
@@ -48,10 +49,12 @@ class AgentOrchestratorTest {
         msgRepo = mock(AssistantMessageRepository.class);
         keyRepo = mock(OrgAiApiKeyRepository.class);
         memoryService = mock(AssistantMemoryService.class);
+        kbSearchService = mock(com.clenzy.service.agent.kb.KbSearchService.class);
         om = new ObjectMapper();
         orchestrator = new AgentOrchestrator(chatProvider, toolRegistry,
                 convRepo, msgRepo, om, keyRepo, new AiProperties(), new PendingToolStore(),
-                memoryService, mock(com.clenzy.service.PhotoStorageService.class));
+                memoryService, mock(com.clenzy.service.PhotoStorageService.class),
+                kbSearchService);
         ctx = AgentContext.minimal(1L, "user-123");
 
         when(toolRegistry.listDescriptors()).thenReturn(List.of());
@@ -59,6 +62,8 @@ class AgentOrchestratorTest {
         when(keyRepo.findByOrganizationIdAndProvider(anyLong(), anyString())).thenReturn(Optional.empty());
         // Memoire vide par defaut (les tests memoire surchargent)
         when(memoryService.listForUser(anyString(), anyInt())).thenReturn(List.of());
+        // RAG : aucun hit par defaut
+        when(kbSearchService.search(anyString(), any(), anyInt())).thenReturn(List.of());
     }
 
     @Test
@@ -333,6 +338,86 @@ class AgentOrchestratorTest {
 
         // Verifie que la memoire est chargee avec la limite de 30
         verify(memoryService).listForUser(eq("user-123"), eq(30));
+    }
+
+    // ─── RAG auto-injection ──────────────────────────────────────────────
+
+    @Test
+    void buildSystemPrompt_withRagHitsAboveThreshold_prependsContextSection() {
+        // Hits avec relevance >= 0.7 → doivent etre injectes
+        when(kbSearchService.search(eq("comment configurer pricing"), eq(1L), org.mockito.ArgumentMatchers.anyInt()))
+                .thenReturn(java.util.List.of(
+                        new com.clenzy.service.agent.kb.KbSearchService.KbSearchHit(
+                                1L, 10L, "Pricing avance", "docs/pricing.md",
+                                "Pour activer le pricing dynamique...", 0.92),
+                        new com.clenzy.service.agent.kb.KbSearchService.KbSearchHit(
+                                2L, 11L, "Yield rules", "docs/yield.md",
+                                "Les yield rules permettent d'ajuster...", 0.78)
+                ));
+
+        String prompt = orchestrator.buildSystemPrompt(ctx, "comment configurer pricing");
+
+        assertTrue(prompt.contains("── Contexte documentation pertinente ──"));
+        assertTrue(prompt.contains("Pricing avance"));
+        assertTrue(prompt.contains("docs/pricing.md"));
+        assertTrue(prompt.contains("92%"));
+        assertTrue(prompt.contains("Yield rules"));
+        // Le prompt par defaut suit
+        assertTrue(prompt.contains("Tu es l'assistant strategique Clenzy"));
+    }
+
+    @Test
+    void buildSystemPrompt_ragHitsBelowThreshold_filtered() {
+        // Hits avec relevance < 0.7 → ignores
+        when(kbSearchService.search(anyString(), any(), org.mockito.ArgumentMatchers.anyInt()))
+                .thenReturn(java.util.List.of(
+                        new com.clenzy.service.agent.kb.KbSearchService.KbSearchHit(
+                                1L, 10L, "Low rel", "docs/x.md", "Snippet faible", 0.55)
+                ));
+
+        String prompt = orchestrator.buildSystemPrompt(ctx, "question vague");
+        assertFalse(prompt.contains("── Contexte documentation pertinente ──"));
+    }
+
+    @Test
+    void buildSystemPrompt_nullLastMessage_skipsRagSearch() {
+        orchestrator.buildSystemPrompt(ctx, null);
+        // Pas d'appel au KB search si pas de message
+        verify(kbSearchService, never()).search(anyString(), any(), org.mockito.ArgumentMatchers.anyInt());
+    }
+
+    @Test
+    void buildSystemPrompt_ragFailure_silentlySkipped() {
+        when(kbSearchService.search(anyString(), any(), org.mockito.ArgumentMatchers.anyInt()))
+                .thenThrow(new RuntimeException("embed API down"));
+
+        // Ne doit pas throw
+        String prompt = orchestrator.buildSystemPrompt(ctx, "test");
+        assertNotNull(prompt);
+        assertFalse(prompt.contains("── Contexte documentation pertinente ──"));
+    }
+
+    @Test
+    void buildSystemPrompt_combinesMemoryAndRagSections() {
+        AssistantMemory pref = new AssistantMemory(1L, "user-123",
+                "tz", "Europe/Paris", AssistantMemory.Scope.PREFERENCE);
+        when(memoryService.listForUser("user-123", 30)).thenReturn(java.util.List.of(pref));
+        when(kbSearchService.search(anyString(), any(), org.mockito.ArgumentMatchers.anyInt()))
+                .thenReturn(java.util.List.of(
+                        new com.clenzy.service.agent.kb.KbSearchService.KbSearchHit(
+                                1L, 10L, "Article 4.2", "docs/p.md", "Procedure", 0.85)
+                ));
+
+        String prompt = orchestrator.buildSystemPrompt(ctx, "question");
+        assertTrue(prompt.contains("── Memoire utilisateur ──"));
+        assertTrue(prompt.contains("── Contexte documentation pertinente ──"));
+        assertTrue(prompt.contains("Article 4.2"));
+        // Ordre : memoire avant RAG avant default
+        int memIdx = prompt.indexOf("Memoire utilisateur");
+        int ragIdx = prompt.indexOf("Contexte documentation");
+        int defaultIdx = prompt.indexOf("assistant strategique Clenzy");
+        assertTrue(memIdx < ragIdx);
+        assertTrue(ragIdx < defaultIdx);
     }
 
     // helper to silence "anyLong unused"
