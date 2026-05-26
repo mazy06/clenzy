@@ -1994,6 +1994,12 @@
       "saveError": "Erreur lors de la sauvegarde"
     },
     "ai": {
+      "tabs": {
+        "connection": "Connexion",
+        "models": "Modèles & features",
+        "briefings": "Briefings",
+        "kb": "Documentation"
+      },
       "platform": {
         "title": "Configuration plateforme",
         "subtitle": "Configurez les modeles IA et assignez-les aux fonctionnalites de la plateforme.",

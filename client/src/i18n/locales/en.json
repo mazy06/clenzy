@@ -1972,6 +1972,12 @@
       "saveError": "Error saving configuration"
     },
     "ai": {
+      "tabs": {
+        "connection": "Connection",
+        "models": "Models & features",
+        "briefings": "Briefings",
+        "kb": "Documentation"
+      },
       "platform": {
         "title": "Platform configuration",
         "subtitle": "Configure AI models and assign them to platform features.",

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -16,6 +17,8 @@ import {
   IconButton,
   Switch,
   Divider,
+  Tabs,
+  Tab,
   useTheme,
   alpha,
 } from '@mui/material';
@@ -682,12 +685,43 @@ function FeatureTogglesSection() {
 
 // ─── Main Section ───────────────────────────────────────────────────────────
 
+/**
+ * Tabs internes de la page Settings > IA.
+ *
+ * <p>Chaque tab est porte par un slug stable persiste dans l'URL via le query
+ * param {@code ?subtab=...}. Permet de partager un lien direct vers une sous-page
+ * (ex: lien depuis un email de support) ou de retrouver son contexte apres un
+ * refresh.</p>
+ */
+const SUBTABS = ['connection', 'models', 'briefings', 'kb'] as const;
+type SubTab = (typeof SUBTABS)[number];
+const DEFAULT_SUBTAB: SubTab = 'connection';
+
 export default function AiSettingsSection() {
   const { t } = useTranslation();
   const { hasAnyRole: mainHasAnyRole } = useAuth();
   const { data: statuses, isLoading, error } = useAiKeyStatus();
   const deleteMutation = useDeleteAiKey();
   const [dialogProvider, setDialogProvider] = useState<'openai' | 'anthropic' | null>(null);
+
+  // Sous-tab actif persiste dans l'URL pour partage/refresh
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab: SubTab = useMemo(() => {
+    const raw = searchParams.get('subtab');
+    return (SUBTABS as readonly string[]).includes(raw ?? '')
+      ? (raw as SubTab)
+      : DEFAULT_SUBTAB;
+  }, [searchParams]);
+
+  const handleTabChange = useCallback(
+    (_evt: React.SyntheticEvent, value: SubTab) => {
+      // Replace pour ne pas polluer l'historique a chaque click
+      const next = new URLSearchParams(searchParams);
+      next.set('subtab', value);
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
 
   if (isLoading) {
     return (
@@ -720,33 +754,75 @@ export default function AiSettingsSection() {
 
   return (
     <Box>
-      {/* ── BYOK cards en haut (clé personnelle prioritaire dans l'UX) ── */}
-      <Grid container spacing={2.5} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
-          <ProviderCard
-            status={openaiStatus || { ...defaultStatus, provider: 'openai' }}
-            brand={PROVIDERS.openai}
-            onConfigure={() => setDialogProvider('openai')}
-            onDisconnect={() => deleteMutation.mutate('openai')}
-            isDisconnecting={deleteMutation.isPending && deleteMutation.variables === 'openai'}
-          />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <ProviderCard
-            status={anthropicStatus || { ...defaultStatus, provider: 'anthropic' }}
-            brand={PROVIDERS.anthropic}
-            onConfigure={() => setDialogProvider('anthropic')}
-            onDisconnect={() => deleteMutation.mutate('anthropic')}
-            isDisconnecting={deleteMutation.isPending && deleteMutation.variables === 'anthropic'}
-          />
-        </Grid>
-      </Grid>
+      {/* ── Tabs internes ── */}
+      <Tabs
+        value={activeTab}
+        onChange={handleTabChange}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
+        sx={{
+          mb: 3,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          minHeight: 40,
+          '& .MuiTab-root': {
+            textTransform: 'none',
+            fontWeight: 500,
+            fontSize: '0.875rem',
+            minHeight: 40,
+            px: 2,
+            py: 1,
+            color: 'text.secondary',
+            '&.Mui-selected': {
+              fontWeight: 600,
+              color: 'text.primary',
+            },
+          },
+          '& .MuiTabs-indicator': {
+            height: 2,
+          },
+        }}
+      >
+        <Tab value="connection" label={t('settings.ai.tabs.connection', 'Connexion')} />
+        <Tab value="models" label={t('settings.ai.tabs.models', 'Modèles & features')} />
+        <Tab value="briefings" label={t('settings.ai.tabs.briefings', 'Briefings')} />
+        <Tab value="kb" label={t('settings.ai.tabs.kb', 'Documentation')} />
+      </Tabs>
 
-      {/* ── Stack vertical de sections — chaque AiSettingsCard gere son mb=3 ── */}
-      <PlatformAiConfigSection />
-      {!mainHasAnyRole(['SUPER_ADMIN']) && <FeatureTogglesSection />}
-      <AssistantBriefingPrefs />
-      <KnowledgeBaseAdmin />
+      {activeTab === 'connection' && (
+        <Grid container spacing={2.5}>
+          <Grid item xs={12} md={6}>
+            <ProviderCard
+              status={openaiStatus || { ...defaultStatus, provider: 'openai' }}
+              brand={PROVIDERS.openai}
+              onConfigure={() => setDialogProvider('openai')}
+              onDisconnect={() => deleteMutation.mutate('openai')}
+              isDisconnecting={deleteMutation.isPending && deleteMutation.variables === 'openai'}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <ProviderCard
+              status={anthropicStatus || { ...defaultStatus, provider: 'anthropic' }}
+              brand={PROVIDERS.anthropic}
+              onConfigure={() => setDialogProvider('anthropic')}
+              onDisconnect={() => deleteMutation.mutate('anthropic')}
+              isDisconnecting={deleteMutation.isPending && deleteMutation.variables === 'anthropic'}
+            />
+          </Grid>
+        </Grid>
+      )}
+
+      {activeTab === 'models' && (
+        <>
+          <PlatformAiConfigSection />
+          {!mainHasAnyRole(['SUPER_ADMIN']) && <FeatureTogglesSection />}
+        </>
+      )}
+
+      {activeTab === 'briefings' && <AssistantBriefingPrefs />}
+
+      {activeTab === 'kb' && <KnowledgeBaseAdmin />}
 
       <ConfigureDialog
         open={dialogProvider !== null}
