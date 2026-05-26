@@ -38,6 +38,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useAiKeyStatus, useTestAiKey, useSaveAiKey, useDeleteAiKey, useAiFeatureToggles, useSetAiFeatureToggle } from '../../hooks/useAi';
 import type { AiApiKeyStatus, SaveAiApiKeyRequest } from '../../services/api/aiApi';
 import PlatformAiConfigSection from './PlatformAiConfigSection';
+import AssistantBriefingPrefs from './AssistantBriefingPrefs';
 
 // ─── Provider Brand Config ──────────────────────────────────────────────────
 
@@ -768,6 +769,11 @@ export default function AiSettingsSection() {
         onClose={() => setDialogProvider(null)}
         provider={dialogProvider}
       />
+
+      {/* ─── Briefings proactifs (resumes IA aux horaires choisis) ─────── */}
+      <Box sx={{ mt: 4 }}>
+        <AssistantBriefingPrefs />
+      </Box>
     </Box>
   );
 }

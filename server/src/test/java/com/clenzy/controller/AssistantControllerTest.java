@@ -55,7 +55,10 @@ class AssistantControllerTest {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
         controller = new AssistantController(orchestrator, convRepo, msgRepo,
-                tenantContext, new ObjectMapper(), photoStorageService);
+                tenantContext, new ObjectMapper(), photoStorageService,
+                mock(com.clenzy.service.agent.briefing.AssistantBriefingPrefService.class),
+                mock(com.clenzy.service.agent.briefing.BriefingComposer.class),
+                mock(com.clenzy.service.agent.briefing.BriefingDelivery.class));
 
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "none")

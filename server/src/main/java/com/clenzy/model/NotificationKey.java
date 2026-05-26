@@ -197,7 +197,10 @@ public enum NotificationKey {
     // ─── RESERVATION (3 cles) ──────────────────────────────────────────────
     RESERVATION_CREATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
     RESERVATION_UPDATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
-    RESERVATION_CANCELLED(NotificationType.WARNING, NotificationCategory.RESERVATION, true);
+    RESERVATION_CANCELLED(NotificationType.WARNING, NotificationCategory.RESERVATION, true),
+
+    // ─── ASSISTANT (briefings proactifs) ──────────────────────────────────
+    BRIEFING_READY(NotificationType.INFO, NotificationCategory.SYSTEM, true);
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

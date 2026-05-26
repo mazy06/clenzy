@@ -1324,3 +1324,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0142 : Briefings proactifs assistant (prefs + log idempotence) ---
+  - changeSet:
+      id: "0142-add-assistant-briefing-prefs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0142__add_assistant_briefing_prefs.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

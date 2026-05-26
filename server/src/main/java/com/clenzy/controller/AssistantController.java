@@ -1,5 +1,6 @@
 package com.clenzy.controller;
 
+import com.clenzy.model.AssistantBriefingPref;
 import com.clenzy.model.AssistantConversation;
 import com.clenzy.model.AssistantMessage;
 import com.clenzy.repository.AssistantConversationRepository;
@@ -9,6 +10,9 @@ import com.clenzy.service.agent.AgentContext;
 import com.clenzy.service.agent.AgentOrchestrator;
 import com.clenzy.service.agent.AgentSseEvent;
 import com.clenzy.service.agent.AttachmentRef;
+import com.clenzy.service.agent.briefing.AssistantBriefingPrefService;
+import com.clenzy.service.agent.briefing.BriefingComposer;
+import com.clenzy.service.agent.briefing.BriefingDelivery;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -61,6 +65,9 @@ public class AssistantController {
     private final TenantContext tenantContext;
     private final ObjectMapper objectMapper;
     private final PhotoStorageService photoStorageService;
+    private final AssistantBriefingPrefService briefingPrefService;
+    private final BriefingComposer briefingComposer;
+    private final BriefingDelivery briefingDelivery;
 
     /** Pool dedie pour les streams SSE — evite de bloquer les threads Tomcat. */
     private final Executor sseExecutor = Executors.newCachedThreadPool(r -> {
@@ -74,13 +81,19 @@ public class AssistantController {
                                 AssistantMessageRepository messageRepository,
                                 TenantContext tenantContext,
                                 ObjectMapper objectMapper,
-                                PhotoStorageService photoStorageService) {
+                                PhotoStorageService photoStorageService,
+                                AssistantBriefingPrefService briefingPrefService,
+                                BriefingComposer briefingComposer,
+                                BriefingDelivery briefingDelivery) {
         this.orchestrator = orchestrator;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
         this.photoStorageService = photoStorageService;
+        this.briefingPrefService = briefingPrefService;
+        this.briefingComposer = briefingComposer;
+        this.briefingDelivery = briefingDelivery;
     }
 
     // ─── Chat SSE ──────────────────────────────────────────────────────────
@@ -348,6 +361,97 @@ public class AssistantController {
                             + "Formats acceptes : " + String.join(", ", ALLOWED_IMAGE_MIME));
         }
     }
+
+    // ─── Briefings proactifs ────────────────────────────────────────────────
+
+    /**
+     * Recupere les preferences de briefing de l'user courant. Si pas de pref
+     * persistee, retourne les defauts ({@code daily_morning} / {@code in_app}
+     * / 08:00 Europe/Paris).
+     */
+    @GetMapping("/briefings/prefs")
+    public ResponseEntity<Map<String, Object>> getBriefingPrefs(@AuthenticationPrincipal Jwt jwt) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        AssistantBriefingPref pref = briefingPrefService.get(jwt.getSubject())
+                .orElseGet(() -> briefingPrefService.getDefaultPrefs(orgId, jwt.getSubject()));
+        return ResponseEntity.ok(toPrefDto(pref));
+    }
+
+    /** Met a jour les prefs (upsert). */
+    @PutMapping("/briefings/prefs")
+    public ResponseEntity<Map<String, Object>> updateBriefingPrefs(
+            @RequestBody BriefingPrefsBody body,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        AssistantBriefingPref.Frequency freq = AssistantBriefingPref.Frequency
+                .fromString(body.frequency());
+        java.time.LocalTime timeLocal = parseTimeOrDefault(body.timeLocal());
+        AssistantBriefingPref pref = briefingPrefService.upsert(
+                orgId,
+                jwt.getSubject(),
+                body.enabled() != null ? body.enabled() : true,
+                freq,
+                body.channels(),
+                timeLocal,
+                body.timezone());
+        return ResponseEntity.ok(toPrefDto(pref));
+    }
+
+    /**
+     * Trigger manuel pour test/debug — declenche immediatement un briefing
+     * pour l'user, sans passer par le scheduler ni l'idempotence. Renvoie
+     * l'id de la conversation creee + les canaux delivres.
+     */
+    @PostMapping("/briefings/trigger")
+    public ResponseEntity<Map<String, Object>> triggerBriefing(
+            @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        AssistantBriefingPref pref = briefingPrefService.get(jwt.getSubject())
+                .orElseGet(() -> briefingPrefService.getDefaultPrefs(orgId, jwt.getSubject()));
+
+        BriefingComposer.BriefingResult result = briefingComposer.compose(pref);
+        if (result == null) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+                    Map.of("error", "BriefingComposer indisponible"));
+        }
+        List<String> channels = briefingPrefService.parseChannels(pref);
+        List<String> delivered = briefingDelivery.dispatch(
+                result, jwt.getSubject(), orgId, channels);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("conversationId", result.conversationId());
+        response.put("delivered", delivered);
+        response.put("requested", channels);
+        return ResponseEntity.ok(response);
+    }
+
+    private Map<String, Object> toPrefDto(AssistantBriefingPref pref) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("enabled", pref.isEnabled());
+        m.put("frequency", pref.getFrequencyEnum().dbValue());
+        m.put("channels", briefingPrefService.parseChannels(pref));
+        m.put("timeLocal", pref.getTimeLocal() != null
+                ? pref.getTimeLocal().toString() : "08:00");
+        m.put("timezone", pref.getTimezone());
+        return m;
+    }
+
+    private static java.time.LocalTime parseTimeOrDefault(String raw) {
+        if (raw == null || raw.isBlank()) return java.time.LocalTime.of(8, 0);
+        try { return java.time.LocalTime.parse(raw); }
+        catch (Exception e) {
+            throw new IllegalArgumentException("timeLocal invalide : '" + raw + "' (format HH:mm)");
+        }
+    }
+
+    /** Body pour PUT /briefings/prefs. {@code enabled} null = true par defaut. */
+    public record BriefingPrefsBody(
+            Boolean enabled,
+            String frequency,
+            List<String> channels,
+            String timeLocal,
+            String timezone
+    ) {}
 
     // ─── Request body record ───────────────────────────────────────────────
 
