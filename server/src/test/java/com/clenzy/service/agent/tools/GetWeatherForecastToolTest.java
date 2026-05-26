@@ -49,10 +49,12 @@ class GetWeatherForecastToolTest {
     void city_geocodeAndForecast_buildsCleanPayload() throws Exception {
         var paris = new OpenMeteoClient.GeoCoord(48.85, 2.35, "Paris", "FR");
         when(openMeteoClient.geocode("Paris")).thenReturn(Optional.of(paris));
-        when(openMeteoClient.forecast(eq(paris), eq(5))).thenReturn(Optional.of(List.of(
-                new OpenMeteoClient.DailyForecast(LocalDate.parse("2026-05-26"), 22.3, 12.1, 0.0, 0),
-                new OpenMeteoClient.DailyForecast(LocalDate.parse("2026-05-27"), 19.5, 11.0, 5.2, 61)
-        )));
+        when(openMeteoClient.forecast(eq(paris), eq(5))).thenReturn(Optional.of(
+                new OpenMeteoClient.ForecastSnapshot(List.of(
+                        new OpenMeteoClient.DailyForecast(LocalDate.parse("2026-05-26"), 22.3, 12.1, 0.0, 0),
+                        new OpenMeteoClient.DailyForecast(LocalDate.parse("2026-05-27"), 19.5, 11.0, 5.2, 61)
+                ), false)
+        ));
 
         ObjectNode args = om.createObjectNode();
         args.put("city", "Paris");
@@ -88,7 +90,8 @@ class GetWeatherForecastToolTest {
 
         var lyon = new OpenMeteoClient.GeoCoord(45.75, 4.85, "Lyon", "FR");
         when(openMeteoClient.geocode("Lyon")).thenReturn(Optional.of(lyon));
-        when(openMeteoClient.forecast(eq(lyon), any(Integer.class))).thenReturn(Optional.of(List.of()));
+        when(openMeteoClient.forecast(eq(lyon), any(Integer.class))).thenReturn(Optional.of(
+                new OpenMeteoClient.ForecastSnapshot(List.of(), false)));
 
         ObjectNode args = om.createObjectNode();
         args.put("propertyId", 42);
@@ -136,7 +139,8 @@ class GetWeatherForecastToolTest {
     void daysArg_isClampedTo1And7() {
         var coord = new OpenMeteoClient.GeoCoord(48.0, 2.0, "Paris", "FR");
         when(openMeteoClient.geocode(any())).thenReturn(Optional.of(coord));
-        when(openMeteoClient.forecast(any(), any(Integer.class))).thenReturn(Optional.of(List.of()));
+        when(openMeteoClient.forecast(any(), any(Integer.class))).thenReturn(Optional.of(
+                new OpenMeteoClient.ForecastSnapshot(List.of(), false)));
 
         ObjectNode args = om.createObjectNode();
         args.put("city", "Paris");

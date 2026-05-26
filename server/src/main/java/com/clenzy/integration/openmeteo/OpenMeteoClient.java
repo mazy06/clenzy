@@ -9,8 +9,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,12 +42,24 @@ import java.util.Optional;
 public class OpenMeteoClient {
 
     private static final Logger log = LoggerFactory.getLogger(OpenMeteoClient.class);
-    private static final Duration CACHE_TTL = Duration.ofHours(1);
+    /**
+     * Fenetre "fresh" : sous ce seuil, la valeur cachee est servie sans tenter
+     * d'appel reseau. Au-dela, on tente un re-fetch HTTP ; si l'appel reussit,
+     * on rafraichit. Si l'appel echoue mais qu'on est encore dans
+     * {@link #CACHE_STALE_TTL}, on renvoie le snapshot avec {@code stale=true}.
+     */
+    private static final Duration CACHE_FRESH_WINDOW = Duration.ofHours(1);
+    /**
+     * Duree de retention totale du snapshot. Au-dela, on considere la valeur
+     * trop vieille pour etre servie (le tool renverra une erreur a l'utilisateur).
+     */
+    private static final Duration CACHE_STALE_TTL = Duration.ofHours(24);
     private static final String CACHE_GEOCODE_PREFIX = "weather:geocode:";
     private static final String CACHE_FORECAST_PREFIX = "weather:forecast:";
 
     private final RestTemplate restTemplate;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final Clock clock;
     private final String geocodingBaseUrl;
     private final String forecastBaseUrl;
 
@@ -52,26 +67,38 @@ public class OpenMeteoClient {
                             RedisTemplate<String, Object> redisTemplate,
                             @Value("${openmeteo.geocoding-url:https://geocoding-api.open-meteo.com}") String geocodingBaseUrl,
                             @Value("${openmeteo.forecast-url:https://api.open-meteo.com}") String forecastBaseUrl) {
+        this(restTemplate, redisTemplate, Clock.systemUTC(), geocodingBaseUrl, forecastBaseUrl);
+    }
+
+    /** Constructeur test-friendly avec horloge injectable (deterministe). */
+    OpenMeteoClient(RestTemplate restTemplate,
+                     RedisTemplate<String, Object> redisTemplate,
+                     Clock clock,
+                     String geocodingBaseUrl,
+                     String forecastBaseUrl) {
         this.restTemplate = restTemplate;
         this.redisTemplate = redisTemplate;
+        this.clock = clock;
         this.geocodingBaseUrl = geocodingBaseUrl;
         this.forecastBaseUrl = forecastBaseUrl;
     }
 
     /**
-     * Resolution ville → coordonnees. Cache Redis 1h.
+     * Resolution ville → coordonnees. Cache Redis stale-while-revalidate :
+     * fresh 1h, stale jusqu'a 24h (la geolocalisation d'une ville ne bouge
+     * jamais, le stale est sans risque).
      *
      * @param city nom de la ville (insensible casse, tronque a 80 chars)
-     * @return coordonnees ou empty si geocoding echoue
+     * @return coordonnees ou empty si geocoding echoue ET aucun cache stale dispo
      */
     public Optional<GeoCoord> geocode(String city) {
         if (city == null || city.isBlank()) return Optional.empty();
         String normalized = city.trim().toLowerCase(Locale.ROOT);
         String cacheKey = CACHE_GEOCODE_PREFIX + normalized;
 
-        Object cached = readCache(cacheKey);
-        if (cached instanceof GeoCoord gc) {
-            return Optional.of(gc);
+        CachedSnapshot<GeoCoord> cached = readCachedSnapshot(cacheKey, GeoCoord.class);
+        if (cached != null && isFresh(cached)) {
+            return Optional.of(cached.value);
         }
 
         String url = UriComponentsBuilder.fromUriString(geocodingBaseUrl)
@@ -86,10 +113,14 @@ public class OpenMeteoClient {
             GeocodingResponse response = restTemplate.getForObject(url, GeocodingResponse.class);
             if (response == null || response.results == null || response.results.isEmpty()) {
                 log.info("Open-Meteo geocoding: aucun resultat pour '{}'", city);
-                return Optional.empty();
+                // On garde le cache stale si dispo — un blip Open-Meteo ne doit pas
+                // priver l'user d'une coord connue.
+                return cached != null ? Optional.of(cached.value) : Optional.empty();
             }
             GeocodingResult hit = response.results.get(0);
-            if (hit.latitude == null || hit.longitude == null) return Optional.empty();
+            if (hit.latitude == null || hit.longitude == null) {
+                return cached != null ? Optional.of(cached.value) : Optional.empty();
+            }
             // Open-Meteo retourne `country_code` (snake_case), Jackson par defaut
             // ne le mappe pas vers `countryCode`. On lit `country_code` directement.
             String cc = hit.country_code != null ? hit.country_code : hit.countryCode;
@@ -98,30 +129,32 @@ public class OpenMeteoClient {
                     hit.longitude.doubleValue(),
                     hit.name != null ? hit.name : city,
                     cc);
-            writeCache(cacheKey, coord);
+            writeCacheSnapshot(cacheKey, coord);
             return Optional.of(coord);
         } catch (Exception e) {
-            log.warn("Open-Meteo geocoding failed for '{}': {}", city, e.getMessage());
-            return Optional.empty();
+            log.warn("Open-Meteo geocoding failed for '{}': {} — fallback stale={}",
+                    city, e.getMessage(), cached != null);
+            return cached != null ? Optional.of(cached.value) : Optional.empty();
         }
     }
 
     /**
-     * Recupere la prevision quotidienne sur {@code days} jours. Cache Redis 1h.
+     * Recupere la prevision quotidienne sur {@code days} jours. Cache Redis
+     * stale-while-revalidate : fresh 1h, stale jusqu'a 24h.
      *
      * @param coord coordonnees geographiques
      * @param days  nombre de jours (clamp 1..7)
-     * @return liste de previsions ou empty si l'appel echoue
+     * @return snapshot {items + stale flag} ou empty si HTTP fail ET pas de stale dispo
      */
-    public Optional<List<DailyForecast>> forecast(GeoCoord coord, int days) {
+    public Optional<ForecastSnapshot> forecast(GeoCoord coord, int days) {
         if (coord == null) return Optional.empty();
         int safeDays = Math.max(1, Math.min(7, days));
         String cacheKey = CACHE_FORECAST_PREFIX
                 + coord.latitude + ":" + coord.longitude + ":" + safeDays;
 
-        Object cached = readCache(cacheKey);
-        if (cached instanceof ForecastResponse fr) {
-            return Optional.of(toDailyForecasts(fr));
+        CachedSnapshot<ForecastResponse> cached = readCachedSnapshot(cacheKey, ForecastResponse.class);
+        if (cached != null && isFresh(cached)) {
+            return Optional.of(new ForecastSnapshot(toDailyForecasts(cached.value), false));
         }
 
         String url = UriComponentsBuilder.fromUriString(forecastBaseUrl)
@@ -135,13 +168,19 @@ public class OpenMeteoClient {
 
         try {
             ForecastResponse response = restTemplate.getForObject(url, ForecastResponse.class);
-            if (response == null || response.daily == null) return Optional.empty();
-            writeCache(cacheKey, response);
-            return Optional.of(toDailyForecasts(response));
+            if (response == null || response.daily == null) {
+                return cached != null
+                        ? Optional.of(new ForecastSnapshot(toDailyForecasts(cached.value), true))
+                        : Optional.empty();
+            }
+            writeCacheSnapshot(cacheKey, response);
+            return Optional.of(new ForecastSnapshot(toDailyForecasts(response), false));
         } catch (Exception e) {
-            log.warn("Open-Meteo forecast failed at {},{}: {}",
-                    coord.latitude, coord.longitude, e.getMessage());
-            return Optional.empty();
+            log.warn("Open-Meteo forecast failed at {},{}: {} — fallback stale={}",
+                    coord.latitude, coord.longitude, e.getMessage(), cached != null);
+            return cached != null
+                    ? Optional.of(new ForecastSnapshot(toDailyForecasts(cached.value), true))
+                    : Optional.empty();
         }
     }
 
@@ -175,31 +214,75 @@ public class OpenMeteoClient {
         return list != null && i < list.size() ? list.get(i) : null;
     }
 
-    private Object readCache(String key) {
+    /**
+     * Lit un snapshot cache ET le caste si le type matche. Renvoie null si la
+     * cle est absente, la lecture Redis echoue, ou le type cache ne matche pas
+     * (cache pre-SWR par exemple — on l'ignore comme "miss").
+     */
+    private <T extends Serializable> CachedSnapshot<T> readCachedSnapshot(String key, Class<T> type) {
         try {
-            return redisTemplate.opsForValue().get(key);
+            Object raw = redisTemplate.opsForValue().get(key);
+            if (raw instanceof CachedSnapshot<?> snap && snap.value != null
+                    && type.isInstance(snap.value)) {
+                @SuppressWarnings("unchecked")
+                CachedSnapshot<T> casted = (CachedSnapshot<T>) snap;
+                return casted;
+            }
+            return null;
         } catch (Exception e) {
             log.debug("Redis read failed for key {}: {}", key, e.getMessage());
             return null;
         }
     }
 
-    private void writeCache(String key, Object value) {
+    private <T extends Serializable> void writeCacheSnapshot(String key, T value) {
         try {
-            redisTemplate.opsForValue().set(key, value, CACHE_TTL);
+            CachedSnapshot<T> snap = new CachedSnapshot<>(value, Instant.now(clock).toEpochMilli());
+            redisTemplate.opsForValue().set(key, snap, CACHE_STALE_TTL);
         } catch (Exception e) {
             log.debug("Redis write failed for key {}: {}", key, e.getMessage());
         }
     }
 
+    private boolean isFresh(CachedSnapshot<?> snap) {
+        long ageMillis = Instant.now(clock).toEpochMilli() - snap.cachedAtEpochMillis;
+        return ageMillis < CACHE_FRESH_WINDOW.toMillis();
+    }
+
     // ─── DTOs (records publics — serialises en cache et exposes au tool) ────
 
-    /** Coordonnees resolues par le geocoding. */
-    public record GeoCoord(double latitude, double longitude, String resolvedName, String countryCode) {}
+    /** Coordonnees resolues par le geocoding. Implements Serializable pour cache Redis. */
+    public record GeoCoord(double latitude, double longitude, String resolvedName, String countryCode)
+            implements Serializable {}
 
     /** Prevision pour un jour. */
     public record DailyForecast(LocalDate date, Double tempMax, Double tempMin,
                                   Double precipitationMm, Integer weatherCode) {}
+
+    /**
+     * Resultat de {@link #forecast(GeoCoord, int)}. Le flag {@code stale}
+     * indique que la donnee provient d'un cache > 1h (servi en fallback parce
+     * que l'API Open-Meteo n'a pas repondu).
+     */
+    public record ForecastSnapshot(List<DailyForecast> items, boolean stale) {}
+
+    /**
+     * Wrapper interne stocke en Redis — porte la valeur ET le timestamp de mise
+     * en cache. Permet de distinguer "fresh" de "stale" sans avoir a stocker
+     * la TTL Redis (qu'on ne peut pas relire facilement).
+     */
+    static final class CachedSnapshot<T extends Serializable> implements Serializable {
+        private static final long serialVersionUID = 1L;
+        public T value;
+        public long cachedAtEpochMillis;
+
+        public CachedSnapshot() {}
+
+        public CachedSnapshot(T value, long cachedAtEpochMillis) {
+            this.value = value;
+            this.cachedAtEpochMillis = cachedAtEpochMillis;
+        }
+    }
 
     // ─── DTOs internes Open-Meteo (jackson) ─────────────────────────────────
 
@@ -219,12 +302,14 @@ public class OpenMeteoClient {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    static class ForecastResponse {
+    static class ForecastResponse implements Serializable {
+        private static final long serialVersionUID = 1L;
         public Daily daily;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    static class Daily {
+    static class Daily implements Serializable {
+        private static final long serialVersionUID = 1L;
         public List<String> time;
         public List<Double> temperature_2m_max;
         public List<Double> temperature_2m_min;

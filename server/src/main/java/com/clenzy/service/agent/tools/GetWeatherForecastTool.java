@@ -98,15 +98,15 @@ public class GetWeatherForecastTool implements ToolHandler {
                     "Geocoding impossible pour '" + city + "' — verifie l'orthographe");
         }
 
-        Optional<List<OpenMeteoClient.DailyForecast>> forecast =
+        Optional<OpenMeteoClient.ForecastSnapshot> snapshot =
                 openMeteoClient.forecast(coord.get(), days);
-        if (forecast.isEmpty()) {
+        if (snapshot.isEmpty()) {
             throw new ToolExecutionException(NAME,
                     "Service meteo indisponible — reessaie dans quelques minutes");
         }
 
         try {
-            return ToolResult.success(buildPayload(coord.get(), forecast.get(), days),
+            return ToolResult.success(buildPayload(coord.get(), snapshot.get(), days),
                     "weather");
         } catch (JsonProcessingException e) {
             throw new ToolExecutionException(NAME, "Failed to serialize weather payload", e);
@@ -118,9 +118,9 @@ public class GetWeatherForecastTool implements ToolHandler {
     }
 
     private String buildPayload(OpenMeteoClient.GeoCoord coord,
-                                  List<OpenMeteoClient.DailyForecast> daily,
+                                  OpenMeteoClient.ForecastSnapshot snapshot,
                                   int days) throws JsonProcessingException {
-        List<Map<String, Object>> items = daily.stream().map(d -> {
+        List<Map<String, Object>> items = snapshot.items().stream().map(d -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("date", d.date().toString());
             m.put("tempMax", round1(d.tempMax()));
@@ -137,6 +137,9 @@ public class GetWeatherForecastTool implements ToolHandler {
         if (coord.countryCode() != null) payload.put("countryCode", coord.countryCode());
         payload.put("days", days);
         payload.put("items", items);
+        // Flag stale : visible par le LLM qui peut le mentionner a l'user
+        // ("attention, donnees meteo cachees, pas tout fraiches").
+        payload.put("stale", snapshot.stale());
         return objectMapper.writeValueAsString(payload);
     }
 

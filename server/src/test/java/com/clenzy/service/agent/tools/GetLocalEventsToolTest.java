@@ -16,6 +16,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.*;
 
 class GetLocalEventsToolTest {
@@ -56,7 +58,8 @@ class GetLocalEventsToolTest {
 
     @Test
     void city_filtersResults_andBuildsPayload() throws Exception {
-        when(registry.findByCityAndDateRange(eq("Paris"), any(), any())).thenReturn(List.of(
+        when(registry.findByCityAndDateRange(eq("Paris"), nullable(String.class),
+                any(LocalDate.class), any(LocalDate.class))).thenReturn(List.of(
                 event("rg", "Roland-Garros", "SPORT", "Paris", "2026-05-24", "Tournoi"),
                 event("fete", "Fete musique", "FESTIVAL", "Paris", "2026-06-21", "Concerts")
         ));
@@ -79,8 +82,8 @@ class GetLocalEventsToolTest {
 
     @Test
     void defaultDateRange_isTodayPlus90Days() {
-        when(registry.findByCityAndDateRange(any(), any(LocalDate.class), any(LocalDate.class)))
-                .thenReturn(List.of());
+        when(registry.findByCityAndDateRange(any(), nullable(String.class),
+                any(LocalDate.class), any(LocalDate.class))).thenReturn(List.of());
 
         ObjectNode args = om.createObjectNode();
         args.put("city", "Paris");
@@ -88,7 +91,8 @@ class GetLocalEventsToolTest {
 
         org.mockito.ArgumentCaptor<LocalDate> fromCap = org.mockito.ArgumentCaptor.forClass(LocalDate.class);
         org.mockito.ArgumentCaptor<LocalDate> toCap = org.mockito.ArgumentCaptor.forClass(LocalDate.class);
-        verify(registry).findByCityAndDateRange(eq("Paris"), fromCap.capture(), toCap.capture());
+        verify(registry).findByCityAndDateRange(eq("Paris"), isNull(),
+                fromCap.capture(), toCap.capture());
 
         assertEquals(LocalDate.now(), fromCap.getValue());
         assertEquals(LocalDate.now().plusDays(90), toCap.getValue());
@@ -96,7 +100,8 @@ class GetLocalEventsToolTest {
 
     @Test
     void customDateRange_isPassedThrough() {
-        when(registry.findByCityAndDateRange(any(), any(), any())).thenReturn(List.of());
+        when(registry.findByCityAndDateRange(any(), nullable(String.class),
+                any(LocalDate.class), any(LocalDate.class))).thenReturn(List.of());
 
         ObjectNode args = om.createObjectNode();
         args.put("city", "Lyon");
@@ -104,8 +109,22 @@ class GetLocalEventsToolTest {
         args.put("to", "2026-12-31");
         tool.execute(args, ctx);
 
-        verify(registry).findByCityAndDateRange("Lyon",
+        verify(registry).findByCityAndDateRange("Lyon", null,
                 LocalDate.parse("2026-12-01"), LocalDate.parse("2026-12-31"));
+    }
+
+    @Test
+    void countryParam_propagatedToRegistry() {
+        when(registry.findByCityAndDateRange(any(), any(String.class),
+                any(LocalDate.class), any(LocalDate.class))).thenReturn(List.of());
+
+        ObjectNode args = om.createObjectNode();
+        args.put("city", "Paris");
+        args.put("country", "FR");
+        tool.execute(args, ctx);
+
+        verify(registry).findByCityAndDateRange(eq("Paris"), eq("FR"),
+                any(LocalDate.class), any(LocalDate.class));
     }
 
     @Test
@@ -146,7 +165,8 @@ class GetLocalEventsToolTest {
             many.add(event("id-" + i, "Event " + i, "FESTIVAL", "Paris",
                     "2026-06-" + String.format("%02d", (i % 28) + 1), null));
         }
-        when(registry.findByCityAndDateRange(any(), any(), any())).thenReturn(many);
+        when(registry.findByCityAndDateRange(any(), nullable(String.class),
+                any(LocalDate.class), any(LocalDate.class))).thenReturn(many);
 
         ObjectNode args = om.createObjectNode();
         args.put("city", "Paris");
