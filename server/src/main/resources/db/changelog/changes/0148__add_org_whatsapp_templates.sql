@@ -16,7 +16,7 @@
 CREATE TABLE IF NOT EXISTS org_whatsapp_templates (
     id BIGSERIAL PRIMARY KEY,
     organization_id BIGINT NOT NULL
-        REFERENCES organization(id) ON DELETE CASCADE,
+        REFERENCES organizations(id) ON DELETE CASCADE,
     template_key VARCHAR(64) NOT NULL,
     template_name VARCHAR(255) NOT NULL,
     template_language VARCHAR(16) NOT NULL DEFAULT 'fr',

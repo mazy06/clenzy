@@ -23,7 +23,7 @@
 CREATE TABLE IF NOT EXISTS property_pricing_config (
     id BIGSERIAL PRIMARY KEY,
     property_id BIGINT NOT NULL UNIQUE
-        REFERENCES property(id) ON DELETE CASCADE,
+        REFERENCES properties(id) ON DELETE CASCADE,
     elasticity_override DOUBLE PRECISION,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -43,7 +43,7 @@ COMMENT ON COLUMN property_pricing_config.elasticity_override IS
 CREATE TABLE IF NOT EXISTS property_elasticity_estimate (
     id BIGSERIAL PRIMARY KEY,
     property_id BIGINT NOT NULL UNIQUE
-        REFERENCES property(id) ON DELETE CASCADE,
+        REFERENCES properties(id) ON DELETE CASCADE,
     elasticity_value DOUBLE PRECISION NOT NULL,
     sample_size INT NOT NULL,
     computed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
