@@ -32,19 +32,30 @@ public class WorkflowEngine {
 
     private static final Logger log = LoggerFactory.getLogger(WorkflowEngine.class);
 
-    private final ObjectMapper objectMapper;
+    /** Code langue par defaut quand l'AgentContext n'en fournit pas. */
+    public static final String DEFAULT_LANGUAGE = "fr";
 
-    public WorkflowEngine(ObjectMapper objectMapper) {
+    private final ObjectMapper objectMapper;
+    private final WorkflowValidator validator;
+
+    public WorkflowEngine(ObjectMapper objectMapper, WorkflowValidator validator) {
         this.objectMapper = objectMapper;
+        this.validator = validator;
     }
 
     /**
      * Merge la reponse utilisateur dans le {@code collected_data} du run sous
      * la cle du step courant. Mutation in-place du run.
      *
+     * <p>La reponse est d'abord validee contre le contrat {@code expectsData}
+     * via {@link WorkflowValidator}. Si la validation echoue, une
+     * {@link WorkflowValidationException} est propagee — le caller decide quoi
+     * en faire (typiquement re-prompter le user via le LLM).</p>
+     *
      * @param run         run actif
      * @param definition  workflow correspondant
      * @param userResponse reponse texte de l'utilisateur (peut etre null/blank)
+     * @throws WorkflowValidationException si la reponse viole le contrat declare
      */
     public void collectData(AssistantWorkflowRun run, WorkflowDefinition definition,
                               String userResponse) {
@@ -52,6 +63,10 @@ public class WorkflowEngine {
         if (userResponse == null || userResponse.isBlank()) return;
         WorkflowDefinition.Step current = currentStep(run, definition);
         if (current == null) return;
+
+        // Validation stricte : si OK on continue, sinon on throw
+        validator.validate(current, userResponse);
+
         ObjectNode all = parseCollectedSafe(run.getCollectedData());
         all.put(current.id, userResponse);
         try {
@@ -85,16 +100,38 @@ public class WorkflowEngine {
     }
 
     /**
-     * Interpole les variables connues dans le prompt du step :
+     * Interpole les variables connues dans le prompt du step (langue par defaut).
+     * Equivaut a {@link #renderPrompt(WorkflowDefinition.Step, AssistantWorkflowRun, String)}
+     * avec {@link #DEFAULT_LANGUAGE}.
+     */
+    public String renderPrompt(WorkflowDefinition.Step step, AssistantWorkflowRun run) {
+        return renderPrompt(step, run, DEFAULT_LANGUAGE);
+    }
+
+    /**
+     * Interpole les variables connues dans le prompt du step pour la langue
+     * demandee.
+     *
+     * <h3>Resolution multilingue</h3>
+     * <ol>
+     *   <li>{@code step.prompts[language]} si present</li>
+     *   <li>{@code step.prompts["fr"]} (langue par defaut Clenzy)</li>
+     *   <li>{@code step.prompt} (legacy)</li>
+     * </ol>
+     *
+     * <h3>Interpolation</h3>
      * <ul>
      *   <li>{@code &#123;&#123;summary&#125;&#125;} → liste markdown des donnees collectees</li>
      *   <li>{@code &#123;&#123;collectedData&#125;&#125;} → dump JSON pretty</li>
      * </ul>
      * Les autres patterns sont laisses tels quels.
      */
-    public String renderPrompt(WorkflowDefinition.Step step, AssistantWorkflowRun run) {
-        if (step == null || step.prompt == null) return "";
-        String prompt = step.prompt;
+    public String renderPrompt(WorkflowDefinition.Step step, AssistantWorkflowRun run,
+                                 String language) {
+        if (step == null) return "";
+        String template = resolvePromptTemplate(step, language);
+        if (template == null) return "";
+        String prompt = template;
         if (prompt.contains("{{summary}}")) {
             prompt = prompt.replace("{{summary}}", buildSummary(run));
         }
@@ -102,6 +139,24 @@ public class WorkflowEngine {
             prompt = prompt.replace("{{collectedData}}", buildJsonDump(run));
         }
         return prompt;
+    }
+
+    /**
+     * Choisit le template selon la langue demandee, avec fallback en cascade.
+     * Visible aux tests pour valider le fallback isolement.
+     */
+    String resolvePromptTemplate(WorkflowDefinition.Step step, String language) {
+        if (step == null) return null;
+        String lang = (language == null || language.isBlank())
+                ? DEFAULT_LANGUAGE
+                : language.trim().toLowerCase(java.util.Locale.ROOT);
+        if (step.prompts != null && !step.prompts.isEmpty()) {
+            String byLang = step.prompts.get(lang);
+            if (byLang != null && !byLang.isBlank()) return byLang;
+            String fallback = step.prompts.get(DEFAULT_LANGUAGE);
+            if (fallback != null && !fallback.isBlank()) return fallback;
+        }
+        return step.prompt;
     }
 
     /**

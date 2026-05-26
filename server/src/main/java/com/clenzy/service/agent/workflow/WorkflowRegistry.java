@@ -82,13 +82,20 @@ public class WorkflowRegistry {
                 log.warn("WorkflowRegistry: aucun step dans '{}' (ignored)", def.id);
                 return Optional.empty();
             }
-            // Verification minimale par step : id + prompt
+            // Verification minimale par step : id + (prompt legacy OU prompts map non vide)
             for (int i = 0; i < def.steps.size(); i++) {
                 WorkflowDefinition.Step s = def.steps.get(i);
-                if (s == null || s.id == null || s.id.isBlank()
-                        || s.prompt == null || s.prompt.isBlank()) {
-                    log.warn("WorkflowRegistry: step #{} invalide dans '{}' (id/prompt manquant) — workflow ignore",
+                if (s == null || s.id == null || s.id.isBlank()) {
+                    log.warn("WorkflowRegistry: step #{} invalide dans '{}' (id manquant) — workflow ignore",
                             i, def.id);
+                    return Optional.empty();
+                }
+                boolean hasLegacyPrompt = s.prompt != null && !s.prompt.isBlank();
+                boolean hasPromptsMap = s.prompts != null && !s.prompts.isEmpty()
+                        && s.prompts.values().stream().anyMatch(v -> v != null && !v.isBlank());
+                if (!hasLegacyPrompt && !hasPromptsMap) {
+                    log.warn("WorkflowRegistry: step '{}' dans '{}' n'a ni 'prompt' ni 'prompts' — workflow ignore",
+                            s.id, def.id);
                     return Optional.empty();
                 }
             }

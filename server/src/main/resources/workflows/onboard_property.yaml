@@ -12,12 +12,25 @@ estimatedDuration: 15
 steps:
   - id: basic_info
     title: "Infos de base"
-    prompt: |
-      Parfait, on demarre l'ajout d'une nouvelle propriete.
-      Donne-moi :
-      - le **nom** affiche aux guests,
-      - l'**adresse** complete (rue, numero),
-      - la **ville**.
+    prompts:
+      fr: |
+        Parfait, on demarre l'ajout d'une nouvelle propriete.
+        Donne-moi en JSON :
+        - **name** : le nom affiche aux guests,
+        - **address** : l'adresse complete (rue, numero),
+        - **city** : la ville.
+      en: |
+        Great, let's add a new property.
+        Give me a JSON with:
+        - **name** : the display name shown to guests,
+        - **address** : the full address (street, number),
+        - **city** : the city.
+      ar: |
+        رائع، لنبدأ بإضافة عقار جديد.
+        أعطني JSON يحتوي على:
+        - **name** : الاسم المعروض للضيوف،
+        - **address** : العنوان الكامل،
+        - **city** : المدينة.
     expectsData:
       name: string
       address: string
@@ -25,9 +38,16 @@ steps:
 
   - id: pricing
     title: "Tarification de base"
-    prompt: |
-      Super. Quel est ton **tarif de base par nuit** (en EUR) ?
-      Tu pourras affiner les regles dynamiques (saisonnalite, last-minute, weekend) plus tard.
+    prompts:
+      fr: |
+        Super. Quel est ton **tarif de base par nuit** (en EUR) ?
+        Tu pourras affiner les regles dynamiques (saisonnalite, last-minute, weekend) plus tard.
+      en: |
+        Great. What's your **base nightly rate** (in EUR)?
+        You can refine dynamic rules (seasonality, last-minute, weekend) later.
+      ar: |
+        ما هو **السعر الأساسي لليلة** (باليورو)؟
+        يمكنك ضبط القواعد الديناميكية لاحقًا.
     expectsData:
       basePrice: number
     suggestTool:
@@ -39,10 +59,19 @@ steps:
 
   - id: channels
     title: "Channels de distribution"
-    prompt: |
-      Sur quels **channels** veux-tu distribuer cette propriete ?
-      Choix possibles : Airbnb, Booking.com, Vrbo, direct (booking engine).
-      Reponds par une liste (ex: "Airbnb, Booking, direct").
+    prompts:
+      fr: |
+        Sur quels **channels** veux-tu distribuer cette propriete ?
+        Choix possibles : Airbnb, Booking.com, Vrbo, direct (booking engine).
+        Reponds par une liste (ex: "Airbnb, Booking, direct").
+      en: |
+        Which **channels** do you want to distribute this property on?
+        Options: Airbnb, Booking.com, Vrbo, direct (booking engine).
+        Reply with a list (e.g. "Airbnb, Booking, direct").
+      ar: |
+        على أي **قنوات** تريد توزيع هذا العقار؟
+        الخيارات: Airbnb, Booking.com, Vrbo, مباشر.
+        أجب بقائمة (مثلًا: "Airbnb, Booking, direct").
     expectsData:
       channels: "string[]"
     suggestTool:
@@ -54,20 +83,37 @@ steps:
 
   - id: photos
     title: "Photos"
-    prompt: |
-      Dernier point : as-tu deja des **photos professionnelles** prises ?
-      - Oui : on peut les uploader maintenant
-      - Non : je peux te lister les agences partenaires de ta ville
+    prompts:
+      fr: |
+        Dernier point : as-tu deja des **photos professionnelles** prises ?
+        Reponds par oui ou non.
+      en: |
+        Last question: do you have **professional photos** already taken?
+        Reply yes or no.
+      ar: |
+        سؤال أخير: هل لديك **صور احترافية** بالفعل؟
+        أجب بنعم أو لا.
     expectsData:
       hasPhotos: boolean
 
   - id: confirm
     title: "Confirmation"
-    prompt: |
-      Recap :
-      {{summary}}
+    prompts:
+      fr: |
+        Recap :
+        {{summary}}
 
-      Tout est bon ? Je peux creer la propriete.
+        Tout est bon ? Reponds oui pour creer la propriete.
+      en: |
+        Recap:
+        {{summary}}
+
+        All good? Reply yes to create the property.
+      ar: |
+        الملخص:
+        {{summary}}
+
+        هل كل شيء على ما يرام؟ أجب بنعم لإنشاء العقار.
     expectsData:
       confirm: boolean
     action: create_property

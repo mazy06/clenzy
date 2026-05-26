@@ -54,6 +54,14 @@ public class WorkflowService {
      */
     public WorkflowRunSnapshot startWorkflow(String workflowId, Long organizationId,
                                               String keycloakId, Long conversationId) {
+        return startWorkflow(workflowId, organizationId, keycloakId, conversationId,
+                WorkflowEngine.DEFAULT_LANGUAGE);
+    }
+
+    /** Variante multilingue — le prompt initial sera rendu dans la langue demandee. */
+    public WorkflowRunSnapshot startWorkflow(String workflowId, Long organizationId,
+                                              String keycloakId, Long conversationId,
+                                              String language) {
         WorkflowDefinition def = registry.getById(workflowId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Workflow inconnu : '" + workflowId + "'"));
@@ -62,9 +70,9 @@ public class WorkflowService {
                 organizationId, keycloakId, conversationId, workflowId);
         run = repository.save(run);
 
-        log.info("startWorkflow: run={} workflow='{}' user={}",
-                run.getId(), workflowId, keycloakId);
-        return buildSnapshot(run, def);
+        log.info("startWorkflow: run={} workflow='{}' user={} lang={}",
+                run.getId(), workflowId, keycloakId, language);
+        return buildSnapshot(run, def, language);
     }
 
     /**
@@ -76,6 +84,12 @@ public class WorkflowService {
      * @throws IllegalStateException    si le run n'est plus ACTIVE
      */
     public WorkflowRunSnapshot advanceWorkflow(Long runId, String keycloakId, String userResponse) {
+        return advanceWorkflow(runId, keycloakId, userResponse, WorkflowEngine.DEFAULT_LANGUAGE);
+    }
+
+    /** Variante multilingue — le prompt du step suivant sera rendu dans la langue demandee. */
+    public WorkflowRunSnapshot advanceWorkflow(Long runId, String keycloakId,
+                                                  String userResponse, String language) {
         AssistantWorkflowRun run = repository.findByIdAndUser(runId, keycloakId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Run " + runId + " introuvable ou non autorise"));
@@ -90,7 +104,7 @@ public class WorkflowService {
         // 1. Capture le step courant AVANT avancement (pour declenchement action)
         WorkflowDefinition.Step previousStep = engine.currentStep(run, def);
 
-        // 2. Stocke la reponse user
+        // 2. Stocke la reponse user (peut throw WorkflowValidationException — propagee)
         engine.collectData(run, def, userResponse);
 
         // 3. Avance d'un step
@@ -98,7 +112,7 @@ public class WorkflowService {
 
         AssistantWorkflowRun saved = repository.save(run);
 
-        WorkflowRunSnapshot snapshot = buildSnapshot(saved, def);
+        WorkflowRunSnapshot snapshot = buildSnapshot(saved, def, language);
         if (previousStep != null
                 && previousStep.action != null && !previousStep.action.isBlank()) {
             snapshot.suggestedAction = engine.executeStepAction(previousStep, saved);
@@ -121,7 +135,8 @@ public class WorkflowService {
     }
 
     /** Construit un snapshot serialisable pour le LLM/frontend. */
-    private WorkflowRunSnapshot buildSnapshot(AssistantWorkflowRun run, WorkflowDefinition def) {
+    private WorkflowRunSnapshot buildSnapshot(AssistantWorkflowRun run, WorkflowDefinition def,
+                                                String language) {
         WorkflowRunSnapshot snapshot = new WorkflowRunSnapshot();
         snapshot.runId = run.getId();
         snapshot.workflowId = def.id;
@@ -142,7 +157,7 @@ public class WorkflowService {
             snapshot.currentStep = new StepSnapshot();
             snapshot.currentStep.id = currentStep.id;
             snapshot.currentStep.title = currentStep.title;
-            snapshot.currentStep.prompt = engine.renderPrompt(currentStep, run);
+            snapshot.currentStep.prompt = engine.renderPrompt(currentStep, run, language);
             snapshot.currentStep.expectsData = currentStep.expectsData;
             snapshot.currentStep.suggestTool = currentStep.suggestTool;
         }

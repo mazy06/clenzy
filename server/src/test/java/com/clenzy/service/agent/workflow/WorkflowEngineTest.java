@@ -15,11 +15,13 @@ class WorkflowEngineTest {
 
     private ObjectMapper om;
     private WorkflowEngine engine;
+    private WorkflowValidator validator;
 
     @BeforeEach
     void setUp() {
         om = new ObjectMapper();
-        engine = new WorkflowEngine(om);
+        validator = new WorkflowValidator(om);
+        engine = new WorkflowEngine(om, validator);
     }
 
     private static WorkflowDefinition fixture() {
@@ -178,5 +180,172 @@ class WorkflowEngineTest {
         // Avec liste vide, l'index 0 est >= taille (0) → marque COMPLETED
         engine.advanceStep(run, def);
         assertEquals(AssistantWorkflowRun.Status.COMPLETED, run.getStatusEnum());
+    }
+
+    // ─── Multilingual ───────────────────────────────────────────────────────
+
+    @Test
+    void renderPrompt_selectsByLanguage_whenPromptsMapPresent() {
+        WorkflowDefinition.Step step = new WorkflowDefinition.Step();
+        step.id = "s1";
+        step.prompts = Map.of(
+                "fr", "Quel est ton nom ?",
+                "en", "What is your name?",
+                "ar", "ما اسمك؟"
+        );
+        AssistantWorkflowRun run = newRun();
+
+        assertEquals("Quel est ton nom ?", engine.renderPrompt(step, run, "fr"));
+        assertEquals("What is your name?", engine.renderPrompt(step, run, "en"));
+        assertEquals("ما اسمك؟", engine.renderPrompt(step, run, "ar"));
+    }
+
+    @Test
+    void renderPrompt_unknownLanguage_fallsBackToFr() {
+        WorkflowDefinition.Step step = new WorkflowDefinition.Step();
+        step.prompts = Map.of("fr", "FR", "en", "EN");
+        AssistantWorkflowRun run = newRun();
+
+        assertEquals("FR", engine.renderPrompt(step, run, "de"));
+        assertEquals("FR", engine.renderPrompt(step, run, null));
+    }
+
+    @Test
+    void renderPrompt_noPromptsMap_fallsBackToLegacyPromptField() {
+        WorkflowDefinition.Step step = new WorkflowDefinition.Step();
+        step.prompt = "Legacy prompt";
+        AssistantWorkflowRun run = newRun();
+
+        assertEquals("Legacy prompt", engine.renderPrompt(step, run, "fr"));
+        assertEquals("Legacy prompt", engine.renderPrompt(step, run, "en"));
+    }
+
+    @Test
+    void renderPrompt_interpolatesSummary_inSelectedLanguage() throws Exception {
+        WorkflowDefinition def = fixture();
+        AssistantWorkflowRun run = newRun();
+        engine.collectData(run, def, "Alice");
+        engine.advanceStep(run, def);
+
+        WorkflowDefinition.Step multilingualStep = new WorkflowDefinition.Step();
+        multilingualStep.prompts = Map.of(
+                "fr", "Recap FR : {{summary}}",
+                "en", "Recap EN: {{summary}}"
+        );
+        String fr = engine.renderPrompt(multilingualStep, run, "fr");
+        assertTrue(fr.startsWith("Recap FR"));
+        assertTrue(fr.contains("Alice"));
+
+        String en = engine.renderPrompt(multilingualStep, run, "en");
+        assertTrue(en.startsWith("Recap EN"));
+        assertTrue(en.contains("Alice"));
+    }
+
+    // ─── Validation (item #11) ──────────────────────────────────────────────
+
+    @Test
+    void collectData_validResponse_storesNormally() {
+        WorkflowDefinition.Step step = new WorkflowDefinition.Step();
+        step.id = "n";
+        step.expectsData = Map.of("name", "string");
+        WorkflowDefinition def = new WorkflowDefinition();
+        def.id = "wf";
+        def.steps = List.of(step);
+        AssistantWorkflowRun run = newRun();
+
+        // String non vide → OK
+        assertDoesNotThrow(() -> engine.collectData(run, def, "Alice"));
+    }
+
+    @Test
+    void collectData_singleNumberField_rejectsInvalidNumber() {
+        WorkflowDefinition.Step step = new WorkflowDefinition.Step();
+        step.id = "n";
+        step.expectsData = Map.of("price", "number");
+        WorkflowDefinition def = new WorkflowDefinition();
+        def.steps = List.of(step);
+        AssistantWorkflowRun run = newRun();
+
+        WorkflowValidationException ex = assertThrows(WorkflowValidationException.class,
+                () -> engine.collectData(run, def, "not-a-number"));
+        assertEquals("n", ex.getStepId());
+        assertTrue(ex.getMessage().toLowerCase().contains("number"));
+    }
+
+    @Test
+    void collectData_singleBooleanField_acceptsFrenchTokens() {
+        WorkflowDefinition.Step step = new WorkflowDefinition.Step();
+        step.id = "b";
+        step.expectsData = Map.of("ok", "boolean");
+        WorkflowDefinition def = new WorkflowDefinition();
+        def.steps = List.of(step);
+        AssistantWorkflowRun run = newRun();
+
+        assertDoesNotThrow(() -> engine.collectData(run, def, "oui"));
+        assertDoesNotThrow(() -> engine.collectData(newRun(), def, "non"));
+        assertDoesNotThrow(() -> engine.collectData(newRun(), def, "true"));
+
+        assertThrows(WorkflowValidationException.class,
+                () -> engine.collectData(newRun(), def, "peut-etre"));
+    }
+
+    @Test
+    void collectData_singleStringArrayField_rejectsEmpty() {
+        WorkflowDefinition.Step step = new WorkflowDefinition.Step();
+        step.id = "l";
+        step.expectsData = Map.of("items", "string[]");
+        WorkflowDefinition def = new WorkflowDefinition();
+        def.steps = List.of(step);
+        AssistantWorkflowRun run = newRun();
+
+        assertDoesNotThrow(() -> engine.collectData(run, def, "a, b, c"));
+
+        // Blank → no-op (pas de validation)
+        AssistantWorkflowRun run2 = newRun();
+        assertDoesNotThrow(() -> engine.collectData(run2, def, "   "));
+    }
+
+    @Test
+    void collectData_multiFieldStep_expectsJsonObject() {
+        WorkflowDefinition.Step step = new WorkflowDefinition.Step();
+        step.id = "multi";
+        step.expectsData = Map.of("name", "string", "age", "number");
+        WorkflowDefinition def = new WorkflowDefinition();
+        def.steps = List.of(step);
+        AssistantWorkflowRun run = newRun();
+
+        // Texte libre → throw avec message indiquant le JSON attendu
+        WorkflowValidationException ex = assertThrows(WorkflowValidationException.class,
+                () -> engine.collectData(run, def, "Alice 30"));
+        assertTrue(ex.getMessage().toLowerCase().contains("json"));
+
+        // JSON valide → OK
+        AssistantWorkflowRun run2 = newRun();
+        assertDoesNotThrow(() -> engine.collectData(run2, def,
+                "{\"name\":\"Alice\",\"age\":30}"));
+
+        // JSON avec champ manquant → throw
+        AssistantWorkflowRun run3 = newRun();
+        WorkflowValidationException ex2 = assertThrows(WorkflowValidationException.class,
+                () -> engine.collectData(run3, def, "{\"name\":\"Alice\"}"));
+        assertTrue(ex2.getMessage().toLowerCase().contains("age"));
+
+        // JSON avec type incorrect → throw
+        AssistantWorkflowRun run4 = newRun();
+        WorkflowValidationException ex3 = assertThrows(WorkflowValidationException.class,
+                () -> engine.collectData(run4, def,
+                        "{\"name\":\"Alice\",\"age\":\"trente\"}"));
+        assertTrue(ex3.getMessage().toLowerCase().contains("number"));
+    }
+
+    @Test
+    void collectData_noExpectsData_acceptsAnyResponse() {
+        WorkflowDefinition.Step step = new WorkflowDefinition.Step();
+        step.id = "free";
+        WorkflowDefinition def = new WorkflowDefinition();
+        def.steps = List.of(step);
+        AssistantWorkflowRun run = newRun();
+
+        assertDoesNotThrow(() -> engine.collectData(run, def, "n'importe quoi"));
     }
 }

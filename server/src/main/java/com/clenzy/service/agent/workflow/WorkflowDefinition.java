@@ -36,8 +36,24 @@ public class WorkflowDefinition {
     public static class Step {
         public String id;
         public String title;
+        /**
+         * Prompt par defaut (legacy / fallback). Cf. {@link #prompts} pour la
+         * version multilingue. Si les deux sont presents, {@link #prompts}
+         * prend le pas dans la langue courante ; sinon, fallback sur ce champ.
+         */
         public String prompt;
-        /** Map nom-de-champ → type attendu ("string", "number", "boolean", "string[]"). Indicatif. */
+        /**
+         * Prompts par code langue ISO ("fr", "en", "ar", ...). Si la langue de
+         * l'AgentContext est presente, ce prompt est utilise. Sinon, fallback
+         * "fr" puis {@link #prompt} legacy.
+         */
+        public Map<String, String> prompts;
+        /**
+         * Map nom-de-champ → type attendu. Types supportes :
+         * {@code "string", "number", "boolean", "string[]"}.
+         * Sert maintenant a la validation stricte des reponses utilisateur via
+         * {@link WorkflowValidator}.
+         */
         public Map<String, Object> expectsData;
         /** Tool a suggerer en cours d'etape (navigation, lookup, etc.). */
         public ToolReference suggestTool;

@@ -60,8 +60,13 @@ public class AdvanceWorkflowTool implements ToolHandler {
 
         try {
             WorkflowService.WorkflowRunSnapshot snapshot = workflowService.advanceWorkflow(
-                    runId, context.keycloakId(), userResponse);
+                    runId, context.keycloakId(), userResponse, context.language());
             return ToolResult.success(objectMapper.writeValueAsString(snapshot), "workflow_step");
+        } catch (com.clenzy.service.agent.workflow.WorkflowValidationException e) {
+            // Validation echouee : message explicite au LLM pour qu'il re-prompte
+            throw new ToolExecutionException(NAME,
+                    "Reponse invalide pour le step '" + e.getStepId() + "' : " + e.getMessage(),
+                    e);
         } catch (IllegalArgumentException | IllegalStateException e) {
             throw new ToolExecutionException(NAME, e.getMessage(), e);
         } catch (JsonProcessingException e) {
