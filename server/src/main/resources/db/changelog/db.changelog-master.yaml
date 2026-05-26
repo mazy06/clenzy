@@ -1355,3 +1355,23 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0145 : Embedding vector(1024) sur assistant_memory (relevance) ---
+  - changeSet:
+      id: "0145-add-assistant-memory-embedding"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0145__add_assistant_memory_embedding.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0146 : Expiration columns (last_accessed_at + expires_at) sur assistant_memory ---
+  - changeSet:
+      id: "0146-add-assistant-memory-expiration"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0146__add_assistant_memory_expiration.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

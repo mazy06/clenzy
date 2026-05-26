@@ -602,10 +602,12 @@ public class AgentOrchestrator {
     String buildSystemPrompt(AgentContext context, String latestUserMessage) {
         StringBuilder prefix = new StringBuilder();
 
-        // 1. Section memoire (preferences, faits, objectifs, projets)
+        // 1. Section memoire — selection par similarite si on a un message user,
+        //    sinon fallback recency (cas resume after confirmation).
         try {
-            List<AssistantMemory> memories = memoryService.listForUser(
-                    context.keycloakId(), MAX_MEMORY_ENTRIES);
+            List<AssistantMemory> memories = (latestUserMessage != null && !latestUserMessage.isBlank())
+                    ? memoryService.listMostRelevant(context.keycloakId(), latestUserMessage, MAX_MEMORY_ENTRIES)
+                    : memoryService.listForUser(context.keycloakId(), MAX_MEMORY_ENTRIES);
             if (memories != null && !memories.isEmpty()) {
                 prefix.append(renderMemorySection(memories)).append("\n\n");
             }

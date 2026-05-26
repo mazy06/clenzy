@@ -2,13 +2,19 @@ package com.clenzy.service;
 
 import com.clenzy.model.AssistantMemory;
 import com.clenzy.repository.AssistantMemoryRepository;
+import com.clenzy.service.agent.kb.EmbeddingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -37,9 +43,15 @@ public class AssistantMemoryService {
     private static final int MAX_MEMORY_VALUE_LENGTH = 2000;
 
     private final AssistantMemoryRepository repository;
+    private final EmbeddingService embeddingService;
+    private final boolean relevanceEnabled;
 
-    public AssistantMemoryService(AssistantMemoryRepository repository) {
+    public AssistantMemoryService(AssistantMemoryRepository repository,
+                                    Optional<EmbeddingService> embeddingService,
+                                    @Value("${clenzy.assistant.memory.relevance-enabled:true}") boolean relevanceEnabled) {
         this.repository = repository;
+        this.embeddingService = embeddingService.orElse(null);
+        this.relevanceEnabled = relevanceEnabled;
     }
 
     /**
@@ -57,11 +69,15 @@ public class AssistantMemoryService {
         validateInputs(organizationId, keycloakId, key, value, scope);
 
         String normalizedKey = normalizeKey(key);
+        String embedding = embedSafe(normalizedKey, value);
         Optional<AssistantMemory> existing = repository.findByUserAndKey(keycloakId, normalizedKey);
         if (existing.isPresent()) {
             AssistantMemory memory = existing.get();
             memory.setMemoryValue(value);
             memory.setScopeEnum(scope);
+            if (embedding != null) {
+                memory.setEmbedding(embedding);
+            }
             // Defense en profondeur : ne jamais laisser une entree changer d'org
             // (theoriquement impossible vu l'unique key (keycloak_id, memory_key)
             //  mais on coupe court en cas de derive).
@@ -75,6 +91,7 @@ public class AssistantMemoryService {
 
         AssistantMemory created = new AssistantMemory(organizationId, keycloakId,
                 normalizedKey, value, scope);
+        created.setEmbedding(embedding);
         return repository.save(created);
     }
 
@@ -101,14 +118,122 @@ public class AssistantMemoryService {
     /**
      * Liste les memoires d'un user, triees par recence, limitees a {@code limit} entrees.
      * Utilise par l'orchestrateur pour borner la taille du system prompt.
+     *
+     * <p>Bump batch de {@code last_accessed_at} sur les entrees retournees pour
+     * alimenter le scheduler de cleanup (purge des memoires non lues > 6 mois).</p>
      */
-    @Transactional(readOnly = true)
     public List<AssistantMemory> listForUser(String keycloakId, int limit) {
         if (keycloakId == null || keycloakId.isBlank()) {
             return List.of();
         }
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        return repository.findRecentByUser(keycloakId, PageRequest.of(0, safeLimit));
+        List<AssistantMemory> result = repository.findRecentByUser(
+                keycloakId, PageRequest.of(0, safeLimit));
+        touchLastAccessedSafe(result);
+        return result;
+    }
+
+    /**
+     * Selection des memoires les plus pertinentes pour {@code userMessage} via
+     * similarite cosine sur les embeddings stockes.
+     *
+     * <p>Fallback automatique sur {@link #listForUser(String, int)} si :
+     * <ul>
+     *   <li>La feature est desactivee ({@code clenzy.assistant.memory.relevance-enabled=false})</li>
+     *   <li>Aucun {@link EmbeddingService} n'est configure</li>
+     *   <li>{@code userMessage} est null/blank (cas resume after confirmation)</li>
+     *   <li>L'embedding du query echoue (provider down)</li>
+     *   <li>Aucune entree n'a d'embedding stocke (cas migration : entrees pre-0145)</li>
+     * </ul>
+     * Le caller n'a pas a se preoccuper de ces cas — la methode renvoie toujours
+     * une liste valide.</p>
+     */
+    public List<AssistantMemory> listMostRelevant(String keycloakId, String userMessage, int limit) {
+        if (!relevanceEnabled || embeddingService == null
+                || userMessage == null || userMessage.isBlank()) {
+            return listForUser(keycloakId, limit);
+        }
+        if (keycloakId == null || keycloakId.isBlank()) {
+            return List.of();
+        }
+
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        String queryEmbedding;
+        try {
+            queryEmbedding = embeddingService.embedAsVectorString(userMessage);
+        } catch (Exception e) {
+            log.debug("Memory relevance search : embedding failed ({}), fallback recency", e.getMessage());
+            return listForUser(keycloakId, safeLimit);
+        }
+
+        List<Object[]> rows;
+        try {
+            rows = repository.searchByCosineSimilarity(queryEmbedding, keycloakId, safeLimit);
+        } catch (Exception e) {
+            log.warn("Memory relevance search failed ({}), fallback recency", e.getMessage());
+            return listForUser(keycloakId, safeLimit);
+        }
+
+        if (rows == null || rows.isEmpty()) {
+            // Cas : user pre-0145 avec aucune entree ayant un embedding
+            return listForUser(keycloakId, safeLimit);
+        }
+
+        List<Long> orderedIds = new ArrayList<>(rows.size());
+        for (Object[] row : rows) {
+            Number id = (Number) row[0];
+            orderedIds.add(id.longValue());
+        }
+
+        List<AssistantMemory> entities = repository.findAllById(orderedIds);
+        // findAllById ne garantit pas l'ordre — on re-trie selon orderedIds
+        Map<Long, AssistantMemory> byId = new HashMap<>(entities.size());
+        for (AssistantMemory m : entities) byId.put(m.getId(), m);
+
+        List<AssistantMemory> ordered = new ArrayList<>(orderedIds.size());
+        for (Long id : orderedIds) {
+            AssistantMemory m = byId.get(id);
+            if (m != null) ordered.add(m);
+        }
+        touchLastAccessedSafe(ordered);
+        return ordered;
+    }
+
+    /**
+     * Genere l'embedding texte pgvector pour {@code key + value}. Retourne null
+     * en cas d'echec (provider non configure / API down) : l'entree est persistee
+     * sans embedding et reste accessible via le fallback recency-only.
+     */
+    private String embedSafe(String key, String value) {
+        if (embeddingService == null) return null;
+        try {
+            String text = key + ": " + value;
+            return embeddingService.embedAsVectorString(text);
+        } catch (Exception e) {
+            log.debug("Memory embedding failed for key '{}' : {}", key, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Bump batch de {@code last_accessed_at}. Une seule query UPDATE pour
+     * eviter le N+1. Echec silencieux : le bump n'est pas critique pour le user.
+     */
+    private void touchLastAccessedSafe(List<AssistantMemory> memories) {
+        if (memories == null || memories.isEmpty()) return;
+        try {
+            List<Long> ids = new ArrayList<>(memories.size());
+            for (AssistantMemory m : memories) {
+                if (m.getId() != null) ids.add(m.getId());
+            }
+            if (ids.isEmpty()) return;
+            LocalDateTime now = LocalDateTime.now();
+            repository.touchLastAccessed(ids, now);
+            // Sync in-memory pour les callers qui lisent immediatement after
+            for (AssistantMemory m : memories) m.setLastAccessedAt(now);
+        } catch (Exception e) {
+            log.debug("touchLastAccessed failed : {}", e.getMessage());
+        }
     }
 
     private static String normalizeKey(String raw) {
