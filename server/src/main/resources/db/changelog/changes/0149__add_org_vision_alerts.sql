@@ -18,7 +18,7 @@
 CREATE TABLE IF NOT EXISTS org_vision_alerts (
     id BIGSERIAL PRIMARY KEY,
     organization_id BIGINT NOT NULL UNIQUE
-        REFERENCES organization(id) ON DELETE CASCADE,
+        REFERENCES organizations(id) ON DELETE CASCADE,
     threshold_tokens BIGINT NOT NULL,
     last_alerted_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
