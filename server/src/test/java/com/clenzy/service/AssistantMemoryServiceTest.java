@@ -2,12 +2,15 @@ package com.clenzy.service;
 
 import com.clenzy.model.AssistantMemory;
 import com.clenzy.repository.AssistantMemoryRepository;
+import com.clenzy.service.agent.kb.EmbeddingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,7 +26,9 @@ class AssistantMemoryServiceTest {
     @BeforeEach
     void setUp() {
         repository = mock(AssistantMemoryRepository.class);
-        service = new AssistantMemoryService(repository);
+        // Pas d'embedding service ici : on teste le contrat business
+        // (la branche embedding est couverte par les tests de relevance).
+        service = new AssistantMemoryService(repository, Optional.empty(), true);
         when(repository.save(any(AssistantMemory.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -164,5 +169,152 @@ class AssistantMemoryServiceTest {
         }
         // anti-warning : ensure PageRequest is used
         assertSame(PageRequest.class, cap.getValue().getClass());
+    }
+
+    @Test
+    void listForUser_touchesLastAccessed_inBatch() {
+        AssistantMemory m1 = newMemory(11L);
+        AssistantMemory m2 = newMemory(12L);
+        when(repository.findRecentByUser(eq("user-1"), any(Pageable.class)))
+                .thenReturn(List.of(m1, m2));
+
+        service.listForUser("user-1", 30);
+
+        ArgumentCaptor<List<Long>> ids = ArgumentCaptor.forClass(List.class);
+        verify(repository).touchLastAccessed(ids.capture(), any(LocalDateTime.class));
+        assertEquals(List.of(11L, 12L), ids.getValue());
+    }
+
+    @Test
+    void listMostRelevant_withEmbeddingService_routesToCosineSearch() {
+        EmbeddingService embed = mock(EmbeddingService.class);
+        when(embed.embedAsVectorString("comment baisser mes prix"))
+                .thenReturn("[0.1,0.2]");
+        AssistantMemoryService relevanceService = new AssistantMemoryService(
+                repository, Optional.of(embed), true);
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Cosine query renvoie 2 ids dans un ordre specifique (pas par id)
+        List<Object[]> rows = new ArrayList<>();
+        rows.add(new Object[]{42L, 0.1});
+        rows.add(new Object[]{17L, 0.3});
+        when(repository.searchByCosineSimilarity("[0.1,0.2]", "user-1", 30))
+                .thenReturn(rows);
+
+        AssistantMemory m42 = newMemory(42L);
+        AssistantMemory m17 = newMemory(17L);
+        // findAllById ne garantit pas l'ordre — on renvoie volontairement inverse
+        when(repository.findAllById(List.of(42L, 17L)))
+                .thenReturn(List.of(m17, m42));
+
+        List<AssistantMemory> result = relevanceService.listMostRelevant(
+                "user-1", "comment baisser mes prix", 30);
+
+        assertEquals(2, result.size());
+        // L'ordre cosine (42 puis 17) DOIT etre preserve malgre le re-shuffle
+        assertEquals(42L, result.get(0).getId());
+        assertEquals(17L, result.get(1).getId());
+        verify(repository, never()).findRecentByUser(any(), any(Pageable.class));
+    }
+
+    @Test
+    void listMostRelevant_disabledByConfig_fallsBackToRecency() {
+        EmbeddingService embed = mock(EmbeddingService.class);
+        AssistantMemoryService disabled = new AssistantMemoryService(
+                repository, Optional.of(embed), false);
+        when(repository.findRecentByUser(eq("user-1"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        disabled.listMostRelevant("user-1", "Hello", 10);
+
+        verify(embed, never()).embedAsVectorString(any());
+        verify(repository).findRecentByUser(eq("user-1"), any(Pageable.class));
+    }
+
+    @Test
+    void listMostRelevant_blankMessage_fallsBackToRecency() {
+        EmbeddingService embed = mock(EmbeddingService.class);
+        AssistantMemoryService relevanceService = new AssistantMemoryService(
+                repository, Optional.of(embed), true);
+        when(repository.findRecentByUser(eq("user-1"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        relevanceService.listMostRelevant("user-1", "  ", 10);
+
+        verify(embed, never()).embedAsVectorString(any());
+        verify(repository).findRecentByUser(eq("user-1"), any(Pageable.class));
+    }
+
+    @Test
+    void listMostRelevant_embeddingFailure_fallsBackToRecency() {
+        EmbeddingService embed = mock(EmbeddingService.class);
+        when(embed.embedAsVectorString(any())).thenThrow(new RuntimeException("API down"));
+        AssistantMemoryService relevanceService = new AssistantMemoryService(
+                repository, Optional.of(embed), true);
+        when(repository.findRecentByUser(eq("user-1"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        relevanceService.listMostRelevant("user-1", "Hello", 10);
+
+        verify(repository).findRecentByUser(eq("user-1"), any(Pageable.class));
+        verify(repository, never()).searchByCosineSimilarity(any(), any(), anyInt());
+    }
+
+    @Test
+    void listMostRelevant_emptySearchResult_fallsBackToRecency() {
+        EmbeddingService embed = mock(EmbeddingService.class);
+        when(embed.embedAsVectorString("Hello")).thenReturn("[0.1]");
+        AssistantMemoryService relevanceService = new AssistantMemoryService(
+                repository, Optional.of(embed), true);
+        when(repository.searchByCosineSimilarity(any(), any(), anyInt()))
+                .thenReturn(List.of());
+        when(repository.findRecentByUser(eq("user-1"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        relevanceService.listMostRelevant("user-1", "Hello", 10);
+
+        // Pas de match → fallback recency (cas migration : aucune entree avec embedding)
+        verify(repository).findRecentByUser(eq("user-1"), any(Pageable.class));
+    }
+
+    @Test
+    void upsert_withEmbeddingService_persistsEmbedding() {
+        EmbeddingService embed = mock(EmbeddingService.class);
+        when(embed.embedAsVectorString("briefing_time: 08:00")).thenReturn("[0.5]");
+        AssistantMemoryService relevanceService = new AssistantMemoryService(
+                repository, Optional.of(embed), true);
+        when(repository.findByUserAndKey("user-1", "briefing_time"))
+                .thenReturn(Optional.empty());
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AssistantMemory saved = relevanceService.upsert(1L, "user-1",
+                "briefing_time", "08:00", AssistantMemory.Scope.PREFERENCE);
+
+        assertEquals("[0.5]", saved.getEmbedding());
+        verify(embed).embedAsVectorString("briefing_time: 08:00");
+    }
+
+    @Test
+    void upsert_embeddingFailure_persistsWithoutEmbedding() {
+        EmbeddingService embed = mock(EmbeddingService.class);
+        when(embed.embedAsVectorString(any())).thenThrow(new RuntimeException("provider down"));
+        AssistantMemoryService relevanceService = new AssistantMemoryService(
+                repository, Optional.of(embed), true);
+        when(repository.findByUserAndKey(any(), any())).thenReturn(Optional.empty());
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AssistantMemory saved = relevanceService.upsert(1L, "user-1",
+                "k", "v", AssistantMemory.Scope.FACT);
+
+        assertNull(saved.getEmbedding());
+        // L'entree doit etre persistee meme sans embedding
+        verify(repository).save(any(AssistantMemory.class));
+    }
+
+    private AssistantMemory newMemory(Long id) {
+        AssistantMemory m = new AssistantMemory(1L, "user-1", "k" + id, "v",
+                AssistantMemory.Scope.FACT);
+        m.setId(id);
+        return m;
     }
 }

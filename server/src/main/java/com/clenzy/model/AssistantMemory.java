@@ -1,6 +1,7 @@
 package com.clenzy.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.Filter;
 
 import java.time.LocalDateTime;
@@ -65,11 +66,36 @@ public class AssistantMemory {
     @Column(nullable = false, length = 20)
     private String scope;
 
+    /**
+     * Embedding pgvector (1024d) de "key + value" pour la selection par similarite
+     * cosine. Stocke en {@link String} car Hibernate ne sait pas mapper le type
+     * {@code vector} ; le {@link ColumnTransformer} caste cote SQL. NULL si la
+     * generation a echoue (provider down) — l'entree reste accessible via la
+     * requete fallback {@code findRecentByUser}.
+     */
+    @Column(name = "embedding", columnDefinition = "vector(1024)")
+    @ColumnTransformer(write = "?::vector")
+    private String embedding;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    /**
+     * Timestamp de la derniere lecture (bump batch dans le service).
+     * Le scheduler de nettoyage hebdomadaire purge les entrees non lues depuis 6 mois.
+     */
+    @Column(name = "last_accessed_at", nullable = false)
+    private LocalDateTime lastAccessedAt = LocalDateTime.now();
+
+    /**
+     * Echeance explicite (nullable). Si renseignee, l'entree est supprimee
+     * automatiquement quand {@code expiresAt < NOW()}.
+     */
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
 
     public AssistantMemory() {}
 
@@ -111,4 +137,10 @@ public class AssistantMemory {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public LocalDateTime getLastAccessedAt() { return lastAccessedAt; }
+    public void setLastAccessedAt(LocalDateTime lastAccessedAt) { this.lastAccessedAt = lastAccessedAt; }
+    public LocalDateTime getExpiresAt() { return expiresAt; }
+    public void setExpiresAt(LocalDateTime expiresAt) { this.expiresAt = expiresAt; }
+    public String getEmbedding() { return embedding; }
+    public void setEmbedding(String embedding) { this.embedding = embedding; }
 }
