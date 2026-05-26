@@ -66,6 +66,7 @@ public class GetLocalEventsTool implements ToolHandler {
         if (city == null) {
             throw new ToolExecutionException(NAME, "Le parametre 'city' est requis");
         }
+        String country = optString(args, "country");
 
         LocalDate from = parseDate(args.path("from").asText(null));
         LocalDate to = parseDate(args.path("to").asText(null));
@@ -78,8 +79,10 @@ public class GetLocalEventsTool implements ToolHandler {
         }
 
         try {
+            // Si country est fourni, le registry agrege les jours feries officiels
+            // depuis date.nager.at. Sinon, juste le dataset YAML statique.
             List<LocalEventsRegistry.LocalEvent> matches =
-                    registry.findByCityAndDateRange(city, from, to);
+                    registry.findByCityAndDateRange(city, country, from, to);
 
             // Truncate pour ne pas inonder le contexte LLM
             boolean truncated = matches.size() > MAX_ITEMS;
@@ -140,9 +143,10 @@ public class GetLocalEventsTool implements ToolHandler {
                     {
                       "type": "object",
                       "properties": {
-                        "city": {"type":"string","description":"Nom de la ville (ex: Paris, Lyon, Marrakech)"},
-                        "from": {"type":"string","format":"date","description":"Date debut inclusive (ISO YYYY-MM-DD). Defaut : aujourd'hui."},
-                        "to":   {"type":"string","format":"date","description":"Date fin inclusive (ISO YYYY-MM-DD). Defaut : aujourd'hui +90j."}
+                        "city":    {"type":"string","description":"Nom de la ville (ex: Paris, Lyon, Marrakech)"},
+                        "country": {"type":"string","description":"Code pays ISO-2 (FR, MA, ES). Si fourni, agrege les jours feries officiels via date.nager.at en plus du dataset interne."},
+                        "from":    {"type":"string","format":"date","description":"Date debut inclusive (ISO YYYY-MM-DD). Defaut : aujourd'hui."},
+                        "to":      {"type":"string","format":"date","description":"Date fin inclusive (ISO YYYY-MM-DD). Defaut : aujourd'hui +90j."}
                       },
                       "required": ["city"],
                       "additionalProperties": false
@@ -150,7 +154,7 @@ public class GetLocalEventsTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Liste les evenements publics et jours feries impactant la demande dans une ville sur une plage de dates (jours feries nationaux, festivals, salons, evenements sportifs). Utiliser pour expliquer des pics de demande ou suggerer des yield management strategies.",
+                    "Liste les evenements publics et jours feries impactant la demande dans une ville sur une plage de dates. Inclut : dataset interne (festivals, salons, evenements sportifs) + jours feries officiels via date.nager.at si parametre 'country' fourni. Utiliser pour expliquer des pics de demande ou suggerer des yield management strategies.",
                     schema
             );
         } catch (JsonProcessingException e) {

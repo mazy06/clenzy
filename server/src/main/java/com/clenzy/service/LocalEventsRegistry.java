@@ -1,5 +1,6 @@
 package com.clenzy.service;
 
+import com.clenzy.integration.holidays.PublicHolidaysClient;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * Registre statique d'evenements locaux (jours feries FR + grands evenements
@@ -36,12 +38,15 @@ public class LocalEventsRegistry {
 
     private final ObjectMapper objectMapper;
     private final Resource dataResource;
+    private final PublicHolidaysClient publicHolidaysClient;
     private List<LocalEvent> events = Collections.emptyList();
 
     public LocalEventsRegistry(ObjectMapper objectMapper,
-                                @Value("classpath:data/local_events.json") Resource dataResource) {
+                                @Value("classpath:data/local_events.json") Resource dataResource,
+                                Optional<PublicHolidaysClient> publicHolidaysClient) {
         this.objectMapper = objectMapper;
         this.dataResource = dataResource;
+        this.publicHolidaysClient = publicHolidaysClient.orElse(null);
     }
 
     @PostConstruct
@@ -64,14 +69,26 @@ public class LocalEventsRegistry {
 
     /**
      * Filtre les evenements applicables a une ville sur une plage [from, to].
-     *
-     * @param city ville cible (sensible casse normalisee) — null/blank = toutes
-     * @param from date de debut inclusive (null = pas de borne min)
-     * @param to   date de fin inclusive (null = pas de borne max)
-     * @return liste triee par date ASC
+     * Equivaut a {@link #findByCityAndDateRange(String, String, LocalDate, LocalDate)}
+     * sans countryCode — pas d'agregation des jours feries API.
      */
     public List<LocalEvent> findByCityAndDateRange(String city, LocalDate from, LocalDate to) {
-        if (events.isEmpty()) return List.of();
+        return findByCityAndDateRange(city, null, from, to);
+    }
+
+    /**
+     * Variante avec country : agrege les events YAML statiques + les jours
+     * feries officiels (date.nager.at) si {@code countryCode} est fourni et le
+     * {@link PublicHolidaysClient} est dispo.
+     *
+     * @param city        ville cible — null/blank = toutes
+     * @param countryCode ISO-2 (FR, MA, ES) ; null/blank = pas d'agregation API
+     * @param from        date de debut inclusive (null = pas de borne min)
+     * @param to          date de fin inclusive (null = pas de borne max)
+     * @return liste triee par date ASC, dedupliquee par (date, type=holiday)
+     */
+    public List<LocalEvent> findByCityAndDateRange(String city, String countryCode,
+                                                     LocalDate from, LocalDate to) {
         String normalizedCity = (city == null || city.isBlank())
                 ? null
                 : city.trim().toLowerCase(Locale.ROOT);
@@ -84,8 +101,55 @@ public class LocalEventsRegistry {
             if (normalizedCity != null && !matchesCity(e.city, normalizedCity)) continue;
             filtered.add(e);
         }
+
+        // Agregation des jours feries officiels via API (si dispo + country fourni)
+        if (publicHolidaysClient != null && countryCode != null && !countryCode.isBlank()
+                && from != null && to != null) {
+            try {
+                List<PublicHolidaysClient.PublicHoliday> holidays =
+                        publicHolidaysClient.findInRange(countryCode, from, to);
+                for (PublicHolidaysClient.PublicHoliday h : holidays) {
+                    if (isAlreadyPresent(filtered, h)) continue;
+                    filtered.add(toLocalEvent(h));
+                }
+            } catch (Exception e) {
+                // Fail-soft : si l'API holidays casse, on garde juste les YAML.
+                log.debug("Public holidays fetch failed for {}: {}", countryCode, e.getMessage());
+            }
+        }
+
         filtered.sort((a, b) -> a.date.compareTo(b.date));
         return filtered;
+    }
+
+    /**
+     * Deduplication : si le YAML a deja un holiday a la meme date (ex: "1 Janvier
+     * - Jour de l'an" code en dur), on ne re-insere pas le meme depuis l'API.
+     * Heuristique simple : meme date + type contenant "holiday" ou "ferie".
+     */
+    private static boolean isAlreadyPresent(List<LocalEvent> existing,
+                                              PublicHolidaysClient.PublicHoliday h) {
+        for (LocalEvent e : existing) {
+            if (!h.date().equals(e.date)) continue;
+            if (e.type == null) continue;
+            String t = e.type.toLowerCase(Locale.ROOT);
+            if (t.contains("holiday") || t.contains("ferie")) return true;
+        }
+        return false;
+    }
+
+    private static LocalEvent toLocalEvent(PublicHolidaysClient.PublicHoliday h) {
+        LocalEvent e = new LocalEvent();
+        e.id = "holiday-" + h.countryCode() + "-" + h.date();
+        e.title = h.localName() != null ? h.localName() : h.englishName();
+        e.type = "public_holiday";
+        e.city = WILDCARD_CITY;
+        e.country = h.countryCode();
+        e.date = h.date();
+        e.description = h.englishName() != null
+                ? "Jour ferie officiel (" + h.englishName() + ")"
+                : "Jour ferie officiel";
+        return e;
     }
 
     private static boolean matchesCity(String eventCity, String requestedNormalized) {
