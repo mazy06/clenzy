@@ -10,14 +10,13 @@ import {
   FormGroup,
   Checkbox,
   Button,
-  Paper,
   CircularProgress,
   Alert,
   Divider,
 } from '@mui/material';
-import { useTheme, alpha } from '@mui/material/styles';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
+import AiSettingsCard from './AiSettingsCard';
 
 /**
  * Section "Briefings IA" du panneau /settings → onglet IA.
@@ -74,7 +73,6 @@ function detectTimezone(): string {
 }
 
 export const AssistantBriefingPrefs: React.FC = () => {
-  const theme = useTheme();
   const { notify } = useNotification();
   const [prefs, setPrefs] = useState<BriefingPrefs | null>(null);
   const [loading, setLoading] = useState(true);
@@ -162,23 +160,10 @@ export const AssistantBriefingPrefs: React.FC = () => {
   }
 
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: { xs: 2, md: 3 },
-        bgcolor: alpha(theme.palette.primary.main, 0.025),
-        border: 'none',
-        borderRadius: 2,
-      }}
+    <AiSettingsCard
+      title="Briefings IA"
+      subtitle="Reçois automatiquement un résumé proactif de ton activité aux horaires choisis. Sans configuration, l'assistant reste réactif uniquement."
     >
-      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-        Briefings IA
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-        Reçois automatiquement un résumé proactif de ton activité aux horaires
-        choisis. Sans configuration, l'assistant reste réactif uniquement.
-      </Typography>
-
       {/* Toggle on/off */}
       <FormControlLabel
         control={
@@ -292,7 +277,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
           {triggering ? 'Envoi en cours...' : 'Envoyer un test'}
         </Button>
       </Box>
-    </Paper>
+    </AiSettingsCard>
   );
 };
 

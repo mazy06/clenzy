@@ -721,7 +721,7 @@ export default function AiSettingsSection() {
   return (
     <Box>
       {/* ── BYOK cards en haut (clé personnelle prioritaire dans l'UX) ── */}
-      <Grid container spacing={2.5} sx={{ mb: 4 }}>
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid item xs={12} md={6}>
           <ProviderCard
             status={openaiStatus || { ...defaultStatus, provider: 'openai' }}
@@ -742,26 +742,17 @@ export default function AiSettingsSection() {
         </Grid>
       </Grid>
 
-      {/* ── Platform Config + Feature Toggles (SUPER_ADMIN: combined section) ── */}
-      {/* ── For non-admins: standalone toggles (read-only) ── */}
+      {/* ── Stack vertical de sections — chaque AiSettingsCard gere son mb=3 ── */}
       <PlatformAiConfigSection />
       {!mainHasAnyRole(['SUPER_ADMIN']) && <FeatureTogglesSection />}
+      <AssistantBriefingPrefs />
+      <KnowledgeBaseAdmin />
 
       <ConfigureDialog
         open={dialogProvider !== null}
         onClose={() => setDialogProvider(null)}
         provider={dialogProvider}
       />
-
-      {/* ─── Briefings proactifs (resumes IA aux horaires choisis) ─────── */}
-      <Box sx={{ mt: 4 }}>
-        <AssistantBriefingPrefs />
-      </Box>
-
-      {/* ─── Knowledge base RAG (citation doc Clenzy + notes internes) ── */}
-      <Box sx={{ mt: 4 }}>
-        <KnowledgeBaseAdmin />
-      </Box>
     </Box>
   );
 }
