@@ -31,6 +31,8 @@ class BriefingDeliveryTest {
     private WhatsAppApiService whatsAppApiService;
     private UserRepository userRepository;
     private WhatsAppConfigRepository whatsAppConfigRepository;
+    private com.clenzy.repository.OrgWhatsAppTemplateRepository orgWaTemplateRepository;
+    private EmailTemplateLoader emailTemplateLoader;
     private BriefingDelivery delivery;
 
     @BeforeEach
@@ -40,8 +42,13 @@ class BriefingDeliveryTest {
         whatsAppApiService = mock(WhatsAppApiService.class);
         userRepository = mock(UserRepository.class);
         whatsAppConfigRepository = mock(WhatsAppConfigRepository.class);
+        orgWaTemplateRepository = mock(com.clenzy.repository.OrgWhatsAppTemplateRepository.class);
+        // Loader reel : utilise le template du classpath pour valider l'integration
+        emailTemplateLoader = new EmailTemplateLoader();
+        emailTemplateLoader.load();
         delivery = new BriefingDelivery(notificationService, emailChannel, whatsAppApiService,
-                userRepository, whatsAppConfigRepository);
+                userRepository, whatsAppConfigRepository, orgWaTemplateRepository,
+                emailTemplateLoader);
     }
 
     private static BriefingComposer.BriefingResult sample() {
@@ -229,5 +236,85 @@ class BriefingDeliveryTest {
 
         // in_app delivere, canal inconnu skip
         assertEquals(List.of("in_app"), delivered);
+    }
+
+    // ─── #10 Template HTML + WA custom ──────────────────────────────────────
+
+    @Test
+    void buildEmailHtml_usesClasspathTemplate_andInterpolatesVars() {
+        String html = delivery.buildEmailHtml("Mon titre", "Ligne 1\nLigne 2", "/assistant/conversations/42");
+
+        // Le template inclut le style responsive (verifie par la presence de la media query)
+        assertTrue(html.contains("media only screen"),
+                "Le template HTML responsive doit etre utilise (presence media-query)");
+        assertTrue(html.contains("Mon titre"));
+        assertTrue(html.contains("Ligne 1<br/>Ligne 2"));
+        assertTrue(html.contains("/assistant/conversations/42"));
+        assertTrue(html.contains("Clenzy Assistant"));
+    }
+
+    @Test
+    void resolveWhatsAppTemplate_returnsOverride_whenOrgMappingPresent() {
+        com.clenzy.model.OrgWhatsAppTemplate custom = new com.clenzy.model.OrgWhatsAppTemplate(
+                1L, BriefingDelivery.WHATSAPP_TEMPLATE_KEY_BRIEFING,
+                "my_branded_briefing", "en");
+        when(orgWaTemplateRepository.findByOrganizationIdAndTemplateKey(
+                eq(1L), eq("briefing"))).thenReturn(Optional.of(custom));
+
+        BriefingDelivery.TemplateResolution res = delivery.resolveWhatsAppTemplate(1L);
+
+        assertEquals("my_branded_briefing", res.name());
+        assertEquals("en", res.language());
+        assertEquals(BriefingDelivery.TemplateSource.ORG_OVERRIDE, res.source());
+    }
+
+    @Test
+    void resolveWhatsAppTemplate_fallsBackToDefault_whenNoOverride() {
+        when(orgWaTemplateRepository.findByOrganizationIdAndTemplateKey(any(), any()))
+                .thenReturn(Optional.empty());
+
+        BriefingDelivery.TemplateResolution res = delivery.resolveWhatsAppTemplate(1L);
+
+        assertEquals("engagement_update", res.name());
+        assertEquals("fr", res.language());
+        assertEquals(BriefingDelivery.TemplateSource.DEFAULT, res.source());
+    }
+
+    @Test
+    void resolveWhatsAppTemplate_repoFailure_fallsBackToDefault() {
+        when(orgWaTemplateRepository.findByOrganizationIdAndTemplateKey(any(), any()))
+                .thenThrow(new RuntimeException("DB down"));
+
+        BriefingDelivery.TemplateResolution res = delivery.resolveWhatsAppTemplate(1L);
+
+        // Fail-soft : pas d'exception, fallback default
+        assertEquals("engagement_update", res.name());
+        assertEquals(BriefingDelivery.TemplateSource.DEFAULT, res.source());
+    }
+
+    @Test
+    void dispatch_whatsapp_usesOrgCustomTemplate_whenConfigured() {
+        when(userRepository.findByKeycloakId("user-x"))
+                .thenReturn(Optional.of(user("a@b.com", "+33611223344")));
+        WhatsAppConfig config = new WhatsAppConfig();
+        config.setEnabled(true);
+        when(whatsAppConfigRepository.findByOrganizationId(1L)).thenReturn(Optional.of(config));
+
+        com.clenzy.model.OrgWhatsAppTemplate custom = new com.clenzy.model.OrgWhatsAppTemplate(
+                1L, "briefing", "my_briefing_v2", "en");
+        when(orgWaTemplateRepository.findByOrganizationIdAndTemplateKey(eq(1L), eq("briefing")))
+                .thenReturn(Optional.of(custom));
+
+        when(whatsAppApiService.sendTemplateMessage(eq(config), eq("+33611223344"),
+                eq("my_briefing_v2"), eq("en"))).thenReturn("wa-msg-2");
+
+        List<String> delivered = delivery.dispatch(sample(), "user-x", 1L, List.of("whatsapp"));
+
+        assertEquals(List.of("whatsapp"), delivered);
+        // Le template custom DOIT etre utilise, pas le default
+        verify(whatsAppApiService).sendTemplateMessage(eq(config), eq("+33611223344"),
+                eq("my_briefing_v2"), eq("en"));
+        verify(whatsAppApiService, never()).sendTemplateMessage(any(), any(),
+                eq("engagement_update"), any());
     }
 }

@@ -200,7 +200,8 @@ public enum NotificationKey {
     RESERVATION_CANCELLED(NotificationType.WARNING, NotificationCategory.RESERVATION, true),
 
     // ─── ASSISTANT (briefings proactifs) ──────────────────────────────────
-    BRIEFING_READY(NotificationType.INFO, NotificationCategory.SYSTEM, true);
+    BRIEFING_READY(NotificationType.INFO, NotificationCategory.SYSTEM, true),
+    VISION_USAGE_THRESHOLD_REACHED(NotificationType.WARNING, NotificationCategory.SYSTEM, true);
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

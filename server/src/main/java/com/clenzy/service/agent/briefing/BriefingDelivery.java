@@ -1,8 +1,10 @@
 package com.clenzy.service.agent.briefing;
 
 import com.clenzy.model.NotificationKey;
+import com.clenzy.model.OrgWhatsAppTemplate;
 import com.clenzy.model.User;
 import com.clenzy.model.WhatsAppConfig;
+import com.clenzy.repository.OrgWhatsAppTemplateRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.WhatsAppConfigRepository;
 import com.clenzy.service.NotificationService;
@@ -16,7 +18,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -48,25 +52,34 @@ public class BriefingDelivery {
 
     /** Nombre max de caracteres du body envoye dans le mail (truncate apres). */
     private static final int EMAIL_BODY_MAX_CHARS = 12_000;
-    /** Template WhatsApp pre-approuve par defaut. Override via configuration future. */
+    /** Template WhatsApp pre-approuve par defaut (fallback si pas d'override per-org). */
     private static final String WHATSAPP_TEMPLATE_DEFAULT = "engagement_update";
+    private static final String WHATSAPP_TEMPLATE_DEFAULT_LANG = "fr";
+    /** Cle logique du briefing dans org_whatsapp_templates. */
+    static final String WHATSAPP_TEMPLATE_KEY_BRIEFING = "briefing";
 
     private final NotificationService notificationService;
     private final EmailChannel emailChannel;
     private final WhatsAppApiService whatsAppApiService;
     private final UserRepository userRepository;
     private final WhatsAppConfigRepository whatsAppConfigRepository;
+    private final OrgWhatsAppTemplateRepository orgWaTemplateRepository;
+    private final EmailTemplateLoader emailTemplateLoader;
 
     public BriefingDelivery(NotificationService notificationService,
                               EmailChannel emailChannel,
                               WhatsAppApiService whatsAppApiService,
                               UserRepository userRepository,
-                              WhatsAppConfigRepository whatsAppConfigRepository) {
+                              WhatsAppConfigRepository whatsAppConfigRepository,
+                              OrgWhatsAppTemplateRepository orgWaTemplateRepository,
+                              EmailTemplateLoader emailTemplateLoader) {
         this.notificationService = notificationService;
         this.emailChannel = emailChannel;
         this.whatsAppApiService = whatsAppApiService;
         this.userRepository = userRepository;
         this.whatsAppConfigRepository = whatsAppConfigRepository;
+        this.orgWaTemplateRepository = orgWaTemplateRepository;
+        this.emailTemplateLoader = emailTemplateLoader;
     }
 
     /**
@@ -147,7 +160,10 @@ public class BriefingDelivery {
         if (body.length() > EMAIL_BODY_MAX_CHARS) {
             body = body.substring(0, EMAIL_BODY_MAX_CHARS) + "\n\n[...tronque...]";
         }
-        String html = buildEmailHtml(result.shortTitle(), body);
+        String ctaUrl = result.conversationId() != null
+                ? "/assistant/conversations/" + result.conversationId()
+                : "/assistant";
+        String html = buildEmailHtml(result.shortTitle(), body, ctaUrl);
         MessageDeliveryRequest request = new MessageDeliveryRequest(
                 user.getEmail(),
                 null,
@@ -165,24 +181,34 @@ public class BriefingDelivery {
     }
 
     /**
-     * Template MJML-inspire mais inline pour eviter d'introduire un nouveau
-     * builder. Conserve la structure title + body markdown converti en
-     * <pre>-wrap simple — le LLM produit deja du markdown lisible.
+     * Construit le HTML via le template {@code email-templates/briefing.html}.
+     * Si le template n'est pas chargeable (fichier absent en runtime), tombe
+     * sur un HTML inline minimaliste pour ne pas casser l'envoi.
      */
-    private String buildEmailHtml(String title, String body) {
+    String buildEmailHtml(String title, String body) {
+        return buildEmailHtml(title, body, "/assistant");
+    }
+
+    String buildEmailHtml(String title, String body, String ctaUrl) {
         String safeTitle = StringUtils.escapeHtml(title);
-        String safeBody = StringUtils.escapeHtml(body)
-                .replace("\n", "<br/>");
+        String safeBody = StringUtils.escapeHtml(body).replace("\n", "<br/>");
+        String safeCtaUrl = StringUtils.escapeHtml(ctaUrl != null ? ctaUrl : "/assistant");
+
+        Map<String, String> vars = new LinkedHashMap<>();
+        vars.put("title", safeTitle);
+        vars.put("subtitle", "Synthese strategique automatique");
+        vars.put("body", safeBody);
+        vars.put("ctaUrl", safeCtaUrl);
+        vars.put("ctaLabel", "Ouvrir dans l'assistant");
+        String rendered = emailTemplateLoader.renderBriefing(vars);
+        if (rendered != null) return rendered;
+
+        // Fallback minimaliste si le template n'a pas pu etre charge
         return "<!doctype html><html><body style=\"font-family:Helvetica,Arial,sans-serif;"
                 + "max-width:640px;margin:0 auto;padding:24px;color:#1f2937;\">"
-                + "<h2 style=\"color:#6B8A9A;font-weight:600;margin:0 0 16px;\">"
-                + safeTitle + "</h2>"
+                + "<h2 style=\"color:#6B8A9A;\">" + safeTitle + "</h2>"
                 + "<div style=\"line-height:1.55;font-size:14px;\">" + safeBody + "</div>"
-                + "<hr style=\"border:none;border-top:1px solid #E5E7EB;margin:24px 0;\"/>"
-                + "<p style=\"color:#6B7280;font-size:12px;\">"
-                + "Tu peux modifier ou desactiver ces briefings depuis "
-                + "<a href=\"/settings?tab=ai\" style=\"color:#6B8A9A;\">tes parametres</a>."
-                + "</p></body></html>";
+                + "</body></html>";
     }
 
     private static String fullName(User user) {
@@ -206,24 +232,50 @@ public class BriefingDelivery {
             log.debug("Briefing whatsapp skipped : pas de WhatsAppConfig actif pour org {}", organizationId);
             return false;
         }
+
+        // Lookup du template custom per-org, fallback default applicatif
+        TemplateResolution tpl = resolveWhatsAppTemplate(organizationId);
         try {
-            // Template pre-approuve (ex: "engagement_update") — params sont
-            // gerees cote template Meta. Pour personnaliser, on envoie d'abord
-            // le template, puis un message texte court avec le lien — mais
-            // WhatsApp Business API n'autorise un message texte que SUITE a
-            // une interaction recente. On reste donc minimaliste : template only.
-            String result1 = whatsAppApiService.sendTemplateMessage(
+            String response = whatsAppApiService.sendTemplateMessage(
                     configOpt.get(),
                     userOpt.get().getPhoneNumber(),
-                    WHATSAPP_TEMPLATE_DEFAULT,
-                    "fr");
-            return result1 != null;
+                    tpl.name,
+                    tpl.language);
+            return response != null;
         } catch (Exception e) {
             log.warn("Briefing whatsapp failed for user {} : {}",
                     userOpt.get().getKeycloakId(), e.getMessage());
             return false;
         }
     }
+
+    /**
+     * Resolution du couple {@code (template_name, language)} pour le briefing :
+     * d'abord le mapping per-org sur la cle "briefing", sinon le default
+     * applicatif ({@code engagement_update}). Echec silencieux : si le repo
+     * casse, on prend le default — un briefing reste mieux qu'aucun.
+     */
+    TemplateResolution resolveWhatsAppTemplate(Long organizationId) {
+        try {
+            Optional<OrgWhatsAppTemplate> override = orgWaTemplateRepository
+                    .findByOrganizationIdAndTemplateKey(organizationId, WHATSAPP_TEMPLATE_KEY_BRIEFING);
+            if (override.isPresent()) {
+                return new TemplateResolution(
+                        override.get().getTemplateName(),
+                        override.get().getTemplateLanguage(),
+                        TemplateSource.ORG_OVERRIDE);
+            }
+        } catch (Exception e) {
+            log.debug("WA template lookup failed for org {} : {}", organizationId, e.getMessage());
+        }
+        return new TemplateResolution(WHATSAPP_TEMPLATE_DEFAULT, WHATSAPP_TEMPLATE_DEFAULT_LANG,
+                TemplateSource.DEFAULT);
+    }
+
+    /** Package-private — visible aux tests pour valider le routing. */
+    record TemplateResolution(String name, String language, TemplateSource source) {}
+
+    enum TemplateSource { ORG_OVERRIDE, DEFAULT }
 
     private static String excerpt(String text, int max) {
         if (text == null) return "";

@@ -1385,3 +1385,23 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0148 : Templates WhatsApp custom par organisation ---
+  - changeSet:
+      id: "0148-add-org-whatsapp-templates"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0148__add_org_whatsapp_templates.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0149 : Vision token usage alerts per-org ---
+  - changeSet:
+      id: "0149-add-org-vision-alerts"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0149__add_org_vision_alerts.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
