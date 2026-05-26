@@ -33,7 +33,8 @@ class BriefingComposerTest {
         orchestrator = mock(AgentOrchestrator.class);
         convRepo = mock(AssistantConversationRepository.class);
         msgRepo = mock(AssistantMessageRepository.class);
-        composer = new BriefingComposer(orchestrator, convRepo, msgRepo);
+        composer = new BriefingComposer(orchestrator, convRepo, msgRepo,
+                "claude-haiku-4-5-20251001");
     }
 
     private static AssistantBriefingPref pref(AssistantBriefingPref.Frequency f) {
@@ -166,6 +167,22 @@ class BriefingComposerTest {
         assertEquals("user-x", ctxCap.getValue().keycloakId());
         assertEquals(1L, ctxCap.getValue().organizationId());
         assertNull(ctxCap.getValue().jwt());
+    }
+
+    @Test
+    void compose_passesBriefingModelOverride() {
+        when(orchestrator.handleMessage(isNull(), anyString(), any(AgentContext.class), any()))
+                .thenReturn(1L);
+        when(convRepo.findById(any())).thenReturn(Optional.empty());
+        when(msgRepo.findByConversation(any())).thenReturn(List.of());
+
+        composer.compose(pref(AssistantBriefingPref.Frequency.DAILY_MORNING));
+
+        ArgumentCaptor<AgentContext> ctxCap = ArgumentCaptor.forClass(AgentContext.class);
+        verify(orchestrator).handleMessage(isNull(), anyString(), ctxCap.capture(),
+                any(Consumer.class));
+        // Le composer doit forcer Haiku via le modelOverride pour reduire le cout
+        assertEquals("claude-haiku-4-5-20251001", ctxCap.getValue().modelOverride());
     }
 
     @SuppressWarnings("unused")

@@ -26,6 +26,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
  * @param language          code langue ISO ("fr" par defaut)
  * @param currentPage       slug de la page courante cote frontend, null si inconnu
  * @param selectedPropertyId propriete actuellement selectionnee dans l'UI, null si aucune
+ * @param modelOverride     modele LLM specifique pour CE tour (null = defaut provider).
+ *                          Utilise par les briefings pour forcer Haiku (cout ~10x moindre).
  */
 public record AgentContext(
         Long organizationId,
@@ -33,7 +35,8 @@ public record AgentContext(
         Jwt jwt,
         String language,
         String currentPage,
-        Long selectedPropertyId
+        Long selectedPropertyId,
+        String modelOverride
 ) {
 
     public AgentContext {
@@ -48,8 +51,20 @@ public record AgentContext(
         }
     }
 
+    /** Constructeur "legacy" — preserve la signature avant ajout du modelOverride. */
+    public AgentContext(Long organizationId, String keycloakId, Jwt jwt, String language,
+                          String currentPage, Long selectedPropertyId) {
+        this(organizationId, keycloakId, jwt, language, currentPage, selectedPropertyId, null);
+    }
+
     /** Helper pour les tests — context minimal sans JWT ni UI hints. */
     public static AgentContext minimal(Long organizationId, String keycloakId) {
-        return new AgentContext(organizationId, keycloakId, null, "fr", null, null);
+        return new AgentContext(organizationId, keycloakId, null, "fr", null, null, null);
+    }
+
+    /** Retourne une copie avec un model override. Immuable (record). */
+    public AgentContext withModelOverride(String model) {
+        return new AgentContext(organizationId, keycloakId, jwt, language,
+                currentPage, selectedPropertyId, model);
     }
 }

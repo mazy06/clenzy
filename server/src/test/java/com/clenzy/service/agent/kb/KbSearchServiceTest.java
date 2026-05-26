@@ -17,13 +17,18 @@ class KbSearchServiceTest {
 
     private EmbeddingService embeddingService;
     private KbChunkRepository chunkRepository;
+    private RerankService rerankService;
     private KbSearchService service;
 
     @BeforeEach
     void setUp() {
         embeddingService = mock(EmbeddingService.class);
         chunkRepository = mock(KbChunkRepository.class);
-        service = new KbSearchService(embeddingService, chunkRepository);
+        rerankService = mock(RerankService.class);
+        // Defaut : rerank desactive → preserve le comportement initial des tests
+        when(rerankService.isActive()).thenReturn(false);
+        when(rerankService.getOverFetchFactor()).thenReturn(1);
+        service = new KbSearchService(embeddingService, chunkRepository, rerankService);
     }
 
     @Test
@@ -115,5 +120,104 @@ class KbSearchServiceTest {
 
         List<KbSearchService.KbSearchHit> hits = service.search("test", 1L, 1);
         assertEquals(0.0, hits.get(0).relevance(), 0.001);
+    }
+
+    // ─── Rerank pipeline (2 phases) ──────────────────────────────────────
+
+    @Test
+    void rerankActive_overFetchesAndReorders() {
+        when(rerankService.isActive()).thenReturn(true);
+        when(rerankService.getOverFetchFactor()).thenReturn(4);
+        when(embeddingService.embedAsVectorString(anyString())).thenReturn("[0,0,0]");
+
+        // Phase 1 : fetch 20 chunks (topK=5 × factor=4) avec distances croissantes
+        List<Object[]> rows = new java.util.ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            rows.add(new Object[]{(long) i, "content " + i, "doc.md", "T" + i, (long) i, i * 0.05d});
+        }
+        when(chunkRepository.searchByCosineSimilarity(anyString(), any(), anyInt())).thenReturn(rows);
+
+        // Phase 2 : le rerank reorganise → indices 10, 3, 7, 0, 15 (5 elements)
+        when(rerankService.rerank(eq("test"), org.mockito.ArgumentMatchers.anyList(), eq(5)))
+                .thenReturn(List.of(10, 3, 7, 0, 15));
+
+        List<KbSearchService.KbSearchHit> hits = service.search("test", 1L, 5);
+
+        assertEquals(5, hits.size());
+        // Verify l'ordre rerank est applique
+        assertEquals("T10", hits.get(0).title());
+        assertEquals("T3", hits.get(1).title());
+        assertEquals("T7", hits.get(2).title());
+
+        // Verify la phase 1 a bien over-fetch
+        org.mockito.ArgumentCaptor<Integer> kCap = org.mockito.ArgumentCaptor.forClass(Integer.class);
+        verify(chunkRepository).searchByCosineSimilarity(anyString(), any(), kCap.capture());
+        assertEquals(20, kCap.getValue().intValue());
+    }
+
+    @Test
+    void rerankInactive_fetchesExactlyTopK_skipsReranking() {
+        when(rerankService.isActive()).thenReturn(false);
+        when(embeddingService.embedAsVectorString(anyString())).thenReturn("[0,0,0]");
+
+        List<Object[]> rows = new java.util.ArrayList<>();
+        rows.add(new Object[]{1L, "c1", "doc.md", "T1", 1L, 0.1d});
+        rows.add(new Object[]{2L, "c2", "doc.md", "T2", 2L, 0.2d});
+        when(chunkRepository.searchByCosineSimilarity(anyString(), any(), anyInt())).thenReturn(rows);
+
+        List<KbSearchService.KbSearchHit> hits = service.search("test", 1L, 5);
+
+        assertEquals(2, hits.size());
+        // Ordre cosine preserve
+        assertEquals("T1", hits.get(0).title());
+        verify(rerankService, never()).rerank(any(), any(), anyInt());
+    }
+
+    @Test
+    void rerankReturnsEmpty_fallsBackToCosineOrder() {
+        when(rerankService.isActive()).thenReturn(true);
+        when(rerankService.getOverFetchFactor()).thenReturn(4);
+        when(embeddingService.embedAsVectorString(anyString())).thenReturn("[0,0,0]");
+
+        List<Object[]> rows = new java.util.ArrayList<>();
+        rows.add(new Object[]{1L, "c1", "doc.md", "T1", 1L, 0.1d});
+        rows.add(new Object[]{2L, "c2", "doc.md", "T2", 2L, 0.3d});
+        when(chunkRepository.searchByCosineSimilarity(anyString(), any(), anyInt())).thenReturn(rows);
+        // Rerank renvoie liste vide (echec interne)
+        when(rerankService.rerank(any(), any(), anyInt())).thenReturn(List.of());
+
+        List<KbSearchService.KbSearchHit> hits = service.search("test", 1L, 5);
+
+        // Fallback : ordre cosine preserve
+        assertEquals(2, hits.size());
+        assertEquals("T1", hits.get(0).title());
+    }
+
+    @Test
+    void rerank_candidatesSizeBelowTopK_skipsRerank() {
+        when(rerankService.isActive()).thenReturn(true);
+        when(rerankService.getOverFetchFactor()).thenReturn(4);
+        when(embeddingService.embedAsVectorString(anyString())).thenReturn("[0,0,0]");
+
+        // Phase 1 retourne 3 chunks, topK demande = 5 → pas la peine de rerank
+        List<Object[]> rows = new java.util.ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            rows.add(new Object[]{(long) i, "c" + i, "doc.md", "T" + i, (long) i, i * 0.1d});
+        }
+        when(chunkRepository.searchByCosineSimilarity(anyString(), any(), anyInt())).thenReturn(rows);
+
+        service.search("test", 1L, 5);
+        verify(rerankService, never()).rerank(any(), any(), anyInt());
+    }
+
+    @Test
+    void computeFetchSize_clampedToMaxFetch() {
+        when(rerankService.isActive()).thenReturn(true);
+        when(rerankService.getOverFetchFactor()).thenReturn(10);
+
+        // topK 20 × 10 = 200 → clamp a 80 (MAX_FETCH)
+        assertEquals(80, service.computeFetchSize(20));
+        // topK 5 × 10 = 50 → reste 50 (< 80)
+        assertEquals(50, service.computeFetchSize(5));
     }
 }
