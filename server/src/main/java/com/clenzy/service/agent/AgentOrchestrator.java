@@ -128,6 +128,19 @@ public class AgentOrchestrator {
               sportifs. Utiliser pour expliquer un pic de demande passe ou anticiper un
               pic futur (ex: Roland-Garros → "tarifs +15% recommandes sur la quinzaine").
 
+            WORKFLOWS (procedures guidees multi-etapes) :
+            Si l'user demande "aide-moi a...", "guide-moi pour...", "comment je fais pour...",
+            propose un workflow et lance-le via start_workflow. Workflows disponibles :
+            - onboard_property : 5 etapes (basic info → pricing → channels → photos → confirm).
+            - end_of_month_closing : 4 etapes (verify revenue → payouts → reports → close).
+            - prepare_high_season : 5 etapes (window → pricing → amenities → housekeeping → events).
+            Boucle :
+              1. start_workflow(workflow_id) → recoit step #1 dans le payload.
+              2. Affiche le prompt du step a l'user (le widget l'affiche aussi visuellement).
+              3. Quand l'user repond, appelle advance_workflow(run_id, user_response).
+              4. Si le payload contient suggestedAction, propose-la a l'user et invoque-la
+                 si confirmation positive.
+
             ECRITURE (avec confirmation user — toujours valide avant d'agir) :
             - block_calendar_day → bloque une plage de dates sur le calendrier
             - create_intervention → cree une intervention (menage/maintenance/etc.) sur une propriete

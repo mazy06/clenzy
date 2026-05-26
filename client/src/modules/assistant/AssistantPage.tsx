@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography, Paper, useTheme, alpha } from '@mui/material';
 import { AutoAwesome as SparklesIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
@@ -6,6 +6,7 @@ import { useAgent } from '../../hooks/useAgent';
 import { MessageList } from './components/MessageList';
 import { ChatInput } from './components/ChatInput';
 import { ToolConfirmationDialog } from './components/ToolConfirmationDialog';
+import { ASSISTANT_QUICK_REPLY_EVENT } from './widgets/WorkflowWidget';
 
 const SUGGESTED_PROMPTS = [
   'Donne-moi le snapshot KPI actuel.',
@@ -109,6 +110,20 @@ const AssistantPage: React.FC = () => {
   } = useAgent({
     currentPage: 'assistant',
   });
+
+  // Quick replies emis par les widgets (ex: WorkflowWidget : Oui / Non) :
+  // on rebranche sur sendMessage pour que l'agent puisse enchainer.
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ text?: string }>).detail;
+      const text = detail?.text;
+      if (text && text.trim()) {
+        void sendMessage(text);
+      }
+    };
+    window.addEventListener(ASSISTANT_QUICK_REPLY_EVENT, handler);
+    return () => window.removeEventListener(ASSISTANT_QUICK_REPLY_EVENT, handler);
+  }, [sendMessage]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>

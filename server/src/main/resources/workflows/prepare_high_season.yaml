@@ -1,0 +1,65 @@
+# Workflow : Preparation haute saison
+# ---------------------------------------------------------------------------
+# Procedure de pre-saison : ajuster les tarifs, verifier les amenagements,
+# planifier le menage et anticiper les pics de demande.
+
+id: prepare_high_season
+title: "Preparation haute saison"
+description: "Checklist pre-haute saison : pricing, ammenagements, menages, anticipation demande."
+estimatedDuration: 25
+
+steps:
+  - id: identify_window
+    title: "Periode haute saison"
+    prompt: |
+      Allons-y. Quelle est la **periode haute saison** que tu prepares ?
+      Indique les dates : "du YYYY-MM-DD au YYYY-MM-DD".
+    expectsData:
+      from: string
+      to: string
+
+  - id: review_pricing
+    title: "Revue tarifaire"
+    prompt: |
+      Etape 1/4. Veux-tu que je verifie tes **tarifs actuels** sur la periode
+      et que je propose des ajustements ? Reponds par 'oui' ou 'non'.
+    expectsData:
+      reviewPricing: boolean
+    suggestTool:
+      name: analyze_portfolio
+      args:
+        daysBack: 90
+
+  - id: amenities_check
+    title: "Equipements et amenites"
+    prompt: |
+      Etape 2/4. Reste-t-il des **equipements a installer** ou amenites a
+      activer avant le pic (clim, piscine, terrasse, baby pack) ?
+      Cite-les en une liste, ou "rien" si tout est pret.
+    expectsData:
+      pendingAmenities: string
+
+  - id: housekeeping_plan
+    title: "Planning menage"
+    prompt: |
+      Etape 3/4. Confirmons le **planning des menages** : tu as suffisamment
+      d'equipes/contrats pour absorber l'augmentation de check-outs ?
+    expectsData:
+      housekeepingReady: boolean
+    suggestTool:
+      name: suggest_navigation
+      args:
+        path: "/interventions"
+        label: "Verifier le planning menage"
+
+  - id: anticipate_events
+    title: "Anticipation evenements"
+    prompt: |
+      Etape 4/4. Veux-tu que je regarde s'il y a des **evenements publics**
+      (festivals, marathons, salons) sur la periode qui devraient declencher
+      une hausse tarifaire automatique ?
+    expectsData:
+      checkEvents: boolean
+    suggestTool:
+      name: get_local_events
+      args: {}
