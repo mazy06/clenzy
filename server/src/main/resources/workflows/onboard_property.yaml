@@ -1,0 +1,73 @@
+# Workflow : Onboarding nouvelle propriete
+# ---------------------------------------------------------------------------
+# Procedure guidee pour ajouter une nouvelle propriete au PMS. L'agent
+# collecte les infos pas-a-pas, propose le bon ecran de configuration a
+# chaque etape, puis suggere create_property a la fin pour la creation.
+
+id: onboard_property
+title: "Onboarding nouvelle propriete"
+description: "Guide complet pour ajouter une nouvelle propriete (infos, pricing, channels, photos, confirmation)."
+estimatedDuration: 15
+
+steps:
+  - id: basic_info
+    title: "Infos de base"
+    prompt: |
+      Parfait, on demarre l'ajout d'une nouvelle propriete.
+      Donne-moi :
+      - le **nom** affiche aux guests,
+      - l'**adresse** complete (rue, numero),
+      - la **ville**.
+    expectsData:
+      name: string
+      address: string
+      city: string
+
+  - id: pricing
+    title: "Tarification de base"
+    prompt: |
+      Super. Quel est ton **tarif de base par nuit** (en EUR) ?
+      Tu pourras affiner les regles dynamiques (saisonnalite, last-minute, weekend) plus tard.
+    expectsData:
+      basePrice: number
+    suggestTool:
+      name: suggest_navigation
+      args:
+        path: "/tarification"
+        label: "Configurer le pricing avance"
+        reason: "Apres l'onboarding, definis les regles saisonnieres et last-minute"
+
+  - id: channels
+    title: "Channels de distribution"
+    prompt: |
+      Sur quels **channels** veux-tu distribuer cette propriete ?
+      Choix possibles : Airbnb, Booking.com, Vrbo, direct (booking engine).
+      Reponds par une liste (ex: "Airbnb, Booking, direct").
+    expectsData:
+      channels: "string[]"
+    suggestTool:
+      name: suggest_navigation
+      args:
+        path: "/channels"
+        label: "Connecter les channels"
+        reason: "Configure les connexions API et iCal pour chaque channel choisi"
+
+  - id: photos
+    title: "Photos"
+    prompt: |
+      Dernier point : as-tu deja des **photos professionnelles** prises ?
+      - Oui : on peut les uploader maintenant
+      - Non : je peux te lister les agences partenaires de ta ville
+    expectsData:
+      hasPhotos: boolean
+
+  - id: confirm
+    title: "Confirmation"
+    prompt: |
+      Recap :
+      {{summary}}
+
+      Tout est bon ? Je peux creer la propriete.
+    expectsData:
+      confirm: boolean
+    action: create_property

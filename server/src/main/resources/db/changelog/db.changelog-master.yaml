@@ -1304,3 +1304,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0140 : Table assistant_workflow_run (procedures multi-etapes) ---
+  - changeSet:
+      id: "0140-add-assistant-workflow-runs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0140__add_assistant_workflow_runs.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
