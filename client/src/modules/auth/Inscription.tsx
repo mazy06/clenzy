@@ -520,8 +520,9 @@ export default function Inscription() {
                           variant="caption"
                           sx={{
                             fontWeight: 600,
-                            color: forfait === f ? 'primary.main' : 'text.secondary',
+                            color: 'inherit',
                             fontSize: '0.75rem',
+                            opacity: 0.95,
                           }}
                         >
                           dès {FORFAIT_BASE_PRICES[f]}€/intervention
