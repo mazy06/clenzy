@@ -30,6 +30,8 @@ class AnalyzePortfolioToolTest {
     private PropertyService propertyService;
     private ReservationService reservationService;
     private GuestReviewRepository reviewRepo;
+    private com.clenzy.service.agent.portfolio.PortfolioConfig portfolioConfig;
+    private com.clenzy.service.agent.portfolio.PortfolioPatternEvaluator patternEvaluator;
     private AnalyzePortfolioTool tool;
     private ObjectMapper om;
     private AgentContext ctx;
@@ -40,7 +42,13 @@ class AnalyzePortfolioToolTest {
         reservationService = mock(ReservationService.class);
         reviewRepo = mock(GuestReviewRepository.class);
         om = new ObjectMapper();
-        tool = new AnalyzePortfolioTool(propertyService, reservationService, reviewRepo, om);
+        portfolioConfig = new com.clenzy.service.agent.portfolio.PortfolioConfig();
+        // Defaut : pas de patterns (les tests qui veulent les tester surchargent)
+        patternEvaluator = mock(com.clenzy.service.agent.portfolio.PortfolioPatternEvaluator.class);
+        when(patternEvaluator.evaluateAll(any())).thenReturn(java.util.List.of());
+
+        tool = new AnalyzePortfolioTool(propertyService, reservationService, reviewRepo,
+                portfolioConfig, patternEvaluator, om);
         ctx = AgentContext.minimal(1L, "user-123");
         when(reviewRepo.averageRatingByPropertyId(anyLong(), anyLong())).thenReturn(null);
     }
@@ -125,7 +133,7 @@ class AnalyzePortfolioToolTest {
     }
 
     @Test
-    void cancelledReservations_excludedFromRevenue_butCountTowardCancelRate() throws Exception {
+    void cancelledReservations_excludedFromRevenue_andPassedToPatternEvaluator() throws Exception {
         LocalDate today = LocalDate.now();
         LocalDate within = today.minusDays(10);
         LocalDate withinEnd = today.minusDays(5);
@@ -133,30 +141,39 @@ class AnalyzePortfolioToolTest {
         when(propertyService.list()).thenReturn(List.of(
                 property(1L, "Loft Paris", "Paris", PropertyStatus.ACTIVE)
         ));
-        // 4 reservations dont 1 confirmed + 3 cancelled → cancelRate = 75% → pattern
         when(reservationService.getReservations(eq("user-123"), any(), any(), any())).thenReturn(List.of(
                 reservation(1L, "Loft Paris", within, withinEnd, new BigDecimal("100"), "confirmed"),
                 reservation(1L, "Loft Paris", within, withinEnd, new BigDecimal("100"), "cancelled"),
                 reservation(1L, "Loft Paris", within, withinEnd, new BigDecimal("100"), "cancelled"),
                 reservation(1L, "Loft Paris", within, withinEnd, new BigDecimal("100"), "cancelled")
         ));
+        // Le pattern evaluator mocke retourne le HIGH_CANCELLATION_RATE pour ce cas
+        when(patternEvaluator.evaluateAll(any())).thenReturn(java.util.List.of(
+                java.util.Map.of("type", "HIGH_CANCELLATION_RATE", "severity", "HIGH",
+                        "title", "Taux d'annulation eleve",
+                        "description", "1 propriete(s) avec >20%",
+                        "items", java.util.List.of("Loft Paris (75%)"))));
 
         ToolResult result = tool.execute(om.createObjectNode(), ctx);
         JsonNode payload = om.readTree(result.content());
 
-        // Revenue uniquement de la confirmed
+        // Revenue uniquement de la confirmed (cancelled excluse)
         assertEquals(100.0, payload.path("totalRevenue").asDouble(), 0.001);
 
-        // Pattern HIGH_CANCELLATION_RATE detecte (4 reservations, 3 cancelled = 75%)
+        // Le pattern remonte par l'evaluator est present dans le payload
         JsonNode patterns = payload.path("patterns");
-        boolean foundCancelPattern = false;
-        for (JsonNode p : patterns) {
-            if ("HIGH_CANCELLATION_RATE".equals(p.path("type").asText())) {
-                foundCancelPattern = true;
-                break;
-            }
-        }
-        assertTrue(foundCancelPattern, "Pattern volatilite doit etre detecte");
+        assertEquals(1, patterns.size());
+        assertEquals("HIGH_CANCELLATION_RATE", patterns.get(0).path("type").asText());
+
+        // Verify : le tool a transmis les cancelled au evaluator (via PortfolioInput)
+        org.mockito.ArgumentCaptor<com.clenzy.service.agent.portfolio.PortfolioPatternDetector.PortfolioInput> cap =
+                org.mockito.ArgumentCaptor.forClass(
+                        com.clenzy.service.agent.portfolio.PortfolioPatternDetector.PortfolioInput.class);
+        verify(patternEvaluator).evaluateAll(cap.capture());
+        var props = cap.getValue().properties();
+        assertEquals(1, props.size());
+        assertEquals(4, props.get(0).totalReservations());
+        assertEquals(3, props.get(0).cancelledReservations());
     }
 
     @Test
@@ -205,36 +222,132 @@ class AnalyzePortfolioToolTest {
     }
 
     @Test
-    void citySatisfactionLow_patternDetected_whenAvgRatingBelow35() throws Exception {
+    void ratings_flowIntoPatternEvaluatorInput() throws Exception {
         when(propertyService.list()).thenReturn(List.of(
                 property(1L, "Loft Marseille", "Marseille", PropertyStatus.ACTIVE),
-                property(2L, "Studio Marseille", "Marseille", PropertyStatus.ACTIVE),
-                property(3L, "Villa Lyon", "Lyon", PropertyStatus.ACTIVE)
+                property(2L, "Villa Lyon", "Lyon", PropertyStatus.ACTIVE)
         ));
         when(reservationService.getReservations(any(), any(), any(), any())).thenReturn(List.of());
-        // Marseille 2.5 et 3.0 → moyenne 2.75 < 3.5 → pattern
-        // Lyon 4.5 → OK, pas de pattern
         when(reviewRepo.averageRatingByPropertyId(eq(1L), anyLong())).thenReturn(2.5);
-        when(reviewRepo.averageRatingByPropertyId(eq(2L), anyLong())).thenReturn(3.0);
-        when(reviewRepo.averageRatingByPropertyId(eq(3L), anyLong())).thenReturn(4.5);
+        when(reviewRepo.averageRatingByPropertyId(eq(2L), anyLong())).thenReturn(4.5);
+
+        tool.execute(om.createObjectNode(), ctx);
+
+        // Verify : les ratings sont transmis au evaluator (detection delegated)
+        org.mockito.ArgumentCaptor<com.clenzy.service.agent.portfolio.PortfolioPatternDetector.PortfolioInput> cap =
+                org.mockito.ArgumentCaptor.forClass(
+                        com.clenzy.service.agent.portfolio.PortfolioPatternDetector.PortfolioInput.class);
+        verify(patternEvaluator).evaluateAll(cap.capture());
+        java.util.Map<Long, Double> ratingsById = new java.util.HashMap<>();
+        for (var m : cap.getValue().properties()) {
+            ratingsById.put(m.id(), m.avgRating());
+        }
+        assertEquals(2.5, ratingsById.get(1L), 0.001);
+        assertEquals(4.5, ratingsById.get(2L), 0.001);
+    }
+
+    @Test
+    void comparePrevious_includesDeltasFromPreviousPeriod() throws Exception {
+        LocalDate today = LocalDate.now();
+        when(propertyService.list()).thenReturn(List.of(
+                property(1L, "P", "Paris", PropertyStatus.ACTIVE)
+        ));
+        // Premiere fetch : periode courante (last 30 days)
+        // Seconde fetch : periode N-1 (30j avant)
+        // On stub par range pour les distinguer
+        when(reservationService.getReservations(any(),
+                any(),
+                org.mockito.ArgumentMatchers.argThat(d -> d != null && d.isAfter(today.minusDays(31))),
+                org.mockito.ArgumentMatchers.argThat(d -> d != null && (d.isEqual(today) || d.isAfter(today.minusDays(1))))))
+                .thenReturn(List.of(
+                        reservation(1L, "P", today.minusDays(15), today.minusDays(10),
+                                new BigDecimal("500"), "confirmed")));
+        when(reservationService.getReservations(any(),
+                any(),
+                org.mockito.ArgumentMatchers.argThat(d -> d != null && d.isBefore(today.minusDays(30))),
+                org.mockito.ArgumentMatchers.argThat(d -> d != null && d.isBefore(today.minusDays(1)))))
+                .thenReturn(List.of(
+                        reservation(1L, "P", today.minusDays(45), today.minusDays(40),
+                                new BigDecimal("300"), "confirmed")));
 
         ToolResult result = tool.execute(om.createObjectNode(), ctx);
         JsonNode payload = om.readTree(result.content());
 
-        JsonNode patterns = payload.path("patterns");
-        boolean foundCity = false;
-        for (JsonNode p : patterns) {
-            if ("CITY_SATISFACTION_LOW".equals(p.path("type").asText())) {
-                foundCity = true;
-                // Marseille est dans les items
-                JsonNode items = p.path("items");
-                assertTrue(items.size() >= 1);
-                String concat = items.toString();
-                assertTrue(concat.contains("Marseille"));
-                assertFalse(concat.contains("Lyon"), "Lyon est au dessus du seuil");
-            }
-        }
-        assertTrue(foundCity, "Pattern CITY_SATISFACTION_LOW doit etre detecte");
+        // Section deltas presente avec une variation calculee
+        JsonNode deltas = payload.path("deltas");
+        assertFalse(deltas.isMissingNode(), "deltas should be present when comparePrevious=true");
+        // revenue current = 500, previous = 300 → delta = 200
+        assertEquals(200.0, deltas.path("revenue").asDouble(), 0.5);
+        assertTrue(deltas.path("revenuePct").asDouble() > 0.5, "pct > 50%");
+    }
+
+    @Test
+    void comparePreviousFalse_skipsSecondFetch() throws Exception {
+        when(propertyService.list()).thenReturn(List.of(
+                property(1L, "P", "Paris", PropertyStatus.ACTIVE)
+        ));
+        when(reservationService.getReservations(any(), any(), any(), any())).thenReturn(List.of());
+
+        com.fasterxml.jackson.databind.node.ObjectNode args = om.createObjectNode();
+        args.put("comparePrevious", false);
+        ToolResult result = tool.execute(args, ctx);
+        JsonNode payload = om.readTree(result.content());
+
+        // Pas de section deltas
+        assertTrue(payload.path("deltas").isMissingNode());
+        // Une seule lookup reservation (pas de phase 2)
+        verify(reservationService, times(1)).getReservations(any(), any(), any(), any());
+    }
+
+    @Test
+    void portfolioConfig_topN_appliedToTopPerformers() throws Exception {
+        portfolioConfig.setTopN(2); // Override defaut 3 → ne garde que 2
+        LocalDate today = LocalDate.now();
+        when(propertyService.list()).thenReturn(List.of(
+                property(1L, "A", "Paris", PropertyStatus.ACTIVE),
+                property(2L, "B", "Lyon", PropertyStatus.ACTIVE),
+                property(3L, "C", "Nice", PropertyStatus.ACTIVE),
+                property(4L, "D", "Marseille", PropertyStatus.ACTIVE)
+        ));
+        when(reservationService.getReservations(any(), any(), any(), any())).thenReturn(List.of(
+                reservation(1L, "A", today.minusDays(10), today.minusDays(5),
+                        new BigDecimal("100"), "confirmed"),
+                reservation(2L, "B", today.minusDays(10), today.minusDays(5),
+                        new BigDecimal("400"), "confirmed"),
+                reservation(3L, "C", today.minusDays(10), today.minusDays(5),
+                        new BigDecimal("300"), "confirmed"),
+                reservation(4L, "D", today.minusDays(10), today.minusDays(5),
+                        new BigDecimal("200"), "confirmed")
+        ));
+
+        ToolResult result = tool.execute(om.createObjectNode(), ctx);
+        JsonNode payload = om.readTree(result.content());
+
+        // topN=2 → seulement les 2 meilleurs (B puis C)
+        JsonNode top = payload.path("topPerformers");
+        assertEquals(2, top.size());
+        assertEquals("B", top.get(0).path("name").asText());
+        assertEquals("C", top.get(1).path("name").asText());
+    }
+
+    @Test
+    void portfolioConfig_underPerformerThreshold_appliesCustomLimit() throws Exception {
+        portfolioConfig.setUnderPerformerOccupancy(0.80); // tres haut → presque tout flag
+
+        when(propertyService.list()).thenReturn(List.of(
+                property(1L, "A", "Paris", PropertyStatus.ACTIVE)
+        ));
+        LocalDate today = LocalDate.now();
+        when(reservationService.getReservations(any(), any(), any(), any())).thenReturn(List.of(
+                reservation(1L, "A", today.minusDays(20), today.minusDays(5),
+                        new BigDecimal("1500"), "confirmed") // 15 nuits / 30 = 50%
+        ));
+
+        ToolResult result = tool.execute(om.createObjectNode(), ctx);
+        JsonNode payload = om.readTree(result.content());
+
+        // 50% < 80% → flag underperformer (alors qu'avec defaut 0.5 ce serait pas le cas)
+        assertEquals(1, payload.path("underPerformers").size());
     }
 
     @Test
