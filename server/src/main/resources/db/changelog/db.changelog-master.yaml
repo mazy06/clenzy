@@ -1405,3 +1405,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0150 : Version JPA sur assistant_workflow_run (optimistic locking) ---
+  - changeSet:
+      id: "0150-add-assistant-workflow-run-version"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0150__add_assistant_workflow_run_version.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

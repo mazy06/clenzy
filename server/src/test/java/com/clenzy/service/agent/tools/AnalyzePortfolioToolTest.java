@@ -21,6 +21,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -51,6 +52,10 @@ class AnalyzePortfolioToolTest {
                 portfolioConfig, patternEvaluator, om);
         ctx = AgentContext.minimal(1L, "user-123");
         when(reviewRepo.averageRatingByPropertyId(anyLong(), anyLong())).thenReturn(null);
+        // Batch query (nouveau path) : retourne liste vide par defaut, surchargee
+        // dans les tests qui veulent valider la propagation des ratings
+        when(reviewRepo.averageRatingByPropertyIds(anyList(), anyLong()))
+                .thenReturn(java.util.List.of());
     }
 
     private static PropertyDto property(Long id, String name, String city, PropertyStatus status) {
@@ -228,8 +233,12 @@ class AnalyzePortfolioToolTest {
                 property(2L, "Villa Lyon", "Lyon", PropertyStatus.ACTIVE)
         ));
         when(reservationService.getReservations(any(), any(), any(), any())).thenReturn(List.of());
-        when(reviewRepo.averageRatingByPropertyId(eq(1L), anyLong())).thenReturn(2.5);
-        when(reviewRepo.averageRatingByPropertyId(eq(2L), anyLong())).thenReturn(4.5);
+        // Batch query : retourne les 2 ratings en une fois
+        when(reviewRepo.averageRatingByPropertyIds(anyList(), anyLong()))
+                .thenReturn(java.util.List.of(
+                        new Object[]{1L, 2.5},
+                        new Object[]{2L, 4.5}
+                ));
 
         tool.execute(om.createObjectNode(), ctx);
 

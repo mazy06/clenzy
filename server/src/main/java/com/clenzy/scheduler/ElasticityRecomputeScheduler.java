@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,13 +40,23 @@ public class ElasticityRecomputeScheduler {
 
     private final PropertyElasticityEstimateRepository estimateRepository;
     private final EmpiricalElasticityEstimator estimator;
+    private final Clock clock;
     private final boolean enabled;
 
     public ElasticityRecomputeScheduler(PropertyElasticityEstimateRepository estimateRepository,
                                           EmpiricalElasticityEstimator estimator,
                                           @Value("${clenzy.assistant.elasticity.recompute-enabled:true}") boolean enabled) {
+        this(estimateRepository, estimator, Clock.systemUTC(), enabled);
+    }
+
+    /** Constructeur test-friendly avec horloge injectable (deterministe). */
+    ElasticityRecomputeScheduler(PropertyElasticityEstimateRepository estimateRepository,
+                                   EmpiricalElasticityEstimator estimator,
+                                   Clock clock,
+                                   boolean enabled) {
         this.estimateRepository = estimateRepository;
         this.estimator = estimator;
+        this.clock = clock;
         this.enabled = enabled;
     }
 
@@ -103,7 +116,7 @@ public class ElasticityRecomputeScheduler {
                 .orElseGet(() -> new PropertyElasticityEstimate(row.propertyId(), 0.0, 0));
         entity.setElasticityValue(estimate.get().elasticity());
         entity.setSampleSize(estimate.get().sampleSize());
-        entity.setComputedAt(java.time.LocalDateTime.now());
+        entity.setComputedAt(LocalDateTime.now(clock.withZone(ZoneId.of("UTC"))));
         estimateRepository.save(entity);
         return true;
     }

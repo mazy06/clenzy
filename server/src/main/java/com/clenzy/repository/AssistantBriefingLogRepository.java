@@ -2,6 +2,7 @@ package com.clenzy.repository;
 
 import com.clenzy.model.AssistantBriefingLog;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -35,4 +36,21 @@ public interface AssistantBriefingLogRepository extends JpaRepository<AssistantB
             + "AND l.sentAt >= :since "
             + "ORDER BY l.sentAt ASC")
     List<AssistantBriefingLog> findFailedSince(@Param("since") LocalDateTime since);
+
+    /**
+     * Tente d'acquerir le retry pour un log FAILED via compare-and-swap
+     * applicatif. Si une autre instance a deja passe ce log a un autre status
+     * (RETRYING / SENT) depuis qu'on l'a lu, l'UPDATE renvoie 0 et on skip —
+     * empeche le double-envoi en HA multi-instance.
+     *
+     * <p>Pattern : on passe a RETRYING le temps du dispatch. Quand le dispatch
+     * reussit, on bascule a SENT ; sinon on revient a FAILED pour permettre un
+     * nouveau tick. La transition est atomique cote BDD.</p>
+     *
+     * @return 1 si le lock a ete acquis (passe a RETRYING), 0 sinon
+     */
+    @Modifying
+    @Query("UPDATE AssistantBriefingLog l SET l.status = 'RETRYING' "
+            + "WHERE l.id = :id AND l.status = 'FAILED'")
+    int tryAcquireRetry(@Param("id") Long id);
 }

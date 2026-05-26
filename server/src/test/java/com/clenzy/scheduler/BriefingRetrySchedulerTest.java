@@ -73,6 +73,9 @@ class BriefingRetrySchedulerTest {
     void runOnce_retrySuccess_marksLogAsSent() {
         AssistantBriefingLog failed = newFailedLog(7L, 99L);
         when(logRepository.findFailedSince(any())).thenReturn(List.of(failed));
+        // CAS acquired par CETTE instance (autres = 0)
+        when(logRepository.tryAcquireRetry(7L)).thenReturn(1);
+        when(logRepository.findById(7L)).thenReturn(Optional.of(failed));
 
         AssistantBriefingPref pref = newPref();
         when(prefService.get("user-1")).thenReturn(Optional.of(pref));
@@ -88,14 +91,32 @@ class BriefingRetrySchedulerTest {
                 ArgumentCaptor.forClass(AssistantBriefingLog.class);
         verify(logRepository).save(savedCap.capture());
         assertEquals(AssistantBriefingLog.Status.SENT, savedCap.getValue().getStatusEnum());
-        // Le composer ne doit PAS etre rappele : on reutilise la conv id
         verifyNoInteractions(composer);
     }
 
     @Test
-    void runOnce_retryStillFails_keepsFailedStatus() {
+    void runOnce_casLost_skipsWithoutDispatch() {
+        // Scenario HA : autre instance a deja acquis le retry → tryAcquireRetry=0
         AssistantBriefingLog failed = newFailedLog(7L, 99L);
         when(logRepository.findFailedSince(any())).thenReturn(List.of(failed));
+        when(logRepository.tryAcquireRetry(7L)).thenReturn(0);
+
+        int recovered = scheduler(true).runOnce();
+
+        assertEquals(0, recovered);
+        // Aucun dispatch ne doit etre fait
+        verifyNoInteractions(delivery);
+        verifyNoInteractions(composer);
+        // Pas de save non plus — l'autre instance s'en occupe
+        verify(logRepository, never()).save(any());
+    }
+
+    @Test
+    void runOnce_retryStillFails_revertsToFailed() {
+        AssistantBriefingLog failed = newFailedLog(7L, 99L);
+        when(logRepository.findFailedSince(any())).thenReturn(List.of(failed));
+        when(logRepository.tryAcquireRetry(7L)).thenReturn(1);
+        when(logRepository.findById(7L)).thenReturn(Optional.of(failed));
 
         AssistantBriefingPref pref = newPref();
         when(prefService.get("user-1")).thenReturn(Optional.of(pref));
@@ -108,19 +129,23 @@ class BriefingRetrySchedulerTest {
         assertEquals(0, recovered);
         ArgumentCaptor<AssistantBriefingLog> cap = ArgumentCaptor.forClass(AssistantBriefingLog.class);
         verify(logRepository).save(cap.capture());
-        // Status reste FAILED, le errorMessage est mis a jour
+        // Le revert remet bien FAILED (pas RETRYING) pour qu'un tick ulterieur retente
         assertEquals(AssistantBriefingLog.Status.FAILED, cap.getValue().getStatusEnum());
         assertTrue(cap.getValue().getErrorMessage().contains("still no channel"));
     }
 
     @Test
-    void runOnce_userNoLongerHasPref_skipsGracefully() {
+    void runOnce_userNoLongerHasPref_revertsToFailedAndSkips() {
         AssistantBriefingLog failed = newFailedLog(7L, 99L);
         when(logRepository.findFailedSince(any())).thenReturn(List.of(failed));
+        when(logRepository.tryAcquireRetry(7L)).thenReturn(1);
+        when(logRepository.findById(7L)).thenReturn(Optional.of(failed));
         when(prefService.get("user-1")).thenReturn(Optional.empty());
+        when(logRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         assertEquals(0, scheduler(true).runOnce());
-        verify(logRepository, never()).save(any());
+        // Save attendu pour revert le status (sinon le log reste bloque en RETRYING)
+        verify(logRepository).save(any(AssistantBriefingLog.class));
         verifyNoInteractions(delivery);
     }
 
@@ -128,6 +153,8 @@ class BriefingRetrySchedulerTest {
     void runOnce_noConversationId_recomposesFromScratch() {
         AssistantBriefingLog failed = newFailedLog(7L, null); // pas de conv
         when(logRepository.findFailedSince(any())).thenReturn(List.of(failed));
+        when(logRepository.tryAcquireRetry(7L)).thenReturn(1);
+        when(logRepository.findById(7L)).thenReturn(Optional.of(failed));
 
         AssistantBriefingPref pref = newPref();
         when(prefService.get("user-1")).thenReturn(Optional.of(pref));
@@ -143,9 +170,11 @@ class BriefingRetrySchedulerTest {
     }
 
     @Test
-    void runOnce_composeReturnsNull_keepsFailedWithMessage() {
+    void runOnce_composeReturnsNull_revertsToFailedWithMessage() {
         AssistantBriefingLog failed = newFailedLog(7L, null);
         when(logRepository.findFailedSince(any())).thenReturn(List.of(failed));
+        when(logRepository.tryAcquireRetry(7L)).thenReturn(1);
+        when(logRepository.findById(7L)).thenReturn(Optional.of(failed));
 
         AssistantBriefingPref pref = newPref();
         when(prefService.get("user-1")).thenReturn(Optional.of(pref));
@@ -154,6 +183,7 @@ class BriefingRetrySchedulerTest {
 
         assertEquals(0, scheduler(true).runOnce());
         verify(logRepository).save(failed);
+        assertEquals(AssistantBriefingLog.Status.FAILED, failed.getStatusEnum());
         assertTrue(failed.getErrorMessage().contains("compose returned null"));
     }
 

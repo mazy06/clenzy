@@ -51,15 +51,25 @@ public class AssistantMemoryCleanupScheduler {
         this.enabled = enabled;
     }
 
-    /** Lundi 3h UTC : creneau de faible charge. */
+    /**
+     * Lundi 3h UTC : creneau de faible charge.
+     *
+     * <p>{@code @Transactional} present ici (et pas seulement sur {@link #runOnce()})
+     * pour que la transaction couvre l'execution declenchee par Spring Scheduler :
+     * sinon l'appel interne {@code this.runOnce()} bypass le proxy AOP et le
+     * {@code @Transactional} de {@code runOnce} est ignore.</p>
+     */
     @Scheduled(cron = "0 0 3 * * MON")
+    @Transactional
     public void runWeekly() {
         runOnce();
     }
 
     /**
      * Execution effective — separee du cron pour permettre l'appel direct dans
-     * les tests sans avoir a attendre le scheduler Spring.
+     * les tests sans avoir a attendre le scheduler Spring. Le {@code @Transactional}
+     * sert quand un caller externe (test, endpoint admin) invoque la methode
+     * sans transaction existante.
      */
     @Transactional
     public int runOnce() {

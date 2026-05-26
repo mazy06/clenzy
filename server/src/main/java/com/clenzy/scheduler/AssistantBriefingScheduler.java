@@ -149,6 +149,17 @@ public class AssistantBriefingScheduler {
      *   <li>Met a jour le log avec conversation_id + canaux delivres + status</li>
      * </ol>
      */
+    /**
+     * <b>Limitation connue</b> : la transaction reste ouverte pendant
+     * {@code composer.compose(pref)} qui appelle le LLM (10-30s) et
+     * {@code delivery.dispatch(...)} (emails / WhatsApp). Sur un pool Hikari
+     * par defaut de 10 connexions, 10 users au meme tick peuvent saturer le
+     * pool. Acceptable au volume actuel (~quelques users a la fois), a revoir
+     * si la base d'utilisateurs avec briefing depasse plusieurs centaines :
+     * le refactor consiste a sortir compose + dispatch HORS tx et entourer
+     * uniquement les INSERT/UPDATE du log dans des REQUIRES_NEW dedies via
+     * TransactionTemplate ou self-reference Spring.
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processOne(AssistantBriefingPref pref) {
         LocalDate today = LocalDate.now(ZoneId.of(pref.getTimezone() != null
