@@ -46,6 +46,7 @@ public class VisionUsageAlertScheduler {
     private final Clock clock;
     private final boolean enabled;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public VisionUsageAlertScheduler(OrgVisionAlertRepository alertRepository,
                                        VisionTokenUsageService usageService,
                                        NotificationService notificationService,

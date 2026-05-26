@@ -43,6 +43,7 @@ public class ElasticityRecomputeScheduler {
     private final Clock clock;
     private final boolean enabled;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public ElasticityRecomputeScheduler(PropertyElasticityEstimateRepository estimateRepository,
                                           EmpiricalElasticityEstimator estimator,
                                           @Value("${clenzy.assistant.elasticity.recompute-enabled:true}") boolean enabled) {

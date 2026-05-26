@@ -63,6 +63,7 @@ public class OpenMeteoClient {
     private final String geocodingBaseUrl;
     private final String forecastBaseUrl;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public OpenMeteoClient(RestTemplate restTemplate,
                             RedisTemplate<String, Object> redisTemplate,
                             @Value("${openmeteo.geocoding-url:https://geocoding-api.open-meteo.com}") String geocodingBaseUrl,

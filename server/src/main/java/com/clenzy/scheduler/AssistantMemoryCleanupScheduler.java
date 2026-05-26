@@ -38,6 +38,7 @@ public class AssistantMemoryCleanupScheduler {
     private final Clock clock;
     private final boolean enabled;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public AssistantMemoryCleanupScheduler(AssistantMemoryRepository repository,
                                             @Value("${clenzy.assistant.memory.cleanup-enabled:true}") boolean enabled) {
         this(repository, Clock.systemUTC(), enabled);
