@@ -16,40 +16,52 @@ import java.util.List;
  * (les providers le passent en champ separe — Anthropic l'a en parametre {@code system},
  * OpenAI l'a comme premier message {@code role:"system"}).
  *
- * @param role       "user", "assistant" ou "tool"
- * @param content    texte du message (peut etre null si toolCalls est rempli)
- * @param toolCalls  liste des appels d'outils demandes (uniquement pour role=assistant)
- * @param toolCallId identifiant du tool_call auquel ce message repond (uniquement pour role=tool)
+ * <p>{@code attachments} : uniquement pour {@code role=user}. Les providers
+ * vision-capable (Claude 3.5+/4.x) convertissent ces attachments en
+ * content blocks {@code type=image}.</p>
+ *
+ * @param role        "user", "assistant" ou "tool"
+ * @param content     texte du message (peut etre null si toolCalls est rempli)
+ * @param toolCalls   liste des appels d'outils demandes (uniquement pour role=assistant)
+ * @param toolCallId  identifiant du tool_call auquel ce message repond (uniquement pour role=tool)
+ * @param attachments pieces jointes (images) — uniquement pour role=user, peut etre null
  */
 public record ChatMessage(
         String role,
         String content,
         List<ToolCall> toolCalls,
-        String toolCallId
+        String toolCallId,
+        List<MessageAttachment> attachments
 ) {
 
     public static final String ROLE_USER = "user";
     public static final String ROLE_ASSISTANT = "assistant";
     public static final String ROLE_TOOL = "tool";
 
-    /** Message utilisateur standard. */
+    /** Message utilisateur standard (sans piece jointe). */
     public static ChatMessage user(String content) {
-        return new ChatMessage(ROLE_USER, content, null, null);
+        return new ChatMessage(ROLE_USER, content, null, null, null);
+    }
+
+    /** Message utilisateur avec attachments (images). */
+    public static ChatMessage user(String content, List<MessageAttachment> attachments) {
+        return new ChatMessage(ROLE_USER, content, null, null,
+                attachments == null || attachments.isEmpty() ? null : List.copyOf(attachments));
     }
 
     /** Message assistant texte (pas d'appel d'outil). */
     public static ChatMessage assistant(String content) {
-        return new ChatMessage(ROLE_ASSISTANT, content, null, null);
+        return new ChatMessage(ROLE_ASSISTANT, content, null, null, null);
     }
 
     /** Message assistant demandant l'execution d'outils. */
     public static ChatMessage assistantToolCalls(List<ToolCall> calls) {
-        return new ChatMessage(ROLE_ASSISTANT, null, List.copyOf(calls), null);
+        return new ChatMessage(ROLE_ASSISTANT, null, List.copyOf(calls), null, null);
     }
 
     /** Retour d'execution d'un outil. */
     public static ChatMessage tool(String toolCallId, String resultJson) {
-        return new ChatMessage(ROLE_TOOL, resultJson, null, toolCallId);
+        return new ChatMessage(ROLE_TOOL, resultJson, null, toolCallId, null);
     }
 
     /**

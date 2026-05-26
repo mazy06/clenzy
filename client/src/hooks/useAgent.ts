@@ -19,6 +19,12 @@ export interface DisplayMessage {
   content: string;
   toolCalls?: ToolCallExecuted[]; // hydratees pendant le stream depuis tool_call_executed
   toolCallId?: string;
+  /**
+   * Pieces jointes (images) attachees au message user. Pendant le stream :
+   * peuplees a partir de l'upload local. Au reload : parsees depuis la
+   * colonne {@code attachments} (JSON array) retournee par /messages.
+   */
+  attachments?: Array<{ storageKey: string; mediaType: string; url: string; name?: string }>;
   createdAt?: string;
   /** True pendant que le delta arrive — bascule a false sur "done". */
   streaming?: boolean;
@@ -66,8 +72,8 @@ export interface UseAgentResult {
   error: string | null;
   /** Tool en attente de confirmation user, null sinon. */
   pendingConfirmation: PendingToolConfirmation | null;
-  /** Envoie un message et stream la reponse. */
-  sendMessage(text: string): Promise<void>;
+  /** Envoie un message et stream la reponse. Attachments optionnels (images Vision). */
+  sendMessage(text: string, attachments?: NonNullable<DisplayMessage['attachments']>): Promise<void>;
   /** Confirme ou refuse un tool d'ecriture en attente. */
   confirmTool(confirmed: boolean): Promise<void>;
   /** Charge l'historique d'une conversation existante. */
@@ -139,6 +145,7 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
           id: m.id,
           role: m.role,
           content: m.content ?? '',
+          attachments: parseAttachmentsJsonSafe(m.attachments),
           toolCallId: m.toolCallId,
           createdAt: m.createdAt,
         }));
@@ -154,18 +161,23 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
 
   // ─── Send message + stream ─────────────────────────────────────────────
 
-  const sendMessage = useCallback(async (text: string) => {
+  const sendMessage = useCallback(async (
+    text: string,
+    attachments?: NonNullable<DisplayMessage['attachments']>,
+  ) => {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    const hasAttachments = !!attachments && attachments.length > 0;
+    if (!trimmed && !hasAttachments) return;
     if (status === 'streaming' || status === 'sending') return;
 
     setError(null);
     setStatus('sending');
 
-    // Optimistic : ajoute le user message immediatement
+    // Optimistic : ajoute le user message immediatement (avec attachments)
     const userMessage: DisplayMessage = {
       role: 'user',
       content: trimmed,
+      attachments: hasAttachments ? attachments : undefined,
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMessage]);
@@ -184,6 +196,14 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
       message: trimmed,
       currentPage: options.currentPage,
       selectedPropertyId: options.selectedPropertyId,
+      attachments: hasAttachments
+        ? attachments.map((a) => ({
+            storageKey: a.storageKey,
+            mediaType: a.mediaType,
+            url: a.url,
+            name: a.name,
+          }))
+        : undefined,
     };
 
     const controller = new AbortController();
@@ -406,3 +426,25 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
     abort,
   };
 }
+
+/**
+ * Parse la colonne {@code attachments} (JSON string array) renvoyee par le
+ * backend en {@link DisplayMessage} attachments. Si malforme, retourne
+ * undefined silencieusement — l'affichage n'a pas besoin de tomber.
+ */
+function parseAttachmentsJsonSafe(raw: string | undefined): NonNullable<DisplayMessage['attachments']> | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return undefined;
+    const valid = parsed.filter((a): a is { storageKey: string; mediaType: string; url: string; name?: string } => {
+      return a && typeof a.storageKey === 'string'
+        && typeof a.mediaType === 'string'
+        && typeof a.url === 'string';
+    });
+    return valid.length > 0 ? valid : undefined;
+  } catch {
+    return undefined;
+  }
+}
+

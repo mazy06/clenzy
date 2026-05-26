@@ -72,7 +72,8 @@ class AgentConfirmationFlowTest {
                 .thenReturn(List.of());
 
         orchestrator = new AgentOrchestrator(chatProvider, toolRegistry,
-                convRepo, msgRepo, om, keyRepo, new AiProperties(), pendingStore, memoryService);
+                convRepo, msgRepo, om, keyRepo, new AiProperties(), pendingStore, memoryService,
+                mock(com.clenzy.service.PhotoStorageService.class));
 
         ctx = AgentContext.minimal(1L, "user-confirm-test");
 

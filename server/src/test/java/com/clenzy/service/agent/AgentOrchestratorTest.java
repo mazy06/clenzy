@@ -51,7 +51,7 @@ class AgentOrchestratorTest {
         om = new ObjectMapper();
         orchestrator = new AgentOrchestrator(chatProvider, toolRegistry,
                 convRepo, msgRepo, om, keyRepo, new AiProperties(), new PendingToolStore(),
-                memoryService);
+                memoryService, mock(com.clenzy.service.PhotoStorageService.class));
         ctx = AgentContext.minimal(1L, "user-123");
 
         when(toolRegistry.listDescriptors()).thenReturn(List.of());

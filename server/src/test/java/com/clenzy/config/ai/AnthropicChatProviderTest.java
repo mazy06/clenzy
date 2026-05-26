@@ -42,6 +42,132 @@ class AnthropicChatProviderTest {
         assertEquals("anthropic", provider.name());
     }
 
+    // ─── Vision blocks ──────────────────────────────────────────────────────
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void userMessageWithImageAttachment_emitsImageContentBlock() {
+        MessageAttachment att = MessageAttachment.imageBase64("image/jpeg", "BASE64DATA");
+        ChatMessage userMsg = ChatMessage.user("Regarde cette photo", List.of(att));
+        ChatRequest req = new ChatRequest("sys", List.of(userMsg), List.of(),
+                "claude-sonnet-4-20250514", 0.3, 2000);
+
+        Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+        List<Map<String, Object>> messages = (List<Map<String, Object>>) body.get("messages");
+        assertEquals(1, messages.size());
+        Map<String, Object> first = messages.get(0);
+        assertEquals("user", first.get("role"));
+
+        Object content = first.get("content");
+        assertTrue(content instanceof List, "content doit etre une liste de blocks quand il y a une image");
+        List<Map<String, Object>> blocks = (List<Map<String, Object>>) content;
+        assertEquals(2, blocks.size(), "1 block image + 1 block text");
+
+        // Block 0 : image (ordre important — l'image vient avant le texte)
+        Map<String, Object> imageBlock = blocks.get(0);
+        assertEquals("image", imageBlock.get("type"));
+        Map<String, Object> source = (Map<String, Object>) imageBlock.get("source");
+        assertEquals("base64", source.get("type"));
+        assertEquals("image/jpeg", source.get("media_type"));
+        assertEquals("BASE64DATA", source.get("data"));
+
+        // Block 1 : texte
+        Map<String, Object> textBlock = blocks.get(1);
+        assertEquals("text", textBlock.get("type"));
+        assertEquals("Regarde cette photo", textBlock.get("text"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void userMessageWithMultipleAttachments_preservesOrder() {
+        ChatMessage userMsg = ChatMessage.user("Compare", List.of(
+                MessageAttachment.imageBase64("image/png", "A"),
+                MessageAttachment.imageBase64("image/webp", "B"),
+                MessageAttachment.imageBase64("image/jpeg", "C")
+        ));
+        ChatRequest req = new ChatRequest("sys", List.of(userMsg), List.of(),
+                "claude-sonnet-4-20250514", 0.3, 2000);
+
+        Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+        List<Map<String, Object>> messages = (List<Map<String, Object>>) body.get("messages");
+        List<Map<String, Object>> blocks = (List<Map<String, Object>>) messages.get(0).get("content");
+
+        // 3 images + 1 text
+        assertEquals(4, blocks.size());
+        assertEquals("image", blocks.get(0).get("type"));
+        assertEquals("A", ((Map<String, Object>) blocks.get(0).get("source")).get("data"));
+        assertEquals("B", ((Map<String, Object>) blocks.get(1).get("source")).get("data"));
+        assertEquals("C", ((Map<String, Object>) blocks.get(2).get("source")).get("data"));
+        assertEquals("text", blocks.get(3).get("type"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void unsupportedMediaType_isSkipped_textBlockStillEmitted() {
+        ChatMessage userMsg = ChatMessage.user("Test", List.of(
+                MessageAttachment.imageBase64("application/pdf", "ZZZ") // PDF non supporte
+        ));
+        ChatRequest req = new ChatRequest("sys", List.of(userMsg), List.of(),
+                "claude-sonnet-4-20250514", 0.3, 2000);
+
+        Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+        Map<String, Object> msg = ((List<Map<String, Object>>) body.get("messages")).get(0);
+        // L'image PDF est filtree, mais le contenu texte reste — il est emis
+        // comme une liste a un seul element text (equivalent semantique a une string
+        // pour Anthropic).
+        Object content = msg.get("content");
+        assertTrue(content instanceof List,
+                "content devient une liste avec uniquement le text block");
+        List<Map<String, Object>> blocks = (List<Map<String, Object>>) content;
+        assertEquals(1, blocks.size());
+        assertEquals("text", blocks.get(0).get("type"));
+        assertEquals("Test", blocks.get(0).get("text"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void allInvalidImagesAndBlankContent_fallbackToString() {
+        // Seul cas ou on retombe sur string : aucun block valide ET pas de texte
+        ChatMessage userMsg = ChatMessage.user("", List.of(
+                MessageAttachment.imageBase64("application/pdf", "ZZZ")
+        ));
+        ChatRequest req = new ChatRequest("sys", List.of(userMsg), List.of(),
+                "claude-sonnet-4-20250514", 0.3, 2000);
+
+        Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+        Map<String, Object> msg = ((List<Map<String, Object>>) body.get("messages")).get(0);
+        assertTrue(msg.get("content") instanceof String);
+        assertEquals("", msg.get("content"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void imageOnlyMessage_noText_emitsOnlyImageBlock() {
+        ChatMessage userMsg = ChatMessage.user("", List.of(
+                MessageAttachment.imageBase64("image/jpeg", "XYZ")
+        ));
+        ChatRequest req = new ChatRequest("sys", List.of(userMsg), List.of(),
+                "claude-sonnet-4-20250514", 0.3, 2000);
+
+        Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+        Map<String, Object> msg = ((List<Map<String, Object>>) body.get("messages")).get(0);
+        List<Map<String, Object>> blocks = (List<Map<String, Object>>) msg.get("content");
+        assertEquals(1, blocks.size());
+        assertEquals("image", blocks.get(0).get("type"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void userMessageWithoutAttachments_keepsStringContent() {
+        ChatRequest req = new ChatRequest("sys", List.of(ChatMessage.user("Bonjour")), List.of(),
+                "claude-sonnet-4-20250514", 0.3, 2000);
+        Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+        Map<String, Object> msg = ((List<Map<String, Object>>) body.get("messages")).get(0);
+        // Pas d'attachments → content reste string brut (compat retro)
+        assertTrue(msg.get("content") instanceof String);
+        assertEquals("Bonjour", msg.get("content"));
+    }
+
     @Nested
     @DisplayName("buildRequestBody()")
     class BuildRequestBody {

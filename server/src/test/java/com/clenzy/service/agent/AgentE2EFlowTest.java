@@ -78,7 +78,7 @@ class AgentE2EFlowTest {
 
         orchestrator = new AgentOrchestrator(chatProvider, toolRegistry,
                 convRepo, msgRepo, om, keyRepo, new AiProperties(), new PendingToolStore(),
-                memoryService);
+                memoryService, mock(com.clenzy.service.PhotoStorageService.class));
 
         ctx = AgentContext.minimal(1L, "user-e2e");
 

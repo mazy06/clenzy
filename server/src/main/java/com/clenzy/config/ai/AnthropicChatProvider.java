@@ -37,6 +37,12 @@ import java.util.stream.Stream;
  *   <li>{@code message_stop} : fin du stream — emet {@link ChatEvent.Done}</li>
  * </ul>
  *
+ * <p><b>Vision</b> : les messages utilisateur peuvent porter des
+ * {@link MessageAttachment} (images base64). Ils sont convertis en content
+ * blocks {@code type=image}. <b>Modele requis : Claude 3.5 Sonnet ou superieur</b>
+ * (Claude 3 Haiku et anterieurs ne supportent pas la vision). Le defaut du
+ * projet ({@code claude-sonnet-4-20250514}) est compatible.</p>
+ *
  * <p><b>BYOK</b> : la signature avec {@code apiKey} construit un client one-shot.
  * Pas de cache, pas de log de la cle. Si {@code apiKey} est null/blank on fallback
  * sur la cle plateforme (chemin {@link #streamChat(ChatRequest, Consumer)}).</p>
@@ -292,7 +298,31 @@ public class AnthropicChatProvider implements ChatLLMProvider {
             switch (m.role()) {
                 case ChatMessage.ROLE_USER -> {
                     entry.put("role", "user");
-                    entry.put("content", m.content() != null ? m.content() : "");
+                    // Si le message porte des attachments image, on doit emettre un
+                    // content sous forme de liste de blocks : un block image par
+                    // attachment puis un block text. Sinon, content reste un simple
+                    // string (compat retro).
+                    if (m.attachments() != null && !m.attachments().isEmpty()) {
+                        List<Map<String, Object>> blocks = new ArrayList<>();
+                        for (MessageAttachment att : m.attachments()) {
+                            Map<String, Object> imgBlock = toAnthropicImageBlock(att);
+                            if (imgBlock != null) blocks.add(imgBlock);
+                        }
+                        // Le block texte vient APRES les images (recommandation Anthropic
+                        // pour que le modele "voie" l'image avant d'interpreter la consigne).
+                        if (m.content() != null && !m.content().isBlank()) {
+                            blocks.add(Map.of("type", "text", "text", m.content()));
+                        }
+                        // Si aucun block n'a pu etre cree (toutes les images invalides),
+                        // on retombe sur le content texte pour ne pas envoyer une liste vide.
+                        if (blocks.isEmpty()) {
+                            entry.put("content", m.content() != null ? m.content() : "");
+                        } else {
+                            entry.put("content", blocks);
+                        }
+                    } else {
+                        entry.put("content", m.content() != null ? m.content() : "");
+                    }
                 }
                 case ChatMessage.ROLE_ASSISTANT -> {
                     entry.put("role", "assistant");
@@ -330,6 +360,52 @@ public class AnthropicChatProvider implements ChatLLMProvider {
             out.add(entry);
         }
         return out;
+    }
+
+    /**
+     * Convertit un {@link MessageAttachment} en content block Anthropic
+     * {@code type=image} avec source base64. Retourne null si l'attachment
+     * n'est pas exploitable (type non IMAGE, mediaType absent, pas de
+     * base64Data — le provider attend que le caller ait deja resolu le
+     * storageKey en base64 via {@code PhotoStorageService.retrieve}).
+     *
+     * <p>Anthropic accepte les formats {@code image/jpeg}, {@code image/png},
+     * {@code image/gif}, {@code image/webp}. Limite 5MB par image. Le
+     * filtrage MIME est fait en amont a l'upload — ici on log un warn et
+     * on skip si le mediaType est inconnu pour eviter une erreur 400.</p>
+     */
+    private Map<String, Object> toAnthropicImageBlock(MessageAttachment att) {
+        if (att == null
+                || !MessageAttachment.TYPE_IMAGE.equals(att.type())
+                || att.mediaType() == null
+                || att.base64Data() == null
+                || att.base64Data().isBlank()) {
+            log.warn("Skipping unsupported attachment (type={}, mediaType={}, hasBase64={})",
+                    att == null ? null : att.type(),
+                    att == null ? null : att.mediaType(),
+                    att != null && att.base64Data() != null);
+            return null;
+        }
+        if (!isSupportedImageMediaType(att.mediaType())) {
+            log.warn("Skipping image with unsupported mediaType '{}'", att.mediaType());
+            return null;
+        }
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("type", "base64");
+        source.put("media_type", att.mediaType());
+        source.put("data", att.base64Data());
+
+        Map<String, Object> block = new LinkedHashMap<>();
+        block.put("type", "image");
+        block.put("source", source);
+        return block;
+    }
+
+    private static boolean isSupportedImageMediaType(String mediaType) {
+        return "image/jpeg".equalsIgnoreCase(mediaType)
+                || "image/png".equalsIgnoreCase(mediaType)
+                || "image/gif".equalsIgnoreCase(mediaType)
+                || "image/webp".equalsIgnoreCase(mediaType);
     }
 
     private List<Map<String, Object>> toAnthropicTools(List<ToolDescriptor> tools) {

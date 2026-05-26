@@ -1314,3 +1314,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0141 : Colonne attachments sur assistant_message (vision support) ---
+  - changeSet:
+      id: "0141-add-message-attachments"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0141__add_message_attachments.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
