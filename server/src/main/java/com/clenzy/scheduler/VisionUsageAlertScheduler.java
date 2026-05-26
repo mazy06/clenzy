@@ -118,6 +118,17 @@ public class VisionUsageAlertScheduler {
             return false;
         }
 
+        // Compare-and-swap atomique : une seule instance HA gagne le droit
+        // d'envoyer l'alerte. Si l'UPDATE renvoie 0, une autre instance a deja
+        // mis a jour last_alerted_at depuis qu'on l'a lu → on skip.
+        int acquired = alertRepository.casLastAlertedAt(
+                cfg.getId(), cfg.getLastAlertedAt(), now);
+        if (acquired == 0) {
+            log.debug("VisionUsageAlertScheduler : org {} CAS perdu, autre instance a alerte",
+                    cfg.getOrganizationId());
+            return false;
+        }
+
         String title = "Usage vision IA depasse";
         String message = String.format(
                 "Ton organisation a consomme %s tokens vision sur les 30 derniers jours, "
@@ -130,8 +141,8 @@ public class VisionUsageAlertScheduler {
                 "/settings?tab=ai",
                 cfg.getOrganizationId());
 
+        // Refresh in-memory pour les callers (tests qui inspectent cfg.lastAlertedAt)
         cfg.setLastAlertedAt(now);
-        alertRepository.save(cfg);
         return true;
     }
 

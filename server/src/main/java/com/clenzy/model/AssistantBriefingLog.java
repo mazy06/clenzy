@@ -23,7 +23,14 @@ public class AssistantBriefingLog {
     public enum Status {
         SENT,
         FAILED,
-        SKIPPED
+        SKIPPED,
+        /**
+         * Etat transitoire : un BriefingRetryScheduler a acquis ce log et est
+         * en train de re-tenter le dispatch. Permet d'eviter qu'une autre
+         * instance acquiere le meme log en parallele (compare-and-swap).
+         * Apres dispatch : SENT (succes) ou FAILED (echec persistant).
+         */
+        RETRYING
     }
 
     @Id

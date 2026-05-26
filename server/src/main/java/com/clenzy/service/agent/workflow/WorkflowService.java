@@ -90,6 +90,15 @@ public class WorkflowService {
     /** Variante multilingue — le prompt du step suivant sera rendu dans la langue demandee. */
     public WorkflowRunSnapshot advanceWorkflow(Long runId, String keycloakId,
                                                   String userResponse, String language) {
+        // Garde-fou centralise : une reponse blank ne doit jamais avancer un run
+        // silencieusement (sinon le step en cours est skippe sans donnees). Cette
+        // verification etait jusqu'ici uniquement dans AdvanceWorkflowTool ; on
+        // la deplace ici pour proteger TOUS les callers (tests, futurs endpoints).
+        if (userResponse == null || userResponse.isBlank()) {
+            throw new IllegalArgumentException(
+                    "userResponse est requis pour avancer le run " + runId);
+        }
+
         AssistantWorkflowRun run = repository.findByIdAndUser(runId, keycloakId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Run " + runId + " introuvable ou non autorise"));
@@ -101,6 +110,16 @@ public class WorkflowService {
                 .orElseThrow(() -> new IllegalStateException(
                         "Definition '" + run.getWorkflowId() + "' introuvable pour run " + runId));
 
+        // Defense en profondeur : si le YAML a ete tronque entre start et advance,
+        // l'index courant peut etre hors limite. On detecte avant de toucher au run.
+        if (run.getCurrentStepIdx() >= def.steps.size()) {
+            throw new IllegalStateException(
+                    "Run " + runId + " pointe sur step " + run.getCurrentStepIdx()
+                            + " mais le workflow '" + def.id + "' n'a que "
+                            + def.steps.size() + " steps (definition mise a jour ?). "
+                            + "Annule ce run et relance-le.");
+        }
+
         // 1. Capture le step courant AVANT avancement (pour declenchement action)
         WorkflowDefinition.Step previousStep = engine.currentStep(run, def);
 
@@ -110,12 +129,21 @@ public class WorkflowService {
         // 3. Avance d'un step
         engine.advanceStep(run, def);
 
-        AssistantWorkflowRun saved = repository.save(run);
+        // 4. Save — si conflict optimiste (double-submit), Hibernate throw
+        //    OptimisticLockingFailureException qu'on traduit en message clair.
+        AssistantWorkflowRun saved;
+        try {
+            saved = repository.save(run);
+        } catch (org.springframework.dao.OptimisticLockingFailureException e) {
+            throw new IllegalStateException(
+                    "Run " + runId + " a deja ete avance par une autre requete (conflit "
+                            + "optimiste). Rafraichis l'etat avant de retenter.", e);
+        }
 
         WorkflowRunSnapshot snapshot = buildSnapshot(saved, def, language);
         if (previousStep != null
                 && previousStep.action != null && !previousStep.action.isBlank()) {
-            snapshot.suggestedAction = engine.executeStepAction(previousStep, saved);
+            snapshot.suggestedAction = engine.executeStepAction(previousStep, saved, language);
         }
         return snapshot;
     }

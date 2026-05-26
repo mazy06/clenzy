@@ -170,12 +170,22 @@ public class AnalyzePortfolioTool implements ToolHandler {
             m.bookedNights += nightsInWindow(r, from, to);
         }
 
-        // Ratings : on les ne fetch que sur la periode courante (avg global,
-        // pas par fenetre — la moyenne historique est plus stable)
-        for (PropertyMetrics m : metricsById.values()) {
-            Double avg = guestReviewRepository.averageRatingByPropertyId(
-                    m.property.id, context.organizationId());
-            if (avg != null) m.avgRating = avg;
+        // Ratings : batch query unique pour eviter le N+1 (1 query au lieu de N)
+        if (!metricsById.isEmpty()) {
+            try {
+                List<Long> propertyIds = new ArrayList<>(metricsById.keySet());
+                List<Object[]> rows = guestReviewRepository.averageRatingByPropertyIds(
+                        propertyIds, context.organizationId());
+                for (Object[] row : rows) {
+                    Long pid = ((Number) row[0]).longValue();
+                    Double avg = row[1] != null ? ((Number) row[1]).doubleValue() : null;
+                    PropertyMetrics m = metricsById.get(pid);
+                    if (m != null && avg != null) m.avgRating = avg;
+                }
+            } catch (Exception e) {
+                log.debug("AnalyzePortfolio: batch ratings query failed ({}), skipping ratings",
+                        e.getMessage());
+            }
         }
         return metricsById;
     }

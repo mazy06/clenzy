@@ -115,11 +115,19 @@ public class WorkflowValidator {
                 }
             }
             case "number" -> {
+                double parsed;
                 try {
-                    Double.parseDouble(response.trim().replace(',', '.'));
+                    parsed = Double.parseDouble(response.trim().replace(',', '.'));
                 } catch (NumberFormatException nfe) {
                     throw new WorkflowValidationException(stepId,
                             "Champ '" + field + "' attendu number, recu '" + response.trim() + "'.");
+                }
+                // Double.parseDouble accepte "NaN", "Infinity", "-Infinity" — pas
+                // exploitables pour un calcul business (pricing, count). On les
+                // rejette explicitement.
+                if (!Double.isFinite(parsed)) {
+                    throw new WorkflowValidationException(stepId,
+                            "Champ '" + field + "' doit etre un number fini (recu " + parsed + ").");
                 }
             }
             case "boolean" -> {
@@ -153,6 +161,12 @@ public class WorkflowValidator {
                 if (!value.isNumber()) {
                     throw new WorkflowValidationException(stepId,
                             "Champ '" + field + "' doit etre un number, recu " + value.getNodeType());
+                }
+                // Jackson autorise NaN/Infinity via Double-cast. Pareil que single-field.
+                double d = value.asDouble();
+                if (!Double.isFinite(d)) {
+                    throw new WorkflowValidationException(stepId,
+                            "Champ '" + field + "' doit etre un number fini (recu " + d + ").");
                 }
             }
             case "boolean" -> {

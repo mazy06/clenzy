@@ -79,7 +79,9 @@ class VisionUsageAlertSchedulerTest {
         OrgVisionAlert cfg = newConfig(1L, 1_000_000L, null);
         when(alertRepository.findAll()).thenReturn(List.of(cfg));
         when(usageService.getMonthlyUsage(1L)).thenReturn(1_500_000L);
-        when(alertRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        // CAS acquis (autres instances HA en attente = 0)
+        when(alertRepository.casLastAlertedAt(eq(1L), eq((LocalDateTime) null), any()))
+                .thenReturn(1);
 
         int sent = scheduler(true).runOnce();
 
@@ -89,9 +91,23 @@ class VisionUsageAlertSchedulerTest {
                 anyString(), anyString(),
                 eq("/settings?tab=ai"),
                 eq(1L));
-        ArgumentCaptor<OrgVisionAlert> cap = ArgumentCaptor.forClass(OrgVisionAlert.class);
-        verify(alertRepository).save(cap.capture());
-        assertNotNull(cap.getValue().getLastAlertedAt());
+        // Refresh in-memory pour la coherence du caller
+        assertNotNull(cfg.getLastAlertedAt());
+    }
+
+    @Test
+    void runOnce_casLost_skipsAlert() {
+        // Scenario HA : autre instance a deja stampe last_alerted_at depuis qu'on a lu
+        OrgVisionAlert cfg = newConfig(1L, 1_000_000L, null);
+        when(alertRepository.findAll()).thenReturn(List.of(cfg));
+        when(usageService.getMonthlyUsage(1L)).thenReturn(5_000_000L);
+        when(alertRepository.casLastAlertedAt(eq(1L), eq((LocalDateTime) null), any()))
+                .thenReturn(0);
+
+        int sent = scheduler(true).runOnce();
+
+        assertEquals(0, sent);
+        verifyNoInteractions(notificationService);
     }
 
     @Test
@@ -114,7 +130,8 @@ class VisionUsageAlertSchedulerTest {
         OrgVisionAlert cfg = newConfig(1L, 1_000_000L, tenDaysAgo);
         when(alertRepository.findAll()).thenReturn(List.of(cfg));
         when(usageService.getMonthlyUsage(1L)).thenReturn(5_000_000L);
-        when(alertRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        // CAS sur la valeur "tenDaysAgo" → on est la 1ere a la remplacer
+        when(alertRepository.casLastAlertedAt(eq(1L), eq(tenDaysAgo), any())).thenReturn(1);
 
         assertEquals(1, scheduler(true).runOnce());
         verify(notificationService).notifyAdminsAndManagers(any(), any(), any(), any(), eq(1L));
@@ -127,7 +144,8 @@ class VisionUsageAlertSchedulerTest {
         when(alertRepository.findAll()).thenReturn(List.of(cfg1, cfg2));
         when(usageService.getMonthlyUsage(1L)).thenThrow(new RuntimeException("kaboom"));
         when(usageService.getMonthlyUsage(2L)).thenReturn(5_000_000L);
-        when(alertRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(alertRepository.casLastAlertedAt(eq(2L), eq((LocalDateTime) null), any()))
+                .thenReturn(1);
 
         int sent = scheduler(true).runOnce();
         // Org 1 throw mais boucle continue → org 2 alertee

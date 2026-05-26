@@ -70,6 +70,16 @@ public class AssistantWorkflowRun {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    /**
+     * Optimistic locking (JPA {@code @Version}) : empeche le step-skip si deux
+     * advanceWorkflow simultanes (frontend double-submit). Hibernate ajoute
+     * {@code AND version = :expected} a l'UPDATE ; sur conflit, la seconde
+     * transaction leve {@code OptimisticLockingFailureException}.
+     */
+    @jakarta.persistence.Version
+    @Column(nullable = false)
+    private Long version = 0L;
+
     public AssistantWorkflowRun() {}
 
     public AssistantWorkflowRun(Long organizationId, String keycloakId,
@@ -108,4 +118,6 @@ public class AssistantWorkflowRun {
     public void setStartedAt(LocalDateTime startedAt) { this.startedAt = startedAt; }
     public LocalDateTime getCompletedAt() { return completedAt; }
     public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 }

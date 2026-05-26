@@ -160,22 +160,44 @@ public class WorkflowEngine {
     }
 
     /**
-     * Construit la suggestion d'action structuree retournee au LLM apres
-     * completion d'un step qui declare {@code action: foo}. Le LLM est libre
-     * de l'invoquer ou non — il peut demander une derniere confirmation a
-     * l'user d'abord.
+     * Construit la suggestion d'action (langue par defaut FR). Cf.
+     * {@link #executeStepAction(WorkflowDefinition.Step, AssistantWorkflowRun, String)}.
      */
     public Map<String, Object> executeStepAction(WorkflowDefinition.Step step,
                                                    AssistantWorkflowRun run) {
+        return executeStepAction(step, run, DEFAULT_LANGUAGE);
+    }
+
+    /**
+     * Construit la suggestion d'action structuree retournee au LLM apres
+     * completion d'un step qui declare {@code action: foo}. Le LLM est libre
+     * de l'invoquer ou non — il peut demander une derniere confirmation a
+     * l'user d'abord. La {@code reason} est localisee si la langue est
+     * supportee, sinon fallback FR.
+     */
+    public Map<String, Object> executeStepAction(WorkflowDefinition.Step step,
+                                                   AssistantWorkflowRun run,
+                                                   String language) {
         if (step == null || step.action == null || step.action.isBlank()) {
             return Map.of();
         }
         Map<String, Object> suggestion = new LinkedHashMap<>();
         suggestion.put("toolName", step.action);
         suggestion.put("collectedData", parseCollectedSafe(run.getCollectedData()));
-        suggestion.put("reason",
-                "Etape '" + step.id + "' completee — invoque ce tool avec les donnees collectees.");
+        suggestion.put("reason", localizedActionReason(step.id, language));
         return suggestion;
+    }
+
+    /** Localise le message expose au LLM en fin de step avec action. */
+    private static String localizedActionReason(String stepId, String language) {
+        String lang = (language == null || language.isBlank())
+                ? DEFAULT_LANGUAGE
+                : language.trim().toLowerCase(java.util.Locale.ROOT);
+        return switch (lang) {
+            case "en" -> "Step '" + stepId + "' completed — invoke this tool with the collected data.";
+            case "ar" -> "اكتملت الخطوة '" + stepId + "' — استدع هذه الأداة بالبيانات المجمعة.";
+            default -> "Etape '" + stepId + "' completee — invoque ce tool avec les donnees collectees.";
+        };
     }
 
     /** Step courant du run ou null si l'index est hors limite. */

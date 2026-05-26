@@ -123,30 +123,48 @@ public class BriefingRetryScheduler {
     }
 
     /**
-     * Re-tente un briefing dans une transaction dediee. Re-utilise la conversation
-     * deja composee si dispo (la composition LLM coute, on evite de la refaire);
-     * sinon, re-compose entierement.
+     * Re-tente un briefing dans une transaction dediee.
+     *
+     * <p><b>Garantie HA</b> : compare-and-swap atomique au debut via
+     * {@code tryAcquireRetry} qui passe FAILED → RETRYING. Si deux instances
+     * traitent le meme tick, une seule reussira l'UPDATE — l'autre voit 0
+     * lignes touchees et skip. Plus de double-envoi.</p>
+     *
+     * <p>Re-utilise la conversation deja composee si dispo (la composition LLM
+     * coute, on evite de la refaire) ; sinon, re-compose entierement.</p>
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean retryOne(AssistantBriefingLog entry) {
-        Optional<AssistantBriefingPref> prefOpt = prefService.get(entry.getKeycloakId());
+        // 1. Acquire — atomic CAS FAILED → RETRYING. Une seule instance peut gagner.
+        int acquired = logRepository.tryAcquireRetry(entry.getId());
+        if (acquired == 0) {
+            log.debug("BriefingRetryScheduler : log {} deja repris par une autre instance, skip",
+                    entry.getId());
+            return false;
+        }
+        // Re-charger l'entite pour eviter les ecritures sur un snapshot stale
+        // (notre instance vient de passer le status a RETRYING, on doit le voir).
+        AssistantBriefingLog fresh = logRepository.findById(entry.getId()).orElse(entry);
+
+        Optional<AssistantBriefingPref> prefOpt = prefService.get(fresh.getKeycloakId());
         if (prefOpt.isEmpty()) {
-            log.debug("BriefingRetryScheduler : user {} n'a plus de pref, skip", entry.getKeycloakId());
+            log.debug("BriefingRetryScheduler : user {} n'a plus de pref, skip",
+                    fresh.getKeycloakId());
+            revertToFailed(fresh, "retry: user pref deleted");
             return false;
         }
         AssistantBriefingPref pref = prefOpt.get();
 
         BriefingComposer.BriefingResult result;
-        if (entry.getConversationId() != null) {
+        if (fresh.getConversationId() != null) {
             // La conversation a deja ete composee — on retente seulement le dispatch
             String body = ""; // Le body n'est pas re-utilise au dispatch (les canaux le derivent)
             result = new BriefingComposer.BriefingResult(
-                    entry.getConversationId(), body, pref.getFrequencyEnum());
+                    fresh.getConversationId(), body, pref.getFrequencyEnum());
         } else {
             result = composer.compose(pref);
             if (result == null) {
-                entry.setErrorMessage("retry: compose returned null");
-                logRepository.save(entry);
+                revertToFailed(fresh, "retry: compose returned null");
                 return false;
             }
         }
@@ -156,16 +174,25 @@ public class BriefingRetryScheduler {
                 pref.getKeycloakId(), pref.getOrganizationId(), channels);
 
         if (delivered.isEmpty()) {
-            entry.setErrorMessage("retry: still no channel delivered");
-            logRepository.save(entry);
+            revertToFailed(fresh, "retry: still no channel delivered");
             return false;
         }
 
-        entry.setStatusEnum(AssistantBriefingLog.Status.SENT);
-        entry.setErrorMessage(null);
-        entry.setChannels(serializeChannelsSafe(delivered));
-        logRepository.save(entry);
+        fresh.setStatusEnum(AssistantBriefingLog.Status.SENT);
+        fresh.setErrorMessage(null);
+        fresh.setChannels(serializeChannelsSafe(delivered));
+        logRepository.save(fresh);
         return true;
+    }
+
+    /**
+     * Restaure le status FAILED apres un retry qui n'a rien donne — permet a un
+     * tick ulterieur d'essayer de nouveau au lieu de bloquer sur RETRYING.
+     */
+    private void revertToFailed(AssistantBriefingLog entry, String reason) {
+        entry.setStatusEnum(AssistantBriefingLog.Status.FAILED);
+        entry.setErrorMessage(reason);
+        logRepository.save(entry);
     }
 
     private String serializeChannelsSafe(List<String> channels) {

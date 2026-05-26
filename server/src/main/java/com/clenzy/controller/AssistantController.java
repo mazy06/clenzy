@@ -35,7 +35,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Endpoints de l'assistant conversationnel.
@@ -69,12 +71,31 @@ public class AssistantController {
     private final BriefingComposer briefingComposer;
     private final BriefingDelivery briefingDelivery;
 
-    /** Pool dedie pour les streams SSE — evite de bloquer les threads Tomcat. */
-    private final Executor sseExecutor = Executors.newCachedThreadPool(r -> {
-        Thread t = new Thread(r, "assistant-sse");
-        t.setDaemon(true);
-        return t;
-    });
+    /**
+     * Pool dedie pour les streams SSE — evite de bloquer les threads Tomcat.
+     *
+     * <p>Pool <b>borne</b> a {@value #SSE_POOL_MAX_THREADS} threads avec queue
+     * limitee : sous pic de charge, les nouvelles connexions SSE attendent en
+     * queue plutot que d'ouvrir un thread par requete (ce qui pouvait creer
+     * des milliers de threads). Si la queue sature aussi, la connexion est
+     * rejetee (CallerRunsPolicy : execute sur le thread Tomcat — fail-fast
+     * visible cote frontend plutot qu'OOM silencieux).</p>
+     */
+    private static final int SSE_POOL_CORE_THREADS = 10;
+    private static final int SSE_POOL_MAX_THREADS = 100;
+    private static final int SSE_POOL_QUEUE_CAPACITY = 200;
+    private static final long SSE_POOL_KEEP_ALIVE_SECS = 60L;
+
+    private final Executor sseExecutor = new ThreadPoolExecutor(
+            SSE_POOL_CORE_THREADS, SSE_POOL_MAX_THREADS,
+            SSE_POOL_KEEP_ALIVE_SECS, TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(SSE_POOL_QUEUE_CAPACITY),
+            r -> {
+                Thread t = new Thread(r, "assistant-sse");
+                t.setDaemon(true);
+                return t;
+            },
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
     public AssistantController(AgentOrchestrator orchestrator,
                                 AssistantConversationRepository conversationRepository,

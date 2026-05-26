@@ -127,6 +127,12 @@ public class EmpiricalElasticityEstimator {
     /**
      * Aggrege les reservations par mois calendaire. Un sejour qui chevauche
      * plusieurs mois est pro-rate au prorata des nuits dans chaque mois.
+     *
+     * <p><b>Optimisation perf</b> : au lieu d'iterer jour par jour (cout O(nuits)
+     * par reservation, soit O(N*180) pour des sejours longue duree), on calcule
+     * directement combien de nuits tombent dans chaque {@link YearMonth} chevauche
+     * par arithmetique de dates. Cout : O(N * mois_chevauches) — typiquement
+     * 1-2 mois par sejour.</p>
      */
     private Map<YearMonth, MonthlyAggregate> bucketByMonth(List<Reservation> reservations,
                                                               LocalDate from, LocalDate to) {
@@ -149,17 +155,29 @@ public class EmpiricalElasticityEstimator {
                     ? r.getTotalPrice().divide(BigDecimal.valueOf(totalNights), 4, RoundingMode.HALF_UP)
                     : null;
 
-            LocalDate cursorDate = r.getCheckIn();
-            while (cursorDate.isBefore(r.getCheckOut())) {
-                YearMonth ym = YearMonth.from(cursorDate);
-                MonthlyAggregate bucket = map.get(ym);
+            // Iterer mois-par-mois (pas jour-par-jour) : pour chaque mois chevauche,
+            // calculer le nombre de nuits par clamp avec [checkIn, checkOut).
+            YearMonth monthCursor = YearMonth.from(r.getCheckIn());
+            YearMonth lastMonth = YearMonth.from(r.getCheckOut().minusDays(1));
+            while (!monthCursor.isAfter(lastMonth)) {
+                MonthlyAggregate bucket = map.get(monthCursor);
                 if (bucket != null) {
-                    bucket.bookedNights++;
-                    if (pricePerNight != null) {
-                        bucket.revenue = bucket.revenue.add(pricePerNight);
+                    LocalDate monthStart = monthCursor.atDay(1);
+                    LocalDate monthEndExclusive = monthCursor.plusMonths(1).atDay(1);
+                    LocalDate stayStart = r.getCheckIn().isAfter(monthStart)
+                            ? r.getCheckIn() : monthStart;
+                    LocalDate stayEnd = r.getCheckOut().isBefore(monthEndExclusive)
+                            ? r.getCheckOut() : monthEndExclusive;
+                    long nightsInMonth = ChronoUnit.DAYS.between(stayStart, stayEnd);
+                    if (nightsInMonth > 0) {
+                        bucket.bookedNights += nightsInMonth;
+                        if (pricePerNight != null) {
+                            bucket.revenue = bucket.revenue.add(
+                                    pricePerNight.multiply(BigDecimal.valueOf(nightsInMonth)));
+                        }
                     }
                 }
-                cursorDate = cursorDate.plusDays(1);
+                monthCursor = monthCursor.plusMonths(1);
             }
         }
         return map;
