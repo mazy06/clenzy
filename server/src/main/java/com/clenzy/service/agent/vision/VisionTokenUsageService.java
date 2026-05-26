@@ -30,6 +30,7 @@ public class VisionTokenUsageService {
     private final AssistantMessageRepository messageRepository;
     private final Clock clock;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public VisionTokenUsageService(AssistantMessageRepository messageRepository) {
         this(messageRepository, Clock.systemUTC());
     }

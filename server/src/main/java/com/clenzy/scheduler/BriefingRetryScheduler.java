@@ -51,6 +51,7 @@ public class BriefingRetryScheduler {
     private final Clock clock;
     private final boolean enabled;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public BriefingRetryScheduler(AssistantBriefingLogRepository logRepository,
                                     AssistantBriefingPrefService prefService,
                                     BriefingComposer composer,
