@@ -720,31 +720,8 @@ export default function AiSettingsSection() {
 
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h6" fontWeight={700} gutterBottom>
-          {t('bookingEngine.ai.settings.title')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 640 }}>
-          {t('bookingEngine.ai.settings.subtitle')}
-        </Typography>
-      </Box>
-
-      {/* ── Platform Config + Feature Toggles (SUPER_ADMIN: combined section) ── */}
-      {/* ── For non-admins: standalone toggles (read-only) ── */}
-      <PlatformAiConfigSection />
-      {!mainHasAnyRole(['SUPER_ADMIN']) && <FeatureTogglesSection />}
-
-      {/* ── BYOK (Connecter sa propre clé) ── */}
-      <Box sx={{ mt: 1, mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={700}>
-          {t('bookingEngine.ai.settings.byokTitle')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 640 }}>
-          {t('bookingEngine.ai.settings.byokSubtitle')}
-        </Typography>
-      </Box>
-
-      <Grid container spacing={2.5}>
+      {/* ── BYOK cards en haut (clé personnelle prioritaire dans l'UX) ── */}
+      <Grid container spacing={2.5} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
           <ProviderCard
             status={openaiStatus || { ...defaultStatus, provider: 'openai' }}
@@ -764,6 +741,11 @@ export default function AiSettingsSection() {
           />
         </Grid>
       </Grid>
+
+      {/* ── Platform Config + Feature Toggles (SUPER_ADMIN: combined section) ── */}
+      {/* ── For non-admins: standalone toggles (read-only) ── */}
+      <PlatformAiConfigSection />
+      {!mainHasAnyRole(['SUPER_ADMIN']) && <FeatureTogglesSection />}
 
       <ConfigureDialog
         open={dialogProvider !== null}

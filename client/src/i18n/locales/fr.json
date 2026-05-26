@@ -3579,8 +3579,6 @@
         }
       },
       "settings": {
-        "title": "Configuration IA",
-        "subtitle": "Connectez vos propres comptes OpenAI ou Anthropic pour utiliser l'IA sans limite de tokens. Par défaut, la plateforme utilise une clé partagée avec un budget mensuel.",
         "personalKey": "Clé personnelle",
         "sharedKey": "Clé partagée",
         "keyLabel": "Clé",
@@ -3600,9 +3598,7 @@
         "test": "Tester",
         "save": "Sauvegarder",
         "saveError": "Erreur lors de la sauvegarde. Vérifiez votre clé API.",
-        "loadError": "Impossible de charger la configuration IA. Veuillez réessayer.",
-        "byokTitle": "Connecter votre propre cle",
-        "byokSubtitle": "Connectez votre compte OpenAI ou Anthropic pour utiliser l'IA sans limite de tokens et avec une meilleure qualite de reponse."
+        "loadError": "Impossible de charger la configuration IA. Veuillez réessayer."
       },
       "features": {
         "title": "Solutions IA Clenzy",
