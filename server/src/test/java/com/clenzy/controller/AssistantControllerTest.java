@@ -251,16 +251,54 @@ class AssistantControllerTest {
     }
 
     @Test
-    void serveAttachment_returnsBytes_orNotFound() {
+    void serveAttachment_returnsBytes_whenOwnedAndStorageOk() {
+        // Ownership : la cle 'good' appartient bien a une conv du user JWT
+        when(msgRepo.findAttachmentsJsonByStorageKeyForUser("good", "user-123"))
+                .thenReturn("[{\"storageKey\":\"good\",\"mediaType\":\"image/png\",\"name\":\"a.png\"}]");
         when(photoStorageService.retrieve("good")).thenReturn("hello".getBytes());
-        when(photoStorageService.retrieve("bad")).thenThrow(new RuntimeException("missing"));
 
-        ResponseEntity<byte[]> ok = controller.serveAttachment("good");
+        ResponseEntity<byte[]> ok = controller.serveAttachment("good", jwt);
+
         assertEquals(200, ok.getStatusCode().value());
         assertArrayEquals("hello".getBytes(), ok.getBody());
+        // Le MIME extrait du JSON DOIT etre utilise (pas le hardcoded image/jpeg)
+        assertEquals("image/png", ok.getHeaders().getContentType().toString());
+    }
 
-        ResponseEntity<byte[]> ko = controller.serveAttachment("bad");
+    @Test
+    void serveAttachment_returns404_whenStorageKeyNotOwnedByUser() {
+        // La cle existe peut-etre, mais elle n'est pas reliee a une conv du user JWT
+        when(msgRepo.findAttachmentsJsonByStorageKeyForUser("stranger", "user-123"))
+                .thenReturn(null);
+
+        ResponseEntity<byte[]> ko = controller.serveAttachment("stranger", jwt);
+
         assertEquals(404, ko.getStatusCode().value());
+        // Le storage ne doit JAMAIS etre interroge si l'ownership echoue
+        org.mockito.Mockito.verify(photoStorageService, org.mockito.Mockito.never()).retrieve(any());
+    }
+
+    @Test
+    void serveAttachment_returns404_whenStorageMissing() {
+        when(msgRepo.findAttachmentsJsonByStorageKeyForUser("good", "user-123"))
+                .thenReturn("[{\"storageKey\":\"good\",\"mediaType\":\"image/jpeg\"}]");
+        when(photoStorageService.retrieve("good")).thenThrow(new RuntimeException("missing"));
+
+        ResponseEntity<byte[]> ko = controller.serveAttachment("good", jwt);
+
+        assertEquals(404, ko.getStatusCode().value());
+    }
+
+    @Test
+    void serveAttachment_fallsBackToJpeg_whenMediaTypeMissingInJson() {
+        when(msgRepo.findAttachmentsJsonByStorageKeyForUser("nomedia", "user-123"))
+                .thenReturn("[{\"storageKey\":\"nomedia\"}]");
+        when(photoStorageService.retrieve("nomedia")).thenReturn("x".getBytes());
+
+        ResponseEntity<byte[]> ok = controller.serveAttachment("nomedia", jwt);
+
+        assertEquals(200, ok.getStatusCode().value());
+        assertEquals("image/jpeg", ok.getHeaders().getContentType().toString());
     }
 
     @SuppressWarnings("unused")

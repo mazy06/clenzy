@@ -58,13 +58,13 @@ class BriefingRetrySchedulerTest {
 
     @Test
     void runOnce_lookupFails_returnsZero_doesNotThrow() {
-        when(logRepository.findFailedSince(any(), any())).thenThrow(new RuntimeException("DB"));
+        when(logRepository.findFailedSince(any())).thenThrow(new RuntimeException("DB"));
         assertEquals(0, scheduler(true).runOnce());
     }
 
     @Test
     void runOnce_noFailed_returnsZero() {
-        when(logRepository.findFailedSince(any(), any())).thenReturn(List.of());
+        when(logRepository.findFailedSince(any())).thenReturn(List.of());
         assertEquals(0, scheduler(true).runOnce());
         verifyNoInteractions(delivery);
     }
@@ -72,7 +72,7 @@ class BriefingRetrySchedulerTest {
     @Test
     void runOnce_retrySuccess_marksLogAsSent() {
         AssistantBriefingLog failed = newFailedLog(7L, 99L);
-        when(logRepository.findFailedSince(any(), any())).thenReturn(List.of(failed));
+        when(logRepository.findFailedSince(any())).thenReturn(List.of(failed));
 
         AssistantBriefingPref pref = newPref();
         when(prefService.get("user-1")).thenReturn(Optional.of(pref));
@@ -95,7 +95,7 @@ class BriefingRetrySchedulerTest {
     @Test
     void runOnce_retryStillFails_keepsFailedStatus() {
         AssistantBriefingLog failed = newFailedLog(7L, 99L);
-        when(logRepository.findFailedSince(any(), any())).thenReturn(List.of(failed));
+        when(logRepository.findFailedSince(any())).thenReturn(List.of(failed));
 
         AssistantBriefingPref pref = newPref();
         when(prefService.get("user-1")).thenReturn(Optional.of(pref));
@@ -116,7 +116,7 @@ class BriefingRetrySchedulerTest {
     @Test
     void runOnce_userNoLongerHasPref_skipsGracefully() {
         AssistantBriefingLog failed = newFailedLog(7L, 99L);
-        when(logRepository.findFailedSince(any(), any())).thenReturn(List.of(failed));
+        when(logRepository.findFailedSince(any())).thenReturn(List.of(failed));
         when(prefService.get("user-1")).thenReturn(Optional.empty());
 
         assertEquals(0, scheduler(true).runOnce());
@@ -127,7 +127,7 @@ class BriefingRetrySchedulerTest {
     @Test
     void runOnce_noConversationId_recomposesFromScratch() {
         AssistantBriefingLog failed = newFailedLog(7L, null); // pas de conv
-        when(logRepository.findFailedSince(any(), any())).thenReturn(List.of(failed));
+        when(logRepository.findFailedSince(any())).thenReturn(List.of(failed));
 
         AssistantBriefingPref pref = newPref();
         when(prefService.get("user-1")).thenReturn(Optional.of(pref));
@@ -145,7 +145,7 @@ class BriefingRetrySchedulerTest {
     @Test
     void runOnce_composeReturnsNull_keepsFailedWithMessage() {
         AssistantBriefingLog failed = newFailedLog(7L, null);
-        when(logRepository.findFailedSince(any(), any())).thenReturn(List.of(failed));
+        when(logRepository.findFailedSince(any())).thenReturn(List.of(failed));
 
         AssistantBriefingPref pref = newPref();
         when(prefService.get("user-1")).thenReturn(Optional.of(pref));

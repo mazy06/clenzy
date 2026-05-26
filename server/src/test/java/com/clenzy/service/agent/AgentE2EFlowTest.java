@@ -75,8 +75,8 @@ class AgentE2EFlowTest {
         AssistantMemoryService memoryService = mock(AssistantMemoryService.class);
         when(memoryService.listForUser(anyString(), org.mockito.ArgumentMatchers.anyInt()))
                 .thenReturn(List.of());
-        when(memoryService.listMostRelevant(anyString(), anyString(),
-                        org.mockito.ArgumentMatchers.anyInt()))
+        when(memoryService.listMostRelevant(org.mockito.ArgumentMatchers.anyLong(),
+                        anyString(), anyString(), org.mockito.ArgumentMatchers.anyInt()))
                 .thenReturn(List.of());
 
         orchestrator = new AgentOrchestrator(chatProvider, toolRegistry,

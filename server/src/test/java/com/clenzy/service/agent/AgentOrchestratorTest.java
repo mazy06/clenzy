@@ -62,7 +62,8 @@ class AgentOrchestratorTest {
         when(keyRepo.findByOrganizationIdAndProvider(anyLong(), anyString())).thenReturn(Optional.empty());
         // Memoire vide par defaut (les tests memoire surchargent)
         when(memoryService.listForUser(anyString(), anyInt())).thenReturn(List.of());
-        when(memoryService.listMostRelevant(anyString(), anyString(), anyInt())).thenReturn(List.of());
+        when(memoryService.listMostRelevant(org.mockito.ArgumentMatchers.anyLong(),
+                        anyString(), anyString(), anyInt())).thenReturn(List.of());
         // RAG : aucun hit par defaut
         when(kbSearchService.search(anyString(), any(), anyInt())).thenReturn(List.of());
     }
@@ -338,7 +339,7 @@ class AgentOrchestratorTest {
         orchestrator.handleMessage(null, "hi", ctx, e -> {});
 
         // Avec un message user, on doit passer par la selection par relevance
-        verify(memoryService).listMostRelevant(eq("user-123"), eq("hi"), eq(30));
+        verify(memoryService).listMostRelevant(eq(1L), eq("user-123"), eq("hi"), eq(30));
         verify(memoryService, never()).listForUser(eq("user-123"), eq(30));
     }
 
@@ -348,7 +349,7 @@ class AgentOrchestratorTest {
         orchestrator.buildSystemPrompt(ctx);
 
         verify(memoryService).listForUser(eq("user-123"), eq(30));
-        verify(memoryService, never()).listMostRelevant(any(), any(), anyInt());
+        verify(memoryService, never()).listMostRelevant(any(), any(), any(), anyInt());
     }
 
     @Test
@@ -356,14 +357,14 @@ class AgentOrchestratorTest {
         orchestrator.buildSystemPrompt(ctx, "   ");
 
         verify(memoryService).listForUser(eq("user-123"), eq(30));
-        verify(memoryService, never()).listMostRelevant(any(), any(), anyInt());
+        verify(memoryService, never()).listMostRelevant(any(), any(), any(), anyInt());
     }
 
     @Test
     void buildSystemPrompt_userMessage_routesToListMostRelevant() {
         AssistantMemory pref = new AssistantMemory(1L, "user-123",
                 "tz", "Europe/Paris", AssistantMemory.Scope.PREFERENCE);
-        when(memoryService.listMostRelevant("user-123", "ma question", 30))
+        when(memoryService.listMostRelevant(eq(1L), eq("user-123"), eq("ma question"), eq(30)))
                 .thenReturn(List.of(pref));
 
         String prompt = orchestrator.buildSystemPrompt(ctx, "ma question");
@@ -435,7 +436,7 @@ class AgentOrchestratorTest {
         AssistantMemory pref = new AssistantMemory(1L, "user-123",
                 "tz", "Europe/Paris", AssistantMemory.Scope.PREFERENCE);
         // Avec un message user, l'orchestrateur passe par listMostRelevant
-        when(memoryService.listMostRelevant("user-123", "question", 30))
+        when(memoryService.listMostRelevant(eq(1L), eq("user-123"), eq("question"), eq(30)))
                 .thenReturn(java.util.List.of(pref));
         when(kbSearchService.search(anyString(), any(), org.mockito.ArgumentMatchers.anyInt()))
                 .thenReturn(java.util.List.of(

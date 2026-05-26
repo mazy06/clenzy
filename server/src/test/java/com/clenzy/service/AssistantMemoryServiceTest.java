@@ -198,7 +198,7 @@ class AssistantMemoryServiceTest {
         List<Object[]> rows = new ArrayList<>();
         rows.add(new Object[]{42L, 0.1});
         rows.add(new Object[]{17L, 0.3});
-        when(repository.searchByCosineSimilarity("[0.1,0.2]", "user-1", 30))
+        when(repository.searchByCosineSimilarity("[0.1,0.2]", "user-1", 99L, 30))
                 .thenReturn(rows);
 
         AssistantMemory m42 = newMemory(42L);
@@ -208,7 +208,7 @@ class AssistantMemoryServiceTest {
                 .thenReturn(List.of(m17, m42));
 
         List<AssistantMemory> result = relevanceService.listMostRelevant(
-                "user-1", "comment baisser mes prix", 30);
+                99L, "user-1", "comment baisser mes prix", 30);
 
         assertEquals(2, result.size());
         // L'ordre cosine (42 puis 17) DOIT etre preserve malgre le re-shuffle
@@ -225,7 +225,7 @@ class AssistantMemoryServiceTest {
         when(repository.findRecentByUser(eq("user-1"), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        disabled.listMostRelevant("user-1", "Hello", 10);
+        disabled.listMostRelevant(1L, "user-1", "Hello", 10);
 
         verify(embed, never()).embedAsVectorString(any());
         verify(repository).findRecentByUser(eq("user-1"), any(Pageable.class));
@@ -239,9 +239,26 @@ class AssistantMemoryServiceTest {
         when(repository.findRecentByUser(eq("user-1"), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        relevanceService.listMostRelevant("user-1", "  ", 10);
+        relevanceService.listMostRelevant(1L, "user-1", "  ", 10);
 
         verify(embed, never()).embedAsVectorString(any());
+        verify(repository).findRecentByUser(eq("user-1"), any(Pageable.class));
+    }
+
+    @Test
+    void listMostRelevant_nullOrganizationId_fallsBackToRecency() {
+        // Cas defense en profondeur : si l'orchestrateur appelle sans orgId,
+        // on tombe sur recency-only — pas de query native sans filtre tenant.
+        EmbeddingService embed = mock(EmbeddingService.class);
+        AssistantMemoryService relevanceService = new AssistantMemoryService(
+                repository, Optional.of(embed), true);
+        when(repository.findRecentByUser(eq("user-1"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        relevanceService.listMostRelevant(null, "user-1", "Hello", 10);
+
+        verify(embed, never()).embedAsVectorString(any());
+        verify(repository, never()).searchByCosineSimilarity(any(), any(), any(), anyInt());
         verify(repository).findRecentByUser(eq("user-1"), any(Pageable.class));
     }
 
@@ -254,10 +271,10 @@ class AssistantMemoryServiceTest {
         when(repository.findRecentByUser(eq("user-1"), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        relevanceService.listMostRelevant("user-1", "Hello", 10);
+        relevanceService.listMostRelevant(1L, "user-1", "Hello", 10);
 
         verify(repository).findRecentByUser(eq("user-1"), any(Pageable.class));
-        verify(repository, never()).searchByCosineSimilarity(any(), any(), anyInt());
+        verify(repository, never()).searchByCosineSimilarity(any(), any(), any(), anyInt());
     }
 
     @Test
@@ -266,15 +283,32 @@ class AssistantMemoryServiceTest {
         when(embed.embedAsVectorString("Hello")).thenReturn("[0.1]");
         AssistantMemoryService relevanceService = new AssistantMemoryService(
                 repository, Optional.of(embed), true);
-        when(repository.searchByCosineSimilarity(any(), any(), anyInt()))
+        when(repository.searchByCosineSimilarity(any(), any(), any(), anyInt()))
                 .thenReturn(List.of());
         when(repository.findRecentByUser(eq("user-1"), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        relevanceService.listMostRelevant("user-1", "Hello", 10);
+        relevanceService.listMostRelevant(1L, "user-1", "Hello", 10);
 
         // Pas de match → fallback recency (cas migration : aucune entree avec embedding)
         verify(repository).findRecentByUser(eq("user-1"), any(Pageable.class));
+    }
+
+    @Test
+    void listMostRelevant_filtersByOrgId_inNativeQuery() {
+        EmbeddingService embed = mock(EmbeddingService.class);
+        when(embed.embedAsVectorString(any())).thenReturn("[0.1]");
+        AssistantMemoryService relevanceService = new AssistantMemoryService(
+                repository, Optional.of(embed), true);
+        when(repository.searchByCosineSimilarity(any(), any(), any(), anyInt()))
+                .thenReturn(List.of());
+        when(repository.findRecentByUser(any(), any(Pageable.class))).thenReturn(List.of());
+
+        relevanceService.listMostRelevant(42L, "user-1", "msg", 10);
+
+        // L'orgId doit etre propage en parametre de la native query (defense
+        // en profondeur cross-tenant)
+        verify(repository).searchByCosineSimilarity(eq("[0.1]"), eq("user-1"), eq(42L), eq(10));
     }
 
     @Test

@@ -49,25 +49,29 @@ public interface AssistantMemoryRepository extends JpaRepository<AssistantMemory
 
     /**
      * Recherche par similarite cosine via pgvector (operator {@code <=>}).
-     * Filtre uniquement les entrees du user demande dont l'embedding est non-NULL.
      *
-     * <p>Retourne une {@code List<Object[]>} : {@code [id, distance]}. La distance
-     * cosine est dans [0,2] ; le caller convertit en relevance via
-     * {@code 1 - distance/2} si besoin et hydrate les entites via {@code findAllById}.</p>
+     * <p><b>Filtre tenant explicite</b> : les native queries Hibernate ne sont
+     * PAS soumises au {@code organizationFilter}, donc on filtre manuellement
+     * sur {@code organization_id} en plus de {@code keycloak_id}. Defense en
+     * profondeur : un meme keycloakId pourrait theoriquement avoir des
+     * memoires dans plusieurs orgs (cas SUPER_ADMIN multi-org) — ce filtre
+     * empeche la fuite cross-org.</p>
      *
-     * <p>On retourne l'id pour eviter le N+1 dans la projection — l'entite complete
-     * est rechargee via {@code findAllById} en respectant l'ordre fourni.</p>
+     * <p>Retourne une {@code List<Object[]>} : {@code [id, distance]}. Le caller
+     * hydrate les entites via {@code findAllById} en respectant l'ordre.</p>
      */
     @Query(value = """
             SELECT id, (embedding <=> CAST(:queryEmbedding AS vector)) AS distance
             FROM assistant_memory
             WHERE keycloak_id = :keycloakId
+              AND organization_id = :organizationId
               AND embedding IS NOT NULL
             ORDER BY embedding <=> CAST(:queryEmbedding AS vector)
             LIMIT :limit
             """, nativeQuery = true)
     List<Object[]> searchByCosineSimilarity(@Param("queryEmbedding") String queryEmbedding,
                                               @Param("keycloakId") String keycloakId,
+                                              @Param("organizationId") Long organizationId,
                                               @Param("limit") int limit);
 
     /**
