@@ -3523,8 +3523,6 @@
         }
       },
       "settings": {
-        "title": "AI Configuration",
-        "subtitle": "Connect your own OpenAI or Anthropic accounts to use AI without token limits. By default, the platform uses a shared key with a monthly budget.",
         "personalKey": "Personal key",
         "sharedKey": "Shared key",
         "keyLabel": "Key",
@@ -3544,9 +3542,7 @@
         "test": "Test",
         "save": "Save",
         "saveError": "Error saving. Check your API key.",
-        "loadError": "Unable to load AI configuration. Please try again.",
-        "byokTitle": "Connect your own key",
-        "byokSubtitle": "Connect your OpenAI or Anthropic account to use AI without token limits and with better response quality."
+        "loadError": "Unable to load AI configuration. Please try again."
       },
       "features": {
         "title": "Clenzy AI Solutions",
