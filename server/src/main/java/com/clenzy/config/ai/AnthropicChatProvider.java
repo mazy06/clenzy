@@ -95,6 +95,16 @@ public class AnthropicChatProvider implements ChatLLMProvider {
 
     private void doStream(ChatRequest request, Consumer<ChatEvent> consumer,
                           String apiKey, String baseUrl) {
+        // Court-circuit si aucune cle dispo : evite un 401 cryptique cote Anthropic
+        // et renvoie un message clair au frontend pour guider l'admin.
+        if (apiKey == null || apiKey.isBlank()) {
+            consumer.accept(new ChatEvent.Error(
+                    "Aucune cle API Anthropic configuree. Configure ANTHROPIC_API_KEY "
+                            + "(variable d'environnement) ou ajoute une cle BYOK pour ton "
+                            + "organisation dans Settings > IA.", null));
+            return;
+        }
+
         String model = request.model() != null ? request.model() : aiProperties.getAnthropic().getModel();
         String body;
         try {
