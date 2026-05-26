@@ -7,13 +7,13 @@ import {
   Select,
   MenuItem,
   TextField,
-  FormGroup,
   Checkbox,
   Button,
   CircularProgress,
   Alert,
   Divider,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
 import AiSettingsCard from './AiSettingsCard';
@@ -163,111 +163,180 @@ export const AssistantBriefingPrefs: React.FC = () => {
     <AiSettingsCard
       title="Briefings IA"
       subtitle="Reçois automatiquement un résumé proactif de ton activité aux horaires choisis. Sans configuration, l'assistant reste réactif uniquement."
-    >
-      {/* Toggle on/off */}
-      <FormControlLabel
-        control={
-          <Switch
-            checked={prefs.enabled}
-            onChange={(e) => update('enabled', e.target.checked)}
-          />
-        }
-        label={
-          <Box>
+      action={
+        <FormControlLabel
+          control={
+            <Switch
+              checked={prefs.enabled}
+              onChange={(e) => update('enabled', e.target.checked)}
+              size="small"
+            />
+          }
+          label={
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              Activer les briefings
+              {prefs.enabled ? 'Activé' : 'Désactivé'}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Aucun envoi tant que cette option est désactivée.
+          }
+          sx={{ m: 0, gap: 0.5 }}
+        />
+      }
+    >
+      <Box
+        sx={{
+          opacity: prefs.enabled ? 1 : 0.5,
+          pointerEvents: prefs.enabled ? 'auto' : 'none',
+          transition: 'opacity 150ms ease',
+        }}
+      >
+        {/* ── Ligne 1 : Frequence + Heure + Fuseau ─────────────────────── */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: '1fr 1fr',
+              md: 'minmax(240px, 2fr) 140px minmax(220px, 1fr)',
+            },
+            gap: 2,
+            alignItems: 'start',
+            mb: 3,
+          }}
+        >
+          <Box>
+            <Typography
+              variant="overline"
+              sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
+            >
+              Fréquence
+            </Typography>
+            <Select
+              value={prefs.frequency}
+              onChange={(e) => update('frequency', e.target.value as Frequency)}
+              size="small"
+              fullWidth
+              sx={{ mt: 0.5 }}
+            >
+              {FREQUENCY_OPTIONS.map((o) => (
+                <MenuItem key={o.value} value={o.value}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </Select>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: 'block', mt: 0.75, lineHeight: 1.4 }}
+            >
+              {FREQUENCY_OPTIONS.find((o) => o.value === prefs.frequency)?.description}
             </Typography>
           </Box>
-        }
-        sx={{ alignItems: 'center', mb: 2 }}
-      />
 
-      <Divider sx={{ my: 2, opacity: prefs.enabled ? 1 : 0.3 }} />
-
-      <Box sx={{ opacity: prefs.enabled ? 1 : 0.5, pointerEvents: prefs.enabled ? 'auto' : 'none' }}>
-        {/* Frequence */}
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-          Fréquence
-        </Typography>
-        <Select
-          value={prefs.frequency}
-          onChange={(e) => update('frequency', e.target.value as Frequency)}
-          size="small"
-          fullWidth
-          sx={{ mb: 0.5, maxWidth: 420 }}
-        >
-          {FREQUENCY_OPTIONS.map((o) => (
-            <MenuItem key={o.value} value={o.value}>
-              {o.label}
-            </MenuItem>
-          ))}
-        </Select>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2.5 }}>
-          {FREQUENCY_OPTIONS.find((o) => o.value === prefs.frequency)?.description}
-        </Typography>
-
-        {/* Canaux */}
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-          Canaux
-        </Typography>
-        <FormGroup sx={{ mb: 2.5 }}>
-          {CHANNEL_OPTIONS.map((opt) => (
-            <FormControlLabel
-              key={opt.value}
-              control={
-                <Checkbox
-                  checked={prefs.channels.includes(opt.value)}
-                  onChange={() => toggleChannel(opt.value)}
-                  size="small"
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body2">{opt.label}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {opt.description}
-                  </Typography>
-                </Box>
-              }
-              sx={{ alignItems: 'flex-start', mb: 0.25 }}
+          <Box>
+            <Typography
+              variant="overline"
+              sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
+            >
+              Heure d'envoi
+            </Typography>
+            <TextField
+              type="time"
+              size="small"
+              fullWidth
+              value={prefs.timeLocal}
+              onChange={(e) => update('timeLocal', e.target.value)}
+              inputProps={{ step: 300 }}
+              sx={{ mt: 0.5 }}
             />
-          ))}
-        </FormGroup>
+          </Box>
 
-        {/* Heure et timezone */}
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2.5 }}>
-          <TextField
-            label="Heure d'envoi"
-            type="time"
-            size="small"
-            value={prefs.timeLocal}
-            onChange={(e) => update('timeLocal', e.target.value)}
-            inputProps={{ step: 300 }}
-            sx={{ minWidth: 140 }}
-          />
-          <TextField
-            label="Fuseau horaire"
-            size="small"
-            value={prefs.timezone}
-            onChange={(e) => update('timezone', e.target.value)}
-            helperText={`Détecté : ${detectTimezone()}`}
-            sx={{ minWidth: 220 }}
-          />
+          <Box>
+            <Typography
+              variant="overline"
+              sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
+            >
+              Fuseau horaire
+            </Typography>
+            <TextField
+              size="small"
+              fullWidth
+              value={prefs.timezone}
+              onChange={(e) => update('timezone', e.target.value)}
+              helperText={`Détecté : ${detectTimezone()}`}
+              sx={{ mt: 0.5 }}
+              FormHelperTextProps={{ sx: { ml: 0, fontSize: '0.7rem' } }}
+            />
+          </Box>
+        </Box>
+
+        {/* ── Ligne 2 : Canaux en grille 3 colonnes ───────────────────── */}
+        <Box>
+          <Typography
+            variant="overline"
+            sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
+          >
+            Canaux
+          </Typography>
+          <Box
+            sx={{
+              mt: 0.75,
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
+              gap: 1.5,
+            }}
+          >
+            {CHANNEL_OPTIONS.map((opt) => {
+              const checked = prefs.channels.includes(opt.value);
+              return (
+                <Box
+                  key={opt.value}
+                  onClick={() => toggleChannel(opt.value)}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 1,
+                    p: 1.25,
+                    borderRadius: 1.5,
+                    border: '1px solid',
+                    borderColor: checked ? 'primary.main' : 'divider',
+                    bgcolor: checked
+                      ? (theme) => alpha(theme.palette.primary.main, 0.04)
+                      : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'border-color 150ms ease, background-color 150ms ease',
+                    '&:hover': {
+                      borderColor: 'primary.light',
+                    },
+                  }}
+                >
+                  <Checkbox
+                    checked={checked}
+                    onChange={() => toggleChannel(opt.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    size="small"
+                    sx={{ p: 0, mt: 0.25 }}
+                  />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+                      {opt.label}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: 'block', lineHeight: 1.4 }}
+                    >
+                      {opt.description}
+                    </Typography>
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
         </Box>
       </Box>
 
-      <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-        <Button
-          variant="contained"
-          onClick={save}
-          disabled={saving || loading}
-          sx={{ textTransform: 'none', cursor: 'pointer' }}
-        >
-          {saving ? 'Enregistrement...' : 'Enregistrer'}
-        </Button>
+      {/* ── Actions ───────────────────────────────────────────────────── */}
+      <Divider sx={{ my: 3 }} />
+      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <Button
           variant="outlined"
           onClick={triggerTest}
@@ -275,6 +344,14 @@ export const AssistantBriefingPrefs: React.FC = () => {
           sx={{ textTransform: 'none', cursor: 'pointer' }}
         >
           {triggering ? 'Envoi en cours...' : 'Envoyer un test'}
+        </Button>
+        <Button
+          variant="contained"
+          onClick={save}
+          disabled={saving || loading}
+          sx={{ textTransform: 'none', cursor: 'pointer' }}
+        >
+          {saving ? 'Enregistrement...' : 'Enregistrer'}
         </Button>
       </Box>
     </AiSettingsCard>
