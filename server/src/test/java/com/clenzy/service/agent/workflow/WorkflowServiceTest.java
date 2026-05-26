@@ -25,7 +25,8 @@ class WorkflowServiceTest {
     @BeforeEach
     void setUp() {
         registry = mock(WorkflowRegistry.class);
-        engine = new WorkflowEngine(new ObjectMapper());
+        ObjectMapper om = new ObjectMapper();
+        engine = new WorkflowEngine(om, new WorkflowValidator(om));
         repository = mock(AssistantWorkflowRunRepository.class);
         service = new WorkflowService(registry, engine, repository);
         when(repository.save(any(AssistantWorkflowRun.class)))

@@ -54,7 +54,7 @@ class StartWorkflowToolTest {
     @Test
     void execute_buildsPayloadWithWorkflowStepHint() throws Exception {
         when(workflowService.startWorkflow(eq("onboard_property"), eq(1L),
-                eq("user-1"), any())).thenReturn(sampleSnapshot());
+                eq("user-1"), any(), eq("fr"))).thenReturn(sampleSnapshot());
 
         ObjectNode args = om.createObjectNode();
         args.put("workflow_id", "onboard_property");
@@ -81,7 +81,7 @@ class StartWorkflowToolTest {
 
     @Test
     void execute_unknownWorkflow_propagatesAsToolError() {
-        when(workflowService.startWorkflow(any(), any(), any(), any()))
+        when(workflowService.startWorkflow(any(), any(), any(), any(), any()))
                 .thenThrow(new IllegalArgumentException("Workflow inconnu : 'ghost'"));
 
         ObjectNode args = om.createObjectNode();

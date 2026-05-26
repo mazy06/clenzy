@@ -56,7 +56,8 @@ public class StartWorkflowTool implements ToolHandler {
 
         try {
             WorkflowService.WorkflowRunSnapshot snapshot = workflowService.startWorkflow(
-                    workflowId, context.organizationId(), context.keycloakId(), null);
+                    workflowId, context.organizationId(), context.keycloakId(), null,
+                    context.language());
             return ToolResult.success(objectMapper.writeValueAsString(snapshot), "workflow_step");
         } catch (IllegalArgumentException e) {
             throw new ToolExecutionException(NAME, e.getMessage(), e);

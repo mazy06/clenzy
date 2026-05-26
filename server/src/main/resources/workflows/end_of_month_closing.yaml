@@ -11,11 +11,22 @@ estimatedDuration: 20
 steps:
   - id: verify_revenue
     title: "Verification des revenus"
-    prompt: |
-      Cloture du mois — etape 1/4. Verifions les **revenus** du mois ecoule.
-      Confirme-moi :
-      - le **mois** a cloturer (format YYYY-MM, ex: 2026-04),
-      - si tu veux que je regenere d'abord les KPI pour eviter les manques.
+    prompts:
+      fr: |
+        Cloture du mois — etape 1/4. Verifions les **revenus** du mois ecoule.
+        Reponds en JSON avec :
+        - **month** : le mois a cloturer (YYYY-MM, ex: 2026-04),
+        - **regenerate** : true/false pour regenerer les KPI avant.
+      en: |
+        Month closing — step 1/4. Let's verify last month's **revenue**.
+        Reply in JSON with:
+        - **month** : the month to close (YYYY-MM, e.g. 2026-04),
+        - **regenerate** : true/false to regenerate KPIs first.
+      ar: |
+        إغلاق الشهر — الخطوة 1/4. لنتحقق من **الإيرادات**.
+        أجب بـ JSON يحتوي على:
+        - **month** : الشهر (YYYY-MM)،
+        - **regenerate** : true/false لإعادة توليد المؤشرات.
     expectsData:
       month: string
       regenerate: boolean
@@ -26,10 +37,17 @@ steps:
 
   - id: generate_payouts
     title: "Payouts proprietaires"
-    prompt: |
-      Etape 2/4. On passe aux **payouts proprietaires** : verifie d'abord les
-      reservations check-out a 100%. Tu confirmes la generation pour tous les
-      proprietaires ?
+    prompts:
+      fr: |
+        Etape 2/4. On passe aux **payouts proprietaires** : verifie d'abord les
+        reservations check-out a 100%. Tu confirmes la generation pour tous les
+        proprietaires ?
+      en: |
+        Step 2/4. Now **owner payouts**: first verify all check-outs are at 100%.
+        Confirm payout generation for all owners?
+      ar: |
+        الخطوة 2/4. **دفعات الملاك**: تحقق أولًا من أن جميع تسجيلات المغادرة 100%.
+        هل تؤكد توليد الدفعات لجميع الملاك؟
     expectsData:
       confirmPayouts: boolean
     suggestTool:
@@ -41,9 +59,15 @@ steps:
 
   - id: send_reports
     title: "Envoi des rapports"
-    prompt: |
-      Etape 3/4. Souhaites-tu **envoyer** les rapports mensuels aux proprietaires
-      par email (recap revenus + payouts + interventions du mois) ?
+    prompts:
+      fr: |
+        Etape 3/4. Souhaites-tu **envoyer** les rapports mensuels aux proprietaires
+        par email (recap revenus + payouts + interventions du mois) ?
+      en: |
+        Step 3/4. Send monthly **reports** to owners by email (revenue + payouts +
+        interventions recap)?
+      ar: |
+        الخطوة 3/4. هل ترغب في **إرسال** التقارير الشهرية للملاك بالبريد الإلكتروني؟
     expectsData:
       sendReports: boolean
     suggestTool:
@@ -54,11 +78,15 @@ steps:
 
   - id: close
     title: "Cloture comptable"
-    prompt: |
-      Etape 4/4. Pret a marquer le mois **comme cloture** ? Cela verrouille les
-      modifications retroactives et debloque les exports comptables. Si oui,
-      je note la cloture dans la conversation et tu pourras lancer l'export
-      depuis Reports.
+    prompts:
+      fr: |
+        Etape 4/4. Pret a marquer le mois **comme cloture** ? Cela verrouille les
+        modifications retroactives et debloque les exports comptables.
+      en: |
+        Step 4/4. Ready to mark the month as **closed**? This locks retroactive
+        changes and enables accounting exports.
+      ar: |
+        الخطوة 4/4. هل أنت مستعد لإغلاق الشهر؟ هذا يقفل التعديلات الرجعية ويفعل التصدير المحاسبي.
     expectsData:
       confirmClose: boolean
     suggestTool:

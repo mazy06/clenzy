@@ -54,7 +54,7 @@ class AdvanceWorkflowToolTest {
 
     @Test
     void execute_passesRunIdAndUserResponse_returnsSnapshot() throws Exception {
-        when(workflowService.advanceWorkflow(eq(7L), eq("user-1"), eq("Alice")))
+        when(workflowService.advanceWorkflow(eq(7L), eq("user-1"), eq("Alice"), eq("fr")))
                 .thenReturn(completedSnapshot());
 
         ObjectNode args = om.createObjectNode();
@@ -90,7 +90,7 @@ class AdvanceWorkflowToolTest {
 
     @Test
     void execute_unauthorizedOrUnknownRun_throws() {
-        when(workflowService.advanceWorkflow(any(), any(), any()))
+        when(workflowService.advanceWorkflow(any(), any(), any(), any()))
                 .thenThrow(new IllegalArgumentException("Run 999 introuvable"));
 
         ObjectNode args = om.createObjectNode();
@@ -103,7 +103,7 @@ class AdvanceWorkflowToolTest {
 
     @Test
     void execute_alreadyCompletedRun_throws() {
-        when(workflowService.advanceWorkflow(any(), any(), any()))
+        when(workflowService.advanceWorkflow(any(), any(), any(), any()))
                 .thenThrow(new IllegalStateException("Run 5 n'est plus actif (status=COMPLETED)"));
 
         ObjectNode args = om.createObjectNode();
