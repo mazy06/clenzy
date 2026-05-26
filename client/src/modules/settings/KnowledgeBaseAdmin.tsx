@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
-  Paper,
   Button,
   CircularProgress,
   Alert,
@@ -20,6 +19,7 @@ import { AttachFile, Delete } from '../../icons';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
+import AiSettingsCard from './AiSettingsCard';
 
 interface KbDoc {
   id: number;
@@ -105,24 +105,16 @@ export const KnowledgeBaseAdmin: React.FC = () => {
   }, [notify, loadDocs]);
 
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: { xs: 2, md: 3 },
-        bgcolor: alpha(theme.palette.primary.main, 0.025),
-        border: 'none',
-        borderRadius: 2,
-      }}
+    <AiSettingsCard
+      title="Knowledge base (RAG)"
+      subtitle={
+        <>
+          Documents indexés que l'assistant peut citer. Les docs <strong>globaux</strong> sont
+          accessibles à toutes les organisations (doc produit Clenzy) ; les docs <strong>org</strong>
+          {' '}sont privés à la vôtre. Format supporté : Markdown (.md), max 2&nbsp;MB.
+        </>
+      }
     >
-      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-        Knowledge base (RAG)
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Documents indexes que l'assistant peut citer. Les docs <strong>globaux</strong> sont
-        accessibles a toutes les organisations (doc produit Clenzy) ; les docs <strong>org</strong>
-        sont prives a la votre. Format supporte : Markdown (.md), max 2 MB.
-      </Typography>
-
       <Box sx={{ mb: 2, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
         {canEdit && (
           <>
@@ -233,7 +225,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
           </Table>
         </Box>
       )}
-    </Paper>
+    </AiSettingsCard>
   );
 };
 
