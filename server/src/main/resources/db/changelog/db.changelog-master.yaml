@@ -1426,12 +1426,12 @@ databaseChangeLog:
         splitStatements: true
         stripComments: false
 
-  # --- 0152 : Table promo_codes (gestion centralisee des codes promo) ---
+  # --- 0152 : Table platform_promo_codes (codes inscription Clenzy, distinct de promo_codes booking engine) ---
   - changeSet:
-      id: "0152-add-promo-codes-table"
+      id: "0152-add-platform-promo-codes-table"
       author: clenzy-team
       sqlFile:
-        path: changes/0152__add_promo_codes_table.sql
+        path: changes/0152__add_platform_promo_codes_table.sql
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false

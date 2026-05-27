@@ -38,7 +38,7 @@ class InscriptionServiceTest {
     @Mock private PricingConfigService pricingConfigService;
     @Mock private EmailService emailService;
     @Mock private RestTemplate restTemplate;
-    @Mock private PromoCodeService promoCodeService;
+    @Mock private PlatformPromoCodeService promoCodeService;
 
     private InscriptionService inscriptionService;
 

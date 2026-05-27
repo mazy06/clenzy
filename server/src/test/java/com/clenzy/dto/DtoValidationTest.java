@@ -121,6 +121,7 @@ class DtoValidationTest {
         dto.setEmail("jean@example.com");
         dto.setPassword("securepass");
         dto.setForfait("essentiel");
+        dto.setAcceptedTerms(true); // CGU obligatoires depuis 0151 (RGPD @AssertTrue)
         Set<ConstraintViolation<InscriptionDto>> violations = validator.validate(dto);
         assertTrue(violations.isEmpty());
     }
