@@ -187,6 +187,9 @@ public class OrchestratorAgent {
     }
 
     private SpecialistResult invokeSpecialist(DelegateArgs args, AgentContext context) {
+        // ConfirmationRequiredException remonte intacte (re-throw automatique du
+        // .map(...).orElseGet(...)) : le caller AgentOrchestrator l'intercepte
+        // pour bascule sur le mono-agent qui gere la pause-confirmation.
         return registry.find(args.specialist())
                 .map(spec -> spec.handle(SpecialistRequest.of(args.query(), context)))
                 .orElseGet(() -> SpecialistResult.error(

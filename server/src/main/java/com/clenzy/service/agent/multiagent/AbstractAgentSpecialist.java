@@ -100,6 +100,14 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
         long startNanos = System.nanoTime();
         try {
             return doHandle(request);
+        } catch (ConfirmationRequiredException e) {
+            // Tool sensible (write/destructive) intercepte : on PROPAGE pour que
+            // l'orchestrator + AgentOrchestrator fallbackent sur le mono-agent
+            // qui gere la pause-confirmation. Ne PAS wrapper en error : le caller
+            // doit pouvoir distinguer ce cas (info) d'une vraie erreur LLM/tool.
+            meterRegistry.counter("assistant.specialist.confirmation_required",
+                    "specialist", name(), "tool", e.toolName()).increment();
+            throw e;
         } catch (Exception e) {
             log.warn("Specialist '{}' threw : {}", name(), e.getMessage(), e);
             meterRegistry.counter("assistant.specialist.errors", "specialist", name()).increment();
@@ -202,17 +210,29 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
             log.warn("Specialist '{}' tried to invoke unauthorized tool '{}'", name(), tc.name());
             return ToolResult.error("Tool '" + tc.name() + "' not in specialist scope");
         }
-        return toolRegistry.find(tc.name())
-                .map(handler -> {
-                    try {
-                        JsonNode args = objectMapper.readTree(tc.arguments());
-                        return handler.execute(args, request.context());
-                    } catch (Exception e) {
-                        log.warn("Tool '{}' execution failed in specialist '{}' : {}",
-                                tc.name(), name(), e.getMessage());
-                        return ToolResult.error(e.getMessage());
-                    }
-                })
-                .orElseGet(() -> ToolResult.error("Unknown tool : " + tc.name()));
+        ToolHandler handler = toolRegistry.find(tc.name()).orElse(null);
+        if (handler == null) {
+            return ToolResult.error("Unknown tool : " + tc.name());
+        }
+        // Garde-fou critique : si le tool requiert une confirmation user (write
+        // destructif), on NE l'execute PAS — on signale a l'orchestrator via
+        // une exception sentinel → fallback mono-agent qui a le flow pause-confirm.
+        if (handler.descriptor() != null && handler.descriptor().requiresConfirmation()) {
+            log.info("Specialist '{}' tried to invoke '{}' which requires user confirmation — "
+                    + "throwing ConfirmationRequiredException to trigger mono-agent fallback",
+                    name(), tc.name());
+            throw new ConfirmationRequiredException(tc.name());
+        }
+        try {
+            JsonNode args = objectMapper.readTree(tc.arguments());
+            return handler.execute(args, request.context());
+        } catch (ConfirmationRequiredException e) {
+            // Propage (au cas ou une future implementation throw depuis execute)
+            throw e;
+        } catch (Exception e) {
+            log.warn("Tool '{}' execution failed in specialist '{}' : {}",
+                    tc.name(), name(), e.getMessage());
+            return ToolResult.error(e.getMessage());
+        }
     }
 }
