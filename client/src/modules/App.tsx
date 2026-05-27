@@ -15,6 +15,8 @@ import Inscription from './auth/Inscription';
 import InscriptionSuccess from './auth/InscriptionSuccess';
 import InscriptionConfirm from './auth/InscriptionConfirm';
 import Support from './auth/Support';
+import Cgu from './legal/Cgu';
+import Privacy from './legal/Privacy';
 import AcceptInvitationPage from './invitations/AcceptInvitationPage';
 import PublicKeyVerification from '../pages/PublicKeyVerification';
 import MainLayoutFull from './layout/MainLayoutFull';
@@ -259,6 +261,10 @@ const App: React.FC = () => {
 
           {/* Route publique pour le support */}
           <Route path="/support" element={<Support />} />
+
+          {/* Routes publiques legales (CGU + Politique de confidentialite RGPD) */}
+          <Route path="/cgu" element={<Cgu />} />
+          <Route path="/confidentialite" element={<Privacy />} />
 
           {/* Route publique/semi-publique pour accepter une invitation */}
           <Route path="/accept-invitation" element={<AcceptInvitationPage />} />

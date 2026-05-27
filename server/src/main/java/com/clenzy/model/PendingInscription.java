@@ -78,6 +78,24 @@ public class PendingInscription {
     @Column(name = "billing_period", length = 20)
     private String billingPeriod = "MONTHLY";
 
+    // ─── Consentement RGPD + attribution ─────────────────────────────────────
+
+    /** Horodatage du consentement aux CGU (obligation RGPD : auditable). */
+    @Column(name = "accepted_terms_at")
+    private LocalDateTime acceptedTermsAt;
+
+    /** Opt-in newsletter explicite (consentement granulaire RGPD). */
+    @Column(name = "newsletter_opt_in", nullable = false)
+    private boolean newsletterOptIn = false;
+
+    /** Code promo / cooptation optionnel. */
+    @Column(name = "promo_code", length = 50)
+    private String promoCode;
+
+    /** Canal de decouverte declare (google, social, word_of_mouth, press, partner, other). */
+    @Column(name = "referral_source", length = 50)
+    private String referralSource;
+
     // Token de confirmation email (SHA-256 hash)
     @Column(name = "confirmation_token_hash", length = 64)
     private String confirmationTokenHash;
@@ -169,6 +187,18 @@ public class PendingInscription {
 
     public String getBillingPeriod() { return billingPeriod; }
     public void setBillingPeriod(String billingPeriod) { this.billingPeriod = billingPeriod; }
+
+    public LocalDateTime getAcceptedTermsAt() { return acceptedTermsAt; }
+    public void setAcceptedTermsAt(LocalDateTime acceptedTermsAt) { this.acceptedTermsAt = acceptedTermsAt; }
+
+    public boolean isNewsletterOptIn() { return newsletterOptIn; }
+    public void setNewsletterOptIn(boolean newsletterOptIn) { this.newsletterOptIn = newsletterOptIn; }
+
+    public String getPromoCode() { return promoCode; }
+    public void setPromoCode(String promoCode) { this.promoCode = promoCode; }
+
+    public String getReferralSource() { return referralSource; }
+    public void setReferralSource(String referralSource) { this.referralSource = referralSource; }
 
     public String getConfirmationTokenHash() { return confirmationTokenHash; }
     public void setConfirmationTokenHash(String confirmationTokenHash) { this.confirmationTokenHash = confirmationTokenHash; }

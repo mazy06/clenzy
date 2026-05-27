@@ -1415,3 +1415,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0151 : Consentement RGPD (CGU + newsletter) + attribution (code promo + source) ---
+  - changeSet:
+      id: "0151-add-inscription-consent-fields"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0151__add_inscription_consent_fields.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

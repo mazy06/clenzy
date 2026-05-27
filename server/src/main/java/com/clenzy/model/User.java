@@ -127,6 +127,24 @@ public class User {
     @Column(name = "billing_period", length = 20)
     private String billingPeriod;
 
+    // ─── Consentement RGPD + attribution (recopie depuis pending_inscriptions) ─
+
+    /** Horodatage du consentement aux CGU/Politique de confidentialite (RGPD). */
+    @Column(name = "accepted_terms_at")
+    private LocalDateTime acceptedTermsAt;
+
+    /** Opt-in newsletter (modifiable dans /settings/notifications). */
+    @Column(name = "newsletter_opt_in", nullable = false)
+    private boolean newsletterOptIn = false;
+
+    /** Code promo / cooptation utilise a l'inscription. */
+    @Column(name = "promo_code", length = 50)
+    private String promoCode;
+
+    /** Canal de decouverte declare a l'inscription. */
+    @Column(name = "referral_source", length = 50)
+    private String referralSource;
+
     /** Paiement differe : les interventions auto (iCal) passent directement en PENDING sans attente de paiement */
     @Column(name = "deferred_payment", nullable = false)
     private boolean deferredPayment = false;
@@ -392,6 +410,38 @@ public class User {
 
     public void setBillingPeriod(String billingPeriod) {
         this.billingPeriod = billingPeriod;
+    }
+
+    public LocalDateTime getAcceptedTermsAt() {
+        return acceptedTermsAt;
+    }
+
+    public void setAcceptedTermsAt(LocalDateTime acceptedTermsAt) {
+        this.acceptedTermsAt = acceptedTermsAt;
+    }
+
+    public boolean isNewsletterOptIn() {
+        return newsletterOptIn;
+    }
+
+    public void setNewsletterOptIn(boolean newsletterOptIn) {
+        this.newsletterOptIn = newsletterOptIn;
+    }
+
+    public String getPromoCode() {
+        return promoCode;
+    }
+
+    public void setPromoCode(String promoCode) {
+        this.promoCode = promoCode;
+    }
+
+    public String getReferralSource() {
+        return referralSource;
+    }
+
+    public void setReferralSource(String referralSource) {
+        this.referralSource = referralSource;
     }
 
     public boolean isDeferredPayment() {
