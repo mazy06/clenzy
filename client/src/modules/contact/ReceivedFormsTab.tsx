@@ -517,22 +517,33 @@ const ReceivedFormsTab: React.FC = () => {
     return templates.find((tpl) => tpl.documentType === docType && tpl.active) ?? null;
   };
 
-  // ─── Generate PDF using a document template ───────────────────
+  // ─── Generate PDF using a document template + auto-send email ─
+  // L'email est TOUJOURS envoye (premiere generation ou regeneration). Le
+  // backend (DocumentGeneratorService.sendDocumentByEmail) utilise le subject
+  // et body du template ; le PDF est attache automatiquement. Si l'email du
+  // formulaire est manquant ou invalide, on saute l'envoi et on notifie.
   const handleGeneratePdf = async (form: ReceivedForm) => {
     const tpl = findActiveTemplate(form.formType);
     if (!tpl) {
       notify.error('Aucun template actif trouvé pour ce type de formulaire');
       return;
     }
+    const emailTo = form.email?.trim() || '';
+    const hasValidEmail = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/.test(emailTo);
     try {
       const generation = await generateDocumentMutation.mutateAsync({
         documentType: tpl.documentType,
         referenceId: form.id,
         referenceType: 'RECEIVED_FORM',
-        sendEmail: false,
+        sendEmail: hasValidEmail,
+        emailTo: hasValidEmail ? emailTo : undefined,
       });
       if (generation?.id) {
-        notify.success('PDF généré');
+        if (hasValidEmail) {
+          notify.success(`PDF généré et envoyé à ${emailTo}`);
+        } else {
+          notify.success('PDF généré (email non envoyé : adresse manquante ou invalide)');
+        }
         // Affiche l'apercu inline au lieu de tenter un window.open
         // (souvent bloque par le popup blocker des navigateurs).
         await openPreview({
