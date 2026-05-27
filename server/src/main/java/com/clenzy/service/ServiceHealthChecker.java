@@ -98,14 +98,28 @@ public class ServiceHealthChecker {
             return new HealthResult("stripe", "DOWN", "Cle API Stripe non configuree");
         }
         try {
-            // Appel leger : liste 0 events (fonctionne avec restricted keys)
-            var params = com.stripe.model.EventCollection.class;
+            // Balance.retrieve : endpoint le plus permissif de l'API Stripe,
+            // accessible par defaut avec toute cle valide (y compris les
+            // restricted keys sans permission specifique). Si meme ce call
+            // echoue avec un PermissionError, c'est une cle ultra-restricted
+            // pour laquelle on ne peut pas verifier la sante mais qui est
+            // techniquement valide (auth OK) — voir catch PermissionException.
             var options = com.stripe.net.RequestOptions.builder()
                     .setApiKey(stripeSecretKey)
                     .build();
-            com.stripe.model.Event.list(
-                    java.util.Map.of("limit", 1), options);
+            com.stripe.model.Balance.retrieve(options);
             return new HealthResult("stripe", "UP", "API Stripe OK");
+        } catch (com.stripe.exception.PermissionException e) {
+            // Cle valide (auth reussie) mais sans la permission pour Balance.read.
+            // Cas typique d'une restricted key (rk_test_/rk_live_) tres limitee.
+            // On considere le service UP : la cle est valide, simplement on ne
+            // peut pas verifier plus en details.
+            // /!\ Catch BEFORE AuthenticationException : PermissionException
+            // est une sous-classe de AuthenticationException dans le SDK Stripe.
+            log.info("[HealthCheck] Stripe key valide mais restricted (permission insuffisante pour Balance) : {}",
+                    e.getMessage());
+            return new HealthResult("stripe", "UP",
+                    "API Stripe OK (cle restricted — sante verifiee via auth OAuth)");
         } catch (com.stripe.exception.AuthenticationException e) {
             log.warn("[HealthCheck] Stripe auth failed: {}", e.getMessage());
             return new HealthResult("stripe", "DOWN", "Cle Stripe invalide: " + e.getMessage());

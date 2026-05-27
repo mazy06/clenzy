@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 import keycloak from '../keycloak';
 import { useAuth } from '../hooks/useAuth';
@@ -15,6 +15,8 @@ import Inscription from './auth/Inscription';
 import InscriptionSuccess from './auth/InscriptionSuccess';
 import InscriptionConfirm from './auth/InscriptionConfirm';
 import Support from './auth/Support';
+import Cgu from './legal/Cgu';
+import Privacy from './legal/Privacy';
 import AcceptInvitationPage from './invitations/AcceptInvitationPage';
 import PublicKeyVerification from '../pages/PublicKeyVerification';
 import MainLayoutFull from './layout/MainLayoutFull';
@@ -31,7 +33,6 @@ const App: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const [authenticated, setAuthenticated] = useState(false);
   const [initialized, setInitialized] = useState(false);
-  const navigate = useNavigate();
   const location = useLocation();
 
   // ─── Third-party user identification (PostHog, Crisp, Sentry) ──────────────
@@ -90,17 +91,22 @@ const App: React.FC = () => {
     
     // Nettoyer localStorage
     clearTokens();
-    
-    // Rediriger vers la page de connexion immédiatement
-    navigate('/login', { replace: true });
-    
-    // Fallback : si la navigation échoue, forcer le rechargement
-    setTimeout(() => {
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
-    }, 100);
-  }, [navigate]);
+
+    // Hard redirect (pas navigate) pour forcer un reload complet du shell HTML.
+    // Pourquoi : apres un deploy de nouvelle version, les chunks JS deja
+    // charges en memoire (notamment le Login bundle) ne sont pas remplaces par
+    // une simple navigation React Router. Un window.location.href force le
+    // browser a refetch index.html (no-cache cote nginx) et recharger les
+    // nouveaux chunks hashes. Sans ca, l'utilisateur voit l'ancien Login
+    // jusqu'a un hard refresh manuel.
+    //
+    // Side-effects souhaites :
+    //   - Le SPA est totalement re-initialise (state propre, pas de leak)
+    //   - Le service worker (PWA) detecte le nouveau index.html et active la
+    //     nouvelle version (skipWaiting + clientsClaim deja configures)
+    //   - Tous les listeners / timers / intervalles sont nettoyes par le GC
+    window.location.href = '/login';
+  }, []);
 
   // Callbacks pour la gestion des tokens
   const handleTokenRefresh = useCallback((_result: unknown) => {
@@ -259,6 +265,10 @@ const App: React.FC = () => {
 
           {/* Route publique pour le support */}
           <Route path="/support" element={<Support />} />
+
+          {/* Routes publiques legales (CGU + Politique de confidentialite RGPD) */}
+          <Route path="/cgu" element={<Cgu />} />
+          <Route path="/confidentialite" element={<Privacy />} />
 
           {/* Route publique/semi-publique pour accepter une invitation */}
           <Route path="/accept-invitation" element={<AcceptInvitationPage />} />

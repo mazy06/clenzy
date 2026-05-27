@@ -102,6 +102,23 @@ export const usersApi = {
     const base = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/users/${userId}/profile-picture`;
     return cacheBust ? `${base}?v=${encodeURIComponent(cacheBust)}` : base;
   },
+
+  // ─── Preferences marketing (RGPD article 7-3) ─────────────────────────────
+
+  /** Lit l'opt-in newsletter de l'utilisateur courant. */
+  getMyMarketingPreferences(): Promise<{ newsletterOptIn: boolean }> {
+    return apiClient.get<{ newsletterOptIn: boolean }>('/users/me/marketing-preferences');
+  },
+
+  /**
+   * Met a jour l'opt-in newsletter de l'utilisateur courant.
+   *
+   * <p>Retour cle pour la conformite RGPD : l'utilisateur doit pouvoir retirer
+   * son consentement aussi simplement qu'il l'a donne (article 7-3).</p>
+   */
+  updateMyMarketingPreferences(newsletterOptIn: boolean): Promise<{ newsletterOptIn: boolean }> {
+    return apiClient.put<{ newsletterOptIn: boolean }>('/users/me/marketing-preferences', { newsletterOptIn });
+  },
 };
 
 /**

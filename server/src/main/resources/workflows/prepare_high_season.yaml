@@ -1,0 +1,100 @@
+# Workflow : Preparation haute saison
+# ---------------------------------------------------------------------------
+# Procedure de pre-saison : ajuster les tarifs, verifier les amenagements,
+# planifier le menage et anticiper les pics de demande.
+
+id: prepare_high_season
+title: "Preparation haute saison"
+description: "Checklist pre-haute saison : pricing, ammenagements, menages, anticipation demande."
+estimatedDuration: 25
+
+steps:
+  - id: identify_window
+    title: "Periode haute saison"
+    prompts:
+      fr: |
+        Quelle est la **periode haute saison** que tu prepares ?
+        Reponds en JSON :
+        - **from** : date debut (YYYY-MM-DD),
+        - **to** : date fin (YYYY-MM-DD).
+      en: |
+        Which **high season window** are you preparing for?
+        Reply in JSON:
+        - **from** : start date (YYYY-MM-DD),
+        - **to** : end date (YYYY-MM-DD).
+      ar: |
+        ما هي **فترة الموسم العالي** التي تستعد لها؟
+        أجب بـ JSON يحتوي على:
+        - **from** : تاريخ البداية (YYYY-MM-DD)،
+        - **to** : تاريخ النهاية (YYYY-MM-DD).
+    expectsData:
+      from: string
+      to: string
+
+  - id: review_pricing
+    title: "Revue tarifaire"
+    prompts:
+      fr: |
+        Etape 1/4. Veux-tu que je verifie tes **tarifs actuels** sur la periode
+        et que je propose des ajustements ? Reponds oui ou non.
+      en: |
+        Step 1/4. Should I review your **current rates** for the period and
+        suggest adjustments? Reply yes or no.
+      ar: |
+        الخطوة 1/4. هل تريد أن أراجع **أسعارك الحالية** وأقترح تعديلات؟ نعم/لا.
+    expectsData:
+      reviewPricing: boolean
+    suggestTool:
+      name: analyze_portfolio
+      args:
+        daysBack: 90
+
+  - id: amenities_check
+    title: "Equipements et amenites"
+    prompts:
+      fr: |
+        Etape 2/4. Liste les **equipements** restant a installer (clim, piscine,
+        terrasse, baby pack), ou "rien" si tout est pret.
+      en: |
+        Step 2/4. List the **amenities** still to install (AC, pool, terrace,
+        baby pack), or "none" if all is ready.
+      ar: |
+        الخطوة 2/4. اذكر **التجهيزات** المتبقية للتثبيت، أو "لا شيء" إذا كان كل شيء جاهزًا.
+    expectsData:
+      pendingAmenities: string
+
+  - id: housekeeping_plan
+    title: "Planning menage"
+    prompts:
+      fr: |
+        Etape 3/4. As-tu suffisamment d'equipes/contrats menage pour absorber
+        l'augmentation de check-outs ? Reponds oui ou non.
+      en: |
+        Step 3/4. Do you have enough housekeeping teams to absorb the increase
+        in check-outs? Reply yes or no.
+      ar: |
+        الخطوة 3/4. هل لديك ما يكفي من فرق التنظيف؟ نعم/لا.
+    expectsData:
+      housekeepingReady: boolean
+    suggestTool:
+      name: suggest_navigation
+      args:
+        path: "/interventions"
+        label: "Verifier le planning menage"
+
+  - id: anticipate_events
+    title: "Anticipation evenements"
+    prompts:
+      fr: |
+        Etape 4/4. Veux-tu que je regarde s'il y a des **evenements publics**
+        sur la periode qui justifieraient une hausse tarifaire ? oui/non
+      en: |
+        Step 4/4. Should I check for **public events** during the window that
+        would justify a price hike? yes/no
+      ar: |
+        الخطوة 4/4. هل أبحث عن **أحداث عامة** قد تبرر زيادة الأسعار؟ نعم/لا
+    expectsData:
+      checkEvents: boolean
+    suggestTool:
+      name: get_local_events
+      args: {}

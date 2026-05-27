@@ -52,6 +52,7 @@ import {
   useAiUsageStats,
 } from '../../hooks/useAi';
 import type { PlatformAiModel, SavePlatformModelRequest, TestPlatformModelRequest } from '../../services/api/aiApi';
+import AiSettingsCard from './AiSettingsCard';
 
 // ─── Provider / Model Catalog ──────────────────────────────────────────────
 
@@ -759,88 +760,61 @@ export default function PlatformAiConfigSection() {
     unassignMutation.mutate(feature);
   };
 
-  const accentColor = '#8B5CF6';
-
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        mb: 3,
-        border: '1px solid',
-        borderColor: alpha(accentColor, isDark ? 0.25 : 0.15),
-        borderRadius: 2.5,
-        overflow: 'hidden',
-      }}
+    <AiSettingsCard
+      title={t('settings.ai.platform.title')}
+      subtitle={t('settings.ai.platform.subtitle')}
+      action={
+        <Button
+          size="small"
+          startIcon={<Add />}
+          onClick={handleOpenAdd}
+          variant="outlined"
+          sx={{
+            textTransform: 'none',
+            fontWeight: 600,
+            borderRadius: 1.5,
+            fontSize: '0.8125rem',
+          }}
+        >
+          {t('settings.ai.platform.addModel')}
+        </Button>
+      }
     >
-      {/* ── Header ── */}
-      <Box
-        sx={{
-          px: 2.5,
-          py: 2,
-          background: isDark
-            ? `linear-gradient(135deg, ${alpha(accentColor, 0.12)}, ${alpha(accentColor, 0.04)})`
-            : `linear-gradient(135deg, ${alpha(accentColor, 0.06)}, ${alpha(accentColor, 0.02)})`,
-          borderBottom: '1px solid',
-          borderColor: alpha(accentColor, isDark ? 0.15 : 0.1),
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              bgcolor: accentColor,
-              boxShadow: `0 0 6px ${alpha(accentColor, 0.4)}`,
-            }}
-          />
-          <Typography
-            variant="subtitle1"
-            fontWeight={700}
-            sx={{ color: isDark ? alpha(accentColor, 0.9) : accentColor }}
-          >
-            {t('settings.ai.platform.title')}
-          </Typography>
-        </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.8rem' }}>
-          {t('settings.ai.platform.subtitle')}
+      {/* ── Section 1: Configured Models ── */}
+      <Box sx={{ mb: 1 }}>
+        <Typography
+          variant="overline"
+          sx={{
+            fontWeight: 700,
+            color: 'text.secondary',
+            letterSpacing: 0.6,
+            fontSize: '0.7rem',
+          }}
+        >
+          {t('settings.ai.platform.models')}
         </Typography>
       </Box>
 
-      {/* ── Section 1: Configured Models ── */}
-      <Box sx={{ px: 2.5, pt: 2, pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.85rem' }}>
-            {t('settings.ai.platform.models')}
-          </Typography>
-          <Button
-            size="small"
-            startIcon={<Add />}
-            onClick={handleOpenAdd}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 600,
-              borderRadius: 1.5,
-              color: accentColor,
-              fontSize: '0.8rem',
-            }}
-          >
-            {t('settings.ai.platform.addModel')}
-          </Button>
-        </Box>
-      </Box>
-
       {modelList.length === 0 ? (
-        <Box sx={{ px: 2.5, pb: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', fontStyle: 'italic' }}>
+        <Box sx={{ pb: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', fontStyle: 'italic' }}>
             {t('settings.ai.platform.noModel')}
           </Typography>
         </Box>
       ) : (
-        <Box sx={{ pb: 1 }}>
+        <Box
+          sx={{
+            mx: { xs: -2, md: -3 },
+            mb: 2,
+            borderTop: '1px solid',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
           {modelList.map((model, index) => (
             <React.Fragment key={model.id}>
-              {index > 0 && <Divider sx={{ mx: 2.5 }} />}
+              {index > 0 && <Divider sx={{ mx: { xs: 2, md: 3 } }} />}
               <ModelRow
                 model={model}
                 onEdit={handleOpenEdit}
@@ -852,19 +826,32 @@ export default function PlatformAiConfigSection() {
         </Box>
       )}
 
-      <Divider />
-
       {/* ── Section 2: Feature Assignments ── */}
-      <Box sx={{ px: 2.5, pt: 2, pb: 1 }}>
-        <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.85rem' }}>
+      <Box sx={{ mt: 3, mb: 1 }}>
+        <Typography
+          variant="overline"
+          sx={{
+            fontWeight: 700,
+            color: 'text.secondary',
+            letterSpacing: 0.6,
+            fontSize: '0.7rem',
+          }}
+        >
           {t('settings.ai.platform.featureMapping')}
         </Typography>
       </Box>
 
-      <Box sx={{ pb: 1.5 }}>
+      <Box
+        sx={{
+          mx: { xs: -2, md: -3 },
+          borderTop: '1px solid',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
         {AI_FEATURES.map((feat, index) => (
           <React.Fragment key={feat.key}>
-            {index > 0 && <Divider sx={{ mx: 2.5 }} />}
+            {index > 0 && <Divider sx={{ mx: { xs: 2, md: 3 } }} />}
             <FeatureRow
               feature={feat}
               models={modelList}
@@ -891,6 +878,6 @@ export default function PlatformAiConfigSection() {
         onClose={handleCloseDialog}
         editModel={editModel}
       />
-    </Paper>
+    </AiSettingsCard>
   );
 }

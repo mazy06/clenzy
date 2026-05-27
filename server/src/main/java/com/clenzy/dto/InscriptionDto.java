@@ -2,11 +2,13 @@ package com.clenzy.dto;
 
 import com.clenzy.model.BillingPeriod;
 import com.clenzy.model.OrganizationType;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * DTO pour la demande d'inscription depuis la landing page ou le PMS.
@@ -49,6 +51,37 @@ public class InscriptionDto {
     private List<String> servicesDevis;
 
     private String billingPeriod = "MONTHLY";
+
+    // ─── Consentement RGPD + attribution ─────────────────────────────────────
+
+    /**
+     * Acceptation des CGU + Politique de confidentialite (obligation legale RGPD).
+     * Doit etre {@code true} avant de pouvoir initier l'inscription / le paiement.
+     */
+    private boolean acceptedTerms;
+
+    /**
+     * Opt-in newsletter explicite et separe des CGU (RGPD : consentement granulaire).
+     * {@code false} par defaut.
+     */
+    private boolean newsletterOptIn;
+
+    /**
+     * Code promo / cooptation optionnel saisi a l'inscription.
+     */
+    @Size(max = 50, message = "Le code promo doit faire au maximum 50 caracteres")
+    private String promoCode;
+
+    /**
+     * Canal de decouverte declare ("Comment nous avez-vous connu ?").
+     * Valeurs attendues : google, social, word_of_mouth, press, partner, other.
+     */
+    @Size(max = 50, message = "La source doit faire au maximum 50 caracteres")
+    private String referralSource;
+
+    /** Liste fermee des canaux acceptes pour {@link #referralSource}. */
+    public static final Set<String> ALLOWED_REFERRAL_SOURCES = Set.of(
+            "google", "social", "word_of_mouth", "press", "partner", "other");
 
     // Constructeurs
     public InscriptionDto() {}
@@ -127,6 +160,42 @@ public class InscriptionDto {
 
     public BillingPeriod getBillingPeriodEnum() {
         return BillingPeriod.fromString(billingPeriod);
+    }
+
+    public boolean isAcceptedTerms() { return acceptedTerms; }
+    public void setAcceptedTerms(boolean acceptedTerms) { this.acceptedTerms = acceptedTerms; }
+
+    public boolean isNewsletterOptIn() { return newsletterOptIn; }
+    public void setNewsletterOptIn(boolean newsletterOptIn) { this.newsletterOptIn = newsletterOptIn; }
+
+    public String getPromoCode() { return promoCode; }
+    public void setPromoCode(String promoCode) {
+        this.promoCode = (promoCode == null || promoCode.isBlank()) ? null : promoCode.trim().toUpperCase();
+    }
+
+    public String getReferralSource() { return referralSource; }
+    public void setReferralSource(String referralSource) {
+        this.referralSource = (referralSource == null || referralSource.isBlank())
+                ? null
+                : referralSource.trim().toLowerCase();
+    }
+
+    /**
+     * Validation Bean Validation : les CGU doivent etre acceptees.
+     * Defense en profondeur (le frontend bloque deja le bouton).
+     */
+    @AssertTrue(message = "Vous devez accepter les conditions generales d'utilisation et la politique de confidentialite")
+    public boolean isTermsAccepted() {
+        return acceptedTerms;
+    }
+
+    /**
+     * Validation : si une source d'acquisition est fournie, elle doit faire
+     * partie de la liste fermee.
+     */
+    @AssertTrue(message = "La source d'acquisition est invalide")
+    public boolean isReferralSourceValid() {
+        return referralSource == null || ALLOWED_REFERRAL_SOURCES.contains(referralSource);
     }
 
     /**

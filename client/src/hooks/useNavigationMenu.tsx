@@ -23,11 +23,13 @@ import {
   ChatBubbleOutline,
   Storage,
   CurrencyExchange,
+  LocalOffer,
   CalendarViewWeek,
   PersonSearch,
   Contacts,
   Public,
   StorefrontOutlined,
+  AutoAwesome,
 } from '../icons';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -81,6 +83,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     roles: ['all'],
     permission: 'dashboard:view',
     translationKey: 'navigation.dashboard',
+    group: 'main',
+  },
+  {
+    icon: <AutoAwesome />,
+    path: '/assistant',
+    roles: ['all'],
+    permission: 'ai:view',
+    translationKey: 'navigation.assistant',
     group: 'main',
   },
   {
@@ -243,6 +253,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     roles: ['SUPER_ADMIN'],
     permission: 'users:manage',
     translationKey: 'navigation.database',
+    group: 'admin',
+  },
+  {
+    icon: <LocalOffer />,
+    path: '/admin/promo-codes',
+    roles: ['SUPER_ADMIN'],
+    permission: 'users:manage',
+    translationKey: 'navigation.promoCodes',
     group: 'admin',
   },
 ];

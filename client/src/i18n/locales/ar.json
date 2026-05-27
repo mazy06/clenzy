@@ -34,6 +34,7 @@
   },
   "navigation": {
     "dashboard": "لوحة التحكم",
+    "assistant": "المساعد",
     "properties": "العقارات",
     "serviceRequests": "طلبات الخدمة",
     "interventions": "التدخلات",
@@ -56,6 +57,7 @@
     "kpiReadiness": "جاهزية مؤشرات الأداء",
     "exchangeRates": "أسعار الصرف",
     "database": "قاعدة البيانات",
+    "promoCodes": "رموز الترويج",
     "documents": "المستندات والاتصالات",
     "myProfile": "ملفي الشخصي",
     "logout": "تسجيل الخروج",
@@ -1941,6 +1943,12 @@
       "saveError": "خطأ في حفظ الإعدادات"
     },
     "ai": {
+      "tabs": {
+        "connection": "الاتصال",
+        "models": "النماذج والميزات",
+        "briefings": "الملخصات",
+        "kb": "التوثيق"
+      },
       "platform": {
         "title": "تكوين المنصة",
         "subtitle": "تكوين نماذج الذكاء الاصطناعي وتعيينها لميزات المنصة.",
@@ -3432,8 +3440,6 @@
         }
       },
       "settings": {
-        "title": "تكوين الذكاء الاصطناعي",
-        "subtitle": "قم بربط حسابات OpenAI أو Anthropic الخاصة بك لاستخدام الذكاء الاصطناعي بدون حدود للرموز. بشكل افتراضي، تستخدم المنصة مفتاحاً مشتركاً بميزانية شهرية.",
         "personalKey": "مفتاح شخصي",
         "sharedKey": "مفتاح مشترك",
         "keyLabel": "المفتاح",
@@ -3453,9 +3459,7 @@
         "test": "اختبار",
         "save": "حفظ",
         "saveError": "خطأ أثناء الحفظ. تحقق من مفتاح API.",
-        "loadError": "تعذر تحميل تكوين الذكاء الاصطناعي. يرجى المحاولة مرة أخرى.",
-        "byokTitle": "توصيل مفتاحك الخاص",
-        "byokSubtitle": "قم بتوصيل حساب OpenAI أو Anthropic الخاص بك لاستخدام الذكاء الاصطناعي بدون حدود رموز وبجودة استجابة أفضل."
+        "loadError": "تعذر تحميل تكوين الذكاء الاصطناعي. يرجى المحاولة مرة أخرى."
       },
       "features": {
         "title": "حلول الذكاء الاصطناعي Clenzy",
@@ -3791,5 +3795,231 @@
     },
     "skip": "تخطي",
     "completionMessage": "أكمل الإعداد الأولي للوصول إلى لوحة التحكم الكاملة"
+  },
+  "auth": {
+    "common": {
+      "back": "رجوع",
+      "backToLogin": "العودة إلى تسجيل الدخول",
+      "loading": "جارٍ التحميل...",
+      "errors": {
+        "serverDown": "الخادم غير متاح مؤقتًا. يُرجى المحاولة بعد قليل.",
+        "networkError": "تعذر الوصول إلى الخادم. تحقق من اتصالك بالإنترنت.",
+        "generic": "حدث خطأ. يُرجى المحاولة مرة أخرى."
+      }
+    },
+    "layout": {
+      "tagline": "نظام إدارة العقارات المصمّم لـ",
+      "taglineHighlight": "الملاك ومديري العقارات المستقلين",
+      "taglineEnd": ".",
+      "subtitle": "إدارة متعددة العقارات والقنوات والمدفوعات والفرق وأتمتة الذكاء الاصطناعي — في أداة أوروبية سيادية واحدة.",
+      "trustEurope": "مستضاف في أوروبا",
+      "trustCompliance": "NF 525 / GDPR",
+      "trustSupport": "دعم 7 أيام في الأسبوع"
+    },
+    "login": {
+      "title": "مرحبًا بعودتك",
+      "subtitle": "سجّل الدخول للوصول إلى لوحة التحكم.",
+      "inscriptionSuccess": "تم إنشاء حسابك بنجاح. سجّل الدخول للوصول إلى مساحتك.",
+      "emailLabel": "البريد الإلكتروني أو اسم المستخدم",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "كلمة المرور",
+      "passwordPlaceholder": "كلمة المرور الخاصة بك",
+      "forgotPassword": "هل نسيت كلمة المرور؟",
+      "showPassword": "إظهار كلمة المرور",
+      "hidePassword": "إخفاء كلمة المرور",
+      "submit": "تسجيل الدخول",
+      "noAccount": "ليس لديك حساب بعد؟",
+      "createAccount": "أنشئ حسابًا",
+      "needHelp": "هل تحتاج إلى مساعدة؟",
+      "contactSupport": "اتصل بالدعم",
+      "errors": {
+        "captchaRequired": "يلزم التحقق للمتابعة.",
+        "accountLocked": "تم حظر الحساب مؤقتًا بعد محاولات فاشلة كثيرة. أعد المحاولة خلال {{minutes}} دقيقة{{plural}}. إذا استمرت المشكلة، اتصل بالمسؤول.",
+        "invalidPasswordCaptcha": "كلمة مرور غير صحيحة. يلزم التحقق للمحاولة من جديد.",
+        "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+        "missingFields": "يُرجى ملء جميع الحقول.",
+        "captchaInvalid": "فشل التحقق. أعد المحاولة.",
+        "accountDisabled": "حسابك معطّل. اتصل بالدعم."
+      }
+    },
+    "inscription": {
+      "stepInformations": "معلوماتك",
+      "stepPayment": "الدفع",
+      "you": "أنت",
+      "choosePlan": "اختر باقتك *",
+      "billingPeriodLabel": "مدة الفوترة",
+      "platform": "المنصة",
+      "platformWithSync": "المنصة + المزامنة",
+      "invoiced": "تُفوتر {{amount}}",
+      "perMonth": "/شهريًا",
+      "requestInfo": "معلومات طلبك",
+      "promoLabel": "رمز ترويجي / إحالة",
+      "promoPlaceholder": "اختياري",
+      "promoHelper": "إذا كان لديك واحد",
+      "referralLabel": "كيف تعرفت علينا؟",
+      "referralHelper": "اختياري — يساعدنا على خدمتك بشكل أفضل",
+      "referralPlaceholder": "اختر…",
+      "cguPrefix": "أوافق على",
+      "cguLinkText": "الشروط العامة للاستخدام",
+      "cguMiddle": "و",
+      "privacyLinkText": "سياسة الخصوصية",
+      "newsletterOptIn": "أرغب في استلام نشرة Clenzy الإخبارية (تحديثات المنتج، نصائح إدارة الإيجار).",
+      "submit": "المتابعة إلى الدفع",
+      "alreadyAccount": "هل لديك حساب بالفعل؟",
+      "loginLink": "تسجيل الدخول",
+      "summary": "ملخص",
+      "summaryAccount": "الحساب",
+      "summaryPlan": "الباقة",
+      "summarySubscription": "اشتراك المنصة",
+      "summarySubscriptionWithSync": "اشتراك المنصة + المزامنة التلقائية",
+      "summaryPeriod": "المدة:",
+      "summaryTotal": "الإجمالي المستحق",
+      "securedPayment": "دفع آمن عبر Stripe",
+      "paymentTitle": "الدفع",
+      "fields": {
+        "fullNameLabel": "الاسم الكامل *",
+        "fullNamePlaceholder": "محمد علي",
+        "fullNameHelper": "الاسم الأول واسم العائلة",
+        "emailLabel": "البريد الإلكتروني *",
+        "emailPlaceholder": "name@example.com",
+        "phoneLabel": "الهاتف",
+        "phonePlaceholder": "+33 7 66 72 91 09",
+        "phoneHelper": "اختياري",
+        "companyLabel": "اسم الشركة *",
+        "companyPlaceholder": "شركتي ش.م.م",
+        "companyHelper": "مطلوب للكونسيرج وشركات التنظيف"
+      },
+      "orgTypes": {
+        "INDIVIDUAL": "فرد",
+        "CONCIERGE": "كونسيرج",
+        "CLEANING_COMPANY": "شركة تنظيف"
+      },
+      "orgTypeDescriptions": {
+        "INDIVIDUAL": "أدير إيجاراتي الخاصة",
+        "CONCIERGE": "أعمل لحساب ملاك آخرين",
+        "CLEANING_COMPANY": "خدمات تنظيف / متعددة"
+      },
+      "forfaits": {
+        "essentiel": "باقة أساسية",
+        "confort": "باقة كومفورت",
+        "premium": "باقة بريميوم",
+        "essentielShort": "أساسية",
+        "confortShort": "كومفورت",
+        "premiumShort": "بريميوم"
+      },
+      "forfaitTaglines": {
+        "essentiel": "ابدأ بسلاسة",
+        "confort": "الأكثر اختيارًا",
+        "premium": "شامل بلا حدود"
+      },
+      "forfaitHint": "ابتداءً من {{price}}€/مهمة",
+      "interventionPrice": "المهام ابتداءً من {{price}}€",
+      "billingPeriods": {
+        "MONTHLY": "شهري",
+        "ANNUAL": "سنوي",
+        "BIENNIAL": "سنتان"
+      },
+      "propertyTypes": {
+        "studio": "استوديو",
+        "appartement": "شقة",
+        "maison": "منزل",
+        "duplex": "دوبلكس",
+        "villa": "فيلا",
+        "autre": "أخرى"
+      },
+      "referralSources": {
+        "google": "بحث Google",
+        "social": "وسائل التواصل (Instagram، LinkedIn…)",
+        "word_of_mouth": "من خلال أحد المعارف",
+        "press": "صحافة / مدونة",
+        "partner": "شريك",
+        "other": "أخرى"
+      },
+      "guestCapacityChip": "{{value}} مسافر",
+      "propertyCountChip": "{{value}} عقار",
+      "surfaceChip": "{{value}} م²",
+      "cityChip": "{{city}}",
+      "cityPostalChip": "{{city}} ({{postalCode}})",
+      "errors": {
+        "fillFields": "يُرجى ملء جميع الحقول المطلوبة بشكل صحيح.",
+        "paymentCancelled": "تم إلغاء الدفع. يمكنك إعادة المحاولة في أي وقت.",
+        "createSessionFailed": "فشل إنشاء جلسة الدفع.",
+        "emailAlreadyExists": "يوجد حساب بالفعل بهذا البريد الإلكتروني.",
+        "generic": "حدث خطأ. يُرجى المحاولة مرة أخرى."
+      }
+    },
+    "inscriptionSuccess": {
+      "loading": "جارٍ إتمام عملية الدفع...",
+      "successTitle": "تحقق من بريدك الإلكتروني",
+      "paymentConfirmed": "تم تأكيد دفعتك بنجاح.",
+      "checkEmail": "تم إرسال بريد تأكيد{{toEmail}}. انقر على الرابط في البريد لإنشاء كلمة المرور وإتمام تسجيلك.",
+      "toEmail": " إلى {{email}}",
+      "resend": "إعادة إرسال البريد",
+      "resending": "جارٍ الإرسال...",
+      "checkSpam": "تحقق من مجلد الرسائل غير المرغوب فيها إذا لم تجد البريد.",
+      "resendSuccess": "تم إرسال رابط تأكيد جديد.",
+      "resendMissingEmail": "تعذرت إعادة الإرسال بدون عنوان بريد إلكتروني.",
+      "errorTitle": "الجلسة غير موجودة",
+      "errorBody": "لم يتم العثور على أي جلسة دفع. إذا كنت قد دفعت بالفعل، تحقق من بريدك."
+    },
+    "inscriptionConfirm": {
+      "loadingLink": "جارٍ التحقق من الرابط...",
+      "createPasswordTitle": "أنشئ كلمة المرور الخاصة بك",
+      "createPasswordSubtitle": "الخطوة الأخيرة لإتمام تسجيلك.",
+      "passwordLabel": "كلمة المرور *",
+      "passwordHelper": "8 أحرف على الأقل",
+      "confirmPasswordLabel": "تأكيد كلمة المرور *",
+      "passwordMismatch": "كلمتا المرور غير متطابقتين",
+      "submitting": "جارٍ الإنشاء...",
+      "submit": "إنشاء كلمة المرور",
+      "successTitle": "تم إتمام التسجيل!",
+      "successBody": "تم إنشاء حسابك بنجاح. جارٍ التحويل إلى لوحة التحكم...",
+      "alreadyCompletedTitle": "تم إتمام التسجيل من قبل",
+      "alreadyCompletedBody": "تم إنشاء حسابك بالفعل. يمكنك تسجيل الدخول ببياناتك.",
+      "loginButton": "تسجيل الدخول",
+      "expiredTitle": "انتهت صلاحية الرابط",
+      "expiredBody": "انتهت صلاحية رابط التأكيد. يُرجى الاتصال بالدعم للحصول على رابط جديد.",
+      "errorTitle": "رابط غير صالح",
+      "errorBody": "رابط التأكيد غير صالح. يُرجى الاتصال بالدعم.",
+      "invalidTokenError": "رابط التأكيد غير صالح. لم يتم توفير أي رمز.",
+      "invalidOrExpiredError": "رابط التأكيد غير صالح أو منتهي الصلاحية.",
+      "submitErrorGeneric": "حدث خطأ. يُرجى المحاولة مرة أخرى.",
+      "forfaitChip": "باقة {{forfait}}",
+      "forfaits": {
+        "essentiel": "أساسية",
+        "confort": "كومفورت",
+        "premium": "بريميوم"
+      }
+    },
+    "support": {
+      "headerSubtitle": "تواصل مع فريق الدعم",
+      "submittedTitle": "تم إرسال الرسالة!",
+      "submittedBody": "سيتواصل معك فريقنا خلال 24 ساعة.",
+      "backToLogin": "العودة إلى تسجيل الدخول",
+      "fields": {
+        "nameLabel": "الاسم الكامل",
+        "emailLabel": "البريد الإلكتروني",
+        "phoneLabel": "الهاتف (اختياري)",
+        "subjectLabel": "الموضوع",
+        "messageLabel": "رسالتك",
+        "messagePlaceholder": "صف مشكلتك أو طلبك..."
+      },
+      "subjects": {
+        "access": "مشكلة وصول / تسجيل دخول",
+        "technical": "مشكلة تقنية",
+        "billing": "الفوترة / الاشتراك",
+        "feature": "طلب ميزة",
+        "other": "أخرى"
+      },
+      "submit": "إرسال",
+      "submitError": "حدث خطأ أثناء الإرسال. يُرجى المحاولة مرة أخرى أو الاتصال بنا على info@clenzy.fr."
+    },
+    "legal": {
+      "back": "رجوع",
+      "lastUpdated": "آخر تحديث: {{date}}",
+      "footerCgu": "الشروط",
+      "footerPrivacy": "سياسة الخصوصية",
+      "footerSupport": "الدعم"
+    }
   }
 }

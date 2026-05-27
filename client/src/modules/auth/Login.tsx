@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { useSearchParams, Link as RouterLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
-  Paper,
   TextField,
   Button,
   Typography,
@@ -12,18 +12,26 @@ import {
   IconButton,
   InputAdornment,
   Link,
-  ThemeProvider,
-  CssBaseline
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '../../icons';
 import keycloak from '../../keycloak';
-import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
-import { saveTokens, setSessionCookie } from '../../services/storageService';
-import lightTheme from '../../theme/theme';
+import { clearMockFlags, setSessionCookie } from '../../services/storageService';
 import TurnstileCaptcha from '../../components/TurnstileCaptcha';
+import AuthLayout from './AuthLayout';
 
+/**
+ * Page Login.
+ *
+ * <p>Design 2026 : split-screen avec panneau brand a gauche et form epure
+ * a droite (cf. {@link AuthLayout}). Form sans card flottante, juste un
+ * titre/sub + 2 inputs + bouton primaire, hierarchie typographique claire.</p>
+ *
+ * <p>La logique reste identique a l'ancienne version (CAPTCHA, lockout,
+ * Keycloak token wiring) — seul le rendu visuel a change.</p>
+ */
 export default function Login() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
 
   // Detecter si l'utilisateur vient de finaliser son inscription (retour Stripe)
@@ -53,112 +61,95 @@ export default function Login() {
         password: password,
       };
 
-      // Ajouter le token CAPTCHA si disponible
       if (tokenToSend) {
         body.captchaToken = tokenToSend;
       }
 
       const data = await apiClient.post<any>('/auth/login', body, { skipAuth: true });
 
-      // Mettre a jour l'etat de Keycloak
       keycloak.token = data.access_token;
       keycloak.refreshToken = data.refresh_token;
       keycloak.idToken = data.id_token;
       keycloak.authenticated = true;
       keycloak.tokenParsed = JSON.parse(atob(data.access_token.split('.')[1]));
 
-      // Sauvegarder les tokens dans localStorage
-      saveTokens({
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        idToken: data.id_token,
-        expiresIn: data.expires_in,
-      });
-
-      // Sauvegarder le token dans un cookie partage (accessible par la landing page)
+      clearMockFlags();
       setSessionCookie(data.access_token);
-
-      // Forcer la mise a jour de l'etat global via l'evenement personnalise
       window.dispatchEvent(new CustomEvent('keycloak-auth-success'));
-
-      // L'evenement sera traite par App.tsx qui affichera automatiquement le dashboard
-
     } catch (err) {
       const apiErr = err as ApiError;
       const details = apiErr.details as Record<string, unknown> | undefined;
 
       if (apiErr.status) {
-        // Verifier si le backend demande un CAPTCHA
         if (details?.captchaRequired === true || details?.error === 'captcha_required') {
           setCaptchaRequired(true);
           setCaptchaToken(null);
-          setError('Vérification requise pour continuer.');
+          setError(t('auth.login.errors.captchaRequired', 'Vérification requise pour continuer.'));
           setLoading(false);
           return;
         }
 
-        // Verifier si le compte est verrouille
         if (details?.error === 'account_locked' || apiErr.status === 429) {
           const retryAfter = details?.retryAfter as number;
           const minutes = retryAfter ? Math.ceil(retryAfter / 60) : 15;
-          setError(`Compte temporairement bloqué suite à trop de tentatives échouées. Réessayez dans ${minutes} minute${minutes > 1 ? 's' : ''}. Si le problème persiste, contactez votre administrateur.`);
+          setError(
+            t(
+              'auth.login.errors.accountLocked',
+              `Compte temporairement bloqué suite à trop de tentatives échouées. Réessayez dans ${minutes} minute${minutes > 1 ? 's' : ''}. Si le problème persiste, contactez votre administrateur.`,
+              { minutes, plural: minutes > 1 ? 's' : '' },
+            ),
+          );
           setIsLocked(true);
           setCaptchaRequired(false);
           setLoading(false);
           return;
         }
 
-        // Messages user-friendly selon le code HTTP
         switch (apiErr.status) {
           case 401:
             if (details?.captchaRequired === true) {
               setCaptchaRequired(true);
               setCaptchaToken(null);
-              setError('Mot de passe incorrect. Vérification requise pour réessayer.');
+              setError(t('auth.login.errors.invalidPasswordCaptcha', 'Mot de passe incorrect. Vérification requise pour réessayer.'));
             } else {
-              setError('Email ou mot de passe incorrect.');
+              setError(t('auth.login.errors.invalidCredentials', 'Email ou mot de passe incorrect.'));
             }
             break;
           case 400:
-            setError('Veuillez remplir tous les champs.');
+            setError(t('auth.login.errors.missingFields', 'Veuillez remplir tous les champs.'));
             break;
           case 403:
             if (details?.error === 'captcha_invalid') {
               setCaptchaRequired(true);
               setCaptchaToken(null);
-              setError('Vérification échouée. Réessayez.');
+              setError(t('auth.login.errors.captchaInvalid', 'Vérification échouée. Réessayez.'));
             } else {
-              setError('Votre compte est désactivé. Contactez le support.');
+              setError(t('auth.login.errors.accountDisabled', 'Votre compte est désactivé. Contactez le support.'));
             }
             break;
           case 500:
           case 502:
           case 503:
-            setError('Le serveur est temporairement indisponible. Réessayez dans un instant.');
+            setError(t('auth.common.errors.serverDown', 'Le serveur est temporairement indisponible. Réessayez dans un instant.'));
             break;
           default:
-            setError('Une erreur est survenue. Veuillez réessayer.');
+            setError(t('auth.common.errors.generic', 'Une erreur est survenue. Veuillez réessayer.'));
         }
       } else {
-        setError('Impossible de contacter le serveur. Vérifiez votre connexion internet.');
+        setError(t('auth.common.errors.networkError', 'Impossible de contacter le serveur. Vérifiez votre connexion internet.'));
       }
     } finally {
       setLoading(false);
     }
-  }, [email, password, captchaToken]);
-
-  // ─── Form submit ────────────────────────────────────────────
+  }, [email, password, captchaToken, t]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     doLogin();
   };
 
-  // ─── CAPTCHA verified callback ──────────────────────────────
-
   const handleCaptchaVerified = useCallback((token: string) => {
     setCaptchaToken(token);
-    // Auto-submit le login avec le token CAPTCHA
     setTimeout(() => {
       doLogin(token);
     }, 500);
@@ -167,56 +158,104 @@ export default function Login() {
   // ─── Render ─────────────────────────────────────────────────
 
   return (
-    <ThemeProvider theme={lightTheme}>
-    <CssBaseline />
-    <Box sx={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)',
-      p: 2
-    }}>
-      <Paper elevation={8} sx={{
-        p: 2.5,
-        width: '100%',
-        maxWidth: captchaRequired ? 420 : 400,
-        borderRadius: 2,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        transition: 'max-width 0.3s ease',
-      }}>
-        <Box sx={{ textAlign: 'center', mb: 2, display: 'flex', justifyContent: 'center' }}>
-          <ClenzyAnimatedLogo scale={0.9} />
-        </Box>
+    <AuthLayout>
+      {/* ── Header form ── */}
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 600,
+            color: 'text.primary',
+            mb: 1,
+            fontSize: { xs: '1.75rem', md: '2rem' },
+            textWrap: 'balance',
+          }}
+        >
+          {t('auth.login.title', 'Bon retour parmi nous')}
+        </Typography>
+        <Typography
+          variant="body1"
+          sx={{
+            color: 'text.secondary',
+            fontSize: '0.95rem',
+            lineHeight: 1.5,
+          }}
+        >
+          {t('auth.login.subtitle', 'Connecte-toi pour accéder à ton tableau de bord.')}
+        </Typography>
+      </Box>
 
-        {/* Message de succes apres inscription */}
-        {inscriptionSuccess && (
-          <Alert severity="success" sx={{ mb: 2, py: 0.75 }}>
-            <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 500 }}>
-              Votre compte a ete cree avec succes ! Connectez-vous pour acceder a votre espace.
+      {/* Message succes inscription */}
+      {inscriptionSuccess && (
+        <Alert severity="success" sx={{ mb: 3, borderRadius: 1.5 }}>
+          <Typography variant="body2" sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
+            {t('auth.login.inscriptionSuccess', 'Votre compte a été créé avec succès. Connectez-vous pour accéder à votre espace.')}
+          </Typography>
+        </Alert>
+      )}
+
+      {/* ── Form ── */}
+      <form onSubmit={handleSubmit} noValidate>
+        <Stack spacing={2.5}>
+          <Box>
+            <Typography
+              component="label"
+              htmlFor="login-email"
+              variant="body2"
+              sx={{ fontWeight: 600, mb: 0.75, display: 'block', fontSize: '0.8125rem' }}
+            >
+              {t('auth.login.emailLabel', "Email ou nom d'utilisateur")}
             </Typography>
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <Stack spacing={2}>
             <TextField
+              id="login-email"
               fullWidth
-              size="small"
-              placeholder="Email ou nom d'utilisateur"
+              size="medium"
+              placeholder={t('auth.login.emailPlaceholder', 'vous@exemple.com')}
               type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
               autoComplete="username"
+              autoFocus
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 1.5,
+                  bgcolor: 'background.paper',
+                },
+              }}
             />
+          </Box>
+
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.75 }}>
+              <Typography
+                component="label"
+                htmlFor="login-password"
+                variant="body2"
+                sx={{ fontWeight: 600, fontSize: '0.8125rem' }}
+              >
+                {t('auth.login.passwordLabel', 'Mot de passe')}
+              </Typography>
+              <Link
+                component={RouterLink}
+                to="/forgot-password"
+                sx={{
+                  fontSize: '0.75rem',
+                  color: 'primary.main',
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+              >
+                {t('auth.login.forgotPassword', 'Mot de passe oublié ?')}
+              </Link>
+            </Box>
             <TextField
+              id="login-password"
               fullWidth
-              size="small"
-              placeholder="Mot de passe"
+              size="medium"
+              placeholder={t('auth.login.passwordPlaceholder', 'Votre mot de passe')}
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -227,98 +266,126 @@ export default function Login() {
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
-                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      aria-label={
+                        showPassword
+                          ? t('auth.login.hidePassword', 'Masquer le mot de passe')
+                          : t('auth.login.showPassword', 'Afficher le mot de passe')
+                      }
                       onClick={() => setShowPassword(!showPassword)}
                       onMouseDown={(e) => e.preventDefault()}
                       edge="end"
                       size="small"
-                      sx={{ color: 'primary.main' }}
+                      sx={{ color: 'text.secondary' }}
                     >
                       {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                     </IconButton>
                   </InputAdornment>
                 ),
               }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 1.5,
+                  bgcolor: 'background.paper',
+                },
+              }}
             />
+          </Box>
 
-            {error && (
-              <Alert
-                severity={isLocked ? 'warning' : captchaRequired ? 'info' : 'error'}
-                sx={{ mt: 1, py: 0.75 }}
-              >
-                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{error}</Typography>
-              </Alert>
-            )}
-
-            {/* Cloudflare Turnstile CAPTCHA */}
-            {captchaRequired && (
-              <Box sx={{ mt: 1 }}>
-                <TurnstileCaptcha
-                  onVerified={handleCaptchaVerified}
-                  onError={(msg) => setError(msg)}
-                />
-              </Box>
-            )}
-
-            <Button
-              type="submit"
-              variant="contained"
-              size="medium"
-              disabled={loading || isLocked || (captchaRequired && !captchaToken)}
-              sx={{
-                py: 1,
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                backgroundColor: 'primary.main',
-                color: '#ffffff',
-                '&:hover': {
-                  backgroundColor: 'primary.dark',
-                },
-                '&:active': {
-                  backgroundColor: '#3D6B7A',
-                },
-                '&:disabled': {
-                  backgroundColor: 'primary.light',
-                },
-                borderRadius: 1.5,
-                boxShadow: '0 4px 12px rgba(107, 138, 154, 0.3)',
-                transition: 'all 0.3s ease',
-              }}
+          {error && (
+            <Alert
+              severity={isLocked ? 'warning' : captchaRequired ? 'info' : 'error'}
+              sx={{ borderRadius: 1.5 }}
             >
-              {loading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                'Se connecter'
-              )}
-            </Button>
-          </Stack>
-        </form>
+              <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>{error}</Typography>
+            </Alert>
+          )}
 
-        <Box sx={{ mt: 2, textAlign: 'center' }}>
-          <Typography variant="caption" sx={{
-            color: 'secondary.main',
-            fontWeight: 500,
-            fontSize: '0.75rem'
-          }}>
-            Besoin d'aide ?{' '}
-            <Link
-              component={RouterLink}
-              to="/support"
-              sx={{
-                color: 'secondary.dark',
-                fontWeight: 600,
-                textDecoration: 'underline',
-                '&:hover': {
-                  color: 'primary.main',
-                },
-              }}
-            >
-              Contactez le support
-            </Link>
-          </Typography>
-        </Box>
-      </Paper>
-    </Box>
-    </ThemeProvider>
+          {captchaRequired && (
+            <Box>
+              <TurnstileCaptcha
+                onVerified={handleCaptchaVerified}
+                onError={(msg) => setError(msg)}
+              />
+            </Box>
+          )}
+
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            disabled={loading || isLocked || (captchaRequired && !captchaToken)}
+            sx={{
+              py: 1.5,
+              fontSize: '0.9375rem',
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: 1.5,
+              boxShadow: 'none',
+              '&:hover': {
+                boxShadow: 'none',
+                bgcolor: 'primary.dark',
+              },
+              '&:disabled': {
+                bgcolor: 'action.disabledBackground',
+                color: 'action.disabled',
+              },
+              transition: 'background-color 150ms ease',
+            }}
+          >
+            {loading ? <CircularProgress size={22} color="inherit" /> : t('auth.login.submit', 'Se connecter')}
+          </Button>
+        </Stack>
+      </form>
+
+      {/* ── Footer : signup + support ── */}
+      <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'text.secondary',
+            fontSize: '0.875rem',
+            textAlign: 'center',
+            mb: 1.5,
+          }}
+        >
+          {t('auth.login.noAccount', 'Pas encore de compte ?')}{' '}
+          <Link
+            component={RouterLink}
+            to="/inscription"
+            sx={{
+              color: 'primary.main',
+              fontWeight: 600,
+              textDecoration: 'none',
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            {t('auth.login.createAccount', 'Crée le tien')}
+          </Link>
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            color: 'text.secondary',
+            display: 'block',
+            textAlign: 'center',
+            fontSize: '0.75rem',
+          }}
+        >
+          {t('auth.login.needHelp', "Besoin d'aide ?")}{' '}
+          <Link
+            component={RouterLink}
+            to="/support"
+            sx={{
+              color: 'text.secondary',
+              fontWeight: 500,
+              textDecoration: 'underline',
+              '&:hover': { color: 'primary.main' },
+            }}
+          >
+            {t('auth.login.contactSupport', 'Contactez le support')}
+          </Link>
+        </Typography>
+      </Box>
+    </AuthLayout>
   );
 }

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{title}}</title>
+<style>
+  /* Quelques clients (Outlook, Gmail webview) supportent partiellement <style>.
+     On garde inline-style pour l'essentiel et on duplique ici les regles utiles
+     pour les autres clients. */
+  body { margin: 0; padding: 0; background-color: #F4F6F8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1F2937; }
+  a { color: #6B8A9A; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrapper { width: 100%; padding: 24px 12px; box-sizing: border-box; }
+  .card { max-width: 640px; margin: 0 auto; background-color: #FFFFFF; border-radius: 12px; padding: 32px; box-shadow: 0 2px 8px rgba(31, 41, 55, 0.06); }
+  .brand { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #6B8A9A; text-transform: uppercase; margin-bottom: 16px; }
+  .title { font-size: 22px; font-weight: 600; color: #1F2937; margin: 0 0 8px; line-height: 1.3; }
+  .subtitle { font-size: 13px; color: #6B7280; margin: 0 0 24px; }
+  .body { font-size: 14px; line-height: 1.6; color: #1F2937; }
+  .cta-wrapper { margin: 32px 0 16px; text-align: center; }
+  .cta { display: inline-block; padding: 10px 24px; background-color: #6B8A9A; color: #FFFFFF; border-radius: 6px; font-weight: 500; font-size: 14px; }
+  .divider { border: none; border-top: 1px solid #E5E7EB; margin: 32px 0; }
+  .footer { font-size: 12px; color: #6B7280; text-align: center; line-height: 1.5; }
+  @media only screen and (max-width: 480px) {
+    .card { padding: 20px; border-radius: 8px; }
+    .title { font-size: 19px; }
+  }
+</style>
+</head>
+<body>
+<table class="wrapper" role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse;">
+  <tr>
+    <td align="center">
+      <table class="card" role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 640px; margin: 0 auto;">
+        <tr>
+          <td>
+            <div class="brand">Clenzy Assistant</div>
+            <h1 class="title">{{title}}</h1>
+            <p class="subtitle">{{subtitle}}</p>
+            <div class="body">{{body}}</div>
+            <div class="cta-wrapper">
+              <a href="{{ctaUrl}}" class="cta">{{ctaLabel}}</a>
+            </div>
+            <hr class="divider" />
+            <p class="footer">
+              Tu peux modifier ou desactiver ces briefings depuis
+              <a href="/settings?tab=ai">tes parametres</a>.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

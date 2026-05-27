@@ -99,4 +99,39 @@ export const idbCache = {
   async clear(): Promise<void> {
     await withStore('readwrite', (store) => store.clear());
   },
+
+  /**
+   * Liste toutes les cles commencant par {@code prefix}.
+   * Utile pour iterer / cleanup partiel sans tout effacer.
+   */
+  async keysByPrefix(prefix: string): Promise<string[]> {
+    const db = await openDb();
+    if (!db) return [];
+    return new Promise<string[]>((resolve) => {
+      try {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.getAllKeys();
+        req.onsuccess = () => {
+          const keys = (req.result as IDBValidKey[])
+            .filter((k): k is string => typeof k === 'string' && k.startsWith(prefix));
+          resolve(keys);
+        };
+        req.onerror = () => resolve([]);
+        tx.onabort = () => resolve([]);
+      } catch {
+        resolve([]);
+      }
+    });
+  },
+
+  /**
+   * Supprime toutes les cles commencant par {@code prefix}.
+   * Operation best-effort — silent fail si IDB indisponible.
+   */
+  async deleteByPrefix(prefix: string): Promise<void> {
+    const keys = await idbCache.keysByPrefix(prefix);
+    if (keys.length === 0) return;
+    await Promise.all(keys.map((k) => idbCache.delete(k)));
+  },
 };

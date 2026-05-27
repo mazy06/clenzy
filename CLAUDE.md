@@ -14,6 +14,36 @@
 
 - Ne JAMAIS relancer, redémarrer ou stopper les containers Docker. Si un redémarrage est nécessaire (migration, changement de config, etc.), indiquer clairement à l'utilisateur quel(s) container(s) relancer (ou si tout doit être relancé).
 
+## External APIs (sans clé)
+
+- **Open-Meteo** (https://open-meteo.com/) — météo + géocoding, **gratuit et sans clé d'API**.
+  - Endpoints : `https://geocoding-api.open-meteo.com/v1/search` (city → lat/lon) et `https://api.open-meteo.com/v1/forecast` (prévisions quotidiennes).
+  - Client : `com.clenzy.integration.openmeteo.OpenMeteoClient` (cache Redis 1h).
+  - Tool : `get_weather_forecast` (assistant agent).
+  - URL configurables via `openmeteo.geocoding-url` / `openmeteo.forecast-url` (défauts en dur dans le client).
+  - Rate limit officieux : ~10k req/jour gratuit. Le cache Redis 1h évite de spammer pour des requêtes répétées (Paris/Lyon/etc).
+
+## Assistant Vision (images uploadées)
+
+- L'utilisateur peut uploader jusqu'à **3 images** par message dans le chat assistant. Les images sont analysées par Claude Vision.
+- Limites Anthropic : **5 MB max par image**, formats acceptés `image/jpeg`, `image/png`, `image/gif`, `image/webp`.
+- **Modèle requis** : Claude 3.5 Sonnet ou supérieur (Claude 3 Haiku et antérieurs ne supportent pas la vision). Le défaut projet `claude-sonnet-4-20250514` est compatible.
+- Flow upload : `POST /api/assistant/upload` (multipart) → stocke via `PhotoStorageService` (S3 ou BYTEA selon profile) → retourne une `AttachmentRef` (`{storageKey, mediaType, url, name}`).
+- Flow chat : le frontend réinjecte les refs dans `ChatRequestBody.attachments`. L'orchestrateur résout les bytes via `PhotoStorageService.retrieve` et les fournit en base64 dans les content blocks Anthropic (`type: "image"`, `source: {type: "base64", media_type, data}`).
+- Compression côté client : Canvas-based, déclenchée si fichier > 2MB (`useImageUpload`), resize sur 1600px max, JPEG q=0.85. Pas de dépendance npm.
+
+## Assistant RAG (knowledge base + pgvector)
+
+- L'assistant peut citer la **documentation Clenzy** via une recherche par embeddings (RAG).
+- **Image Postgres requise** : `pgvector/pgvector:pg15` (voir `clenzy-infra/docker-compose.dev.yml`). Sans cette image, la migration `0143__add_pgvector_extension.sql` échoue au boot.
+- Tables : `kb_document` (org-scopé, NULL = doc globale Clenzy) + `kb_chunk` (vector(1024), index ivfflat cosine).
+- **Provider d'embeddings** configurable via `clenzy.ai.embeddings.provider=voyage|openai` (défaut `voyage`) :
+  - **Voyage AI** (`voyage-3-lite`, 1024d, ~$0.02/1M tokens) — recommandé pour Anthropic. Clé : `clenzy.ai.embeddings.voyage.api-key`.
+  - **OpenAI** (`text-embedding-3-small` avec `dimensions=1024`, ~$0.02/1M tokens). Clé : `clenzy.ai.embeddings.openai.api-key`.
+- **Tool** : `search_knowledge_base(query, topK?)` (read-only). Le LLM l'invoque explicitement OU l'orchestrateur fait une **auto-injection** dans le system prompt : avant chaque tour, recherche kb sur le dernier message user, injecte les chunks avec relevance > `clenzy.ai.embeddings.relevance-threshold` (défaut 0.70).
+- **Ingestion** : `POST /api/admin/kb/ingest` (multipart .md) + endpoint admin dans `/settings?tab=ai`. Découpage par sections `##` puis re-chunk à ~500 tokens. Idempotent (réindexe si même `source_path`).
+- **Coûts** : ingestion d'une doc ~5KB = 1-2 chunks = ~1k tokens = $0.00002. Auto-RAG par message = 1 embedding par tour utilisateur = ~10-100 tokens = $0.000002. Quasi-négligeable.
+
 ## Preview Rules
 
 - Ne JAMAIS lancer de preview (preview_start) sauf si l'utilisateur le demande explicitement.
@@ -21,6 +51,43 @@
 ## Commit & PR Rules
 
 - Ne JAMAIS ajouter la ligne "Generated with Claude Code" (ni emoji robot) dans les messages de commit ou les descriptions de PR.
+
+## Frontend Storage — decision tree
+
+> Avant d'ecrire `localStorage.setItem(...)` ou `useState`, parcourir cet arbre. Source de verite par defaut : **backend BDD**, sauf justification explicite.
+
+### 1. Donnees auth (tokens, sessions)
+- **Cookie HttpOnly `clenzy_auth`** emis par le backend (`AuthSessionController`) + `keycloak.token` en memoire.
+- **NE JAMAIS** ecrire en localStorage (CLAUDE.md regle securite #7).
+- Cleanup boot via `cleanupLegacyTokens()` purge les residus localStorage.
+
+### 2. Preferences UI metier persistantes (cross-devices)
+- Champs stables (timezone, currency, language, themeMode, notifications) → table `user_preferences` + hook `useUserPreferences()`.
+- Champs ad-hoc (filtres planning, view modes par ecran, dismissals de banners) → table `user_ui_preferences` (key-value JSONB) + hook `useUserPreference<T>(key, defaultValue)`.
+- Pattern : optimistic update local + PUT backend debounced. Backend = source de verite.
+
+### 3. Preferences UI per-device (anti-FOUC)
+- `clenzy_theme_mode`, `clenzy_sidebar_collapsed`, `clenzy_currency` (cache) : lecture **synchrone** au boot pour eviter le flash. Le backend ecrase au login.
+- `i18nextLng` : standard i18next, gere par LanguageDetector.
+- Pattern : `useState(() => readLocalStorage())` + `useEffect` qui sync backend → local quand `isLoaded === true`.
+
+### 4. Cache de donnees backend (offline fallback)
+- **localStorage** (~5 MB quota) pour des collections < 50 entries (ex: noise devices, smart locks).
+- **IndexedDB** via `services/indexedDbCache.ts` pour les caches plus gros (ex: amenity icon overrides par org). API async — accepter un bref empty-state au mount.
+- Pattern : hydrate localement immediatement + fetch backend en background → sync cache.
+
+### 5. State session-scoped (volatile)
+- `useState` local quand la donnee ne survit pas a un reload (search query, scroll position, modal open state).
+- `sessionStorage` pour carry-over entre routes du meme flow (ex: `inscription_email`, `pending_invitation_token`).
+
+### 6. Mock flags dev/demo
+- Helpers centralises `isMockEnabled(flag)` / `setMockEnabled(flag, enabled)` dans `storageService.ts` (jamais de lecture/ecriture directe de `clenzy_*_mock`).
+
+### Anti-patterns interdits
+- Tokens auth en localStorage / sessionStorage / non-HttpOnly cookie (sauf `clenzy_session` cross-domain pour landing — TODO migration HttpOnly).
+- Definir sa propre constante locale `const MY_KEY = 'clenzy_xxx'` pour eviter le centralized `STORAGE_KEYS` → tout passer par `storageService` ou les helpers dedies.
+- Sync backend → local sans gate `isLoaded` → ecrase les valeurs locales avec les defaults (cf. BUG-2 historique).
+- `if (keycloak.authenticated)` dans un useEffect / query gate → utiliser `useIsAuthenticated()` (reactif).
 
 ## Frontend Design Skills (obligatoire)
 

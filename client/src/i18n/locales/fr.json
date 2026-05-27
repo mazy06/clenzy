@@ -34,6 +34,7 @@
   },
   "navigation": {
     "dashboard": "Tableau de bord",
+    "assistant": "Assistant",
     "properties": "Propriétés",
     "serviceRequests": "Demandes de service",
     "interventions": "Interventions",
@@ -56,6 +57,7 @@
     "kpiReadiness": "KPI Readiness",
     "exchangeRates": "Taux de change",
     "database": "Base de données",
+    "promoCodes": "Codes promo",
     "shop": "Boutique",
     "documents": "Documents & Communications",
     "myProfile": "Mon profil",
@@ -1993,6 +1995,12 @@
       "saveError": "Erreur lors de la sauvegarde"
     },
     "ai": {
+      "tabs": {
+        "connection": "Connexion",
+        "models": "Modèles & features",
+        "briefings": "Briefings",
+        "kb": "Documentation"
+      },
       "platform": {
         "title": "Configuration plateforme",
         "subtitle": "Configurez les modeles IA et assignez-les aux fonctionnalites de la plateforme.",
@@ -3578,8 +3586,6 @@
         }
       },
       "settings": {
-        "title": "Configuration IA",
-        "subtitle": "Connectez vos propres comptes OpenAI ou Anthropic pour utiliser l'IA sans limite de tokens. Par défaut, la plateforme utilise une clé partagée avec un budget mensuel.",
         "personalKey": "Clé personnelle",
         "sharedKey": "Clé partagée",
         "keyLabel": "Clé",
@@ -3599,9 +3605,7 @@
         "test": "Tester",
         "save": "Sauvegarder",
         "saveError": "Erreur lors de la sauvegarde. Vérifiez votre clé API.",
-        "loadError": "Impossible de charger la configuration IA. Veuillez réessayer.",
-        "byokTitle": "Connecter votre propre cle",
-        "byokSubtitle": "Connectez votre compte OpenAI ou Anthropic pour utiliser l'IA sans limite de tokens et avec une meilleure qualite de reponse."
+        "loadError": "Impossible de charger la configuration IA. Veuillez réessayer."
       },
       "features": {
         "title": "Solutions IA Clenzy",
@@ -4129,6 +4133,232 @@
         "diagnostics": "Diagnostics système : tâches planifiées, jobs en cours, erreurs récentes et état des intégrations.",
         "reconciliation": "Runs de réconciliation calendrier : détection des divergences entre Clenzy et OTA, déclenchement manuel."
       }
+    }
+  },
+  "auth": {
+    "common": {
+      "back": "Retour",
+      "backToLogin": "Retour a la connexion",
+      "loading": "Chargement...",
+      "errors": {
+        "serverDown": "Le serveur est temporairement indisponible. Réessayez dans un instant.",
+        "networkError": "Impossible de contacter le serveur. Vérifiez votre connexion internet.",
+        "generic": "Une erreur est survenue. Veuillez réessayer."
+      }
+    },
+    "layout": {
+      "tagline": "Le PMS pensé pour les",
+      "taglineHighlight": "propriétaires et gestionnaires indépendants",
+      "taglineEnd": ".",
+      "subtitle": "Gestion multi-propriétés, channels, paiements, équipes et automatisations IA — dans un seul outil souverain européen.",
+      "trustEurope": "Hébergé en Europe",
+      "trustCompliance": "NF 525 / RGPD",
+      "trustSupport": "Support 7j/7"
+    },
+    "login": {
+      "title": "Bon retour parmi nous",
+      "subtitle": "Connecte-toi pour accéder à ton tableau de bord.",
+      "inscriptionSuccess": "Votre compte a été créé avec succès. Connectez-vous pour accéder à votre espace.",
+      "emailLabel": "Email ou nom d'utilisateur",
+      "emailPlaceholder": "vous@exemple.com",
+      "passwordLabel": "Mot de passe",
+      "passwordPlaceholder": "Votre mot de passe",
+      "forgotPassword": "Mot de passe oublié ?",
+      "showPassword": "Afficher le mot de passe",
+      "hidePassword": "Masquer le mot de passe",
+      "submit": "Se connecter",
+      "noAccount": "Pas encore de compte ?",
+      "createAccount": "Crée le tien",
+      "needHelp": "Besoin d'aide ?",
+      "contactSupport": "Contactez le support",
+      "errors": {
+        "captchaRequired": "Vérification requise pour continuer.",
+        "accountLocked": "Compte temporairement bloqué suite à trop de tentatives échouées. Réessayez dans {{minutes}} minute{{plural}}. Si le problème persiste, contactez votre administrateur.",
+        "invalidPasswordCaptcha": "Mot de passe incorrect. Vérification requise pour réessayer.",
+        "invalidCredentials": "Email ou mot de passe incorrect.",
+        "missingFields": "Veuillez remplir tous les champs.",
+        "captchaInvalid": "Vérification échouée. Réessayez.",
+        "accountDisabled": "Votre compte est désactivé. Contactez le support."
+      }
+    },
+    "inscription": {
+      "stepInformations": "Vos informations",
+      "stepPayment": "Paiement",
+      "you": "Vous êtes",
+      "choosePlan": "Choisissez votre forfait *",
+      "billingPeriodLabel": "Periode de facturation",
+      "platform": "Plateforme",
+      "platformWithSync": "Plateforme + Synchro",
+      "invoiced": "Facture {{amount}}",
+      "perMonth": "/mois",
+      "requestInfo": "Informations de votre demande",
+      "promoLabel": "Code promo / parrainage",
+      "promoPlaceholder": "Optionnel",
+      "promoHelper": "Si vous en avez un",
+      "referralLabel": "Comment nous avez-vous connu ?",
+      "referralHelper": "Optionnel — nous aide à mieux vous servir",
+      "referralPlaceholder": "Sélectionner…",
+      "cguPrefix": "J'accepte les",
+      "cguLinkText": "conditions générales d'utilisation",
+      "cguMiddle": "et la",
+      "privacyLinkText": "politique de confidentialité",
+      "newsletterOptIn": "Je souhaite recevoir la newsletter Clenzy (nouveautés produit, conseils gestion locative).",
+      "submit": "Continuer vers le paiement",
+      "alreadyAccount": "Deja un compte ?",
+      "loginLink": "Se connecter",
+      "summary": "Recapitulatif",
+      "summaryAccount": "Compte",
+      "summaryPlan": "Forfait",
+      "summarySubscription": "Abonnement plateforme",
+      "summarySubscriptionWithSync": "Abonnement plateforme + Synchro auto",
+      "summaryPeriod": "Periode :",
+      "summaryTotal": "Total a payer",
+      "securedPayment": "Paiement securise via Stripe",
+      "paymentTitle": "Paiement",
+      "fields": {
+        "fullNameLabel": "Nom complet *",
+        "fullNamePlaceholder": "Jean Dupont",
+        "fullNameHelper": "Prenom et nom de famille",
+        "emailLabel": "Email *",
+        "emailPlaceholder": "jean@exemple.fr",
+        "phoneLabel": "Telephone",
+        "phonePlaceholder": "07 66 72 91 09",
+        "phoneHelper": "Optionnel",
+        "companyLabel": "Nom de la societe *",
+        "companyPlaceholder": "Ma Societe SARL",
+        "companyHelper": "Requis pour les conciergeries et societes de menage"
+      },
+      "orgTypes": {
+        "INDIVIDUAL": "Particulier",
+        "CONCIERGE": "Conciergerie",
+        "CLEANING_COMPANY": "Societe de menage"
+      },
+      "orgTypeDescriptions": {
+        "INDIVIDUAL": "Je gère mes propres locations",
+        "CONCIERGE": "J'opère pour des propriétaires tiers",
+        "CLEANING_COMPANY": "Service ménage / multi-services"
+      },
+      "forfaits": {
+        "essentiel": "Forfait Essentiel",
+        "confort": "Forfait Confort",
+        "premium": "Forfait Premium",
+        "essentielShort": "Essentiel",
+        "confortShort": "Confort",
+        "premiumShort": "Premium"
+      },
+      "forfaitTaglines": {
+        "essentiel": "Pour débuter sereinement",
+        "confort": "Le plus choisi",
+        "premium": "Tout inclus, sans limite"
+      },
+      "forfaitHint": "dès {{price}}€/intervention",
+      "interventionPrice": "Interventions a partir de {{price}}€",
+      "billingPeriods": {
+        "MONTHLY": "Mensuel",
+        "ANNUAL": "Annuel",
+        "BIENNIAL": "2 ans"
+      },
+      "propertyTypes": {
+        "studio": "Studio",
+        "appartement": "Appartement",
+        "maison": "Maison",
+        "duplex": "Duplex",
+        "villa": "Villa",
+        "autre": "Autre"
+      },
+      "referralSources": {
+        "google": "Recherche Google",
+        "social": "Réseaux sociaux (Instagram, LinkedIn…)",
+        "word_of_mouth": "Bouche-à-oreille",
+        "press": "Presse / blog",
+        "partner": "Partenaire",
+        "other": "Autre"
+      },
+      "guestCapacityChip": "{{value}} voyageurs",
+      "propertyCountChip": "{{value}} logement(s)",
+      "surfaceChip": "{{value}} m²",
+      "cityChip": "{{city}}",
+      "cityPostalChip": "{{city}} ({{postalCode}})",
+      "errors": {
+        "fillFields": "Veuillez remplir correctement tous les champs obligatoires.",
+        "paymentCancelled": "Le paiement a ete annule. Vous pouvez reessayer quand vous le souhaitez.",
+        "createSessionFailed": "Erreur lors de la creation de la session de paiement.",
+        "emailAlreadyExists": "Un compte existe deja avec cette adresse email.",
+        "generic": "Une erreur est survenue. Veuillez reessayer."
+      }
+    },
+    "inscriptionSuccess": {
+      "loading": "Finalisation de votre paiement...",
+      "successTitle": "Verifiez votre boite email",
+      "paymentConfirmed": "Votre paiement a ete confirme avec succes.",
+      "checkEmail": "Un email de confirmation a ete envoye{{toEmail}}. Cliquez sur le lien dans l'email pour creer votre mot de passe et finaliser votre inscription.",
+      "toEmail": " a {{email}}",
+      "resend": "Renvoyer l'email",
+      "resending": "Envoi...",
+      "checkSpam": "Verifiez vos spams si vous ne trouvez pas l'email.",
+      "resendSuccess": "Un nouveau lien de confirmation a ete envoye.",
+      "resendMissingEmail": "Impossible de renvoyer sans adresse email.",
+      "errorTitle": "Session introuvable",
+      "errorBody": "Aucune session de paiement n'a ete trouvee. Si vous avez deja paye, verifiez vos emails."
+    },
+    "inscriptionConfirm": {
+      "loadingLink": "Verification du lien...",
+      "createPasswordTitle": "Creez votre mot de passe",
+      "createPasswordSubtitle": "Derniere etape pour finaliser votre inscription.",
+      "passwordLabel": "Mot de passe *",
+      "passwordHelper": "Minimum 8 caracteres",
+      "confirmPasswordLabel": "Confirmer le mot de passe *",
+      "passwordMismatch": "Les mots de passe ne correspondent pas",
+      "submitting": "Creation en cours...",
+      "submit": "Creer mon mot de passe",
+      "successTitle": "Inscription finalisee !",
+      "successBody": "Votre compte a ete cree avec succes. Redirection vers votre tableau de bord...",
+      "alreadyCompletedTitle": "Inscription deja finalisee",
+      "alreadyCompletedBody": "Votre compte a deja ete cree. Vous pouvez vous connecter avec vos identifiants.",
+      "loginButton": "Se connecter",
+      "expiredTitle": "Lien expire",
+      "expiredBody": "Le lien de confirmation a expire. Veuillez contacter le support pour obtenir un nouveau lien.",
+      "errorTitle": "Lien invalide",
+      "errorBody": "Le lien de confirmation est invalide. Veuillez contacter le support.",
+      "invalidTokenError": "Lien de confirmation invalide. Aucun token fourni.",
+      "invalidOrExpiredError": "Le lien de confirmation est invalide ou a expire.",
+      "submitErrorGeneric": "Une erreur est survenue. Veuillez reessayer.",
+      "forfaitChip": "Forfait {{forfait}}",
+      "forfaits": {
+        "essentiel": "Essentiel",
+        "confort": "Confort",
+        "premium": "Premium"
+      }
+    },
+    "support": {
+      "headerSubtitle": "Contactez notre support",
+      "submittedTitle": "Message envoyé !",
+      "submittedBody": "Notre équipe vous contactera dans les 24 heures.",
+      "backToLogin": "Retour à la connexion",
+      "fields": {
+        "nameLabel": "Nom complet",
+        "emailLabel": "Email",
+        "phoneLabel": "Téléphone (optionnel)",
+        "subjectLabel": "Sujet",
+        "messageLabel": "Votre message",
+        "messagePlaceholder": "Décrivez votre problème ou votre demande..."
+      },
+      "subjects": {
+        "access": "Problème d'accès / connexion",
+        "technical": "Problème technique",
+        "billing": "Facturation / abonnement",
+        "feature": "Demande de fonctionnalité",
+        "other": "Autre"
+      },
+      "submit": "Envoyer",
+      "submitError": "Une erreur est survenue lors de l'envoi. Veuillez réessayer ou nous contacter à info@clenzy.fr."
+    },
+    "legal": {
+      "back": "Retour",
+      "lastUpdated": "Dernière mise à jour : {{date}}",
+      "footerCgu": "CGU",
+      "footerPrivacy": "Politique de confidentialité",
+      "footerSupport": "Support"
     }
   }
 }

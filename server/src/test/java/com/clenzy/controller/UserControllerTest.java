@@ -370,4 +370,83 @@ class UserControllerTest {
             assertThat(response.getStatusCode().value()).isEqualTo(400);
         }
     }
+
+    @Nested
+    @DisplayName("marketing preferences (RGPD article 7-3)")
+    class MarketingPreferences {
+
+        @Test
+        @DisplayName("GET returns current newsletterOptIn from the user entity")
+        void whenGet_thenReturnsCurrentOptIn() {
+            // Arrange
+            User user = buildUser(1L, "kc-123", "jean@test.com");
+            user.setNewsletterOptIn(true);
+            when(userRepository.findByKeycloakId("kc-123")).thenReturn(Optional.of(user));
+            Jwt jwt = buildJwt("kc-123", false);
+
+            // Act
+            ResponseEntity<Map<String, Object>> response = controller.getMyMarketingPreferences(jwt);
+
+            // Assert
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).containsEntry("newsletterOptIn", true);
+        }
+
+        @Test
+        @DisplayName("PUT updates newsletterOptIn to false (retrait du consentement)")
+        void whenPutFalse_thenUpdatesOptOut() {
+            // Arrange
+            User user = buildUser(1L, "kc-123", "jean@test.com");
+            user.setNewsletterOptIn(true);
+            when(userRepository.findByKeycloakId("kc-123")).thenReturn(Optional.of(user));
+            Jwt jwt = buildJwt("kc-123", false);
+
+            // Act
+            ResponseEntity<Map<String, Object>> response = controller.updateMyMarketingPreferences(
+                    Map.of("newsletterOptIn", false), jwt);
+
+            // Assert
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).containsEntry("newsletterOptIn", false);
+            assertThat(user.isNewsletterOptIn()).isFalse();
+            verify(userRepository).save(user);
+        }
+
+        @Test
+        @DisplayName("PUT with non-boolean newsletterOptIn returns 400")
+        void whenPutInvalidType_thenReturns400() {
+            // Arrange
+            User user = buildUser(1L, "kc-123", "jean@test.com");
+            when(userRepository.findByKeycloakId("kc-123")).thenReturn(Optional.of(user));
+            Jwt jwt = buildJwt("kc-123", false);
+
+            // Act
+            ResponseEntity<Map<String, Object>> response = controller.updateMyMarketingPreferences(
+                    Map.of("newsletterOptIn", "true"), jwt); // String au lieu de Boolean
+
+            // Assert
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("PUT with empty body is a no-op (returns current state)")
+        void whenPutEmptyBody_thenNoOp() {
+            // Arrange
+            User user = buildUser(1L, "kc-123", "jean@test.com");
+            user.setNewsletterOptIn(true);
+            when(userRepository.findByKeycloakId("kc-123")).thenReturn(Optional.of(user));
+            Jwt jwt = buildJwt("kc-123", false);
+
+            // Act
+            ResponseEntity<Map<String, Object>> response = controller.updateMyMarketingPreferences(
+                    Map.of(), jwt);
+
+            // Assert
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).containsEntry("newsletterOptIn", true);
+            // Save est appele meme si rien ne change (acceptable comportement)
+            verify(userRepository).save(user);
+        }
+    }
 }

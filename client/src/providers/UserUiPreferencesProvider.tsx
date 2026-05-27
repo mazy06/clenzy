@@ -26,6 +26,8 @@ type Prefs = Record<string, unknown>;
 interface UserUiPreferencesContextValue {
   prefs: Prefs;
   isLoading: boolean;
+  /** {@code true} ssi la liste a ete recuperee du backend (vs cache vide initial). */
+  isLoaded: boolean;
   /** Update local + queue debounced PUT to server. */
   setPref: <T>(key: string, value: T) => void;
   /** Delete locally + DELETE on server. */
@@ -39,6 +41,7 @@ const DEBOUNCE_MS = 350;
 export function UserUiPreferencesProvider({ children }: { children: React.ReactNode }) {
   const [prefs, setPrefs] = useState<Prefs>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const isAuthed = useIsAuthenticated();
 
   // Map<key, NodeJS.Timeout> — timers de debounce par cle
@@ -52,6 +55,7 @@ export function UserUiPreferencesProvider({ children }: { children: React.ReactN
       // session voie les prefs de user A avant son propre fetch.
       setPrefs({});
       setIsLoading(false);
+      setIsLoaded(false);
       return;
     }
 
@@ -62,10 +66,12 @@ export function UserUiPreferencesProvider({ children }: { children: React.ReactN
       .then((data) => {
         if (cancelled) return;
         setPrefs(data ?? {});
+        setIsLoaded(true);
       })
       .catch(() => {
         // Best-effort : si le backend repond 401/500, on continue avec un cache vide.
-        // Les hooks consommateurs retourneront leur defaultValue.
+        // Les hooks consommateurs retourneront leur defaultValue. isLoaded
+        // reste a false → les consumers savent que c'est une valeur fallback.
         if (cancelled) return;
         setPrefs({});
       })
@@ -124,8 +130,8 @@ export function UserUiPreferencesProvider({ children }: { children: React.ReactN
   }, []);
 
   const value = useMemo<UserUiPreferencesContextValue>(
-    () => ({ prefs, isLoading, setPref, deletePref }),
-    [prefs, isLoading, setPref, deletePref],
+    () => ({ prefs, isLoading, isLoaded, setPref, deletePref }),
+    [prefs, isLoading, isLoaded, setPref, deletePref],
   );
 
   return (

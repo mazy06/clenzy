@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Paper,
@@ -16,6 +17,7 @@ import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient from '../../services/apiClient';
 
 export default function InscriptionSuccess() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const sessionId = searchParams.get('session_id');
@@ -43,7 +45,7 @@ export default function InscriptionSuccess() {
 
   const handleResend = async () => {
     if (!inscriptionEmail) {
-      setResendMessage('Impossible de renvoyer sans adresse email.');
+      setResendMessage(t('auth.inscriptionSuccess.resendMissingEmail', 'Impossible de renvoyer sans adresse email.'));
       return;
     }
     setResending(true);
@@ -52,9 +54,9 @@ export default function InscriptionSuccess() {
       await apiClient.post('/public/inscription/resend-confirmation', {
         email: inscriptionEmail,
       }, { skipAuth: true });
-      setResendMessage('Un nouveau lien de confirmation a ete envoye.');
+      setResendMessage(t('auth.inscriptionSuccess.resendSuccess', 'Un nouveau lien de confirmation a ete envoye.'));
     } catch {
-      setResendMessage('Un nouveau lien de confirmation a ete envoye.');
+      setResendMessage(t('auth.inscriptionSuccess.resendSuccess', 'Un nouveau lien de confirmation a ete envoye.'));
     } finally {
       setResending(false);
     }
@@ -90,7 +92,7 @@ export default function InscriptionSuccess() {
             <Box sx={{ py: 4 }}>
               <CircularProgress sx={{ color: '#6B8A9A', mb: 2 }} />
               <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.secondary' }}>
-                Finalisation de votre paiement...
+                {t('auth.inscriptionSuccess.loading', 'Finalisation de votre paiement...')}
               </Typography>
             </Box>
           )}
@@ -111,14 +113,21 @@ export default function InscriptionSuccess() {
                 <MarkEmailRead size={72} strokeWidth={1.75} />
               </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
-                Verifiez votre boite email
+                {t('auth.inscriptionSuccess.successTitle', 'Verifiez votre boite email')}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-                Votre paiement a ete confirme avec succes.
+                {t('auth.inscriptionSuccess.paymentConfirmed', 'Votre paiement a ete confirme avec succes.')}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-                Un email de confirmation a ete envoye{inscriptionEmail ? ` a ${inscriptionEmail}` : ''}.
-                Cliquez sur le lien dans l'email pour creer votre mot de passe et finaliser votre inscription.
+                {t(
+                  'auth.inscriptionSuccess.checkEmail',
+                  `Un email de confirmation a ete envoye${inscriptionEmail ? ` a ${inscriptionEmail}` : ''}. Cliquez sur le lien dans l'email pour creer votre mot de passe et finaliser votre inscription.`,
+                  {
+                    toEmail: inscriptionEmail
+                      ? t('auth.inscriptionSuccess.toEmail', ` a ${inscriptionEmail}`, { email: inscriptionEmail })
+                      : '',
+                  },
+                )}
               </Typography>
 
               {resendMessage && (
@@ -144,12 +153,14 @@ export default function InscriptionSuccess() {
                   boxShadow: '0 4px 12px rgba(107,138,154,0.3)',
                 }}
               >
-                {resending ? 'Envoi...' : "Renvoyer l'email"}
+                {resending
+                  ? t('auth.inscriptionSuccess.resending', 'Envoi...')
+                  : t('auth.inscriptionSuccess.resend', "Renvoyer l'email")}
               </Button>
 
               <Box sx={{ mt: 2 }}>
                 <Typography variant="caption" color="text.secondary">
-                  Verifiez vos spams si vous ne trouvez pas l'email.
+                  {t('auth.inscriptionSuccess.checkSpam', "Verifiez vos spams si vous ne trouvez pas l'email.")}
                 </Typography>
               </Box>
             </Box>
@@ -159,10 +170,10 @@ export default function InscriptionSuccess() {
             <Box sx={{ py: 3 }}>
               <Box component="span" sx={{ display: 'inline-flex', color: 'error.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                Session introuvable
+                {t('auth.inscriptionSuccess.errorTitle', 'Session introuvable')}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-                Aucune session de paiement n'a ete trouvee. Si vous avez deja paye, verifiez vos emails.
+                {t('auth.inscriptionSuccess.errorBody', "Aucune session de paiement n'a ete trouvee. Si vous avez deja paye, verifiez vos emails.")}
               </Typography>
               <Button
                 variant="outlined"
@@ -173,7 +184,7 @@ export default function InscriptionSuccess() {
                   '&:hover': { borderColor: '#5A7684', backgroundColor: 'rgba(107,138,154,0.04)' },
                 }}
               >
-                Retour a la connexion
+                {t('auth.common.backToLogin', 'Retour a la connexion')}
               </Button>
             </Box>
           )}

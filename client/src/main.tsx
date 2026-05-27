@@ -17,6 +17,7 @@ import { NotificationProvider } from './hooks/useNotification'
 import { ThemeModeProvider, useThemeMode } from './hooks/useThemeMode'
 import { CurrencyProvider } from './hooks/useCurrency'
 import { useGeoDetection } from './hooks/useGeoDetection'
+import { AuthProvider } from './contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
 import './i18n/config'
 
@@ -118,7 +119,9 @@ function AppWithTheme() {
             <NotificationProvider>
               <ThemeSafetyWrapper>
                 <BrowserRouter>
-                  <App />
+                  <AuthProvider>
+                    <App />
+                  </AuthProvider>
                 </BrowserRouter>
               </ThemeSafetyWrapper>
             </NotificationProvider>

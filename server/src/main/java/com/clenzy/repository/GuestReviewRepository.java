@@ -35,6 +35,21 @@ public interface GuestReviewRepository extends JpaRepository<GuestReview, Long> 
     @Query("SELECT AVG(r.rating) FROM GuestReview r WHERE r.propertyId = :propertyId AND r.organizationId = :orgId")
     Double averageRatingByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
+    /**
+     * Batch : moyennes de ratings pour N proprietes en UNE seule query.
+     * Utilise par {@code AnalyzePortfolioTool.computeMetrics} pour eviter le N+1
+     * (50 proprietes → 1 query au lieu de 50 sequentielles).
+     *
+     * <p>Retourne {@code [propertyId, avgRating]} pour chaque propriete qui a
+     * au moins une review. Les proprietes sans review ne sont pas retournees
+     * — le caller doit faire un Map.getOrDefault().</p>
+     */
+    @Query("SELECT r.propertyId, AVG(r.rating) FROM GuestReview r "
+            + "WHERE r.propertyId IN :propertyIds AND r.organizationId = :orgId "
+            + "GROUP BY r.propertyId")
+    List<Object[]> averageRatingByPropertyIds(@Param("propertyIds") List<Long> propertyIds,
+                                                @Param("orgId") Long orgId);
+
     @Query("SELECT COUNT(r) FROM GuestReview r WHERE r.propertyId = :propertyId AND r.organizationId = :orgId")
     long countByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
