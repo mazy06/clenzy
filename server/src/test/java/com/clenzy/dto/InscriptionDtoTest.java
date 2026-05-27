@@ -199,6 +199,65 @@ class InscriptionDtoTest {
         dto.setEmail("jean@example.com");
         dto.setPassword("securepass");
         dto.setForfait("essentiel");
+        dto.setAcceptedTerms(true); // CGU obligatoires (validation @AssertTrue)
         return dto;
+    }
+
+    // --- Validation : CGU + attribution (champs ajoutes pour le consentement RGPD) ---
+
+    @Test
+    void validation_termsNotAccepted_hasViolation() {
+        InscriptionDto dto = createValidDto();
+        dto.setAcceptedTerms(false);
+        Set<ConstraintViolation<InscriptionDto>> violations = validator.validate(dto);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("termsAccepted")));
+    }
+
+    @Test
+    void validation_validReferralSource_noViolation() {
+        InscriptionDto dto = createValidDto();
+        dto.setReferralSource("google");
+        Set<ConstraintViolation<InscriptionDto>> violations = validator.validate(dto);
+        assertTrue(violations.isEmpty());
+    }
+
+    @Test
+    void validation_invalidReferralSource_hasViolation() {
+        InscriptionDto dto = createValidDto();
+        dto.setReferralSource("not-a-valid-source");
+        Set<ConstraintViolation<InscriptionDto>> violations = validator.validate(dto);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("referralSourceValid")));
+    }
+
+    @Test
+    void validation_nullReferralSource_noViolation() {
+        // referralSource est optionnel — null doit etre accepte
+        InscriptionDto dto = createValidDto();
+        dto.setReferralSource(null);
+        Set<ConstraintViolation<InscriptionDto>> violations = validator.validate(dto);
+        assertTrue(violations.isEmpty());
+    }
+
+    @Test
+    void setPromoCode_normalizesToUpperCase() {
+        InscriptionDto dto = new InscriptionDto();
+        dto.setPromoCode(" promo123 ");
+        assertEquals("PROMO123", dto.getPromoCode());
+    }
+
+    @Test
+    void setPromoCode_blankBecomesNull() {
+        InscriptionDto dto = new InscriptionDto();
+        dto.setPromoCode("   ");
+        assertEquals(null, dto.getPromoCode());
+    }
+
+    @Test
+    void setReferralSource_normalizesToLowerCase() {
+        InscriptionDto dto = new InscriptionDto();
+        dto.setReferralSource(" GOOGLE ");
+        assertEquals("google", dto.getReferralSource());
     }
 }

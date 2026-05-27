@@ -18,6 +18,10 @@ import {
   ToggleButton,
   Card,
   CardContent,
+  Checkbox,
+  FormControlLabel,
+  Link as MuiLink,
+  MenuItem,
 } from '@mui/material';
 import {
   ShoppingCart as CartIcon,
@@ -135,6 +139,22 @@ const FORFAIT_COLORS: Record<string, string> = {
   premium: '#5A7684',
 };
 
+/**
+ * Sources d'acquisition declarees a l'inscription (attribution marketing).
+ * Liste fermee — synchronisee avec {@code InscriptionDto.ALLOWED_REFERRAL_SOURCES}
+ * cote backend.
+ */
+type ReferralSource = 'google' | 'social' | 'word_of_mouth' | 'press' | 'partner' | 'other';
+
+const REFERRAL_SOURCE_OPTIONS: Array<{ value: ReferralSource; label: string }> = [
+  { value: 'google', label: 'Recherche Google' },
+  { value: 'social', label: 'Réseaux sociaux (Instagram, LinkedIn…)' },
+  { value: 'word_of_mouth', label: 'Bouche-à-oreille' },
+  { value: 'press', label: 'Presse / blog' },
+  { value: 'partner', label: 'Partenaire' },
+  { value: 'other', label: 'Autre' },
+];
+
 const steps = ['Vos informations', 'Paiement'];
 
 const STEP_ICONS: Record<number, React.ReactElement> = {
@@ -225,6 +245,12 @@ export default function Inscription() {
   const [pmsMonthlyPriceCents, setPmsMonthlyPriceCents] = useState<number | null>(null);
   const [pmsSyncPriceCents, setPmsSyncPriceCents] = useState<number | null>(null);
 
+  // Consentement RGPD + attribution (4 nouveaux champs)
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [referralSource, setReferralSource] = useState<ReferralSource | ''>('');
+
   // Determiner si l'utilisateur a choisi la synchronisation calendrier (venant de la landing page)
   const isSyncMode = prefill.calendarSync === 'sync';
 
@@ -270,7 +296,8 @@ export default function Inscription() {
     const phoneDigits = phone.replace(/[\s.\-]/g, '');
     const phoneOk = !phone.trim() || /^(?:(?:\+33|0033)[1-9]\d{8}|0[1-9]\d{8})$/.test(phoneDigits);
     const companyOk = !isProType || companyName.trim().length > 0;
-    return nameOk && emailOk && phoneOk && !!forfait && companyOk;
+    // RGPD : l'acceptation des CGU est obligatoire avant de continuer vers le paiement
+    return nameOk && emailOk && phoneOk && !!forfait && companyOk && acceptedTerms;
   };
 
   const handleNext = () => {
@@ -310,6 +337,11 @@ export default function Inscription() {
         calendarSync: prefill.calendarSync || undefined,
         services: prefill.services ? prefill.services.split(',') : undefined,
         servicesDevis: prefill.servicesDevis ? prefill.servicesDevis.split(',') : undefined,
+        // Consentement RGPD + attribution
+        acceptedTerms,
+        newsletterOptIn,
+        promoCode: promoCode.trim() || undefined,
+        referralSource: referralSource || undefined,
       }, { skipAuth: true });
 
       // Stocker le clientSecret + prix confirmes et passer au step Paiement
@@ -587,7 +619,7 @@ export default function Inscription() {
                     <Chip size="small" variant="outlined" label={PROPERTY_TYPE_LABELS[prefill.propertyType] || prefill.propertyType} />
                   )}
                   {prefill.surface && (
-                    <Chip size="small" variant="outlined" label={`${prefill.surface} m\u00B2`} />
+                    <Chip size="small" variant="outlined" label={`${prefill.surface} m²`} />
                   )}
                   {prefill.guestCapacity && (
                     <Chip size="small" variant="outlined" label={`${prefill.guestCapacity} voyageurs`} />
@@ -601,6 +633,112 @@ export default function Inscription() {
                 </Box>
               </>
             )}
+
+            {/* Code promo + source d'acquisition (optionnels, collapsibles visuellement) */}
+            <Divider sx={{ my: 1 }} />
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                gap: 2,
+              }}
+            >
+              <TextField
+                fullWidth
+                size="small"
+                label="Code promo / parrainage"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                placeholder="Optionnel"
+                inputProps={{ maxLength: 50, style: { textTransform: 'uppercase' } }}
+                helperText="Si vous en avez un"
+              />
+              <TextField
+                select
+                fullWidth
+                size="small"
+                label="Comment nous avez-vous connu ?"
+                value={referralSource}
+                onChange={(e) => setReferralSource(e.target.value as ReferralSource)}
+                helperText="Optionnel — nous aide à mieux vous servir"
+                SelectProps={{ displayEmpty: true }}
+              >
+                <MenuItem value="">
+                  <Typography component="span" variant="body2" sx={{ color: 'text.disabled' }}>
+                    Sélectionner…
+                  </Typography>
+                </MenuItem>
+                {REFERRAL_SOURCE_OPTIONS.map((opt) => (
+                  <MenuItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+
+            {/* Consentements RGPD (CGU obligatoire + newsletter optionnel) */}
+            <Divider sx={{ my: 1 }} />
+            <Box>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    size="small"
+                    sx={{
+                      color: 'divider',
+                      '&.Mui-checked': { color: 'primary.main' },
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.4 }}>
+                    J'accepte les{' '}
+                    <MuiLink
+                      href="/cgu"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'underline' }}
+                    >
+                      conditions générales d'utilisation
+                    </MuiLink>{' '}
+                    et la{' '}
+                    <MuiLink
+                      href="/confidentialite"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'underline' }}
+                    >
+                      politique de confidentialité
+                    </MuiLink>
+                    {' '}
+                    <Typography component="span" variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>
+                      *
+                    </Typography>
+                  </Typography>
+                }
+                sx={{ alignItems: 'flex-start', mr: 0, '& .MuiFormControlLabel-label': { mt: 0.4 } }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={newsletterOptIn}
+                    onChange={(e) => setNewsletterOptIn(e.target.checked)}
+                    size="small"
+                    sx={{
+                      color: 'divider',
+                      '&.Mui-checked': { color: 'primary.main' },
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.4 }}>
+                    Je souhaite recevoir la newsletter Clenzy (nouveautés produit, conseils gestion locative).
+                  </Typography>
+                }
+                sx={{ alignItems: 'flex-start', mr: 0, mt: 0.5, '& .MuiFormControlLabel-label': { mt: 0.4 } }}
+              />
+            </Box>
           </Stack>
         )}
 

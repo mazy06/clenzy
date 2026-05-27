@@ -106,6 +106,14 @@ public class InscriptionService {
     public Map<String, Object> initiateInscription(InscriptionDto dto) throws StripeException {
         logger.info("Initiation inscription pour email: {}, forfait: {}", dto.getEmail(), dto.getForfait());
 
+        // Defense en profondeur : verifier l'acceptation des CGU cote serveur,
+        // au cas ou le frontend serait contourne. @AssertTrue le fait deja via
+        // @Valid sur le controller, mais on log explicitement ici pour audit.
+        if (!dto.isAcceptedTerms()) {
+            logger.warn("Tentative d'inscription sans acceptation des CGU pour: {}", dto.getEmail());
+            throw new RuntimeException("Vous devez accepter les conditions generales pour creer un compte.");
+        }
+
         // Verifier que l'email n'est pas deja utilise dans la table users
         // Message generique pour eviter l'enumeration d'emails (AUTH-VULN-10)
         if (userRepository.existsByEmailHash(StringUtils.computeEmailHash(dto.getEmail()))) {
@@ -236,6 +244,11 @@ public class InscriptionService {
             pending.setServicesDevis(String.join(",", dto.getServicesDevis()));
         }
         pending.setBillingPeriod(period.name());
+        // Consentement RGPD + attribution
+        pending.setAcceptedTermsAt(LocalDateTime.now());
+        pending.setNewsletterOptIn(dto.isNewsletterOptIn());
+        pending.setPromoCode(dto.getPromoCode());
+        pending.setReferralSource(dto.getReferralSource());
         pending.setStripeSessionId(session.getId());
         pending.setStatus(PendingInscriptionStatus.PENDING_PAYMENT);
         // Expiration apres 24h si non paye
@@ -395,6 +408,11 @@ public class InscriptionService {
             user.setServices(pending.getServices());
             user.setServicesDevis(pending.getServicesDevis());
             user.setBillingPeriod(pending.getBillingPeriod());
+            // Consentement RGPD + attribution (audit + ciblage marketing)
+            user.setAcceptedTermsAt(pending.getAcceptedTermsAt());
+            user.setNewsletterOptIn(pending.isNewsletterOptIn());
+            user.setPromoCode(pending.getPromoCode());
+            user.setReferralSource(pending.getReferralSource());
 
             userRepository.save(user);
             logger.info("Utilisateur DB cree avec ID: {} pour email: {}", user.getId(), user.getEmail());
