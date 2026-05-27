@@ -1,6 +1,6 @@
 package com.clenzy.repository;
 
-import com.clenzy.model.PromoCode;
+import com.clenzy.model.PlatformPromoCode;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -8,14 +8,14 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
-public interface PromoCodeRepository extends JpaRepository<PromoCode, Long> {
+public interface PlatformPromoCodeRepository extends JpaRepository<PlatformPromoCode, Long> {
 
     /**
      * Lookup case-insensitive (le code est stocke UPPER mais on normalise
      * par securite cote query).
      */
-    @Query("SELECT p FROM PromoCode p WHERE UPPER(p.code) = UPPER(:code)")
-    Optional<PromoCode> findByCodeIgnoreCase(@Param("code") String code);
+    @Query("SELECT p FROM PlatformPromoCode p WHERE UPPER(p.code) = UPPER(:code)")
+    Optional<PlatformPromoCode> findByCodeIgnoreCase(@Param("code") String code);
 
     /**
      * Increment atomique du compteur d'usage. Renvoie le nombre de lignes
@@ -27,7 +27,7 @@ public interface PromoCodeRepository extends JpaRepository<PromoCode, Long> {
      */
     @Modifying
     @Query("""
-            UPDATE PromoCode p
+            UPDATE PlatformPromoCode p
             SET p.usedCount = p.usedCount + 1
             WHERE p.id = :id
               AND p.active = true

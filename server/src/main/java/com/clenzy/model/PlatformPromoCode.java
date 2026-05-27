@@ -14,12 +14,12 @@ import java.util.Objects;
  * accepte par le schema mais l'application Stripe necessitera un coupon dedie.</p>
  *
  * <p>Le compteur {@link #usedCount} est incremente via UPDATE atomique dans
- * {@code PromoCodeService} (pas de @Version necessaire — un UPDATE conditionnel
+ * {@code PlatformPromoCodeService} (pas de @Version necessaire — un UPDATE conditionnel
  * sur (id, used_count < max_uses) garantit la non-double-consommation).</p>
  */
 @Entity
-@Table(name = "promo_codes")
-public class PromoCode {
+@Table(name = "platform_promo_codes")
+public class PlatformPromoCode {
 
     public enum DiscountType {
         /** Reduction en pourcentage (1-100). */
@@ -73,9 +73,9 @@ public class PromoCode {
 
     // ─── Constructeurs ──────────────────────────────────────────────────────
 
-    public PromoCode() {}
+    public PlatformPromoCode() {}
 
-    public PromoCode(String code, DiscountType type, Integer value) {
+    public PlatformPromoCode(String code, DiscountType type, Integer value) {
         this.code = code != null ? code.trim().toUpperCase() : null;
         this.discountType = type;
         this.discountValue = value;
@@ -88,7 +88,7 @@ public class PromoCode {
      * fenetre de validite, quota non epuise).
      *
      * <p>Note : le check de quota ici est <em>indicatif</em>. La consommation
-     * reelle doit utiliser un UPDATE atomique (PromoCodeService.tryConsume).</p>
+     * reelle doit utiliser un UPDATE atomique (PlatformPromoCodeService.tryConsume).</p>
      */
     public boolean isUsableAt(LocalDateTime now) {
         if (!active) return false;
@@ -152,7 +152,7 @@ public class PromoCode {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof PromoCode that)) return false;
+        if (!(o instanceof PlatformPromoCode that)) return false;
         return Objects.equals(id, that.id);
     }
 

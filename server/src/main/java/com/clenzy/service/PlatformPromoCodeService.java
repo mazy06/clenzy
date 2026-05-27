@@ -1,7 +1,7 @@
 package com.clenzy.service;
 
-import com.clenzy.model.PromoCode;
-import com.clenzy.repository.PromoCodeRepository;
+import com.clenzy.model.PlatformPromoCode;
+import com.clenzy.repository.PlatformPromoCodeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -36,30 +36,30 @@ import java.util.Optional;
  */
 @Service
 @Transactional
-public class PromoCodeService {
+public class PlatformPromoCodeService {
 
-    private static final Logger logger = LoggerFactory.getLogger(PromoCodeService.class);
+    private static final Logger logger = LoggerFactory.getLogger(PlatformPromoCodeService.class);
 
-    private final PromoCodeRepository repository;
+    private final PlatformPromoCodeRepository repository;
     private final Clock clock;
 
     @org.springframework.beans.factory.annotation.Autowired
-    public PromoCodeService(PromoCodeRepository repository) {
+    public PlatformPromoCodeService(PlatformPromoCodeRepository repository) {
         this(repository, Clock.systemUTC());
     }
 
     /** Constructeur package-private pour les tests (Clock mock). */
-    PromoCodeService(PromoCodeRepository repository, Clock clock) {
+    PlatformPromoCodeService(PlatformPromoCodeRepository repository, Clock clock) {
         this.repository = repository;
         this.clock = clock;
     }
 
     /**
-     * Valide un code (read-only). Retourne le PromoCode si utilisable
+     * Valide un code (read-only). Retourne le PlatformPromoCode si utilisable
      * <em>au moment de l'appel</em>, sinon empty.
      */
     @Transactional(readOnly = true)
-    public Optional<PromoCode> validate(String rawCode) {
+    public Optional<PlatformPromoCode> validate(String rawCode) {
         if (rawCode == null || rawCode.isBlank()) return Optional.empty();
         var found = repository.findByCodeIgnoreCase(rawCode.trim());
         if (found.isEmpty()) {

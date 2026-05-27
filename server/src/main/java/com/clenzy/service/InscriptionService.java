@@ -51,7 +51,7 @@ public class InscriptionService {
     private final PricingConfigService pricingConfigService;
     private final EmailService emailService;
     private final RestTemplate restTemplate;
-    private final PromoCodeService promoCodeService;
+    private final PlatformPromoCodeService promoCodeService;
 
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
@@ -85,7 +85,7 @@ public class InscriptionService {
             PricingConfigService pricingConfigService,
             EmailService emailService,
             RestTemplate restTemplate,
-            PromoCodeService promoCodeService) {
+            PlatformPromoCodeService promoCodeService) {
         this.pendingInscriptionRepository = pendingInscriptionRepository;
         this.userRepository = userRepository;
         this.keycloakService = keycloakService;
@@ -624,7 +624,7 @@ public class InscriptionService {
                     .putMetadata("clenzy_promo_code", promo.getCode())
                     .putMetadata("clenzy_email", emailForAudit);
 
-            if (promo.getDiscountType() == com.clenzy.model.PromoCode.DiscountType.PERCENTAGE) {
+            if (promo.getDiscountType() == com.clenzy.model.PlatformPromoCode.DiscountType.PERCENTAGE) {
                 // PercentOff accepte un BigDecimal (1.0 a 100.0)
                 couponBuilder.setPercentOff(new java.math.BigDecimal(promo.getDiscountValue()));
             } else {

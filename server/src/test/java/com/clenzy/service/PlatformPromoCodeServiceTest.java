@@ -1,7 +1,7 @@
 package com.clenzy.service;
 
-import com.clenzy.model.PromoCode;
-import com.clenzy.repository.PromoCodeRepository;
+import com.clenzy.model.PlatformPromoCode;
+import com.clenzy.repository.PlatformPromoCodeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -24,10 +24,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class PromoCodeServiceTest {
+class PlatformPromoCodeServiceTest {
 
-    @Mock private PromoCodeRepository repository;
-    private PromoCodeService service;
+    @Mock private PlatformPromoCodeRepository repository;
+    private PlatformPromoCodeService service;
 
     /** Clock fige a une date stable pour des tests deterministes. */
     private final Clock fixedClock = Clock.fixed(
@@ -35,11 +35,11 @@ class PromoCodeServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PromoCodeService(repository, fixedClock);
+        service = new PlatformPromoCodeService(repository, fixedClock);
     }
 
-    private PromoCode build(String code, int percent, Integer maxUses, Integer usedCount) {
-        var promo = new PromoCode(code, PromoCode.DiscountType.PERCENTAGE, percent);
+    private PlatformPromoCode build(String code, int percent, Integer maxUses, Integer usedCount) {
+        var promo = new PlatformPromoCode(code, PlatformPromoCode.DiscountType.PERCENTAGE, percent);
         promo.setId(42L);
         promo.setMaxUses(maxUses);
         promo.setUsedCount(usedCount);
@@ -146,28 +146,28 @@ class PromoCodeServiceTest {
         @Test
         @DisplayName("PERCENTAGE applies correct discount")
         void whenPercentage_thenAppliesPercent() {
-            var promo = new PromoCode("X", PromoCode.DiscountType.PERCENTAGE, 25);
+            var promo = new PlatformPromoCode("X", PlatformPromoCode.DiscountType.PERCENTAGE, 25);
             assertThat(promo.applyTo(10000)).isEqualTo(7500); // -25% sur 100€
         }
 
         @Test
         @DisplayName("PERCENTAGE 100% reduces to 0")
         void whenHundredPercent_thenZero() {
-            var promo = new PromoCode("X", PromoCode.DiscountType.PERCENTAGE, 100);
+            var promo = new PlatformPromoCode("X", PlatformPromoCode.DiscountType.PERCENTAGE, 100);
             assertThat(promo.applyTo(10000)).isEqualTo(0);
         }
 
         @Test
         @DisplayName("FIXED subtracts the value")
         void whenFixed_thenSubtracts() {
-            var promo = new PromoCode("X", PromoCode.DiscountType.FIXED, 500); // -5€
+            var promo = new PlatformPromoCode("X", PlatformPromoCode.DiscountType.FIXED, 500); // -5€
             assertThat(promo.applyTo(10000)).isEqualTo(9500);
         }
 
         @Test
         @DisplayName("FIXED greater than amount clamps to 0")
         void whenFixedGreaterThanAmount_thenZero() {
-            var promo = new PromoCode("X", PromoCode.DiscountType.FIXED, 99999);
+            var promo = new PlatformPromoCode("X", PlatformPromoCode.DiscountType.FIXED, 99999);
             assertThat(promo.applyTo(1000)).isEqualTo(0);
         }
     }

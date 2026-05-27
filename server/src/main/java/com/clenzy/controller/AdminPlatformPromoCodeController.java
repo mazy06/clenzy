@@ -1,7 +1,7 @@
 package com.clenzy.controller;
 
-import com.clenzy.model.PromoCode;
-import com.clenzy.repository.PromoCodeRepository;
+import com.clenzy.model.PlatformPromoCode;
+import com.clenzy.repository.PlatformPromoCodeRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -27,17 +27,17 @@ import java.util.Map;
 @RequestMapping("/api/admin/promo-codes")
 @PreAuthorize("hasRole('SUPER_ADMIN')")
 @Tag(name = "Admin - Promo Codes", description = "CRUD des codes promo (admin uniquement)")
-public class AdminPromoCodeController {
+public class AdminPlatformPromoCodeController {
 
-    private final PromoCodeRepository repository;
+    private final PlatformPromoCodeRepository repository;
 
-    public AdminPromoCodeController(PromoCodeRepository repository) {
+    public AdminPlatformPromoCodeController(PlatformPromoCodeRepository repository) {
         this.repository = repository;
     }
 
     @GetMapping
     @Operation(summary = "Lister tous les codes promo")
-    public ResponseEntity<List<PromoCode>> list() {
+    public ResponseEntity<List<PlatformPromoCode>> list() {
         return ResponseEntity.ok(repository.findAll());
     }
 
@@ -51,10 +51,10 @@ public class AdminPromoCodeController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Le code est requis."));
             }
 
-            PromoCode promo = new PromoCode();
+            PlatformPromoCode promo = new PlatformPromoCode();
             promo.setCode(code);
             String type = (String) body.getOrDefault("discountType", "PERCENTAGE");
-            promo.setDiscountType(PromoCode.DiscountType.valueOf(type));
+            promo.setDiscountType(PlatformPromoCode.DiscountType.valueOf(type));
 
             Object value = body.get("discountValue");
             if (!(value instanceof Number)) {
@@ -77,7 +77,7 @@ public class AdminPromoCodeController {
             promo.setCreatedBy(jwt.getSubject());
 
             // Validation cote entity (% range, type, etc.) via JPA constraints
-            PromoCode saved = repository.save(promo);
+            PlatformPromoCode saved = repository.save(promo);
             return ResponseEntity.status(HttpStatus.CREATED).body(saved);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
