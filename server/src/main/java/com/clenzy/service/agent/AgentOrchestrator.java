@@ -408,6 +408,13 @@ public class AgentOrchestrator {
                     conversationRepository.save(conversation);
                     return conversation.getId();
                 }
+            } catch (com.clenzy.service.agent.multiagent.ConfirmationRequiredException e) {
+                // Cas attendu : un specialist a tente d'invoquer un write tool
+                // sensible (block_calendar, cancel_reservation, etc.). Le multi-agent
+                // ne sait pas faire la pause-confirmation → fallback mono-agent
+                // qui exposera la confirmation au user. Log info, pas warn.
+                log.info("Multi-agent fallback to mono-agent (tool '{}' requires confirmation)",
+                        e.toolName());
             } catch (Exception e) {
                 log.warn("Multi-agent flow failed, falling back to mono-agent : {}",
                         e.getMessage(), e);

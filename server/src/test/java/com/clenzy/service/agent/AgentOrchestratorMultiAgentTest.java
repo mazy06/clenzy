@@ -9,6 +9,7 @@ import com.clenzy.repository.OrgAiApiKeyRepository;
 import com.clenzy.service.AssistantMemoryService;
 import com.clenzy.service.PhotoStorageService;
 import com.clenzy.service.agent.kb.KbSearchService;
+import com.clenzy.service.agent.multiagent.ConfirmationRequiredException;
 import com.clenzy.service.agent.multiagent.OrchestratorAgent;
 import com.clenzy.service.agent.multiagent.SpecialistRegistry;
 import com.clenzy.service.agent.multiagent.ToolInvocationSnapshot;
@@ -206,6 +207,31 @@ class AgentOrchestratorMultiAgentTest {
         }
         // Multi-agent skip car vision pas supportee
         verify(multiAgent, never()).orchestrate(anyString(), any());
+    }
+
+    @Test
+    void multi_agent_confirmation_required_falls_back_to_mono_agent() {
+        // Fix bloquant #1 : un specialist a tente d'invoquer un write tool (ex:
+        // cancel_reservation). Le multi-agent ne sait pas faire la pause-confirm,
+        // donc throw ConfirmationRequiredException → AgentOrchestrator doit
+        // intercepter specifiquement (log info, pas warn) et basculer mono-agent
+        // qui exposera la confirmation au user via SSE.
+        when(specialistRegistry.size()).thenReturn(3);
+        when(multiAgent.orchestrate(anyString(), any()))
+                .thenThrow(new ConfirmationRequiredException("cancel_reservation"));
+        AgentOrchestrator agent = build(true);
+        List<AgentSseEvent> events = new ArrayList<>();
+
+        try {
+            agent.handleMessage(null, "annule ma reservation 42",
+                    AgentContext.minimal(1L, "user-multi"), events::add);
+        } catch (Exception ignored) {
+            // Mono-agent fallback essaie chatProvider sans stub → OK d'ignorer
+        }
+        // Multi-agent a bien ete invoque (et a throw)
+        verify(multiAgent).orchestrate(anyString(), any());
+        // Mono-agent (chatProvider) prend le relai → preuve du fallback
+        verify(chatProvider).streamChat(any(), any());
     }
 
     @Test
