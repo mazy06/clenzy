@@ -79,7 +79,10 @@ class AgentConfirmationFlowTest {
                 mock(com.clenzy.service.PhotoStorageService.class),
                 mock(com.clenzy.service.agent.kb.KbSearchService.class),
                 mock(com.clenzy.service.agent.prompt.PromptBuilder.class),
-                false);  // v2 off : on teste le flow confirmation, pas le prompt
+                mock(com.clenzy.service.agent.multiagent.OrchestratorAgent.class),
+                mock(com.clenzy.service.agent.multiagent.SpecialistRegistry.class),
+                false,  // v2 prompt off
+                false); // multi-agent off : on teste le flow confirmation, pas le prompt
 
         ctx = AgentContext.minimal(1L, "user-confirm-test");
 

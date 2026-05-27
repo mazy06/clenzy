@@ -59,7 +59,10 @@ class AgentOrchestratorTest {
                 memoryService, mock(com.clenzy.service.PhotoStorageService.class),
                 kbSearchService,
                 mock(com.clenzy.service.agent.prompt.PromptBuilder.class),
-                false);  // v2 OFF -> exercise v1 path (legacy DEFAULT_SYSTEM_PROMPT)
+                mock(com.clenzy.service.agent.multiagent.OrchestratorAgent.class),
+                mock(com.clenzy.service.agent.multiagent.SpecialistRegistry.class),
+                false,  // v2 prompt OFF -> exercise v1 legacy path
+                false); // multi-agent OFF -> exercise mono-agent runToolLoop
         ctx = AgentContext.minimal(1L, "user-123");
 
         when(toolRegistry.listDescriptors()).thenReturn(List.of());
