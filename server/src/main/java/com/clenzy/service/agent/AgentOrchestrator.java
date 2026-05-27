@@ -261,7 +261,29 @@ public class AgentOrchestrator {
     private final AssistantMemoryService memoryService;
     private final PhotoStorageService photoStorageService;
     private final KbSearchService kbSearchService;
+    private final com.clenzy.service.agent.prompt.PromptBuilder promptBuilder;
 
+    /**
+     * Feature flag rollback : si true, utilise le nouveau {@link com.clenzy.service.agent.prompt.PromptBuilder}
+     * (v2, sectionne en XML). Si false, fallback sur l'ancien {@link #DEFAULT_SYSTEM_PROMPT}.
+     *
+     * <p>Defaut true (v2 active). En cas de souci en prod, set
+     * {@code clenzy.assistant.prompt.v2.enabled=false} → retour instantane a l'ancien
+     * comportement sans redeploy de code.</p>
+     *
+     * <p>Garde-fou supplementaire : si v2 throw ou retourne null/blank, on log
+     * + fallback automatique sur v1 (voir {@link #buildSystemPrompt}).</p>
+     *
+     * <p><b>Injecte via constructor</b> (pas via field) : permet aux tests
+     * unitaires de l'instancier sans Spring tout en pouvant exercer les deux
+     * chemins v1/v2 explicitement.</p>
+     */
+    private final boolean promptV2Enabled;
+
+    /**
+     * Constructeur Spring (lit la valeur via {@code @Value} sur le parametre).
+     * Le parametre {@code promptV2Enabled} est injecte par Spring depuis la config.
+     */
     public AgentOrchestrator(ChatLLMProvider chatProvider,
                               ToolRegistry toolRegistry,
                               AssistantConversationRepository conversationRepository,
@@ -272,7 +294,10 @@ public class AgentOrchestrator {
                               PendingToolStore pendingToolStore,
                               AssistantMemoryService memoryService,
                               PhotoStorageService photoStorageService,
-                              KbSearchService kbSearchService) {
+                              KbSearchService kbSearchService,
+                              com.clenzy.service.agent.prompt.PromptBuilder promptBuilder,
+                              @org.springframework.beans.factory.annotation.Value("${clenzy.assistant.prompt.v2.enabled:true}")
+                              boolean promptV2Enabled) {
         this.chatProvider = chatProvider;
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
@@ -284,6 +309,8 @@ public class AgentOrchestrator {
         this.memoryService = memoryService;
         this.photoStorageService = photoStorageService;
         this.kbSearchService = kbSearchService;
+        this.promptBuilder = promptBuilder;
+        this.promptV2Enabled = promptV2Enabled;
     }
 
     /**
@@ -580,89 +607,120 @@ public class AgentOrchestrator {
     // ─── Helpers ───────────────────────────────────────────────────────────
 
     /**
-     * Construit le system prompt pour cette conversation en prependant la section
-     * "Memoire utilisateur" (top {@value #MAX_MEMORY_ENTRIES} entrees triees par
-     * recence, groupees par scope) au prompt par defaut.
+     * Construit le system prompt pour cette conversation.
      *
-     * <p>Si l'user n'a aucune memoire, retourne {@link #DEFAULT_SYSTEM_PROMPT}
-     * tel quel pour ne pas polluer le contexte avec une section vide.</p>
+     * <p>Variante sans userMessage : utilisee dans les resume-after-confirmation
+     * (pas de nouvelle query memoire/RAG).</p>
      */
     String buildSystemPrompt(AgentContext context) {
         return buildSystemPrompt(context, null);
     }
 
     /**
-     * Variante avec auto-RAG : si {@code latestUserMessage} est non null/blank,
-     * on fait une recherche kb et on prepend les snippets pertinents (relevance
-     * > {@value #RAG_RELEVANCE_MIN}) sous "── Contexte documentation pertinente ──".
+     * Construit le system prompt avec :
+     * <ul>
+     *   <li>Section memoire (selection par similarite si message user, sinon recency)</li>
+     *   <li>Section RAG (snippets doc Clenzy au-dessus du seuil de relevance)</li>
+     *   <li>Le DEFAULT_SYSTEM_PROMPT (legacy v1) OU le PromptBuilder v2 selon
+     *       le feature flag {@link #promptV2Enabled}</li>
+     * </ul>
      *
-     * <p>L'echec silencieux est OK (network/embed provider KO) : on tombe sur
-     * le prompt sans RAG. Le RAG est un bonus, pas un bloquant.</p>
+     * <p><b>Rollback safety (2 niveaux)</b> :</p>
+     * <ol>
+     *   <li>Feature flag {@code clenzy.assistant.prompt.v2.enabled=false}
+     *       → retour instantane a l'ancien comportement sans redeploy</li>
+     *   <li>Si v2 throw (bug regression), catch + fallback automatique sur v1
+     *       + log warning pour alerte ops</li>
+     * </ol>
+     *
+     * <p>L'echec silencieux des sources memoire/RAG est OK (network/embed
+     * provider KO) — c'est du nice-to-have, pas un bloquant.</p>
      */
     String buildSystemPrompt(AgentContext context, String latestUserMessage) {
-        StringBuilder prefix = new StringBuilder();
+        // 1. Pre-charge des memoires (commun v1/v2)
+        List<AssistantMemory> memories = loadMemories(context, latestUserMessage);
 
-        // 1. Section memoire — selection par similarite si on a un message user,
-        //    sinon fallback recency (cas resume after confirmation).
+        // 2. Pre-charge des hits RAG (commun v1/v2)
+        List<KbSearchService.KbSearchHit> kbHits = loadRelevantKbHits(latestUserMessage, context.organizationId());
+
+        // 3. Composition : v2 par defaut, fallback v1 si erreur ou resultat vide
+        if (promptV2Enabled && promptBuilder != null) {
+            try {
+                String v2 = promptBuilder.buildChatPrompt(context, latestUserMessage, memories, kbHits);
+                if (v2 != null && !v2.isBlank()) return v2;
+                // null/blank → traite comme fallback (defensive : mock en tests)
+                log.debug("PromptBuilder v2 returned null/blank, falling back to v1");
+            } catch (Exception e) {
+                log.warn("PromptBuilder v2 failed, falling back to legacy v1 : {}", e.getMessage(), e);
+                // Fall through to v1
+            }
+        }
+        return buildLegacySystemPrompt(memories, kbHits);
+    }
+
+    /** Charge les memoires (selection par similarite OU recency). Silent fallback list vide. */
+    private List<AssistantMemory> loadMemories(AgentContext context, String latestUserMessage) {
         try {
-            List<AssistantMemory> memories = (latestUserMessage != null && !latestUserMessage.isBlank())
+            return (latestUserMessage != null && !latestUserMessage.isBlank())
                     ? memoryService.listMostRelevant(context.organizationId(), context.keycloakId(),
                             latestUserMessage, MAX_MEMORY_ENTRIES)
                     : memoryService.listForUser(context.keycloakId(), MAX_MEMORY_ENTRIES);
-            if (memories != null && !memories.isEmpty()) {
-                prefix.append(renderMemorySection(memories)).append("\n\n");
-            }
         } catch (Exception e) {
             log.warn("Failed to load memory for user {} : {}", context.keycloakId(), e.getMessage());
+            return java.util.List.of();
         }
+    }
 
-        // 2. Section RAG documentation pertinente
-        if (latestUserMessage != null && !latestUserMessage.isBlank() && kbSearchService != null) {
-            String ragSection = renderKbContext(latestUserMessage, context.organizationId());
+    /** Charge les hits RAG au-dessus du seuil. Silent fallback list vide. */
+    private List<KbSearchService.KbSearchHit> loadRelevantKbHits(String query, Long organizationId) {
+        if (query == null || query.isBlank() || kbSearchService == null) return java.util.List.of();
+        try {
+            return kbSearchService.search(query, organizationId, RAG_TOP_K).stream()
+                    .filter(h -> h.relevance() >= RAG_RELEVANCE_MIN)
+                    .toList();
+        } catch (Exception e) {
+            log.debug("RAG auto-injection skipped : {}", e.getMessage());
+            return java.util.List.of();
+        }
+    }
+
+    /** Legacy v1 : ancien comportement (memory text-format + RAG markdown + DEFAULT_SYSTEM_PROMPT). */
+    private String buildLegacySystemPrompt(List<AssistantMemory> memories,
+                                             List<KbSearchService.KbSearchHit> kbHits) {
+        StringBuilder prefix = new StringBuilder();
+        if (memories != null && !memories.isEmpty()) {
+            prefix.append(renderMemorySection(memories)).append("\n\n");
+        }
+        if (kbHits != null && !kbHits.isEmpty()) {
+            String ragSection = renderLegacyKbContext(kbHits);
             if (ragSection != null && !ragSection.isEmpty()) {
                 prefix.append(ragSection).append("\n\n");
             }
         }
-
         if (prefix.length() == 0) return DEFAULT_SYSTEM_PROMPT;
         return prefix.append(DEFAULT_SYSTEM_PROMPT).toString();
     }
 
-    /**
-     * Recherche les snippets pertinents pour {@code query} et les serialise en
-     * section markdown. Retourne null si aucun chunk au-dessus du seuil ou si
-     * la recherche echoue (silencieux — RAG = nice-to-have).
-     */
-    private String renderKbContext(String query, Long organizationId) {
-        try {
-            List<KbSearchService.KbSearchHit> hits = kbSearchService.search(
-                    query, organizationId, RAG_TOP_K);
-            List<KbSearchService.KbSearchHit> relevant = hits.stream()
-                    .filter(h -> h.relevance() >= RAG_RELEVANCE_MIN)
-                    .toList();
-            if (relevant.isEmpty()) return null;
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("── Contexte documentation pertinente ──\n\n");
-            sb.append("Voici des extraits de la documentation Clenzy lies a la question. ")
-                    .append("REGLES :\n")
-                    .append("- Si tu utilises l'info d'un extrait, cite-le « Selon [titre](sourcePath), ... ».\n")
-                    .append("- Si aucun extrait ne repond a la question, dis explicitement que la doc ne le couvre pas ")
-                    .append("au lieu d'extrapoler ou d'inventer.\n")
-                    .append("- Ne reformule pas un fait absent des extraits comme s'il venait de la doc.\n\n");
-            for (int i = 0; i < relevant.size(); i++) {
-                KbSearchService.KbSearchHit h = relevant.get(i);
-                sb.append("[").append(i + 1).append("] ");
-                sb.append("**").append(h.title() != null ? h.title() : "Document")
-                        .append("** (").append(h.sourcePath()).append(") — ")
-                        .append("relevance ").append(Math.round(h.relevance() * 100)).append("%\n");
-                sb.append(h.snippet()).append("\n\n");
-            }
-            return sb.toString().trim();
-        } catch (Exception e) {
-            log.debug("RAG auto-injection skipped : {}", e.getMessage());
-            return null;
+    /** Render legacy markdown des hits RAG (utilise par v1 uniquement). */
+    private String renderLegacyKbContext(List<KbSearchService.KbSearchHit> relevant) {
+        if (relevant == null || relevant.isEmpty()) return null;
+        StringBuilder sb = new StringBuilder();
+        sb.append("── Contexte documentation pertinente ──\n\n");
+        sb.append("Voici des extraits de la documentation Clenzy lies a la question. ")
+                .append("REGLES :\n")
+                .append("- Si tu utilises l'info d'un extrait, cite-le « Selon [titre](sourcePath), ... ».\n")
+                .append("- Si aucun extrait ne repond a la question, dis explicitement que la doc ne le couvre pas ")
+                .append("au lieu d'extrapoler ou d'inventer.\n")
+                .append("- Ne reformule pas un fait absent des extraits comme s'il venait de la doc.\n\n");
+        for (int i = 0; i < relevant.size(); i++) {
+            KbSearchService.KbSearchHit h = relevant.get(i);
+            sb.append("[").append(i + 1).append("] ");
+            sb.append("**").append(h.title() != null ? h.title() : "Document")
+                    .append("** (").append(h.sourcePath()).append(") — ")
+                    .append("relevance ").append(Math.round(h.relevance() * 100)).append("%\n");
+            sb.append(h.snippet()).append("\n\n");
         }
+        return sb.toString().trim();
     }
 
     /**

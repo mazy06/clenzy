@@ -51,10 +51,15 @@ class AgentOrchestratorTest {
         memoryService = mock(AssistantMemoryService.class);
         kbSearchService = mock(com.clenzy.service.agent.kb.KbSearchService.class);
         om = new ObjectMapper();
+        // Tests legacy path (v1) car ils valident le format markdown ── Memoire utilisateur ──.
+        // Le path v2 (XML) est valide par DefaultSystemPromptComposerTest + SectionsRenderingTest.
+        // Tests cross-path (v2 enabled + fallback) : voir AgentOrchestratorV2FallbackTest.
         orchestrator = new AgentOrchestrator(chatProvider, toolRegistry,
                 convRepo, msgRepo, om, keyRepo, new AiProperties(), new PendingToolStore(),
                 memoryService, mock(com.clenzy.service.PhotoStorageService.class),
-                kbSearchService);
+                kbSearchService,
+                mock(com.clenzy.service.agent.prompt.PromptBuilder.class),
+                false);  // v2 OFF -> exercise v1 path (legacy DEFAULT_SYSTEM_PROMPT)
         ctx = AgentContext.minimal(1L, "user-123");
 
         when(toolRegistry.listDescriptors()).thenReturn(List.of());
