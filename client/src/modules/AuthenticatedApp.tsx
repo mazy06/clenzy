@@ -88,6 +88,7 @@ import PlanningPage from './planning/PlanningPage';
 import TokenMonitoringPage from './admin/TokenMonitoringPage';
 import MonitoringPage from './admin/MonitoringPage';
 import SyncAdminPage from './admin/SyncAdminPage';
+import PromoCodesPage from './admin/PromoCodesPage';
 import KpiReadinessPage from './admin/KpiReadinessPage';
 import DatabaseAdminPage from './admin/DatabaseAdminPage';
 import ExchangeRateHistoryPage from './admin/ExchangeRateHistoryPage';
@@ -394,6 +395,14 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="users:manage">
             <ErrorBoundary>
               <DatabaseAdminPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/promo-codes" element={
+          <ProtectedRoute requiredPermission="users:manage">
+            <ErrorBoundary>
+              <PromoCodesPage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />

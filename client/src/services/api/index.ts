@@ -320,6 +320,9 @@ export type {
   ExchangeRateHistoryParams,
 } from './exchangeRateApi';
 
+export { promoCodesApi } from './promoCodesApi';
+export type { PromoCode, PromoCodeCreatePayload } from './promoCodesApi';
+
 export { aiApi } from './aiApi';
 export type {
   AiUsageStats,

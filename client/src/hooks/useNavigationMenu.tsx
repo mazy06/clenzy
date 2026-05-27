@@ -23,6 +23,7 @@ import {
   ChatBubbleOutline,
   Storage,
   CurrencyExchange,
+  LocalOffer,
   CalendarViewWeek,
   PersonSearch,
   Contacts,
@@ -252,6 +253,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     roles: ['SUPER_ADMIN'],
     permission: 'users:manage',
     translationKey: 'navigation.database',
+    group: 'admin',
+  },
+  {
+    icon: <LocalOffer />,
+    path: '/admin/promo-codes',
+    roles: ['SUPER_ADMIN'],
+    permission: 'users:manage',
+    translationKey: 'navigation.promoCodes',
     group: 'admin',
   },
 ];
