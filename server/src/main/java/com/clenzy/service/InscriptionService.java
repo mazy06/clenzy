@@ -8,7 +8,9 @@ import com.clenzy.util.StringUtils;
 import com.clenzy.repository.UserRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Coupon;
 import com.stripe.model.checkout.Session;
+import com.stripe.param.CouponCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,21 +125,6 @@ public class InscriptionService {
             throw new RuntimeException("Impossible de traiter cette inscription. Veuillez reessayer ou contacter le support.");
         }
 
-        // Validation (read-only) du code promo si fourni. Le code est stocke meme
-        // s'il est invalide (audit / analyse des attempts). L'application reelle
-        // du discount Stripe via SessionCreateParams.setDiscounts() est differee
-        // (voir TODO plus bas).
-        if (dto.getPromoCode() != null && !dto.getPromoCode().isBlank()) {
-            var promo = promoCodeService.validate(dto.getPromoCode());
-            if (promo.isPresent()) {
-                logger.info("Code promo valide pour {}: {} ({}% / FIXED)",
-                        dto.getEmail(), promo.get().getCode(), promo.get().getDiscountValue());
-            } else {
-                logger.info("Code promo invalide ou expire pour {}: {}",
-                        dto.getEmail(), dto.getPromoCode());
-            }
-        }
-
         // Verifier s'il existe deja une inscription en attente pour cet email
         // Si oui, la supprimer pour permettre une nouvelle tentative
         pendingInscriptionRepository.findByEmailAndStatus(dto.getEmail(), PendingInscriptionStatus.PENDING_PAYMENT)
@@ -190,7 +177,13 @@ public class InscriptionService {
         // Creer la session Stripe Checkout
         Stripe.apiKey = stripeSecretKey;
 
-        SessionCreateParams params = SessionCreateParams.builder()
+        // Application du code promo si fourni et valide.
+        // Ordre critique : valider → consommer (CAS atomique) → creer le Coupon Stripe.
+        // Si la consommation echoue (quota epuise par race), on ignore le code et on
+        // continue sans discount (le code brut est tout de meme stocke pour audit).
+        String stripeCouponId = applyPromoCodeIfValid(dto.getPromoCode(), dto.getEmail());
+
+        SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
                 .setUiMode(SessionCreateParams.UiMode.EMBEDDED)
                 .setReturnUrl(inscriptionReturnUrl + "?session_id={CHECKOUT_SESSION_ID}")
@@ -230,10 +223,19 @@ public class InscriptionService {
                                 .putMetadata("forfait", dto.getForfait())
                                 .putMetadata("billingPeriod", period.name())
                                 .build()
-                )
-                .build();
+                );
 
-        Session session = Session.create(params);
+        // Attachement du coupon Stripe (1 seul discount par session, applique sur
+        // la premiere facture seulement — voir Duration.ONCE dans buildStripeCoupon).
+        if (stripeCouponId != null) {
+            paramsBuilder.addDiscount(
+                    SessionCreateParams.Discount.builder()
+                            .setCoupon(stripeCouponId)
+                            .build()
+            );
+        }
+
+        Session session = Session.create(paramsBuilder.build());
 
         // Sauvegarder l'inscription en attente (SANS le mot de passe)
         PendingInscription pending = new PendingInscription();
@@ -262,14 +264,12 @@ public class InscriptionService {
             pending.setServicesDevis(String.join(",", dto.getServicesDevis()));
         }
         pending.setBillingPeriod(period.name());
-        // Consentement RGPD + attribution
+        // Consentement RGPD + attribution.
         pending.setAcceptedTermsAt(LocalDateTime.now());
         pending.setNewsletterOptIn(dto.isNewsletterOptIn());
-        // Le code promo brut est toujours stocke pour audit, meme s'il est invalide.
-        // La validation et la consommation eventuelle sont faites plus haut (voir
-        // promoCodeService.validate ci-dessous). TODO : appliquer le discount Stripe
-        // via SessionCreateParams.setDiscounts() — necessite la creation d'un
-        // coupon Stripe a la volee, hors scope de cette version.
+        // Le code promo brut est toujours stocke pour audit, meme s'il a ete refuse
+        // (code inconnu, expire, quota epuise). L'application reelle du discount Stripe
+        // est faite via applyPromoCodeIfValid() plus haut (coupon attache a la session).
         pending.setPromoCode(dto.getPromoCode());
         pending.setReferralSource(dto.getReferralSource());
         pending.setStripeSessionId(session.getId());
@@ -574,6 +574,80 @@ public class InscriptionService {
     // ═══════════════════════════════════════════════════════════════════════════
     // Methodes privees utilitaires
     // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Valide le code promo, le consomme atomiquement (CAS), puis cree un Coupon
+     * Stripe a la volee pour le rattacher a la session Checkout.
+     *
+     * <p>Retourne l'ID du coupon Stripe a attacher a la session, ou {@code null}
+     * si :
+     * <ul>
+     *   <li>aucun code n'a ete fourni</li>
+     *   <li>le code est inconnu, expire, ou desactive</li>
+     *   <li>le quota a ete epuise (race condition sur la derniere utilisation)</li>
+     *   <li>la creation du coupon Stripe a echoue (on degrade silencieusement)</li>
+     * </ul>
+     * </p>
+     *
+     * <p>Politique d'application : <b>Duration.ONCE</b> — le discount s'applique
+     * uniquement sur la premiere facture (le premier mois pour MONTHLY, la premiere
+     * annee pour ANNUAL/BIENNIAL). Pas de discount recurrent.</p>
+     *
+     * <p>Le coupon Stripe est cree avec {@code maxRedemptions=1} pour que chaque
+     * utilisateur ait son propre coupon unique — evite le partage de coupon entre
+     * utilisateurs.</p>
+     */
+    private String applyPromoCodeIfValid(String rawCode, String emailForAudit) {
+        if (rawCode == null || rawCode.isBlank()) {
+            return null;
+        }
+        var validated = promoCodeService.validate(rawCode);
+        if (validated.isEmpty()) {
+            logger.info("Code promo invalide ou expire pour {}: {}", emailForAudit, rawCode);
+            return null;
+        }
+        var promo = validated.get();
+
+        // Consommation atomique (CAS) AVANT creation du coupon Stripe pour eviter
+        // qu'un coupon soit emis pour un code qui ne peut pas etre consomme.
+        if (!promoCodeService.tryConsume(promo.getId())) {
+            logger.warn("Code promo {} consomme entre validate et tryConsume (race condition)", promo.getCode());
+            return null;
+        }
+
+        try {
+            CouponCreateParams.Builder couponBuilder = CouponCreateParams.builder()
+                    .setDuration(CouponCreateParams.Duration.ONCE)
+                    .setMaxRedemptions(1L)
+                    .setName("Code promo Clenzy: " + promo.getCode())
+                    .putMetadata("clenzy_promo_code_id", String.valueOf(promo.getId()))
+                    .putMetadata("clenzy_promo_code", promo.getCode())
+                    .putMetadata("clenzy_email", emailForAudit);
+
+            if (promo.getDiscountType() == com.clenzy.model.PromoCode.DiscountType.PERCENTAGE) {
+                // PercentOff accepte un BigDecimal (1.0 a 100.0)
+                couponBuilder.setPercentOff(new java.math.BigDecimal(promo.getDiscountValue()));
+            } else {
+                // FIXED — montant en centimes + currency obligatoire
+                couponBuilder.setAmountOff((long) promo.getDiscountValue());
+                couponBuilder.setCurrency(currency.toLowerCase());
+            }
+
+            Coupon coupon = Coupon.create(couponBuilder.build());
+            logger.info("Coupon Stripe cree pour {}: {} ({}) -> coupon_id={}",
+                    emailForAudit, promo.getCode(), promo.getDiscountType(), coupon.getId());
+            return coupon.getId();
+        } catch (StripeException e) {
+            // Le code a ete consomme mais le coupon n'a pas pu etre cree.
+            // On loggue et on continue sans discount — l'utilisateur s'inscrit
+            // au prix plein. Le contrepoid est que le compteur used_count est
+            // legerement surestime, ce qui est acceptable.
+            logger.error("Echec de la creation du coupon Stripe pour {} (code={}): {}. "
+                    + "Le code est marque comme consomme mais le discount n'est pas applique.",
+                    emailForAudit, promo.getCode(), e.getMessage());
+            return null;
+        }
+    }
 
     /**
      * Genere un token UUID, stocke son hash SHA-256 dans l'inscription, et retourne le token brut.

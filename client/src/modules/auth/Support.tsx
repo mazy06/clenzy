@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Paper,
@@ -27,6 +28,7 @@ const textFieldSx = {
 };
 
 export default function Support() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
@@ -38,13 +40,16 @@ export default function Support() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const subjects = [
-    { value: 'access', label: "Problème d'accès / connexion" },
-    { value: 'technical', label: 'Problème technique' },
-    { value: 'billing', label: 'Facturation / abonnement' },
-    { value: 'feature', label: 'Demande de fonctionnalité' },
-    { value: 'other', label: 'Autre' },
-  ];
+  const subjects = useMemo(
+    () => [
+      { value: 'access', label: t('auth.support.subjects.access', "Problème d'accès / connexion") },
+      { value: 'technical', label: t('auth.support.subjects.technical', 'Problème technique') },
+      { value: 'billing', label: t('auth.support.subjects.billing', 'Facturation / abonnement') },
+      { value: 'feature', label: t('auth.support.subjects.feature', 'Demande de fonctionnalité') },
+      { value: 'other', label: t('auth.support.subjects.other', 'Autre') },
+    ],
+    [t],
+  );
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -62,7 +67,7 @@ export default function Support() {
 
       setSubmitted(true);
     } catch {
-      setError("Une erreur est survenue lors de l'envoi. Veuillez réessayer ou nous contacter à info@clenzy.fr.");
+      setError(t('auth.support.submitError', "Une erreur est survenue lors de l'envoi. Veuillez réessayer ou nous contacter à info@clenzy.fr."));
     } finally {
       setLoading(false);
     }
@@ -102,7 +107,7 @@ export default function Support() {
             color: 'secondary.main',
             fontSize: '0.85rem'
           }}>
-            Contactez notre support
+            {t('auth.support.headerSubtitle', 'Contactez notre support')}
           </Typography>
         </Box>
 
@@ -111,10 +116,10 @@ export default function Support() {
           <Box sx={{ textAlign: 'center', py: 3 }}>
             <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 1.5 }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: '1rem' }}>
-              Message envoy&eacute; !
+              {t('auth.support.submittedTitle', 'Message envoyé !')}
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5, fontSize: '0.85rem' }}>
-              Notre &eacute;quipe vous contactera dans les 24 heures.
+              {t('auth.support.submittedBody', 'Notre équipe vous contactera dans les 24 heures.')}
             </Typography>
             <Button
               variant="contained"
@@ -130,7 +135,7 @@ export default function Support() {
                 boxShadow: '0 4px 12px rgba(166, 192, 206, 0.3)',
               }}
             >
-              Retour à la connexion
+              {t('auth.support.backToLogin', 'Retour à la connexion')}
             </Button>
           </Box>
         ) : (
@@ -140,7 +145,7 @@ export default function Support() {
               <TextField
                 fullWidth
                 size="small"
-                label="Nom complet"
+                label={t('auth.support.fields.nameLabel', 'Nom complet')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -151,7 +156,7 @@ export default function Support() {
               <TextField
                 fullWidth
                 size="small"
-                label="Email"
+                label={t('auth.support.fields.emailLabel', 'Email')}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -163,7 +168,7 @@ export default function Support() {
               <TextField
                 fullWidth
                 size="small"
-                label="Téléphone (optionnel)"
+                label={t('auth.support.fields.phoneLabel', 'Téléphone (optionnel)')}
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -175,7 +180,7 @@ export default function Support() {
                 fullWidth
                 size="small"
                 select
-                label="Sujet"
+                label={t('auth.support.fields.subjectLabel', 'Sujet')}
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 required
@@ -192,14 +197,14 @@ export default function Support() {
               <TextField
                 fullWidth
                 size="small"
-                label="Votre message"
+                label={t('auth.support.fields.messageLabel', 'Votre message')}
                 multiline
                 rows={4}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 required
                 disabled={loading}
-                placeholder="Décrivez votre problème ou votre demande..."
+                placeholder={t('auth.support.fields.messagePlaceholder', 'Décrivez votre problème ou votre demande...')}
                 sx={textFieldSx}
               />
 
@@ -230,7 +235,7 @@ export default function Support() {
                 {loading ? (
                   <CircularProgress size={20} color="inherit" />
                 ) : (
-                  'Envoyer'
+                  t('auth.support.submit', 'Envoyer')
                 )}
               </Button>
             </Stack>
@@ -253,7 +258,7 @@ export default function Support() {
                 '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
               }}
             >
-              Retour à la connexion
+              {t('auth.support.backToLogin', 'Retour à la connexion')}
             </Button>
           </Box>
         )}

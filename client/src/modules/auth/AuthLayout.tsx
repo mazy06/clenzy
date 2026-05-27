@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Typography, useTheme, alpha, useMediaQuery, CssBaseline, ThemeProvider } from '@mui/material';
 import lightTheme from '../../theme/theme';
 import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
@@ -48,6 +49,7 @@ export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutP
 }
 
 function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
   const primary = theme.palette.primary.main;
@@ -113,11 +115,11 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                 mb: 2,
               }}
             >
-              Le PMS pensé pour les{' '}
+              {t('auth.layout.tagline', 'Le PMS pensé pour les')}{' '}
               <Box component="span" sx={{ color: primary }}>
-                propriétaires et gestionnaires indépendants
+                {t('auth.layout.taglineHighlight', 'propriétaires et gestionnaires indépendants')}
               </Box>
-              .
+              {t('auth.layout.taglineEnd', '.')}
             </Typography>
             <Typography
               variant="body1"
@@ -127,17 +129,19 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                 fontSize: '0.95rem',
               }}
             >
-              Gestion multi-propriétés, channels, paiements, équipes et
-              automatisations IA — dans un seul outil souverain européen.
+              {t(
+                'auth.layout.subtitle',
+                'Gestion multi-propriétés, channels, paiements, équipes et automatisations IA — dans un seul outil souverain européen.',
+              )}
             </Typography>
           </Box>
 
           {/* Footer : trust signals discrets */}
           <Box sx={{ position: 'relative', zIndex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
-              <TrustItem dot={primary} label="Hébergé en Europe" />
-              <TrustItem dot={primary} label="NF 525 / RGPD" />
-              <TrustItem dot={primary} label="Support 7j/7" />
+              <TrustItem dot={primary} label={t('auth.layout.trustEurope', 'Hébergé en Europe')} />
+              <TrustItem dot={primary} label={t('auth.layout.trustCompliance', 'NF 525 / RGPD')} />
+              <TrustItem dot={primary} label={t('auth.layout.trustSupport', 'Support 7j/7')} />
             </Box>
           </Box>
         </Box>
