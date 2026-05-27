@@ -41,7 +41,11 @@ export default defineConfig({
         // online recoit toujours la derniere version.
         navigateFallback: '/index.html',
         navigationPreload: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // index.html EXCLUS du precache (pas de `html` dans globPatterns) — sinon
+        // le SW pre-cache l'ancien index.html au build, et meme NetworkFirst
+        // peut le servir si le reseau timeout. Avec html exclus, navigation
+        // tombe sur runtimeCaching html-cache uniquement (NetworkFirst 3s).
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MiB — index.js a depasse 3 MB suite aux ajouts payments+payouts P1/P2 (TODO: lazy-load PayoutMethodEditDialog + PaymentProviderConfigDialog via React.lazy pour reduire le bundle initial)
         runtimeCaching: [
           {
