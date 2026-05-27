@@ -38,6 +38,7 @@ class InscriptionServiceTest {
     @Mock private PricingConfigService pricingConfigService;
     @Mock private EmailService emailService;
     @Mock private RestTemplate restTemplate;
+    @Mock private PromoCodeService promoCodeService;
 
     private InscriptionService inscriptionService;
 
@@ -46,7 +47,7 @@ class InscriptionServiceTest {
         inscriptionService = new InscriptionService(
                 pendingInscriptionRepository, userRepository,
                 keycloakService, organizationService, pricingConfigService,
-                emailService, restTemplate);
+                emailService, restTemplate, promoCodeService);
 
         setField(inscriptionService, "stripeSecretKey", "sk_test_dummy");
         setField(inscriptionService, "currency", "EUR");

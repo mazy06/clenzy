@@ -64,6 +64,7 @@ interface SettingsTabMeta {
 }
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
+import MarketingPreferencesCard from './MarketingPreferencesCard';
 import OrganizationSection from '../organization/OrganizationSection';
 import MessagingAutomationSection from '../messaging/MessagingAutomationSection';
 import FiscalProfileSection from './FiscalProfileSection';
@@ -1029,10 +1030,13 @@ export default function Settings() {
 
       {/* ─── Onglet Notifications ───────────────────────────────────────── */}
       <TabPanel value={tabValue} index={1}>
-        <NotificationPreferencesCard
-          ref={notifRef}
-          onChangeState={() => forceUpdate(n => n + 1)}
-        />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <NotificationPreferencesCard
+            ref={notifRef}
+            onChangeState={() => forceUpdate(n => n + 1)}
+          />
+          <MarketingPreferencesCard />
+        </Box>
       </TabPanel>
 
       {/* ─── Onglet Messagerie ────────────────────────────────────────── */}

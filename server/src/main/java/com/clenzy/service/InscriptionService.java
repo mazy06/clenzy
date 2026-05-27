@@ -49,6 +49,7 @@ public class InscriptionService {
     private final PricingConfigService pricingConfigService;
     private final EmailService emailService;
     private final RestTemplate restTemplate;
+    private final PromoCodeService promoCodeService;
 
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
@@ -81,7 +82,8 @@ public class InscriptionService {
             OrganizationService organizationService,
             PricingConfigService pricingConfigService,
             EmailService emailService,
-            RestTemplate restTemplate) {
+            RestTemplate restTemplate,
+            PromoCodeService promoCodeService) {
         this.pendingInscriptionRepository = pendingInscriptionRepository;
         this.userRepository = userRepository;
         this.keycloakService = keycloakService;
@@ -89,6 +91,7 @@ public class InscriptionService {
         this.pricingConfigService = pricingConfigService;
         this.emailService = emailService;
         this.restTemplate = restTemplate;
+        this.promoCodeService = promoCodeService;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -118,6 +121,21 @@ public class InscriptionService {
         // Message generique pour eviter l'enumeration d'emails (AUTH-VULN-10)
         if (userRepository.existsByEmailHash(StringUtils.computeEmailHash(dto.getEmail()))) {
             throw new RuntimeException("Impossible de traiter cette inscription. Veuillez reessayer ou contacter le support.");
+        }
+
+        // Validation (read-only) du code promo si fourni. Le code est stocke meme
+        // s'il est invalide (audit / analyse des attempts). L'application reelle
+        // du discount Stripe via SessionCreateParams.setDiscounts() est differee
+        // (voir TODO plus bas).
+        if (dto.getPromoCode() != null && !dto.getPromoCode().isBlank()) {
+            var promo = promoCodeService.validate(dto.getPromoCode());
+            if (promo.isPresent()) {
+                logger.info("Code promo valide pour {}: {} ({}% / FIXED)",
+                        dto.getEmail(), promo.get().getCode(), promo.get().getDiscountValue());
+            } else {
+                logger.info("Code promo invalide ou expire pour {}: {}",
+                        dto.getEmail(), dto.getPromoCode());
+            }
         }
 
         // Verifier s'il existe deja une inscription en attente pour cet email
@@ -247,6 +265,11 @@ public class InscriptionService {
         // Consentement RGPD + attribution
         pending.setAcceptedTermsAt(LocalDateTime.now());
         pending.setNewsletterOptIn(dto.isNewsletterOptIn());
+        // Le code promo brut est toujours stocke pour audit, meme s'il est invalide.
+        // La validation et la consommation eventuelle sont faites plus haut (voir
+        // promoCodeService.validate ci-dessous). TODO : appliquer le discount Stripe
+        // via SessionCreateParams.setDiscounts() — necessite la creation d'un
+        // coupon Stripe a la volee, hors scope de cette version.
         pending.setPromoCode(dto.getPromoCode());
         pending.setReferralSource(dto.getReferralSource());
         pending.setStripeSessionId(session.getId());

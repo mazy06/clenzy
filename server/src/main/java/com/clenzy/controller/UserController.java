@@ -69,6 +69,49 @@ public class UserController {
         return ResponseEntity.ok(Map.of("success", true));
     }
 
+    /**
+     * Lecture des preferences marketing de l'utilisateur connecte.
+     *
+     * <p>RGPD article 7-3 : le retrait du consentement doit etre aussi simple
+     * que son octroi. Cet endpoint et son pendant {@link #updateMyMarketingPreferences}
+     * permettent a l'utilisateur de consulter et modifier son opt-in newsletter
+     * sans support technique.</p>
+     */
+    @GetMapping("/me/marketing-preferences")
+    @Operation(summary = "Obtenir ses preferences marketing (newsletter)")
+    public ResponseEntity<Map<String, Object>> getMyMarketingPreferences(@AuthenticationPrincipal Jwt jwt) {
+        String keycloakId = jwt.getSubject();
+        User user = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
+        return ResponseEntity.ok(Map.of("newsletterOptIn", user.isNewsletterOptIn()));
+    }
+
+    /**
+     * Mise a jour des preferences marketing (newsletter opt-in).
+     */
+    @PutMapping("/me/marketing-preferences")
+    @Operation(summary = "Mettre a jour ses preferences marketing")
+    public ResponseEntity<Map<String, Object>> updateMyMarketingPreferences(
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        String keycloakId = jwt.getSubject();
+        User user = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
+
+        if (body.containsKey("newsletterOptIn")) {
+            Object raw = body.get("newsletterOptIn");
+            if (!(raw instanceof Boolean)) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", true,
+                        "message", "newsletterOptIn doit etre un booleen"
+                ));
+            }
+            user.setNewsletterOptIn((Boolean) raw);
+        }
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of("newsletterOptIn", user.isNewsletterOptIn()));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Créer un utilisateur")
