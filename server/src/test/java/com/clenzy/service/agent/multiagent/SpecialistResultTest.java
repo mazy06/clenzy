@@ -39,20 +39,21 @@ class SpecialistResultTest {
 
     @Test
     void synthesis_must_not_be_null() {
-        assertThatThrownBy(() -> new SpecialistResult(null, List.of(), 0, 0, false, null))
+        assertThatThrownBy(() -> new SpecialistResult(null, List.of(), List.of(), 0, 0, false, null))
                 .isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void toolCallsExecuted_defaults_to_empty_when_null() {
-        SpecialistResult r = new SpecialistResult("text", null, 0, 0, false, null);
+        SpecialistResult r = new SpecialistResult("text", null, null, 0, 0, false, null);
         assertThat(r.toolCallsExecuted()).isEmpty();
+        assertThat(r.toolInvocations()).isEmpty();
     }
 
     @Test
     void toolCallsExecuted_is_copied_defensively() {
         List<String> mutable = new ArrayList<>(List.of("a", "b"));
-        SpecialistResult r = new SpecialistResult("text", mutable, 0, 0, false, null);
+        SpecialistResult r = new SpecialistResult("text", mutable, List.of(), 0, 0, false, null);
         mutable.clear();
         assertThat(r.toolCallsExecuted()).hasSize(2);  // intact
     }

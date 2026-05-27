@@ -107,6 +107,7 @@ public class OrchestratorAgent {
         );
 
         List<String> delegationsLog = new ArrayList<>();
+        List<ToolInvocationSnapshot> aggregatedToolInvocations = new ArrayList<>();
         AtomicInteger totalPromptTokens = new AtomicInteger();
         AtomicInteger totalCompletionTokens = new AtomicInteger();
         StringBuilder finalText = new StringBuilder();
@@ -140,6 +141,7 @@ public class OrchestratorAgent {
                 return OrchestrationResult.success(
                         finalText.toString().strip(),
                         delegationsLog,
+                        aggregatedToolInvocations,
                         totalPromptTokens.get(),
                         totalCompletionTokens.get(),
                         iter
@@ -163,6 +165,9 @@ public class OrchestratorAgent {
                 }
                 SpecialistResult result = invokeSpecialist(args, context);
                 delegationsLog.add(args.specialist() + " → " + (result.isSuccess() ? "OK" : "ERR"));
+                // Aggregation des widgets : permet au frontend de continuer a afficher
+                // les visualisations (KPI cards, charts) en mode multi-agent.
+                aggregatedToolInvocations.addAll(result.toolInvocations());
                 totalPromptTokens.addAndGet(result.promptTokens());
                 totalCompletionTokens.addAndGet(result.completionTokens());
                 req = req.withAppendedMessage(ChatMessage.tool(tc.id(), result.synthesis()));
@@ -175,6 +180,7 @@ public class OrchestratorAgent {
         return OrchestrationResult.truncated(
                 finalText.toString().strip(),
                 delegationsLog,
+                aggregatedToolInvocations,
                 totalPromptTokens.get(),
                 totalCompletionTokens.get()
         );
@@ -280,25 +286,39 @@ public class OrchestratorAgent {
     /** Args parses du tool delegate_to. */
     private record DelegateArgs(String specialist, String query) {}
 
-    /** Resultat de orchestrate(). */
+    /**
+     * Resultat de orchestrate().
+     *
+     * <p>Les {@code toolInvocations} agrègent les widgets de tous les
+     * spécialistes invoqués — l'AgentOrchestrator les émet en SSE comme
+     * {@code tool_call_executed} events pour preserver le rendu frontend.</p>
+     */
     public record OrchestrationResult(
             String finalText,
             List<String> delegationsLog,
+            List<ToolInvocationSnapshot> toolInvocations,
             int totalPromptTokens,
             int totalCompletionTokens,
             boolean truncated,
             String error
     ) {
+        public OrchestrationResult {
+            delegationsLog = (delegationsLog == null) ? List.of() : List.copyOf(delegationsLog);
+            toolInvocations = (toolInvocations == null) ? List.of() : List.copyOf(toolInvocations);
+        }
+
         public static OrchestrationResult success(String text, List<String> log,
+                                                    List<ToolInvocationSnapshot> tools,
                                                     int prompt, int completion, int iterations) {
-            return new OrchestrationResult(text, log, prompt, completion, false, null);
+            return new OrchestrationResult(text, log, tools, prompt, completion, false, null);
         }
         public static OrchestrationResult truncated(String text, List<String> log,
+                                                      List<ToolInvocationSnapshot> tools,
                                                       int prompt, int completion) {
-            return new OrchestrationResult(text, log, prompt, completion, true, null);
+            return new OrchestrationResult(text, log, tools, prompt, completion, true, null);
         }
         public static OrchestrationResult error(String message) {
-            return new OrchestrationResult("", List.of(), 0, 0, false, message);
+            return new OrchestrationResult("", List.of(), List.of(), 0, 0, false, message);
         }
         public boolean isSuccess() {
             return error == null;

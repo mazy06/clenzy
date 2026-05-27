@@ -129,7 +129,10 @@ class AgentOrchestratorPromptV2Test {
                 mock(PhotoStorageService.class),
                 kbSearchService,
                 promptBuilder,
-                v2Enabled
+                mock(com.clenzy.service.agent.multiagent.OrchestratorAgent.class),
+                mock(com.clenzy.service.agent.multiagent.SpecialistRegistry.class),
+                v2Enabled,
+                false  // multi-agent off : on teste le prompt path uniquement
         );
     }
 

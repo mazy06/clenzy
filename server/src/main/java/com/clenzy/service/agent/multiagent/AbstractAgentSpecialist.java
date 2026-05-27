@@ -130,6 +130,7 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                 MAX_TOKENS
         );
         List<String> toolCallsLog = new ArrayList<>();
+        List<ToolInvocationSnapshot> toolInvocations = new ArrayList<>();
         AtomicInteger promptTokens = new AtomicInteger();
         AtomicInteger completionTokens = new AtomicInteger();
 
@@ -157,10 +158,11 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
 
             List<ChatMessage.ToolCall> toolCalls = toolCallsRef.get();
             if (toolCalls.isEmpty()) {
-                // Texte final = synthese a remonter
+                // Texte final = synthese a remonter (avec snapshots des widgets)
                 return SpecialistResult.success(
                         textOut.get().strip(),
                         toolCallsLog,
+                        toolInvocations,
                         promptTokens.get(),
                         completionTokens.get()
                 );
@@ -173,18 +175,24 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
             for (ChatMessage.ToolCall tc : toolCalls) {
                 ToolResult tr = executeTool(tc, request);
                 toolCallsLog.add(tc.name());
+                toolInvocations.add(new ToolInvocationSnapshot(
+                        tc.name(), tr.content(), tr.displayHint(), tr.isError()
+                ));
                 chatRequest = chatRequest.withAppendedMessage(
                         ChatMessage.tool(tc.id(), tr.content())
                 );
             }
         }
 
-        // Iterations atteintes — partial
-        return SpecialistResult.truncated(
+        // Iterations atteintes — partial (avec snapshots quand meme)
+        return new SpecialistResult(
                 "(reponse partielle apres " + MAX_ITERATIONS + " iterations)",
                 toolCallsLog,
+                toolInvocations,
                 promptTokens.get(),
-                completionTokens.get()
+                completionTokens.get(),
+                true,
+                null
         );
     }
 

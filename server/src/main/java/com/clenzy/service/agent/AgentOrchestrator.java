@@ -262,6 +262,21 @@ public class AgentOrchestrator {
     private final PhotoStorageService photoStorageService;
     private final KbSearchService kbSearchService;
     private final com.clenzy.service.agent.prompt.PromptBuilder promptBuilder;
+    private final com.clenzy.service.agent.multiagent.OrchestratorAgent multiAgentOrchestrator;
+    private final com.clenzy.service.agent.multiagent.SpecialistRegistry specialistRegistry;
+
+    /**
+     * Feature flag : si true, utilise l'architecture multi-agent (orchestrator
+     * + spécialistes ≤10 tools chacun) au lieu du mono-agent (27 tools en bloc).
+     *
+     * <p>Defaut <b>true</b> : le multi-agent est active par defaut car le code
+     * est isole, teste (21 tests), et le fallback automatique sur mono-agent
+     * en cas d'erreur garantit qu'on ne casse rien.</p>
+     *
+     * <p>Override : {@code clenzy.assistant.multi-agent.enabled=false} →
+     * retour instantane au mono-agent sans redeploy.</p>
+     */
+    private final boolean multiAgentEnabled;
 
     /**
      * Feature flag rollback : si true, utilise le nouveau {@link com.clenzy.service.agent.prompt.PromptBuilder}
@@ -296,8 +311,12 @@ public class AgentOrchestrator {
                               PhotoStorageService photoStorageService,
                               KbSearchService kbSearchService,
                               com.clenzy.service.agent.prompt.PromptBuilder promptBuilder,
+                              com.clenzy.service.agent.multiagent.OrchestratorAgent multiAgentOrchestrator,
+                              com.clenzy.service.agent.multiagent.SpecialistRegistry specialistRegistry,
                               @org.springframework.beans.factory.annotation.Value("${clenzy.assistant.prompt.v2.enabled:true}")
-                              boolean promptV2Enabled) {
+                              boolean promptV2Enabled,
+                              @org.springframework.beans.factory.annotation.Value("${clenzy.assistant.multi-agent.enabled:true}")
+                              boolean multiAgentEnabled) {
         this.chatProvider = chatProvider;
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
@@ -310,7 +329,10 @@ public class AgentOrchestrator {
         this.photoStorageService = photoStorageService;
         this.kbSearchService = kbSearchService;
         this.promptBuilder = promptBuilder;
+        this.multiAgentOrchestrator = multiAgentOrchestrator;
+        this.specialistRegistry = specialistRegistry;
         this.promptV2Enabled = promptV2Enabled;
+        this.multiAgentEnabled = multiAgentEnabled;
     }
 
     /**
@@ -365,7 +387,31 @@ public class AgentOrchestrator {
         List<AssistantMessage> history = messageRepository.findByConversation(conversation.getId());
         List<ChatMessage> chatMessages = toChatMessages(history);
 
-        // 4. Boucle tool-calling
+        // 4. Tentative multi-agent (si flag on + sans attachments + spécialistes prêts).
+        //    Attachments → fallback mono-agent car les spécialistes ne gerent pas
+        //    encore les images Vision (TODO v2).
+        //    Pas de spécialiste → impossible, fallback aussi.
+        //    Si multi-agent throw, on log et fallback automatiquement.
+        if (canUseMultiAgent(hasAttachments)) {
+            try {
+                boolean handledByMultiAgent = tryMultiAgentFlow(
+                        effectiveMessage, context, conversation, consumer);
+                if (handledByMultiAgent) {
+                    // 5. Update conversation updatedAt + title si manquant
+                    conversation.setUpdatedAt(LocalDateTime.now());
+                    if (conversation.getTitle() == null) {
+                        conversation.setTitle(deriveTitle(effectiveMessage));
+                    }
+                    conversationRepository.save(conversation);
+                    return conversation.getId();
+                }
+            } catch (Exception e) {
+                log.warn("Multi-agent flow failed, falling back to mono-agent : {}",
+                        e.getMessage(), e);
+            }
+        }
+
+        // 4 (fallback). Boucle tool-calling mono-agent (27 tools)
         String apiKey = resolveApiKey(context.organizationId());
         List<ToolDescriptor> tools = toolRegistry.listDescriptors();
         String systemPrompt = buildSystemPrompt(context, effectiveMessage);
@@ -461,6 +507,79 @@ public class AgentOrchestrator {
         conversation.setUpdatedAt(LocalDateTime.now());
         conversationRepository.save(conversation);
         return conversation.getId();
+    }
+
+    // ─── Multi-agent flow (helpers) ────────────────────────────────────────
+
+    /**
+     * Decide si on peut tenter le multi-agent flow pour cette requete.
+     *
+     * <p>Conditions :</p>
+     * <ul>
+     *   <li>Feature flag {@code clenzy.assistant.multi-agent.enabled=true}</li>
+     *   <li>Pas d'attachments (vision pas encore supportee par les specialistes)</li>
+     *   <li>SpecialistRegistry non vide</li>
+     *   <li>OrchestratorAgent injecte (non null)</li>
+     * </ul>
+     */
+    private boolean canUseMultiAgent(boolean hasAttachments) {
+        if (!multiAgentEnabled) return false;
+        if (hasAttachments) return false;
+        if (multiAgentOrchestrator == null) return false;
+        return specialistRegistry != null && specialistRegistry.size() > 0;
+    }
+
+    /**
+     * Execute le flow multi-agent et stream les events SSE.
+     *
+     * @return true si le flow a reussi et les events ont ete emis ;
+     *         false si une condition empeche le multi-agent (caller fallback mono-agent)
+     */
+    private boolean tryMultiAgentFlow(String userMessage,
+                                        AgentContext context,
+                                        AssistantConversation conversation,
+                                        Consumer<AgentSseEvent> consumer) {
+        com.clenzy.service.agent.multiagent.OrchestratorAgent.OrchestrationResult result =
+                multiAgentOrchestrator.orchestrate(userMessage, context);
+
+        if (!result.isSuccess()) {
+            log.warn("Multi-agent returned error : {} — fallback mono-agent", result.error());
+            return false;
+        }
+
+        // 1. Emettre les tool_call_executed events pour chaque widget (preserve l'UX)
+        for (com.clenzy.service.agent.multiagent.ToolInvocationSnapshot snap : result.toolInvocations()) {
+            consumer.accept(AgentSseEvent.toolCallExecuted(
+                    snap.toolName(),
+                    null,  // pas de toolCallId au niveau multi-agent
+                    snap.isError(),
+                    snap.displayHint(),
+                    snap.isError() ? null : snap.content()
+            ));
+        }
+
+        // 2. Emettre le texte final en un seul delta (pas de streaming caractere par
+        //    caractere en v1 — le streaming SSE bidirectionnel viendra en v2)
+        String finalText = result.finalText() == null ? "" : result.finalText();
+        if (!finalText.isEmpty()) {
+            consumer.accept(AgentSseEvent.textDelta(finalText));
+        }
+
+        // 3. Persister le message assistant (avec tokens + finish reason)
+        AssistantMessage assistantMsg = AssistantMessage.assistant(
+                conversation.getId(),
+                context.organizationId(),
+                finalText,
+                null  // tool_calls JSON (multi-agent : detail interne, pas expose ici)
+        );
+        assistantMsg.setPromptTokens(result.totalPromptTokens());
+        assistantMsg.setCompletionTokens(result.totalCompletionTokens());
+        assistantMsg.setFinishReason(result.truncated() ? "length" : "end_turn");
+        messageRepository.save(assistantMsg);
+
+        // 4. Emettre done
+        consumer.accept(AgentSseEvent.done(result.truncated() ? "length" : "end_turn"));
+        return true;
     }
 
     // ─── Boucle principale ─────────────────────────────────────────────────
