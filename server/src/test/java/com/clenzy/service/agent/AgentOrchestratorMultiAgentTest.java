@@ -208,6 +208,30 @@ class AgentOrchestratorMultiAgentTest {
         verify(multiAgent, never()).orchestrate(anyString(), any());
     }
 
+    @Test
+    void multi_agent_skipped_when_modelOverride_set_for_briefings() {
+        // Audit pre-prod : les briefings (BriefingComposer) forcent un modelOverride
+        // Haiku pour reduire les couts ~10x. Le multi-agent flow n'est pas adapte a
+        // ce cas (prompts structures DAILY/WEEKLY/ALERTS, sortie JSON, etc.) → on
+        // doit imperativement SKIP le multi-agent quand modelOverride != null.
+        when(specialistRegistry.size()).thenReturn(3);
+        AgentOrchestrator agent = build(true);
+        List<AgentSseEvent> events = new ArrayList<>();
+        AgentContext briefingContext = AgentContext.minimal(1L, "user-multi")
+                .withModelOverride("claude-haiku-4-5");
+
+        try {
+            agent.handleMessage(null, "genere mon briefing du jour",
+                    briefingContext, events::add);
+        } catch (Exception ignored) {
+            // Acceptable : pas de stub chatProvider pour le mono-agent
+        }
+        // Multi-agent SKIP car modelOverride force le mono-agent (briefings preserves)
+        verify(multiAgent, never()).orchestrate(anyString(), any());
+        // Le mono-agent est bien sollicite (chatProvider appelle streamChat)
+        verify(chatProvider).streamChat(any(), any());
+    }
+
     // Helper : eq matcher pour String avec verifications precises
     private static String eq(String expected) {
         return org.mockito.ArgumentMatchers.eq(expected);

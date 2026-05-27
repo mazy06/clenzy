@@ -269,12 +269,15 @@ public class AgentOrchestrator {
      * Feature flag : si true, utilise l'architecture multi-agent (orchestrator
      * + spécialistes ≤10 tools chacun) au lieu du mono-agent (27 tools en bloc).
      *
-     * <p>Defaut <b>true</b> : le multi-agent est active par defaut car le code
-     * est isole, teste (21 tests), et le fallback automatique sur mono-agent
-     * en cas d'erreur garantit qu'on ne casse rien.</p>
+     * <p><b>Defaut false</b> : audit pre-prod (2026-05-28) a identifie 7
+     * regressions bloquantes (confirmation user des write tools, memoire
+     * long-terme perdue, auto-injection RAG perdue, history conversationnelle
+     * non transmise, BYOK ignore, audit logging perdu, langue user ignoree).
+     * Le multi-agent reste opt-in jusqu'a ce que les fixes bloquants soient
+     * livres et valides en dev.</p>
      *
-     * <p>Override : {@code clenzy.assistant.multi-agent.enabled=false} →
-     * retour instantane au mono-agent sans redeploy.</p>
+     * <p>Override (uniquement en dev pour tester) :
+     * {@code clenzy.assistant.multi-agent.enabled=true}</p>
      */
     private final boolean multiAgentEnabled;
 
@@ -315,7 +318,7 @@ public class AgentOrchestrator {
                               com.clenzy.service.agent.multiagent.SpecialistRegistry specialistRegistry,
                               @org.springframework.beans.factory.annotation.Value("${clenzy.assistant.prompt.v2.enabled:true}")
                               boolean promptV2Enabled,
-                              @org.springframework.beans.factory.annotation.Value("${clenzy.assistant.multi-agent.enabled:true}")
+                              @org.springframework.beans.factory.annotation.Value("${clenzy.assistant.multi-agent.enabled:false}")
                               boolean multiAgentEnabled) {
         this.chatProvider = chatProvider;
         this.toolRegistry = toolRegistry;
@@ -392,7 +395,7 @@ public class AgentOrchestrator {
         //    encore les images Vision (TODO v2).
         //    Pas de spécialiste → impossible, fallback aussi.
         //    Si multi-agent throw, on log et fallback automatiquement.
-        if (canUseMultiAgent(hasAttachments)) {
+        if (canUseMultiAgent(context, hasAttachments)) {
             try {
                 boolean handledByMultiAgent = tryMultiAgentFlow(
                         effectiveMessage, context, conversation, consumer);
@@ -518,13 +521,19 @@ public class AgentOrchestrator {
      * <ul>
      *   <li>Feature flag {@code clenzy.assistant.multi-agent.enabled=true}</li>
      *   <li>Pas d'attachments (vision pas encore supportee par les specialistes)</li>
+     *   <li>Pas de {@code modelOverride} dans le {@link AgentContext} :
+     *       les briefings et autres cas specialises forcent leur modele (Haiku
+     *       pour briefings) — on respecte ce choix en restant en mono-agent</li>
      *   <li>SpecialistRegistry non vide</li>
      *   <li>OrchestratorAgent injecte (non null)</li>
      * </ul>
      */
-    private boolean canUseMultiAgent(boolean hasAttachments) {
+    private boolean canUseMultiAgent(AgentContext context, boolean hasAttachments) {
         if (!multiAgentEnabled) return false;
         if (hasAttachments) return false;
+        // Briefings (BriefingComposer) forcent un modelOverride Haiku — skip multi-agent
+        // pour preserver leur flow specifique (prompts structures DAILY/WEEKLY/ALERTS).
+        if (context.modelOverride() != null) return false;
         if (multiAgentOrchestrator == null) return false;
         return specialistRegistry != null && specialistRegistry.size() > 0;
     }
