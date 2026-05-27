@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Container,
@@ -31,6 +32,8 @@ export interface LegalLayoutProps {
 }
 
 export default function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
+  const { t } = useTranslation();
+
   return (
     <ThemeProvider theme={lightTheme}>
       <CssBaseline />
@@ -70,7 +73,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
                 }}
               >
                 <ArrowBack size={16} strokeWidth={1.75} />
-                Retour
+                {t('auth.legal.back', 'Retour')}
               </Link>
             </Box>
           </Container>
@@ -92,7 +95,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
             {title}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 4 }}>
-            Dernière mise à jour : {lastUpdated}
+            {t('auth.legal.lastUpdated', `Dernière mise à jour : ${lastUpdated}`, { date: lastUpdated })}
           </Typography>
           <Divider sx={{ mb: 4 }} />
           <Box
@@ -151,13 +154,13 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
           <Container maxWidth="md">
             <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link component={RouterLink} to="/cgu" sx={{ color: 'text.secondary', fontSize: '0.8125rem', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>
-                CGU
+                {t('auth.legal.footerCgu', 'CGU')}
               </Link>
               <Link component={RouterLink} to="/confidentialite" sx={{ color: 'text.secondary', fontSize: '0.8125rem', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>
-                Politique de confidentialité
+                {t('auth.legal.footerPrivacy', 'Politique de confidentialité')}
               </Link>
               <Link component={RouterLink} to="/support" sx={{ color: 'text.secondary', fontSize: '0.8125rem', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>
-                Support
+                {t('auth.legal.footerSupport', 'Support')}
               </Link>
             </Box>
           </Container>

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
   Box,
   Paper,
@@ -42,7 +44,17 @@ interface TokenResponse {
 
 type PageStatus = 'loading' | 'ready' | 'submitting' | 'success' | 'error' | 'expired' | 'already_completed';
 
+const getForfaitShortLabel = (t: TFunction, key: string): string => {
+  const fallbacks: Record<string, string> = {
+    essentiel: 'Essentiel',
+    confort: 'Confort',
+    premium: 'Premium',
+  };
+  return t(`auth.inscriptionConfirm.forfaits.${key}`, fallbacks[key] || key);
+};
+
 export default function InscriptionConfirm() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token') || '';
@@ -57,7 +69,7 @@ export default function InscriptionConfirm() {
   useEffect(() => {
     if (!token) {
       setStatus('error');
-      setError('Lien de confirmation invalide. Aucun token fourni.');
+      setError(t('auth.inscriptionConfirm.invalidTokenError', 'Lien de confirmation invalide. Aucun token fourni.'));
       return;
     }
 
@@ -80,14 +92,14 @@ export default function InscriptionConfirm() {
             setStatus('expired');
           } else {
             setStatus('error');
-            setError('Le lien de confirmation est invalide ou a expire.');
+            setError(t('auth.inscriptionConfirm.invalidOrExpiredError', 'Le lien de confirmation est invalide ou a expire.'));
           }
         } else {
           setStatus('error');
-          setError('Le lien de confirmation est invalide ou a expire.');
+          setError(t('auth.inscriptionConfirm.invalidOrExpiredError', 'Le lien de confirmation est invalide ou a expire.'));
         }
       });
-  }, [token]);
+  }, [token, t]);
 
   const isPasswordValid = password.length >= 8 && password === confirmPassword;
 
@@ -133,15 +145,9 @@ export default function InscriptionConfirm() {
       } else if (apiErr.status === 404) {
         setStatus('expired');
       } else {
-        setError(apiErr.message || 'Une erreur est survenue. Veuillez reessayer.');
+        setError(apiErr.message || t('auth.inscriptionConfirm.submitErrorGeneric', 'Une erreur est survenue. Veuillez reessayer.'));
       }
     }
-  };
-
-  const FORFAIT_LABELS: Record<string, string> = {
-    essentiel: 'Essentiel',
-    confort: 'Confort',
-    premium: 'Premium',
   };
 
   const FORFAIT_COLORS: Record<string, string> = {
@@ -186,7 +192,7 @@ export default function InscriptionConfirm() {
             <Box sx={{ py: 4 }}>
               <CircularProgress sx={{ color: '#6B8A9A', mb: 2 }} />
               <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.secondary' }}>
-                Verification du lien...
+                {t('auth.inscriptionConfirm.loadingLink', 'Verification du lien...')}
               </Typography>
             </Box>
           )}
@@ -195,10 +201,10 @@ export default function InscriptionConfirm() {
           {(status === 'ready' || status === 'submitting') && info && (
             <Box sx={{ py: 2, textAlign: 'left' }}>
               <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, textAlign: 'center', color: 'text.primary' }}>
-                Creez votre mot de passe
+                {t('auth.inscriptionConfirm.createPasswordTitle', 'Creez votre mot de passe')}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3, textAlign: 'center' }}>
-                Derniere etape pour finaliser votre inscription.
+                {t('auth.inscriptionConfirm.createPasswordSubtitle', 'Derniere etape pour finaliser votre inscription.')}
               </Typography>
 
               {/* Banner avec infos utilisateur */}
@@ -219,7 +225,9 @@ export default function InscriptionConfirm() {
                 </Typography>
                 {info.forfait && (
                   <Chip
-                    label={`Forfait ${FORFAIT_LABELS[info.forfait] || info.forfait}`}
+                    label={t('auth.inscriptionConfirm.forfaitChip', `Forfait ${getForfaitShortLabel(t, info.forfait)}`, {
+                      forfait: getForfaitShortLabel(t, info.forfait),
+                    })}
                     size="small"
                     sx={{
                       mt: 1,
@@ -242,24 +250,24 @@ export default function InscriptionConfirm() {
                 <TextField
                   fullWidth
                   size="small"
-                  label="Mot de passe *"
+                  label={t('auth.inscriptionConfirm.passwordLabel', 'Mot de passe *')}
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  helperText="Minimum 8 caracteres"
+                  helperText={t('auth.inscriptionConfirm.passwordHelper', 'Minimum 8 caracteres')}
                   autoFocus
                 />
                 <TextField
                   fullWidth
                   size="small"
-                  label="Confirmer le mot de passe *"
+                  label={t('auth.inscriptionConfirm.confirmPasswordLabel', 'Confirmer le mot de passe *')}
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   error={confirmPassword.length > 0 && password !== confirmPassword}
                   helperText={
                     confirmPassword.length > 0 && password !== confirmPassword
-                      ? 'Les mots de passe ne correspondent pas'
+                      ? t('auth.inscriptionConfirm.passwordMismatch', 'Les mots de passe ne correspondent pas')
                       : ''
                   }
                   onKeyDown={(e) => {
@@ -292,7 +300,9 @@ export default function InscriptionConfirm() {
                     boxShadow: '0 4px 12px rgba(107,138,154,0.3)',
                   }}
                 >
-                  {status === 'submitting' ? 'Creation en cours...' : 'Creer mon mot de passe'}
+                  {status === 'submitting'
+                    ? t('auth.inscriptionConfirm.submitting', 'Creation en cours...')
+                    : t('auth.inscriptionConfirm.submit', 'Creer mon mot de passe')}
                 </Button>
               </Stack>
             </Box>
@@ -318,10 +328,10 @@ export default function InscriptionConfirm() {
                 <CheckCircleIcon size={72} strokeWidth={1.75} />
               </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
-                Inscription finalisee !
+                {t('auth.inscriptionConfirm.successTitle', 'Inscription finalisee !')}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                Votre compte a ete cree avec succes. Redirection vers votre tableau de bord...
+                {t('auth.inscriptionConfirm.successBody', 'Votre compte a ete cree avec succes. Redirection vers votre tableau de bord...')}
               </Typography>
               <CircularProgress size={24} sx={{ color: '#6B8A9A' }} />
             </Box>
@@ -332,10 +342,10 @@ export default function InscriptionConfirm() {
             <Box sx={{ py: 3 }}>
               <Box component="span" sx={{ display: 'inline-flex', mb: 2 }}><CheckCircleIcon size={64} strokeWidth={1.75} color='#6B8A9A' /></Box>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                Inscription deja finalisee
+                {t('auth.inscriptionConfirm.alreadyCompletedTitle', 'Inscription deja finalisee')}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-                Votre compte a deja ete cree. Vous pouvez vous connecter avec vos identifiants.
+                {t('auth.inscriptionConfirm.alreadyCompletedBody', 'Votre compte a deja ete cree. Vous pouvez vous connecter avec vos identifiants.')}
               </Typography>
               <Button
                 variant="contained"
@@ -349,7 +359,7 @@ export default function InscriptionConfirm() {
                   borderRadius: 2,
                 }}
               >
-                Se connecter
+                {t('auth.inscriptionConfirm.loginButton', 'Se connecter')}
               </Button>
             </Box>
           )}
@@ -359,10 +369,10 @@ export default function InscriptionConfirm() {
             <Box sx={{ py: 3 }}>
               <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                Lien expire
+                {t('auth.inscriptionConfirm.expiredTitle', 'Lien expire')}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-                Le lien de confirmation a expire. Veuillez contacter le support pour obtenir un nouveau lien.
+                {t('auth.inscriptionConfirm.expiredBody', 'Le lien de confirmation a expire. Veuillez contacter le support pour obtenir un nouveau lien.')}
               </Typography>
               <Button
                 variant="outlined"
@@ -373,7 +383,7 @@ export default function InscriptionConfirm() {
                   '&:hover': { borderColor: '#5A7684', backgroundColor: 'rgba(107,138,154,0.04)' },
                 }}
               >
-                Retour a la connexion
+                {t('auth.common.backToLogin', 'Retour a la connexion')}
               </Button>
             </Box>
           )}
@@ -383,10 +393,10 @@ export default function InscriptionConfirm() {
             <Box sx={{ py: 3 }}>
               <Box component="span" sx={{ display: 'inline-flex', color: 'error.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                Lien invalide
+                {t('auth.inscriptionConfirm.errorTitle', 'Lien invalide')}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-                {error || 'Le lien de confirmation est invalide. Veuillez contacter le support.'}
+                {error || t('auth.inscriptionConfirm.errorBody', 'Le lien de confirmation est invalide. Veuillez contacter le support.')}
               </Typography>
               <Button
                 variant="outlined"
@@ -397,7 +407,7 @@ export default function InscriptionConfirm() {
                   '&:hover': { borderColor: '#5A7684', backgroundColor: 'rgba(107,138,154,0.04)' },
                 }}
               >
-                Retour a la connexion
+                {t('auth.common.backToLogin', 'Retour a la connexion')}
               </Button>
             </Box>
           )}
