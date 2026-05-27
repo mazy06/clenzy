@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.List;
@@ -159,6 +160,57 @@ class OrchestratorAgentTest {
         OrchestratorAgent.OrchestrationResult r = orchestrator.orchestrate("query", AgentContext.minimal(1L, "kc"));
         assertThat(r.isSuccess()).isFalse();
         assertThat(r.error()).contains("Anthropic 500");
+    }
+
+    @Test
+    void orchestrate_with_history_passes_full_conversation_to_llm() {
+        // Fix bloquant #2 : l'orchestrator DOIT transmettre l'historique complet
+        // au LLM (user + assistant + tool messages), pas juste le dernier user.
+        List<ChatMessage> history = List.of(
+                ChatMessage.user("Bonjour"),
+                ChatMessage.assistant("Bonjour, comment puis-je t'aider ?"),
+                ChatMessage.user("liste mes proprietes a Paris")
+        );
+        stubLlm("Tu as 3 biens a Paris.", List.of(), 80, 12);
+
+        OrchestratorAgent.OrchestrationResult r = orchestrator.orchestrate(history,
+                AgentContext.minimal(1L, "kc"));
+
+        assertThat(r.isSuccess()).isTrue();
+
+        // Verifier que le ChatRequest envoye au LLM contient bien les 3 messages
+        ArgumentCaptor<ChatRequest> reqCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+        verify(chatProvider).streamChat(reqCaptor.capture(), any());
+        ChatRequest sent = reqCaptor.getValue();
+        assertThat(sent.messages()).hasSize(3);
+        assertThat(sent.messages().get(0).role()).isEqualTo(ChatMessage.ROLE_USER);
+        assertThat(sent.messages().get(1).role()).isEqualTo(ChatMessage.ROLE_ASSISTANT);
+        assertThat(sent.messages().get(2).content()).contains("Paris");
+    }
+
+    @Test
+    void orchestrate_legacy_string_signature_wraps_into_single_user_message() {
+        // Backwards compat : la signature 2-arg ne casse pas, elle wrap juste
+        // le message dans une liste a 1 element.
+        stubLlm("Bonjour !", List.of(), 30, 5);
+
+        OrchestratorAgent.OrchestrationResult r = orchestrator.orchestrate("Salut",
+                AgentContext.minimal(1L, "kc"));
+
+        assertThat(r.isSuccess()).isTrue();
+
+        ArgumentCaptor<ChatRequest> reqCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+        verify(chatProvider).streamChat(reqCaptor.capture(), any());
+        assertThat(reqCaptor.getValue().messages()).hasSize(1);
+        assertThat(reqCaptor.getValue().messages().get(0).content()).isEqualTo("Salut");
+    }
+
+    @Test
+    void orchestrate_with_empty_history_returns_error() {
+        OrchestratorAgent.OrchestrationResult r = orchestrator.orchestrate(List.of(),
+                AgentContext.minimal(1L, "kc"));
+        assertThat(r.isSuccess()).isFalse();
+        assertThat(r.error()).contains("vide");
     }
 
     @Test

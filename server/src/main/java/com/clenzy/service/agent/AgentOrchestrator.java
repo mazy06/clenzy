@@ -398,7 +398,7 @@ public class AgentOrchestrator {
         if (canUseMultiAgent(context, hasAttachments)) {
             try {
                 boolean handledByMultiAgent = tryMultiAgentFlow(
-                        effectiveMessage, context, conversation, consumer);
+                        effectiveMessage, chatMessages, context, conversation, consumer);
                 if (handledByMultiAgent) {
                     // 5. Update conversation updatedAt + title si manquant
                     conversation.setUpdatedAt(LocalDateTime.now());
@@ -548,15 +548,21 @@ public class AgentOrchestrator {
     /**
      * Execute le flow multi-agent et stream les events SSE.
      *
+     * @param userMessage   le message texte du tour courant (utilise pour
+     *                       deriver le titre et le logging — pas pour le LLM)
+     * @param chatHistory   historique complet de la conversation (incluant le
+     *                       message user courant en derniere position). Transmis
+     *                       a l'orchestrator pour preserver le contexte multi-tour.
      * @return true si le flow a reussi et les events ont ete emis ;
      *         false si une condition empeche le multi-agent (caller fallback mono-agent)
      */
     private boolean tryMultiAgentFlow(String userMessage,
+                                        List<ChatMessage> chatHistory,
                                         AgentContext context,
                                         AssistantConversation conversation,
                                         Consumer<AgentSseEvent> consumer) {
         com.clenzy.service.agent.multiagent.OrchestratorAgent.OrchestrationResult result =
-                multiAgentOrchestrator.orchestrate(userMessage, context);
+                multiAgentOrchestrator.orchestrate(chatHistory, context);
 
         if (!result.isSuccess()) {
             log.warn("Multi-agent returned error : {} — fallback mono-agent", result.error());

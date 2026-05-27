@@ -76,30 +76,55 @@ public class OrchestratorAgent {
     /**
      * Lance l'orchestration synchrone et retourne le texte final.
      *
+     * <p><b>Legacy 2-arg</b> : seul le user message est envoye au LLM, sans
+     * historique conversationnel. Ce chemin est conserve pour compatibilite
+     * (tests existants, appels ponctuels) mais ne devrait PAS etre utilise
+     * en production pour un assistant chat multi-tour.</p>
+     *
+     * <p>Prefer la signature 3-arg {@link #orchestrate(List, AgentContext)}
+     * qui transmet l'historique complet.</p>
+     */
+    public OrchestrationResult orchestrate(String userMessage, AgentContext context) {
+        return orchestrate(List.of(ChatMessage.user(userMessage)), context);
+    }
+
+    /**
+     * Lance l'orchestration avec l'historique conversationnel complet.
+     *
+     * <p><b>{@code messages}</b> contient l'historique chronologique des
+     * echanges user/assistant/tool de la conversation, le dernier element
+     * etant la question courante de l'utilisateur. Le LLM orchestrator a
+     * ainsi acces au contexte des tours precedents — indispensable pour les
+     * follow-up ("annule celle dont on a parle"), les references implicites
+     * ("comme la derniere fois"), etc.</p>
+     *
      * <p>Version non-streaming (PoC). Le streaming SSE bidirectionnel
      * (orchestrator emet tools + specialists emettent au fur et a mesure)
      * sera ajoute en v2 quand l'integration AgentOrchestrator sera faite.</p>
      */
-    public OrchestrationResult orchestrate(String userMessage, AgentContext context) {
+    public OrchestrationResult orchestrate(List<ChatMessage> messages, AgentContext context) {
         long startNanos = System.nanoTime();
         try {
-            return doOrchestrate(userMessage, context);
+            return doOrchestrate(messages, context);
         } finally {
             orchestrateTimer.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
         }
     }
 
-    private OrchestrationResult doOrchestrate(String userMessage, AgentContext context) {
+    private OrchestrationResult doOrchestrate(List<ChatMessage> messages, AgentContext context) {
         // Pas de specialistes -> impossible d'orchestrer
         if (registry.size() == 0) {
             return OrchestrationResult.error("Aucun specialiste enregistre, orchestration impossible");
+        }
+        if (messages == null || messages.isEmpty()) {
+            return OrchestrationResult.error("Messages history vide, impossible d'orchestrer");
         }
 
         String systemPrompt = buildOrchestratorSystemPrompt();
         List<ToolDescriptor> tools = List.of(buildDelegateToolDescriptor());
         ChatRequest req = new ChatRequest(
                 systemPrompt,
-                List.of(ChatMessage.user(userMessage)),
+                messages,
                 tools,
                 null,
                 TEMPERATURE,

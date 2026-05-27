@@ -2,6 +2,7 @@ package com.clenzy.service.agent;
 
 import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.ChatLLMProvider;
+import com.clenzy.config.ai.ChatMessage;
 import com.clenzy.model.AssistantConversation;
 import com.clenzy.repository.AssistantConversationRepository;
 import com.clenzy.repository.AssistantMessageRepository;
@@ -27,6 +28,7 @@ import java.util.function.Consumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -112,13 +114,13 @@ class AgentOrchestratorMultiAgentTest {
         } catch (Exception ignored) {
             // Acceptable : pas de stub chatProvider pour le mono-agent
         }
-        verify(multiAgent, never()).orchestrate(anyString(), any());
+        verify(multiAgent, never()).orchestrate(anyList(), any());
     }
 
     @Test
     void multi_agent_on_with_specialists_uses_multi_agent_path() {
         when(specialistRegistry.size()).thenReturn(3);
-        when(multiAgent.orchestrate(anyString(), any())).thenReturn(
+        when(multiAgent.orchestrate(anyList(), any())).thenReturn(
                 OrchestratorAgent.OrchestrationResult.success(
                         "Tu as 5 proprietes.",
                         List.of("data_analyst → OK"),
@@ -134,7 +136,11 @@ class AgentOrchestratorMultiAgentTest {
                 AgentContext.minimal(1L, "user-multi"), events::add);
 
         assertThat(convId).isEqualTo(100L);
-        verify(multiAgent).orchestrate(eq("liste mes proprietes"), any());
+        // Fix #2 : verifier que l'historique (List<ChatMessage>) est bien transmis
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ChatMessage>> historyCaptor = ArgumentCaptor.forClass(List.class);
+        verify(multiAgent).orchestrate(historyCaptor.capture(), any());
+        assertThat(historyCaptor.getValue()).isNotEmpty();
         // chatProvider doit NE PAS etre appele (mono-agent skip)
         verify(chatProvider, never()).streamChat(any(), any());
         // Events SSE : conversation_created + tool_call_executed + text_delta + done
@@ -153,13 +159,13 @@ class AgentOrchestratorMultiAgentTest {
             // Acceptable
         }
         // Multi-agent SKIP car size==0
-        verify(multiAgent, never()).orchestrate(anyString(), any());
+        verify(multiAgent, never()).orchestrate(anyList(), any());
     }
 
     @Test
     void multi_agent_throws_falls_back_to_mono_agent() {
         when(specialistRegistry.size()).thenReturn(3);
-        when(multiAgent.orchestrate(anyString(), any())).thenThrow(new RuntimeException("BOOM"));
+        when(multiAgent.orchestrate(anyList(), any())).thenThrow(new RuntimeException("BOOM"));
         AgentOrchestrator agent = build(true);
         List<AgentSseEvent> events = new ArrayList<>();
 
@@ -169,7 +175,7 @@ class AgentOrchestratorMultiAgentTest {
             // Le fallback mono-agent va aussi failler (pas de chatProvider stub),
             // mais l'important : multi-agent a ete appele puis on a fallback
         }
-        verify(multiAgent).orchestrate(anyString(), any());
+        verify(multiAgent).orchestrate(anyList(), any());
         // Le fallback essaie d'appeler chatProvider (mono-agent)
         verify(chatProvider).streamChat(any(), any());
     }
@@ -177,7 +183,7 @@ class AgentOrchestratorMultiAgentTest {
     @Test
     void multi_agent_returns_error_falls_back_to_mono_agent() {
         when(specialistRegistry.size()).thenReturn(3);
-        when(multiAgent.orchestrate(anyString(), any())).thenReturn(
+        when(multiAgent.orchestrate(anyList(), any())).thenReturn(
                 OrchestratorAgent.OrchestrationResult.error("LLM unavailable")
         );
         AgentOrchestrator agent = build(true);
@@ -187,7 +193,7 @@ class AgentOrchestratorMultiAgentTest {
             agent.handleMessage(null, "test", AgentContext.minimal(1L, "user-multi"), events::add);
         } catch (Exception ignored) {
         }
-        verify(multiAgent).orchestrate(anyString(), any());
+        verify(multiAgent).orchestrate(anyList(), any());
         verify(chatProvider).streamChat(any(), any());
     }
 
@@ -206,7 +212,7 @@ class AgentOrchestratorMultiAgentTest {
         } catch (Exception ignored) {
         }
         // Multi-agent skip car vision pas supportee
-        verify(multiAgent, never()).orchestrate(anyString(), any());
+        verify(multiAgent, never()).orchestrate(anyList(), any());
     }
 
     @Test
@@ -217,7 +223,7 @@ class AgentOrchestratorMultiAgentTest {
         // intercepter specifiquement (log info, pas warn) et basculer mono-agent
         // qui exposera la confirmation au user via SSE.
         when(specialistRegistry.size()).thenReturn(3);
-        when(multiAgent.orchestrate(anyString(), any()))
+        when(multiAgent.orchestrate(anyList(), any()))
                 .thenThrow(new ConfirmationRequiredException("cancel_reservation"));
         AgentOrchestrator agent = build(true);
         List<AgentSseEvent> events = new ArrayList<>();
@@ -229,7 +235,7 @@ class AgentOrchestratorMultiAgentTest {
             // Mono-agent fallback essaie chatProvider sans stub → OK d'ignorer
         }
         // Multi-agent a bien ete invoque (et a throw)
-        verify(multiAgent).orchestrate(anyString(), any());
+        verify(multiAgent).orchestrate(anyList(), any());
         // Mono-agent (chatProvider) prend le relai → preuve du fallback
         verify(chatProvider).streamChat(any(), any());
     }
@@ -253,13 +259,9 @@ class AgentOrchestratorMultiAgentTest {
             // Acceptable : pas de stub chatProvider pour le mono-agent
         }
         // Multi-agent SKIP car modelOverride force le mono-agent (briefings preserves)
-        verify(multiAgent, never()).orchestrate(anyString(), any());
+        verify(multiAgent, never()).orchestrate(anyList(), any());
         // Le mono-agent est bien sollicite (chatProvider appelle streamChat)
         verify(chatProvider).streamChat(any(), any());
     }
 
-    // Helper : eq matcher pour String avec verifications precises
-    private static String eq(String expected) {
-        return org.mockito.ArgumentMatchers.eq(expected);
-    }
 }
