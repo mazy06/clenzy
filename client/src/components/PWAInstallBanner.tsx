@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Paper, Typography, Button, Box, Slide, IconButton } from '@mui/material';
 import { Close as CloseIcon, GetApp as GetAppIcon } from '../icons';
 import { usePWA } from '../hooks/usePWA';
 import { useUserPreference } from '../hooks/useUserPreference';
 
+const LEGACY_DISMISS_KEY = 'pwa-banner-dismissed-at';
 const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export default function PWAInstallBanner() {
@@ -13,11 +14,40 @@ export default function PWAInstallBanner() {
   // `canInstall` reste device-specific (depend du browser + manifest), donc
   // si le banner est dismissed sur device A et que l'user ouvre l'app sur
   // device B PWA-capable, on respecte le delai de 7j la aussi.
-  const [dismissedAt, setDismissedAt] = useUserPreference<number | null>(
+  const [dismissedAt, setDismissedAt, { isLoaded }] = useUserPreference<number | null>(
     'pwa.installBannerDismissedAt',
     null,
   );
   const [visible, setVisible] = useState(false);
+
+  // Migration legacy (BUG-4) : recupere le timestamp dismissed depuis
+  // l'ancienne cle localStorage et le pousse vers backend une seule fois.
+  // Gate sur `isLoaded` pour eviter d'ecraser une valeur backend existante
+  // (dismissed=null explicite signifiant "re-proposer maintenant").
+  const migrationDoneRef = useRef(false);
+  useEffect(() => {
+    if (migrationDoneRef.current || !isLoaded) return;
+    if (dismissedAt !== null) {
+      migrationDoneRef.current = true;
+      try { localStorage.removeItem(LEGACY_DISMISS_KEY); } catch { /* noop */ }
+      return;
+    }
+    try {
+      const legacy = localStorage.getItem(LEGACY_DISMISS_KEY);
+      if (legacy) {
+        const ts = Number(legacy);
+        if (Number.isFinite(ts)) {
+          migrationDoneRef.current = true;
+          setDismissedAt(ts);
+          localStorage.removeItem(LEGACY_DISMISS_KEY);
+          return;
+        }
+      }
+      migrationDoneRef.current = true;
+    } catch {
+      migrationDoneRef.current = true;
+    }
+  }, [isLoaded, dismissedAt, setDismissedAt]);
 
   useEffect(() => {
     if (!canInstall) {

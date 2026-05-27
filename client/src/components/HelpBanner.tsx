@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Box, Typography, IconButton, alpha, useTheme } from '@mui/material';
 import { Close as CloseIcon } from '../icons';
 import { semanticToHex } from '../utils/statusUtils';
@@ -79,7 +79,37 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
     .replace(/_help$/, '');
   const prefKey = `help.${normalized}`;
 
-  const [dismissed, setDismissed] = useUserPreference<boolean>(prefKey, false);
+  const [dismissed, setDismissed, { isLoaded }] = useUserPreference<boolean>(prefKey, false);
+
+  // Migration legacy (BUG-4) : si l'user avait dismissed le banner via
+  // l'ancienne implementation localStorage (pre-deploy P3), on migre la
+  // valeur vers le backend une seule fois et on cleanup la cle locale.
+  //
+  // Gate sur `isLoaded` pour eviter une race : si on migrate avant la reponse
+  // backend, l'optimistic update peut etre ecrase par les vraies donnees
+  // backend (qui pourraient contenir un dismissed=false explicite que l'user
+  // a re-active sur un autre device).
+  const migrationDoneRef = useRef(false);
+  useEffect(() => {
+    if (migrationDoneRef.current || !isLoaded) return;
+    if (dismissed) {
+      migrationDoneRef.current = true;
+      // Si backend = true mais localStorage legacy traine encore, cleanup
+      try { localStorage.removeItem(storageKey); } catch { /* noop */ }
+      return;
+    }
+    try {
+      if (localStorage.getItem(storageKey) === '1') {
+        migrationDoneRef.current = true;
+        setDismissed(true);
+        localStorage.removeItem(storageKey);
+      } else {
+        migrationDoneRef.current = true;
+      }
+    } catch {
+      migrationDoneRef.current = true;
+    }
+  }, [isLoaded, dismissed, storageKey, setDismissed]);
 
   const handleDismiss = useCallback(() => {
     setDismissed(true);

@@ -1,0 +1,189 @@
+{
+  "_meta": {
+    "version": "1",
+    "description": "Dataset statique d'evenements locaux (jours feries FR + grands evenements publics). Filtrable par ville et plage de dates par GetLocalEventsTool. Sentinel city '*' = applicable a toutes les villes (ex: jours feries nationaux).",
+    "lastUpdated": "2026-05-26"
+  },
+  "events": [
+    {
+      "id": "fr-2026-jour-an",
+      "title": "Jour de l'An",
+      "type": "PUBLIC_HOLIDAY",
+      "city": "*",
+      "country": "FR",
+      "date": "2026-01-01",
+      "description": "Jour ferie national. Demande generalement forte pour les sejours du nouvel an."
+    },
+    {
+      "id": "fr-2026-paques",
+      "title": "Lundi de Paques",
+      "type": "PUBLIC_HOLIDAY",
+      "city": "*",
+      "country": "FR",
+      "date": "2026-04-06",
+      "description": "Jour ferie national, week-end 3-4-5-6 avril 2026."
+    },
+    {
+      "id": "fr-2026-fete-travail",
+      "title": "Fete du Travail",
+      "type": "PUBLIC_HOLIDAY",
+      "city": "*",
+      "country": "FR",
+      "date": "2026-05-01",
+      "description": "Jour ferie national."
+    },
+    {
+      "id": "fr-2026-victoire-1945",
+      "title": "Victoire 1945",
+      "type": "PUBLIC_HOLIDAY",
+      "city": "*",
+      "country": "FR",
+      "date": "2026-05-08",
+      "description": "Jour ferie national. Pont possible (vendredi)."
+    },
+    {
+      "id": "fr-2026-ascension",
+      "title": "Jeudi de l'Ascension",
+      "type": "PUBLIC_HOLIDAY",
+      "city": "*",
+      "country": "FR",
+      "date": "2026-05-14",
+      "description": "Jour ferie national. Long week-end propice aux courts sejours."
+    },
+    {
+      "id": "fr-2026-pentecote",
+      "title": "Lundi de Pentecote",
+      "type": "PUBLIC_HOLIDAY",
+      "city": "*",
+      "country": "FR",
+      "date": "2026-05-25",
+      "description": "Jour ferie national."
+    },
+    {
+      "id": "fr-2026-fete-nationale",
+      "title": "Fete Nationale",
+      "type": "PUBLIC_HOLIDAY",
+      "city": "*",
+      "country": "FR",
+      "date": "2026-07-14",
+      "description": "Jour ferie national. Forte demande dans toutes les grandes villes."
+    },
+    {
+      "id": "fr-2026-assomption",
+      "title": "Assomption",
+      "type": "PUBLIC_HOLIDAY",
+      "city": "*",
+      "country": "FR",
+      "date": "2026-08-15",
+      "description": "Jour ferie national, milieu d'ete."
+    },
+    {
+      "id": "fr-2026-toussaint",
+      "title": "Toussaint",
+      "type": "PUBLIC_HOLIDAY",
+      "city": "*",
+      "country": "FR",
+      "date": "2026-11-01",
+      "description": "Jour ferie national."
+    },
+    {
+      "id": "fr-2026-armistice",
+      "title": "Armistice 1918",
+      "type": "PUBLIC_HOLIDAY",
+      "city": "*",
+      "country": "FR",
+      "date": "2026-11-11",
+      "description": "Jour ferie national."
+    },
+    {
+      "id": "fr-2026-noel",
+      "title": "Noel",
+      "type": "PUBLIC_HOLIDAY",
+      "city": "*",
+      "country": "FR",
+      "date": "2026-12-25",
+      "description": "Jour ferie national. Demande tres forte sur la semaine."
+    },
+    {
+      "id": "paris-2026-fete-musique",
+      "title": "Fete de la Musique",
+      "type": "FESTIVAL",
+      "city": "Paris",
+      "country": "FR",
+      "date": "2026-06-21",
+      "description": "Evenement national avec concerts gratuits, particulierement intense a Paris."
+    },
+    {
+      "id": "paris-2026-marathon",
+      "title": "Marathon de Paris",
+      "type": "SPORT",
+      "city": "Paris",
+      "country": "FR",
+      "date": "2026-04-12",
+      "description": "Marathon attirant 50k+ coureurs internationaux, hebergements satures sur le week-end."
+    },
+    {
+      "id": "paris-2026-rolandgarros",
+      "title": "Roland-Garros",
+      "type": "SPORT",
+      "city": "Paris",
+      "country": "FR",
+      "date": "2026-05-24",
+      "description": "Quinzaine du tournoi Roland-Garros (~24 mai au 7 juin 2026)."
+    },
+    {
+      "id": "paris-2026-fashion-week-spring",
+      "title": "Paris Fashion Week (printemps)",
+      "type": "FAIR",
+      "city": "Paris",
+      "country": "FR",
+      "date": "2026-09-29",
+      "description": "Semaine de la mode (defiles, salons), tarifs hoteliers tres eleves."
+    },
+    {
+      "id": "cannes-2026-festival",
+      "title": "Festival de Cannes",
+      "type": "FESTIVAL",
+      "city": "Cannes",
+      "country": "FR",
+      "date": "2026-05-12",
+      "description": "Festival international du film (~12-23 mai 2026), demande maximale dans la region."
+    },
+    {
+      "id": "lyon-2026-fete-lumieres",
+      "title": "Fete des Lumieres",
+      "type": "FESTIVAL",
+      "city": "Lyon",
+      "country": "FR",
+      "date": "2026-12-08",
+      "description": "Du 8 au 11 decembre 2026. Pic touristique majeur a Lyon."
+    },
+    {
+      "id": "marrakech-2026-marathon",
+      "title": "Marathon International de Marrakech",
+      "type": "SPORT",
+      "city": "Marrakech",
+      "country": "MA",
+      "date": "2026-01-25",
+      "description": "Marathon de Marrakech, attire beaucoup de voyageurs etrangers."
+    },
+    {
+      "id": "marrakech-2026-printemps-musical",
+      "title": "Printemps Musical des Alizes",
+      "type": "FESTIVAL",
+      "city": "Essaouira",
+      "country": "MA",
+      "date": "2026-04-22",
+      "description": "Festival de musique classique a Essaouira (~22-26 avril 2026)."
+    },
+    {
+      "id": "fr-2027-jour-an",
+      "title": "Jour de l'An",
+      "type": "PUBLIC_HOLIDAY",
+      "city": "*",
+      "country": "FR",
+      "date": "2027-01-01",
+      "description": "Jour ferie national."
+    }
+  ]
+}

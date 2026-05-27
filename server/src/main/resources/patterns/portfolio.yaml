@@ -1,0 +1,28 @@
+# Patterns cross-portfolio detectes par analyze_portfolio.
+# Modifier ce fichier permet de :
+#  - desactiver un pattern (enabled: false)
+#  - changer le label ou la description
+#  - ajuster les seuils metier
+#  - personnaliser les regles de severite
+#
+# Pour ajouter un nouveau type de pattern, il faut ALSO ajouter un bean
+# PortfolioPatternDetector qui sait l'evaluer (la logique reste en Java pour
+# eviter d'embarquer un evaluateur d'expression complet).
+
+patterns:
+
+  - id: high_cancellation_rate
+    type: HIGH_CANCELLATION_RATE
+    title: "Taux d'annulation eleve"
+    description: "{count} propriete(s) avec >{thresholdPct}% d'annulations"
+    severity: MEDIUM
+    severityRules:
+      HIGH: "count >= 3"
+    enabled: true
+
+  - id: city_satisfaction_low
+    type: CITY_SATISFACTION_LOW
+    title: "Satisfaction faible par ville"
+    description: "{count} ville(s) avec rating moyen <{thresholdRating}/5"
+    severity: HIGH
+    enabled: true

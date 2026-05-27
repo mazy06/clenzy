@@ -60,6 +60,14 @@ function renderInscription(searchParams = '') {
   );
 }
 
+/** Helper : coche la checkbox CGU (obligatoire pour activer le bouton). */
+function acceptTerms() {
+  const cguCheckbox = screen.getByRole('checkbox', {
+    name: /conditions générales d'utilisation/i,
+  });
+  fireEvent.click(cguCheckbox);
+}
+
 /** Helper : soumet le formulaire et attend la transition vers le step paiement */
 async function goToPaymentStep() {
   mockPost.mockResolvedValueOnce({
@@ -68,6 +76,9 @@ async function goToPaymentStep() {
   });
 
   renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
+
+  // Accepter les CGU (obligatoire RGPD)
+  acceptTerms();
 
   // Cliquer sur "Continuer vers le paiement" (soumission directe)
   fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
@@ -134,9 +145,14 @@ describe('Inscription', () => {
       expect(btn).toBeDisabled();
     });
 
-    it('active le bouton quand les champs obligatoires sont remplis', () => {
+    it('active le bouton quand les champs obligatoires sont remplis ET les CGU acceptees', () => {
       renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      const btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
+      // Sans CGU : bouton desactive
+      let btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
+      expect(btn).toBeDisabled();
+      // Avec CGU acceptees : bouton actif
+      acceptTerms();
+      btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
       expect(btn).toBeEnabled();
     });
 
@@ -205,7 +221,8 @@ describe('Inscription', () => {
 
       renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
 
-      // Soumettre directement
+      // Accepter les CGU avant soumission
+      acceptTerms();
       fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
 
       await waitFor(() => {
@@ -217,6 +234,7 @@ describe('Inscription', () => {
       mockPost.mockResolvedValueOnce({ sessionId: 'cs_test' });
 
       renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
+      acceptTerms();
       fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
 
       await waitFor(() => {
@@ -258,11 +276,16 @@ describe('Inscription', () => {
       expect(btn).toBeDisabled();
     });
 
-    it('active le bouton quand Conciergerie + nom de societe rempli', () => {
+    it('active le bouton quand Conciergerie + nom de societe rempli + CGU acceptees', () => {
       renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
       fireEvent.click(screen.getByText('Conciergerie'));
       fireEvent.change(screen.getByLabelText(/Nom de la societe/i), { target: { value: 'Ma Conciergerie' } });
-      const btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
+      // Sans CGU : bouton desactive
+      let btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
+      expect(btn).toBeDisabled();
+      // Avec CGU : bouton actif
+      acceptTerms();
+      btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
       expect(btn).toBeEnabled();
     });
 
@@ -277,6 +300,8 @@ describe('Inscription', () => {
       fireEvent.click(screen.getByText('Conciergerie'));
       // Remplir le nom de societe
       fireEvent.change(screen.getByLabelText(/Nom de la societe/i), { target: { value: 'Ma Conciergerie' } });
+      // Accepter les CGU
+      acceptTerms();
       // Soumettre
       fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
 
@@ -299,7 +324,8 @@ describe('Inscription', () => {
       });
 
       renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      // Rester en Particulier (defaut) — soumettre directement
+      // Rester en Particulier (defaut) — accepter CGU puis soumettre
+      acceptTerms();
       fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
 
       await waitFor(() => {
@@ -347,6 +373,99 @@ describe('Inscription', () => {
       });
       // Le prix sync ne doit PAS apparaitre
       expect(screen.queryAllByText(new RegExp(expectedSync.replace('€', '€')))).toHaveLength(0);
+    });
+  });
+
+  describe('Consentement RGPD + attribution', () => {
+    it('le bouton reste desactive tant que les CGU ne sont pas acceptees', () => {
+      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
+      const btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
+      expect(btn).toBeDisabled();
+    });
+
+    it('affiche les liens CGU et politique de confidentialite', () => {
+      renderInscription();
+      expect(screen.getByRole('link', { name: /conditions générales d'utilisation/i })).toHaveAttribute('href', '/cgu');
+      expect(screen.getByRole('link', { name: /politique de confidentialité/i })).toHaveAttribute('href', '/confidentialite');
+    });
+
+    it('envoie acceptedTerms=true et newsletterOptIn=false par defaut dans l API', async () => {
+      mockPost.mockResolvedValueOnce({
+        clientSecret: 'cs_test_secret_123',
+        sessionId: 'cs_session_123',
+      });
+
+      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
+      acceptTerms();
+      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/public/inscription',
+          expect.objectContaining({
+            acceptedTerms: true,
+            newsletterOptIn: false,
+          }),
+          { skipAuth: true },
+        );
+      });
+    });
+
+    it('envoie newsletterOptIn=true quand l opt-in est coche', async () => {
+      mockPost.mockResolvedValueOnce({
+        clientSecret: 'cs_test_secret_123',
+        sessionId: 'cs_session_123',
+      });
+
+      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
+      acceptTerms();
+      // Cocher la newsletter
+      fireEvent.click(screen.getByRole('checkbox', { name: /newsletter Clenzy/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/public/inscription',
+          expect.objectContaining({ newsletterOptIn: true }),
+          { skipAuth: true },
+        );
+      });
+    });
+
+    it('envoie le code promo normalise en majuscules', async () => {
+      mockPost.mockResolvedValueOnce({
+        clientSecret: 'cs_test_secret_123',
+        sessionId: 'cs_session_123',
+      });
+
+      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
+      fireEvent.change(screen.getByLabelText(/Code promo/i), { target: { value: 'welcome2026' } });
+      acceptTerms();
+      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith(
+          '/public/inscription',
+          expect.objectContaining({ promoCode: 'WELCOME2026' }),
+          { skipAuth: true },
+        );
+      });
+    });
+
+    it('n envoie pas promoCode quand le champ est vide', async () => {
+      mockPost.mockResolvedValueOnce({
+        clientSecret: 'cs_test_secret_123',
+        sessionId: 'cs_session_123',
+      });
+
+      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
+      acceptTerms();
+      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
+
+      await waitFor(() => {
+        const callArgs = mockPost.mock.calls[0][1];
+        expect(callArgs.promoCode).toBeUndefined();
+      });
     });
   });
 });

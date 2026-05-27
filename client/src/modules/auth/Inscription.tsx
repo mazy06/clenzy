@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
   Box,
-  Paper,
   TextField,
   Button,
   Typography,
@@ -17,10 +18,12 @@ import {
   Divider,
   ToggleButtonGroup,
   ToggleButton,
-  ThemeProvider,
-  CssBaseline,
   Card,
   CardContent,
+  Checkbox,
+  FormControlLabel,
+  Link as MuiLink,
+  MenuItem,
 } from '@mui/material';
 import {
   ShoppingCart as CartIcon,
@@ -31,35 +34,71 @@ import {
 } from '../../icons';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
-import lightTheme from '../../theme/theme';
-import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
+import AuthLayout from './AuthLayout';
+import OptionCard from './OptionCard';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
-// Labels pour affichage
-const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  studio: 'Studio',
-  appartement: 'Appartement',
-  maison: 'Maison',
-  duplex: 'Duplex',
-  villa: 'Villa',
-  autre: 'Autre',
+// Resolveurs i18n pour les labels (gardent les cles centralisees mais traduisibles)
+const getPropertyTypeLabel = (t: TFunction, key: string): string => {
+  const fallbacks: Record<string, string> = {
+    studio: 'Studio',
+    appartement: 'Appartement',
+    maison: 'Maison',
+    duplex: 'Duplex',
+    villa: 'Villa',
+    autre: 'Autre',
+  };
+  return t(`auth.inscription.propertyTypes.${key}`, fallbacks[key] || key);
 };
 
-const FORFAIT_LABELS: Record<string, string> = {
-  essentiel: 'Forfait Essentiel',
-  confort: 'Forfait Confort',
-  premium: 'Forfait Premium',
+const getForfaitLabel = (t: TFunction, key: string): string => {
+  const fallbacks: Record<string, string> = {
+    essentiel: 'Forfait Essentiel',
+    confort: 'Forfait Confort',
+    premium: 'Forfait Premium',
+  };
+  return t(`auth.inscription.forfaits.${key}`, fallbacks[key] || key);
+};
+
+const getForfaitShortLabel = (t: TFunction, key: string): string => {
+  const fallbacks: Record<string, string> = {
+    essentiel: 'Essentiel',
+    confort: 'Confort',
+    premium: 'Premium',
+  };
+  return t(`auth.inscription.forfaits.${key}Short`, fallbacks[key] || key);
+};
+
+const getForfaitTagline = (t: TFunction, key: string): string => {
+  const fallbacks: Record<string, string> = {
+    essentiel: 'Pour débuter sereinement',
+    confort: 'Le plus choisi',
+    premium: 'Tout inclus, sans limite',
+  };
+  return t(`auth.inscription.forfaitTaglines.${key}`, fallbacks[key] || key);
 };
 
 // Types d'organisation
 type OrganizationTypeKey = 'INDIVIDUAL' | 'CONCIERGE' | 'CLEANING_COMPANY';
 
-const ORG_TYPE_LABELS: Record<OrganizationTypeKey, string> = {
-  INDIVIDUAL: 'Particulier',
-  CONCIERGE: 'Conciergerie',
-  CLEANING_COMPANY: 'Societe de menage',
+const getOrgTypeLabel = (t: TFunction, key: OrganizationTypeKey): string => {
+  const fallbacks: Record<OrganizationTypeKey, string> = {
+    INDIVIDUAL: 'Particulier',
+    CONCIERGE: 'Conciergerie',
+    CLEANING_COMPANY: 'Societe de menage',
+  };
+  return t(`auth.inscription.orgTypes.${key}`, fallbacks[key]);
+};
+
+const getOrgTypeDescription = (t: TFunction, key: OrganizationTypeKey): string => {
+  const fallbacks: Record<OrganizationTypeKey, string> = {
+    INDIVIDUAL: 'Je gère mes propres locations',
+    CONCIERGE: "J'opère pour des propriétaires tiers",
+    CLEANING_COMPANY: 'Service ménage / multi-services',
+  };
+  return t(`auth.inscription.orgTypeDescriptions.${key}`, fallbacks[key]);
 };
 
 /** Prix de base par forfait (aligné avec la landing page) */
@@ -71,10 +110,13 @@ const FORFAIT_BASE_PRICES: Record<string, number> = {
 
 type BillingPeriod = 'MONTHLY' | 'ANNUAL' | 'BIENNIAL';
 
-const BILLING_PERIOD_LABELS: Record<BillingPeriod, string> = {
-  MONTHLY: 'Mensuel',
-  ANNUAL: 'Annuel',
-  BIENNIAL: '2 ans',
+const getBillingPeriodLabel = (t: TFunction, key: BillingPeriod): string => {
+  const fallbacks: Record<BillingPeriod, string> = {
+    MONTHLY: 'Mensuel',
+    ANNUAL: 'Annuel',
+    BIENNIAL: '2 ans',
+  };
+  return t(`auth.inscription.billingPeriods.${key}`, fallbacks[key]);
 };
 
 const BILLING_PERIOD_DISCOUNT: Record<BillingPeriod, number> = {
@@ -97,13 +139,13 @@ function formatCents(cents: number): string {
   return euros % 1 === 0 ? `${euros.toFixed(0)}€` : `${euros.toFixed(2).replace('.', ',')}€`;
 }
 
-function getPmsDisplayPrice(period: BillingPeriod, baseCents: number | null): string {
+function getPmsDisplayPrice(t: TFunction, period: BillingPeriod, baseCents: number | null): string {
   if (baseCents === null) return '…';
   const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);
-  return `${formatCents(monthlyCents)} / mois`;
+  return `${formatCents(monthlyCents)}${t('auth.inscription.perMonth', ' / mois')}`;
 }
 
-function getPmsFirstPayment(period: BillingPeriod, baseCents: number | null): string {
+function getPmsFirstPayment(t: TFunction, period: BillingPeriod, baseCents: number | null): string {
   if (baseCents === null) return '…';
   const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);
   if (period === 'MONTHLY') return formatCents(monthlyCents);
@@ -112,12 +154,12 @@ function getPmsFirstPayment(period: BillingPeriod, baseCents: number | null): st
 }
 
 /** Libellé prix intervention : utilise le prix transmis par la landing page, sinon le prix de base */
-function getInterventionPriceLabel(forfait: string, interventionPrice?: string): string {
+function getInterventionPriceLabel(t: TFunction, forfait: string, interventionPrice?: string): string {
   const price = interventionPrice
     ? parseInt(interventionPrice, 10)
     : FORFAIT_BASE_PRICES[forfait];
   if (!price) return '';
-  return `Interventions a partir de ${price}€`;
+  return t('auth.inscription.interventionPrice', `Interventions a partir de ${price}€`, { price });
 }
 
 const FORFAIT_COLORS: Record<string, string> = {
@@ -126,7 +168,33 @@ const FORFAIT_COLORS: Record<string, string> = {
   premium: '#5A7684',
 };
 
-const steps = ['Vos informations', 'Paiement'];
+/**
+ * Sources d'acquisition declarees a l'inscription (attribution marketing).
+ * Liste fermee — synchronisee avec {@code InscriptionDto.ALLOWED_REFERRAL_SOURCES}
+ * cote backend.
+ */
+type ReferralSource = 'google' | 'social' | 'word_of_mouth' | 'press' | 'partner' | 'other';
+
+const REFERRAL_SOURCE_VALUES: ReferralSource[] = [
+  'google',
+  'social',
+  'word_of_mouth',
+  'press',
+  'partner',
+  'other',
+];
+
+const getReferralSourceLabel = (t: TFunction, key: ReferralSource): string => {
+  const fallbacks: Record<ReferralSource, string> = {
+    google: 'Recherche Google',
+    social: 'Réseaux sociaux (Instagram, LinkedIn…)',
+    word_of_mouth: 'Bouche-à-oreille',
+    press: 'Presse / blog',
+    partner: 'Partenaire',
+    other: 'Autre',
+  };
+  return t(`auth.inscription.referralSources.${key}`, fallbacks[key]);
+};
 
 const STEP_ICONS: Record<number, React.ReactElement> = {
   1: <PersonIcon />,
@@ -169,8 +237,17 @@ interface InscriptionResponse {
 }
 
 export default function Inscription() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const steps = useMemo(
+    () => [
+      t('auth.inscription.stepInformations', 'Vos informations'),
+      t('auth.inscription.stepPayment', 'Paiement'),
+    ],
+    [t],
+  );
 
   // Recuperer les donnees de la landing page (query params)
   const prefill = useMemo(() => ({
@@ -216,6 +293,12 @@ export default function Inscription() {
   const [pmsMonthlyPriceCents, setPmsMonthlyPriceCents] = useState<number | null>(null);
   const [pmsSyncPriceCents, setPmsSyncPriceCents] = useState<number | null>(null);
 
+  // Consentement RGPD + attribution (4 nouveaux champs)
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [referralSource, setReferralSource] = useState<ReferralSource | ''>('');
+
   // Determiner si l'utilisateur a choisi la synchronisation calendrier (venant de la landing page)
   const isSyncMode = prefill.calendarSync === 'sync';
 
@@ -249,9 +332,9 @@ export default function Inscription() {
   // Afficher le message d'annulation si retour de Stripe
   useEffect(() => {
     if (paymentCancelled) {
-      setError('Le paiement a ete annule. Vous pouvez reessayer quand vous le souhaitez.');
+      setError(t('auth.inscription.errors.paymentCancelled', 'Le paiement a ete annule. Vous pouvez reessayer quand vous le souhaitez.'));
     }
-  }, [paymentCancelled]);
+  }, [paymentCancelled, t]);
 
   // Validation
   const isStep1Valid = () => {
@@ -261,13 +344,14 @@ export default function Inscription() {
     const phoneDigits = phone.replace(/[\s.\-]/g, '');
     const phoneOk = !phone.trim() || /^(?:(?:\+33|0033)[1-9]\d{8}|0[1-9]\d{8})$/.test(phoneDigits);
     const companyOk = !isProType || companyName.trim().length > 0;
-    return nameOk && emailOk && phoneOk && !!forfait && companyOk;
+    // RGPD : l'acceptation des CGU est obligatoire avant de continuer vers le paiement
+    return nameOk && emailOk && phoneOk && !!forfait && companyOk && acceptedTerms;
   };
 
   const handleNext = () => {
     setError(null);
     if (activeStep === 0 && !isStep1Valid()) {
-      setError('Veuillez remplir correctement tous les champs obligatoires.');
+      setError(t('auth.inscription.errors.fillFields', 'Veuillez remplir correctement tous les champs obligatoires.'));
       return;
     }
     // Step 0 valide → soumettre le formulaire et passer au paiement
@@ -301,6 +385,11 @@ export default function Inscription() {
         calendarSync: prefill.calendarSync || undefined,
         services: prefill.services ? prefill.services.split(',') : undefined,
         servicesDevis: prefill.servicesDevis ? prefill.servicesDevis.split(',') : undefined,
+        // Consentement RGPD + attribution
+        acceptedTerms,
+        newsletterOptIn,
+        promoCode: promoCode.trim() || undefined,
+        referralSource: referralSource || undefined,
       }, { skipAuth: true });
 
       // Stocker le clientSecret + prix confirmes et passer au step Paiement
@@ -312,16 +401,16 @@ export default function Inscription() {
         }
         setActiveStep(1);
       } else {
-        setError('Erreur lors de la creation de la session de paiement.');
+        setError(t('auth.inscription.errors.createSessionFailed', 'Erreur lors de la creation de la session de paiement.'));
       }
     } catch (err) {
       const apiErr = err as ApiError;
       if (apiErr.status === 409) {
-        setError('Un compte existe deja avec cette adresse email.');
+        setError(t('auth.inscription.errors.emailAlreadyExists', 'Un compte existe deja avec cette adresse email.'));
       } else if (apiErr.message) {
         setError(apiErr.message);
       } else {
-        setError('Une erreur est survenue. Veuillez reessayer.');
+        setError(t('auth.inscription.errors.generic', 'Une erreur est survenue. Veuillez reessayer.'));
       }
     } finally {
       setLoading(false);
@@ -329,36 +418,12 @@ export default function Inscription() {
   };
 
   return (
-    <ThemeProvider theme={lightTheme}>
-      <CssBaseline />
-    <Box sx={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)',
-      p: 2,
-    }}>
-      <Paper elevation={8} sx={{
-        p: { xs: 3, sm: 4 },
-        width: '100%',
-        maxWidth: activeStep === 1 ? 960 : 640,
-        borderRadius: 3,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        transition: 'max-width 0.3s ease',
-      }}>
-        {/* Logo animé */}
-        <Box sx={{ textAlign: 'center', mb: 2 }}>
-          <ClenzyAnimatedLogo scale={1.1} />
-        </Box>
-
-        {/* Badge forfait selectionne */}
+    <AuthLayout maxFormWidth={activeStep === 1 ? 880 : 560}>
+      {/* Badge forfait selectionne */}
         {prefill.forfait && (
           <Box sx={{ textAlign: 'center', mb: 2 }}>
             <Chip
-              label={FORFAIT_LABELS[prefill.forfait] || prefill.forfait}
+              label={getForfaitLabel(t, prefill.forfait)}
               sx={{
                 backgroundColor: FORFAIT_COLORS[prefill.forfait] || '#6B8A9A',
                 color: '#fff',
@@ -368,7 +433,9 @@ export default function Inscription() {
               }}
             />
             <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
-              {getInterventionPriceLabel(prefill.forfait, prefill.interventionPrice)} | Plateforme{isSyncMode ? ' + Synchro' : ''} : {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
+              {getInterventionPriceLabel(t, prefill.forfait, prefill.interventionPrice)} | {isSyncMode
+                ? t('auth.inscription.platformWithSync', 'Plateforme + Synchro')
+                : t('auth.inscription.platform', 'Plateforme')} : {getPmsDisplayPrice(t, billingPeriod, pmsBaseCents)}
             </Typography>
           </Box>
         )}
@@ -423,60 +490,67 @@ export default function Inscription() {
               <TextField
                 fullWidth
                 size="small"
-                label="Nom complet *"
+                label={t('auth.inscription.fields.fullNameLabel', 'Nom complet *')}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Jean Dupont"
-                helperText="Prenom et nom de famille"
+                placeholder={t('auth.inscription.fields.fullNamePlaceholder', 'Jean Dupont')}
+                helperText={t('auth.inscription.fields.fullNameHelper', 'Prenom et nom de famille')}
               />
               <TextField
                 fullWidth
                 size="small"
-                label="Email *"
+                label={t('auth.inscription.fields.emailLabel', 'Email *')}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="jean@exemple.fr"
+                placeholder={t('auth.inscription.fields.emailPlaceholder', 'jean@exemple.fr')}
               />
               <TextField
                 fullWidth
                 size="small"
-                label="Telephone"
+                label={t('auth.inscription.fields.phoneLabel', 'Telephone')}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="07 66 72 91 09"
-                helperText="Optionnel"
+                placeholder={t('auth.inscription.fields.phonePlaceholder', '07 66 72 91 09')}
+                helperText={t('auth.inscription.fields.phoneHelper', 'Optionnel')}
               />
             </Box>
 
             {/* Selection du type d'organisation */}
             <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5, display: 'block' }}>
-                Vous etes
+              <Typography
+                variant="overline"
+                sx={{
+                  fontWeight: 700,
+                  color: 'text.secondary',
+                  letterSpacing: 0.6,
+                  fontSize: '0.7rem',
+                  display: 'block',
+                  mb: 1,
+                }}
+              >
+                {t('auth.inscription.you', 'Vous êtes')}
               </Typography>
-              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-                {(['INDIVIDUAL', 'CONCIERGE', 'CLEANING_COMPANY'] as const).map((t) => (
-                  <Chip
-                    key={t}
-                    label={ORG_TYPE_LABELS[t]}
-                    clickable
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+                  gap: 1.5,
+                }}
+              >
+                {(['INDIVIDUAL', 'CONCIERGE', 'CLEANING_COMPANY'] as const).map((type) => (
+                  <OptionCard
+                    key={type}
+                    selected={organizationType === type}
                     onClick={() => {
-                      setOrganizationType(t);
-                      if (t === 'INDIVIDUAL') setCompanyName('');
+                      setOrganizationType(type);
+                      if (type === 'INDIVIDUAL') setCompanyName('');
                     }}
-                    sx={{
-                      backgroundColor: organizationType === t ? '#6B8A9A' : 'transparent',
-                      color: organizationType === t ? '#fff' : 'text.primary',
-                      fontWeight: organizationType === t ? 600 : 400,
-                      border: '1px solid',
-                      borderColor: organizationType === t ? 'transparent' : 'grey.300',
-                      '&:hover': {
-                        backgroundColor: organizationType === t ? '#6B8A9A' : 'grey.100',
-                      },
-                    }}
+                    label={getOrgTypeLabel(t, type)}
+                    description={getOrgTypeDescription(t, type)}
                   />
                 ))}
-              </Stack>
+              </Box>
             </Box>
 
             {/* Nom de la societe (conditionnel, requis pour type pro) */}
@@ -484,54 +558,68 @@ export default function Inscription() {
               <TextField
                 fullWidth
                 size="small"
-                label="Nom de la societe *"
+                label={t('auth.inscription.fields.companyLabel', 'Nom de la societe *')}
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="Ma Societe SARL"
+                placeholder={t('auth.inscription.fields.companyPlaceholder', 'Ma Societe SARL')}
                 error={isProType && companyName.trim() === ''}
-                helperText="Requis pour les conciergeries et societes de menage"
+                helperText={t('auth.inscription.fields.companyHelper', 'Requis pour les conciergeries et societes de menage')}
               />
             )}
 
             {/* Selection du forfait si non pre-rempli */}
             {!prefill.forfait && (
-              <>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  Choisissez votre forfait *
+              <Box>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    fontWeight: 700,
+                    color: 'text.secondary',
+                    letterSpacing: 0.6,
+                    fontSize: '0.7rem',
+                    display: 'block',
+                    mb: 1,
+                  }}
+                >
+                  {t('auth.inscription.choosePlan', 'Choisissez votre forfait *')}
                 </Typography>
-                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+                    gap: 1.5,
+                  }}
+                >
                   {(['essentiel', 'confort', 'premium'] as const).map((f) => (
-                    <Chip
+                    <OptionCard
                       key={f}
-                      label={FORFAIT_LABELS[f]}
-                      clickable
+                      selected={forfait === f}
                       onClick={() => setForfait(f)}
-                      sx={{
-                        backgroundColor: forfait === f ? (FORFAIT_COLORS[f] || '#6B8A9A') : 'transparent',
-                        color: forfait === f ? '#fff' : 'text.primary',
-                        fontWeight: forfait === f ? 600 : 400,
-                        border: '1px solid',
-                        borderColor: forfait === f ? 'transparent' : 'grey.300',
-                        '&:hover': {
-                          backgroundColor: forfait === f ? (FORFAIT_COLORS[f] || '#6B8A9A') : 'grey.100',
-                        },
-                      }}
+                      label={getForfaitShortLabel(t, f)}
+                      description={getForfaitTagline(t, f)}
+                      hint={
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 600,
+                            color: 'inherit',
+                            fontSize: '0.75rem',
+                            opacity: 0.95,
+                          }}
+                        >
+                          {t('auth.inscription.forfaitHint', `dès ${FORFAIT_BASE_PRICES[f]}€/intervention`, { price: FORFAIT_BASE_PRICES[f] })}
+                        </Typography>
+                      }
                     />
                   ))}
-                </Stack>
-                {forfait && (
-                  <Typography variant="caption" color="text.secondary">
-                    {getInterventionPriceLabel(forfait)}
-                  </Typography>
-                )}
-              </>
+                </Box>
+              </Box>
             )}
 
             {/* Selection de la periode de facturation */}
             <Divider sx={{ my: 1 }} />
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-              Periode de facturation
+              {t('auth.inscription.billingPeriodLabel', 'Periode de facturation')}
             </Typography>
             <ToggleButtonGroup
               value={billingPeriod}
@@ -542,27 +630,27 @@ export default function Inscription() {
               sx={{ mb: 0.5 }}
             >
               <ToggleButton value="MONTHLY" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
-                Mensuel
+                {getBillingPeriodLabel(t, 'MONTHLY')}
               </ToggleButton>
               <ToggleButton value="ANNUAL" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
-                Annuel
+                {getBillingPeriodLabel(t, 'ANNUAL')}
                 <Chip label="-20%" size="small" color="success" sx={{ ml: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
               </ToggleButton>
               <ToggleButton value="BIENNIAL" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
-                2 ans
+                {getBillingPeriodLabel(t, 'BIENNIAL')}
                 <Chip label="-35%" size="small" color="success" sx={{ ml: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
               </ToggleButton>
             </ToggleButtonGroup>
             <Typography variant="caption" color="text.secondary">
-              Plateforme : {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
+              {t('auth.inscription.platform', 'Plateforme')} : {getPmsDisplayPrice(t, billingPeriod, pmsBaseCents)}
               {billingPeriod !== 'MONTHLY' && pmsBaseCents !== null && (
                 <Typography component="span" variant="caption" sx={{ ml: 0.5, textDecoration: 'line-through', color: 'text.disabled' }}>
-                  {formatCents(pmsBaseCents)}/mois
+                  {formatCents(pmsBaseCents)}{t('auth.inscription.perMonth', '/mois')}
                 </Typography>
               )}
               {billingPeriod !== 'MONTHLY' && (
                 <Typography component="span" variant="caption" sx={{ ml: 0.5, color: 'success.main', fontWeight: 600 }}>
-                  {' '}Facture {getPmsFirstPayment(billingPeriod, pmsBaseCents)}
+                  {' '}{t('auth.inscription.invoiced', `Facture ${getPmsFirstPayment(t, billingPeriod, pmsBaseCents)}`, { amount: getPmsFirstPayment(t, billingPeriod, pmsBaseCents) })}
                 </Typography>
               )}
             </Typography>
@@ -572,29 +660,143 @@ export default function Inscription() {
               <>
                 <Divider sx={{ my: 1 }} />
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  Informations de votre demande
+                  {t('auth.inscription.requestInfo', 'Informations de votre demande')}
                 </Typography>
                 <Box sx={{
                   display: 'flex', flexWrap: 'wrap', gap: 0.75,
                 }}>
                   {prefill.propertyType && (
-                    <Chip size="small" variant="outlined" label={PROPERTY_TYPE_LABELS[prefill.propertyType] || prefill.propertyType} />
+                    <Chip size="small" variant="outlined" label={getPropertyTypeLabel(t, prefill.propertyType)} />
                   )}
                   {prefill.surface && (
-                    <Chip size="small" variant="outlined" label={`${prefill.surface} m\u00B2`} />
+                    <Chip size="small" variant="outlined" label={t('auth.inscription.surfaceChip', `${prefill.surface} m²`, { value: prefill.surface })} />
                   )}
                   {prefill.guestCapacity && (
-                    <Chip size="small" variant="outlined" label={`${prefill.guestCapacity} voyageurs`} />
+                    <Chip size="small" variant="outlined" label={t('auth.inscription.guestCapacityChip', `${prefill.guestCapacity} voyageurs`, { value: prefill.guestCapacity })} />
                   )}
                   {prefill.propertyCount && (
-                    <Chip size="small" variant="outlined" label={`${prefill.propertyCount} logement(s)`} />
+                    <Chip size="small" variant="outlined" label={t('auth.inscription.propertyCountChip', `${prefill.propertyCount} logement(s)`, { value: prefill.propertyCount })} />
                   )}
                   {prefill.city && (
-                    <Chip size="small" variant="outlined" label={`${prefill.city}${prefill.postalCode ? ` (${prefill.postalCode})` : ''}`} />
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={
+                        prefill.postalCode
+                          ? t('auth.inscription.cityPostalChip', `${prefill.city} (${prefill.postalCode})`, { city: prefill.city, postalCode: prefill.postalCode })
+                          : t('auth.inscription.cityChip', `${prefill.city}`, { city: prefill.city })
+                      }
+                    />
                   )}
                 </Box>
               </>
             )}
+
+            {/* Code promo + source d'acquisition (optionnels, collapsibles visuellement) */}
+            <Divider sx={{ my: 1 }} />
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                gap: 2,
+              }}
+            >
+              <TextField
+                fullWidth
+                size="small"
+                label={t('auth.inscription.promoLabel', 'Code promo / parrainage')}
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                placeholder={t('auth.inscription.promoPlaceholder', 'Optionnel')}
+                inputProps={{ maxLength: 50, style: { textTransform: 'uppercase' } }}
+                helperText={t('auth.inscription.promoHelper', 'Si vous en avez un')}
+              />
+              <TextField
+                select
+                fullWidth
+                size="small"
+                label={t('auth.inscription.referralLabel', 'Comment nous avez-vous connu ?')}
+                value={referralSource}
+                onChange={(e) => setReferralSource(e.target.value as ReferralSource)}
+                helperText={t('auth.inscription.referralHelper', 'Optionnel — nous aide à mieux vous servir')}
+                SelectProps={{ displayEmpty: true }}
+              >
+                <MenuItem value="">
+                  <Typography component="span" variant="body2" sx={{ color: 'text.disabled' }}>
+                    {t('auth.inscription.referralPlaceholder', 'Sélectionner…')}
+                  </Typography>
+                </MenuItem>
+                {REFERRAL_SOURCE_VALUES.map((value) => (
+                  <MenuItem key={value} value={value}>
+                    {getReferralSourceLabel(t, value)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+
+            {/* Consentements RGPD (CGU obligatoire + newsletter optionnel) */}
+            <Divider sx={{ my: 1 }} />
+            <Box>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    size="small"
+                    sx={{
+                      color: 'divider',
+                      '&.Mui-checked': { color: 'primary.main' },
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.4 }}>
+                    {t('auth.inscription.cguPrefix', "J'accepte les")}{' '}
+                    <MuiLink
+                      href="/cgu"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'underline' }}
+                    >
+                      {t('auth.inscription.cguLinkText', "conditions générales d'utilisation")}
+                    </MuiLink>{' '}
+                    {t('auth.inscription.cguMiddle', 'et la')}{' '}
+                    <MuiLink
+                      href="/confidentialite"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'underline' }}
+                    >
+                      {t('auth.inscription.privacyLinkText', 'politique de confidentialité')}
+                    </MuiLink>
+                    {' '}
+                    <Typography component="span" variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>
+                      *
+                    </Typography>
+                  </Typography>
+                }
+                sx={{ alignItems: 'flex-start', mr: 0, '& .MuiFormControlLabel-label': { mt: 0.4 } }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={newsletterOptIn}
+                    onChange={(e) => setNewsletterOptIn(e.target.checked)}
+                    size="small"
+                    sx={{
+                      color: 'divider',
+                      '&.Mui-checked': { color: 'primary.main' },
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.4 }}>
+                    {t('auth.inscription.newsletterOptIn', 'Je souhaite recevoir la newsletter Clenzy (nouveautés produit, conseils gestion locative).')}
+                  </Typography>
+                }
+                sx={{ alignItems: 'flex-start', mr: 0, mt: 0.5, '& .MuiFormControlLabel-label': { mt: 0.4 } }}
+              />
+            </Box>
           </Stack>
         )}
 
@@ -622,14 +824,14 @@ export default function Inscription() {
                       <CartIcon size={18} strokeWidth={1.75} color='#6B8A9A' />
                     </Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                      Recapitulatif
+                      {t('auth.inscription.summary', 'Recapitulatif')}
                     </Typography>
                   </Box>
 
                   <Stack spacing={1.5}>
                     <Box>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                        Compte
+                        {t('auth.inscription.summaryAccount', 'Compte')}
                       </Typography>
                       <Typography variant="body2">{fullName}</Typography>
                       <Typography variant="body2" color="text.secondary">{email}</Typography>
@@ -639,11 +841,11 @@ export default function Inscription() {
 
                     <Box>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                        Forfait
+                        {t('auth.inscription.summaryPlan', 'Forfait')}
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                         <Chip
-                          label={FORFAIT_LABELS[forfait] || forfait}
+                          label={getForfaitLabel(t, forfait)}
                           size="small"
                           sx={{
                             backgroundColor: FORFAIT_COLORS[forfait] || '#6B8A9A',
@@ -654,7 +856,7 @@ export default function Inscription() {
                         />
                       </Box>
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                        {getInterventionPriceLabel(forfait, prefill.interventionPrice)}
+                        {getInterventionPriceLabel(t, forfait, prefill.interventionPrice)}
                       </Typography>
                     </Box>
 
@@ -662,13 +864,15 @@ export default function Inscription() {
 
                     <Box>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                        Abonnement plateforme{isSyncMode ? ' + Synchro auto' : ''}
+                        {isSyncMode
+                          ? t('auth.inscription.summarySubscriptionWithSync', 'Abonnement plateforme + Synchro auto')
+                          : t('auth.inscription.summarySubscription', 'Abonnement plateforme')}
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, color: '#6B8A9A' }}>
-                        {getPmsDisplayPrice(billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
+                        {getPmsDisplayPrice(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Periode : {BILLING_PERIOD_LABELS[billingPeriod]}
+                        {t('auth.inscription.summaryPeriod', 'Periode :')} {getBillingPeriodLabel(t, billingPeriod)}
                       </Typography>
                     </Box>
 
@@ -681,10 +885,10 @@ export default function Inscription() {
                     }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          Total a payer
+                          {t('auth.inscription.summaryTotal', 'Total a payer')}
                         </Typography>
                         <Typography variant="body1" sx={{ fontWeight: 700, color: '#5A7684' }}>
-                          {getPmsFirstPayment(billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
+                          {getPmsFirstPayment(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
                         </Typography>
                       </Box>
                     </Box>
@@ -693,7 +897,7 @@ export default function Inscription() {
                   <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleIcon size={14} strokeWidth={1.75} /></Box>
                     <Typography variant="caption" color="text.secondary">
-                      Paiement securise via Stripe
+                      {t('auth.inscription.securedPayment', 'Paiement securise via Stripe')}
                     </Typography>
                   </Box>
                 </CardContent>
@@ -718,7 +922,7 @@ export default function Inscription() {
                       <CreditCardIcon size={18} strokeWidth={1.75} color='#6B8A9A' />
                     </Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                      Paiement
+                      {t('auth.inscription.paymentTitle', 'Paiement')}
                     </Typography>
                   </Box>
                   <EmbeddedCheckoutProvider
@@ -748,7 +952,7 @@ export default function Inscription() {
                 borderRadius: 1.5,
               }}
             >
-              {loading ? <CircularProgress size={20} color="inherit" /> : 'Continuer vers le paiement'}
+              {loading ? <CircularProgress size={20} color="inherit" /> : t('auth.inscription.submit', 'Continuer vers le paiement')}
             </Button>
           </Box>
         )}
@@ -757,7 +961,7 @@ export default function Inscription() {
         {activeStep === 0 && (
           <Box sx={{ mt: 2, textAlign: 'center' }}>
             <Typography variant="caption" color="text.secondary">
-              Deja un compte ?{' '}
+              {t('auth.inscription.alreadyAccount', 'Deja un compte ?')}{' '}
               <Typography
                 component="span"
                 variant="caption"
@@ -769,13 +973,11 @@ export default function Inscription() {
                 }}
                 onClick={() => navigate('/login')}
               >
-                Se connecter
+                {t('auth.inscription.loginLink', 'Se connecter')}
               </Typography>
             </Typography>
           </Box>
         )}
-      </Paper>
-    </Box>
-    </ThemeProvider>
+    </AuthLayout>
   );
 }

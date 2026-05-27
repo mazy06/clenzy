@@ -1284,3 +1284,154 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0137 : Tables assistant_conversation + assistant_message ---
+  - changeSet:
+      id: "0137-add-assistant-conversations"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0137__add_assistant_conversations.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0138 : Table assistant_memory (memoire long-terme assistant IA) ---
+  - changeSet:
+      id: "0138-add-assistant-memory"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0138__add_assistant_memory.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0140 : Table assistant_workflow_run (procedures multi-etapes) ---
+  - changeSet:
+      id: "0140-add-assistant-workflow-runs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0140__add_assistant_workflow_runs.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0141 : Colonne attachments sur assistant_message (vision support) ---
+  - changeSet:
+      id: "0141-add-message-attachments"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0141__add_message_attachments.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0142 : Briefings proactifs assistant (prefs + log idempotence) ---
+  - changeSet:
+      id: "0142-add-assistant-briefing-prefs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0142__add_assistant_briefing_prefs.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0143 : Extension pgvector (RAG assistant) ---
+  # PREREQUIS image postgres pgvector/pgvector:pg15 — verifier docker-compose.
+  - changeSet:
+      id: "0143-add-pgvector-extension"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0143__add_pgvector_extension.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0144 : Knowledge base (kb_document + kb_chunk avec vector(1024)) ---
+  - changeSet:
+      id: "0144-add-kb-documents"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0144__add_kb_documents.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0145 : Embedding vector(1024) sur assistant_memory (relevance) ---
+  - changeSet:
+      id: "0145-add-assistant-memory-embedding"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0145__add_assistant_memory_embedding.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0146 : Expiration columns (last_accessed_at + expires_at) sur assistant_memory ---
+  - changeSet:
+      id: "0146-add-assistant-memory-expiration"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0146__add_assistant_memory_expiration.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0147 : Pricing config par propriete + cache d'estimation empirique ---
+  - changeSet:
+      id: "0147-add-property-pricing-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0147__add_property_pricing_config.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0148 : Templates WhatsApp custom par organisation ---
+  - changeSet:
+      id: "0148-add-org-whatsapp-templates"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0148__add_org_whatsapp_templates.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0149 : Vision token usage alerts per-org ---
+  - changeSet:
+      id: "0149-add-org-vision-alerts"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0149__add_org_vision_alerts.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0150 : Version JPA sur assistant_workflow_run (optimistic locking) ---
+  - changeSet:
+      id: "0150-add-assistant-workflow-run-version"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0150__add_assistant_workflow_run_version.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0151 : Consentement RGPD (CGU + newsletter) + attribution (code promo + source) ---
+  - changeSet:
+      id: "0151-add-inscription-consent-fields"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0151__add_inscription_consent_fields.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0152 : Table platform_promo_codes (codes inscription Clenzy, distinct de promo_codes booking engine) ---
+  - changeSet:
+      id: "0152-add-platform-promo-codes-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0152__add_platform_promo_codes_table.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

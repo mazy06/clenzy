@@ -34,6 +34,7 @@
   },
   "navigation": {
     "dashboard": "Dashboard",
+    "assistant": "Assistant",
     "properties": "Properties",
     "serviceRequests": "Service Requests",
     "interventions": "Interventions",
@@ -56,6 +57,7 @@
     "kpiReadiness": "KPI Readiness",
     "exchangeRates": "Exchange Rates",
     "database": "Database",
+    "promoCodes": "Promo Codes",
     "shop": "Shop",
     "documents": "Documents & Communications",
     "myProfile": "My Profile",
@@ -1971,6 +1973,12 @@
       "saveError": "Error saving configuration"
     },
     "ai": {
+      "tabs": {
+        "connection": "Connection",
+        "models": "Models & features",
+        "briefings": "Briefings",
+        "kb": "Documentation"
+      },
       "platform": {
         "title": "Platform configuration",
         "subtitle": "Configure AI models and assign them to platform features.",
@@ -3522,8 +3530,6 @@
         }
       },
       "settings": {
-        "title": "AI Configuration",
-        "subtitle": "Connect your own OpenAI or Anthropic accounts to use AI without token limits. By default, the platform uses a shared key with a monthly budget.",
         "personalKey": "Personal key",
         "sharedKey": "Shared key",
         "keyLabel": "Key",
@@ -3543,9 +3549,7 @@
         "test": "Test",
         "save": "Save",
         "saveError": "Error saving. Check your API key.",
-        "loadError": "Unable to load AI configuration. Please try again.",
-        "byokTitle": "Connect your own key",
-        "byokSubtitle": "Connect your OpenAI or Anthropic account to use AI without token limits and with better response quality."
+        "loadError": "Unable to load AI configuration. Please try again."
       },
       "features": {
         "title": "Clenzy AI Solutions",
@@ -4073,6 +4077,232 @@
         "diagnostics": "System diagnostics: scheduled tasks, jobs in progress, recent errors and integrations status.",
         "reconciliation": "Calendar reconciliation runs: detection of divergences between Clenzy and OTA, manual triggering."
       }
+    }
+  },
+  "auth": {
+    "common": {
+      "back": "Back",
+      "backToLogin": "Back to login",
+      "loading": "Loading...",
+      "errors": {
+        "serverDown": "The server is temporarily unavailable. Please try again shortly.",
+        "networkError": "Unable to reach the server. Please check your internet connection.",
+        "generic": "Something went wrong. Please try again."
+      }
+    },
+    "layout": {
+      "tagline": "The PMS built for",
+      "taglineHighlight": "independent owners and property managers",
+      "taglineEnd": ".",
+      "subtitle": "Multi-property management, channels, payments, teams and AI automations — in a single sovereign European tool.",
+      "trustEurope": "Hosted in Europe",
+      "trustCompliance": "NF 525 / GDPR",
+      "trustSupport": "Support 7 days a week"
+    },
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to access your dashboard.",
+      "inscriptionSuccess": "Your account was created successfully. Sign in to access your workspace.",
+      "emailLabel": "Email or username",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Your password",
+      "forgotPassword": "Forgot your password?",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "submit": "Sign in",
+      "noAccount": "No account yet?",
+      "createAccount": "Create one",
+      "needHelp": "Need help?",
+      "contactSupport": "Contact support",
+      "errors": {
+        "captchaRequired": "Verification required to continue.",
+        "accountLocked": "Account temporarily locked after too many failed attempts. Try again in {{minutes}} minute{{plural}}. If the issue persists, contact your administrator.",
+        "invalidPasswordCaptcha": "Incorrect password. Verification required to try again.",
+        "invalidCredentials": "Incorrect email or password.",
+        "missingFields": "Please fill in all fields.",
+        "captchaInvalid": "Verification failed. Please try again.",
+        "accountDisabled": "Your account is disabled. Please contact support."
+      }
+    },
+    "inscription": {
+      "stepInformations": "Your information",
+      "stepPayment": "Payment",
+      "you": "You are",
+      "choosePlan": "Choose your plan *",
+      "billingPeriodLabel": "Billing period",
+      "platform": "Platform",
+      "platformWithSync": "Platform + Sync",
+      "invoiced": "Billed {{amount}}",
+      "perMonth": "/month",
+      "requestInfo": "Information from your request",
+      "promoLabel": "Promo / referral code",
+      "promoPlaceholder": "Optional",
+      "promoHelper": "If you have one",
+      "referralLabel": "How did you hear about us?",
+      "referralHelper": "Optional — helps us serve you better",
+      "referralPlaceholder": "Select…",
+      "cguPrefix": "I accept the",
+      "cguLinkText": "terms of service",
+      "cguMiddle": "and the",
+      "privacyLinkText": "privacy policy",
+      "newsletterOptIn": "I want to receive the Clenzy newsletter (product updates, rental management tips).",
+      "submit": "Continue to payment",
+      "alreadyAccount": "Already have an account?",
+      "loginLink": "Sign in",
+      "summary": "Summary",
+      "summaryAccount": "Account",
+      "summaryPlan": "Plan",
+      "summarySubscription": "Platform subscription",
+      "summarySubscriptionWithSync": "Platform + Auto-sync subscription",
+      "summaryPeriod": "Period:",
+      "summaryTotal": "Total to pay",
+      "securedPayment": "Secure payment via Stripe",
+      "paymentTitle": "Payment",
+      "fields": {
+        "fullNameLabel": "Full name *",
+        "fullNamePlaceholder": "John Doe",
+        "fullNameHelper": "First and last name",
+        "emailLabel": "Email *",
+        "emailPlaceholder": "john@example.com",
+        "phoneLabel": "Phone",
+        "phonePlaceholder": "+33 7 66 72 91 09",
+        "phoneHelper": "Optional",
+        "companyLabel": "Company name *",
+        "companyPlaceholder": "My Company Ltd",
+        "companyHelper": "Required for concierges and cleaning companies"
+      },
+      "orgTypes": {
+        "INDIVIDUAL": "Individual",
+        "CONCIERGE": "Concierge",
+        "CLEANING_COMPANY": "Cleaning company"
+      },
+      "orgTypeDescriptions": {
+        "INDIVIDUAL": "I manage my own rentals",
+        "CONCIERGE": "I operate for third-party owners",
+        "CLEANING_COMPANY": "Cleaning / multi-services provider"
+      },
+      "forfaits": {
+        "essentiel": "Essential plan",
+        "confort": "Comfort plan",
+        "premium": "Premium plan",
+        "essentielShort": "Essential",
+        "confortShort": "Comfort",
+        "premiumShort": "Premium"
+      },
+      "forfaitTaglines": {
+        "essentiel": "Get started smoothly",
+        "confort": "Most popular",
+        "premium": "All inclusive, no limits"
+      },
+      "forfaitHint": "from {{price}}€/intervention",
+      "interventionPrice": "Interventions starting at {{price}}€",
+      "billingPeriods": {
+        "MONTHLY": "Monthly",
+        "ANNUAL": "Annual",
+        "BIENNIAL": "2 years"
+      },
+      "propertyTypes": {
+        "studio": "Studio",
+        "appartement": "Apartment",
+        "maison": "House",
+        "duplex": "Duplex",
+        "villa": "Villa",
+        "autre": "Other"
+      },
+      "referralSources": {
+        "google": "Google search",
+        "social": "Social media (Instagram, LinkedIn…)",
+        "word_of_mouth": "Word of mouth",
+        "press": "Press / blog",
+        "partner": "Partner",
+        "other": "Other"
+      },
+      "guestCapacityChip": "{{value}} guests",
+      "propertyCountChip": "{{value}} propert(ies)",
+      "surfaceChip": "{{value}} sqm",
+      "cityChip": "{{city}}",
+      "cityPostalChip": "{{city}} ({{postalCode}})",
+      "errors": {
+        "fillFields": "Please fill in all required fields correctly.",
+        "paymentCancelled": "Payment was cancelled. You can try again whenever you want.",
+        "createSessionFailed": "Failed to create the payment session.",
+        "emailAlreadyExists": "An account already exists with this email address.",
+        "generic": "Something went wrong. Please try again."
+      }
+    },
+    "inscriptionSuccess": {
+      "loading": "Finalizing your payment...",
+      "successTitle": "Check your inbox",
+      "paymentConfirmed": "Your payment has been confirmed successfully.",
+      "checkEmail": "A confirmation email has been sent{{toEmail}}. Click the link in the email to create your password and finalize your registration.",
+      "toEmail": " to {{email}}",
+      "resend": "Resend email",
+      "resending": "Sending...",
+      "checkSpam": "Check your spam folder if you can't find the email.",
+      "resendSuccess": "A new confirmation link has been sent.",
+      "resendMissingEmail": "Cannot resend without an email address.",
+      "errorTitle": "Session not found",
+      "errorBody": "No payment session was found. If you already paid, check your emails."
+    },
+    "inscriptionConfirm": {
+      "loadingLink": "Verifying the link...",
+      "createPasswordTitle": "Create your password",
+      "createPasswordSubtitle": "Last step to finalize your registration.",
+      "passwordLabel": "Password *",
+      "passwordHelper": "Minimum 8 characters",
+      "confirmPasswordLabel": "Confirm password *",
+      "passwordMismatch": "Passwords do not match",
+      "submitting": "Creating...",
+      "submit": "Create my password",
+      "successTitle": "Registration complete!",
+      "successBody": "Your account was created successfully. Redirecting to your dashboard...",
+      "alreadyCompletedTitle": "Registration already finalized",
+      "alreadyCompletedBody": "Your account has already been created. You can sign in with your credentials.",
+      "loginButton": "Sign in",
+      "expiredTitle": "Link expired",
+      "expiredBody": "The confirmation link has expired. Please contact support to get a new one.",
+      "errorTitle": "Invalid link",
+      "errorBody": "The confirmation link is invalid. Please contact support.",
+      "invalidTokenError": "Invalid confirmation link. No token provided.",
+      "invalidOrExpiredError": "The confirmation link is invalid or has expired.",
+      "submitErrorGeneric": "Something went wrong. Please try again.",
+      "forfaitChip": "{{forfait}} plan",
+      "forfaits": {
+        "essentiel": "Essential",
+        "confort": "Comfort",
+        "premium": "Premium"
+      }
+    },
+    "support": {
+      "headerSubtitle": "Contact our support team",
+      "submittedTitle": "Message sent!",
+      "submittedBody": "Our team will get back to you within 24 hours.",
+      "backToLogin": "Back to login",
+      "fields": {
+        "nameLabel": "Full name",
+        "emailLabel": "Email",
+        "phoneLabel": "Phone (optional)",
+        "subjectLabel": "Subject",
+        "messageLabel": "Your message",
+        "messagePlaceholder": "Describe your problem or request..."
+      },
+      "subjects": {
+        "access": "Access / login issue",
+        "technical": "Technical issue",
+        "billing": "Billing / subscription",
+        "feature": "Feature request",
+        "other": "Other"
+      },
+      "submit": "Send",
+      "submitError": "Something went wrong while sending. Please try again or contact us at info@clenzy.fr."
+    },
+    "legal": {
+      "back": "Back",
+      "lastUpdated": "Last updated: {{date}}",
+      "footerCgu": "Terms",
+      "footerPrivacy": "Privacy policy",
+      "footerSupport": "Support"
     }
   }
 }

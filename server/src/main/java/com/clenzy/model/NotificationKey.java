@@ -154,6 +154,13 @@ public enum NotificationKey {
     KPI_THRESHOLD_BREACH(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
     KPI_CRITICAL_FAILURE(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
 
+    // ─── INCIDENT P1 (2 cles) ──────────────────────────────────────────────
+    // Emises par IncidentService a chaque ouverture/resolution d'un incident
+    // SERVICE_DOWN. Destinataires : tous les SUPER_ADMIN/SUPER_MANAGER de
+    // la plateforme (via notifyAllPlatformStaff).
+    INCIDENT_OPENED(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+    INCIDENT_RESOLVED(NotificationType.SUCCESS, NotificationCategory.SYSTEM, true),
+
     // ─── GUEST MESSAGING (4 cles) ───────────────────────────────────────────
     GUEST_MESSAGE_SENT(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, true),
     GUEST_MESSAGE_FAILED(NotificationType.ERROR, NotificationCategory.GUEST_MESSAGING, true),
@@ -190,7 +197,11 @@ public enum NotificationKey {
     // ─── RESERVATION (3 cles) ──────────────────────────────────────────────
     RESERVATION_CREATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
     RESERVATION_UPDATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
-    RESERVATION_CANCELLED(NotificationType.WARNING, NotificationCategory.RESERVATION, true);
+    RESERVATION_CANCELLED(NotificationType.WARNING, NotificationCategory.RESERVATION, true),
+
+    // ─── ASSISTANT (briefings proactifs) ──────────────────────────────────
+    BRIEFING_READY(NotificationType.INFO, NotificationCategory.SYSTEM, true),
+    VISION_USAGE_THRESHOLD_REACHED(NotificationType.WARNING, NotificationCategory.SYSTEM, true);
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

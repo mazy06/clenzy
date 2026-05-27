@@ -41,6 +41,7 @@ import PageHeader from '../../components/PageHeader';
 import { kpiApi, KpiSnapshot, KpiItem, KpiHistory, KpiStatus } from '../../services/api/kpiApi';
 import { incidentApi, IncidentDto } from '../../services/api/incidentApi';
 import IncidentDetailDialog from '../dashboard/IncidentDetailDialog';
+import { formatDuration } from '../../utils/durationUtils';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -150,12 +151,30 @@ interface KpiCardProps {
   tooltipContent?: string;
 }
 
+/**
+ * Pour les KPI exprimes en minutes (ex: P1 Incident Resolution, API latency),
+ * le backend renvoie une valeur formatee "14944 min" — peu lisible des qu'on
+ * depasse l'heure. On reformate localement via {@link formatDuration} :
+ * "14944 min" → "10j 9h", "190 min" → "3h 10min", etc.
+ *
+ * Pour les autres unites (%, count, ms, etc.), on garde le format backend.
+ */
+function formatKpiValue(rawValue: number, unit: string, fallback: string): string {
+  if (unit === 'min') return formatDuration(rawValue);
+  return fallback;
+}
+
 const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipContent }) => {
   const chipColor = kpi.status === 'OK' ? 'success'
     : kpi.status === 'WARNING' ? 'warning' : 'error';
 
   const StatusIcon = kpi.status === 'OK' ? CheckCircle
     : kpi.status === 'WARNING' ? Warning : ErrorIcon;
+
+  const displayedValue = formatKpiValue(kpi.rawValue, kpi.unit, kpi.value);
+  const displayedTarget = kpi.unit === 'min'
+    ? `< ${formatDuration(kpi.targetValue)}`
+    : kpi.target;
 
   const cardContent = (
     <CardContent sx={{ pb: '12px !important' }}>
@@ -179,14 +198,14 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, color: STATUS_COLORS[kpi.status] }}>
-          {kpi.value}
+        <Typography variant="h4" sx={{ fontWeight: 700, color: STATUS_COLORS[kpi.status], fontVariantNumeric: 'tabular-nums' }}>
+          {displayedValue}
         </Typography>
       </Box>
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="caption" color="text.secondary">
-          Target: {kpi.target}
+          Target: {displayedTarget}
         </Typography>
         <Chip
           icon={<StatusIcon size={14} strokeWidth={1.75} />}
@@ -287,7 +306,14 @@ const KpiReadinessPage: React.FC = () => {
   const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
   const [incidents, setIncidents] = useState<IncidentDto[]>([]);
   const [incidentsLoading, setIncidentsLoading] = useState(false);
+  /** Compte des OPEN P1 (aligne avec le modal filtre par severity=P1). */
   const [openIncidentCount, setOpenIncidentCount] = useState(0);
+  /**
+   * Compte total OPEN toutes severites — sert a detecter les OPEN non-P1
+   * qui seraient invisibles dans le modal et a afficher un avertissement.
+   * Si > openIncidentCount → il y a des OPEN P2/P3.
+   */
+  const [totalOpenAllSeverities, setTotalOpenAllSeverities] = useState(0);
 
   const fetchData = useCallback(async () => {
     try {
@@ -331,11 +357,17 @@ const KpiReadinessPage: React.FC = () => {
     }
   };
 
-  // Fetch open incident count on mount
+  // Fetch open incident count on mount — P1 + breakdown total pour diagnostic
   useEffect(() => {
-    incidentApi.getOpenCount()
-      .then(setOpenIncidentCount)
-      .catch(() => setOpenIncidentCount(0));
+    incidentApi.getOpenCount({ severity: 'P1', includeBreakdown: true })
+      .then((res) => {
+        setOpenIncidentCount(res.count);
+        setTotalOpenAllSeverities(res.totalAllSeverities ?? res.count);
+      })
+      .catch(() => {
+        setOpenIncidentCount(0);
+        setTotalOpenAllSeverities(0);
+      });
   }, []);
 
   const handleOpenIncidentDialog = useCallback(async () => {
@@ -360,13 +392,14 @@ const KpiReadinessPage: React.FC = () => {
    */
   const handleIncidentChange = useCallback(async () => {
     try {
-      const [data, count, snap] = await Promise.all([
+      const [data, countRes, snap] = await Promise.all([
         incidentApi.getIncidents({ severity: 'P1', size: 50 }),
-        incidentApi.getOpenCount(),
+        incidentApi.getOpenCount({ severity: 'P1', includeBreakdown: true }),
         kpiApi.refreshSnapshot(),
       ]);
       setIncidents(data);
-      setOpenIncidentCount(count);
+      setOpenIncidentCount(countRes.count);
+      setTotalOpenAllSeverities(countRes.totalAllSeverities ?? countRes.count);
       setSnapshot(snap);
     } catch {
       // best-effort : on n'echoue pas si une partie du refresh rate
@@ -560,6 +593,10 @@ const KpiReadinessPage: React.FC = () => {
         incidents={incidents}
         loading={incidentsLoading}
         onRefresh={handleIncidentChange}
+        otherSeveritiesOpenCount={Math.max(0, totalOpenAllSeverities - openIncidentCount)}
+        targetMinutes={
+          snapshot?.kpis.find((k) => k.id === 'P1_RESOLUTION')?.targetValue ?? 60
+        }
       />
     </Box>
   );

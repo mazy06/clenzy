@@ -38,6 +38,7 @@ class InscriptionServiceTest {
     @Mock private PricingConfigService pricingConfigService;
     @Mock private EmailService emailService;
     @Mock private RestTemplate restTemplate;
+    @Mock private PlatformPromoCodeService promoCodeService;
 
     private InscriptionService inscriptionService;
 
@@ -46,7 +47,7 @@ class InscriptionServiceTest {
         inscriptionService = new InscriptionService(
                 pendingInscriptionRepository, userRepository,
                 keycloakService, organizationService, pricingConfigService,
-                emailService, restTemplate);
+                emailService, restTemplate, promoCodeService);
 
         setField(inscriptionService, "stripeSecretKey", "sk_test_dummy");
         setField(inscriptionService, "currency", "EUR");
@@ -86,6 +87,26 @@ class InscriptionServiceTest {
     class InitiateInscription {
 
         @Test
+        @DisplayName("when CGU not accepted then throws RuntimeException")
+        void whenCguNotAccepted_thenThrows() {
+            // Arrange
+            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
+            dto.setFullName("Jean Dupont");
+            dto.setEmail("nocgu@test.com");
+            dto.setForfait("essentiel");
+            dto.setBillingPeriod("MONTHLY");
+            dto.setAcceptedTerms(false); // explicit refus
+
+            // Act & Assert
+            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("conditions generales");
+
+            // L'email check ne doit pas etre atteint
+            verify(userRepository, never()).existsByEmailHash(anyString());
+        }
+
+        @Test
         @DisplayName("when email already exists then throws RuntimeException")
         void whenEmailAlreadyExists_thenThrows() {
             // Arrange
@@ -94,6 +115,7 @@ class InscriptionServiceTest {
             dto.setEmail("existing@test.com");
             dto.setForfait("essentiel");
             dto.setBillingPeriod("MONTHLY");
+            dto.setAcceptedTerms(true);
 
             String emailHash = StringUtils.computeEmailHash("existing@test.com");
             when(userRepository.existsByEmailHash(emailHash)).thenReturn(true);
@@ -113,6 +135,7 @@ class InscriptionServiceTest {
             dto.setEmail("jean@test.com");
             dto.setForfait("essentiel");
             dto.setBillingPeriod("MONTHLY");
+            dto.setAcceptedTerms(true);
 
             String emailHash = StringUtils.computeEmailHash("jean@test.com");
             when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
@@ -139,6 +162,7 @@ class InscriptionServiceTest {
             dto.setForfait("premium");
             dto.setBillingPeriod("MONTHLY");
             dto.setCalendarSync("sync");
+            dto.setAcceptedTerms(true);
 
             String emailHash = StringUtils.computeEmailHash("sync@test.com");
             when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
@@ -164,6 +188,7 @@ class InscriptionServiceTest {
             dto.setForfait("essentiel");
             dto.setBillingPeriod("MONTHLY");
             dto.setCalendarSync("manuel");
+            dto.setAcceptedTerms(true);
 
             String emailHash = StringUtils.computeEmailHash("nosync@test.com");
             when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
@@ -189,6 +214,7 @@ class InscriptionServiceTest {
             dto.setForfait("essentiel");
             dto.setBillingPeriod("MONTHLY");
             dto.setOrganizationType("SYSTEM");
+            dto.setAcceptedTerms(true);
 
             String emailHash = StringUtils.computeEmailHash("system@test.com");
             when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
@@ -211,6 +237,7 @@ class InscriptionServiceTest {
             dto.setBillingPeriod("MONTHLY");
             dto.setOrganizationType("CONCIERGE");
             dto.setCompanyName("");
+            dto.setAcceptedTerms(true);
 
             String emailHash = StringUtils.computeEmailHash("prononame@test.com");
             when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);

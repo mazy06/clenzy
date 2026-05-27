@@ -20,7 +20,18 @@ export interface PaymentSessionStatus {
 export interface PaymentRecord {
   id: number;
   referenceId: number;        // ID de l'intervention ou de la reservation
-  description: string;        // Titre/description generique
+  /**
+   * Titre court de la ligne — ne contient PAS le nom de la propriete
+   * (deja affiche dans la colonne PROPRIETE). Ex: "Menage Airbnb",
+   * "Airbnb · 4 nuits", "Maintenance plomberie".
+   */
+  description: string;
+  /**
+   * Sous-titre facultatif rendu en caption sous la description principale.
+   * Surtout utilise pour les reservations (plage de dates "10/05 → 15/05").
+   * `null` ou absent → la 2e ligne n'est pas affichee.
+   */
+  subDescription?: string | null;
   propertyName: string;
   amount: number;
   currency: string;

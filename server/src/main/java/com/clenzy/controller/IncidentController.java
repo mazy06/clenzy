@@ -121,10 +121,25 @@ public class IncidentController {
     }
 
     @GetMapping("/open/count")
-    @Operation(summary = "Nombre d'incidents actuellement ouverts (pour badge)")
-    public ResponseEntity<?> getOpenCount() {
+    @Operation(summary = "Nombre d'incidents actuellement ouverts (pour badge)",
+               description = "Si severity est fourni, filtre le compteur sur cette severite. "
+                       + "Si severityBreakdown=true, retourne aussi le total toutes severites "
+                       + "(utile pour afficher 'X P1 + Y autres non-P1' dans l'UI).")
+    public ResponseEntity<?> getOpenCount(
+            @RequestParam(required = false) IncidentSeverity severity,
+            @RequestParam(required = false, defaultValue = "false") boolean severityBreakdown) {
         try {
-            long count = incidentRepository.countByStatus(IncidentStatus.OPEN);
+            long count = severity != null
+                    ? incidentRepository.countByStatusAndSeverity(IncidentStatus.OPEN, severity)
+                    : incidentRepository.countByStatus(IncidentStatus.OPEN);
+
+            if (severityBreakdown) {
+                long totalAllSeverities = incidentRepository.countByStatus(IncidentStatus.OPEN);
+                return ResponseEntity.ok(Map.of(
+                        "count", count,
+                        "totalAllSeverities", totalAllSeverities
+                ));
+            }
             return ResponseEntity.ok(Map.of("count", count));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()

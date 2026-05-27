@@ -574,8 +574,11 @@ public class KpiService {
                 .toList();
 
         if (!criticalKpis.isEmpty()) {
+            // Pour les KPI exprimes en minutes (P1_RESOLUTION typiquement),
+            // on convertit "14944min" en "10j 9h" pour rendre la notification
+            // immediatement lisible.
             String kpiNames = criticalKpis.stream()
-                    .map(k -> k.name() + " (" + k.value() + ")")
+                    .map(k -> k.name() + " (" + formatKpiValueForHumans(k) + ")")
                     .reduce((a, b) -> a + ", " + b)
                     .orElse("");
 
@@ -596,6 +599,37 @@ public class KpiService {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static final long MINUTES_PER_HOUR = 60L;
+    private static final long MINUTES_PER_DAY = 24L * MINUTES_PER_HOUR;
+
+    /**
+     * Reformate la valeur d'un KPI pour les notifications/messages.
+     *
+     * <p>Pour les KPI exprimes en minutes, convertit l'echelle pour que ce soit
+     * lisible : "14944min" → "10j 9h", "190min" → "3h 10min", "10min" → "10 min".
+     * Pour les autres unites, retourne la valeur formatee deja fournie par le DTO.</p>
+     */
+    private String formatKpiValueForHumans(KpiItemDto kpi) {
+        if (!"min".equals(kpi.unit())) {
+            return kpi.value();
+        }
+        double raw = kpi.rawValue();
+        if (Double.isNaN(raw) || Double.isInfinite(raw) || raw < 0) raw = 0;
+        long total = Math.round(raw);
+
+        if (total < MINUTES_PER_HOUR) {
+            return total + " min";
+        }
+        if (total < MINUTES_PER_DAY) {
+            long hours = total / MINUTES_PER_HOUR;
+            long mins = total % MINUTES_PER_HOUR;
+            return mins == 0 ? hours + "h" : hours + "h " + mins + "min";
+        }
+        long days = total / MINUTES_PER_DAY;
+        long remainingHours = (total % MINUTES_PER_DAY) / MINUTES_PER_HOUR;
+        return remainingHours == 0 ? days + "j" : days + "j " + remainingHours + "h";
+    }
 
     private void populateSnapshotFields(KpiSnapshot snapshot, List<KpiItemDto> kpis) {
         for (KpiItemDto kpi : kpis) {
