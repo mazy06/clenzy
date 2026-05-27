@@ -48,7 +48,7 @@ L'**Assistant IA Clenzy** est un agent conversationnel multimodal intégré au P
 | Couche | Technologie |
 |---|---|
 | LLM | Anthropic Claude Sonnet 4 (vision, agent) + Claude Haiku 4.5 (briefings, plus rapide) |
-| Embeddings | Voyage AI `voyage-3-lite` (1024d) ou OpenAI `text-embedding-3-small` (swappable) |
+| Embeddings | Voyage AI `voyage-3-large` (1024d) ou OpenAI `text-embedding-3-large` (swappable). Choix qualité > coût (surcoût négligeable à notre volume). |
 | Re-ranking | Voyage `rerank-2` (cross-encoder) ou NoOp (fallback) |
 | Vector store | PostgreSQL 16 + pgvector (extension `vector(1024)`, index `ivfflat cosine`) |
 | Streaming | SSE (Server-Sent Events) — pool dédié 10-100 threads |
@@ -526,8 +526,8 @@ Config : `clenzy.ai.embeddings.provider=voyage|openai`
 
 | Provider | Modèle | Dim | Batch | Coût |
 |---|---|---|---|---|
-| `VoyageEmbeddingProvider` | `voyage-3-lite` | 1024 | 128 | ~$0.02/1M tokens |
-| `OpenAIEmbeddingProvider` | `text-embedding-3-small` | 1024 (param) | 2048 | ~$0.02/1M tokens |
+| `VoyageEmbeddingProvider` | `voyage-3-large` | 1024 | 128 | ~$0.18/1M tokens |
+| `OpenAIEmbeddingProvider` | `text-embedding-3-large` | 1024 (param) | 2048 | ~$0.13/1M tokens |
 
 Pour le re-ranking :
 
@@ -904,17 +904,7 @@ async function sendMessage(text, attachments) {
 }
 ```
 
-### 13.3 Voice input (Web Speech API)
-
-Hook `useVoiceInput.ts` :
-- `SpeechRecognition` API native (Chrome/Edge/Safari)
-- Mapping langue : `fr-FR`, `en-US`, `ar-MA`
-- `continuous=false` (1 utterance), `interimResults=true` (feedback temps réel)
-- Append au texte existant (pas d'overwrite)
-- Animation pulse mic pendant écoute (keyframes CSS `micPulse`)
-- Errors : `not-allowed`, `audio-capture`, `network`, `no-speech` → toast user clair
-
-### 13.4 Widgets : exemple `SimulationWidget`
+### 13.3 Widgets : exemple `SimulationWidget`
 
 Reçoit le payload JSON du tool `simulate_pricing_change` :
 
@@ -1044,12 +1034,11 @@ Voir `clenzy-infra/docker-compose.dev.yml`.
 
 ### 16.2 Roadmap potentielle
 
-- **Streaming voice output** : TTS Eleven Labs pour réponses parlées (mobile-first)
+- **Architecture multi-agents** : orchestrator + spécialistes ≤10 tools chacun (décharger la limite cognitive du LLM au-delà de ~10 tools)
 - **Multi-tour confirmation** : "tu confirmes ces 5 interventions ?" au lieu d'une à la fois
 - **Memory hierarchique** : org-shared memory (preferences team) en plus de user-scoped
 - **Tool sandboxing** : limites par user (rate limit, max writes/jour)
 - **A/B testing prompts** : framework pour comparer 2 system prompts en prod
-- **Fine-tuning du re-ranker** sur les data Clenzy (cross-encoder spécifique)
 
 ### 16.3 Points de vigilance opérationnels
 
