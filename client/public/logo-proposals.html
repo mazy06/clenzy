@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clenzy — Logo proposals</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand: #6B8A9A;
+      --brand-dark: #4A6B7B;
+      --brand-soft: rgba(107, 138, 154, 0.08);
+      --ink: #1A2832;
+      --muted: #5B7081;
+      --paper: #FFFFFF;
+      --paper-tinted: #F7F9FA;
+      --border: #E4E9EC;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--paper-tinted); font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+    .page { max-width: 1180px; margin: 0 auto; padding: 64px 32px; }
+    h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .lede { color: var(--muted); font-size: 16px; line-height: 1.5; margin-bottom: 48px; max-width: 640px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 28px; }
+    .card { background: var(--paper); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .card-header { padding: 20px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .badge { display: inline-block; padding: 4px 10px; background: var(--brand-soft); color: var(--brand-dark); border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+    .card-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+    .card-rationale { color: var(--muted); font-size: 13px; line-height: 1.5; padding: 16px 28px; background: var(--paper-tinted); border-bottom: 1px solid var(--border); }
+    .preview-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+    @media (max-width: 720px) { .preview-row { grid-template-columns: 1fr; } }
+    .preview { padding: 56px 32px; display: flex; align-items: center; justify-content: center; min-height: 180px; background: var(--paper); }
+    .preview.dark { background: #0F1A22; }
+    .preview-label { position: absolute; bottom: 12px; left: 16px; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+    .preview { position: relative; }
+    .preview.dark .preview-label { color: rgba(255,255,255,0.4); }
+    .scale-row { display: flex; align-items: center; gap: 48px; padding: 32px; background: var(--paper-tinted); justify-content: center; flex-wrap: wrap; }
+    .scale-item { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .scale-cap { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+
+    /* ─── Brand color helpers for the SVG marks ─────────────────────────── */
+    .ink-brand { color: var(--brand); }
+    .ink-dark { color: var(--ink); }
+    .ink-light { color: #FFFFFF; }
+
+    /* ─── Wordmark utilities ────────────────────────────────────────────── */
+    .wordmark { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; letter-spacing: -0.025em; line-height: 1; }
+    .wordmark-light { color: #FFFFFF; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Clenzy — Propositions logo PMS / SaaS</h1>
+    <p class="lede">3 directions à comparer. Chaque option est rendue sur fond clair et sombre, et déclinée en 3 tailles (sidebar 24px, header 32px, login 56px). Picke celle qui parle, je l'intègre comme composant React et je remplace partout (AuthLayout, Inscription, Sidebar).</p>
+
+    <div class="grid">
+      <!-- ─── OPTION A ─────────────────────────────────────────────── -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <span class="badge">Option A</span>
+            <div class="card-title" style="margin-top: 8px;">Monogramme géométrique + wordmark</div>
+          </div>
+          <div style="font-size: 12px; color: var(--muted); text-align: right; max-width: 280px;">
+            Référence : Linear, Vercel, Resend.<br>Sobre, "infrastructure-grade".
+          </div>
+        </div>
+        <div class="card-rationale">
+          Un "C" ouvert composé de 3 segments d'arc — évoque la composabilité (modules / agents), n'a aucun rapport avec une goutte d'eau ou du ménage. Pure géométrie. Couleur unique brand. Marche en favicon 16px.
+        </div>
+        <div class="preview-row">
+          <!-- Light -->
+          <div class="preview">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                <!-- Arc segments composing a "C" -->
+                <path d="M 44 16 A 16 16 0 1 0 44 40" stroke="#6B8A9A" stroke-width="5" stroke-linecap="round" fill="none" stroke-dasharray="14 6 14 6 28" />
+              </svg>
+              <span class="wordmark" style="font-size: 32px; color: var(--ink);">clenzy</span>
+            </div>
+            <span class="preview-label">Light · 56px</span>
+          </div>
+          <!-- Dark -->
+          <div class="preview dark">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                <path d="M 44 16 A 16 16 0 1 0 44 40" stroke="#89B1C2" stroke-width="5" stroke-linecap="round" fill="none" stroke-dasharray="14 6 14 6 28" />
+              </svg>
+              <span class="wordmark wordmark-light" style="font-size: 32px;">clenzy</span>
+            </div>
+            <span class="preview-label">Dark · 56px</span>
+          </div>
+        </div>
+        <div class="scale-row">
+          <div class="scale-item">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg width="24" height="24" viewBox="0 0 56 56" fill="none">
+                <path d="M 44 16 A 16 16 0 1 0 44 40" stroke="#6B8A9A" stroke-width="7" stroke-linecap="round" fill="none" stroke-dasharray="14 6 14 6 28" />
+              </svg>
+              <span class="wordmark" style="font-size: 14px; color: var(--ink);">clenzy</span>
+            </div>
+            <span class="scale-cap">Sidebar 24px</span>
+          </div>
+          <div class="scale-item">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
+                <path d="M 44 16 A 16 16 0 1 0 44 40" stroke="#6B8A9A" stroke-width="6" stroke-linecap="round" fill="none" stroke-dasharray="14 6 14 6 28" />
+              </svg>
+              <span class="wordmark" style="font-size: 18px; color: var(--ink);">clenzy</span>
+            </div>
+            <span class="scale-cap">Header 32px</span>
+          </div>
+          <div class="scale-item">
+            <!-- Icon only (favicon use case) -->
+            <svg width="32" height="32" viewBox="0 0 56 56" fill="none" style="background: var(--brand); border-radius: 8px; padding: 4px;">
+              <path d="M 44 16 A 16 16 0 1 0 44 40" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" fill="none" stroke-dasharray="14 6 14 6 28" />
+            </svg>
+            <span class="scale-cap">Favicon 32px</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── OPTION B ─────────────────────────────────────────────── -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <span class="badge">Option B</span>
+            <div class="card-title" style="margin-top: 8px;">Mark orchestration 8 nodes</div>
+          </div>
+          <div style="font-size: 12px; color: var(--muted); text-align: right; max-width: 280px;">
+            Référence : Hugging Face, Pinecone, Mistral.<br>Visualise les 8 agents IA.
+          </div>
+        </div>
+        <div class="card-rationale">
+          8 nodes disposés en octogone autour d'un node central (orchestrateur). Reflète littéralement l'architecture multi-agents qui est ton différenciateur produit. Lisible en miniature, très "AI/data-tech".
+        </div>
+        <div class="preview-row">
+          <!-- Light -->
+          <div class="preview">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                <g stroke="#6B8A9A" stroke-width="1" opacity="0.35">
+                  <line x1="28" y1="28" x2="28" y2="10" />
+                  <line x1="28" y1="28" x2="40.7" y2="15.3" />
+                  <line x1="28" y1="28" x2="46" y2="28" />
+                  <line x1="28" y1="28" x2="40.7" y2="40.7" />
+                  <line x1="28" y1="28" x2="28" y2="46" />
+                  <line x1="28" y1="28" x2="15.3" y2="40.7" />
+                  <line x1="28" y1="28" x2="10" y2="28" />
+                  <line x1="28" y1="28" x2="15.3" y2="15.3" />
+                </g>
+                <g fill="#6B8A9A">
+                  <circle cx="28" cy="10" r="2.5" />
+                  <circle cx="40.7" cy="15.3" r="2.5" />
+                  <circle cx="46" cy="28" r="2.5" />
+                  <circle cx="40.7" cy="40.7" r="2.5" />
+                  <circle cx="28" cy="46" r="2.5" />
+                  <circle cx="15.3" cy="40.7" r="2.5" />
+                  <circle cx="10" cy="28" r="2.5" />
+                  <circle cx="15.3" cy="15.3" r="2.5" />
+                </g>
+                <circle cx="28" cy="28" r="4.5" fill="#4A6B7B" />
+              </svg>
+              <span class="wordmark" style="font-size: 32px; color: var(--ink);">clenzy</span>
+            </div>
+            <span class="preview-label">Light · 56px</span>
+          </div>
+          <!-- Dark -->
+          <div class="preview dark">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                <g stroke="#89B1C2" stroke-width="1" opacity="0.4">
+                  <line x1="28" y1="28" x2="28" y2="10" />
+                  <line x1="28" y1="28" x2="40.7" y2="15.3" />
+                  <line x1="28" y1="28" x2="46" y2="28" />
+                  <line x1="28" y1="28" x2="40.7" y2="40.7" />
+                  <line x1="28" y1="28" x2="28" y2="46" />
+                  <line x1="28" y1="28" x2="15.3" y2="40.7" />
+                  <line x1="28" y1="28" x2="10" y2="28" />
+                  <line x1="28" y1="28" x2="15.3" y2="15.3" />
+                </g>
+                <g fill="#89B1C2">
+                  <circle cx="28" cy="10" r="2.5" />
+                  <circle cx="40.7" cy="15.3" r="2.5" />
+                  <circle cx="46" cy="28" r="2.5" />
+                  <circle cx="40.7" cy="40.7" r="2.5" />
+                  <circle cx="28" cy="46" r="2.5" />
+                  <circle cx="15.3" cy="40.7" r="2.5" />
+                  <circle cx="10" cy="28" r="2.5" />
+                  <circle cx="15.3" cy="15.3" r="2.5" />
+                </g>
+                <circle cx="28" cy="28" r="4.5" fill="#FFFFFF" />
+              </svg>
+              <span class="wordmark wordmark-light" style="font-size: 32px;">clenzy</span>
+            </div>
+            <span class="preview-label">Dark · 56px</span>
+          </div>
+        </div>
+        <div class="scale-row">
+          <div class="scale-item">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg width="24" height="24" viewBox="0 0 56 56" fill="none">
+                <g fill="#6B8A9A">
+                  <circle cx="28" cy="10" r="3.5" />
+                  <circle cx="40.7" cy="15.3" r="3.5" />
+                  <circle cx="46" cy="28" r="3.5" />
+                  <circle cx="40.7" cy="40.7" r="3.5" />
+                  <circle cx="28" cy="46" r="3.5" />
+                  <circle cx="15.3" cy="40.7" r="3.5" />
+                  <circle cx="10" cy="28" r="3.5" />
+                  <circle cx="15.3" cy="15.3" r="3.5" />
+                </g>
+                <circle cx="28" cy="28" r="6" fill="#4A6B7B" />
+              </svg>
+              <span class="wordmark" style="font-size: 14px; color: var(--ink);">clenzy</span>
+            </div>
+            <span class="scale-cap">Sidebar 24px</span>
+          </div>
+          <div class="scale-item">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
+                <g stroke="#6B8A9A" stroke-width="1.2" opacity="0.3">
+                  <line x1="28" y1="28" x2="28" y2="10" />
+                  <line x1="28" y1="28" x2="46" y2="28" />
+                  <line x1="28" y1="28" x2="28" y2="46" />
+                  <line x1="28" y1="28" x2="10" y2="28" />
+                </g>
+                <g fill="#6B8A9A">
+                  <circle cx="28" cy="10" r="3" />
+                  <circle cx="40.7" cy="15.3" r="3" />
+                  <circle cx="46" cy="28" r="3" />
+                  <circle cx="40.7" cy="40.7" r="3" />
+                  <circle cx="28" cy="46" r="3" />
+                  <circle cx="15.3" cy="40.7" r="3" />
+                  <circle cx="10" cy="28" r="3" />
+                  <circle cx="15.3" cy="15.3" r="3" />
+                </g>
+                <circle cx="28" cy="28" r="5" fill="#4A6B7B" />
+              </svg>
+              <span class="wordmark" style="font-size: 18px; color: var(--ink);">clenzy</span>
+            </div>
+            <span class="scale-cap">Header 32px</span>
+          </div>
+          <div class="scale-item">
+            <svg width="32" height="32" viewBox="0 0 56 56" fill="none" style="background: var(--brand); border-radius: 8px; padding: 4px;">
+              <g fill="#FFFFFF">
+                <circle cx="28" cy="10" r="3" />
+                <circle cx="40.7" cy="15.3" r="3" />
+                <circle cx="46" cy="28" r="3" />
+                <circle cx="40.7" cy="40.7" r="3" />
+                <circle cx="28" cy="46" r="3" />
+                <circle cx="15.3" cy="40.7" r="3" />
+                <circle cx="10" cy="28" r="3" />
+                <circle cx="15.3" cy="15.3" r="3" />
+              </g>
+              <circle cx="28" cy="28" r="5" fill="#FFFFFF" opacity="0.7" />
+            </svg>
+            <span class="scale-cap">Favicon 32px</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── OPTION C ─────────────────────────────────────────────── -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <span class="badge">Option C</span>
+            <div class="card-title" style="margin-top: 8px;">Wordmark minimaliste seul</div>
+          </div>
+          <div style="font-size: 12px; color: var(--muted); text-align: right; max-width: 280px;">
+            Référence : Stripe, Notion, Vercel.<br>Le plus intemporel.
+          </div>
+        </div>
+        <div class="card-rationale">
+          Juste "clenzy" en Plus Jakarta Sans 700, lowercase, letter-spacing tight (-0.04em), avec un point coloré final sentence-style. Zéro marketing, zéro abstraction. Pour un favicon, on garde le "c" seul dans un carré arrondi brand.
+        </div>
+        <div class="preview-row">
+          <!-- Light -->
+          <div class="preview">
+            <span class="wordmark" style="font-size: 44px; color: var(--ink); letter-spacing: -0.04em;">
+              clenzy<span style="color: var(--brand);">.</span>
+            </span>
+            <span class="preview-label">Light · 44px</span>
+          </div>
+          <!-- Dark -->
+          <div class="preview dark">
+            <span class="wordmark wordmark-light" style="font-size: 44px; letter-spacing: -0.04em;">
+              clenzy<span style="color: #89B1C2;">.</span>
+            </span>
+            <span class="preview-label">Dark · 44px</span>
+          </div>
+        </div>
+        <div class="scale-row">
+          <div class="scale-item">
+            <span class="wordmark" style="font-size: 14px; color: var(--ink); letter-spacing: -0.04em;">
+              clenzy<span style="color: var(--brand);">.</span>
+            </span>
+            <span class="scale-cap">Sidebar 14px</span>
+          </div>
+          <div class="scale-item">
+            <span class="wordmark" style="font-size: 22px; color: var(--ink); letter-spacing: -0.04em;">
+              clenzy<span style="color: var(--brand);">.</span>
+            </span>
+            <span class="scale-cap">Header 22px</span>
+          </div>
+          <div class="scale-item">
+            <div style="width: 32px; height: 32px; background: var(--brand); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <span class="wordmark wordmark-light" style="font-size: 20px; letter-spacing: -0.04em;">c<span style="opacity: 0.7;">.</span></span>
+            </div>
+            <span class="scale-cap">Favicon 32px</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 48px; padding: 24px; background: var(--paper); border: 1px solid var(--border); border-radius: 12px;">
+      <strong style="font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);">Comment choisir</strong>
+      <ul style="margin-top: 12px; padding-left: 20px; line-height: 1.7; font-size: 14px; color: var(--ink);">
+        <li><strong>Option A</strong> si tu veux un mark distinctif sans surcharger sur le multi-agent. Réutilisable même si la stratégie produit évolue.</li>
+        <li><strong>Option B</strong> si tu assumes pleinement le positioning "8 agents IA" — le logo devient un argument visuel. Risque : si tu passes un jour à 12 ou 6 agents, le mark devient mensonger.</li>
+        <li><strong>Option C</strong> si tu privilégies la timelessness et le focus sur le wordmark. Tout le branding repose sur la copy ("Pendant que vous dormez..."), pas sur le pictogramme.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

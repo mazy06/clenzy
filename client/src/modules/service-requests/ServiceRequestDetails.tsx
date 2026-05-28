@@ -74,7 +74,7 @@ import bookingLogoSmall from '../../assets/logo/logo-booking-planning.png';
 import homeAwayLogo from '../../assets/logo/HomeAway-logo.png';
 import expediaLogo from '../../assets/logo/expedia-logo.png';
 import leboncoinLogo from '../../assets/logo/Leboncoin-logo.png';
-import clenzyLogo from '../../assets/logo/clenzy-logo.png';
+import clenzyLogo from '../../assets/logo/clenzy-logo.svg';
 
 const ICAL_SOURCE_LOGOS: Record<string, string> = {
   airbnb: airbnbLogoSmall,

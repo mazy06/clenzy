@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Box, Typography, useTheme, alpha, useMediaQuery, CssBaseline, ThemeProvider } from '@mui/material';
 import { createClenzyTheme } from '../../theme/createClenzyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
+import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
 
 /**
  * Layout partage par les pages d'auth (Login, Inscription, mot de passe oublie).
@@ -107,7 +107,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
 
           {/* Header : logo */}
           <Box sx={{ position: 'relative', zIndex: 1 }}>
-            <ClenzyAnimatedLogo scale={0.95} />
+            <ClenzyMarkLogo scale={0.95} />
           </Box>
 
           {/* Centre : tagline + proof */}
@@ -176,7 +176,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
           {/* Logo compact en haut sur mobile (le panneau brand est cache) */}
           {!isMdUp && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-              <ClenzyAnimatedLogo scale={0.85} />
+              <ClenzyMarkLogo scale={0.85} />
             </Box>
           )}
 

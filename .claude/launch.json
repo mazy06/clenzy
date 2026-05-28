@@ -22,6 +22,13 @@
       "runtimeArgs": ["run", "preview"],
       "cwd": "client",
       "port": 4173
+    },
+    {
+      "name": "logo-proposals",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "5500"],
+      "cwd": "client/public",
+      "port": 5500
     }
   ]
 }
