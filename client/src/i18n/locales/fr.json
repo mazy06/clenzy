@@ -1,4 +1,9 @@
 {
+  "appUpdate": {
+    "message": "Une nouvelle version de Baitly est disponible.",
+    "reload": "Recharger maintenant",
+    "later": "Plus tard"
+  },
   "common": {
     "save": "Enregistrer",
     "cancel": "Annuler",
