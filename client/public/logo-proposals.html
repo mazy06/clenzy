@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clenzy — Logo iteration 2 : font + animation</title>
+  <title>Clenzy — Logo iter 3 : idle constant + hover polish</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- 4 fonts loaded for side-by-side comparison -->
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Space+Grotesk:wght@500;600;700&family=Bricolage+Grotesque:wght@600;700;800&family=Geist:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --brand: #6B8A9A;
@@ -27,47 +26,35 @@
     .lede { color: var(--muted); font-size: 16px; line-height: 1.5; margin-bottom: 48px; max-width: 720px; }
     .grid { display: grid; grid-template-columns: 1fr; gap: 28px; }
     .card { background: var(--paper); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-    .card-header { padding: 20px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-    .badge { display: inline-block; padding: 4px 10px; background: var(--brand-soft); color: var(--brand-dark); border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
-    .card-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin-top: 8px; }
+    .card-header { padding: 20px 28px; border-bottom: 1px solid var(--border); }
+    .card-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 6px; }
+    .card-sub { color: var(--muted); font-size: 13px; line-height: 1.5; }
     .card-rationale { color: var(--muted); font-size: 13px; line-height: 1.6; padding: 16px 28px; background: var(--paper-tinted); border-bottom: 1px solid var(--border); }
     .card-rationale strong { color: var(--ink); font-weight: 600; }
     .preview-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
     @media (max-width: 720px) { .preview-row { grid-template-columns: 1fr; } }
-    .preview { padding: 56px 32px; display: flex; align-items: center; justify-content: center; min-height: 200px; background: var(--paper); position: relative; cursor: pointer; }
+    .preview { padding: 64px 32px; display: flex; align-items: center; justify-content: center; min-height: 220px; background: var(--paper); position: relative; cursor: pointer; }
     .preview.dark { background: #0F1A22; }
-    .preview-label { position: absolute; bottom: 12px; left: 16px; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+    .preview-label { position: absolute; bottom: 14px; left: 16px; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
     .preview.dark .preview-label { color: rgba(255,255,255,0.4); }
-    .hover-hint { position: absolute; bottom: 12px; right: 16px; font-size: 10px; color: var(--muted); opacity: 0.5; font-style: italic; }
+    .hover-hint { position: absolute; bottom: 14px; right: 16px; font-size: 10px; color: var(--muted); opacity: 0.55; font-style: italic; }
     .preview.dark .hover-hint { color: rgba(255,255,255,0.4); }
-
     .logo-row { display: flex; align-items: center; gap: 16px; }
-
-    /* ─── Wordmark fonts ────────────────────────────────────────────────── */
-    .font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; letter-spacing: -0.025em; }
-    .font-space   { font-family: 'Space Grotesk', sans-serif; font-weight: 600; letter-spacing: -0.015em; }
-    .font-bric    { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
-    .font-geist   { font-family: 'Geist', 'Inter', sans-serif; font-weight: 600; letter-spacing: -0.02em; }
-
-    .wordmark { font-size: 44px; line-height: 1; color: var(--ink); }
+    .wordmark { font-family: 'Space Grotesk', sans-serif; font-weight: 600; letter-spacing: -0.015em; font-size: 48px; line-height: 1; color: var(--ink); }
     .wordmark-light { color: #FFFFFF; }
 
-    /* ─── 8-node mark animation ────────────────────────────────────────── */
-    /*
-     * BOOT SEQUENCE (joue 1 fois au mount, ~1.3s total) :
-     *  0ms   center fade-in + scale from 0 to 1
-     *  200ms 8 lignes radiales draw outward (stroke-dashoffset)
-     *  600ms 8 nodes fade-in + scale, staggered clockwise (60ms apart)
-     *
-     * HOVER ORCHESTRATION WAVE (joue au hover, 800ms) :
-     *  Le centre pulse, puis ripple radial vers les 8 nodes (clockwise stagger).
-     *  Implementation : on retrigger les animations en re-injectant un attribut
-     *  data-animate qui restart les @keyframes.
-     */
+    /* ═════════════════════════════════════════════════════════════════════
+       ANIMATION SYSTEM — boot + idle + hover (replique du composant React)
+       ═════════════════════════════════════════════════════════════════════ */
+
     .mark-svg { overflow: visible; }
+
+    /* ─── Boot sequence (joue 1 fois, ~1.4s) ──────────────────────────── */
     .mark-svg .mark-center {
-      transform-origin: center;
-      animation: mark-center-in 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      transform-origin: 28px 28px;
+      animation:
+        mark-center-boot 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+        mark-center-breathe 4s ease-in-out 1500ms infinite;
     }
     .mark-svg .mark-line {
       stroke-dasharray: 36;
@@ -75,22 +62,33 @@
       animation: mark-line-draw 500ms ease-out 200ms both;
     }
     .mark-svg .mark-node {
-      transform-origin: center;
       transform-box: fill-box;
+      transform-origin: center;
       opacity: 0;
-      animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
-    /* Stagger clockwise : N, NE, E, SE, S, SW, W, NW */
-    .mark-svg .mark-node-0 { animation-delay: 600ms; }
-    .mark-svg .mark-node-1 { animation-delay: 660ms; }
-    .mark-svg .mark-node-2 { animation-delay: 720ms; }
-    .mark-svg .mark-node-3 { animation-delay: 780ms; }
-    .mark-svg .mark-node-4 { animation-delay: 840ms; }
-    .mark-svg .mark-node-5 { animation-delay: 900ms; }
-    .mark-svg .mark-node-6 { animation-delay: 960ms; }
-    .mark-svg .mark-node-7 { animation-delay: 1020ms; }
+    .mark-svg .mark-node-0 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 600ms both, mark-node-scan-0 6400ms ease-in-out 1400ms infinite; }
+    .mark-svg .mark-node-1 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 660ms both, mark-node-scan-1 6400ms ease-in-out 1480ms infinite; }
+    .mark-svg .mark-node-2 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 720ms both, mark-node-scan-2 6400ms ease-in-out 1560ms infinite; }
+    .mark-svg .mark-node-3 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 780ms both, mark-node-scan-3 6400ms ease-in-out 1640ms infinite; }
+    .mark-svg .mark-node-4 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 840ms both, mark-node-scan-4 6400ms ease-in-out 1720ms infinite; }
+    .mark-svg .mark-node-5 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 900ms both, mark-node-scan-5 6400ms ease-in-out 1800ms infinite; }
+    .mark-svg .mark-node-6 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 960ms both, mark-node-scan-6 6400ms ease-in-out 1880ms infinite; }
+    .mark-svg .mark-node-7 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 1020ms both, mark-node-scan-7 6400ms ease-in-out 1960ms infinite; }
 
-    @keyframes mark-center-in {
+    /* ─── Hover wave (override l'idle, ~900ms) ────────────────────────── */
+    .preview:hover .mark-svg .mark-center { animation: mark-center-pulse 800ms cubic-bezier(0.4, 0, 0.2, 1); }
+    .preview:hover .mark-svg .mark-line   { stroke-dasharray: none; stroke-dashoffset: 0; animation: mark-line-pulse 700ms cubic-bezier(0.4, 0, 0.2, 1) 100ms; }
+    .preview:hover .mark-svg .mark-node-0 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 180ms; }
+    .preview:hover .mark-svg .mark-node-1 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 255ms; }
+    .preview:hover .mark-svg .mark-node-2 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 330ms; }
+    .preview:hover .mark-svg .mark-node-3 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 405ms; }
+    .preview:hover .mark-svg .mark-node-4 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 480ms; }
+    .preview:hover .mark-svg .mark-node-5 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 555ms; }
+    .preview:hover .mark-svg .mark-node-6 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 630ms; }
+    .preview:hover .mark-svg .mark-node-7 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 705ms; }
+
+    /* ─── Keyframes : boot ────────────────────────────────────────────── */
+    @keyframes mark-center-boot {
       0%   { transform: scale(0);   opacity: 0; }
       100% { transform: scale(1);   opacity: 1; }
     }
@@ -105,72 +103,60 @@
       100% { transform: scale(1);   opacity: 1; }
     }
 
-    /* HOVER WAVE — communication orchestrator -> specialistes */
-    .preview:hover .mark-svg .mark-center {
-      animation: mark-center-pulse 700ms ease-out;
+    /* ─── Keyframes : idle constant ───────────────────────────────────── */
+    @keyframes mark-center-breathe {
+      0%, 100% { transform: scale(1);    opacity: 1; }
+      50%      { transform: scale(0.94); opacity: 0.88; }
     }
-    .preview:hover .mark-svg .mark-node-0 { animation: mark-node-pulse 600ms ease-out 100ms; }
-    .preview:hover .mark-svg .mark-node-1 { animation: mark-node-pulse 600ms ease-out 175ms; }
-    .preview:hover .mark-svg .mark-node-2 { animation: mark-node-pulse 600ms ease-out 250ms; }
-    .preview:hover .mark-svg .mark-node-3 { animation: mark-node-pulse 600ms ease-out 325ms; }
-    .preview:hover .mark-svg .mark-node-4 { animation: mark-node-pulse 600ms ease-out 400ms; }
-    .preview:hover .mark-svg .mark-node-5 { animation: mark-node-pulse 600ms ease-out 475ms; }
-    .preview:hover .mark-svg .mark-node-6 { animation: mark-node-pulse 600ms ease-out 550ms; }
-    .preview:hover .mark-svg .mark-node-7 { animation: mark-node-pulse 600ms ease-out 625ms; }
+    /* Active scan : peak a 6.25% du cycle pour node 0, 18.75% pour node 1, etc.
+       Chaque node passe par scale(1.18) brightness(1.25) brievement pendant
+       son slot (12.5% du cycle = 800ms), puis revient idle pour le reste. */
+    @keyframes mark-node-scan-0 { 0%, 0%      { transform: scale(1); filter: brightness(1); } 6.25%  { transform: scale(1.18); filter: brightness(1.25); } 12.50%, 100% { transform: scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-1 { 0%, 12.50% { transform: scale(1); filter: brightness(1); } 18.75% { transform: scale(1.18); filter: brightness(1.25); } 25.00%, 100% { transform: scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-2 { 0%, 25.00% { transform: scale(1); filter: brightness(1); } 31.25% { transform: scale(1.18); filter: brightness(1.25); } 37.50%, 100% { transform: scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-3 { 0%, 37.50% { transform: scale(1); filter: brightness(1); } 43.75% { transform: scale(1.18); filter: brightness(1.25); } 50.00%, 100% { transform: scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-4 { 0%, 50.00% { transform: scale(1); filter: brightness(1); } 56.25% { transform: scale(1.18); filter: brightness(1.25); } 62.50%, 100% { transform: scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-5 { 0%, 62.50% { transform: scale(1); filter: brightness(1); } 68.75% { transform: scale(1.18); filter: brightness(1.25); } 75.00%, 100% { transform: scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-6 { 0%, 75.00% { transform: scale(1); filter: brightness(1); } 81.25% { transform: scale(1.18); filter: brightness(1.25); } 87.50%, 100% { transform: scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-7 { 0%, 87.50% { transform: scale(1); filter: brightness(1); } 93.75% { transform: scale(1.18); filter: brightness(1.25); } 100% { transform: scale(1); filter: brightness(1); } }
 
+    /* ─── Keyframes : hover wave polish ───────────────────────────────── */
     @keyframes mark-center-pulse {
-      0%   { transform: scale(1);    filter: brightness(1); }
-      40%  { transform: scale(1.25); filter: brightness(1.3); }
-      100% { transform: scale(1);    filter: brightness(1); }
+      0%   { transform: scale(1);   filter: brightness(1)   drop-shadow(0 0 0 transparent); }
+      35%  { transform: scale(1.3); filter: brightness(1.4) drop-shadow(0 0 4px currentColor); }
+      100% { transform: scale(1);   filter: brightness(1)   drop-shadow(0 0 0 transparent); }
     }
-    @keyframes mark-node-pulse {
-      0%   { transform: scale(1);    filter: brightness(1); }
-      50%  { transform: scale(1.6);  filter: brightness(1.4); }
-      100% { transform: scale(1);    filter: brightness(1); }
+    @keyframes mark-line-pulse {
+      0%   { opacity: 0.35; stroke-width: 1; }
+      40%  { opacity: 0.75; stroke-width: 1.3; }
+      100% { opacity: 0.35; stroke-width: 1; }
+    }
+    @keyframes mark-node-wave {
+      0%   { transform: scale(1);   filter: brightness(1); }
+      50%  { transform: scale(1.7); filter: brightness(1.5); }
+      100% { transform: scale(1);   filter: brightness(1); }
     }
 
-    /* ─── prefers-reduced-motion : kill all animations ─────────────────── */
     @media (prefers-reduced-motion: reduce) {
-      .mark-svg .mark-center,
-      .mark-svg .mark-line,
-      .mark-svg .mark-node,
-      .preview:hover .mark-svg .mark-center,
-      .preview:hover .mark-svg .mark-node {
-        animation: none !important;
-        opacity: 1 !important;
-        transform: none !important;
-        stroke-dashoffset: 0 !important;
-      }
+      .mark-svg * { animation: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; stroke-dasharray: none !important; filter: none !important; }
     }
-
-    .skill-quote { background: var(--brand-soft); border-left: 3px solid var(--brand); padding: 12px 16px; border-radius: 4px; font-size: 13px; color: var(--brand-dark); margin-top: 12px; font-style: italic; }
   </style>
 </head>
 <body>
   <div class="page">
-    <h1>Clenzy — Iteration 2 : font + animation</h1>
-    <p class="lede">Tu trouves Plus Jakarta Sans "trop compact et trop lisse". Voici 3 alternatives plus typees, plus le mark 8 nodes anime (boot sequence au mount + communication wave au hover). <strong>Survole chaque preview</strong> pour declencher l'animation orchestration.</p>
+    <h1>Clenzy — Iter 3 : idle animation constante + hover polish</h1>
+    <p class="lede">Le mark est maintenant <strong>constamment anime</strong> : le centre respire (cycle 4s) et un spotlight tourne autour de l'octogone (8 nodes, 0.8s par node, 6.4s par tour). Tres subtle, designe pour rester en peripherie de l'attention. <strong>Survole pour declencher le hover wave</strong> (override l'idle avec plus d'energie + glow sur le centre + lines brightening sync).</p>
 
     <div class="grid">
-      <!-- ─── OPTION A : Space Grotesk (skill #1 reco "Tech Startup") ─── -->
       <div class="card">
         <div class="card-header">
-          <div>
-            <span class="badge">Option A · recommande par le skill</span>
-            <div class="card-title">Space Grotesk 600</div>
-          </div>
-          <div style="font-size: 12px; color: var(--muted); text-align: right; max-width: 280px;">
-            Reference : Vercel, Pinecone, Hugging Face.<br>Cite par ui-ux-pro-max "Tech Startup".
-          </div>
-        </div>
-        <div class="card-rationale">
-          <strong>Pourquoi ca repond au brief</strong> : moins compact (chasse plus large que Jakarta), plus de caractere (terminals geometriques distinctifs sur le "a", "y"). Geometrique mais avec personnalite, evite le "Helvetica generique". Ideal "AI / data-tech".
-          <div class="skill-quote">"Space Grotesk has unique character, ideal for tech companies, startups, AI products" — ui-ux-pro-max</div>
+          <div class="card-title">Idle constant (centre breathe + node scan clockwise)</div>
+          <div class="card-sub">Tres subtle : scale 0.94→1, opacity 0.88→1 pour le centre. Chaque node peak brievement (scale 1.18, brightness 1.25) en rotation horaire. <strong>Regarde la capture sans hover</strong>.</div>
         </div>
         <div class="preview-row">
           <div class="preview">
             <div class="logo-row">
-              <svg class="mark-svg" width="60" height="60" viewBox="0 0 56 56" fill="none">
+              <svg class="mark-svg" width="64" height="64" viewBox="0 0 56 56" fill="none">
                 <g stroke="#6B8A9A" stroke-width="1" opacity="0.35">
                   <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
                   <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
@@ -191,14 +177,14 @@
                 <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#6B8A9A"/>
                 <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#4A6B7B"/>
               </svg>
-              <span class="wordmark font-space">clenzy</span>
+              <span class="wordmark">clenzy</span>
             </div>
-            <span class="preview-label">Light · Space Grotesk</span>
-            <span class="hover-hint">hover pour declencher la wave</span>
+            <span class="preview-label">Light · Space Grotesk · idle + hover</span>
+            <span class="hover-hint">hover = wave avec glow</span>
           </div>
           <div class="preview dark">
             <div class="logo-row">
-              <svg class="mark-svg" width="60" height="60" viewBox="0 0 56 56" fill="none">
+              <svg class="mark-svg" width="64" height="64" viewBox="0 0 56 56" fill="none">
                 <g stroke="#89B1C2" stroke-width="1" opacity="0.4">
                   <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
                   <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
@@ -219,237 +205,25 @@
                 <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#89B1C2"/>
                 <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#FFFFFF"/>
               </svg>
-              <span class="wordmark wordmark-light font-space">clenzy</span>
+              <span class="wordmark wordmark-light">clenzy</span>
             </div>
-            <span class="preview-label">Dark · Space Grotesk</span>
+            <span class="preview-label">Dark · Space Grotesk · idle + hover</span>
             <span class="hover-hint">hover</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- ─── OPTION B : Bricolage Grotesque (expressif) ─── -->
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <span class="badge">Option B · expressif</span>
-            <div class="card-title">Bricolage Grotesque 700</div>
-          </div>
-          <div style="font-size: 12px; color: var(--muted); text-align: right; max-width: 280px;">
-            Reference : Replicate, Cohere, Modal.<br>Tres modern AI / dev tools.
-          </div>
-        </div>
-        <div class="card-rationale">
-          <strong>Pourquoi ca repond au brief</strong> : encore plus de personnalite que Space Grotesk — terminations carrees, ouvertures plus larges, attitude "premium-quirky". Risque : peut faire trop "design agency" pour un PMS B2B traditionnel.
-        </div>
-        <div class="preview-row">
-          <div class="preview">
-            <div class="logo-row">
-              <svg class="mark-svg" width="60" height="60" viewBox="0 0 56 56" fill="none">
-                <g stroke="#6B8A9A" stroke-width="1" opacity="0.35">
-                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
-                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
-                  <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
-                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
-                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
-                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
-                  <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
-                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
-                </g>
-                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#4A6B7B"/>
-              </svg>
-              <span class="wordmark font-bric">clenzy</span>
-            </div>
-            <span class="preview-label">Light · Bricolage Grotesque</span>
-            <span class="hover-hint">hover</span>
-          </div>
-          <div class="preview dark">
-            <div class="logo-row">
-              <svg class="mark-svg" width="60" height="60" viewBox="0 0 56 56" fill="none">
-                <g stroke="#89B1C2" stroke-width="1" opacity="0.4">
-                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
-                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
-                  <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
-                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
-                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
-                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
-                  <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
-                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
-                </g>
-                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#89B1C2"/>
-                <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#FFFFFF"/>
-              </svg>
-              <span class="wordmark wordmark-light font-bric">clenzy</span>
-            </div>
-            <span class="preview-label">Dark · Bricolage Grotesque</span>
-            <span class="hover-hint">hover</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- ─── OPTION C : Geist (clean alternative) ─── -->
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <span class="badge">Option C · clean tech</span>
-            <div class="card-title">Geist 600</div>
-          </div>
-          <div style="font-size: 12px; color: var(--muted); text-align: right; max-width: 280px;">
-            Reference : Vercel (font maison), Linear-like.<br>Moins decale que Space Grotesk.
-          </div>
-        </div>
-        <div class="card-rationale">
-          <strong>Pourquoi ca repond au brief</strong> : compromis entre Jakarta (trop lisse) et Bricolage (trop expressif). Plus aere, terminations plus marquees, mais reste sobre. Bon choix si tu veux casser le "lisse" sans aller jusqu'a un caractere assume.
-        </div>
-        <div class="preview-row">
-          <div class="preview">
-            <div class="logo-row">
-              <svg class="mark-svg" width="60" height="60" viewBox="0 0 56 56" fill="none">
-                <g stroke="#6B8A9A" stroke-width="1" opacity="0.35">
-                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
-                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
-                  <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
-                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
-                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
-                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
-                  <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
-                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
-                </g>
-                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#4A6B7B"/>
-              </svg>
-              <span class="wordmark font-geist">clenzy</span>
-            </div>
-            <span class="preview-label">Light · Geist</span>
-            <span class="hover-hint">hover</span>
-          </div>
-          <div class="preview dark">
-            <div class="logo-row">
-              <svg class="mark-svg" width="60" height="60" viewBox="0 0 56 56" fill="none">
-                <g stroke="#89B1C2" stroke-width="1" opacity="0.4">
-                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
-                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
-                  <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
-                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
-                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
-                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
-                  <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
-                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
-                </g>
-                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#89B1C2"/>
-                <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#FFFFFF"/>
-              </svg>
-              <span class="wordmark wordmark-light font-geist">clenzy</span>
-            </div>
-            <span class="preview-label">Dark · Geist</span>
-            <span class="hover-hint">hover</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- ─── Reference : current font (Plus Jakarta) pour comparaison ─── -->
-      <div class="card" style="background: var(--paper-tinted); border-style: dashed;">
-        <div class="card-header" style="border-bottom-color: transparent;">
-          <div>
-            <span class="badge" style="background: var(--border); color: var(--muted);">Pour reference (current)</span>
-            <div class="card-title" style="color: var(--muted);">Plus Jakarta Sans 700 — "trop lisse, trop compact"</div>
-          </div>
-        </div>
-        <div class="preview-row">
-          <div class="preview">
-            <div class="logo-row">
-              <svg width="60" height="60" viewBox="0 0 56 56" fill="none">
-                <g stroke="#6B8A9A" stroke-width="1" opacity="0.35">
-                  <line x1="28" y1="28" x2="28"   y2="10"/>
-                  <line x1="28" y1="28" x2="40.7" y2="15.3"/>
-                  <line x1="28" y1="28" x2="46"   y2="28"/>
-                  <line x1="28" y1="28" x2="40.7" y2="40.7"/>
-                  <line x1="28" y1="28" x2="28"   y2="46"/>
-                  <line x1="28" y1="28" x2="15.3" y2="40.7"/>
-                  <line x1="28" y1="28" x2="10"   y2="28"/>
-                  <line x1="28" y1="28" x2="15.3" y2="15.3"/>
-                </g>
-                <circle cx="28"   cy="10"   r="2.5" fill="#6B8A9A"/>
-                <circle cx="40.7" cy="15.3" r="2.5" fill="#6B8A9A"/>
-                <circle cx="46"   cy="28"   r="2.5" fill="#6B8A9A"/>
-                <circle cx="40.7" cy="40.7" r="2.5" fill="#6B8A9A"/>
-                <circle cx="28"   cy="46"   r="2.5" fill="#6B8A9A"/>
-                <circle cx="15.3" cy="40.7" r="2.5" fill="#6B8A9A"/>
-                <circle cx="10"   cy="28"   r="2.5" fill="#6B8A9A"/>
-                <circle cx="15.3" cy="15.3" r="2.5" fill="#6B8A9A"/>
-                <circle cx="28" cy="28" r="4.5" fill="#4A6B7B"/>
-              </svg>
-              <span class="wordmark font-jakarta">clenzy</span>
-            </div>
-            <span class="preview-label">Plus Jakarta Sans</span>
-          </div>
-          <div class="preview dark">
-            <div class="logo-row">
-              <svg width="60" height="60" viewBox="0 0 56 56" fill="none">
-                <g stroke="#89B1C2" stroke-width="1" opacity="0.4">
-                  <line x1="28" y1="28" x2="28"   y2="10"/>
-                  <line x1="28" y1="28" x2="40.7" y2="15.3"/>
-                  <line x1="28" y1="28" x2="46"   y2="28"/>
-                  <line x1="28" y1="28" x2="40.7" y2="40.7"/>
-                  <line x1="28" y1="28" x2="28"   y2="46"/>
-                  <line x1="28" y1="28" x2="15.3" y2="40.7"/>
-                  <line x1="28" y1="28" x2="10"   y2="28"/>
-                  <line x1="28" y1="28" x2="15.3" y2="15.3"/>
-                </g>
-                <circle cx="28"   cy="10"   r="2.5" fill="#89B1C2"/>
-                <circle cx="40.7" cy="15.3" r="2.5" fill="#89B1C2"/>
-                <circle cx="46"   cy="28"   r="2.5" fill="#89B1C2"/>
-                <circle cx="40.7" cy="40.7" r="2.5" fill="#89B1C2"/>
-                <circle cx="28"   cy="46"   r="2.5" fill="#89B1C2"/>
-                <circle cx="15.3" cy="40.7" r="2.5" fill="#89B1C2"/>
-                <circle cx="10"   cy="28"   r="2.5" fill="#89B1C2"/>
-                <circle cx="15.3" cy="15.3" r="2.5" fill="#89B1C2"/>
-                <circle cx="28" cy="28" r="4.5" fill="#FFFFFF"/>
-              </svg>
-              <span class="wordmark wordmark-light font-jakarta">clenzy</span>
-            </div>
-            <span class="preview-label">Plus Jakarta Sans</span>
           </div>
         </div>
       </div>
     </div>
 
     <div style="margin-top: 48px; padding: 24px; background: var(--paper); border: 1px solid var(--border); border-radius: 12px;">
-      <strong style="font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);">Animation</strong>
+      <strong style="font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);">3 phases d'animation coordonnees</strong>
       <ul style="margin-top: 12px; padding-left: 20px; line-height: 1.7; font-size: 14px; color: var(--ink);">
-        <li><strong>Boot sequence au mount</strong> : centre apparait (scale 0→1, 400ms back-out), 8 lignes radiales se tracent (500ms ease-out, dasharray), puis 8 nodes pop-in en stagger horaire (350ms back-out chacun, 60ms d'ecart). Total ~1.4s. Joue UNE FOIS, pas en boucle.</li>
-        <li><strong>Hover wave</strong> : au survol, le centre pulse + ripple horaire vers les 8 nodes (chacun se sur-scale brievement). Suggere la communication orchestrator → specialistes. ~700ms.</li>
-        <li><strong>prefers-reduced-motion: reduce</strong> respecte : tout est instantane, etat final affiche directement.</li>
-        <li><strong>Conforme aux UX rules</strong> (ui-ux-pro-max) : pas d'animation infinie decorative, ease-out partout (pas de linear), motion preference respectee.</li>
+        <li><strong>1. Boot sequence</strong> (~1.4s, joue 1 fois au mount) : centre fade-in + scale 0→1, 8 lignes radiales se tracent, 8 nodes pop-in en stagger horaire.</li>
+        <li><strong>2. Idle constant</strong> (infini, demarre apres le boot) : <em>centre breathe</em> (scale 1→0.94, opacity 1→0.88, cycle 4s) + <em>active scan</em> (un node a la fois sur-scale 1.18 brightness 1.25, rotation horaire complete en 6.4s). Sub-perceptible, designe pour ne PAS distraire mais signaler "system alive".</li>
+        <li><strong>3. Hover wave</strong> (~900ms, override l'idle au survol) : centre pulse <em>avec drop-shadow glow</em> (suggere "thinking"), lines brightening sync (opacity 0.35→0.75, stroke-width 1→1.3), puis ripple horaire vers les 8 nodes (sur-scale 1.7 + brightness 1.5). Polish v3 : easing cubic-bezier(0.4, 0, 0.2, 1), delays plus marques pour lecture, glow drop-shadow sur le centre.</li>
       </ul>
+      <div style="margin-top: 16px; padding: 12px 16px; background: var(--brand-soft); border-left: 3px solid var(--brand); border-radius: 4px; font-size: 13px; color: var(--brand-dark);">
+        <strong>Accessibilite</strong> : @media (prefers-reduced-motion: reduce) kill TOUTES les animations (idle inclus) et snap a l'etat final visuel. Conforme aux UX rules ui-ux-pro-max.
+      </div>
     </div>
   </div>
 </body>
