@@ -1,0 +1,49 @@
+# Template Clenzy : instructions check-in (J-1 avant arrivee)
+# ============================================================================
+# Envoye automatiquement la veille de l'arrivee, ~17h heure locale du logement.
+# Type UTILITY.
+#
+# Parametres :
+#   {{1}} = prenom du guest
+#   {{2}} = adresse complete de la propriete
+#   {{3}} = heure check-in (HH:MM)
+#   {{4}} = nom du contact en cas de souci (host ou conciergerie)
+#   {{5}} = telephone du contact
+# ============================================================================
+
+key: checkin_instructions
+category: UTILITY
+languages:
+  fr_FR:
+    body: |
+      Bonjour {{1}} 🏠
+
+      Votre check-in à *{{2}}* est prévu demain à partir de {{3}}.
+
+      Vous recevrez le code d'accès le jour J à 14h.
+
+      En cas de question : *{{4}}* au {{5}}.
+
+      Bon voyage !
+  en_US:
+    body: |
+      Hi {{1}} 🏠
+
+      Your check-in at *{{2}}* is scheduled tomorrow from {{3}}.
+
+      You will receive the access code on the day of arrival at 2pm.
+
+      Need help? Contact *{{4}}* at {{5}}.
+
+      Safe travels!
+  ar_AR:
+    body: |
+      مرحبا {{1}} 🏠
+
+      تسجيل دخولك في *{{2}}* مقرر غدا ابتداء من {{3}}.
+
+      ستتلقى رمز الدخول يوم الوصول الساعة 14:00.
+
+      تحتاج مساعدة؟ تواصل مع *{{4}}* على {{5}}.
+
+      رحلة سعيدة!

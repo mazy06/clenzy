@@ -1,0 +1,44 @@
+# Template Clenzy : demande de review (J+1 apres depart)
+# ============================================================================
+# Envoye automatiquement le lendemain du depart, ~11h heure locale.
+# Type UTILITY (lien direct vers la review sur l'OTA d'origine).
+#
+# Parametres :
+#   {{1}} = prenom du guest
+#   {{2}} = nom de la propriete
+#   {{3}} = URL de la page review sur l'OTA (Airbnb / Booking / Vrbo)
+# ============================================================================
+
+key: review_request
+category: UTILITY
+languages:
+  fr_FR:
+    body: |
+      Bonjour {{1}} 🙏
+
+      On espère que votre séjour à *{{2}}* s'est bien passé !
+
+      Votre avis nous aiderait beaucoup. Si vous avez 30 secondes :
+      {{3}}
+
+      Merci et à bientôt !
+  en_US:
+    body: |
+      Hi {{1}} 🙏
+
+      We hope you enjoyed your stay at *{{2}}*!
+
+      A short review would mean a lot. If you have 30 seconds:
+      {{3}}
+
+      Thank you and see you soon!
+  ar_AR:
+    body: |
+      مرحبا {{1}} 🙏
+
+      نأمل أن تكون استمتعت بإقامتك في *{{2}}*!
+
+      تقييمك يعني لنا الكثير. إذا كان لديك 30 ثانية:
+      {{3}}
+
+      شكرا لك ونراك قريبا!

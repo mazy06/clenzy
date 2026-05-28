@@ -177,4 +177,7 @@ export interface MetaSignupResult {
   wabaId: string;
   phoneNumberId: string;
   configId: number;
+  /** Nombre de templates Clenzy standards soumis a Meta automatiquement.
+   *  Statut PENDING cote Meta, utilisables quand approuves (~24h). */
+  templatesSubmitted: number;
 }
