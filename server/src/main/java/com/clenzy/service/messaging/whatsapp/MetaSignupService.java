@@ -52,6 +52,7 @@ public class MetaSignupService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final WhatsAppConfigRepository configRepository;
+    private final MetaTemplateProvisioner templateProvisioner;
 
     private final String appId;
     private final String appSecret;
@@ -63,6 +64,7 @@ public class MetaSignupService {
     public MetaSignupService(
             ObjectMapper objectMapper,
             WhatsAppConfigRepository configRepository,
+            MetaTemplateProvisioner templateProvisioner,
             @Value("${clenzy.whatsapp.meta.app-id:}") String appId,
             @Value("${clenzy.whatsapp.meta.app-secret:}") String appSecret,
             @Value("${clenzy.whatsapp.meta.embedded-signup-config-id:}") String configId,
@@ -75,6 +77,7 @@ public class MetaSignupService {
         this.restTemplate = new RestTemplate();
         this.objectMapper = objectMapper;
         this.configRepository = configRepository;
+        this.templateProvisioner = templateProvisioner;
         this.appId = appId;
         this.appSecret = appSecret;
         this.configId = configId;
@@ -121,15 +124,30 @@ public class MetaSignupService {
         // Etape 3 : persist
         WhatsAppConfig saved = provisionConfig(organizationId, accessToken, waba);
 
-        log.info("Meta Embedded Signup OK pour org {} : WABA {} / phone {}",
-            organizationId, waba.wabaId, waba.displayPhoneNumber);
+        // Etape 4 : auto-submit des 5 templates Clenzy standards au WABA.
+        // Best-effort : si une template echoue (nom deja pris, quota Meta atteint),
+        // on logue mais on ne fait pas echouer le signup global — l'host peut
+        // toujours les soumettre manuellement plus tard via Settings.
+        int templatesSubmitted = 0;
+        try {
+            MetaTemplateProvisioner.ProvisionResult provisionResult = templateProvisioner.provisionAll(saved);
+            templatesSubmitted = provisionResult.submitted();
+            log.info("Templates Meta provisiones pour org {} : {} OK / {} KO",
+                organizationId, provisionResult.submitted(), provisionResult.failed());
+        } catch (Exception e) {
+            log.warn("Echec global provisioning templates pour org {} : {}", organizationId, e.getMessage());
+        }
+
+        log.info("Meta Embedded Signup OK pour org {} : WABA {} / phone {} / {} templates submitted",
+            organizationId, waba.wabaId, waba.displayPhoneNumber, templatesSubmitted);
 
         return new SignupResult(
             true,
             waba.displayPhoneNumber,
             waba.wabaId,
             waba.phoneNumberId,
-            saved.getId());
+            saved.getId(),
+            templatesSubmitted);
     }
 
     // ─── Etapes internes ──────────────────────────────────────────────
@@ -273,13 +291,17 @@ public class MetaSignupService {
 
     // ─── Types ──────────────────────────────────────────────────────
 
-    /** Resultat enrichi pour le frontend. */
+    /** Resultat enrichi pour le frontend. Inclut le nombre de templates
+     *  submitted a Meta pour afficher dans la confirmation success.
+     *  Note : les templates sont en statut PENDING cote Meta, l'host pourra
+     *  les utiliser quand approuves (~24h). */
     public record SignupResult(
         boolean success,
         String phoneNumber,
         String wabaId,
         String phoneNumberId,
-        Long configId
+        Long configId,
+        int templatesSubmitted
     ) {}
 
     /** Snapshot WABA + phone resolu par /me/businesses + /phone_numbers. */

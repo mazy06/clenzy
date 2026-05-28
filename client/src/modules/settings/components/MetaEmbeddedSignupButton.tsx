@@ -240,6 +240,13 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
             "Numéro {{phoneNumber}} — WABA {{wabaId}}. Vous pouvez maintenant activer l'envoi WhatsApp.",
             { phoneNumber: success.phoneNumber, wabaId: success.wabaId })}
         </Typography>
+        {success.templatesSubmitted > 0 && (
+          <Typography variant="body2" sx={{ mt: 0.5 }}>
+            {t('settings.whatsapp.meta.signup.templatesSubmitted',
+              "✓ {{count}} templates Clenzy standards soumis à Meta (validation ~24h).",
+              { count: success.templatesSubmitted })}
+          </Typography>
+        )}
       </Alert>
     );
   }
