@@ -49,6 +49,39 @@ export interface UpdateWhatsAppConfigRequest {
   enabled?: boolean;
 }
 
+/**
+ * Status de la session OpenWA, normalise cote backend depuis les valeurs
+ * variables de whatsapp-web.js (QR / QRCODE / SCAN_QR_CODE / CONNECTED / etc).
+ *
+ * - `qr_pending` : QR code disponible, attend que l'user scanne
+ * - `connected` : session active, on peut envoyer
+ * - `disconnected` : session existe mais pas (encore) connectee
+ * - `failed` : auth failure cote WhatsApp (compte banni / 2FA / etc.)
+ * - `not_configured` : pas de session OpenWA pour cette org
+ */
+export type OpenWaStatus =
+  | 'qr_pending'
+  | 'connected'
+  | 'disconnected'
+  | 'failed'
+  | 'not_configured';
+
+export interface OpenWaStatusResponse {
+  status: OpenWaStatus;
+  sessionId?: string;
+  phoneNumber?: string;
+}
+
+export interface OpenWaQrResponse {
+  qr: string; // data:image/png;base64,...
+  sessionId: string;
+}
+
+export interface OpenWaSessionCreateResponse {
+  sessionId: string;
+  status: 'qr_pending';
+}
+
 export const whatsAppConfigApi = {
   /**
    * Recupere la config WhatsApp de l'org courante. Retourne `null` si pas
@@ -72,5 +105,43 @@ export const whatsAppConfigApi = {
    */
   async updateConfig(patch: UpdateWhatsAppConfigRequest): Promise<WhatsAppConfig> {
     return await apiClient.put<WhatsAppConfig>('/whatsapp/config', patch);
+  },
+
+  // ─── OpenWA QR scan flow (Phase 4b) ────────────────────────────────
+
+  /**
+   * Cree une session OpenWA per-org sur l'instance partagee + persist les
+   * credentials chiffres. Le frontend devra ensuite appeler getOpenWaQr()
+   * et poller getOpenWaStatus() pour suivre le scan.
+   */
+  async createOpenWaSession(): Promise<OpenWaSessionCreateResponse> {
+    return await apiClient.post<OpenWaSessionCreateResponse>('/whatsapp/openwa/session', {});
+  },
+
+  /**
+   * Recupere l'image QR code (base64) a afficher dans le Dialog modal.
+   * Peut throw 404 si la session est deja connectee (plus de QR a montrer)
+   * ou 503 si l'instance OpenWA est injoignable.
+   */
+  async getOpenWaQr(): Promise<OpenWaQrResponse> {
+    return await apiClient.get<OpenWaQrResponse>('/whatsapp/openwa/qr');
+  },
+
+  /**
+   * Polling status connexion OpenWA. A appeler toutes les 2s tant que le
+   * Dialog QR est ouvert. Stopper le polling quand status devient
+   * `connected` ou `failed` (etat terminal).
+   */
+  async getOpenWaStatus(): Promise<OpenWaStatusResponse> {
+    return await apiClient.get<OpenWaStatusResponse>('/whatsapp/openwa/status');
+  },
+
+  /**
+   * Detruit la session cote OpenWA + reset les credentials cote DB.
+   * Utile pour repartir d'un etat propre si le scan a echoue ou si l'user
+   * veut changer de numero WhatsApp.
+   */
+  async deleteOpenWaSession(): Promise<void> {
+    await apiClient.delete<void>('/whatsapp/openwa/session');
   },
 };
