@@ -264,6 +264,7 @@ public class AgentOrchestrator {
     private final com.clenzy.service.agent.prompt.PromptBuilder promptBuilder;
     private final com.clenzy.service.agent.multiagent.OrchestratorAgent multiAgentOrchestrator;
     private final com.clenzy.service.agent.multiagent.SpecialistRegistry specialistRegistry;
+    private final com.clenzy.service.AiTokenBudgetService aiTokenBudgetService;
 
     /**
      * Feature flag : si true, utilise l'architecture multi-agent (orchestrator
@@ -332,6 +333,7 @@ public class AgentOrchestrator {
                               com.clenzy.service.agent.prompt.PromptBuilder promptBuilder,
                               com.clenzy.service.agent.multiagent.OrchestratorAgent multiAgentOrchestrator,
                               com.clenzy.service.agent.multiagent.SpecialistRegistry specialistRegistry,
+                              com.clenzy.service.AiTokenBudgetService aiTokenBudgetService,
                               @org.springframework.beans.factory.annotation.Value("${clenzy.assistant.prompt.v2.enabled:true}")
                               boolean promptV2Enabled,
                               @org.springframework.beans.factory.annotation.Value("${clenzy.assistant.multi-agent.enabled:false}")
@@ -350,6 +352,7 @@ public class AgentOrchestrator {
         this.promptBuilder = promptBuilder;
         this.multiAgentOrchestrator = multiAgentOrchestrator;
         this.specialistRegistry = specialistRegistry;
+        this.aiTokenBudgetService = aiTokenBudgetService;
         this.promptV2Enabled = promptV2Enabled;
         this.multiAgentEnabled = multiAgentEnabled;
     }
@@ -647,6 +650,20 @@ public class AgentOrchestrator {
         assistantMsg.setFinishReason(result.truncated() ? "length" : "end_turn");
         messageRepository.save(assistantMsg);
 
+        // Track usage : 1 record aggregate par tour multi-agent (orchestrator +
+        // somme des specialists). Granularite acceptable pour le badge frontend ;
+        // la granularite par specialist viendra en v2 du multi-agent quand on
+        // streamera les events specialist par specialist.
+        // Modele de reference : la conv stocke le modele primaire (Sonnet) — on
+        // l'utilise pour le pricing. Si plusieurs modeles utilises (Sonnet
+        // orchestrator + Haiku specialists), le cout sera approximatif vers le
+        // haut (Sonnet est plus cher), donc estimation conservative — OK.
+        String multiAgentModel = conversation.getModel() != null
+                ? conversation.getModel() : "claude-sonnet-4";
+        recordUsageSafe(context.organizationId(), "anthropic",
+                result.totalPromptTokens(), result.totalCompletionTokens(),
+                multiAgentModel, result.truncated() ? "length" : "end_turn");
+
         // 4. Emettre done
         consumer.accept(AgentSseEvent.done(result.truncated() ? "length" : "end_turn"));
         return true;
@@ -683,6 +700,13 @@ public class AgentOrchestrator {
             if (conversation.getModel() == null && outcome.model != null) {
                 conversation.setModel(outcome.model);
             }
+
+            // Track usage : alimente ai_token_usage pour le badge frontend
+            // "$0.12 ce mois" + alertes budget. Granularite = par iteration LLM
+            // (1 record par tool call round, pour matcher la realite des couts).
+            recordUsageSafe(context.organizationId(), "anthropic",
+                    outcome.promptTokens, outcome.completionTokens,
+                    outcome.model, outcome.finishReason);
 
             // No tool calls → done
             if (outcome.toolCalls == null || outcome.toolCalls.isEmpty()) {
@@ -1072,6 +1096,38 @@ public class AgentOrchestrator {
      * resilient au schema (storageKey + mediaType minimum) pour pouvoir relire
      * meme apres une evolution du modele.
      */
+    /**
+     * Enregistre la consommation tokens dans {@code ai_token_usage} (feature
+     * {@code ASSISTANT_CHAT}). Wrappee defensivement : ne propage JAMAIS
+     * d'exception au caller — un crash du tracking ne doit pas casser le chat.
+     *
+     * <p>Skip si tokens = 0 ou modele = null (rien d'utile a tracker).</p>
+     */
+    private void recordUsageSafe(Long organizationId, String providerName,
+                                   int promptTokens, int completionTokens,
+                                   String model, String finishReason) {
+        if (promptTokens <= 0 && completionTokens <= 0) return;
+        if (model == null || model.isBlank()) return;
+        try {
+            com.clenzy.config.ai.AiResponse resp = new com.clenzy.config.ai.AiResponse(
+                    "",  // content non requis pour le tracking
+                    promptTokens, completionTokens,
+                    promptTokens + completionTokens,
+                    model,
+                    finishReason
+            );
+            aiTokenBudgetService.recordUsage(
+                    organizationId,
+                    com.clenzy.model.AiFeature.ASSISTANT_CHAT,
+                    providerName != null ? providerName : "anthropic",
+                    resp
+            );
+        } catch (Exception e) {
+            // Tracking non-critique : log debug + continue
+            log.debug("Failed to record assistant token usage : {}", e.getMessage());
+        }
+    }
+
     private String serializeAttachmentsSafe(List<AttachmentRef> attachments) {
         if (attachments == null || attachments.isEmpty()) return null;
         try {

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Box, Typography, Paper, useTheme, alpha } from '@mui/material';
 import { AutoAwesome as SparklesIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
@@ -6,6 +6,8 @@ import { useAgent } from '../../hooks/useAgent';
 import { MessageList } from './components/MessageList';
 import { ChatInput } from './components/ChatInput';
 import { ToolConfirmationDialog } from './components/ToolConfirmationDialog';
+import { AssistantUsageBadge } from './components/AssistantUsageBadge';
+import { useAssistantUsage } from './hooks/useAssistantUsage';
 import { ASSISTANT_QUICK_REPLY_EVENT } from './widgets/WorkflowWidget';
 
 const SUGGESTED_PROMPTS = [
@@ -111,6 +113,18 @@ const AssistantPage: React.FC = () => {
     currentPage: 'assistant',
   });
 
+  // Refetch usage : a chaque fois qu'un nouveau message assistant termine
+  // (status: idle apres avoir ete streaming). Granularite = nombre de messages
+  // assistant — augmente uniquement quand un tour LLM se termine.
+  const assistantMessageCount = useMemo(
+    () => messages.filter((m) => m.role === 'assistant').length,
+    [messages],
+  );
+  const { usage, loading: usageLoading, error: usageError } = useAssistantUsage({
+    period: 'month',
+    refreshKey: assistantMessageCount,
+  });
+
   // Quick replies emis par les widgets (ex: WorkflowWidget : Oui / Non) :
   // on rebranche sur sendMessage pour que l'agent puisse enchainer.
   useEffect(() => {
@@ -131,6 +145,13 @@ const AssistantPage: React.FC = () => {
         title="Assistant"
         subtitle="Pose tes questions, obtiens des reponses en temps reel a partir de tes donnees."
         iconBadge={<SparklesIcon size={18} strokeWidth={1.75} />}
+        actions={
+          <AssistantUsageBadge
+            usage={usage}
+            loading={usageLoading}
+            error={usageError}
+          />
+        }
       />
 
       <Paper

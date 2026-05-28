@@ -98,6 +98,7 @@ class AgentOrchestratorMultiAgentTest {
                 memoryService, mock(PhotoStorageService.class), kbSearchService,
                 mock(PromptBuilder.class),
                 multiAgent, specialistRegistry,
+                mock(com.clenzy.service.AiTokenBudgetService.class),
                 false, multiAgentEnabled
         );
     }
