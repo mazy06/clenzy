@@ -122,11 +122,11 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                 mb: 2,
               }}
             >
-              {t('auth.layout.tagline', 'Le PMS pensé pour les')}{' '}
+              {t('auth.layout.tagline', 'Le PMS')}{' '}
               <Box component="span" sx={{ color: primary }}>
-                {t('auth.layout.taglineHighlight', 'propriétaires et gestionnaires indépendants')}
+                {t('auth.layout.taglineHighlight', 'propulsé par 8 agents IA spécialisés')}
               </Box>
-              {t('auth.layout.taglineEnd', '.')}
+              {t('auth.layout.taglineEnd', ' pour vos locations courte durée.')}
             </Typography>
             <Typography
               variant="body1"
@@ -138,7 +138,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
             >
               {t(
                 'auth.layout.subtitle',
-                'Gestion multi-propriétés, channels, paiements, équipes et automatisations IA — dans un seul outil souverain européen.',
+                "Tarification dynamique, messagerie guests multilingue, briefings quotidiens, sentiment analysis. Vous gardez la stratégie, l'IA fait l'exécution 7j/7.",
               )}
             </Typography>
           </Box>
