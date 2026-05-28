@@ -105,6 +105,13 @@ function AppWithTheme() {
     return createTheme({
       ...baseTheme,
       direction: isRtl ? 'rtl' : 'ltr',
+      // Mode arabe : applique Tajawal sur toute l'UI MUI (Typography, Button,
+      // TextField, etc. heritent de theme.typography.fontFamily). En LTR on
+      // garde la stack par defaut (Plus Jakarta Sans).
+      typography: isRtl ? {
+        ...baseTheme.typography,
+        fontFamily: '"Tajawal", "Tahoma", "Geeza Pro", "Arabic Typesetting", "Traditional Arabic", sans-serif',
+      } : baseTheme.typography,
     });
   }, [isDark, isRtl]);
 
