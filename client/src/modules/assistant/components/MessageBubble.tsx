@@ -187,12 +187,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           mt: 0.25, // align with first line of text
         }}
       >
-        {/* disableAnimation : chaque message a son propre avatar => si on
-            laisse le boot + idle scan jouer sur chaque bubble, ca cree un
-            visual noise constant (8 nodes scannant en boucle sur 50 messages).
-            Le mark reste statique mais brand-color, signature visuelle de
-            l'assistant. L'animation joue uniquement dans le header de page. */}
-        <ClenzyMarkLogo variant="mark" size={18} disableAnimation />
+        {/* idleAnimation=false : pas de boot+scan+breathe sur chaque message
+            (visual noise constant si 50 messages). active={isStreaming} :
+            declenche l'animation hover-equivalent (lignes absorbees + centre
+            pulse + nodes orbit) UNIQUEMENT pendant que l'IA est en train de
+            generer cette reponse. Effet visuel "le mark s'illumine pendant
+            que l'IA travaille, puis se calme une fois la reponse terminee". */}
+        <ClenzyMarkLogo
+          variant="mark"
+          size={18}
+          idleAnimation={false}
+          active={isStreaming}
+        />
       </Box>
 
       {/* Contenu : tool calls + texte en flow document */}
