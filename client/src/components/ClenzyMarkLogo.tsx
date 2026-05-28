@@ -17,7 +17,7 @@ import { Box, useTheme } from '@mui/material';
  * Plus de chasse + terminations distinctives sur "y" qui cassent le cote
  * "Helvetica generique" de Plus Jakarta Sans.
  *
- * <h3>Animation — 3 phases coordonnees</h3>
+ * <h3>Animation — 3 phases coordonnees, jamais statique</h3>
  *
  * <ol>
  *   <li><b>Boot sequence</b> au mount, joue UNE FOIS (~1.4s) :
@@ -31,31 +31,23 @@ import { Box, useTheme } from '@mui/material';
  *     <ul>
  *       <li>Centre <i>breathing</i> : scale 1 ↔ 0.94, opacity 1 ↔ 0.88, cycle 4s
  *           ease-in-out — suggere "orchestrator alive"</li>
- *       <li>8 nodes <i>active scan</i> : un node a la fois s'illumine
- *           brievement (scale 1.18, brightness 1.25) puis revient idle. Le
- *           "spotlight" tourne clockwise sur 6.4s (0.8s par node). Donne la
- *           sensation que l'orchestrator interroge ses specialistes en
- *           rotation.</li>
+ *       <li>8 nodes <i>active scan</i> : un node a la fois s'illumine et
+ *           <b>se decale radialement vers l'exterieur</b> (~2.5 unites SVG),
+ *           creant un gap visible avec la ligne. Le "spotlight" tourne
+ *           clockwise sur 6.4s (0.8s par node). Le decalage radial rend
+ *           le changement immediatement lisible — on voit clairement que
+ *           ce node-la est en train de "communiquer" avec l'orchestrator.</li>
  *     </ul>
  *   </li>
- *   <li><b>Hover wave</b> au survol (~900ms) : centre pulse (delay 0,
- *       suggere "thinking"), puis ripple horaire vers les 8 nodes (chacun
- *       sur-scale + brightness), lines pulse synchrone. Override l'idle
- *       le temps du survol pour donner un focus clair.</li>
+ *   <li><b>Hover wave</b> au survol (~900ms) : centre pulse + drop-shadow
+ *       glow, lines brightening sync, puis ripple horaire vers les 8 nodes
+ *       avec <b>decalage radial plus pronnonce</b> (~4 unites SVG) + scale
+ *       1.5 + brightness 1.5. Override l'idle pour donner le focus.</li>
  * </ol>
  *
- * Conformite UX :
- * - {@code prefers-reduced-motion: reduce} kill TOUTES les animations (idle
- *   inclus) et snap a l'etat final visuel.
- * - Easing : cubic-bezier back-out (rebond doux) ou ease-in-out, jamais
- *   linear (ui-ux-pro-max rule).
- *
- * <h3>API</h3>
- * <ul>
- *   <li>{@code variant="full"} (defaut) — mark + wordmark cote a cote</li>
- *   <li>{@code variant="mark"} — mark seul (favicon, sidebar collapsed)</li>
- *   <li>{@code variant="wordmark"} — wordmark seul (zones tres etroites)</li>
- * </ul>
+ * Conformite UX (ui-ux-pro-max) :
+ * - {@code prefers-reduced-motion: reduce} kill TOUTES les animations
+ * - Easing : cubic-bezier back-out ou ease-in-out, jamais linear
  */
 export interface ClenzyMarkLogoProps {
   /** Facteur d'echelle multiplicatif. {@code 1} = icone 56px + wordmark 32px. */
@@ -83,10 +75,29 @@ const OCTAGON_NODES: ReadonlyArray<{ x: number; y: number }> = [
 
 const CENTER = { x: 28, y: 28 };
 
-// Duree d'un cycle de scan idle (un tour complet du spotlight). 6.4s pour
-// 8 nodes => 0.8s par node. Suffisamment lent pour rester sub-perceptible.
+// Duree d'un cycle de scan idle (un tour complet du spotlight).
 const SCAN_CYCLE_MS = 6400;
-const SCAN_NODE_SLICE_PCT = 100 / OCTAGON_NODES.length; // = 12.5% (= 800ms / 6400ms)
+const SCAN_NODE_SLICE_PCT = 100 / OCTAGON_NODES.length; // = 12.5%
+
+// Decalages radiaux au peak (en unites SVG, viewBox 0-56).
+// Le node s'eloigne du centre vers l'exterieur => gap visible avec sa ligne.
+const RADIAL_DELTA_SCAN_IDLE = 2.5; // subtile au repos
+const RADIAL_DELTA_HOVER_WAVE = 4;  // plus pronnonce au survol
+
+/**
+ * Vecteur unitaire radial centre -> node, multiplie par {@code delta}.
+ * Donne le translate(x, y) a appliquer pour eloigner le node de delta
+ * unites SVG dans sa direction radiale propre.
+ */
+function radialTranslate(node: { x: number; y: number }, delta: number): { tx: string; ty: string } {
+  const dx = node.x - CENTER.x;
+  const dy = node.y - CENTER.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  return {
+    tx: ((dx / len) * delta).toFixed(2),
+    ty: ((dy / len) * delta).toFixed(2),
+  };
+}
 
 export default function ClenzyMarkLogo({
   scale = 1,
@@ -95,8 +106,6 @@ export default function ClenzyMarkLogo({
   disableAnimation = false,
 }: ClenzyMarkLogoProps) {
   const theme = useTheme();
-  // useId garantit un namespace CSS unique par instance => pas de collision
-  // entre 2 logos rendus simultanement sur la meme page.
   const uid = useId().replace(/:/g, '-');
 
   const resolvedTone =
@@ -104,20 +113,9 @@ export default function ClenzyMarkLogo({
 
   // ─── Palette ──────────────────────────────────────────────────────────
   const palette = resolvedTone === 'dark'
-    ? {
-        nodes: '#89B1C2',
-        center: '#FFFFFF',
-        lines: '#89B1C2',
-        wordmark: '#FFFFFF',
-      }
-    : {
-        nodes: '#6B8A9A',
-        center: '#4A6B7B',
-        lines: '#6B8A9A',
-        wordmark: theme.palette.text.primary,
-      };
+    ? { nodes: '#89B1C2', center: '#FFFFFF', lines: '#89B1C2', wordmark: '#FFFFFF' }
+    : { nodes: '#6B8A9A', center: '#4A6B7B', lines: '#6B8A9A', wordmark: theme.palette.text.primary };
 
-  // ─── Dimensions ───────────────────────────────────────────────────────
   const iconSize = 56 * scale;
   const fontSize = 32 * scale;
   const gap = 14 * scale;
@@ -145,11 +143,7 @@ export default function ClenzyMarkLogo({
     >
       <g stroke={palette.lines} strokeWidth="1" opacity="0.35">
         {OCTAGON_NODES.map((n, i) => (
-          <line
-            key={`l-${i}`}
-            className={cls.line}
-            x1={CENTER.x} y1={CENTER.y} x2={n.x} y2={n.y}
-          />
+          <line key={`l-${i}`} className={cls.line} x1={CENTER.x} y1={CENTER.y} x2={n.x} y2={n.y} />
         ))}
       </g>
       <g fill={palette.nodes}>
@@ -184,22 +178,38 @@ export default function ClenzyMarkLogo({
   );
 
   // ─── Animation CSS scoped ─────────────────────────────────────────────
-  // Strategy : multiple animations comma-separated. Boot joue avec fill:both
-  // pour rester sur l'etat final, idle prend le relais via animation-delay.
-  // Hover override animation-name pour donner le focus au wave.
 
-  // Active scan keyframes : chaque node a sa propre @keyframes avec un peak
-  // a un moment different du cycle (stagger via la position du peak dans le
-  // 0-100%). Plus elegant qu'animation-delay car pas de "saut" au restart.
-  const buildScanKeyframes = (i: number): string => {
+  /**
+   * Construit la keyframe scan-idle pour un node : pendant son "slot"
+   * temporel (12.5% du cycle), le node sur-scale + s'illumine + s'eloigne
+   * radialement, puis revient idle pour le reste du cycle.
+   */
+  const buildScanKeyframes = (i: number, node: typeof OCTAGON_NODES[number]): string => {
     const peakPct = i * SCAN_NODE_SLICE_PCT + SCAN_NODE_SLICE_PCT / 2;
     const startPct = Math.max(0, peakPct - SCAN_NODE_SLICE_PCT / 2);
     const endPct = Math.min(100, peakPct + SCAN_NODE_SLICE_PCT / 2);
+    const { tx, ty } = radialTranslate(node, RADIAL_DELTA_SCAN_IDLE);
     return `
       @keyframes ${cls.node}-scan-${i} {
-        0%, ${startPct.toFixed(2)}% { transform: scale(1); filter: brightness(1); }
-        ${peakPct.toFixed(2)}%       { transform: scale(1.18); filter: brightness(1.25); }
-        ${endPct.toFixed(2)}%, 100%  { transform: scale(1); filter: brightness(1); }
+        0%, ${startPct.toFixed(2)}% { transform: translate(0, 0) scale(1); filter: brightness(1); }
+        ${peakPct.toFixed(2)}%       { transform: translate(${tx}px, ${ty}px) scale(1.12); filter: brightness(1.3); }
+        ${endPct.toFixed(2)}%, 100%  { transform: translate(0, 0) scale(1); filter: brightness(1); }
+      }
+    `;
+  };
+
+  /**
+   * Construit la keyframe wave-hover pour un node : au peak, scale plus
+   * pronnonce + decalage radial plus large que l'idle pour un effet
+   * "communication explicite".
+   */
+  const buildWaveKeyframes = (i: number, node: typeof OCTAGON_NODES[number]): string => {
+    const { tx, ty } = radialTranslate(node, RADIAL_DELTA_HOVER_WAVE);
+    return `
+      @keyframes ${cls.node}-wave-${i} {
+        0%   { transform: translate(0, 0) scale(1); filter: brightness(1); }
+        50%  { transform: translate(${tx}px, ${ty}px) scale(1.5); filter: brightness(1.5); }
+        100% { transform: translate(0, 0) scale(1); filter: brightness(1); }
       }
     `;
   };
@@ -241,7 +251,7 @@ export default function ClenzyMarkLogo({
     }
     ${OCTAGON_NODES.map((_, i) => `
       .${cls.root}:hover .${cls.node}-${i} {
-        animation: ${cls.node}-wave-pulse 650ms cubic-bezier(0.34, 1.56, 0.64, 1) ${180 + i * 75}ms;
+        animation: ${cls.node}-wave-${i} 650ms cubic-bezier(0.34, 1.56, 0.64, 1) ${180 + i * 75}ms;
       }
     `).join('')}
 
@@ -256,9 +266,9 @@ export default function ClenzyMarkLogo({
       100% { stroke-dashoffset: 0;  opacity: 0.35; }
     }
     @keyframes ${cls.node}-pop {
-      0%   { transform: scale(0);   opacity: 0; }
-      60%  { transform: scale(1.4); opacity: 1; }
-      100% { transform: scale(1);   opacity: 1; }
+      0%   { transform: translate(0, 0) scale(0);   opacity: 0; }
+      60%  { transform: translate(0, 0) scale(1.4); opacity: 1; }
+      100% { transform: translate(0, 0) scale(1);   opacity: 1; }
     }
 
     /* ─── Keyframes : idle constant ──────────────────────────────────── */
@@ -266,9 +276,9 @@ export default function ClenzyMarkLogo({
       0%, 100% { transform: scale(1);    opacity: 1; }
       50%      { transform: scale(0.94); opacity: 0.88; }
     }
-    ${OCTAGON_NODES.map((_, i) => buildScanKeyframes(i)).join('')}
+    ${OCTAGON_NODES.map((node, i) => buildScanKeyframes(i, node)).join('')}
 
-    /* ─── Keyframes : hover wave (polish v3) ─────────────────────────── */
+    /* ─── Keyframes : hover wave polish ──────────────────────────────── */
     @keyframes ${cls.center}-pulse {
       0%   { transform: scale(1);    filter: brightness(1)   drop-shadow(0 0 0 transparent); }
       35%  { transform: scale(1.3);  filter: brightness(1.4) drop-shadow(0 0 4px currentColor); }
@@ -279,11 +289,7 @@ export default function ClenzyMarkLogo({
       40%  { opacity: 0.75; stroke-width: 1.3; }
       100% { opacity: 0.35; stroke-width: 1; }
     }
-    @keyframes ${cls.node}-wave-pulse {
-      0%   { transform: scale(1);    filter: brightness(1); }
-      50%  { transform: scale(1.7);  filter: brightness(1.5); }
-      100% { transform: scale(1);    filter: brightness(1); }
-    }
+    ${OCTAGON_NODES.map((node, i) => buildWaveKeyframes(i, node)).join('')}
 
     /* ─── prefers-reduced-motion : tout kill ─────────────────────────── */
     @media (prefers-reduced-motion: reduce) {

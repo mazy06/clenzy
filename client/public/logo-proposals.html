@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clenzy — Logo iter 3 : idle constant + hover polish</title>
+  <title>Clenzy — Logo iter 4 : nodes translate radial</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -23,17 +23,14 @@
     html, body { background: var(--paper-tinted); font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
     .page { max-width: 1180px; margin: 0 auto; padding: 64px 32px; }
     h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
-    .lede { color: var(--muted); font-size: 16px; line-height: 1.5; margin-bottom: 48px; max-width: 720px; }
-    .grid { display: grid; grid-template-columns: 1fr; gap: 28px; }
+    .lede { color: var(--muted); font-size: 16px; line-height: 1.5; margin-bottom: 48px; max-width: 760px; }
     .card { background: var(--paper); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
     .card-header { padding: 20px 28px; border-bottom: 1px solid var(--border); }
     .card-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 6px; }
     .card-sub { color: var(--muted); font-size: 13px; line-height: 1.5; }
-    .card-rationale { color: var(--muted); font-size: 13px; line-height: 1.6; padding: 16px 28px; background: var(--paper-tinted); border-bottom: 1px solid var(--border); }
-    .card-rationale strong { color: var(--ink); font-weight: 600; }
     .preview-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
     @media (max-width: 720px) { .preview-row { grid-template-columns: 1fr; } }
-    .preview { padding: 64px 32px; display: flex; align-items: center; justify-content: center; min-height: 220px; background: var(--paper); position: relative; cursor: pointer; }
+    .preview { padding: 80px 32px; display: flex; align-items: center; justify-content: center; min-height: 240px; background: var(--paper); position: relative; cursor: pointer; }
     .preview.dark { background: #0F1A22; }
     .preview-label { position: absolute; bottom: 14px; left: 16px; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
     .preview.dark .preview-label { color: rgba(255,255,255,0.4); }
@@ -45,11 +42,10 @@
 
     /* ═════════════════════════════════════════════════════════════════════
        ANIMATION SYSTEM — boot + idle + hover (replique du composant React)
+       Iter 4 : nodes translate radial pour rendre le changement visible
        ═════════════════════════════════════════════════════════════════════ */
 
     .mark-svg { overflow: visible; }
-
-    /* ─── Boot sequence (joue 1 fois, ~1.4s) ──────────────────────────── */
     .mark-svg .mark-center {
       transform-origin: 28px 28px;
       animation:
@@ -75,67 +71,49 @@
     .mark-svg .mark-node-6 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 960ms both, mark-node-scan-6 6400ms ease-in-out 1880ms infinite; }
     .mark-svg .mark-node-7 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 1020ms both, mark-node-scan-7 6400ms ease-in-out 1960ms infinite; }
 
-    /* ─── Hover wave (override l'idle, ~900ms) ────────────────────────── */
     .preview:hover .mark-svg .mark-center { animation: mark-center-pulse 800ms cubic-bezier(0.4, 0, 0.2, 1); }
     .preview:hover .mark-svg .mark-line   { stroke-dasharray: none; stroke-dashoffset: 0; animation: mark-line-pulse 700ms cubic-bezier(0.4, 0, 0.2, 1) 100ms; }
-    .preview:hover .mark-svg .mark-node-0 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 180ms; }
-    .preview:hover .mark-svg .mark-node-1 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 255ms; }
-    .preview:hover .mark-svg .mark-node-2 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 330ms; }
-    .preview:hover .mark-svg .mark-node-3 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 405ms; }
-    .preview:hover .mark-svg .mark-node-4 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 480ms; }
-    .preview:hover .mark-svg .mark-node-5 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 555ms; }
-    .preview:hover .mark-svg .mark-node-6 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 630ms; }
-    .preview:hover .mark-svg .mark-node-7 { animation: mark-node-wave 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 705ms; }
+    .preview:hover .mark-svg .mark-node-0 { animation: mark-node-wave-0 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 180ms; }
+    .preview:hover .mark-svg .mark-node-1 { animation: mark-node-wave-1 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 255ms; }
+    .preview:hover .mark-svg .mark-node-2 { animation: mark-node-wave-2 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 330ms; }
+    .preview:hover .mark-svg .mark-node-3 { animation: mark-node-wave-3 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 405ms; }
+    .preview:hover .mark-svg .mark-node-4 { animation: mark-node-wave-4 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 480ms; }
+    .preview:hover .mark-svg .mark-node-5 { animation: mark-node-wave-5 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 555ms; }
+    .preview:hover .mark-svg .mark-node-6 { animation: mark-node-wave-6 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 630ms; }
+    .preview:hover .mark-svg .mark-node-7 { animation: mark-node-wave-7 650ms cubic-bezier(0.34, 1.56, 0.64, 1) 705ms; }
 
     /* ─── Keyframes : boot ────────────────────────────────────────────── */
-    @keyframes mark-center-boot {
-      0%   { transform: scale(0);   opacity: 0; }
-      100% { transform: scale(1);   opacity: 1; }
-    }
-    @keyframes mark-line-draw {
-      0%   { stroke-dashoffset: 36; opacity: 0; }
-      30%  { opacity: 0.35; }
-      100% { stroke-dashoffset: 0;  opacity: 0.35; }
-    }
-    @keyframes mark-node-pop {
-      0%   { transform: scale(0);   opacity: 0; }
-      60%  { transform: scale(1.4); opacity: 1; }
-      100% { transform: scale(1);   opacity: 1; }
-    }
+    @keyframes mark-center-boot { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes mark-line-draw   { 0% { stroke-dashoffset: 36; opacity: 0; } 30% { opacity: 0.35; } 100% { stroke-dashoffset: 0; opacity: 0.35; } }
+    @keyframes mark-node-pop    { 0% { transform: translate(0,0) scale(0); opacity: 0; } 60% { transform: translate(0,0) scale(1.4); opacity: 1; } 100% { transform: translate(0,0) scale(1); opacity: 1; } }
 
-    /* ─── Keyframes : idle constant ───────────────────────────────────── */
-    @keyframes mark-center-breathe {
-      0%, 100% { transform: scale(1);    opacity: 1; }
-      50%      { transform: scale(0.94); opacity: 0.88; }
-    }
-    /* Active scan : peak a 6.25% du cycle pour node 0, 18.75% pour node 1, etc.
-       Chaque node passe par scale(1.18) brightness(1.25) brievement pendant
-       son slot (12.5% du cycle = 800ms), puis revient idle pour le reste. */
-    @keyframes mark-node-scan-0 { 0%, 0%      { transform: scale(1); filter: brightness(1); } 6.25%  { transform: scale(1.18); filter: brightness(1.25); } 12.50%, 100% { transform: scale(1); filter: brightness(1); } }
-    @keyframes mark-node-scan-1 { 0%, 12.50% { transform: scale(1); filter: brightness(1); } 18.75% { transform: scale(1.18); filter: brightness(1.25); } 25.00%, 100% { transform: scale(1); filter: brightness(1); } }
-    @keyframes mark-node-scan-2 { 0%, 25.00% { transform: scale(1); filter: brightness(1); } 31.25% { transform: scale(1.18); filter: brightness(1.25); } 37.50%, 100% { transform: scale(1); filter: brightness(1); } }
-    @keyframes mark-node-scan-3 { 0%, 37.50% { transform: scale(1); filter: brightness(1); } 43.75% { transform: scale(1.18); filter: brightness(1.25); } 50.00%, 100% { transform: scale(1); filter: brightness(1); } }
-    @keyframes mark-node-scan-4 { 0%, 50.00% { transform: scale(1); filter: brightness(1); } 56.25% { transform: scale(1.18); filter: brightness(1.25); } 62.50%, 100% { transform: scale(1); filter: brightness(1); } }
-    @keyframes mark-node-scan-5 { 0%, 62.50% { transform: scale(1); filter: brightness(1); } 68.75% { transform: scale(1.18); filter: brightness(1.25); } 75.00%, 100% { transform: scale(1); filter: brightness(1); } }
-    @keyframes mark-node-scan-6 { 0%, 75.00% { transform: scale(1); filter: brightness(1); } 81.25% { transform: scale(1.18); filter: brightness(1.25); } 87.50%, 100% { transform: scale(1); filter: brightness(1); } }
-    @keyframes mark-node-scan-7 { 0%, 87.50% { transform: scale(1); filter: brightness(1); } 93.75% { transform: scale(1.18); filter: brightness(1.25); } 100% { transform: scale(1); filter: brightness(1); } }
+    /* ─── Keyframes : idle constant (breathe + scan radial) ──────────── */
+    @keyframes mark-center-breathe { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.94); opacity: 0.88; } }
 
-    /* ─── Keyframes : hover wave polish ───────────────────────────────── */
-    @keyframes mark-center-pulse {
-      0%   { transform: scale(1);   filter: brightness(1)   drop-shadow(0 0 0 transparent); }
-      35%  { transform: scale(1.3); filter: brightness(1.4) drop-shadow(0 0 4px currentColor); }
-      100% { transform: scale(1);   filter: brightness(1)   drop-shadow(0 0 0 transparent); }
-    }
-    @keyframes mark-line-pulse {
-      0%   { opacity: 0.35; stroke-width: 1; }
-      40%  { opacity: 0.75; stroke-width: 1.3; }
-      100% { opacity: 0.35; stroke-width: 1; }
-    }
-    @keyframes mark-node-wave {
-      0%   { transform: scale(1);   filter: brightness(1); }
-      50%  { transform: scale(1.7); filter: brightness(1.5); }
-      100% { transform: scale(1);   filter: brightness(1); }
-    }
+    /* Scan : chaque node peak avec translate radial (delta 2.5 unites SVG).
+       Direction radiale par node : N=(0,-1) NE=(0.71,-0.71) E=(1,0) SE=(0.71,0.71)
+       S=(0,1) SW=(-0.71,0.71) W=(-1,0) NW=(-0.71,-0.71). Multiplie par delta 2.5. */
+    @keyframes mark-node-scan-0 { 0%, 0%      { transform: translate(0,0)    scale(1); filter: brightness(1); } 6.25%  { transform: translate(0,-2.5)     scale(1.12); filter: brightness(1.3); } 12.50%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-1 { 0%, 12.50% { transform: translate(0,0)    scale(1); filter: brightness(1); } 18.75% { transform: translate(1.77,-1.77) scale(1.12); filter: brightness(1.3); } 25.00%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-2 { 0%, 25.00% { transform: translate(0,0)    scale(1); filter: brightness(1); } 31.25% { transform: translate(2.5,0)      scale(1.12); filter: brightness(1.3); } 37.50%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-3 { 0%, 37.50% { transform: translate(0,0)    scale(1); filter: brightness(1); } 43.75% { transform: translate(1.77,1.77)  scale(1.12); filter: brightness(1.3); } 50.00%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-4 { 0%, 50.00% { transform: translate(0,0)    scale(1); filter: brightness(1); } 56.25% { transform: translate(0,2.5)      scale(1.12); filter: brightness(1.3); } 62.50%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-5 { 0%, 62.50% { transform: translate(0,0)    scale(1); filter: brightness(1); } 68.75% { transform: translate(-1.77,1.77) scale(1.12); filter: brightness(1.3); } 75.00%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-6 { 0%, 75.00% { transform: translate(0,0)    scale(1); filter: brightness(1); } 81.25% { transform: translate(-2.5,0)     scale(1.12); filter: brightness(1.3); } 87.50%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-7 { 0%, 87.50% { transform: translate(0,0)    scale(1); filter: brightness(1); } 93.75% { transform: translate(-1.77,-1.77) scale(1.12); filter: brightness(1.3); } 100% { transform: translate(0,0) scale(1); filter: brightness(1); } }
+
+    /* ─── Keyframes : hover wave (radial delta 4, plus pronnonce) ────── */
+    @keyframes mark-center-pulse { 0% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 0 transparent); } 35% { transform: scale(1.3); filter: brightness(1.4) drop-shadow(0 0 4px currentColor); } 100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 0 transparent); } }
+    @keyframes mark-line-pulse   { 0% { opacity: 0.35; stroke-width: 1; } 40% { opacity: 0.75; stroke-width: 1.3; } 100% { opacity: 0.35; stroke-width: 1; } }
+
+    @keyframes mark-node-wave-0 { 0% { transform: translate(0,0) scale(1); filter: brightness(1); } 50% { transform: translate(0,-4)      scale(1.5); filter: brightness(1.5); } 100% { transform: translate(0,0) scale(1); filter: brightness(1); } }
+    @keyframes mark-node-wave-1 { 0% { transform: translate(0,0) scale(1); filter: brightness(1); } 50% { transform: translate(2.83,-2.83) scale(1.5); filter: brightness(1.5); } 100% { transform: translate(0,0) scale(1); filter: brightness(1); } }
+    @keyframes mark-node-wave-2 { 0% { transform: translate(0,0) scale(1); filter: brightness(1); } 50% { transform: translate(4,0)       scale(1.5); filter: brightness(1.5); } 100% { transform: translate(0,0) scale(1); filter: brightness(1); } }
+    @keyframes mark-node-wave-3 { 0% { transform: translate(0,0) scale(1); filter: brightness(1); } 50% { transform: translate(2.83,2.83)  scale(1.5); filter: brightness(1.5); } 100% { transform: translate(0,0) scale(1); filter: brightness(1); } }
+    @keyframes mark-node-wave-4 { 0% { transform: translate(0,0) scale(1); filter: brightness(1); } 50% { transform: translate(0,4)       scale(1.5); filter: brightness(1.5); } 100% { transform: translate(0,0) scale(1); filter: brightness(1); } }
+    @keyframes mark-node-wave-5 { 0% { transform: translate(0,0) scale(1); filter: brightness(1); } 50% { transform: translate(-2.83,2.83) scale(1.5); filter: brightness(1.5); } 100% { transform: translate(0,0) scale(1); filter: brightness(1); } }
+    @keyframes mark-node-wave-6 { 0% { transform: translate(0,0) scale(1); filter: brightness(1); } 50% { transform: translate(-4,0)      scale(1.5); filter: brightness(1.5); } 100% { transform: translate(0,0) scale(1); filter: brightness(1); } }
+    @keyframes mark-node-wave-7 { 0% { transform: translate(0,0) scale(1); filter: brightness(1); } 50% { transform: translate(-2.83,-2.83) scale(1.5); filter: brightness(1.5); } 100% { transform: translate(0,0) scale(1); filter: brightness(1); } }
 
     @media (prefers-reduced-motion: reduce) {
       .mark-svg * { animation: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; stroke-dasharray: none !important; filter: none !important; }
@@ -144,86 +122,83 @@
 </head>
 <body>
   <div class="page">
-    <h1>Clenzy — Iter 3 : idle animation constante + hover polish</h1>
-    <p class="lede">Le mark est maintenant <strong>constamment anime</strong> : le centre respire (cycle 4s) et un spotlight tourne autour de l'octogone (8 nodes, 0.8s par node, 6.4s par tour). Tres subtle, designe pour rester en peripherie de l'attention. <strong>Survole pour declencher le hover wave</strong> (override l'idle avec plus d'energie + glow sur le centre + lines brightening sync).</p>
+    <h1>Clenzy — Iter 4 : nodes translate radial (gap visible avec la ligne)</h1>
+    <p class="lede">Au peak de chaque node (en idle + en hover), le cercle se decale <strong>vers l'exterieur</strong> dans sa direction radiale propre (~2.5 unites SVG en idle, ~4 en hover). La ligne reste statique, donc un <strong>gap visible</strong> apparait entre la fin de la ligne et le node — le changement est immediatement lisible. Effet : "le specialiste se detache du reseau pour communiquer avec l'orchestrator".</p>
 
-    <div class="grid">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Idle constant (centre breathe + node scan clockwise)</div>
-          <div class="card-sub">Tres subtle : scale 0.94→1, opacity 0.88→1 pour le centre. Chaque node peak brievement (scale 1.18, brightness 1.25) en rotation horaire. <strong>Regarde la capture sans hover</strong>.</div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Animation finale — idle constant + hover wave avec decalage radial</div>
+        <div class="card-sub">Regarde le mark <strong>sans hover</strong> : un node a la fois s'illumine, scale 1.12, brightness 1.3, ET se decale radialement de 2.5 unites — gap visible avec la ligne. Survole pour la wave plus pronnoncee (delta 4, scale 1.5, brightness 1.5, glow drop-shadow sur le centre).</div>
+      </div>
+      <div class="preview-row">
+        <div class="preview">
+          <div class="logo-row">
+            <svg class="mark-svg" width="80" height="80" viewBox="0 0 56 56" fill="none">
+              <g stroke="#6B8A9A" stroke-width="1" opacity="0.35">
+                <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
+                <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
+                <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
+                <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
+                <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
+                <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
+                <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
+                <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
+              </g>
+              <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#6B8A9A"/>
+              <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#6B8A9A"/>
+              <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#6B8A9A"/>
+              <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#6B8A9A"/>
+              <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#6B8A9A"/>
+              <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#6B8A9A"/>
+              <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#6B8A9A"/>
+              <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#6B8A9A"/>
+              <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#4A6B7B"/>
+            </svg>
+            <span class="wordmark">clenzy</span>
+          </div>
+          <span class="preview-label">Light · iter 4 · radial translate</span>
+          <span class="hover-hint">hover pour la wave</span>
         </div>
-        <div class="preview-row">
-          <div class="preview">
-            <div class="logo-row">
-              <svg class="mark-svg" width="64" height="64" viewBox="0 0 56 56" fill="none">
-                <g stroke="#6B8A9A" stroke-width="1" opacity="0.35">
-                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
-                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
-                  <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
-                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
-                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
-                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
-                  <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
-                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
-                </g>
-                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#6B8A9A"/>
-                <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#4A6B7B"/>
-              </svg>
-              <span class="wordmark">clenzy</span>
-            </div>
-            <span class="preview-label">Light · Space Grotesk · idle + hover</span>
-            <span class="hover-hint">hover = wave avec glow</span>
+        <div class="preview dark">
+          <div class="logo-row">
+            <svg class="mark-svg" width="80" height="80" viewBox="0 0 56 56" fill="none">
+              <g stroke="#89B1C2" stroke-width="1" opacity="0.4">
+                <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
+                <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
+                <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
+                <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
+                <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
+                <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
+                <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
+                <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
+              </g>
+              <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#89B1C2"/>
+              <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#89B1C2"/>
+              <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#89B1C2"/>
+              <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#89B1C2"/>
+              <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#89B1C2"/>
+              <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#89B1C2"/>
+              <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#89B1C2"/>
+              <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#89B1C2"/>
+              <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#FFFFFF"/>
+            </svg>
+            <span class="wordmark wordmark-light">clenzy</span>
           </div>
-          <div class="preview dark">
-            <div class="logo-row">
-              <svg class="mark-svg" width="64" height="64" viewBox="0 0 56 56" fill="none">
-                <g stroke="#89B1C2" stroke-width="1" opacity="0.4">
-                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
-                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
-                  <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
-                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
-                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
-                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
-                  <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
-                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
-                </g>
-                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#89B1C2"/>
-                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#89B1C2"/>
-                <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#FFFFFF"/>
-              </svg>
-              <span class="wordmark wordmark-light">clenzy</span>
-            </div>
-            <span class="preview-label">Dark · Space Grotesk · idle + hover</span>
-            <span class="hover-hint">hover</span>
-          </div>
+          <span class="preview-label">Dark · iter 4 · radial translate</span>
+          <span class="hover-hint">hover</span>
         </div>
       </div>
     </div>
 
     <div style="margin-top: 48px; padding: 24px; background: var(--paper); border: 1px solid var(--border); border-radius: 12px;">
-      <strong style="font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);">3 phases d'animation coordonnees</strong>
+      <strong style="font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);">Changement vs iter 3</strong>
       <ul style="margin-top: 12px; padding-left: 20px; line-height: 1.7; font-size: 14px; color: var(--ink);">
-        <li><strong>1. Boot sequence</strong> (~1.4s, joue 1 fois au mount) : centre fade-in + scale 0→1, 8 lignes radiales se tracent, 8 nodes pop-in en stagger horaire.</li>
-        <li><strong>2. Idle constant</strong> (infini, demarre apres le boot) : <em>centre breathe</em> (scale 1→0.94, opacity 1→0.88, cycle 4s) + <em>active scan</em> (un node a la fois sur-scale 1.18 brightness 1.25, rotation horaire complete en 6.4s). Sub-perceptible, designe pour ne PAS distraire mais signaler "system alive".</li>
-        <li><strong>3. Hover wave</strong> (~900ms, override l'idle au survol) : centre pulse <em>avec drop-shadow glow</em> (suggere "thinking"), lines brightening sync (opacity 0.35→0.75, stroke-width 1→1.3), puis ripple horaire vers les 8 nodes (sur-scale 1.7 + brightness 1.5). Polish v3 : easing cubic-bezier(0.4, 0, 0.2, 1), delays plus marques pour lecture, glow drop-shadow sur le centre.</li>
+        <li>Chaque node se decale dans sa direction radiale propre (N descend, E translate a droite, etc.) au peak.</li>
+        <li>Idle : delta 2.5 SVG units (subtle mais perceptible)</li>
+        <li>Hover : delta 4 SVG units (~+60% plus pronnonce)</li>
+        <li>Le scale au peak a ete baisse legerement (idle 1.18 → 1.12, hover 1.7 → 1.5) parce que le translate ajoute deja du mouvement et un trop gros scale rendait l'effet "boursoufle".</li>
+        <li>La ligne reste statique => gap visible entre la fin de la ligne et le node "actif". Lecture claire du changement.</li>
       </ul>
-      <div style="margin-top: 16px; padding: 12px 16px; background: var(--brand-soft); border-left: 3px solid var(--brand); border-radius: 4px; font-size: 13px; color: var(--brand-dark);">
-        <strong>Accessibilite</strong> : @media (prefers-reduced-motion: reduce) kill TOUTES les animations (idle inclus) et snap a l'etat final visuel. Conforme aux UX rules ui-ux-pro-max.
-      </div>
     </div>
   </div>
 </body>
