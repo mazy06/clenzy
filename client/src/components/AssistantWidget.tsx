@@ -83,16 +83,19 @@ const AssistantWidget: React.FC = () => {
             right: FAB_OFFSET,
             width: FAB_SIZE,
             height: FAB_SIZE,
-            bgcolor: theme.palette.primary.main,
+            // Bg translucide (au lieu de primary solide) : le mark devient
+            // l'element visuel principal, le bg sert juste de cadre subtil
+            // pour la zone cliquable et la lisibilite sur fonds varies.
+            bgcolor: alpha(theme.palette.primary.main, 0.7),
             color: theme.palette.primary.contrastText,
-            boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.45)}`,
+            boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.30)}`,
             cursor: 'pointer',
             zIndex: theme.zIndex.speedDial,
-            transition: 'transform 200ms ease-out, box-shadow 200ms ease-out',
+            transition: 'transform 200ms ease-out, box-shadow 200ms ease-out, background-color 200ms ease-out',
             '&:hover': {
-              bgcolor: theme.palette.primary.dark,
-              boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.55)}`,
-              // Pas de scale (anti-pattern Impeccable). On joue sur shadow.
+              bgcolor: alpha(theme.palette.primary.main, 0.85),
+              boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.40)}`,
+              // Pas de scale (anti-pattern Impeccable). On joue sur shadow + bg.
             },
             '&:active': {
               transform: 'translateY(1px)',
@@ -102,16 +105,18 @@ const AssistantWidget: React.FC = () => {
             },
           }}
         >
-          {/* tone="dark" : sur le bg primary, on veut un mark blanc (nodes
-              clairs + centre blanc) au lieu de la palette light qui se
-              confondrait avec le fond. active={isWorking} : declenche
-              l'animation hover-equivalent quand l'IA travaille. */}
+          {/* tone="dark" : nodes blancs + centre blanc, lisibles sur le bg
+              primary translucide. size=44 : maximise le mark dans le FAB
+              56px (8px de padding visuel autour). active permanent : le
+              mark est constamment dans son etat hover-equivalent (lines
+              absorbees, centre pulsant avec glow, nodes orbitant) — c'est
+              la "signature vivante" du widget assistant. */}
           <ClenzyMarkLogo
             variant="mark"
-            size={24}
+            size={44}
             tone="dark"
             idleAnimation={false}
-            active={isWorking}
+            active
           />
         </IconButton>
       </Tooltip>
