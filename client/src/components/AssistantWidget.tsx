@@ -9,7 +9,7 @@ import { ChatInput } from '../modules/assistant/components/ChatInput';
 import { ToolConfirmationDialog } from '../modules/assistant/components/ToolConfirmationDialog';
 
 const DRAWER_WIDTH = 420;
-const FAB_SIZE = 56;
+const FAB_SIZE = 80;
 const FAB_OFFSET = 24;
 
 /**
@@ -73,29 +73,29 @@ const AssistantWidget: React.FC = () => {
   return (
     <>
       {/* ── FAB ─────────────────────────────────────────────────────── */}
+      {/* Plus de bg color : le mark seul fait l'affordance visuelle.
+          Plus de shadow : on laisse le mark anime "respirer" sur le fond
+          de page. Plus de hover bg/shadow : l'animation permanente du
+          mark suffit a indiquer l'interactivite. La zone de clic reste
+          le 80x80 du IconButton (capture les clics meme dans les zones
+          "vides" entre les nodes). */}
       <Tooltip title="Assistant" placement="left">
         <IconButton
           onClick={handleOpen}
           aria-label="Ouvrir l'assistant"
+          disableRipple
           sx={{
             position: 'fixed',
             bottom: FAB_OFFSET,
             right: FAB_OFFSET,
             width: FAB_SIZE,
             height: FAB_SIZE,
-            // Bg translucide (au lieu de primary solide) : le mark devient
-            // l'element visuel principal, le bg sert juste de cadre subtil
-            // pour la zone cliquable et la lisibilite sur fonds varies.
-            bgcolor: alpha(theme.palette.primary.main, 0.7),
-            color: theme.palette.primary.contrastText,
-            boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.30)}`,
+            bgcolor: 'transparent',
             cursor: 'pointer',
             zIndex: theme.zIndex.speedDial,
-            transition: 'transform 200ms ease-out, box-shadow 200ms ease-out, background-color 200ms ease-out',
+            transition: 'transform 200ms ease-out',
             '&:hover': {
-              bgcolor: alpha(theme.palette.primary.main, 0.85),
-              boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.40)}`,
-              // Pas de scale (anti-pattern Impeccable). On joue sur shadow + bg.
+              bgcolor: 'transparent', // empeche le hover MUI par defaut
             },
             '&:active': {
               transform: 'translateY(1px)',
@@ -105,16 +105,15 @@ const AssistantWidget: React.FC = () => {
             },
           }}
         >
-          {/* tone="dark" : nodes blancs + centre blanc, lisibles sur le bg
-              primary translucide. size=44 : maximise le mark dans le FAB
-              56px (8px de padding visuel autour). active permanent : le
-              mark est constamment dans son etat hover-equivalent (lines
-              absorbees, centre pulsant avec glow, nodes orbitant) — c'est
-              la "signature vivante" du widget assistant. */}
+          {/* tone="auto" : couleur brand (#6B8A9A) sur le fond page clair.
+              size=72 : maximise le mark dans le FAB 80px (4px de padding
+              visuel). active permanent : le mark est constamment dans son
+              etat hover-equivalent (lines absorbees, centre pulsant avec
+              glow, nodes orbitant) — c'est la "signature vivante" du
+              widget assistant, comme l'orb de Siri/Copilot. */}
           <ClenzyMarkLogo
             variant="mark"
-            size={44}
-            tone="dark"
+            size={72}
             idleAnimation={false}
             active
           />
