@@ -23,7 +23,7 @@ import {
 } from '../../icons';
 import { createClenzyTheme } from '../../theme/createClenzyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
+import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
 import keycloak from '../../keycloak';
 import { clearMockFlags, setSessionCookie } from '../../services/storageService';
@@ -188,7 +188,7 @@ export default function InscriptionConfirm() {
         >
           {/* Logo */}
           <Box sx={{ mb: 2 }}>
-            <ClenzyAnimatedLogo scale={1.1} />
+            <ClenzyMarkLogo scale={1.1} />
           </Box>
 
           {/* Loading */}

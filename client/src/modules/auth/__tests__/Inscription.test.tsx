@@ -22,8 +22,8 @@ vi.mock('../../../services/apiClient', () => ({
   },
 }));
 
-// Mock ClenzyAnimatedLogo
-vi.mock('../../../components/ClenzyAnimatedLogo', () => ({
+// Mock ClenzyMarkLogo
+vi.mock('../../../components/ClenzyMarkLogo', () => ({
   default: () => <div data-testid="clenzy-logo">Logo</div>,
 }));
 

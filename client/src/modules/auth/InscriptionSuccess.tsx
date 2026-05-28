@@ -14,7 +14,7 @@ import {
 import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '../../icons';
 import { createClenzyTheme } from '../../theme/createClenzyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
+import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
 import apiClient from '../../services/apiClient';
 
 export default function InscriptionSuccess() {
@@ -89,7 +89,7 @@ export default function InscriptionSuccess() {
         }}>
           {/* Logo */}
           <Box sx={{ mb: 2 }}>
-            <ClenzyAnimatedLogo scale={1.1} />
+            <ClenzyMarkLogo scale={1.1} />
           </Box>
 
           {status === 'loading' && (
