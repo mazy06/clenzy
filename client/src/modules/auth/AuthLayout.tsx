@@ -235,9 +235,17 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
           onMouseLeave={() => setIsPaused(false)}
         >
           {/* Photo hero en arriere-plan (uniquement si ENABLE_PHOTO_HERO).
-              Position absolute + z-index 0 pour rester sous le dot pattern
-              et tous les autres elements. Filter saturate(0.85) attenue les
-              couleurs trop vives pour rester en harmonie brand. */}
+              Layers depuis le fond vers le devant :
+              1. Photo Unsplash, fortement attenuee (saturate 0.6, brightness
+                 0.55, blur 1.5px). Le blur reduit le bruit visuel derriere
+                 le texte sans completement masquer l'image — on devine encore
+                 la scene d'interieur, mais elle ne distrait plus de la lecture.
+              2. Overlay uniforme tinted brand-dark, alpha 0.85 (montee depuis
+                 0.78 — testee : 0.85 garantit WCAG AAA pour texte blanc sur
+                 n'importe quelle zone de la photo).
+              3. Gradient diagonal : zone encore plus sombre en bas-gauche
+                 (la ou le texte vit), transparente en haut-droite. Cree un
+                 "spotlight" subtil sur le texte sans surcharger. */}
           {ENABLE_PHOTO_HERO && (
             <>
               <Box
@@ -248,21 +256,30 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                   backgroundImage: `url(${HERO_PHOTO_URL})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  filter: 'saturate(0.85) brightness(0.95)',
+                  filter: 'saturate(0.6) brightness(0.55) blur(1.5px)',
+                  // scale 1.05 evite que le blur 1.5px revele les bords
+                  // transparents (artefact classique du filter:blur en CSS)
+                  transform: 'scale(1.05)',
                   zIndex: 0,
                   pointerEvents: 'none',
                 }}
               />
-              {/* Overlay tinted brand : alpha 0.78 = lisibilite OK pour
-                  texte blanc sur n'importe quelle photo (WCAG AA testee
-                  contre photo sombre + claire). Plus le rendu visuel
-                  reste cohrent avec la palette Clenzy. */}
               <Box
                 aria-hidden
                 sx={{
                   position: 'absolute',
                   inset: 0,
-                  bgcolor: alpha('#1A2D38', 0.78),
+                  bgcolor: alpha('#0F1E28', 0.85),
+                  zIndex: 0,
+                  pointerEvents: 'none',
+                }}
+              />
+              <Box
+                aria-hidden
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: `linear-gradient(to top right, ${alpha('#0F1E28', 0.55)} 0%, transparent 60%)`,
                   zIndex: 0,
                   pointerEvents: 'none',
                 }}
@@ -324,6 +341,9 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                     // Texte titre : blanc en photo mode (sur fond fonce),
                     // text.primary en sober mode (sur fond clair)
                     color: ENABLE_PHOTO_HERO ? '#FFFFFF' : 'text.primary',
+                    // text-shadow subtil en photo mode : renforce la lisibilite
+                    // sur photo+overlay (sans tomber dans le "drop-shadow lourd")
+                    textShadow: ENABLE_PHOTO_HERO ? '0 1px 12px rgba(0, 0, 0, 0.4)' : 'none',
                     textWrap: 'balance',
                     mb: 2,
                   }}
@@ -337,9 +357,11 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                         : current.tagline}{' '}
                     </>
                   )}
-                  {/* Highlight : brand-light (#89B1C2) en photo mode pour
-                      contraste sur fond fonce. Primary classic en sober. */}
-                  <Box component="span" sx={{ color: ENABLE_PHOTO_HERO ? '#89B1C2' : primary }}>
+                  {/* Highlight : brand-light renforce (#A8C8D6) en photo mode
+                      pour contraste WCAG sur fond fonce. Primary classic en
+                      sober. #A8C8D6 vs #89B1C2 = +20% luminosite => meilleure
+                      lisibilite sur l'overlay+photo darkened. */}
+                  <Box component="span" sx={{ color: ENABLE_PHOTO_HERO ? '#A8C8D6' : primary }}>
                     {slideIndex === 0
                       ? t('auth.layout.taglineHighlight', current.highlight)
                       : current.highlight}
@@ -351,9 +373,10 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                 <Typography
                   variant="body1"
                   sx={{
-                    // Subtitle : white-translucent en photo mode (lisible
-                    // mais en second plan vs le titre). text.secondary en sober.
-                    color: ENABLE_PHOTO_HERO ? alpha('#FFFFFF', 0.85) : 'text.secondary',
+                    // Subtitle : white-translucent renforce 0.92 (etait 0.85)
+                    // pour lisibilite sur l'overlay+photo darkened.
+                    color: ENABLE_PHOTO_HERO ? alpha('#FFFFFF', 0.92) : 'text.secondary',
+                    textShadow: ENABLE_PHOTO_HERO ? '0 1px 8px rgba(0, 0, 0, 0.3)' : 'none',
                     lineHeight: 1.6,
                     fontSize: '0.95rem',
                   }}
