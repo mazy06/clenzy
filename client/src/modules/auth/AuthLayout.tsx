@@ -122,11 +122,11 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                 mb: 2,
               }}
             >
-              {t('auth.layout.tagline', 'Le PMS')}{' '}
+              {t('auth.layout.tagline', 'Pendant que vous dormez,')}{' '}
               <Box component="span" sx={{ color: primary }}>
-                {t('auth.layout.taglineHighlight', 'propulsé par 8 agents IA spécialisés')}
+                {t('auth.layout.taglineHighlight', '8 agents IA optimisent votre revenue par nuit')}
               </Box>
-              {t('auth.layout.taglineEnd', ' pour vos locations courte durée.')}
+              {t('auth.layout.taglineEnd', '.')}
             </Typography>
             <Typography
               variant="body1"
@@ -138,7 +138,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
             >
               {t(
                 'auth.layout.subtitle',
-                "Tarification dynamique, messagerie guests multilingue, briefings quotidiens, sentiment analysis. Vous gardez la stratégie, l'IA fait l'exécution 7j/7.",
+                'Pricing dynamique, messagerie guests multilingue, briefings quotidiens, sentiment analysis. La seule chose que vous gardez en main : la stratégie.',
               )}
             </Typography>
           </Box>
