@@ -58,9 +58,19 @@ import { Box, useTheme } from '@mui/material';
  * le boot draw — bug visible).</p>
  */
 export interface ClenzyMarkLogoProps {
+  /** Facteur d'echelle multiplicatif. {@code 1} = icone 56px + wordmark 32px. */
   scale?: number;
+  /**
+   * Taille explicite en pixels pour l'icone (et le wordmark proportionnel).
+   * Override scale s'il est defini. Utile quand un parent (ex: Sidebar) injecte
+   * une size via {@code React.cloneElement} a la maniere des icones lucide.
+   */
+  size?: number;
+  /** {@code "full"} (defaut) / {@code "mark"} (icone) / {@code "wordmark"} (typo). */
   variant?: 'full' | 'mark' | 'wordmark';
+  /** {@code "auto"} suit le theme MUI. {@code "light"} / {@code "dark"} force. */
   tone?: 'auto' | 'light' | 'dark';
+  /** Desactive TOUTES les animations (utile pour screenshots / tests visuels). */
   disableAnimation?: boolean;
 }
 
@@ -95,6 +105,7 @@ function radialTranslate(node: { x: number; y: number }, delta: number): { tx: s
 
 export default function ClenzyMarkLogo({
   scale = 1,
+  size,
   variant = 'full',
   tone = 'auto',
   disableAnimation = false,
@@ -109,9 +120,12 @@ export default function ClenzyMarkLogo({
     ? { nodes: '#89B1C2', center: '#FFFFFF', lines: '#89B1C2', wordmark: '#FFFFFF', linesOpacity: 0.4 }
     : { nodes: '#6B8A9A', center: '#4A6B7B', lines: '#6B8A9A', wordmark: theme.palette.text.primary, linesOpacity: 0.35 };
 
-  const iconSize = 56 * scale;
-  const fontSize = 32 * scale;
-  const gap = 14 * scale;
+  // size override scale s'il est defini (pour matcher l'API icone-style ou
+  // l'injection via React.cloneElement de la Sidebar).
+  const iconSize = size ?? (56 * scale);
+  const effectiveScale = iconSize / 56;
+  const fontSize = 32 * effectiveScale;
+  const gap = 14 * effectiveScale;
 
   const cls = {
     root: `clenzy-mark-root-${uid}`,

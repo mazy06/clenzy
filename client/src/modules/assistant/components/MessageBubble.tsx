@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, useTheme, alpha, CircularProgress, Dialog, DialogContent } from '@mui/material';
-import { AutoAwesome as SparklesIcon } from '../../../icons';
+import ClenzyMarkLogo from '../../../components/ClenzyMarkLogo';
 import type { DisplayMessage } from '../../../hooks/useAgent';
 import { ToolCallCard } from './ToolCallCard';
 import { ToolResultWidget } from '../widgets/ToolResultWidget';
@@ -187,7 +187,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           mt: 0.25, // align with first line of text
         }}
       >
-        <SparklesIcon size={14} strokeWidth={1.75} />
+        {/* disableAnimation : chaque message a son propre avatar => si on
+            laisse le boot + idle scan jouer sur chaque bubble, ca cree un
+            visual noise constant (8 nodes scannant en boucle sur 50 messages).
+            Le mark reste statique mais brand-color, signature visuelle de
+            l'assistant. L'animation joue uniquement dans le header de page. */}
+        <ClenzyMarkLogo variant="mark" size={18} disableAnimation />
       </Box>
 
       {/* Contenu : tool calls + texte en flow document */}
