@@ -25,38 +25,70 @@ keycloak.onAuthLogout = () => {
 cleanupLegacyTokens()
 
 // Configuration Keycloak.
-// Apres l'init, si l'utilisateur est authentifie (via SSO check ou cookie KC),
-// on synchronise le cookie clenzy_session — sans cela, un reload de la page PMS
-// restaure la session Keycloak mais ne re-pose pas le cookie partage avec la
-// landing, qui pense alors que l'utilisateur n'est pas connecte.
 //
-// IMPORTANT — race condition au hard refresh :
-// keycloak.init() est async (~200-500ms le temps du check SSO contre le serveur
-// Keycloak). Tout code qui check `keycloak.authenticated` ou `keycloak.token`
-// AVANT que cette promise resolve verra `false`/`undefined` et croira que
-// l'user n'est pas connecte — meme s'il l'est (cookie HttpOnly valide).
+// IMPORTANT — restauration du token depuis le cookie HttpOnly au boot :
+// Le check-sso Keycloak (iframe silent) est fragile en localhost (ports
+// differents = cross-site, cookies Keycloak SameSite=Lax pas envoyes) et
+// en prod avec Safari ITP. Resultat : meme si l'user a un cookie HttpOnly
+// `clenzy_auth` valide cote backend, keycloak.init() retourne `authenticated=false`
+// → l'app deconnecte l'user au hard refresh.
 //
-// Symptome historique : hard refresh sur une page protegee redirigeait vers
-// /login parce que App.tsx evaluait keycloak.authenticated trop tot dans le
-// boot. Le fix : exporter la promise pour que App.tsx puisse l'await avant
-// de prendre une decision auth.
-export const keycloakInitPromise: Promise<boolean> = keycloak.init({
-  onLoad: 'check-sso',
-  silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
-  checkLoginIframe: false,
-  enableLogging: true,
-  pkceMethod: 'S256'
-}).then((authenticated) => {
-  if (authenticated && keycloak.token) {
-    setSessionCookie(keycloak.token)
+// Fix : AVANT keycloak.init(), on appelle GET /api/auth/session avec le
+// cookie HttpOnly. Si le backend retourne un token valide (Spring Security
+// + TokenCookieFilter valident le cookie), on pre-rempli keycloak.token et
+// on init avec ce token directement. Sinon, fallback sur check-sso normal.
+//
+// Ce qu'on appelle ici DOIT etre une fonction asynchrone — d'ou le wrap
+// dans une IIFE async. La promise resultante est exportee pour que App.tsx
+// puisse l'await avant toute decision auth (cf. useEffect d'init App).
+export const keycloakInitPromise: Promise<boolean> = (async () => {
+  // Step 1 : tenter de recuperer le token depuis le cookie HttpOnly via backend.
+  // Si reussi → l'user est encore authentifie, on a son token valide.
+  let bootstrapToken: string | undefined
+  try {
+    const { API_CONFIG } = await import('./config/api')
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/auth/session`, {
+      method: 'GET',
+      credentials: 'include', // Envoyer le cookie HttpOnly clenzy_auth
+    })
+    if (response.ok) {
+      const data = await response.json() as { token?: string }
+      if (data.token) {
+        bootstrapToken = data.token
+      }
+    }
+  } catch {
+    // Silent — backend pas joignable ou pas de cookie → on tombera sur check-sso
   }
-  return authenticated
-}).catch(() => {
-  // Silent — l'init peut echouer si Keycloak n'est pas joignable ;
-  // l'app gere ce cas via les guards habituels. On retourne false pour
-  // que l'await en aval voie un boolean determine plutot que de rejeter.
-  return false
-})
+
+  // Step 2 : init Keycloak. Si on a un token bootstrap, on le passe — Keycloak
+  // skip le check-sso et utilise directement le token. Sinon, check-sso normal.
+  try {
+    const initOptions: Keycloak.KeycloakInitOptions = {
+      checkLoginIframe: false,
+      enableLogging: true,
+      pkceMethod: 'S256',
+    }
+    if (bootstrapToken) {
+      // Init avec token connu — instantane, pas d'iframe, pas de check serveur
+      initOptions.token = bootstrapToken
+    } else {
+      // Fallback : check-sso classique (peut echouer en cross-origin localhost)
+      initOptions.onLoad = 'check-sso'
+      initOptions.silentCheckSsoRedirectUri = window.location.origin + '/silent-check-sso.html'
+    }
+
+    const authenticated = await keycloak.init(initOptions)
+    if (authenticated && keycloak.token) {
+      setSessionCookie(keycloak.token)
+    }
+    return authenticated
+  } catch {
+    // Silent — l'init peut echouer si Keycloak n'est pas joignable ;
+    // l'app gere ce cas via les guards habituels.
+    return false
+  }
+})()
 
 function decodeJwt(token?: string): KeycloakTokenParsed | undefined {
   if (!token) return undefined
