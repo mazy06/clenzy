@@ -411,26 +411,31 @@ public class AgentOrchestrator {
         //    encore les images Vision (TODO v2).
         //    Pas de spécialiste → impossible, fallback aussi.
         //    Si multi-agent throw, on log et fallback automatiquement.
+        // 4. Pre-charge memoires + RAG + apiKey UNE SEULE FOIS, partagees entre
+        //    multi-agent et mono-agent fallback. Evite la duplication d'appels
+        //    Voyage/OpenAI embeddings (~$0.000002 / call) ET de lookups BYOK
+        //    quand le multi-agent fallback (ConfirmationRequiredException, throw,
+        //    OrchestrationResult.error, etc.).
+        List<AssistantMemory> memories = loadMemories(context, effectiveMessage);
+        List<KbSearchService.KbSearchHit> kbHits =
+                loadRelevantKbHits(effectiveMessage, context.organizationId());
+        String apiKey = resolveApiKey(context.organizationId());
+
+        // 5. Tentative multi-agent (si flag on + sans attachments + spécialistes prêts).
+        //    Attachments → fallback mono-agent car les spécialistes ne gerent pas
+        //    encore les images Vision (TODO v2).
+        //    Pas de spécialiste → impossible, fallback aussi.
+        //    Si multi-agent throw, on log et fallback automatiquement.
         if (canUseMultiAgent(context, hasAttachments)) {
             try {
-                // Pre-charge memoire + RAG UNE FOIS pour les deux paths (mono + multi)
-                // afin d'eviter la duplication d'appels embeddings. Utilises ici par
-                // le multi-agent ; le fallback mono-agent les re-chargera dans
-                // buildSystemPrompt() — pas optimal mais reste safe.
-                List<AssistantMemory> memories = loadMemories(context, effectiveMessage);
-                List<KbSearchService.KbSearchHit> kbHits =
-                        loadRelevantKbHits(effectiveMessage, context.organizationId());
                 com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx =
                         new com.clenzy.service.agent.multiagent.OrchestrationContext(memories, kbHits);
-                // Fix bloquant #4 : la cle BYOK doit etre transmise au multi-agent
-                // pour eviter que les orgs avec BYOK consomment sur la cle plateforme.
-                String multiAgentApiKey = resolveApiKey(context.organizationId());
 
                 boolean handledByMultiAgent = tryMultiAgentFlow(
-                        effectiveMessage, chatMessages, orchestrationCtx, multiAgentApiKey,
+                        effectiveMessage, chatMessages, orchestrationCtx, apiKey,
                         context, conversation, consumer);
                 if (handledByMultiAgent) {
-                    // 5. Update conversation updatedAt + title si manquant
+                    // 6. Update conversation updatedAt + title si manquant
                     conversation.setUpdatedAt(LocalDateTime.now());
                     if (conversation.getTitle() == null) {
                         conversation.setTitle(deriveTitle(effectiveMessage));
@@ -443,6 +448,13 @@ public class AgentOrchestrator {
                 // sensible (block_calendar, cancel_reservation, etc.). Le multi-agent
                 // ne sait pas faire la pause-confirmation → fallback mono-agent
                 // qui exposera la confirmation au user. Log info, pas warn.
+                //
+                // NB: les eventuels widgets/snapshots accumules par le specialist
+                // AVANT le throw (read tools precedents) sont volontairement perdus :
+                // ils n'avaient pas encore ete emis en SSE (l'emission ne se fait qu'a
+                // la fin de tryMultiAgentFlow), et le mono-agent va de toute facon
+                // re-invoquer ses propres tools → pas de risque de duplicate ni
+                // d'incohérence.
                 log.info("Multi-agent fallback to mono-agent (tool '{}' requires confirmation)",
                         e.toolName());
             } catch (Exception e) {
@@ -451,10 +463,10 @@ public class AgentOrchestrator {
             }
         }
 
-        // 4 (fallback). Boucle tool-calling mono-agent (27 tools)
-        String apiKey = resolveApiKey(context.organizationId());
+        // 7 (fallback). Boucle tool-calling mono-agent (27 tools), avec reutilisation
+        //    des memoires + RAG pre-chargees (pas de second appel embeddings).
         List<ToolDescriptor> tools = toolRegistry.listDescriptors();
-        String systemPrompt = buildSystemPrompt(context, effectiveMessage);
+        String systemPrompt = buildSystemPrompt(context, effectiveMessage, memories, kbHits);
         ChatRequest request = new ChatRequest(
                 systemPrompt, chatMessages, tools, context.modelOverride(),
                 DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN);
@@ -820,7 +832,22 @@ public class AgentOrchestrator {
         // 2. Pre-charge des hits RAG (commun v1/v2)
         List<KbSearchService.KbSearchHit> kbHits = loadRelevantKbHits(latestUserMessage, context.organizationId());
 
-        // 3. Composition : v2 par defaut, fallback v1 si erreur ou resultat vide
+        return buildSystemPrompt(context, latestUserMessage, memories, kbHits);
+    }
+
+    /**
+     * Overload qui re-utilise des memoires/RAG hits deja charges en amont — evite
+     * un double appel reseau embeddings quand le multi-agent fallback vers
+     * mono-agent (cf. {@link #handleMessage(Long, String, List, AgentContext, Consumer)}).
+     *
+     * <p>Le caller est responsable de fournir des collections coherentes avec
+     * {@code latestUserMessage} (sinon le prompt aura un decalage). En pratique
+     * les deux sont charges via les memes helpers que cette methode utiliserait.</p>
+     */
+    String buildSystemPrompt(AgentContext context, String latestUserMessage,
+                              List<AssistantMemory> memories,
+                              List<KbSearchService.KbSearchHit> kbHits) {
+        // Composition : v2 par defaut, fallback v1 si erreur ou resultat vide
         if (promptV2Enabled && promptBuilder != null) {
             try {
                 String v2 = promptBuilder.buildChatPrompt(context, latestUserMessage, memories, kbHits);
