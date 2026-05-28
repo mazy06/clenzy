@@ -64,6 +64,7 @@ interface CarouselSlide {
  * quand les traductions EN/AR seront validees par un native speaker.</p>
  */
 const SLIDES: CarouselSlide[] = [
+  // ─── Hook benefit (1-2) ────────────────────────────────────────────────
   {
     tagline: 'Pendant que vous dormez,',
     highlight: '8 agents IA optimisent votre revenue par nuit',
@@ -76,18 +77,27 @@ const SLIDES: CarouselSlide[] = [
     end: '.',
     subtitle: 'Vos agents IA pricent vos nuits, répondent aux guests, génèrent vos briefings du matin et alertent sur les anomalies. Vous reprenez le contrôle de votre temps.',
   },
-  {
-    tagline: 'De 1 à 100 propriétés,',
-    highlight: 'sans embaucher un seul gestionnaire',
-    end: '.',
-    subtitle: 'Architecture multi-agents qui scale linéairement. Pricing, messaging, analytics, briefings, sentiment — tout reste fluide quand votre portefeuille grossit.',
-  },
+  // ─── Emotional / 24/7 (3-4) ────────────────────────────────────────────
   {
     tagline: 'Vos guests servis à 3h du matin.',
     highlight: 'Sans vous réveiller',
     end: '.',
     subtitle: "Messagerie IA multilingue qui répond aux questions check-in, codes wifi, recommandations resto. Vous gérez les exceptions, l'IA gère la routine.",
   },
+  {
+    tagline: 'De 1 à 100 propriétés,',
+    highlight: 'sans embaucher un seul gestionnaire',
+    end: '.',
+    subtitle: 'Architecture multi-agents qui scale linéairement. Pricing, messaging, analytics, briefings, sentiment — tout reste fluide quand votre portefeuille grossit.',
+  },
+  // ─── Onboarding speed (5) ──────────────────────────────────────────────
+  {
+    tagline: 'De zéro à',
+    highlight: '1ère réservation en 24 heures',
+    end: '.',
+    subtitle: "Import automatique depuis Airbnb et Booking, descriptions générées par IA, photos analysées et notées. Setup en 15 minutes, première nuit vendue le lendemain. Pas 3 semaines comme chez les autres.",
+  },
+  // ─── Technical capability (6-7) ────────────────────────────────────────
   {
     tagline: 'Un seul calendrier.',
     highlight: 'Airbnb, Booking, Vrbo synchronisés en temps réel',
@@ -100,17 +110,18 @@ const SLIDES: CarouselSlide[] = [
     end: '.',
     subtitle: "Bruit dépassant les seuils, locker non rendu, lit non refait, prix sous la concurrence locale. L'IA scanne en continu, vous alerte avant que le guest le voie.",
   },
+  // ─── Comparative differentiators (8-9) — attaque frontale vs concurrence
   {
-    tagline: '',
-    highlight: 'NF 525, RGPD, déclarations fiscales — automatiques',
+    tagline: 'Vos contrats signés',
+    highlight: 'en 30 secondes, sans quitter Clenzy',
     end: '.',
-    subtitle: 'Stripe Connect intégré, factures conformes, journalisation immuable. Hébergé en Europe, indépendant. Vos données ne quittent pas l’UE.',
+    subtitle: "Mandat de gestion, contrats de location courte durée, autorisations check-in. Signature électronique eIDAS intégrée nativement. Plus besoin de payer Yousign 39€/mois en parallèle.",
   },
   {
-    tagline: 'Détectez les',
-    highlight: "guests insatisfaits avant qu'ils laissent un avis",
+    tagline: '',
+    highlight: 'API ouverte, données exportables en un clic',
     end: '.',
-    subtitle: "Sentiment analysis sur chaque message entrant. Quand un guest passe en zone rouge, vous êtes alerté en temps réel — vous pouvez intervenir avant que ça atterrisse en 2 étoiles.",
+    subtitle: "Vos réservations, guests, finances, photos — tout exportable au format ouvert. Pas de lock-in. Connectez Notion, Slack, Make, Zapier. Là où Guesty vous emprisonne, Clenzy vous libère.",
   },
 ];
 
