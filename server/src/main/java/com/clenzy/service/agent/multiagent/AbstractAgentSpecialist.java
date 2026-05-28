@@ -147,7 +147,9 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
             AtomicReference<List<ChatMessage.ToolCall>> toolCallsRef = new AtomicReference<>(List.of());
             AtomicReference<String> errorMsg = new AtomicReference<>();
 
-            chatProvider.streamChat(chatRequest, event -> {
+            // Fix bloquant #4 : utiliser la cle BYOK de l'org si fournie, sinon
+            // la cle plateforme (mecanisme natif chatProvider).
+            java.util.function.Consumer<ChatEvent> eventConsumer = event -> {
                 if (event instanceof ChatEvent.TextDelta td) {
                     textOut.set(textOut.get() + td.delta());
                 } else if (event instanceof ChatEvent.ToolCallRequest tcr) {
@@ -158,7 +160,12 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                 } else if (event instanceof ChatEvent.Error err) {
                     errorMsg.set(err.message());
                 }
-            });
+            };
+            if (request.apiKey() != null) {
+                chatProvider.streamChat(chatRequest, eventConsumer, request.apiKey());
+            } else {
+                chatProvider.streamChat(chatRequest, eventConsumer);
+            }
 
             if (errorMsg.get() != null) {
                 return SpecialistResult.error(errorMsg.get());

@@ -406,9 +406,12 @@ public class AgentOrchestrator {
                         loadRelevantKbHits(effectiveMessage, context.organizationId());
                 com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx =
                         new com.clenzy.service.agent.multiagent.OrchestrationContext(memories, kbHits);
+                // Fix bloquant #4 : la cle BYOK doit etre transmise au multi-agent
+                // pour eviter que les orgs avec BYOK consomment sur la cle plateforme.
+                String multiAgentApiKey = resolveApiKey(context.organizationId());
 
                 boolean handledByMultiAgent = tryMultiAgentFlow(
-                        effectiveMessage, chatMessages, orchestrationCtx,
+                        effectiveMessage, chatMessages, orchestrationCtx, multiAgentApiKey,
                         context, conversation, consumer);
                 if (handledByMultiAgent) {
                     // 5. Update conversation updatedAt + title si manquant
@@ -574,11 +577,12 @@ public class AgentOrchestrator {
     private boolean tryMultiAgentFlow(String userMessage,
                                         List<ChatMessage> chatHistory,
                                         com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx,
+                                        String apiKey,
                                         AgentContext context,
                                         AssistantConversation conversation,
                                         Consumer<AgentSseEvent> consumer) {
         com.clenzy.service.agent.multiagent.OrchestratorAgent.OrchestrationResult result =
-                multiAgentOrchestrator.orchestrate(chatHistory, context, orchestrationCtx);
+                multiAgentOrchestrator.orchestrate(chatHistory, context, orchestrationCtx, apiKey);
 
         if (!result.isSuccess()) {
             log.warn("Multi-agent returned error : {} — fallback mono-agent", result.error());
