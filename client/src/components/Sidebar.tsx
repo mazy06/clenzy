@@ -37,7 +37,7 @@ import { SIDEBAR_WIDTH_EXPANDED, SIDEBAR_WIDTH_COLLAPSED } from '../hooks/useSid
 import { groupMenuItems, NAV_GROUP_TRANSLATION_KEYS } from '../hooks/useNavigationMenu';
 import type { MenuItem, NavGroup } from '../hooks/useNavigationMenu';
 import SidebarNavItem from './SidebarNavItem';
-import clenzyLogo from '../assets/Clenzy_logo.png';
+import ClenzyMarkLogo from './ClenzyMarkLogo';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -98,8 +98,8 @@ export default function Sidebar({
   const collapsed = isCollapsed && !isMobile;
 
   // Responsive sizes — comfortable on xl+, compact on lg
-  const logoHeight = collapsed ? 20 : isXl ? 24 : 20;
-  const logoMaxWidth = collapsed ? 36 : isXl ? 120 : 104;
+  // logoHeight + logoMaxWidth ne sont plus utilisees : le ClenzyMarkLogo
+  // gere son propre dimensionnement via la prop size (cf. plus bas).
   const headerHeight = isXl ? 48 : 40;
   const avatarSize = collapsed ? 26 : isXl ? 30 : 26;
   const avatarFontSize = collapsed ? '0.6875rem' : isXl ? '0.75rem' : '0.6875rem';
@@ -174,18 +174,18 @@ export default function Sidebar({
         }}
         onClick={() => handleNavigation('/dashboard')}
       >
-        <img
-          src={clenzyLogo}
-          alt="Clenzy"
-          style={{
-            height: logoHeight,
-            width: 'auto',
-            maxWidth: logoMaxWidth,
-            objectFit: 'contain',
-            objectPosition: 'left center',
-            transition: 'all 200ms',
-          }}
-        />
+        {/* Logo Clenzy adapte au state du sidebar :
+            - Collapsed (64px) : mark seul, anime (idle scan + breathe).
+              Seul element visuel dans la column = on lui laisse de la vie.
+              size=36 dans 64px = 56% du width, lisible, 14px padding total.
+            - Expanded (240px) : mark + wordmark "clenzy", statique. Plein
+              d'autres elements UI visibles = inutile d'ajouter du mouvement.
+              size=28 = mark 28px + wordmark fontSize 16px proportionnel. */}
+        {collapsed ? (
+          <ClenzyMarkLogo variant="mark" size={36} />
+        ) : (
+          <ClenzyMarkLogo variant="full" size={28} idleAnimation={false} />
+        )}
       </Box>
 
       {/* ── Navigation groups ────────────────────────────────────────── */}
