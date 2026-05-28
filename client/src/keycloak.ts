@@ -29,7 +29,18 @@ cleanupLegacyTokens()
 // on synchronise le cookie clenzy_session — sans cela, un reload de la page PMS
 // restaure la session Keycloak mais ne re-pose pas le cookie partage avec la
 // landing, qui pense alors que l'utilisateur n'est pas connecte.
-keycloak.init({
+//
+// IMPORTANT — race condition au hard refresh :
+// keycloak.init() est async (~200-500ms le temps du check SSO contre le serveur
+// Keycloak). Tout code qui check `keycloak.authenticated` ou `keycloak.token`
+// AVANT que cette promise resolve verra `false`/`undefined` et croira que
+// l'user n'est pas connecte — meme s'il l'est (cookie HttpOnly valide).
+//
+// Symptome historique : hard refresh sur une page protegee redirigeait vers
+// /login parce que App.tsx evaluait keycloak.authenticated trop tot dans le
+// boot. Le fix : exporter la promise pour que App.tsx puisse l'await avant
+// de prendre une decision auth.
+export const keycloakInitPromise: Promise<boolean> = keycloak.init({
   onLoad: 'check-sso',
   silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
   checkLoginIframe: false,
@@ -39,9 +50,12 @@ keycloak.init({
   if (authenticated && keycloak.token) {
     setSessionCookie(keycloak.token)
   }
+  return authenticated
 }).catch(() => {
   // Silent — l'init peut echouer si Keycloak n'est pas joignable ;
-  // l'app gere ce cas via les guards habituels.
+  // l'app gere ce cas via les guards habituels. On retourne false pour
+  // que l'await en aval voie un boolean determine plutot que de rejeter.
+  return false
 })
 
 function decodeJwt(token?: string): KeycloakTokenParsed | undefined {
