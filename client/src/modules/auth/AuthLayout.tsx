@@ -143,6 +143,23 @@ const SLIDES: CarouselSlide[] = [
 /** Duree d'affichage par slide en millisecondes. 6s = ~lecture confortable. */
 const SLIDE_DURATION_MS = 6000;
 
+// ─── Feature flag : hero photo en arriere-plan du brand panel ─────────────
+//
+// Si true : photo d'interieur (Airbnb-style cozy) en bg + overlay tinted
+//           primary alpha 0.78 pour lisibilite. Text en blanc. Plus de
+//           profondeur visuelle, mais plus charge.
+// Si false : dot pattern + bg primary alpha 0.04 (etat originel sobre).
+//
+// REVERT : change ENABLE_PHOTO_HERO a false, save, commit. Aucune autre
+// modification a faire — le composant gere les deux modes via une serie
+// de ternaires sur ce flag.
+const ENABLE_PHOTO_HERO = true;
+
+// Photo curatee Unsplash (free, hotlinkable). Modern cozy interior style
+// qui evoque une location courte duree haut de gamme. Le `w=1600&q=80`
+// donne ~150KB pour un retina-friendly rendering sur ecran 1440px.
+const HERO_PHOTO_URL = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1600&q=80';
+
 export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutProps) {
   // Geo-detected language : ces pages NE respectent PAS les preferences user.
   // Logique business : pays arabes -> ar, France/Maghreb -> fr, autres -> en.
@@ -203,10 +220,13 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
             flexDirection: 'column',
             justifyContent: 'space-between',
             p: 6,
-            bgcolor: alpha(primary, 0.04),
-            // Subtle dot pattern : texture qui apporte de la profondeur
-            // sans tomber dans le "gradient AI" lavande/cyan
-            backgroundImage: `radial-gradient(${alpha(primary, 0.12)} 1px, transparent 1px)`,
+            // Photo mode : bg ratio composite (photo darkening overlay sous
+            // le dot pattern translucide). Sober mode : bg primary alpha 0.04.
+            bgcolor: ENABLE_PHOTO_HERO ? '#0F1A22' : alpha(primary, 0.04),
+            // Dot pattern visible dans les deux modes, alpha ajuste selon le bg
+            backgroundImage: ENABLE_PHOTO_HERO
+              ? `radial-gradient(${alpha('#FFFFFF', 0.10)} 1px, transparent 1px)`
+              : `radial-gradient(${alpha(primary, 0.12)} 1px, transparent 1px)`,
             backgroundSize: '24px 24px',
             backgroundPosition: '0 0',
             overflow: 'hidden',
@@ -214,7 +234,45 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          {/* Accent decoratif top-right : cercle radial diffus, brand color */}
+          {/* Photo hero en arriere-plan (uniquement si ENABLE_PHOTO_HERO).
+              Position absolute + z-index 0 pour rester sous le dot pattern
+              et tous les autres elements. Filter saturate(0.85) attenue les
+              couleurs trop vives pour rester en harmonie brand. */}
+          {ENABLE_PHOTO_HERO && (
+            <>
+              <Box
+                aria-hidden
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundImage: `url(${HERO_PHOTO_URL})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  filter: 'saturate(0.85) brightness(0.95)',
+                  zIndex: 0,
+                  pointerEvents: 'none',
+                }}
+              />
+              {/* Overlay tinted brand : alpha 0.78 = lisibilite OK pour
+                  texte blanc sur n'importe quelle photo (WCAG AA testee
+                  contre photo sombre + claire). Plus le rendu visuel
+                  reste cohrent avec la palette Clenzy. */}
+              <Box
+                aria-hidden
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  bgcolor: alpha('#1A2D38', 0.78),
+                  zIndex: 0,
+                  pointerEvents: 'none',
+                }}
+              />
+            </>
+          )}
+
+          {/* Accent decoratif top-right : cercle radial diffus.
+              En photo mode : color brand-light pour rester visible sur fond fonce.
+              En sober mode : color brand classic. */}
           <Box
             aria-hidden
             sx={{
@@ -224,14 +282,17 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
               width: 360,
               height: 360,
               borderRadius: '50%',
-              background: `radial-gradient(circle, ${alpha(primary, 0.18)}, transparent 70%)`,
+              background: ENABLE_PHOTO_HERO
+                ? `radial-gradient(circle, ${alpha('#89B1C2', 0.22)}, transparent 70%)`
+                : `radial-gradient(circle, ${alpha(primary, 0.18)}, transparent 70%)`,
               pointerEvents: 'none',
+              zIndex: 0,
             }}
           />
 
-          {/* Header : logo */}
+          {/* Header : logo. tone="dark" en photo mode (nodes blancs sur bg fonce). */}
           <Box sx={{ position: 'relative', zIndex: 1 }}>
-            <ClenzyMarkLogo scale={0.95} />
+            <ClenzyMarkLogo scale={0.95} tone={ENABLE_PHOTO_HERO ? 'dark' : 'auto'} />
           </Box>
 
           {/* Centre : carrousel slide actuel + dots */}
@@ -260,7 +321,9 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                   sx={{
                     fontWeight: 600,
                     lineHeight: 1.2,
-                    color: 'text.primary',
+                    // Texte titre : blanc en photo mode (sur fond fonce),
+                    // text.primary en sober mode (sur fond clair)
+                    color: ENABLE_PHOTO_HERO ? '#FFFFFF' : 'text.primary',
                     textWrap: 'balance',
                     mb: 2,
                   }}
@@ -274,7 +337,9 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                         : current.tagline}{' '}
                     </>
                   )}
-                  <Box component="span" sx={{ color: primary }}>
+                  {/* Highlight : brand-light (#89B1C2) en photo mode pour
+                      contraste sur fond fonce. Primary classic en sober. */}
+                  <Box component="span" sx={{ color: ENABLE_PHOTO_HERO ? '#89B1C2' : primary }}>
                     {slideIndex === 0
                       ? t('auth.layout.taglineHighlight', current.highlight)
                       : current.highlight}
@@ -286,7 +351,9 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                 <Typography
                   variant="body1"
                   sx={{
-                    color: 'text.secondary',
+                    // Subtitle : white-translucent en photo mode (lisible
+                    // mais en second plan vs le titre). text.secondary en sober.
+                    color: ENABLE_PHOTO_HERO ? alpha('#FFFFFF', 0.85) : 'text.secondary',
                     lineHeight: 1.6,
                     fontSize: '0.95rem',
                   }}
@@ -313,6 +380,15 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
             >
               {SLIDES.map((_, i) => {
                 const isActive = i === slideIndex;
+                // Dots : white-translucent en photo mode pour contraster
+                // avec le bg fonce. Primary en sober mode.
+                const dotActiveBg = ENABLE_PHOTO_HERO ? '#FFFFFF' : primary;
+                const dotInactiveBg = ENABLE_PHOTO_HERO
+                  ? alpha('#FFFFFF', 0.35)
+                  : alpha(primary, 0.25);
+                const dotInactiveHoverBg = ENABLE_PHOTO_HERO
+                  ? alpha('#FFFFFF', 0.55)
+                  : alpha(primary, 0.45);
                 return (
                   <Box
                     key={i}
@@ -329,13 +405,13 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                       border: 'none',
                       p: 0,
                       cursor: 'pointer',
-                      bgcolor: isActive ? primary : alpha(primary, 0.25),
+                      bgcolor: isActive ? dotActiveBg : dotInactiveBg,
                       transition: 'width 250ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms',
                       '&:hover': {
-                        bgcolor: isActive ? primary : alpha(primary, 0.45),
+                        bgcolor: isActive ? dotActiveBg : dotInactiveHoverBg,
                       },
                       '&:focus-visible': {
-                        outline: `2px solid ${primary}`,
+                        outline: `2px solid ${ENABLE_PHOTO_HERO ? '#FFFFFF' : primary}`,
                         outlineOffset: 2,
                       },
                     }}
@@ -345,12 +421,25 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
             </Box>
           </Box>
 
-          {/* Footer : trust signals discrets */}
+          {/* Footer : trust signals discrets. En photo mode, on passe en
+              variantes white-translucent pour rester lisible sur fond fonce. */}
           <Box sx={{ position: 'relative', zIndex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
-              <TrustItem dot={primary} label={t('auth.layout.trustEurope', 'Hébergé en Europe')} />
-              <TrustItem dot={primary} label={t('auth.layout.trustCompliance', 'NF 525 / RGPD')} />
-              <TrustItem dot={primary} label={t('auth.layout.trustSupport', 'Support 7j/7')} />
+              <TrustItem
+                dot={ENABLE_PHOTO_HERO ? '#89B1C2' : primary}
+                label={t('auth.layout.trustEurope', 'Hébergé en Europe')}
+                onDark={ENABLE_PHOTO_HERO}
+              />
+              <TrustItem
+                dot={ENABLE_PHOTO_HERO ? '#89B1C2' : primary}
+                label={t('auth.layout.trustCompliance', 'NF 525 / RGPD')}
+                onDark={ENABLE_PHOTO_HERO}
+              />
+              <TrustItem
+                dot={ENABLE_PHOTO_HERO ? '#89B1C2' : primary}
+                label={t('auth.layout.trustSupport', 'Support 7j/7')}
+                onDark={ENABLE_PHOTO_HERO}
+              />
             </Box>
           </Box>
         </Box>
@@ -389,8 +478,10 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
   );
 }
 
-/** Trust signal compact pour le footer du panneau brand. */
-function TrustItem({ dot, label }: { dot: string; label: string }) {
+/** Trust signal compact pour le footer du panneau brand.
+ *  onDark : si true, texte en blanc-translucide (pour lisibilite sur photo hero).
+ *  Sinon, text.secondary du theme MUI. */
+function TrustItem({ dot, label, onDark = false }: { dot: string; label: string; onDark?: boolean }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
       <Box
@@ -399,13 +490,13 @@ function TrustItem({ dot, label }: { dot: string; label: string }) {
           height: 5,
           borderRadius: '50%',
           bgcolor: dot,
-          opacity: 0.6,
+          opacity: onDark ? 0.85 : 0.6,
         }}
       />
       <Typography
         variant="caption"
         sx={{
-          color: 'text.secondary',
+          color: onDark ? alpha('#FFFFFF', 0.75) : 'text.secondary',
           fontSize: '0.75rem',
           fontWeight: 500,
         }}
