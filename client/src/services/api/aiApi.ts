@@ -11,6 +11,22 @@ export interface AiUsageStats {
   monthYear: string;
 }
 
+// Breakdown par (provider, model) au sein de chaque feature — matches AiFeatureUsageBreakdownDto.
+// Resout l'agregation aveugle : 100k Sonnet ($1.50) et 100k Haiku ($0.10) sont distingues.
+export interface AiModelUsage {
+  provider: string;
+  model: string;
+  tokensIn: number;
+  tokensOut: number;
+  costUsd: number;
+  callCount: number;
+}
+
+export interface AiUsageBreakdown {
+  monthYear: string;
+  breakdownByFeature: Record<string, AiModelUsage[]>;
+}
+
 // Pricing AI
 export interface AiPricingRecommendation {
   date: string;
@@ -91,6 +107,9 @@ export const aiApi = {
   // ── Token Usage ──
   getUsageStats: (): Promise<AiUsageStats> =>
     apiClient.get('/ai/usage/stats'),
+
+  getUsageBreakdown: (): Promise<AiUsageBreakdown> =>
+    apiClient.get('/ai/usage/breakdown'),
 
   // ── Pricing AI ──
   getPricingPredictions: (

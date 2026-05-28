@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiResponse;
+import com.clenzy.dto.AiFeatureUsageBreakdownDto;
 import com.clenzy.dto.AiUsageStatsDto;
 import com.clenzy.exception.AiBudgetExceededException;
 import com.clenzy.exception.AiNotConfiguredException;
@@ -11,13 +12,18 @@ import com.clenzy.model.AiTokenUsage;
 import com.clenzy.repository.AiTokenBudgetRepository;
 import com.clenzy.repository.AiTokenUsageRepository;
 import com.clenzy.service.AiKeyResolver.KeySource;
+import com.clenzy.service.ai.LlmPricingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,13 +44,16 @@ public class AiTokenBudgetService {
     private final AiProperties aiProperties;
     private final AiTokenBudgetRepository budgetRepository;
     private final AiTokenUsageRepository usageRepository;
+    private final LlmPricingService pricingService;
 
     public AiTokenBudgetService(AiProperties aiProperties,
                                 AiTokenBudgetRepository budgetRepository,
-                                AiTokenUsageRepository usageRepository) {
+                                AiTokenUsageRepository usageRepository,
+                                LlmPricingService pricingService) {
         this.aiProperties = aiProperties;
         this.budgetRepository = budgetRepository;
         this.usageRepository = usageRepository;
+        this.pricingService = pricingService;
     }
 
     // ─── Feature toggles ─────────────────────────────────────────────────
@@ -223,5 +232,56 @@ public class AiTokenBudgetService {
      */
     String getCurrentMonthYear() {
         return YearMonth.now().toString();
+    }
+
+    // ─── Breakdown par provider/model (multi-provider awareness) ─────────
+
+    /**
+     * Retourne le breakdown detaille des consommations par feature, decompose
+     * par (provider, model). Resout le probleme d'agregation aveugle de
+     * {@link #getUsageStats(Long)} qui sommait tous les modeles dans un seul
+     * compteur par feature, masquant le fait que 100k tokens Sonnet et 100k
+     * Haiku ont des couts tres differents.
+     *
+     * <p>Utilise pour le tooltip "breakdown par modele" affiche au hover sur
+     * le compteur d'une feature dans Settings &gt; IA.</p>
+     */
+    @Transactional(readOnly = true)
+    public AiFeatureUsageBreakdownDto getUsageBreakdown(Long organizationId) {
+        String currentMonth = getCurrentMonthYear();
+        List<AiTokenUsage> allRecords = usageRepository.findByOrganizationIdAndMonthYear(
+                organizationId, currentMonth);
+
+        // Group by (feature, provider, model) -> [tokensIn, tokensOut, callCount]
+        record GroupKey(AiFeature feature, String provider, String model) {}
+        Map<GroupKey, long[]> grouped = new LinkedHashMap<>();
+        for (AiTokenUsage r : allRecords) {
+            String provider = r.getProvider() != null ? r.getProvider() : "unknown";
+            String model = r.getModel() != null ? r.getModel() : "unknown";
+            GroupKey key = new GroupKey(r.getFeature(), provider, model);
+            grouped.merge(key, new long[]{r.getPromptTokens(), r.getCompletionTokens(), 1L},
+                    (a, b) -> new long[]{a[0] + b[0], a[1] + b[1], a[2] + b[2]});
+        }
+
+        // Init result map avec toutes les features (meme vides) pour stabilite UI
+        Map<String, List<AiFeatureUsageBreakdownDto.ModelUsage>> result = new LinkedHashMap<>();
+        for (AiFeature f : AiFeature.values()) {
+            result.put(f.name(), new ArrayList<>());
+        }
+        for (Map.Entry<GroupKey, long[]> entry : grouped.entrySet()) {
+            GroupKey k = entry.getKey();
+            long[] sums = entry.getValue();
+            BigDecimal cost = pricingService.computeCost(k.model(), sums[0], sums[1]);
+            result.get(k.feature().name()).add(
+                    new AiFeatureUsageBreakdownDto.ModelUsage(
+                            k.provider(), k.model(), sums[0], sums[1], cost, sums[2]));
+        }
+        // Tri descendant par cost dans chaque feature (le plus cher d'abord)
+        for (List<AiFeatureUsageBreakdownDto.ModelUsage> list : result.values()) {
+            list.sort(Comparator.comparing(
+                    AiFeatureUsageBreakdownDto.ModelUsage::costUsd).reversed());
+        }
+
+        return new AiFeatureUsageBreakdownDto(currentMonth, result);
     }
 }
