@@ -147,16 +147,14 @@ const AssistantWidget: React.FC = () => {
             sx={{
               width: 28,
               height: 28,
-              borderRadius: '50%',
-              bgcolor: alpha(theme.palette.primary.main, 0.12),
-              color: theme.palette.primary.main,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            {/* Header du drawer : meme logique que le FAB, fond clair (light
-                tone par defaut). Active = IA en cours. */}
+            {/* Header du drawer : pas de bg circulaire (le mark se suffit
+                a lui-meme). active={isWorking} declenche l'animation
+                hover-equivalent quand l'IA travaille. */}
             <ClenzyMarkLogo
               variant="mark"
               size={18}
