@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { ArrowBack } from '../../icons';
 import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
 
 /**
@@ -32,11 +33,10 @@ export interface LegalLayoutProps {
 }
 
 export default function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
-  const { t, i18n } = useTranslation();
-  const theme = useMemo(
-    () => createClenzyTheme({ isRtl: i18n.language === 'ar' }),
-    [i18n.language]
-  );
+  const { t } = useTranslation();
+  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
+  const { isRtl } = useGeoAuthLanguage();
+  const theme = useMemo(() => createClenzyTheme({ isRtl }), [isRtl]);
 
   return (
     <ThemeProvider theme={theme}>
