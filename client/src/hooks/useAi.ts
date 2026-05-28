@@ -7,6 +7,7 @@ import type { SaveAiApiKeyRequest, SavePlatformModelRequest, TestPlatformModelRe
 export const aiKeys = {
   all: ['ai'] as const,
   usageStats: () => [...aiKeys.all, 'usage-stats'] as const,
+  usageBreakdown: () => [...aiKeys.all, 'usage-breakdown'] as const,
   pricingPredictions: (propertyId: number, from: string, to: string) =>
     [...aiKeys.all, 'pricing-predictions', propertyId, from, to] as const,
   insights: (propertyId: number, from: string, to: string) =>
@@ -23,6 +24,19 @@ export function useAiUsageStats() {
     queryKey: aiKeys.usageStats(),
     queryFn: () => aiApi.getUsageStats(),
     staleTime: 5 * 60_000, // 5 minutes
+  });
+}
+
+/**
+ * Breakdown tokens + cout USD par (provider, model) au sein de chaque feature.
+ * Alimente le tooltip de Settings &gt; IA pour distinguer 100k Sonnet ($1.50)
+ * de 100k Haiku ($0.10).
+ */
+export function useAiUsageBreakdown() {
+  return useQuery({
+    queryKey: aiKeys.usageBreakdown(),
+    queryFn: () => aiApi.getUsageBreakdown(),
+    staleTime: 5 * 60_000,
   });
 }
 

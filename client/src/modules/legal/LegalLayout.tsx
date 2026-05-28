@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -11,7 +11,8 @@ import {
   Divider,
 } from '@mui/material';
 import { ArrowBack } from '../../icons';
-import lightTheme from '../../theme/theme';
+import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
 
 /**
@@ -33,9 +34,12 @@ export interface LegalLayoutProps {
 
 export default function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
   const { t } = useTranslation();
+  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
+  const { isRtl } = useGeoAuthLanguage();
+  const theme = useMemo(() => createClenzyTheme({ isRtl }), [isRtl]);
 
   return (
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}

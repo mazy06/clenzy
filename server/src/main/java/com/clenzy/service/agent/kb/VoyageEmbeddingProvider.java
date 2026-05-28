@@ -19,12 +19,18 @@ import java.util.Map;
 /**
  * Provider Voyage AI (https://docs.voyageai.com/).
  *
- * <p>Modele defaut : {@code voyage-3-lite} (1024d, ~$0.02/1M tokens). Bon
- * compromis qualite/cout, recommande par Anthropic pour les embeddings dans
- * un contexte Claude.</p>
+ * <p><b>Modele defaut : {@code voyage-3-large}</b> (1024d, ~$0.18/1M tokens).
+ * Recommande par Anthropic pour les embeddings dans un contexte Claude.
+ * <i>Choix design</i> : la qualite de rappel RAG est critique pour
+ * l'anti-hallucination, et le surcout est negligeable a notre volume
+ * (ingestion doc + ~10-100 tokens/query) — quelques euros/mois.</p>
+ *
+ * <p>Override possible via {@code clenzy.ai.embeddings.voyage.model} si on
+ * voulait revenir a {@code voyage-3-lite} (1024d, ~$0.02/1M, qualite plus
+ * faible) ou tester {@code voyage-3} (1024d, ~$0.06/1M, milieu).</p>
  *
  * <p>Endpoint : {@code POST /v1/embeddings}. Body :
- * {@code {"input": ["..."], "model": "voyage-3-lite", "input_type": "document"}}.
+ * {@code {"input": ["..."], "model": "voyage-3-large", "input_type": "document"}}.
  * Reponse : {@code {"data": [{"embedding": [0.1, ...]}, ...], "usage": {...}}}.</p>
  *
  * <p>Activation : property {@code clenzy.ai.embeddings.provider=voyage} +
@@ -36,7 +42,8 @@ import java.util.Map;
 public class VoyageEmbeddingProvider implements EmbeddingProvider {
 
     private static final Logger log = LoggerFactory.getLogger(VoyageEmbeddingProvider.class);
-    private static final String DEFAULT_MODEL = "voyage-3-lite";
+    /** {@code voyage-3-large} : meilleur modele Voyage 1024d. Qualite > cout. */
+    private static final String DEFAULT_MODEL = "voyage-3-large";
     private static final int BATCH_SIZE = 128;
 
     private final RestTemplate restTemplate;

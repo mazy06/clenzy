@@ -261,7 +261,65 @@ public class AgentOrchestrator {
     private final AssistantMemoryService memoryService;
     private final PhotoStorageService photoStorageService;
     private final KbSearchService kbSearchService;
+    private final com.clenzy.service.agent.prompt.PromptBuilder promptBuilder;
+    private final com.clenzy.service.agent.multiagent.OrchestratorAgent multiAgentOrchestrator;
+    private final com.clenzy.service.agent.multiagent.SpecialistRegistry specialistRegistry;
+    private final com.clenzy.service.AiTokenBudgetService aiTokenBudgetService;
+    private final com.clenzy.service.PlatformAiConfigService platformAiConfigService;
 
+    /**
+     * Feature flag : si true, utilise l'architecture multi-agent (orchestrator
+     * + spécialistes ≤10 tools chacun) au lieu du mono-agent (27 tools en bloc).
+     *
+     * <p><b>Defaut false</b> : audit pre-prod (2026-05-28) avait identifie 7
+     * regressions bloquantes. Etat post-fixes (2026-05-28) :</p>
+     * <ul>
+     *   <li>✅ Fix #1 — Confirmation user des write tools : detection
+     *       {@code requiresConfirmation} dans AbstractAgentSpecialist →
+     *       fallback mono-agent (ConfirmationRequiredException).</li>
+     *   <li>✅ Fix #2 — History conversationnelle transmise via la signature
+     *       {@code orchestrate(List<ChatMessage>, ...)}.</li>
+     *   <li>✅ Fix #3 — Memory long-terme + RAG pre-charges, transmis via
+     *       {@link com.clenzy.service.agent.multiagent.OrchestrationContext}.</li>
+     *   <li>✅ Fix #4 — BYOK apiKey propage a l'orchestrator + specialists.</li>
+     *   <li>✅ Fix #5 — Langue + currentPage + selectedPropertyId injectes
+     *       en {@code <user_context>} XML dans les prompts.</li>
+     *   <li>✅ Fix #6 (implicite via #1) — Audit logging des write tools :
+     *       les writes passent par mono-agent qui log normalement.</li>
+     *   <li>✅ Fix #7 (implicite via #1) — resumeAfterConfirmation reste
+     *       utilisable car les writes basculent toujours en mono-agent.</li>
+     * </ul>
+     *
+     * <p>Le flag reste OFF par defaut jusqu'a validation manuelle en dev
+     * avec de vrais appels LLM (les tests unitaires/integration couvrent
+     * la mecanique mais pas les sorties LLM reelles).</p>
+     *
+     * <p>Override (en dev pour tester) :
+     * {@code clenzy.assistant.multi-agent.enabled=true}</p>
+     */
+    private final boolean multiAgentEnabled;
+
+    /**
+     * Feature flag rollback : si true, utilise le nouveau {@link com.clenzy.service.agent.prompt.PromptBuilder}
+     * (v2, sectionne en XML). Si false, fallback sur l'ancien {@link #DEFAULT_SYSTEM_PROMPT}.
+     *
+     * <p>Defaut true (v2 active). En cas de souci en prod, set
+     * {@code clenzy.assistant.prompt.v2.enabled=false} → retour instantane a l'ancien
+     * comportement sans redeploy de code.</p>
+     *
+     * <p>Garde-fou supplementaire : si v2 throw ou retourne null/blank, on log
+     * + fallback automatique sur v1 (voir {@link #buildSystemPrompt}).</p>
+     *
+     * <p><b>Injecte via constructor</b> (pas via field) : permet aux tests
+     * unitaires de l'instancier sans Spring tout en pouvant exercer les deux
+     * chemins v1/v2 explicitement.</p>
+     */
+    private final boolean promptV2Enabled;
+
+    /**
+     * Constructeur Spring (lit la valeur via {@code @Value} sur le parametre).
+     * Le parametre {@code promptV2Enabled} est injecte par Spring depuis la config.
+     */
     public AgentOrchestrator(ChatLLMProvider chatProvider,
                               ToolRegistry toolRegistry,
                               AssistantConversationRepository conversationRepository,
@@ -272,7 +330,16 @@ public class AgentOrchestrator {
                               PendingToolStore pendingToolStore,
                               AssistantMemoryService memoryService,
                               PhotoStorageService photoStorageService,
-                              KbSearchService kbSearchService) {
+                              KbSearchService kbSearchService,
+                              com.clenzy.service.agent.prompt.PromptBuilder promptBuilder,
+                              com.clenzy.service.agent.multiagent.OrchestratorAgent multiAgentOrchestrator,
+                              com.clenzy.service.agent.multiagent.SpecialistRegistry specialistRegistry,
+                              com.clenzy.service.AiTokenBudgetService aiTokenBudgetService,
+                              com.clenzy.service.PlatformAiConfigService platformAiConfigService,
+                              @org.springframework.beans.factory.annotation.Value("${clenzy.assistant.prompt.v2.enabled:true}")
+                              boolean promptV2Enabled,
+                              @org.springframework.beans.factory.annotation.Value("${clenzy.assistant.multi-agent.enabled:false}")
+                              boolean multiAgentEnabled) {
         this.chatProvider = chatProvider;
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
@@ -284,6 +351,13 @@ public class AgentOrchestrator {
         this.memoryService = memoryService;
         this.photoStorageService = photoStorageService;
         this.kbSearchService = kbSearchService;
+        this.promptBuilder = promptBuilder;
+        this.multiAgentOrchestrator = multiAgentOrchestrator;
+        this.specialistRegistry = specialistRegistry;
+        this.aiTokenBudgetService = aiTokenBudgetService;
+        this.platformAiConfigService = platformAiConfigService;
+        this.promptV2Enabled = promptV2Enabled;
+        this.multiAgentEnabled = multiAgentEnabled;
     }
 
     /**
@@ -338,12 +412,82 @@ public class AgentOrchestrator {
         List<AssistantMessage> history = messageRepository.findByConversation(conversation.getId());
         List<ChatMessage> chatMessages = toChatMessages(history);
 
-        // 4. Boucle tool-calling
+        // 4. Tentative multi-agent (si flag on + sans attachments + spécialistes prêts).
+        //    Attachments → fallback mono-agent car les spécialistes ne gerent pas
+        //    encore les images Vision (TODO v2).
+        //    Pas de spécialiste → impossible, fallback aussi.
+        //    Si multi-agent throw, on log et fallback automatiquement.
+        // 4. Pre-charge memoires + RAG + apiKey UNE SEULE FOIS, partagees entre
+        //    multi-agent et mono-agent fallback. Evite la duplication d'appels
+        //    Voyage/OpenAI embeddings (~$0.000002 / call) ET de lookups BYOK
+        //    quand le multi-agent fallback (ConfirmationRequiredException, throw,
+        //    OrchestrationResult.error, etc.).
+        List<AssistantMemory> memories = loadMemories(context, effectiveMessage);
+        List<KbSearchService.KbSearchHit> kbHits =
+                loadRelevantKbHits(effectiveMessage, context.organizationId());
         String apiKey = resolveApiKey(context.organizationId());
+
+        // 5. Tentative multi-agent (si flag on + sans attachments + spécialistes prêts).
+        //    Attachments → fallback mono-agent car les spécialistes ne gerent pas
+        //    encore les images Vision (TODO v2).
+        //    Pas de spécialiste → impossible, fallback aussi.
+        //    Si multi-agent throw, on log et fallback automatiquement.
+        if (canUseMultiAgent(context, hasAttachments)) {
+            try {
+                com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx =
+                        new com.clenzy.service.agent.multiagent.OrchestrationContext(memories, kbHits);
+                // Resoud le modele a utiliser : context.modelOverride > Settings >
+                // null. Si l'admin a assigne un modele a la feature ASSISTANT_CHAT
+                // dans Settings > IA, on l'utilise pour piloter orchestrator +
+                // specialists. Sinon fallback sur le defaut provider (Sonnet).
+                String multiAgentModel = resolveAssistantModel(context.modelOverride());
+                AgentContext effectiveContext = multiAgentModel != null
+                        ? context.withModelOverride(multiAgentModel)
+                        : context;
+
+                boolean handledByMultiAgent = tryMultiAgentFlow(
+                        effectiveMessage, chatMessages, orchestrationCtx, apiKey,
+                        effectiveContext, conversation, consumer);
+                if (handledByMultiAgent) {
+                    // 6. Update conversation updatedAt + title si manquant
+                    conversation.setUpdatedAt(LocalDateTime.now());
+                    if (conversation.getTitle() == null) {
+                        conversation.setTitle(deriveTitle(effectiveMessage));
+                    }
+                    conversationRepository.save(conversation);
+                    return conversation.getId();
+                }
+            } catch (com.clenzy.service.agent.multiagent.ConfirmationRequiredException e) {
+                // Cas attendu : un specialist a tente d'invoquer un write tool
+                // sensible (block_calendar, cancel_reservation, etc.). Le multi-agent
+                // ne sait pas faire la pause-confirmation → fallback mono-agent
+                // qui exposera la confirmation au user. Log info, pas warn.
+                //
+                // NB: les eventuels widgets/snapshots accumules par le specialist
+                // AVANT le throw (read tools precedents) sont volontairement perdus :
+                // ils n'avaient pas encore ete emis en SSE (l'emission ne se fait qu'a
+                // la fin de tryMultiAgentFlow), et le mono-agent va de toute facon
+                // re-invoquer ses propres tools → pas de risque de duplicate ni
+                // d'incohérence.
+                log.info("Multi-agent fallback to mono-agent (tool '{}' requires confirmation)",
+                        e.toolName());
+            } catch (Exception e) {
+                log.warn("Multi-agent flow failed, falling back to mono-agent : {}",
+                        e.getMessage(), e);
+            }
+        }
+
+        // 7 (fallback). Boucle tool-calling mono-agent (27 tools), avec reutilisation
+        //    des memoires + RAG pre-chargees (pas de second appel embeddings).
+        //    Resolution du modele (priorite decroissante) :
+        //      1. context.modelOverride() : forcage explicite (briefings = Haiku)
+        //      2. Modele assigne a la feature ASSISTANT_CHAT dans Settings > IA
+        //      3. null → defaut provider (Anthropic Sonnet)
         List<ToolDescriptor> tools = toolRegistry.listDescriptors();
-        String systemPrompt = buildSystemPrompt(context, effectiveMessage);
+        String systemPrompt = buildSystemPrompt(context, effectiveMessage, memories, kbHits);
+        String resolvedModel = resolveAssistantModel(context.modelOverride());
         ChatRequest request = new ChatRequest(
-                systemPrompt, chatMessages, tools, context.modelOverride(),
+                systemPrompt, chatMessages, tools, resolvedModel,
                 DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN);
 
         runToolLoop(request, conversation, context, apiKey, consumer);
@@ -436,6 +580,114 @@ public class AgentOrchestrator {
         return conversation.getId();
     }
 
+    // ─── Multi-agent flow (helpers) ────────────────────────────────────────
+
+    /**
+     * Decide si on peut tenter le multi-agent flow pour cette requete.
+     *
+     * <p>Conditions :</p>
+     * <ul>
+     *   <li>Feature flag {@code clenzy.assistant.multi-agent.enabled=true}</li>
+     *   <li>Pas d'attachments (vision pas encore supportee par les specialistes)</li>
+     *   <li>Pas de {@code modelOverride} dans le {@link AgentContext} :
+     *       les briefings et autres cas specialises forcent leur modele (Haiku
+     *       pour briefings) — on respecte ce choix en restant en mono-agent</li>
+     *   <li>SpecialistRegistry non vide</li>
+     *   <li>OrchestratorAgent injecte (non null)</li>
+     * </ul>
+     */
+    private boolean canUseMultiAgent(AgentContext context, boolean hasAttachments) {
+        if (!multiAgentEnabled) return false;
+        if (hasAttachments) return false;
+        // Briefings (BriefingComposer) forcent un modelOverride Haiku — skip multi-agent
+        // pour preserver leur flow specifique (prompts structures DAILY/WEEKLY/ALERTS).
+        if (context.modelOverride() != null) return false;
+        if (multiAgentOrchestrator == null) return false;
+        return specialistRegistry != null && specialistRegistry.size() > 0;
+    }
+
+    /**
+     * Execute le flow multi-agent et stream les events SSE.
+     *
+     * @param userMessage      le message texte du tour courant (utilise pour
+     *                          deriver le titre et le logging — pas pour le LLM)
+     * @param chatHistory      historique complet de la conversation (incluant le
+     *                          message user courant en derniere position). Transmis
+     *                          a l'orchestrator pour preserver le contexte multi-tour.
+     * @param orchestrationCtx memoire + RAG pre-charges (Fix bloquant #3) :
+     *                          memory long-terme + snippets doc relevants. Injectes
+     *                          dans le system prompt de l'orchestrator et propages
+     *                          aux specialists via SpecialistRequest.
+     * @return true si le flow a reussi et les events ont ete emis ;
+     *         false si une condition empeche le multi-agent (caller fallback mono-agent)
+     */
+    private boolean tryMultiAgentFlow(String userMessage,
+                                        List<ChatMessage> chatHistory,
+                                        com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx,
+                                        String apiKey,
+                                        AgentContext context,
+                                        AssistantConversation conversation,
+                                        Consumer<AgentSseEvent> consumer) {
+        com.clenzy.service.agent.multiagent.OrchestratorAgent.OrchestrationResult result =
+                multiAgentOrchestrator.orchestrate(chatHistory, context, orchestrationCtx, apiKey);
+
+        if (!result.isSuccess()) {
+            log.warn("Multi-agent returned error : {} — fallback mono-agent", result.error());
+            return false;
+        }
+
+        // 1. Emettre les tool_call_executed events pour chaque widget (preserve l'UX)
+        //    toolCallId synthetique UUID : evite la React key collision ("multiple
+        //    children with key=null") quand plusieurs tools sont invoques. Pas de
+        //    flow pause-confirm en multi-agent v1 donc pas besoin d'un id "trackable".
+        for (com.clenzy.service.agent.multiagent.ToolInvocationSnapshot snap : result.toolInvocations()) {
+            consumer.accept(AgentSseEvent.toolCallExecuted(
+                    snap.toolName(),
+                    "ma-" + java.util.UUID.randomUUID(),  // "ma" = multi-agent prefix
+                    snap.isError(),
+                    snap.displayHint(),
+                    snap.isError() ? null : snap.content()
+            ));
+        }
+
+        // 2. Emettre le texte final en un seul delta (pas de streaming caractere par
+        //    caractere en v1 — le streaming SSE bidirectionnel viendra en v2)
+        String finalText = result.finalText() == null ? "" : result.finalText();
+        if (!finalText.isEmpty()) {
+            consumer.accept(AgentSseEvent.textDelta(finalText));
+        }
+
+        // 3. Persister le message assistant (avec tokens + finish reason)
+        AssistantMessage assistantMsg = AssistantMessage.assistant(
+                conversation.getId(),
+                context.organizationId(),
+                finalText,
+                null  // tool_calls JSON (multi-agent : detail interne, pas expose ici)
+        );
+        assistantMsg.setPromptTokens(result.totalPromptTokens());
+        assistantMsg.setCompletionTokens(result.totalCompletionTokens());
+        assistantMsg.setFinishReason(result.truncated() ? "length" : "end_turn");
+        messageRepository.save(assistantMsg);
+
+        // Track usage : 1 record aggregate par tour multi-agent (orchestrator +
+        // somme des specialists). Granularite acceptable pour le badge frontend ;
+        // la granularite par specialist viendra en v2 du multi-agent quand on
+        // streamera les events specialist par specialist.
+        // Modele de reference : la conv stocke le modele primaire (Sonnet) — on
+        // l'utilise pour le pricing. Si plusieurs modeles utilises (Sonnet
+        // orchestrator + Haiku specialists), le cout sera approximatif vers le
+        // haut (Sonnet est plus cher), donc estimation conservative — OK.
+        String multiAgentModel = conversation.getModel() != null
+                ? conversation.getModel() : "claude-sonnet-4";
+        recordUsageSafe(context.organizationId(), "anthropic",
+                result.totalPromptTokens(), result.totalCompletionTokens(),
+                multiAgentModel, result.truncated() ? "length" : "end_turn");
+
+        // 4. Emettre done
+        consumer.accept(AgentSseEvent.done(result.truncated() ? "length" : "end_turn"));
+        return true;
+    }
+
     // ─── Boucle principale ─────────────────────────────────────────────────
 
     private void runToolLoop(ChatRequest initialRequest,
@@ -467,6 +719,13 @@ public class AgentOrchestrator {
             if (conversation.getModel() == null && outcome.model != null) {
                 conversation.setModel(outcome.model);
             }
+
+            // Track usage : alimente ai_token_usage pour le badge frontend
+            // "$0.12 ce mois" + alertes budget. Granularite = par iteration LLM
+            // (1 record par tool call round, pour matcher la realite des couts).
+            recordUsageSafe(context.organizationId(), "anthropic",
+                    outcome.promptTokens, outcome.completionTokens,
+                    outcome.model, outcome.finishReason);
 
             // No tool calls → done
             if (outcome.toolCalls == null || outcome.toolCalls.isEmpty()) {
@@ -580,89 +839,135 @@ public class AgentOrchestrator {
     // ─── Helpers ───────────────────────────────────────────────────────────
 
     /**
-     * Construit le system prompt pour cette conversation en prependant la section
-     * "Memoire utilisateur" (top {@value #MAX_MEMORY_ENTRIES} entrees triees par
-     * recence, groupees par scope) au prompt par defaut.
+     * Construit le system prompt pour cette conversation.
      *
-     * <p>Si l'user n'a aucune memoire, retourne {@link #DEFAULT_SYSTEM_PROMPT}
-     * tel quel pour ne pas polluer le contexte avec une section vide.</p>
+     * <p>Variante sans userMessage : utilisee dans les resume-after-confirmation
+     * (pas de nouvelle query memoire/RAG).</p>
      */
     String buildSystemPrompt(AgentContext context) {
         return buildSystemPrompt(context, null);
     }
 
     /**
-     * Variante avec auto-RAG : si {@code latestUserMessage} est non null/blank,
-     * on fait une recherche kb et on prepend les snippets pertinents (relevance
-     * > {@value #RAG_RELEVANCE_MIN}) sous "── Contexte documentation pertinente ──".
+     * Construit le system prompt avec :
+     * <ul>
+     *   <li>Section memoire (selection par similarite si message user, sinon recency)</li>
+     *   <li>Section RAG (snippets doc Clenzy au-dessus du seuil de relevance)</li>
+     *   <li>Le DEFAULT_SYSTEM_PROMPT (legacy v1) OU le PromptBuilder v2 selon
+     *       le feature flag {@link #promptV2Enabled}</li>
+     * </ul>
      *
-     * <p>L'echec silencieux est OK (network/embed provider KO) : on tombe sur
-     * le prompt sans RAG. Le RAG est un bonus, pas un bloquant.</p>
+     * <p><b>Rollback safety (2 niveaux)</b> :</p>
+     * <ol>
+     *   <li>Feature flag {@code clenzy.assistant.prompt.v2.enabled=false}
+     *       → retour instantane a l'ancien comportement sans redeploy</li>
+     *   <li>Si v2 throw (bug regression), catch + fallback automatique sur v1
+     *       + log warning pour alerte ops</li>
+     * </ol>
+     *
+     * <p>L'echec silencieux des sources memoire/RAG est OK (network/embed
+     * provider KO) — c'est du nice-to-have, pas un bloquant.</p>
      */
     String buildSystemPrompt(AgentContext context, String latestUserMessage) {
-        StringBuilder prefix = new StringBuilder();
+        // 1. Pre-charge des memoires (commun v1/v2)
+        List<AssistantMemory> memories = loadMemories(context, latestUserMessage);
 
-        // 1. Section memoire — selection par similarite si on a un message user,
-        //    sinon fallback recency (cas resume after confirmation).
+        // 2. Pre-charge des hits RAG (commun v1/v2)
+        List<KbSearchService.KbSearchHit> kbHits = loadRelevantKbHits(latestUserMessage, context.organizationId());
+
+        return buildSystemPrompt(context, latestUserMessage, memories, kbHits);
+    }
+
+    /**
+     * Overload qui re-utilise des memoires/RAG hits deja charges en amont — evite
+     * un double appel reseau embeddings quand le multi-agent fallback vers
+     * mono-agent (cf. {@link #handleMessage(Long, String, List, AgentContext, Consumer)}).
+     *
+     * <p>Le caller est responsable de fournir des collections coherentes avec
+     * {@code latestUserMessage} (sinon le prompt aura un decalage). En pratique
+     * les deux sont charges via les memes helpers que cette methode utiliserait.</p>
+     */
+    String buildSystemPrompt(AgentContext context, String latestUserMessage,
+                              List<AssistantMemory> memories,
+                              List<KbSearchService.KbSearchHit> kbHits) {
+        // Composition : v2 par defaut, fallback v1 si erreur ou resultat vide
+        if (promptV2Enabled && promptBuilder != null) {
+            try {
+                String v2 = promptBuilder.buildChatPrompt(context, latestUserMessage, memories, kbHits);
+                if (v2 != null && !v2.isBlank()) return v2;
+                // null/blank → traite comme fallback (defensive : mock en tests)
+                log.debug("PromptBuilder v2 returned null/blank, falling back to v1");
+            } catch (Exception e) {
+                log.warn("PromptBuilder v2 failed, falling back to legacy v1 : {}", e.getMessage(), e);
+                // Fall through to v1
+            }
+        }
+        return buildLegacySystemPrompt(memories, kbHits);
+    }
+
+    /** Charge les memoires (selection par similarite OU recency). Silent fallback list vide. */
+    private List<AssistantMemory> loadMemories(AgentContext context, String latestUserMessage) {
         try {
-            List<AssistantMemory> memories = (latestUserMessage != null && !latestUserMessage.isBlank())
+            return (latestUserMessage != null && !latestUserMessage.isBlank())
                     ? memoryService.listMostRelevant(context.organizationId(), context.keycloakId(),
                             latestUserMessage, MAX_MEMORY_ENTRIES)
                     : memoryService.listForUser(context.keycloakId(), MAX_MEMORY_ENTRIES);
-            if (memories != null && !memories.isEmpty()) {
-                prefix.append(renderMemorySection(memories)).append("\n\n");
-            }
         } catch (Exception e) {
             log.warn("Failed to load memory for user {} : {}", context.keycloakId(), e.getMessage());
+            return java.util.List.of();
         }
+    }
 
-        // 2. Section RAG documentation pertinente
-        if (latestUserMessage != null && !latestUserMessage.isBlank() && kbSearchService != null) {
-            String ragSection = renderKbContext(latestUserMessage, context.organizationId());
+    /** Charge les hits RAG au-dessus du seuil. Silent fallback list vide. */
+    private List<KbSearchService.KbSearchHit> loadRelevantKbHits(String query, Long organizationId) {
+        if (query == null || query.isBlank() || kbSearchService == null) return java.util.List.of();
+        try {
+            return kbSearchService.search(query, organizationId, RAG_TOP_K).stream()
+                    .filter(h -> h.relevance() >= RAG_RELEVANCE_MIN)
+                    .toList();
+        } catch (Exception e) {
+            log.debug("RAG auto-injection skipped : {}", e.getMessage());
+            return java.util.List.of();
+        }
+    }
+
+    /** Legacy v1 : ancien comportement (memory text-format + RAG markdown + DEFAULT_SYSTEM_PROMPT). */
+    private String buildLegacySystemPrompt(List<AssistantMemory> memories,
+                                             List<KbSearchService.KbSearchHit> kbHits) {
+        StringBuilder prefix = new StringBuilder();
+        if (memories != null && !memories.isEmpty()) {
+            prefix.append(renderMemorySection(memories)).append("\n\n");
+        }
+        if (kbHits != null && !kbHits.isEmpty()) {
+            String ragSection = renderLegacyKbContext(kbHits);
             if (ragSection != null && !ragSection.isEmpty()) {
                 prefix.append(ragSection).append("\n\n");
             }
         }
-
         if (prefix.length() == 0) return DEFAULT_SYSTEM_PROMPT;
         return prefix.append(DEFAULT_SYSTEM_PROMPT).toString();
     }
 
-    /**
-     * Recherche les snippets pertinents pour {@code query} et les serialise en
-     * section markdown. Retourne null si aucun chunk au-dessus du seuil ou si
-     * la recherche echoue (silencieux — RAG = nice-to-have).
-     */
-    private String renderKbContext(String query, Long organizationId) {
-        try {
-            List<KbSearchService.KbSearchHit> hits = kbSearchService.search(
-                    query, organizationId, RAG_TOP_K);
-            List<KbSearchService.KbSearchHit> relevant = hits.stream()
-                    .filter(h -> h.relevance() >= RAG_RELEVANCE_MIN)
-                    .toList();
-            if (relevant.isEmpty()) return null;
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("── Contexte documentation pertinente ──\n\n");
-            sb.append("Voici des extraits de la documentation Clenzy lies a la question. ")
-                    .append("REGLES :\n")
-                    .append("- Si tu utilises l'info d'un extrait, cite-le « Selon [titre](sourcePath), ... ».\n")
-                    .append("- Si aucun extrait ne repond a la question, dis explicitement que la doc ne le couvre pas ")
-                    .append("au lieu d'extrapoler ou d'inventer.\n")
-                    .append("- Ne reformule pas un fait absent des extraits comme s'il venait de la doc.\n\n");
-            for (int i = 0; i < relevant.size(); i++) {
-                KbSearchService.KbSearchHit h = relevant.get(i);
-                sb.append("[").append(i + 1).append("] ");
-                sb.append("**").append(h.title() != null ? h.title() : "Document")
-                        .append("** (").append(h.sourcePath()).append(") — ")
-                        .append("relevance ").append(Math.round(h.relevance() * 100)).append("%\n");
-                sb.append(h.snippet()).append("\n\n");
-            }
-            return sb.toString().trim();
-        } catch (Exception e) {
-            log.debug("RAG auto-injection skipped : {}", e.getMessage());
-            return null;
+    /** Render legacy markdown des hits RAG (utilise par v1 uniquement). */
+    private String renderLegacyKbContext(List<KbSearchService.KbSearchHit> relevant) {
+        if (relevant == null || relevant.isEmpty()) return null;
+        StringBuilder sb = new StringBuilder();
+        sb.append("── Contexte documentation pertinente ──\n\n");
+        sb.append("Voici des extraits de la documentation Clenzy lies a la question. ")
+                .append("REGLES :\n")
+                .append("- Si tu utilises l'info d'un extrait, cite-le « Selon [titre](sourcePath), ... ».\n")
+                .append("- Si aucun extrait ne repond a la question, dis explicitement que la doc ne le couvre pas ")
+                .append("au lieu d'extrapoler ou d'inventer.\n")
+                .append("- Ne reformule pas un fait absent des extraits comme s'il venait de la doc.\n\n");
+        for (int i = 0; i < relevant.size(); i++) {
+            KbSearchService.KbSearchHit h = relevant.get(i);
+            sb.append("[").append(i + 1).append("] ");
+            sb.append("**").append(h.title() != null ? h.title() : "Document")
+                    .append("** (").append(h.sourcePath()).append(") — ")
+                    .append("relevance ").append(Math.round(h.relevance() * 100)).append("%\n");
+            sb.append(h.snippet()).append("\n\n");
         }
+        return sb.toString().trim();
     }
 
     /**
@@ -810,6 +1115,86 @@ public class AgentOrchestrator {
      * resilient au schema (storageKey + mediaType minimum) pour pouvoir relire
      * meme apres une evolution du modele.
      */
+    /**
+     * Resoud le modele a utiliser pour le chat assistant (orchestrator
+     * multi-agent + specialists + mono-agent fallback).
+     *
+     * <p>Priorite decroissante :</p>
+     * <ol>
+     *   <li>{@code overrideFromContext} (briefings : Haiku force par
+     *       BriefingComposer pour reduire les couts)</li>
+     *   <li>Modele assigne a la feature {@code ASSISTANT_CHAT} dans Settings
+     *       &gt; IA &gt; Modeles &amp; features (configurable par l'admin)</li>
+     *   <li>{@code null} → le ChatLLMProvider utilise son modele defaut
+     *       (Claude Sonnet 4 actuellement)</li>
+     * </ol>
+     *
+     * <p>Fail-safe : si la lookup Settings throw (DB down), on retourne
+     * {@code overrideFromContext} → degradation gracieuse vers le defaut
+     * provider.</p>
+     */
+    private String resolveAssistantModel(String overrideFromContext) {
+        // Priorite 1 : modelOverride explicite du AgentContext (briefings, etc.)
+        if (overrideFromContext != null && !overrideFromContext.isBlank()) {
+            return overrideFromContext;
+        }
+        // Priorite 2 : modele assigne a la feature ASSISTANT_CHAT en Settings
+        if (platformAiConfigService == null) return null;
+        try {
+            return platformAiConfigService
+                    .getActiveModelForFeature(com.clenzy.model.AiFeature.ASSISTANT_CHAT.name())
+                    .map(com.clenzy.model.PlatformAiModel::getModelId)
+                    .orElse(null);
+        } catch (Exception e) {
+            log.debug("Failed to resolve assistant model from Settings : {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Enregistre la consommation tokens dans {@code ai_token_usage} (feature
+     * {@code ASSISTANT_CHAT}). Wrappee defensivement : ne propage JAMAIS
+     * d'exception au caller — un crash du tracking ne doit pas casser le chat.
+     *
+     * <p>Skip si tokens = 0 ou modele = null (rien d'utile a tracker).</p>
+     */
+    private void recordUsageSafe(Long organizationId, String providerName,
+                                   int promptTokens, int completionTokens,
+                                   String model, String finishReason) {
+        if (promptTokens <= 0 && completionTokens <= 0) {
+            log.info("[USAGE] Skip recordUsage : tokens={}/{} model='{}' (zero)",
+                    promptTokens, completionTokens, model);
+            return;
+        }
+        if (model == null || model.isBlank()) {
+            log.info("[USAGE] Skip recordUsage : model null/blank, tokens={}/{}",
+                    promptTokens, completionTokens);
+            return;
+        }
+        try {
+            com.clenzy.config.ai.AiResponse resp = new com.clenzy.config.ai.AiResponse(
+                    "",  // content non requis pour le tracking
+                    promptTokens, completionTokens,
+                    promptTokens + completionTokens,
+                    model,
+                    finishReason
+            );
+            aiTokenBudgetService.recordUsage(
+                    organizationId,
+                    com.clenzy.model.AiFeature.ASSISTANT_CHAT,
+                    providerName != null ? providerName : "anthropic",
+                    resp
+            );
+            log.info("[USAGE] Recorded ASSISTANT_CHAT : org={} provider={} model='{}' "
+                    + "tokens={}/{}", organizationId, providerName, model,
+                    promptTokens, completionTokens);
+        } catch (Exception e) {
+            // Tracking non-critique : log WARN (pas debug) pour voir les vrais bugs
+            log.warn("[USAGE] Failed to record assistant token usage : {}",
+                    e.getMessage(), e);
+        }
+    }
+
     private String serializeAttachmentsSafe(List<AttachmentRef> attachments) {
         if (attachments == null || attachments.isEmpty()) return null;
         try {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -21,8 +21,9 @@ import {
   LockOutlined as LockIcon,
   Login as LoginIcon,
 } from '../../icons';
-import lightTheme from '../../theme/theme';
-import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
+import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
+import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
 import keycloak from '../../keycloak';
 import { clearMockFlags, setSessionCookie } from '../../services/storageService';
@@ -55,6 +56,9 @@ const getForfaitShortLabel = (t: TFunction, key: string): string => {
 
 export default function InscriptionConfirm() {
   const { t } = useTranslation();
+  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
+  const { isRtl } = useGeoAuthLanguage();
+  const theme = useMemo(() => createClenzyTheme({ isRtl }), [isRtl]);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token') || '';
@@ -157,7 +161,7 @@ export default function InscriptionConfirm() {
   };
 
   return (
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box
         sx={{
@@ -184,7 +188,7 @@ export default function InscriptionConfirm() {
         >
           {/* Logo */}
           <Box sx={{ mb: 2 }}>
-            <ClenzyAnimatedLogo scale={1.1} />
+            <ClenzyMarkLogo scale={1.1} />
           </Box>
 
           {/* Loading */}

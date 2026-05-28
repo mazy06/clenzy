@@ -17,8 +17,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Provider OpenAI text-embedding-3-small avec param {@code dimensions=1024}
+ * Provider OpenAI {@code text-embedding-3-large} avec param {@code dimensions=1024}
  * pour matcher la table {@code kb_chunk.embedding}.
+ *
+ * <p><b>Modele defaut : {@code text-embedding-3-large}</b> (jusqu'a 3072d,
+ * tronque a 1024 via MRL). Qualite superieure a {@code small} (-3.5% MRR
+ * benchmark MTEB), surcout ~6.5x (~$0.13/1M vs $0.02/1M) — mais absolument
+ * negligeable a notre volume.</p>
+ *
+ * <p>Override possible via {@code clenzy.ai.embeddings.openai.model} si on
+ * voulait revenir a {@code text-embedding-3-small} pour reduire les couts
+ * sur de gros volumes (>10M tokens/mois).</p>
  *
  * <p>Endpoint : {@code POST https://api.openai.com/v1/embeddings}.</p>
  *
@@ -30,7 +39,8 @@ import java.util.Map;
 public class OpenAIEmbeddingProvider implements EmbeddingProvider {
 
     private static final Logger log = LoggerFactory.getLogger(OpenAIEmbeddingProvider.class);
-    private static final String DEFAULT_MODEL = "text-embedding-3-small";
+    /** Meilleur modele OpenAI 2026 (qualite > cout justifie). */
+    private static final String DEFAULT_MODEL = "text-embedding-3-large";
     private static final int BATCH_SIZE = 96; // OpenAI limit ~2048 inputs mais on reste prudent
 
     private final RestTemplate restTemplate;
@@ -92,7 +102,7 @@ public class OpenAIEmbeddingProvider implements EmbeddingProvider {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("input", batch);
         body.put("model", model);
-        // text-embedding-3-small supporte la troncature MRL via "dimensions"
+        // text-embedding-3-{small,large} supportent la troncature MRL via "dimensions"
         body.put("dimensions", targetDimensions);
 
         HttpHeaders headers = new HttpHeaders();

@@ -62,6 +62,29 @@ export type AgentSseEvent =
   | { type: 'done'; finishReason: string }
   | { type: 'error'; error: string };
 
+/**
+ * Snapshot de consommation de l'assistant (tokens + cout USD).
+ * Retourne par {@code GET /assistant/usage} et utilise par le badge header chat.
+ */
+export interface AssistantUsage {
+  tokensIn: number;
+  tokensOut: number;
+  /** Cout cumule en USD (BigDecimal serialise en string ou number selon Jackson). */
+  costUsd: number;
+  byModel: AssistantUsageModel[];
+  period: 'today' | 'month' | 'all' | 'conversation';
+  monthlyBudget: number | null;
+  requestCount: number;
+}
+
+export interface AssistantUsageModel {
+  model: string;
+  tokensIn: number;
+  tokensOut: number;
+  costUsd: number;
+  count: number;
+}
+
 export interface ChatRequestBody {
   conversationId?: number | null;
   message: string;
@@ -88,6 +111,21 @@ export const assistantApi = {
 
   archiveConversation(conversationId: number): Promise<void> {
     return apiClient.delete<void>(`/assistant/conversations/${conversationId}`);
+  },
+
+  /**
+   * Consommation tokens + cout USD de l'organisation sur une periode.
+   * Alimente le badge "$0.12 ce mois · 1.2k tokens" dans le header chat.
+   */
+  getUsage(period: 'today' | 'month' | 'all' = 'month'): Promise<AssistantUsage> {
+    return apiClient.get<AssistantUsage>('/assistant/usage', { params: { period } });
+  },
+
+  /**
+   * Consommation d'une conversation specifique (404 si non-owner).
+   */
+  getConversationUsage(conversationId: number): Promise<AssistantUsage> {
+    return apiClient.get<AssistantUsage>(`/assistant/usage/conversations/${conversationId}`);
   },
 
   /**

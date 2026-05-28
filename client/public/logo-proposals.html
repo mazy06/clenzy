@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clenzy — Logo iter 5 : lines absorb into center on hover</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand: #6B8A9A; --brand-dark: #4A6B7B; --brand-light: #89B1C2;
+      --brand-soft: rgba(107, 138, 154, 0.08);
+      --ink: #1A2832; --muted: #5B7081;
+      --paper: #FFFFFF; --paper-tinted: #F7F9FA; --border: #E4E9EC;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--paper-tinted); font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+    .page { max-width: 1180px; margin: 0 auto; padding: 64px 32px; }
+    h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .lede { color: var(--muted); font-size: 16px; line-height: 1.5; margin-bottom: 48px; max-width: 760px; }
+    .card { background: var(--paper); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .card-header { padding: 20px 28px; border-bottom: 1px solid var(--border); }
+    .card-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 6px; }
+    .card-sub { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .preview-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+    @media (max-width: 720px) { .preview-row { grid-template-columns: 1fr; } }
+    .preview { padding: 80px 32px; display: flex; align-items: center; justify-content: center; min-height: 240px; background: var(--paper); position: relative; cursor: pointer; }
+    .preview.dark { background: #0F1A22; }
+    .preview-label { position: absolute; bottom: 14px; left: 16px; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+    .preview.dark .preview-label { color: rgba(255,255,255,0.4); }
+    .hover-hint { position: absolute; bottom: 14px; right: 16px; font-size: 10px; color: var(--muted); opacity: 0.55; font-style: italic; }
+    .preview.dark .hover-hint { color: rgba(255,255,255,0.4); }
+    .logo-row { display: flex; align-items: center; gap: 16px; }
+    .wordmark { font-family: 'Space Grotesk', sans-serif; font-weight: 600; letter-spacing: -0.015em; font-size: 48px; line-height: 1; color: var(--ink); }
+    .wordmark-light { color: #FFFFFF; }
+
+    /* ═════════════════════════════════════════════════════════════════════
+       ANIMATION SYSTEM — boot + idle + hover (replique du composant React)
+       Iter 5 : lines absorb into center via transition stroke-dashoffset
+       ═════════════════════════════════════════════════════════════════════ */
+
+    .mark-svg { overflow: visible; }
+
+    .mark-svg .mark-center {
+      transform-origin: 28px 28px;
+      animation:
+        mark-center-boot 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+        mark-center-breathe 4s ease-in-out 1500ms infinite;
+    }
+
+    /* Boot des lignes : fade-in du GROUPE parent (pas de la <line> ellement)
+       pour eviter conflit avec la transition stroke-dashoffset au hover. */
+    .mark-svg .lines-group {
+      opacity: 0;
+      animation: lines-group-fade-light 500ms ease-out 200ms forwards;
+    }
+    .preview.dark .mark-svg .lines-group {
+      animation-name: lines-group-fade-dark;
+    }
+    @keyframes lines-group-fade-light { 0% { opacity: 0; } 100% { opacity: 0.35; } }
+    @keyframes lines-group-fade-dark  { 0% { opacity: 0; } 100% { opacity: 0.40; } }
+
+    /* Lignes : transition stroke-dashoffset pour absorb au hover.
+       dasharray=18 = longueur exacte de chaque ligne (rayon octogone).
+       dashoffset 0 = visible, dashoffset 18 = "absorbed" (dash fully shifted off).
+       Per-line transition-delay : cascade au hover-out (chaque trait re-emerge
+       60ms apres le precedent), override delay:0 au hover-in pour absorb together. */
+    .mark-svg .mark-line {
+      stroke-dasharray: 18;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 450ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    /* Synchronise avec le node pop replay timing (300 + i*60ms) =>
+       au hover-out, chaque pair (line + node) re-emerge ensemble dans
+       l'ordre horaire. */
+    .mark-svg .mark-line-0 { transition-delay: 300ms; }
+    .mark-svg .mark-line-1 { transition-delay: 360ms; }
+    .mark-svg .mark-line-2 { transition-delay: 420ms; }
+    .mark-svg .mark-line-3 { transition-delay: 480ms; }
+    .mark-svg .mark-line-4 { transition-delay: 540ms; }
+    .mark-svg .mark-line-5 { transition-delay: 600ms; }
+    .mark-svg .mark-line-6 { transition-delay: 660ms; }
+    .mark-svg .mark-line-7 { transition-delay: 720ms; }
+
+    .mark-svg .nodes-group {
+      transform-origin: 28px 28px;
+    }
+    .mark-svg .mark-node {
+      transform-box: fill-box;
+      transform-origin: center;
+      opacity: 0;
+    }
+    .mark-svg .mark-node-0 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 300ms both, mark-node-scan-0 6400ms ease-in-out 1400ms infinite; }
+    .mark-svg .mark-node-1 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 360ms both, mark-node-scan-1 6400ms ease-in-out 1480ms infinite; }
+    .mark-svg .mark-node-2 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 420ms both, mark-node-scan-2 6400ms ease-in-out 1560ms infinite; }
+    .mark-svg .mark-node-3 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 480ms both, mark-node-scan-3 6400ms ease-in-out 1640ms infinite; }
+    .mark-svg .mark-node-4 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 540ms both, mark-node-scan-4 6400ms ease-in-out 1720ms infinite; }
+    .mark-svg .mark-node-5 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 600ms both, mark-node-scan-5 6400ms ease-in-out 1800ms infinite; }
+    .mark-svg .mark-node-6 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 660ms both, mark-node-scan-6 6400ms ease-in-out 1880ms infinite; }
+    .mark-svg .mark-node-7 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 720ms both, mark-node-scan-7 6400ms ease-in-out 1960ms infinite; }
+
+    /* ─── HOVER ──────────────────────────────────────────────────────── */
+    /* Centre : on garde le boot (deja complete, fill:both) et on remplace
+       breathe par pulse-loop infini avec delay 450ms (= duree absorb des
+       lignes). Au hover-out, anim revient a [boot, breathe], pulse stop. */
+    .preview:hover .mark-svg .mark-center {
+      animation:
+        mark-center-boot 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+        mark-center-pulse-loop 1.4s ease-in-out 450ms infinite;
+    }
+    /* Lignes : dashoffset 0 -> 18 = trait retracte de l'exterieur vers
+       le centre (= disparait dans le rond central). transition-delay:0
+       override pour absorb instantane all together au hover-in. Au
+       hover-out, le base rule reprend avec ses per-line delays => cascade. */
+    .preview:hover .mark-svg .mark-line {
+      stroke-dashoffset: 18;
+      transition-delay: 0ms;
+    }
+
+    /* Au hover : le group nodes orbite autour du centre (qui pulse en
+       parallele). Demarre apres l'absorb des lignes (450ms). Stop au
+       hover-out (animation removed => snap to no transform = 0deg). */
+    .preview:hover .mark-svg .nodes-group {
+      animation: nodes-orbit 6s linear 450ms infinite;
+    }
+    /* Nodes individuellement : animation:none pendant le hover pour
+       desactiver scan/pop (le orbit du group s'en occupe). opacity:1
+       explicite pour rester visible. */
+    .preview:hover .mark-svg .mark-node-0,
+    .preview:hover .mark-svg .mark-node-1,
+    .preview:hover .mark-svg .mark-node-2,
+    .preview:hover .mark-svg .mark-node-3,
+    .preview:hover .mark-svg .mark-node-4,
+    .preview:hover .mark-svg .mark-node-5,
+    .preview:hover .mark-svg .mark-node-6,
+    .preview:hover .mark-svg .mark-node-7 {
+      opacity: 1;
+      animation: none;
+    }
+
+    /* ─── Keyframes : boot ───────────────────────────────────────────── */
+    @keyframes mark-center-boot { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes mark-node-pop    { 0% { transform: translate(0,0) scale(0); opacity: 0; } 60% { transform: translate(0,0) scale(1.4); opacity: 1; } 100% { transform: translate(0,0) scale(1); opacity: 1; } }
+
+    /* ─── Keyframes : idle constant ──────────────────────────────────── */
+    @keyframes mark-center-breathe { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.94); opacity: 0.88; } }
+
+    @keyframes mark-node-scan-0 { 0%, 0%      { transform: translate(0,0)    scale(1); filter: brightness(1); } 6.25%  { transform: translate(0,-2.5)     scale(1.12); filter: brightness(1.3); } 12.50%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-1 { 0%, 12.50% { transform: translate(0,0)    scale(1); filter: brightness(1); } 18.75% { transform: translate(1.77,-1.77) scale(1.12); filter: brightness(1.3); } 25.00%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-2 { 0%, 25.00% { transform: translate(0,0)    scale(1); filter: brightness(1); } 31.25% { transform: translate(2.5,0)      scale(1.12); filter: brightness(1.3); } 37.50%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-3 { 0%, 37.50% { transform: translate(0,0)    scale(1); filter: brightness(1); } 43.75% { transform: translate(1.77,1.77)  scale(1.12); filter: brightness(1.3); } 50.00%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-4 { 0%, 50.00% { transform: translate(0,0)    scale(1); filter: brightness(1); } 56.25% { transform: translate(0,2.5)      scale(1.12); filter: brightness(1.3); } 62.50%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-5 { 0%, 62.50% { transform: translate(0,0)    scale(1); filter: brightness(1); } 68.75% { transform: translate(-1.77,1.77) scale(1.12); filter: brightness(1.3); } 75.00%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-6 { 0%, 75.00% { transform: translate(0,0)    scale(1); filter: brightness(1); } 81.25% { transform: translate(-2.5,0)     scale(1.12); filter: brightness(1.3); } 87.50%, 100% { transform: translate(0,0)    scale(1); filter: brightness(1); } }
+    @keyframes mark-node-scan-7 { 0%, 87.50% { transform: translate(0,0)    scale(1); filter: brightness(1); } 93.75% { transform: translate(-1.77,-1.77) scale(1.12); filter: brightness(1.3); } 100% { transform: translate(0,0) scale(1); filter: brightness(1); } }
+
+    /* ─── Keyframes : hover wave (centre + nodes uniquement) ─────────── */
+    /* Pulse-loop : 1.4s par cycle, peak a 50%. Demarre 450ms post-hover
+       (apres absorb des lignes), tourne en boucle tant que hover.
+       Visuel "orchestrator processing actively". */
+    @keyframes mark-center-pulse-loop {
+      0%, 100% { transform: scale(1);    filter: brightness(1)   drop-shadow(0 0 0 transparent); }
+      50%      { transform: scale(1.25); filter: brightness(1.4) drop-shadow(0 0 8px currentColor); }
+    }
+
+    /* Orbit : rotation horaire 360deg en 6s, lineaire (vitesse constante).
+       Group transform-origin = centre du mark => nodes tournent autour
+       du centre qui pulse. Sync : tous les deux demarrent a 450ms apres
+       le hover (apres absorb des lignes). */
+    @keyframes nodes-orbit {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .mark-svg * { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; stroke-dasharray: none !important; filter: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Clenzy — Iter 5 : lines absorb into center on hover</h1>
+    <p class="lede">Au hover, les <strong>8 traits se retractent depuis leur extremite vers le centre</strong> et disparaissent dans le node central (transition stroke-dashoffset 450ms). Au hover-out, la transition reverse naturellement — les lignes re-emergent depuis le centre vers l'exterieur. Effet narratif : "l'orchestrator absorbe les connexions pour focus, puis les redeploie quand on le quitte". <strong>Survole pour declencher</strong>.</p>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Iter 5 — Lines absorb on hover (transition reversible)</div>
+        <div class="card-sub">Implementation propre : transition (pas animation) sur stroke-dashoffset => le hover-out reverse automatiquement avec le meme easing. Boot deporte sur le groupe parent <code>&lt;g&gt;</code> (fade-in opacity) pour eviter le conflit animation/transition.</div>
+      </div>
+      <div class="preview-row">
+        <div class="preview">
+          <div class="logo-row">
+            <svg class="mark-svg" width="80" height="80" viewBox="0 0 56 56" fill="none">
+              <g class="lines-group" stroke="#6B8A9A" stroke-width="1">
+                <line class="mark-line mark-line-0" x1="28" y1="28" x2="28"   y2="10"/>
+                <line class="mark-line mark-line-1" x1="28" y1="28" x2="40.7" y2="15.3"/>
+                <line class="mark-line mark-line-2" x1="28" y1="28" x2="46"   y2="28"/>
+                <line class="mark-line mark-line-3" x1="28" y1="28" x2="40.7" y2="40.7"/>
+                <line class="mark-line mark-line-4" x1="28" y1="28" x2="28"   y2="46"/>
+                <line class="mark-line mark-line-5" x1="28" y1="28" x2="15.3" y2="40.7"/>
+                <line class="mark-line mark-line-6" x1="28" y1="28" x2="10"   y2="28"/>
+                <line class="mark-line mark-line-7" x1="28" y1="28" x2="15.3" y2="15.3"/>
+              </g>
+              <g class="nodes-group">
+                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#6B8A9A"/>
+              </g>
+              <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#4A6B7B"/>
+            </svg>
+            <span class="wordmark">clenzy</span>
+          </div>
+          <span class="preview-label">Light · iter 5 · lines absorb</span>
+          <span class="hover-hint">hover pour absorber les lignes</span>
+        </div>
+        <div class="preview dark">
+          <div class="logo-row">
+            <svg class="mark-svg" width="80" height="80" viewBox="0 0 56 56" fill="none">
+              <g class="lines-group" stroke="#89B1C2" stroke-width="1">
+                <line class="mark-line mark-line-0" x1="28" y1="28" x2="28"   y2="10"/>
+                <line class="mark-line mark-line-1" x1="28" y1="28" x2="40.7" y2="15.3"/>
+                <line class="mark-line mark-line-2" x1="28" y1="28" x2="46"   y2="28"/>
+                <line class="mark-line mark-line-3" x1="28" y1="28" x2="40.7" y2="40.7"/>
+                <line class="mark-line mark-line-4" x1="28" y1="28" x2="28"   y2="46"/>
+                <line class="mark-line mark-line-5" x1="28" y1="28" x2="15.3" y2="40.7"/>
+                <line class="mark-line mark-line-6" x1="28" y1="28" x2="10"   y2="28"/>
+                <line class="mark-line mark-line-7" x1="28" y1="28" x2="15.3" y2="15.3"/>
+              </g>
+              <g class="nodes-group">
+                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#89B1C2"/>
+              </g>
+              <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#FFFFFF"/>
+            </svg>
+            <span class="wordmark wordmark-light">clenzy</span>
+          </div>
+          <span class="preview-label">Dark · iter 5 · lines absorb</span>
+          <span class="hover-hint">hover</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 48px; padding: 24px; background: var(--paper); border: 1px solid var(--border); border-radius: 12px;">
+      <strong style="font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);">Pourquoi transition (pas animation) ?</strong>
+      <ul style="margin-top: 12px; padding-left: 20px; line-height: 1.7; font-size: 14px; color: var(--ink);">
+        <li><strong>Reversibilite native</strong> : la transition gere les deux sens (hover-in et hover-out) avec le meme easing. Pas besoin de keyframes de retour.</li>
+        <li><strong>Pas de snap brutal</strong> : si tu sors du hover en plein milieu de l'absorb (dashoffset = 9 par exemple), la transition continue depuis 9 vers 0 smoothly. Avec une animation, ca aurait snap a 0 instantanement.</li>
+        <li><strong>Pas de conflit avec le boot</strong> : le boot des lignes est deporte sur le <code>&lt;g&gt;</code> parent (fade-in opacity 0→0.35). La <code>&lt;line&gt;</code> elle-meme n'a pas d'animation au mount, donc la transition au hover marche sans interference.</li>
+        <li><strong>Easing cubic-bezier(0.4, 0, 0.2, 1)</strong> : Material standard, smooth-out marque pour un effet "absorption" naturel.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

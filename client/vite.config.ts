@@ -7,7 +7,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'icons/icon.svg'],
+      // favicon.ico retire : on n'a pas de version PNG/ICO, juste l'icon.svg
+      // qui suffit (browsers modernes supportent SVG comme favicon depuis 2020+)
+      includeAssets: ['icons/icon.svg'],
       manifest: {
         name: 'Clenzy PMS',
         short_name: 'Clenzy',
