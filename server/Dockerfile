@@ -5,11 +5,18 @@ WORKDIR /workspace
 # 1. Copier le pom.xml seul pour cacher les dependances
 COPY pom.xml /workspace/pom.xml
 
-# 2. Telecharger les dependances (layer cachee tant que pom.xml ne change pas)
-#    Retry up to 3 times — Maven Central peut renvoyer des 522 transitoires
+# 2. Telecharger les dependances ET les plugins Maven (layer cachee tant que
+#    pom.xml ne change pas). Retry up to 3 times — Maven Central peut renvoyer
+#    des 522 / timeout Cloudflare transitoires.
+#
+# Pourquoi `resolve-plugins` en plus de `go-offline` : `go-offline` ne pull
+# QUE les deps de compilation/runtime, pas les plugins Maven (clean, jar,
+# surefire, etc.) qui sont invoques au build. Sans ca, le stage suivant
+# `mvn clean package` essaye d'aller chercher maven-clean-plugin et fail
+# si Maven Central est lent (cas frequent sur CI / Docker Desktop).
 RUN for i in 1 2 3; do \
-      echo "=== Attempt $i/3: downloading dependencies ===" && \
-      mvn -B dependency:go-offline -DskipTests && break || \
+      echo "=== Attempt $i/3: downloading dependencies + plugins ===" && \
+      mvn -B dependency:go-offline dependency:resolve-plugins -DskipTests && break || \
       { echo "=== Attempt $i failed, waiting 10s ===" && sleep 10; }; \
     done
 
@@ -21,11 +28,16 @@ RUN mvn -B exec:java -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="
 # 4. Copier le code source
 COPY src /workspace/src
 
-# 5. Build jar (skip tests) — les dependances sont deja en cache local du
-# container apres go-offline ci-dessus. Flag `-o` (offline) garantit que
-# Maven n'essaie PAS de re-verifier les updates sur repo.maven.apache.org,
-# ce qui evite les timeouts reseau intermittents (Cloudflare / DNS).
-RUN mvn -B -o -DskipTests clean package && \
+# 5. Build jar (skip tests). Le cache local contient deja toutes les deps
+# ET tous les plugins grace au stage 2 (go-offline + resolve-plugins).
+# Pas de flag `-o` strict ici car certains plugins peuvent declencher des
+# lookups d'extensions (resilience4j, etc.) que `resolve-plugins` ne couvre
+# pas a 100%. Retry 3x au cas ou un fetch reseau marginal arrive.
+RUN for i in 1 2 3; do \
+      echo "=== Build attempt $i/3 ===" && \
+      mvn -B -DskipTests clean package && break || \
+      { echo "=== Build attempt $i failed, waiting 10s ===" && sleep 10; }; \
+    done && \
     rm -rf ~/.m2/repository
 
 # ====== Runtime stage ======
