@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
-import keycloak from '../keycloak';
+import keycloak, { keycloakInitPromise } from '../keycloak';
 import { useAuth } from '../hooks/useAuth';
 import { useTokenManagement } from '../hooks/useTokenManagement';
 import { configureConsole } from '../config/console';
@@ -223,10 +223,24 @@ const App: React.FC = () => {
   }, [checkTokenHealth]);
 
   // Initialisation de Keycloak
+  //
+  // CRITIQUE — await keycloakInitPromise AVANT de checker keycloak.authenticated.
+  // keycloak.init() est lancee dans keycloak.ts au load du module (async,
+  // ~200-500ms le temps du check SSO contre le serveur). Sans l'await, ce
+  // useEffect s'execute AVANT que init() ait fini -> keycloak.authenticated
+  // est `undefined`/false -> setAuthenticated(false) -> HardRedirectToLogin
+  // meme si le user a un cookie HttpOnly valide. C'est le bug du hard refresh
+  // qui deconnecte l'user.
   useEffect(() => {
     if (!initialized) {
       const initKeycloak = async () => {
         try {
+          // ATTENDRE la fin du check SSO Keycloak avant toute decision auth.
+          // La promise resolve avec un boolean (authenticated) — on garde
+          // keycloak.authenticated comme source de verite pour rester coherent
+          // avec le reste du code (qui fait `if (keycloak.authenticated)`).
+          await keycloakInitPromise;
+
           if (keycloak.authenticated) {
             setAuthenticated(true);
             setInitialized(true);
