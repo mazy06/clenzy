@@ -97,31 +97,46 @@ const SLIDES: CarouselSlide[] = [
     end: '.',
     subtitle: "Import automatique depuis Airbnb et Booking, descriptions générées par IA, photos analysées et notées. Setup en 15 minutes, première nuit vendue le lendemain. Pas 3 semaines comme chez les autres.",
   },
-  // ─── Technical capability (6-7) ────────────────────────────────────────
+  // ─── Channels integration (6) — enrichi avec les 7 OTAs deployees ─────
   {
-    tagline: 'Un seul calendrier.',
-    highlight: 'Airbnb, Booking, Vrbo synchronisés en temps réel',
+    tagline: 'Un seul calendrier pour',
+    highlight: 'Airbnb, Booking, Expedia, Vrbo, Agoda, Tripadvisor, Hotels.com',
     end: '.',
-    subtitle: 'Plus de double-booking. Plus de prix incohérents entre canaux. CalendarEngine source-of-truth, push instantané via outbox + Kafka. Robuste, fiable, prouvé.',
+    subtitle: "Synchronisation temps réel via Channex et nos connecteurs natifs. Plus de double-booking, plus de prix incohérents entre canaux. CalendarEngine source-of-truth, push instantané via outbox + Kafka.",
   },
+  // ─── Smart locks orchestration (7) — Nuki + KeyNest + Tuya prod ───────
+  {
+    tagline: 'Codes d’accès générés à la volée.',
+    highlight: 'Nuki, KeyNest, Tuya orchestrés depuis un seul dashboard',
+    end: '.',
+    subtitle: "Le code expire automatiquement au checkout, la batterie de la serrure est monitoree, les clés perdues chez KeyNest sont tracées en temps réel. Vous ne donnez plus jamais un code à la main.",
+  },
+  // ─── Guest messaging multi-channel (8) — Twilio prod ──────────────────
   {
     tagline: '',
-    highlight: "Anomalies détectées avant qu'elles ne coûtent",
+    highlight: 'WhatsApp, SMS, email — tout sur un seul fil de discussion',
     end: '.',
-    subtitle: "Bruit dépassant les seuils, locker non rendu, lit non refait, prix sous la concurrence locale. L'IA scanne en continu, vous alerte avant que le guest le voie.",
+    subtitle: "Vos guests vous répondent où ils sont, sans installer d'app. Twilio Verify pour la confirmation d'identité, conversations centralisées coté Clenzy, réponses IA suggérées. La concurrence éclate ça en 3 outils, vous l'avez en un.",
   },
-  // ─── Comparative differentiators (8-9) — attaque frontale vs concurrence
+  // ─── Multi-country accounting (9) — Pennylane/QB/Xero/Sage prod ──────
+  {
+    tagline: 'Votre comptabilité connectée,',
+    highlight: 'que vous soyez en France, UK, Australie ou USA',
+    end: '.',
+    subtitle: "Pennylane (FR), QuickBooks (US/CA), Xero (UK/AU/NZ), Sage (Europe) — Clenzy s'adapte à votre juridiction. Factures synchro auto, supplier invoices importées, declarations fiscales preparees. Vos revenus consolides multi-pays en un dashboard.",
+  },
+  // ─── Comparative differentiators (10-11) — attaque frontale vs concurrence
   {
     tagline: 'Vos contrats signés',
     highlight: 'en 30 secondes, sans quitter Clenzy',
     end: '.',
-    subtitle: "Mandat de gestion, contrats de location courte durée, autorisations check-in. Signature électronique eIDAS intégrée nativement. Plus besoin de payer Yousign 39€/mois en parallèle.",
+    subtitle: "Mandat de gestion, contrats de location courte durée, autorisations check-in. DocuSign eIDAS intégré nativement. Plus besoin de payer Yousign 39€/mois en parallèle.",
   },
   {
     tagline: '',
     highlight: 'API ouverte, données exportables en un clic',
     end: '.',
-    subtitle: "Vos réservations, guests, finances, photos — tout exportable au format ouvert. Pas de lock-in. Connectez Notion, Slack, Make, Zapier. Là où Guesty vous emprisonne, Clenzy vous libère.",
+    subtitle: "Vos réservations, guests, finances, photos — tout exportable au format ouvert. Webhooks Zapier, intégrations Notion, Slack, Make. Pas de lock-in. Là où Guesty vous emprisonne, Clenzy vous libère.",
   },
 ];
 
