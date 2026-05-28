@@ -202,6 +202,23 @@ clenzy:
       # docker-compose, sinon "http://localhost:2785" si l'instance tourne en
       # standalone. En prod : URL interne du service Kubernetes/Docker swarm.
       base-url: ${OPENWA_BASE_URL:http://openwa:2785}
+    meta:
+      # Meta Embedded Signup credentials. Renseignes APRES approval de la
+      # Meta App review (cf. docs/meta-app-review/README.md).
+      # Vides en dev par defaut : le flow Embedded Signup retourne 503 cote
+      # backend et le frontend bascule sur le form manuel (apiToken saisi a la main).
+      app-id: ${META_APP_ID:}
+      # /!\ SECRET — never expose au frontend. Server-only pour exchange code/token.
+      app-secret: ${META_APP_SECRET:}
+      # ID de la configuration Embedded Signup (depuis App Dashboard > WhatsApp > Configurations)
+      embedded-signup-config-id: ${META_EMBEDDED_SIGNUP_CONFIG_ID:}
+      # Base URL Graph API. Bumper la version (v18.0 -> v19.0, etc.) quand
+      # Meta sunset l'ancienne (cf. https://developers.facebook.com/docs/graph-api/changelog/).
+      graph-api-base: ${META_GRAPH_API_BASE:https://graph.facebook.com/v18.0}
+      oauth-token-url: ${META_OAUTH_TOKEN_URL:https://graph.facebook.com/v18.0/oauth/access_token}
+      # Redirect URI : vide pour popup mode (Embedded Signup standard).
+      # Renseigner uniquement si on passe en mode redirect non-popup (rare).
+      redirect-uri: ${META_REDIRECT_URI:}
 
 # ─── Firebase Cloud Messaging ─────────────────────────────────────────────────
 firebase:

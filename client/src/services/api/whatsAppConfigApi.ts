@@ -144,4 +144,37 @@ export const whatsAppConfigApi = {
   async deleteOpenWaSession(): Promise<void> {
     await apiClient.delete<void>('/whatsapp/openwa/session');
   },
+
+  // ─── Meta Embedded Signup (Option A) ─────────────────────────────
+
+  /**
+   * Recupere la config publique necessaire au SDK FB JS cote frontend.
+   * Throw si l'app n'est pas configuree cote serveur (META_APP_ID manquant) —
+   * le frontend doit fallback sur le form manuel dans ce cas.
+   */
+  async getMetaAppConfig(): Promise<MetaAppConfig> {
+    return await apiClient.get<MetaAppConfig>('/whatsapp/meta/app-config');
+  },
+
+  /**
+   * Envoie le code OAuth recu du SDK FB au backend, qui l'echange contre un
+   * token, resout le WABA + phone number, et provisionne whatsapp_configs.
+   */
+  async completeMetaOAuth(code: string): Promise<MetaSignupResult> {
+    return await apiClient.post<MetaSignupResult>('/whatsapp/meta/oauth-callback', { code });
+  },
 };
+
+export interface MetaAppConfig {
+  appId: string;
+  configId: string;
+  graphApiVersion: string;
+}
+
+export interface MetaSignupResult {
+  success: boolean;
+  phoneNumber: string;
+  wabaId: string;
+  phoneNumberId: string;
+  configId: number;
+}
