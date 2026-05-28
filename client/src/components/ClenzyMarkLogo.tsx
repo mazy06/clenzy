@@ -82,7 +82,6 @@ const SCAN_CYCLE_MS = 6400;
 const SCAN_NODE_SLICE_PCT = 100 / OCTAGON_NODES.length;
 
 const RADIAL_DELTA_SCAN_IDLE = 2.5;
-const RADIAL_DELTA_HOVER_WAVE = 4;
 
 function radialTranslate(node: { x: number; y: number }, delta: number): { tx: string; ty: string } {
   const dx = node.x - CENTER.x;
@@ -120,6 +119,7 @@ export default function ClenzyMarkLogo({
     center: `clenzy-mark-center-${uid}`,
     linesGroup: `clenzy-mark-lines-group-${uid}`,
     line: `clenzy-mark-line-${uid}`,
+    nodesGroup: `clenzy-mark-nodes-group-${uid}`,
     node: `clenzy-mark-node-${uid}`,
   };
 
@@ -145,7 +145,11 @@ export default function ClenzyMarkLogo({
           />
         ))}
       </g>
-      <g fill={palette.nodes}>
+      {/* Group nodes : permet le orbit rotation au hover via transform sur
+          le <g> (transform-origin: 28px 28px = centre du mark). Sans ce
+          wrapper il aurait fallu animer chaque node individuellement avec
+          des keyframes calcules en coordonnees polaires. */}
+      <g className={cls.nodesGroup} fill={palette.nodes}>
         {OCTAGON_NODES.map((n, i) => (
           <circle
             key={`n-${i}`}
@@ -189,17 +193,6 @@ export default function ClenzyMarkLogo({
     `;
   };
 
-  const buildWaveKeyframes = (i: number, node: typeof OCTAGON_NODES[number]): string => {
-    const { tx, ty } = radialTranslate(node, RADIAL_DELTA_HOVER_WAVE);
-    return `
-      @keyframes ${cls.node}-wave-${i} {
-        0%   { transform: translate(0, 0) scale(1); filter: brightness(1); }
-        50%  { transform: translate(${tx}px, ${ty}px) scale(1.5); filter: brightness(1.5); }
-        100% { transform: translate(0, 0) scale(1); filter: brightness(1); }
-      }
-    `;
-  };
-
   const animationCss = !disableAnimation ? `
     /* ─── Boot : centre + groupe lines + nodes ──────────────────────── */
     .${cls.center} {
@@ -211,6 +204,9 @@ export default function ClenzyMarkLogo({
     .${cls.linesGroup} {
       opacity: 0;
       animation: ${cls.linesGroup}-fade 500ms ease-out 200ms forwards;
+    }
+    .${cls.nodesGroup} {
+      transform-origin: ${CENTER.x}px ${CENTER.y}px;
     }
     .${cls.node} {
       transform-box: fill-box;
@@ -261,13 +257,19 @@ export default function ClenzyMarkLogo({
       stroke-dashoffset: ${LINE_LENGTH};
       transition-delay: 0ms;
     }
+    /* Au hover, le group nodes orbite autour du centre (qui pulse en
+       parallele). Demarre apres l'absorb des lignes (450ms). Stop au
+       hover-out (animation removed => snap to no transform = 0deg). */
+    .${cls.root}:hover .${cls.nodesGroup} {
+      animation: ${cls.nodesGroup}-orbit 6s linear 450ms infinite;
+    }
+    /* Nodes individuellement : animation:none pendant le hover pour
+       desactiver scan/pop (le orbit du group s'en occupe). opacity:1
+       explicite pour rester visible (sinon revient a opacity:0 du base). */
     ${OCTAGON_NODES.map((_, i) => `
       .${cls.root}:hover .${cls.node}-${i} {
-        /* opacity:1 explicite pour eviter que le node disparaisse apres la
-           fin de l'animation wave (post-650ms, computed style sans
-           animation revient a opacity:0 du base rule) */
         opacity: 1;
-        animation: ${cls.node}-wave-${i} 650ms cubic-bezier(0.34, 1.56, 0.64, 1) ${180 + i * 75}ms;
+        animation: none;
       }
     `).join('')}
 
@@ -293,7 +295,7 @@ export default function ClenzyMarkLogo({
     }
     ${OCTAGON_NODES.map((node, i) => buildScanKeyframes(i, node)).join('')}
 
-    /* ─── Keyframes : hover wave (centre + nodes uniquement) ─────────── */
+    /* ─── Keyframes : hover (centre pulse + nodes orbit) ─────────────── */
     /* Pulse loop : 1.4s par cycle, peak a 50% (scale 1.25, glow 8px).
        Demarre 450ms apres le hover (post-absorb des lignes), tourne en
        boucle tant que hover. Visuel "orchestrator processing actively". */
@@ -301,16 +303,26 @@ export default function ClenzyMarkLogo({
       0%, 100% { transform: scale(1);    filter: brightness(1)   drop-shadow(0 0 0 transparent); }
       50%      { transform: scale(1.25); filter: brightness(1.4) drop-shadow(0 0 8px currentColor); }
     }
-    ${OCTAGON_NODES.map((node, i) => buildWaveKeyframes(i, node)).join('')}
+    /* Orbit : rotation horaire 360deg en 6s, lineaire (vitesse constante).
+       Group transform-origin = centre du mark => les nodes tournent autour
+       du centre qui pulse. Sync avec le pulse-loop : tous les deux demarrent
+       a 450ms post-hover (apres absorb des lignes), narratif coherent
+       "orchestrator dispatching, agents orbiting in coordination". */
+    @keyframes ${cls.nodesGroup}-orbit {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
 
     /* ─── prefers-reduced-motion : tout kill ─────────────────────────── */
     @media (prefers-reduced-motion: reduce) {
       .${cls.center},
       .${cls.linesGroup},
       .${cls.line},
+      .${cls.nodesGroup},
       .${cls.node},
       .${cls.root}:hover .${cls.center},
       .${cls.root}:hover .${cls.line},
+      .${cls.root}:hover .${cls.nodesGroup},
       .${cls.root}:hover .${cls.node} {
         animation: none !important;
         transition: none !important;
