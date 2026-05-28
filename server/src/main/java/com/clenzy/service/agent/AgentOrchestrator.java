@@ -621,10 +621,13 @@ public class AgentOrchestrator {
         }
 
         // 1. Emettre les tool_call_executed events pour chaque widget (preserve l'UX)
+        //    toolCallId synthetique UUID : evite la React key collision ("multiple
+        //    children with key=null") quand plusieurs tools sont invoques. Pas de
+        //    flow pause-confirm en multi-agent v1 donc pas besoin d'un id "trackable".
         for (com.clenzy.service.agent.multiagent.ToolInvocationSnapshot snap : result.toolInvocations()) {
             consumer.accept(AgentSseEvent.toolCallExecuted(
                     snap.toolName(),
-                    null,  // pas de toolCallId au niveau multi-agent
+                    "ma-" + java.util.UUID.randomUUID(),  // "ma" = multi-agent prefix
                     snap.isError(),
                     snap.displayHint(),
                     snap.isError() ? null : snap.content()
