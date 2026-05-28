@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography, useTheme, alpha, useMediaQuery, CssBaseline, ThemeProvider } from '@mui/material';
 import { createClenzyTheme } from '../../theme/createClenzyTheme';
@@ -12,10 +12,10 @@ import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
  * Pattern split-screen B2B SaaS modern (cf. Linear, Vercel, Stripe Dashboard) :
  * <ul>
  *   <li><b>Desktop ≥md</b> : panneau brand a gauche (40%) + zone form a droite (60%).
- *       Le panneau gauche est minimaliste (pas de gradient cyan/lavande AI-slop),
- *       juste un fond tinted subtle avec dot pattern + logo + tagline + footer
- *       discret. La zone form a droite est sur fond {@code background.paper}
- *       pour maximiser le contraste et le focus sur l'action.</li>
+ *       Le panneau brand contient un <b>carrousel marketing 8 slides</b> qui
+ *       cycle toutes les 6s — chaque slide adresse un pain point different du
+ *       host courte duree (revenue, time saved, scaling, 24/7 support, multi-
+ *       channel sync, anomaly detection, compliance, sentiment proactif).</li>
  *   <li><b>Mobile</b> : panneau brand disparait, seul le form reste centre avec
  *       un logo compact en haut pour preserver l'identite.</li>
  * </ul>
@@ -40,6 +40,83 @@ export interface AuthLayoutProps {
   maxFormWidth?: number | string;
 }
 
+// ─── Carrousel marketing : 8 slides cyclant automatiquement ────────────────
+
+interface CarouselSlide {
+  /** Texte d'intro avant le highlight (peut etre vide). */
+  tagline: string;
+  /** Phrase mise en exergue en couleur primary. */
+  highlight: string;
+  /** Texte court apres le highlight (typiquement la ponctuation). */
+  end: string;
+  /** Body texte de preuve / detail. */
+  subtitle: string;
+}
+
+/**
+ * Liste des 8 slides du carrousel marketing. Chaque slide adresse un pain
+ * point ou benefice specifique aux hosts/gestionnaires de location courte
+ * duree (cible Clenzy). Validees par l'user 2026-05-28.
+ *
+ * <p><b>TODO i18n</b> : actuellement hardcode en FR. Les utilisateurs hors-FR
+ * voient le francais (acceptable V1, le marche prioritaire est FR/MAGHREB).
+ * A migrer vers i18n keys auth.layout.slides[0..7].{tagline,highlight,end,subtitle}
+ * quand les traductions EN/AR seront validees par un native speaker.</p>
+ */
+const SLIDES: CarouselSlide[] = [
+  {
+    tagline: 'Pendant que vous dormez,',
+    highlight: '8 agents IA optimisent votre revenue par nuit',
+    end: '.',
+    subtitle: 'Pricing dynamique, messagerie guests multilingue, briefings quotidiens, sentiment analysis. La seule chose que vous gardez en main : la stratégie.',
+  },
+  {
+    tagline: 'Récupérez',
+    highlight: '12h par semaine. Sans embaucher',
+    end: '.',
+    subtitle: 'Vos agents IA pricent vos nuits, répondent aux guests, génèrent vos briefings du matin et alertent sur les anomalies. Vous reprenez le contrôle de votre temps.',
+  },
+  {
+    tagline: 'De 1 à 100 propriétés,',
+    highlight: 'sans embaucher un seul gestionnaire',
+    end: '.',
+    subtitle: 'Architecture multi-agents qui scale linéairement. Pricing, messaging, analytics, briefings, sentiment — tout reste fluide quand votre portefeuille grossit.',
+  },
+  {
+    tagline: 'Vos guests servis à 3h du matin.',
+    highlight: 'Sans vous réveiller',
+    end: '.',
+    subtitle: "Messagerie IA multilingue qui répond aux questions check-in, codes wifi, recommandations resto. Vous gérez les exceptions, l'IA gère la routine.",
+  },
+  {
+    tagline: 'Un seul calendrier.',
+    highlight: 'Airbnb, Booking, Vrbo synchronisés en temps réel',
+    end: '.',
+    subtitle: 'Plus de double-booking. Plus de prix incohérents entre canaux. CalendarEngine source-of-truth, push instantané via outbox + Kafka. Robuste, fiable, prouvé.',
+  },
+  {
+    tagline: '',
+    highlight: "Anomalies détectées avant qu'elles ne coûtent",
+    end: '.',
+    subtitle: "Bruit dépassant les seuils, locker non rendu, lit non refait, prix sous la concurrence locale. L'IA scanne en continu, vous alerte avant que le guest le voie.",
+  },
+  {
+    tagline: '',
+    highlight: 'NF 525, RGPD, déclarations fiscales — automatiques',
+    end: '.',
+    subtitle: 'Stripe Connect intégré, factures conformes, journalisation immuable. Hébergé en Europe, indépendant. Vos données ne quittent pas l’UE.',
+  },
+  {
+    tagline: 'Détectez les',
+    highlight: "guests insatisfaits avant qu'ils laissent un avis",
+    end: '.',
+    subtitle: "Sentiment analysis sur chaque message entrant. Quand un guest passe en zone rouge, vous êtes alerté en temps réel — vous pouvez intervenir avant que ça atterrisse en 2 étoiles.",
+  },
+];
+
+/** Duree d'affichage par slide en millisecondes. 6s = ~lecture confortable. */
+const SLIDE_DURATION_MS = 6000;
+
 export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutProps) {
   // Geo-detected language : ces pages NE respectent PAS les preferences user.
   // Logique business : pays arabes -> ar, France/Maghreb -> fr, autres -> en.
@@ -59,7 +136,26 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const primary = theme.palette.primary.main;
+
+  // ─── State du carrousel ──────────────────────────────────────────────
+  const [slideIndex, setSlideIndex] = useState(0);
+  // Pause quand l'user hover le panel : permet de lire tranquillement sans
+  // que le slide change pendant la lecture.
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    // Pas d'auto-cycle si l'user prefere reduced-motion : on affiche
+    // seulement le slide 0 (au mount). Il peut toujours cliquer les dots.
+    if (prefersReducedMotion || isPaused || !isMdUp) return;
+    const id = window.setInterval(() => {
+      setSlideIndex((i) => (i + 1) % SLIDES.length);
+    }, SLIDE_DURATION_MS);
+    return () => window.clearInterval(id);
+  }, [isPaused, prefersReducedMotion, isMdUp]);
+
+  const current = SLIDES[slideIndex];
 
   return (
     <Box
@@ -89,6 +185,8 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
             backgroundPosition: '0 0',
             overflow: 'hidden',
           }}
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
         >
           {/* Accent decoratif top-right : cercle radial diffus, brand color */}
           <Box
@@ -110,37 +208,115 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
             <ClenzyMarkLogo scale={0.95} />
           </Box>
 
-          {/* Centre : tagline + proof */}
-          <Box sx={{ position: 'relative', zIndex: 1, maxWidth: 420 }}>
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 600,
-                lineHeight: 1.2,
-                color: 'text.primary',
-                textWrap: 'balance',
-                mb: 2,
-              }}
-            >
-              {t('auth.layout.tagline', 'Pendant que vous dormez,')}{' '}
-              <Box component="span" sx={{ color: primary }}>
-                {t('auth.layout.taglineHighlight', '8 agents IA optimisent votre revenue par nuit')}
+          {/* Centre : carrousel slide actuel + dots */}
+          <Box sx={{ position: 'relative', zIndex: 1, maxWidth: 460 }}>
+            {/* Zone reservee de hauteur fixe pour eviter le layout shift
+                quand on passe d'un slide court a un slide long. min-height
+                calee sur le slide le plus haut (subtitle ~3 lignes). */}
+            <Box sx={{ minHeight: 220 }}>
+              {/* key={slideIndex} force le remount a chaque slide => l'animation
+                  CSS fade-in se rejoue automatiquement. Approche tres simple
+                  vs framer-motion pour ce cas (1 element a la fois). */}
+              <Box
+                key={slideIndex}
+                sx={{
+                  animation: prefersReducedMotion
+                    ? 'none'
+                    : 'auth-slide-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both',
+                  '@keyframes auth-slide-in': {
+                    from: { opacity: 0, transform: 'translateY(8px)' },
+                    to: { opacity: 1, transform: 'translateY(0)' },
+                  },
+                }}
+              >
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 600,
+                    lineHeight: 1.2,
+                    color: 'text.primary',
+                    textWrap: 'balance',
+                    mb: 2,
+                  }}
+                >
+                  {current.tagline && (
+                    <>
+                      {/* Fallback i18n sur le slide 0 (les autres slides
+                          sont hardcodes FR — cf. TODO sur SLIDES ci-dessus) */}
+                      {slideIndex === 0
+                        ? t('auth.layout.tagline', current.tagline)
+                        : current.tagline}{' '}
+                    </>
+                  )}
+                  <Box component="span" sx={{ color: primary }}>
+                    {slideIndex === 0
+                      ? t('auth.layout.taglineHighlight', current.highlight)
+                      : current.highlight}
+                  </Box>
+                  {slideIndex === 0
+                    ? t('auth.layout.taglineEnd', current.end)
+                    : current.end}
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    color: 'text.secondary',
+                    lineHeight: 1.6,
+                    fontSize: '0.95rem',
+                  }}
+                >
+                  {slideIndex === 0
+                    ? t('auth.layout.subtitle', current.subtitle)
+                    : current.subtitle}
+                </Typography>
               </Box>
-              {t('auth.layout.taglineEnd', '.')}
-            </Typography>
-            <Typography
-              variant="body1"
+            </Box>
+
+            {/* Dots pagination : cliquables pour naviguer manuellement.
+                Au click : reset le timer auto-cycle (l'effect se reabonne via
+                la dependance slideIndex/isPaused). */}
+            <Box
+              role="tablist"
+              aria-label="Slides marketing"
               sx={{
-                color: 'text.secondary',
-                lineHeight: 1.6,
-                fontSize: '0.95rem',
+                display: 'flex',
+                gap: 1,
+                mt: 3,
+                alignItems: 'center',
               }}
             >
-              {t(
-                'auth.layout.subtitle',
-                'Pricing dynamique, messagerie guests multilingue, briefings quotidiens, sentiment analysis. La seule chose que vous gardez en main : la stratégie.',
-              )}
-            </Typography>
+              {SLIDES.map((_, i) => {
+                const isActive = i === slideIndex;
+                return (
+                  <Box
+                    key={i}
+                    component="button"
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-label={`Slide ${i + 1} sur ${SLIDES.length}`}
+                    onClick={() => setSlideIndex(i)}
+                    sx={{
+                      width: isActive ? 24 : 8,
+                      height: 8,
+                      borderRadius: 999,
+                      border: 'none',
+                      p: 0,
+                      cursor: 'pointer',
+                      bgcolor: isActive ? primary : alpha(primary, 0.25),
+                      transition: 'width 250ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms',
+                      '&:hover': {
+                        bgcolor: isActive ? primary : alpha(primary, 0.45),
+                      },
+                      '&:focus-visible': {
+                        outline: `2px solid ${primary}`,
+                        outlineOffset: 2,
+                      },
+                    }}
+                  />
+                );
+              })}
+            </Box>
           </Box>
 
           {/* Footer : trust signals discrets */}
