@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography, useTheme, alpha, useMediaQuery, CssBaseline, ThemeProvider } from '@mui/material';
 import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 
 /**
@@ -40,12 +41,10 @@ export interface AuthLayoutProps {
 }
 
 export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutProps) {
-  // Theme arabe-aware : applique Tajawal + dir=rtl quand la langue UI est 'ar'.
-  // Sans ca, les pages de login/inscription wrap lightTheme directement -> les
-  // overrides du AppWithTheme (qui set Tajawal en RTL) sont IGNORES car ce
-  // ThemeProvider local prend la priorite.
-  const { i18n } = useTranslation();
-  const isRtl = i18n.language === 'ar';
+  // Geo-detected language : ces pages NE respectent PAS les preferences user.
+  // Logique business : pays arabes -> ar, France/Maghreb -> fr, autres -> en.
+  // Hook override l'i18n au mount + restore au unmount.
+  const { isRtl } = useGeoAuthLanguage();
   const theme = useMemo(() => createClenzyTheme({ isDark: false, isRtl }), [isRtl]);
 
   return (

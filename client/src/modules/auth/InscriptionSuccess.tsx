@@ -13,15 +13,15 @@ import {
 } from '@mui/material';
 import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '../../icons';
 import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient from '../../services/apiClient';
 
 export default function InscriptionSuccess() {
-  const { t, i18n } = useTranslation();
-  const theme = useMemo(
-    () => createClenzyTheme({ isRtl: i18n.language === 'ar' }),
-    [i18n.language]
-  );
+  const { t } = useTranslation();
+  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
+  const { isRtl } = useGeoAuthLanguage();
+  const theme = useMemo(() => createClenzyTheme({ isRtl }), [isRtl]);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const sessionId = searchParams.get('session_id');
