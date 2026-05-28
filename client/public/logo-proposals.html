@@ -71,28 +71,31 @@
       stroke-dashoffset: 0;
       transition: stroke-dashoffset 450ms cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .mark-svg .mark-line-0 { transition-delay: 0ms; }
-    .mark-svg .mark-line-1 { transition-delay: 60ms; }
-    .mark-svg .mark-line-2 { transition-delay: 120ms; }
-    .mark-svg .mark-line-3 { transition-delay: 180ms; }
-    .mark-svg .mark-line-4 { transition-delay: 240ms; }
-    .mark-svg .mark-line-5 { transition-delay: 300ms; }
-    .mark-svg .mark-line-6 { transition-delay: 360ms; }
-    .mark-svg .mark-line-7 { transition-delay: 420ms; }
+    /* Synchronise avec le node pop replay timing (300 + i*60ms) =>
+       au hover-out, chaque pair (line + node) re-emerge ensemble dans
+       l'ordre horaire. */
+    .mark-svg .mark-line-0 { transition-delay: 300ms; }
+    .mark-svg .mark-line-1 { transition-delay: 360ms; }
+    .mark-svg .mark-line-2 { transition-delay: 420ms; }
+    .mark-svg .mark-line-3 { transition-delay: 480ms; }
+    .mark-svg .mark-line-4 { transition-delay: 540ms; }
+    .mark-svg .mark-line-5 { transition-delay: 600ms; }
+    .mark-svg .mark-line-6 { transition-delay: 660ms; }
+    .mark-svg .mark-line-7 { transition-delay: 720ms; }
 
     .mark-svg .mark-node {
       transform-box: fill-box;
       transform-origin: center;
       opacity: 0;
     }
-    .mark-svg .mark-node-0 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 600ms both, mark-node-scan-0 6400ms ease-in-out 1400ms infinite; }
-    .mark-svg .mark-node-1 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 660ms both, mark-node-scan-1 6400ms ease-in-out 1480ms infinite; }
-    .mark-svg .mark-node-2 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 720ms both, mark-node-scan-2 6400ms ease-in-out 1560ms infinite; }
-    .mark-svg .mark-node-3 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 780ms both, mark-node-scan-3 6400ms ease-in-out 1640ms infinite; }
-    .mark-svg .mark-node-4 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 840ms both, mark-node-scan-4 6400ms ease-in-out 1720ms infinite; }
-    .mark-svg .mark-node-5 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 900ms both, mark-node-scan-5 6400ms ease-in-out 1800ms infinite; }
-    .mark-svg .mark-node-6 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 960ms both, mark-node-scan-6 6400ms ease-in-out 1880ms infinite; }
-    .mark-svg .mark-node-7 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 1020ms both, mark-node-scan-7 6400ms ease-in-out 1960ms infinite; }
+    .mark-svg .mark-node-0 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 300ms both, mark-node-scan-0 6400ms ease-in-out 1400ms infinite; }
+    .mark-svg .mark-node-1 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 360ms both, mark-node-scan-1 6400ms ease-in-out 1480ms infinite; }
+    .mark-svg .mark-node-2 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 420ms both, mark-node-scan-2 6400ms ease-in-out 1560ms infinite; }
+    .mark-svg .mark-node-3 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 480ms both, mark-node-scan-3 6400ms ease-in-out 1640ms infinite; }
+    .mark-svg .mark-node-4 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 540ms both, mark-node-scan-4 6400ms ease-in-out 1720ms infinite; }
+    .mark-svg .mark-node-5 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 600ms both, mark-node-scan-5 6400ms ease-in-out 1800ms infinite; }
+    .mark-svg .mark-node-6 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 660ms both, mark-node-scan-6 6400ms ease-in-out 1880ms infinite; }
+    .mark-svg .mark-node-7 { animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 720ms both, mark-node-scan-7 6400ms ease-in-out 1960ms infinite; }
 
     /* ─── HOVER ──────────────────────────────────────────────────────── */
     /* Centre : on garde le boot (deja complete, fill:both) et on remplace
