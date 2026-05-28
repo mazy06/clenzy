@@ -312,12 +312,13 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
             <ClenzyMarkLogo scale={0.95} tone={ENABLE_PHOTO_HERO ? 'dark' : 'auto'} />
           </Box>
 
-          {/* Centre : carrousel slide actuel + dots */}
-          <Box sx={{ position: 'relative', zIndex: 1, maxWidth: 460 }}>
-            {/* Zone reservee de hauteur fixe pour eviter le layout shift
-                quand on passe d'un slide court a un slide long. min-height
-                calee sur le slide le plus haut (subtitle ~3 lignes). */}
-            <Box sx={{ minHeight: 220 }}>
+          {/* Centre : carrousel slide actuel + dots verticaux a droite.
+              Layout horizontal : text column (narrow, ~360px) + dots
+              column (vertical, 24px) cote a cote. Le texte plus etroit
+              feel "plus vertical" et la pagination verticale a droite
+              signale plus clairement les slides disponibles. */}
+          <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 3 }}>
+            <Box sx={{ flex: 1, maxWidth: 360, minHeight: 280 }}>
               {/* key={slideIndex} force le remount a chaque slide => l'animation
                   CSS fade-in se rejoue automatiquement. Approche tres simple
                   vs framer-motion pour ce cas (1 element a la fois). */}
@@ -388,17 +389,21 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
               </Box>
             </Box>
 
-            {/* Dots pagination : cliquables pour naviguer manuellement.
-                Au click : reset le timer auto-cycle (l'effect se reabonne via
-                la dependance slideIndex/isPaused). */}
+            {/* Dots pagination en colonne verticale a droite du texte.
+                Click : reset le timer auto-cycle (l'effect se reabonne via
+                la dependance slideIndex/isPaused).
+                Dot active : pill verticale (height 24, width 8) au lieu
+                d'horizontale, conforme a l'orientation du tablist. */}
             <Box
               role="tablist"
               aria-label="Slides marketing"
+              aria-orientation="vertical"
               sx={{
                 display: 'flex',
+                flexDirection: 'column',
                 gap: 1,
-                mt: 3,
                 alignItems: 'center',
+                flexShrink: 0,
               }}
             >
               {SLIDES.map((_, i) => {
@@ -422,14 +427,14 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                     aria-label={`Slide ${i + 1} sur ${SLIDES.length}`}
                     onClick={() => setSlideIndex(i)}
                     sx={{
-                      width: isActive ? 24 : 8,
-                      height: 8,
+                      width: 8,
+                      height: isActive ? 24 : 8,
                       borderRadius: 999,
                       border: 'none',
                       p: 0,
                       cursor: 'pointer',
                       bgcolor: isActive ? dotActiveBg : dotInactiveBg,
-                      transition: 'width 250ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms',
+                      transition: 'height 250ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms',
                       '&:hover': {
                         bgcolor: isActive ? dotActiveBg : dotInactiveHoverBg,
                       },
