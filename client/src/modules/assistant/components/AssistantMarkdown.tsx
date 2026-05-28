@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { Link as RouterLink } from 'react-router-dom';
 import { Box, Typography, useTheme, alpha } from '@mui/material';
+import { isArabicHeavy, arabicTextSx, arabicDirProp } from '../../../utils/textDirection';
 
 interface AssistantMarkdownProps {
   /** Texte markdown produit par le LLM. */
@@ -173,5 +174,23 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
     ),
   }), [theme]);
 
-  return <ReactMarkdown components={components}>{text}</ReactMarkdown>;
+  // Adaptation typographique RTL : si le contenu est majoritairement arabe,
+  // wrap dans un container dir="rtl" + sx augmente (+18% fontSize, line-height
+  // 1.85, font-family priorisant Tahoma/Geeza Pro). Sinon LTR par defaut.
+  const arabic = isArabicHeavy(text);
+  if (arabic) {
+    return (
+      <Box dir="rtl" sx={{ ...arabicTextSx, textAlign: 'right' }}>
+        <ReactMarkdown components={components}>{text}</ReactMarkdown>
+      </Box>
+    );
+  }
+  // Texte avec quelques mots arabes au milieu (ex: nom propre) : pas de wrap
+  // global, mais le navigateur applique l'isolation bidirectionnelle unicode
+  // automatiquement sur les caracteres arabes detectes.
+  return (
+    <Box dir={arabicDirProp(text)}>
+      <ReactMarkdown components={components}>{text}</ReactMarkdown>
+    </Box>
+  );
 };

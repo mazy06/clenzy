@@ -5,6 +5,7 @@ import type { DisplayMessage } from '../../../hooks/useAgent';
 import { ToolCallCard } from './ToolCallCard';
 import { ToolResultWidget } from '../widgets/ToolResultWidget';
 import { AssistantMarkdown } from './AssistantMarkdown';
+import { isArabicHeavy, arabicTextSx, arabicDirProp } from '../../../utils/textDirection';
 
 interface MessageBubbleProps {
   message: DisplayMessage;
@@ -102,10 +103,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             {message.content && (
               <Typography
                 variant="body2"
+                dir={arabicDirProp(message.content)}
                 sx={{
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word',
                   lineHeight: 1.55,
+                  // Si le message user est en arabe : agrandit + line-height
+                  // adapte + font-family arabe-friendly. Sinon styles latins.
+                  ...(isArabicHeavy(message.content) ? {
+                    ...arabicTextSx,
+                    textAlign: 'right',
+                  } : {}),
                 }}
               >
                 {message.content}
