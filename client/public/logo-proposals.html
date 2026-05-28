@@ -3,14 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clenzy — Logo proposals</title>
+  <title>Clenzy — Logo iteration 2 : font + animation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- 4 fonts loaded for side-by-side comparison -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&family=Space+Grotesk:wght@500;600;700&family=Bricolage+Grotesque:wght@600;700;800&family=Geist:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --brand: #6B8A9A;
       --brand-dark: #4A6B7B;
+      --brand-light: #89B1C2;
       --brand-soft: rgba(107, 138, 154, 0.08);
       --ink: #1A2832;
       --muted: #5B7081;
@@ -22,305 +24,431 @@
     html, body { background: var(--paper-tinted); font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
     .page { max-width: 1180px; margin: 0 auto; padding: 64px 32px; }
     h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
-    .lede { color: var(--muted); font-size: 16px; line-height: 1.5; margin-bottom: 48px; max-width: 640px; }
+    .lede { color: var(--muted); font-size: 16px; line-height: 1.5; margin-bottom: 48px; max-width: 720px; }
     .grid { display: grid; grid-template-columns: 1fr; gap: 28px; }
     .card { background: var(--paper); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
     .card-header { padding: 20px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
     .badge { display: inline-block; padding: 4px 10px; background: var(--brand-soft); color: var(--brand-dark); border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
-    .card-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
-    .card-rationale { color: var(--muted); font-size: 13px; line-height: 1.5; padding: 16px 28px; background: var(--paper-tinted); border-bottom: 1px solid var(--border); }
+    .card-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin-top: 8px; }
+    .card-rationale { color: var(--muted); font-size: 13px; line-height: 1.6; padding: 16px 28px; background: var(--paper-tinted); border-bottom: 1px solid var(--border); }
+    .card-rationale strong { color: var(--ink); font-weight: 600; }
     .preview-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
     @media (max-width: 720px) { .preview-row { grid-template-columns: 1fr; } }
-    .preview { padding: 56px 32px; display: flex; align-items: center; justify-content: center; min-height: 180px; background: var(--paper); }
+    .preview { padding: 56px 32px; display: flex; align-items: center; justify-content: center; min-height: 200px; background: var(--paper); position: relative; cursor: pointer; }
     .preview.dark { background: #0F1A22; }
     .preview-label { position: absolute; bottom: 12px; left: 16px; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-    .preview { position: relative; }
     .preview.dark .preview-label { color: rgba(255,255,255,0.4); }
-    .scale-row { display: flex; align-items: center; gap: 48px; padding: 32px; background: var(--paper-tinted); justify-content: center; flex-wrap: wrap; }
-    .scale-item { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .scale-cap { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+    .hover-hint { position: absolute; bottom: 12px; right: 16px; font-size: 10px; color: var(--muted); opacity: 0.5; font-style: italic; }
+    .preview.dark .hover-hint { color: rgba(255,255,255,0.4); }
 
-    /* ─── Brand color helpers for the SVG marks ─────────────────────────── */
-    .ink-brand { color: var(--brand); }
-    .ink-dark { color: var(--ink); }
-    .ink-light { color: #FFFFFF; }
+    .logo-row { display: flex; align-items: center; gap: 16px; }
 
-    /* ─── Wordmark utilities ────────────────────────────────────────────── */
-    .wordmark { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; letter-spacing: -0.025em; line-height: 1; }
+    /* ─── Wordmark fonts ────────────────────────────────────────────────── */
+    .font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; letter-spacing: -0.025em; }
+    .font-space   { font-family: 'Space Grotesk', sans-serif; font-weight: 600; letter-spacing: -0.015em; }
+    .font-bric    { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
+    .font-geist   { font-family: 'Geist', 'Inter', sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+
+    .wordmark { font-size: 44px; line-height: 1; color: var(--ink); }
     .wordmark-light { color: #FFFFFF; }
+
+    /* ─── 8-node mark animation ────────────────────────────────────────── */
+    /*
+     * BOOT SEQUENCE (joue 1 fois au mount, ~1.3s total) :
+     *  0ms   center fade-in + scale from 0 to 1
+     *  200ms 8 lignes radiales draw outward (stroke-dashoffset)
+     *  600ms 8 nodes fade-in + scale, staggered clockwise (60ms apart)
+     *
+     * HOVER ORCHESTRATION WAVE (joue au hover, 800ms) :
+     *  Le centre pulse, puis ripple radial vers les 8 nodes (clockwise stagger).
+     *  Implementation : on retrigger les animations en re-injectant un attribut
+     *  data-animate qui restart les @keyframes.
+     */
+    .mark-svg { overflow: visible; }
+    .mark-svg .mark-center {
+      transform-origin: center;
+      animation: mark-center-in 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    .mark-svg .mark-line {
+      stroke-dasharray: 36;
+      stroke-dashoffset: 36;
+      animation: mark-line-draw 500ms ease-out 200ms both;
+    }
+    .mark-svg .mark-node {
+      transform-origin: center;
+      transform-box: fill-box;
+      opacity: 0;
+      animation: mark-node-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    /* Stagger clockwise : N, NE, E, SE, S, SW, W, NW */
+    .mark-svg .mark-node-0 { animation-delay: 600ms; }
+    .mark-svg .mark-node-1 { animation-delay: 660ms; }
+    .mark-svg .mark-node-2 { animation-delay: 720ms; }
+    .mark-svg .mark-node-3 { animation-delay: 780ms; }
+    .mark-svg .mark-node-4 { animation-delay: 840ms; }
+    .mark-svg .mark-node-5 { animation-delay: 900ms; }
+    .mark-svg .mark-node-6 { animation-delay: 960ms; }
+    .mark-svg .mark-node-7 { animation-delay: 1020ms; }
+
+    @keyframes mark-center-in {
+      0%   { transform: scale(0);   opacity: 0; }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+    @keyframes mark-line-draw {
+      0%   { stroke-dashoffset: 36; opacity: 0; }
+      30%  { opacity: 0.35; }
+      100% { stroke-dashoffset: 0;  opacity: 0.35; }
+    }
+    @keyframes mark-node-pop {
+      0%   { transform: scale(0);   opacity: 0; }
+      60%  { transform: scale(1.4); opacity: 1; }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+
+    /* HOVER WAVE — communication orchestrator -> specialistes */
+    .preview:hover .mark-svg .mark-center {
+      animation: mark-center-pulse 700ms ease-out;
+    }
+    .preview:hover .mark-svg .mark-node-0 { animation: mark-node-pulse 600ms ease-out 100ms; }
+    .preview:hover .mark-svg .mark-node-1 { animation: mark-node-pulse 600ms ease-out 175ms; }
+    .preview:hover .mark-svg .mark-node-2 { animation: mark-node-pulse 600ms ease-out 250ms; }
+    .preview:hover .mark-svg .mark-node-3 { animation: mark-node-pulse 600ms ease-out 325ms; }
+    .preview:hover .mark-svg .mark-node-4 { animation: mark-node-pulse 600ms ease-out 400ms; }
+    .preview:hover .mark-svg .mark-node-5 { animation: mark-node-pulse 600ms ease-out 475ms; }
+    .preview:hover .mark-svg .mark-node-6 { animation: mark-node-pulse 600ms ease-out 550ms; }
+    .preview:hover .mark-svg .mark-node-7 { animation: mark-node-pulse 600ms ease-out 625ms; }
+
+    @keyframes mark-center-pulse {
+      0%   { transform: scale(1);    filter: brightness(1); }
+      40%  { transform: scale(1.25); filter: brightness(1.3); }
+      100% { transform: scale(1);    filter: brightness(1); }
+    }
+    @keyframes mark-node-pulse {
+      0%   { transform: scale(1);    filter: brightness(1); }
+      50%  { transform: scale(1.6);  filter: brightness(1.4); }
+      100% { transform: scale(1);    filter: brightness(1); }
+    }
+
+    /* ─── prefers-reduced-motion : kill all animations ─────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      .mark-svg .mark-center,
+      .mark-svg .mark-line,
+      .mark-svg .mark-node,
+      .preview:hover .mark-svg .mark-center,
+      .preview:hover .mark-svg .mark-node {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+        stroke-dashoffset: 0 !important;
+      }
+    }
+
+    .skill-quote { background: var(--brand-soft); border-left: 3px solid var(--brand); padding: 12px 16px; border-radius: 4px; font-size: 13px; color: var(--brand-dark); margin-top: 12px; font-style: italic; }
   </style>
 </head>
 <body>
   <div class="page">
-    <h1>Clenzy — Propositions logo PMS / SaaS</h1>
-    <p class="lede">3 directions à comparer. Chaque option est rendue sur fond clair et sombre, et déclinée en 3 tailles (sidebar 24px, header 32px, login 56px). Picke celle qui parle, je l'intègre comme composant React et je remplace partout (AuthLayout, Inscription, Sidebar).</p>
+    <h1>Clenzy — Iteration 2 : font + animation</h1>
+    <p class="lede">Tu trouves Plus Jakarta Sans "trop compact et trop lisse". Voici 3 alternatives plus typees, plus le mark 8 nodes anime (boot sequence au mount + communication wave au hover). <strong>Survole chaque preview</strong> pour declencher l'animation orchestration.</p>
 
     <div class="grid">
-      <!-- ─── OPTION A ─────────────────────────────────────────────── -->
+      <!-- ─── OPTION A : Space Grotesk (skill #1 reco "Tech Startup") ─── -->
       <div class="card">
         <div class="card-header">
           <div>
-            <span class="badge">Option A</span>
-            <div class="card-title" style="margin-top: 8px;">Monogramme géométrique + wordmark</div>
+            <span class="badge">Option A · recommande par le skill</span>
+            <div class="card-title">Space Grotesk 600</div>
           </div>
           <div style="font-size: 12px; color: var(--muted); text-align: right; max-width: 280px;">
-            Référence : Linear, Vercel, Resend.<br>Sobre, "infrastructure-grade".
+            Reference : Vercel, Pinecone, Hugging Face.<br>Cite par ui-ux-pro-max "Tech Startup".
           </div>
         </div>
         <div class="card-rationale">
-          Un "C" ouvert composé de 3 segments d'arc — évoque la composabilité (modules / agents), n'a aucun rapport avec une goutte d'eau ou du ménage. Pure géométrie. Couleur unique brand. Marche en favicon 16px.
+          <strong>Pourquoi ca repond au brief</strong> : moins compact (chasse plus large que Jakarta), plus de caractere (terminals geometriques distinctifs sur le "a", "y"). Geometrique mais avec personnalite, evite le "Helvetica generique". Ideal "AI / data-tech".
+          <div class="skill-quote">"Space Grotesk has unique character, ideal for tech companies, startups, AI products" — ui-ux-pro-max</div>
         </div>
         <div class="preview-row">
-          <!-- Light -->
           <div class="preview">
-            <div style="display: flex; align-items: center; gap: 14px;">
-              <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-                <!-- Arc segments composing a "C" -->
-                <path d="M 44 16 A 16 16 0 1 0 44 40" stroke="#6B8A9A" stroke-width="5" stroke-linecap="round" fill="none" stroke-dasharray="14 6 14 6 28" />
-              </svg>
-              <span class="wordmark" style="font-size: 32px; color: var(--ink);">clenzy</span>
-            </div>
-            <span class="preview-label">Light · 56px</span>
-          </div>
-          <!-- Dark -->
-          <div class="preview dark">
-            <div style="display: flex; align-items: center; gap: 14px;">
-              <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-                <path d="M 44 16 A 16 16 0 1 0 44 40" stroke="#89B1C2" stroke-width="5" stroke-linecap="round" fill="none" stroke-dasharray="14 6 14 6 28" />
-              </svg>
-              <span class="wordmark wordmark-light" style="font-size: 32px;">clenzy</span>
-            </div>
-            <span class="preview-label">Dark · 56px</span>
-          </div>
-        </div>
-        <div class="scale-row">
-          <div class="scale-item">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <svg width="24" height="24" viewBox="0 0 56 56" fill="none">
-                <path d="M 44 16 A 16 16 0 1 0 44 40" stroke="#6B8A9A" stroke-width="7" stroke-linecap="round" fill="none" stroke-dasharray="14 6 14 6 28" />
-              </svg>
-              <span class="wordmark" style="font-size: 14px; color: var(--ink);">clenzy</span>
-            </div>
-            <span class="scale-cap">Sidebar 24px</span>
-          </div>
-          <div class="scale-item">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
-                <path d="M 44 16 A 16 16 0 1 0 44 40" stroke="#6B8A9A" stroke-width="6" stroke-linecap="round" fill="none" stroke-dasharray="14 6 14 6 28" />
-              </svg>
-              <span class="wordmark" style="font-size: 18px; color: var(--ink);">clenzy</span>
-            </div>
-            <span class="scale-cap">Header 32px</span>
-          </div>
-          <div class="scale-item">
-            <!-- Icon only (favicon use case) -->
-            <svg width="32" height="32" viewBox="0 0 56 56" fill="none" style="background: var(--brand); border-radius: 8px; padding: 4px;">
-              <path d="M 44 16 A 16 16 0 1 0 44 40" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" fill="none" stroke-dasharray="14 6 14 6 28" />
-            </svg>
-            <span class="scale-cap">Favicon 32px</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- ─── OPTION B ─────────────────────────────────────────────── -->
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <span class="badge">Option B</span>
-            <div class="card-title" style="margin-top: 8px;">Mark orchestration 8 nodes</div>
-          </div>
-          <div style="font-size: 12px; color: var(--muted); text-align: right; max-width: 280px;">
-            Référence : Hugging Face, Pinecone, Mistral.<br>Visualise les 8 agents IA.
-          </div>
-        </div>
-        <div class="card-rationale">
-          8 nodes disposés en octogone autour d'un node central (orchestrateur). Reflète littéralement l'architecture multi-agents qui est ton différenciateur produit. Lisible en miniature, très "AI/data-tech".
-        </div>
-        <div class="preview-row">
-          <!-- Light -->
-          <div class="preview">
-            <div style="display: flex; align-items: center; gap: 14px;">
-              <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <div class="logo-row">
+              <svg class="mark-svg" width="60" height="60" viewBox="0 0 56 56" fill="none">
                 <g stroke="#6B8A9A" stroke-width="1" opacity="0.35">
-                  <line x1="28" y1="28" x2="28" y2="10" />
-                  <line x1="28" y1="28" x2="40.7" y2="15.3" />
-                  <line x1="28" y1="28" x2="46" y2="28" />
-                  <line x1="28" y1="28" x2="40.7" y2="40.7" />
-                  <line x1="28" y1="28" x2="28" y2="46" />
-                  <line x1="28" y1="28" x2="15.3" y2="40.7" />
-                  <line x1="28" y1="28" x2="10" y2="28" />
-                  <line x1="28" y1="28" x2="15.3" y2="15.3" />
+                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
+                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
+                  <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
+                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
+                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
+                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
+                  <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
+                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
                 </g>
-                <g fill="#6B8A9A">
-                  <circle cx="28" cy="10" r="2.5" />
-                  <circle cx="40.7" cy="15.3" r="2.5" />
-                  <circle cx="46" cy="28" r="2.5" />
-                  <circle cx="40.7" cy="40.7" r="2.5" />
-                  <circle cx="28" cy="46" r="2.5" />
-                  <circle cx="15.3" cy="40.7" r="2.5" />
-                  <circle cx="10" cy="28" r="2.5" />
-                  <circle cx="15.3" cy="15.3" r="2.5" />
-                </g>
-                <circle cx="28" cy="28" r="4.5" fill="#4A6B7B" />
+                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#4A6B7B"/>
               </svg>
-              <span class="wordmark" style="font-size: 32px; color: var(--ink);">clenzy</span>
+              <span class="wordmark font-space">clenzy</span>
             </div>
-            <span class="preview-label">Light · 56px</span>
+            <span class="preview-label">Light · Space Grotesk</span>
+            <span class="hover-hint">hover pour declencher la wave</span>
           </div>
-          <!-- Dark -->
           <div class="preview dark">
-            <div style="display: flex; align-items: center; gap: 14px;">
-              <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <div class="logo-row">
+              <svg class="mark-svg" width="60" height="60" viewBox="0 0 56 56" fill="none">
                 <g stroke="#89B1C2" stroke-width="1" opacity="0.4">
-                  <line x1="28" y1="28" x2="28" y2="10" />
-                  <line x1="28" y1="28" x2="40.7" y2="15.3" />
-                  <line x1="28" y1="28" x2="46" y2="28" />
-                  <line x1="28" y1="28" x2="40.7" y2="40.7" />
-                  <line x1="28" y1="28" x2="28" y2="46" />
-                  <line x1="28" y1="28" x2="15.3" y2="40.7" />
-                  <line x1="28" y1="28" x2="10" y2="28" />
-                  <line x1="28" y1="28" x2="15.3" y2="15.3" />
+                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
+                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
+                  <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
+                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
+                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
+                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
+                  <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
+                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
                 </g>
-                <g fill="#89B1C2">
-                  <circle cx="28" cy="10" r="2.5" />
-                  <circle cx="40.7" cy="15.3" r="2.5" />
-                  <circle cx="46" cy="28" r="2.5" />
-                  <circle cx="40.7" cy="40.7" r="2.5" />
-                  <circle cx="28" cy="46" r="2.5" />
-                  <circle cx="15.3" cy="40.7" r="2.5" />
-                  <circle cx="10" cy="28" r="2.5" />
-                  <circle cx="15.3" cy="15.3" r="2.5" />
-                </g>
-                <circle cx="28" cy="28" r="4.5" fill="#FFFFFF" />
+                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#FFFFFF"/>
               </svg>
-              <span class="wordmark wordmark-light" style="font-size: 32px;">clenzy</span>
+              <span class="wordmark wordmark-light font-space">clenzy</span>
             </div>
-            <span class="preview-label">Dark · 56px</span>
-          </div>
-        </div>
-        <div class="scale-row">
-          <div class="scale-item">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <svg width="24" height="24" viewBox="0 0 56 56" fill="none">
-                <g fill="#6B8A9A">
-                  <circle cx="28" cy="10" r="3.5" />
-                  <circle cx="40.7" cy="15.3" r="3.5" />
-                  <circle cx="46" cy="28" r="3.5" />
-                  <circle cx="40.7" cy="40.7" r="3.5" />
-                  <circle cx="28" cy="46" r="3.5" />
-                  <circle cx="15.3" cy="40.7" r="3.5" />
-                  <circle cx="10" cy="28" r="3.5" />
-                  <circle cx="15.3" cy="15.3" r="3.5" />
-                </g>
-                <circle cx="28" cy="28" r="6" fill="#4A6B7B" />
-              </svg>
-              <span class="wordmark" style="font-size: 14px; color: var(--ink);">clenzy</span>
-            </div>
-            <span class="scale-cap">Sidebar 24px</span>
-          </div>
-          <div class="scale-item">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
-                <g stroke="#6B8A9A" stroke-width="1.2" opacity="0.3">
-                  <line x1="28" y1="28" x2="28" y2="10" />
-                  <line x1="28" y1="28" x2="46" y2="28" />
-                  <line x1="28" y1="28" x2="28" y2="46" />
-                  <line x1="28" y1="28" x2="10" y2="28" />
-                </g>
-                <g fill="#6B8A9A">
-                  <circle cx="28" cy="10" r="3" />
-                  <circle cx="40.7" cy="15.3" r="3" />
-                  <circle cx="46" cy="28" r="3" />
-                  <circle cx="40.7" cy="40.7" r="3" />
-                  <circle cx="28" cy="46" r="3" />
-                  <circle cx="15.3" cy="40.7" r="3" />
-                  <circle cx="10" cy="28" r="3" />
-                  <circle cx="15.3" cy="15.3" r="3" />
-                </g>
-                <circle cx="28" cy="28" r="5" fill="#4A6B7B" />
-              </svg>
-              <span class="wordmark" style="font-size: 18px; color: var(--ink);">clenzy</span>
-            </div>
-            <span class="scale-cap">Header 32px</span>
-          </div>
-          <div class="scale-item">
-            <svg width="32" height="32" viewBox="0 0 56 56" fill="none" style="background: var(--brand); border-radius: 8px; padding: 4px;">
-              <g fill="#FFFFFF">
-                <circle cx="28" cy="10" r="3" />
-                <circle cx="40.7" cy="15.3" r="3" />
-                <circle cx="46" cy="28" r="3" />
-                <circle cx="40.7" cy="40.7" r="3" />
-                <circle cx="28" cy="46" r="3" />
-                <circle cx="15.3" cy="40.7" r="3" />
-                <circle cx="10" cy="28" r="3" />
-                <circle cx="15.3" cy="15.3" r="3" />
-              </g>
-              <circle cx="28" cy="28" r="5" fill="#FFFFFF" opacity="0.7" />
-            </svg>
-            <span class="scale-cap">Favicon 32px</span>
+            <span class="preview-label">Dark · Space Grotesk</span>
+            <span class="hover-hint">hover</span>
           </div>
         </div>
       </div>
 
-      <!-- ─── OPTION C ─────────────────────────────────────────────── -->
+      <!-- ─── OPTION B : Bricolage Grotesque (expressif) ─── -->
       <div class="card">
         <div class="card-header">
           <div>
-            <span class="badge">Option C</span>
-            <div class="card-title" style="margin-top: 8px;">Wordmark minimaliste seul</div>
+            <span class="badge">Option B · expressif</span>
+            <div class="card-title">Bricolage Grotesque 700</div>
           </div>
           <div style="font-size: 12px; color: var(--muted); text-align: right; max-width: 280px;">
-            Référence : Stripe, Notion, Vercel.<br>Le plus intemporel.
+            Reference : Replicate, Cohere, Modal.<br>Tres modern AI / dev tools.
           </div>
         </div>
         <div class="card-rationale">
-          Juste "clenzy" en Plus Jakarta Sans 700, lowercase, letter-spacing tight (-0.04em), avec un point coloré final sentence-style. Zéro marketing, zéro abstraction. Pour un favicon, on garde le "c" seul dans un carré arrondi brand.
+          <strong>Pourquoi ca repond au brief</strong> : encore plus de personnalite que Space Grotesk — terminations carrees, ouvertures plus larges, attitude "premium-quirky". Risque : peut faire trop "design agency" pour un PMS B2B traditionnel.
         </div>
         <div class="preview-row">
-          <!-- Light -->
           <div class="preview">
-            <span class="wordmark" style="font-size: 44px; color: var(--ink); letter-spacing: -0.04em;">
-              clenzy<span style="color: var(--brand);">.</span>
-            </span>
-            <span class="preview-label">Light · 44px</span>
+            <div class="logo-row">
+              <svg class="mark-svg" width="60" height="60" viewBox="0 0 56 56" fill="none">
+                <g stroke="#6B8A9A" stroke-width="1" opacity="0.35">
+                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
+                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
+                  <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
+                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
+                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
+                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
+                  <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
+                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
+                </g>
+                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#4A6B7B"/>
+              </svg>
+              <span class="wordmark font-bric">clenzy</span>
+            </div>
+            <span class="preview-label">Light · Bricolage Grotesque</span>
+            <span class="hover-hint">hover</span>
           </div>
-          <!-- Dark -->
           <div class="preview dark">
-            <span class="wordmark wordmark-light" style="font-size: 44px; letter-spacing: -0.04em;">
-              clenzy<span style="color: #89B1C2;">.</span>
-            </span>
-            <span class="preview-label">Dark · 44px</span>
+            <div class="logo-row">
+              <svg class="mark-svg" width="60" height="60" viewBox="0 0 56 56" fill="none">
+                <g stroke="#89B1C2" stroke-width="1" opacity="0.4">
+                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
+                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
+                  <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
+                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
+                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
+                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
+                  <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
+                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
+                </g>
+                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#FFFFFF"/>
+              </svg>
+              <span class="wordmark wordmark-light font-bric">clenzy</span>
+            </div>
+            <span class="preview-label">Dark · Bricolage Grotesque</span>
+            <span class="hover-hint">hover</span>
           </div>
         </div>
-        <div class="scale-row">
-          <div class="scale-item">
-            <span class="wordmark" style="font-size: 14px; color: var(--ink); letter-spacing: -0.04em;">
-              clenzy<span style="color: var(--brand);">.</span>
-            </span>
-            <span class="scale-cap">Sidebar 14px</span>
+      </div>
+
+      <!-- ─── OPTION C : Geist (clean alternative) ─── -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <span class="badge">Option C · clean tech</span>
+            <div class="card-title">Geist 600</div>
           </div>
-          <div class="scale-item">
-            <span class="wordmark" style="font-size: 22px; color: var(--ink); letter-spacing: -0.04em;">
-              clenzy<span style="color: var(--brand);">.</span>
-            </span>
-            <span class="scale-cap">Header 22px</span>
+          <div style="font-size: 12px; color: var(--muted); text-align: right; max-width: 280px;">
+            Reference : Vercel (font maison), Linear-like.<br>Moins decale que Space Grotesk.
           </div>
-          <div class="scale-item">
-            <div style="width: 32px; height: 32px; background: var(--brand); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-              <span class="wordmark wordmark-light" style="font-size: 20px; letter-spacing: -0.04em;">c<span style="opacity: 0.7;">.</span></span>
+        </div>
+        <div class="card-rationale">
+          <strong>Pourquoi ca repond au brief</strong> : compromis entre Jakarta (trop lisse) et Bricolage (trop expressif). Plus aere, terminations plus marquees, mais reste sobre. Bon choix si tu veux casser le "lisse" sans aller jusqu'a un caractere assume.
+        </div>
+        <div class="preview-row">
+          <div class="preview">
+            <div class="logo-row">
+              <svg class="mark-svg" width="60" height="60" viewBox="0 0 56 56" fill="none">
+                <g stroke="#6B8A9A" stroke-width="1" opacity="0.35">
+                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
+                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
+                  <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
+                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
+                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
+                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
+                  <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
+                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
+                </g>
+                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#6B8A9A"/>
+                <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#4A6B7B"/>
+              </svg>
+              <span class="wordmark font-geist">clenzy</span>
             </div>
-            <span class="scale-cap">Favicon 32px</span>
+            <span class="preview-label">Light · Geist</span>
+            <span class="hover-hint">hover</span>
+          </div>
+          <div class="preview dark">
+            <div class="logo-row">
+              <svg class="mark-svg" width="60" height="60" viewBox="0 0 56 56" fill="none">
+                <g stroke="#89B1C2" stroke-width="1" opacity="0.4">
+                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
+                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
+                  <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
+                  <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
+                  <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
+                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
+                  <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
+                  <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
+                </g>
+                <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-2" cx="46"   cy="28"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-3" cx="40.7" cy="40.7" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-4" cx="28"   cy="46"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-5" cx="15.3" cy="40.7" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-6" cx="10"   cy="28"   r="2.5" fill="#89B1C2"/>
+                <circle class="mark-node mark-node-7" cx="15.3" cy="15.3" r="2.5" fill="#89B1C2"/>
+                <circle class="mark-center" cx="28" cy="28" r="4.5" fill="#FFFFFF"/>
+              </svg>
+              <span class="wordmark wordmark-light font-geist">clenzy</span>
+            </div>
+            <span class="preview-label">Dark · Geist</span>
+            <span class="hover-hint">hover</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Reference : current font (Plus Jakarta) pour comparaison ─── -->
+      <div class="card" style="background: var(--paper-tinted); border-style: dashed;">
+        <div class="card-header" style="border-bottom-color: transparent;">
+          <div>
+            <span class="badge" style="background: var(--border); color: var(--muted);">Pour reference (current)</span>
+            <div class="card-title" style="color: var(--muted);">Plus Jakarta Sans 700 — "trop lisse, trop compact"</div>
+          </div>
+        </div>
+        <div class="preview-row">
+          <div class="preview">
+            <div class="logo-row">
+              <svg width="60" height="60" viewBox="0 0 56 56" fill="none">
+                <g stroke="#6B8A9A" stroke-width="1" opacity="0.35">
+                  <line x1="28" y1="28" x2="28"   y2="10"/>
+                  <line x1="28" y1="28" x2="40.7" y2="15.3"/>
+                  <line x1="28" y1="28" x2="46"   y2="28"/>
+                  <line x1="28" y1="28" x2="40.7" y2="40.7"/>
+                  <line x1="28" y1="28" x2="28"   y2="46"/>
+                  <line x1="28" y1="28" x2="15.3" y2="40.7"/>
+                  <line x1="28" y1="28" x2="10"   y2="28"/>
+                  <line x1="28" y1="28" x2="15.3" y2="15.3"/>
+                </g>
+                <circle cx="28"   cy="10"   r="2.5" fill="#6B8A9A"/>
+                <circle cx="40.7" cy="15.3" r="2.5" fill="#6B8A9A"/>
+                <circle cx="46"   cy="28"   r="2.5" fill="#6B8A9A"/>
+                <circle cx="40.7" cy="40.7" r="2.5" fill="#6B8A9A"/>
+                <circle cx="28"   cy="46"   r="2.5" fill="#6B8A9A"/>
+                <circle cx="15.3" cy="40.7" r="2.5" fill="#6B8A9A"/>
+                <circle cx="10"   cy="28"   r="2.5" fill="#6B8A9A"/>
+                <circle cx="15.3" cy="15.3" r="2.5" fill="#6B8A9A"/>
+                <circle cx="28" cy="28" r="4.5" fill="#4A6B7B"/>
+              </svg>
+              <span class="wordmark font-jakarta">clenzy</span>
+            </div>
+            <span class="preview-label">Plus Jakarta Sans</span>
+          </div>
+          <div class="preview dark">
+            <div class="logo-row">
+              <svg width="60" height="60" viewBox="0 0 56 56" fill="none">
+                <g stroke="#89B1C2" stroke-width="1" opacity="0.4">
+                  <line x1="28" y1="28" x2="28"   y2="10"/>
+                  <line x1="28" y1="28" x2="40.7" y2="15.3"/>
+                  <line x1="28" y1="28" x2="46"   y2="28"/>
+                  <line x1="28" y1="28" x2="40.7" y2="40.7"/>
+                  <line x1="28" y1="28" x2="28"   y2="46"/>
+                  <line x1="28" y1="28" x2="15.3" y2="40.7"/>
+                  <line x1="28" y1="28" x2="10"   y2="28"/>
+                  <line x1="28" y1="28" x2="15.3" y2="15.3"/>
+                </g>
+                <circle cx="28"   cy="10"   r="2.5" fill="#89B1C2"/>
+                <circle cx="40.7" cy="15.3" r="2.5" fill="#89B1C2"/>
+                <circle cx="46"   cy="28"   r="2.5" fill="#89B1C2"/>
+                <circle cx="40.7" cy="40.7" r="2.5" fill="#89B1C2"/>
+                <circle cx="28"   cy="46"   r="2.5" fill="#89B1C2"/>
+                <circle cx="15.3" cy="40.7" r="2.5" fill="#89B1C2"/>
+                <circle cx="10"   cy="28"   r="2.5" fill="#89B1C2"/>
+                <circle cx="15.3" cy="15.3" r="2.5" fill="#89B1C2"/>
+                <circle cx="28" cy="28" r="4.5" fill="#FFFFFF"/>
+              </svg>
+              <span class="wordmark wordmark-light font-jakarta">clenzy</span>
+            </div>
+            <span class="preview-label">Plus Jakarta Sans</span>
           </div>
         </div>
       </div>
     </div>
 
     <div style="margin-top: 48px; padding: 24px; background: var(--paper); border: 1px solid var(--border); border-radius: 12px;">
-      <strong style="font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);">Comment choisir</strong>
+      <strong style="font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);">Animation</strong>
       <ul style="margin-top: 12px; padding-left: 20px; line-height: 1.7; font-size: 14px; color: var(--ink);">
-        <li><strong>Option A</strong> si tu veux un mark distinctif sans surcharger sur le multi-agent. Réutilisable même si la stratégie produit évolue.</li>
-        <li><strong>Option B</strong> si tu assumes pleinement le positioning "8 agents IA" — le logo devient un argument visuel. Risque : si tu passes un jour à 12 ou 6 agents, le mark devient mensonger.</li>
-        <li><strong>Option C</strong> si tu privilégies la timelessness et le focus sur le wordmark. Tout le branding repose sur la copy ("Pendant que vous dormez..."), pas sur le pictogramme.</li>
+        <li><strong>Boot sequence au mount</strong> : centre apparait (scale 0→1, 400ms back-out), 8 lignes radiales se tracent (500ms ease-out, dasharray), puis 8 nodes pop-in en stagger horaire (350ms back-out chacun, 60ms d'ecart). Total ~1.4s. Joue UNE FOIS, pas en boucle.</li>
+        <li><strong>Hover wave</strong> : au survol, le centre pulse + ripple horaire vers les 8 nodes (chacun se sur-scale brievement). Suggere la communication orchestrator → specialistes. ~700ms.</li>
+        <li><strong>prefers-reduced-motion: reduce</strong> respecte : tout est instantane, etat final affiche directement.</li>
+        <li><strong>Conforme aux UX rules</strong> (ui-ux-pro-max) : pas d'animation infinie decorative, ease-out partout (pas de linear), motion preference respectee.</li>
       </ul>
     </div>
   </div>
