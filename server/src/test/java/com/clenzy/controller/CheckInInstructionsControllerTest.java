@@ -43,14 +43,11 @@ class CheckInInstructionsControllerTest {
     @BeforeEach
     void setUp() {
         tenantContext = new TenantContext();
-        // CRITIQUE : depuis le refactor TenantContext en ThreadLocal static
-        // (commit d1e14acc), l'etat survit a travers les tests du meme thread
-        // surefire pool. Si un test precedent a fait setSuperAdmin(true) sans
-        // clear() final, on heriterait de superAdmin=true ici, ce qui ferait
-        // que validatePropertyAccess retournerait sans throw l'AccessDeniedException
-        // attendue (early return sur isSuperAdmin()). Ce clear() garantit un
-        // etat propre au demarrage de CHAQUE test.
-        tenantContext.clear();
+        // Note : depuis l'activation de TenantContextExtension via
+        // META-INF/services + junit.jupiter.extensions.autodetection.enabled=true,
+        // le ThreadLocal est clear automatiquement avant CHAQUE test. Pas besoin
+        // de clear() manuel ici (le hotfix initial PR #159 reste valide mais
+        // redondant — on garde la simple ligne setOrganizationId pour la lisibilite).
         tenantContext.setOrganizationId(1L);
         controller = new CheckInInstructionsController(
             instructionsRepository, propertyRepository, userRepository, tenantContext);

@@ -22,6 +22,7 @@ import {
   type WhatsAppProviderType,
   type UpdateWhatsAppConfigRequest,
 } from '../../services/api/whatsAppConfigApi';
+import OpenWaQrScanDialog from './components/OpenWaQrScanDialog';
 
 /**
  * Section Settings > Messagerie > Provider WhatsApp.
@@ -65,6 +66,7 @@ export default function WhatsAppProviderConfigSection() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
 
   // Form local — distinct de `config` pour pouvoir comparer et detecter
   // les changements (bouton Save grise tant que rien n'a bouge).
@@ -78,27 +80,27 @@ export default function WhatsAppProviderConfigSection() {
   const [openwaSessionId, setOpenwaSessionId] = useState('');
   const [openwaApiKey, setOpenwaApiKey] = useState('');
 
+  const reloadConfig = async () => {
+    try {
+      const data = await whatsAppConfigApi.getConfig();
+      if (data) {
+        setConfig(data);
+        setProvider(data.provider);
+        setEnabled(data.enabled);
+        setPhoneNumberId(data.phoneNumberId ?? '');
+        setBusinessAccountId(data.businessAccountId ?? '');
+        setOpenwaSessionId(data.openwaSessionId ?? '');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de chargement');
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const data = await whatsAppConfigApi.getConfig();
-        if (cancelled) return;
-        if (data) {
-          setConfig(data);
-          setProvider(data.provider);
-          setEnabled(data.enabled);
-          setPhoneNumberId(data.phoneNumberId ?? '');
-          setBusinessAccountId(data.businessAccountId ?? '');
-          setOpenwaSessionId(data.openwaSessionId ?? '');
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Erreur de chargement');
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      await reloadConfig();
+      if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
@@ -304,14 +306,38 @@ export default function WhatsAppProviderConfigSection() {
             helperText="Clé API associée à votre session, fournie par l'admin Clenzy."
             autoComplete="off"
           />
-          <Alert severity="info" variant="outlined" sx={{ mt: 1 }}>
-            <Typography variant="body2">
-              <strong>À venir (Phase 4b)</strong> : bouton de scan QR code intégré.
-              Pour l'instant, contactez votre admin Clenzy pour créer une session sur l'instance OpenWA et récupérer les credentials.
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1, flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setQrDialogOpen(true)}
+              disableElevation
+            >
+              {config?.openwaSessionId
+                ? t('settings.whatsapp.openwa.rescan', 'Re-scanner le QR code')
+                : t('settings.whatsapp.openwa.scan', 'Scanner le QR code')}
+            </Button>
+            <Typography variant="caption" color="text.secondary">
+              {t('settings.whatsapp.openwa.scanHint',
+                "Crée automatiquement la session et provisionne la clé API.")}
             </Typography>
-          </Alert>
+          </Box>
         </Stack>
       )}
+
+      {/* Dialog QR scan — flow Phase 4b complet (creation session, polling status).
+          Le Dialog est toujours rendu (open piloted), pas conditionnellement, pour
+          que les transitions enter/exit de MUI fonctionnent proprement. */}
+      <OpenWaQrScanDialog
+        open={qrDialogOpen}
+        onClose={() => setQrDialogOpen(false)}
+        onSuccess={async () => {
+          // Recharge la config pour pickup le nouveau sessionId et hasOpenwaApiKey,
+          // puis ferme le dialog. L'user voit immediatement le status "Connecte".
+          await reloadConfig();
+          setQrDialogOpen(false);
+        }}
+      />
 
       <Divider />
 
