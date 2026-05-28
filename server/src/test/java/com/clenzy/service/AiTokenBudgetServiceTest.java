@@ -198,8 +198,10 @@ class AiTokenBudgetServiceTest {
             assertEquals(0L, stats.usageByFeature().get("ANALYTICS"));
             assertEquals(1_000L, stats.usageByFeature().get("SENTIMENT"));
             assertEquals(2_000L, stats.usageByFeature().get("DESIGN"));
+            // ASSISTANT_CHAT ajoute (audit pre-prod 2026-05) — meme defaut 100k
+            assertEquals(0L, stats.usageByFeature().get("ASSISTANT_CHAT"));
             assertEquals(11_000L, stats.totalUsed());
-            assertEquals(500_000L, stats.totalBudget()); // 5 features * 100k default
+            assertEquals(600_000L, stats.totalBudget()); // 6 features * 100k default
             assertEquals("2026-03", stats.monthYear());
         }
     }

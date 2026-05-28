@@ -86,6 +86,7 @@ class AgentE2EFlowTest {
                 mock(com.clenzy.service.agent.prompt.PromptBuilder.class),
                 mock(com.clenzy.service.agent.multiagent.OrchestratorAgent.class),
                 mock(com.clenzy.service.agent.multiagent.SpecialistRegistry.class),
+                mock(com.clenzy.service.AiTokenBudgetService.class),
                 false,  // v2 prompt off
                 false); // multi-agent off : on teste le flow E2E, pas le prompt
 

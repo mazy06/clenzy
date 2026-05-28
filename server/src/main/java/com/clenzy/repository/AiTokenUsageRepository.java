@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -34,5 +35,17 @@ public interface AiTokenUsageRepository extends JpaRepository<AiTokenUsage, Long
      */
     List<AiTokenUsage> findByOrganizationIdAndFeatureAndMonthYear(
             Long organizationId, AiFeature feature, String monthYear
+    );
+
+    /**
+     * Tous les usages d'une org/feature depuis une date donnee (pour aggregation
+     * "today" via filtre createdAt >= startOfDay, breakdown by_model frontend).
+     */
+    @Query("SELECT u FROM AiTokenUsage u WHERE u.organizationId = :orgId " +
+            "AND u.feature = :feature AND u.createdAt >= :since")
+    List<AiTokenUsage> findByOrgAndFeatureSince(
+            @Param("orgId") Long organizationId,
+            @Param("feature") AiFeature feature,
+            @Param("since") LocalDateTime since
     );
 }

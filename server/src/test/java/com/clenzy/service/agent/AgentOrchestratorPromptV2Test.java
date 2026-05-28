@@ -131,6 +131,7 @@ class AgentOrchestratorPromptV2Test {
                 promptBuilder,
                 mock(com.clenzy.service.agent.multiagent.OrchestratorAgent.class),
                 mock(com.clenzy.service.agent.multiagent.SpecialistRegistry.class),
+                mock(com.clenzy.service.AiTokenBudgetService.class),
                 v2Enabled,
                 false  // multi-agent off : on teste le prompt path uniquement
         );

@@ -9,5 +9,11 @@ public enum AiFeature {
     PRICING,
     MESSAGING,
     ANALYTICS,
-    SENTIMENT
+    SENTIMENT,
+    /**
+     * Assistant conversationnel (chat orchestrator + specialists) + briefings.
+     * Tracking par tour user : 1 record AiTokenUsage par message assistant
+     * persiste, alimente le badge frontend "consommation cumulee USD / mois".
+     */
+    ASSISTANT_CHAT
 }
