@@ -23,6 +23,7 @@ import {
   type UpdateWhatsAppConfigRequest,
 } from '../../services/api/whatsAppConfigApi';
 import OpenWaQrScanDialog from './components/OpenWaQrScanDialog';
+import MetaEmbeddedSignupButton from './components/MetaEmbeddedSignupButton';
 
 /**
  * Section Settings > Messagerie > Provider WhatsApp.
@@ -247,6 +248,26 @@ export default function WhatsAppProviderConfigSection() {
       {/* Form selon provider */}
       {provider === 'META' ? (
         <Stack spacing={2}>
+          {/* Embedded Signup — methode rapide (~5 min, sans Meta Business Manager
+              prealable). Le composant gere lui-meme son etat ; si la Meta App
+              n'est pas configuree cote serveur (META_APP_ID vide), il rend null
+              et l'user voit uniquement le form manuel ci-dessous. */}
+          <MetaEmbeddedSignupButton
+            onSuccess={async () => {
+              // Reload la config pour pickup hasApiToken, phoneNumberId, businessAccountId
+              // qui viennent d'etre provisionnes automatiquement.
+              await reloadConfig();
+            }}
+          />
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, my: 1 }}>
+            <Divider sx={{ flex: 1 }} />
+            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+              {t('settings.whatsapp.meta.orManual', 'OU configuration manuelle')}
+            </Typography>
+            <Divider sx={{ flex: 1 }} />
+          </Box>
+
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
             {t('settings.whatsapp.meta.formTitle', 'Identifiants Meta Cloud API')}
           </Typography>
