@@ -228,9 +228,16 @@ export default function ClenzyMarkLogo({
       transition: stroke-dashoffset 450ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* ─── Hover wave ─────────────────────────────────────────────────── */
+    /* ─── Hover ──────────────────────────────────────────────────────── */
+    /* Centre : on garde le boot (deja complete, fill:both => no visible
+       restart) et on remplace breathe par pulse-loop infini avec delay 450ms
+       (= duree de l'absorb des lignes). Quand hover s'arrete, l'animation
+       revient a [boot, breathe], pulse-loop est enleve => centre arrete de
+       pulser et reprend son breathing. */
     .${cls.root}:hover .${cls.center} {
-      animation: ${cls.center}-pulse 800ms cubic-bezier(0.4, 0, 0.2, 1);
+      animation:
+        ${cls.center}-boot 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+        ${cls.center}-pulse-loop 1.4s ease-in-out 450ms infinite;
     }
     /* Lignes : dashoffset transite vers ${LINE_LENGTH} => le trait se
        retracte depuis l'exterieur vers le centre, disparait dans le node
@@ -240,6 +247,10 @@ export default function ClenzyMarkLogo({
     }
     ${OCTAGON_NODES.map((_, i) => `
       .${cls.root}:hover .${cls.node}-${i} {
+        /* opacity:1 explicite pour eviter que le node disparaisse apres la
+           fin de l'animation wave (post-650ms, computed style sans
+           animation revient a opacity:0 du base rule) */
+        opacity: 1;
         animation: ${cls.node}-wave-${i} 650ms cubic-bezier(0.34, 1.56, 0.64, 1) ${180 + i * 75}ms;
       }
     `).join('')}
@@ -267,10 +278,12 @@ export default function ClenzyMarkLogo({
     ${OCTAGON_NODES.map((node, i) => buildScanKeyframes(i, node)).join('')}
 
     /* ─── Keyframes : hover wave (centre + nodes uniquement) ─────────── */
-    @keyframes ${cls.center}-pulse {
-      0%   { transform: scale(1);    filter: brightness(1)   drop-shadow(0 0 0 transparent); }
-      35%  { transform: scale(1.3);  filter: brightness(1.4) drop-shadow(0 0 4px currentColor); }
-      100% { transform: scale(1);    filter: brightness(1)   drop-shadow(0 0 0 transparent); }
+    /* Pulse loop : 1.4s par cycle, peak a 50% (scale 1.25, glow 8px).
+       Demarre 450ms apres le hover (post-absorb des lignes), tourne en
+       boucle tant que hover. Visuel "orchestrator processing actively". */
+    @keyframes ${cls.center}-pulse-loop {
+      0%, 100% { transform: scale(1);    filter: brightness(1)   drop-shadow(0 0 0 transparent); }
+      50%      { transform: scale(1.25); filter: brightness(1.4) drop-shadow(0 0 8px currentColor); }
     }
     ${OCTAGON_NODES.map((node, i) => buildWaveKeyframes(i, node)).join('')}
 
