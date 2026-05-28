@@ -98,10 +98,22 @@ class TenantFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setRequestURI("/api/properties");
 
+        // Capture l'etat tenant PENDANT l'execution du chain (avant le clear()
+        // du finally). TenantContext est maintenant ThreadLocal donc clear()
+        // dans le finally evite les fuites cross-request quand Tomcat reutilise
+        // le thread — mais on ne peut plus assertEqual apres doFilter().
+        Long[] capturedOrgId = {null};
+        Boolean[] capturedSuperAdmin = {null};
+        doAnswer(inv -> {
+            capturedOrgId[0] = tenantContext.getOrganizationId();
+            capturedSuperAdmin[0] = tenantContext.isSuperAdmin();
+            return null;
+        }).when(filterChain).doFilter(any(), any());
+
         tenantFilter.doFilter(request, response, filterChain);
 
-        assertEquals(orgId, tenantContext.getOrganizationId());
-        assertFalse(tenantContext.isSuperAdmin());
+        assertEquals(orgId, capturedOrgId[0]);
+        assertFalse(capturedSuperAdmin[0]);
         verify(session).enableFilter("organizationFilter");
         verify(hibernateFilter).setParameter("orgId", orgId);
         verify(filterChain).doFilter(request, response);
@@ -123,9 +135,15 @@ class TenantFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setRequestURI("/api/properties");
 
+        Boolean[] capturedSuperAdmin = {null};
+        doAnswer(inv -> {
+            capturedSuperAdmin[0] = tenantContext.isSuperAdmin();
+            return null;
+        }).when(filterChain).doFilter(any(), any());
+
         tenantFilter.doFilter(request, response, filterChain);
 
-        assertTrue(tenantContext.isSuperAdmin());
+        assertTrue(capturedSuperAdmin[0]);
         // Super admin with null orgId -> no Hibernate filter
         verify(session, never()).enableFilter(anyString());
         verify(filterChain).doFilter(request, response);
@@ -159,9 +177,15 @@ class TenantFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setRequestURI("/api/properties");
 
+        Long[] capturedOrgId = {null};
+        doAnswer(inv -> {
+            capturedOrgId[0] = tenantContext.getOrganizationId();
+            return null;
+        }).when(filterChain).doFilter(any(), any());
+
         tenantFilter.doFilter(request, response, filterChain);
 
-        assertEquals(orgId, tenantContext.getOrganizationId());
+        assertEquals(orgId, capturedOrgId[0]);
         verify(userRepository, never()).findByKeycloakId(anyString());
         verify(session).enableFilter("organizationFilter");
         verify(filterChain).doFilter(request, response);
@@ -184,9 +208,15 @@ class TenantFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setRequestURI("/api/properties");
 
+        Long[] capturedOrgId = {null};
+        doAnswer(inv -> {
+            capturedOrgId[0] = tenantContext.getOrganizationId();
+            return null;
+        }).when(filterChain).doFilter(any(), any());
+
         tenantFilter.doFilter(request, response, filterChain);
 
-        assertEquals(defaultOrgId, tenantContext.getOrganizationId());
+        assertEquals(defaultOrgId, capturedOrgId[0]);
         verify(filterChain).doFilter(request, response);
     }
 

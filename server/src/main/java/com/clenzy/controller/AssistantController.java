@@ -156,28 +156,27 @@ public class AssistantController {
         String userMessage = hasMessage ? body.message() : "Analyse ces images.";
         List<AttachmentRef> attachments = hasAttachments ? body.attachments() : List.of();
 
-        // Capture le RequestContext + SecurityContext AVANT le switch de thread
-        // pour pouvoir les propager sur le sseExecutor. Sinon les beans
-        // @RequestScope (TenantContext, etc.) et les checks d'authentification
-        // (SecurityContextHolder.getContext().getAuthentication()) sont KO sur
-        // le thread du pool — ce qui casse les tools qui appellent
-        // tenantContext.getRequiredOrganizationId() (ex: ReservationService).
-        //
-        // getRequestAttributes() (vs currentRequestAttributes()) retourne null
-        // hors web context — laisse les tests unit appeler directement sans
-        // monter de fake request.
-        final org.springframework.web.context.request.RequestAttributes capturedAttrs =
-                org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+        // Capture le tenant context + SecurityContext AVANT le switch de thread.
+        // TenantContext est desormais singleton + ThreadLocal (ex @RequestScope qui
+        // ne survivait pas au handler HTTP done -> sseExecutor lifecycle async).
+        // On capture les valeurs scalaires (pas le bean lui-meme) pour les
+        // re-setter sur le thread du sseExecutor.
+        final boolean superAdmin = tenantContext.isSuperAdmin();
+        final boolean systemOrg = tenantContext.isSystemOrg();
+        final String countryCode = tenantContext.getCountryCode();
+        final String defaultCurrency = tenantContext.getDefaultCurrency();
+        final boolean vatRegistered = tenantContext.isVatRegistered();
         final org.springframework.security.core.context.SecurityContext capturedSecurity =
                 org.springframework.security.core.context.SecurityContextHolder.getContext();
 
         sseExecutor.execute(() -> {
-            // Propage le RequestContext + SecurityContext sur le thread du pool.
-            // inheritable=true → les ChildThread heriteront aussi (defensive).
-            if (capturedAttrs != null) {
-                org.springframework.web.context.request.RequestContextHolder
-                        .setRequestAttributes(capturedAttrs, true);
-            }
+            // Propage TenantContext + SecurityContext sur le thread du pool.
+            tenantContext.setOrganizationId(orgId);
+            tenantContext.setSuperAdmin(superAdmin);
+            tenantContext.setSystemOrg(systemOrg);
+            tenantContext.setCountryCode(countryCode);
+            tenantContext.setDefaultCurrency(defaultCurrency);
+            tenantContext.setVatRegistered(vatRegistered);
             if (capturedSecurity != null) {
                 org.springframework.security.core.context.SecurityContextHolder
                         .setContext(capturedSecurity);
@@ -200,10 +199,10 @@ public class AssistantController {
                 sendSseEvent(emitter, AgentSseEvent.error("Erreur interne : " + e.getMessage()));
                 emitter.completeWithError(e);
             } finally {
-                // CRITIQUE : nettoyer les ThreadLocal avant que le thread du pool
-                // soit reattribue a une autre requete. Sinon fuite de contexte =
-                // un autre user pourrait obtenir le orgId/keycloakId du precedent.
-                org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+                // CRITIQUE securite : nettoyer les ThreadLocal avant que le thread
+                // du pool soit reattribue a une autre requete. Sinon fuite de
+                // contexte (un user pourrait recevoir le orgId du precedent).
+                tenantContext.clear();
                 org.springframework.security.core.context.SecurityContextHolder.clearContext();
             }
         });
