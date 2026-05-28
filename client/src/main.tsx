@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as Sentry from '@sentry/react'
 import posthog from 'posthog-js'
 import App from './modules/App'
+import AppUpdateBanner from './components/AppUpdateBanner'
 import { createClenzyTheme } from './theme/createClenzyTheme'
 import ThemeSafetyWrapper from './components/ThemeSafetyWrapper'
 import { NotificationProvider } from './hooks/useNotification'
@@ -121,6 +122,10 @@ function AppWithTheme() {
                 <BrowserRouter>
                   <AuthProvider>
                     <App />
+                    {/* AppUpdateBanner : banniere "Nouvelle version disponible"
+                        qui ecoute le SW PWA. Monte au niveau racine pour etre
+                        visible sur toutes les routes. Rend null en dev (pas de SW). */}
+                    <AppUpdateBanner />
                   </AuthProvider>
                 </BrowserRouter>
               </ThemeSafetyWrapper>
