@@ -121,17 +121,36 @@ public class OrchestratorAgent {
      */
     public OrchestrationResult orchestrate(List<ChatMessage> messages, AgentContext context,
                                              OrchestrationContext orchestrationCtx) {
+        return orchestrate(messages, context, orchestrationCtx, null);
+    }
+
+    /**
+     * Lance l'orchestration avec apiKey BYOK explicite.
+     *
+     * <p><b>{@code apiKey}</b> est la cle Anthropic resolue par AgentOrchestrator
+     * (priorite BYOK org > cle plateforme). Si {@code null}, le chatProvider
+     * utilise la cle plateforme. Cette cle est propagee aux specialists via
+     * {@link SpecialistRequest#apiKey()} pour qu'ils consomment sur la meme
+     * cle (Fix bloquant #4 de l'audit pre-prod).</p>
+     *
+     * <p>La cle n'est JAMAIS loggee.</p>
+     */
+    public OrchestrationResult orchestrate(List<ChatMessage> messages, AgentContext context,
+                                             OrchestrationContext orchestrationCtx,
+                                             String apiKey) {
         long startNanos = System.nanoTime();
         try {
             return doOrchestrate(messages, context,
-                    orchestrationCtx == null ? OrchestrationContext.empty() : orchestrationCtx);
+                    orchestrationCtx == null ? OrchestrationContext.empty() : orchestrationCtx,
+                    apiKey);
         } finally {
             orchestrateTimer.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
         }
     }
 
     private OrchestrationResult doOrchestrate(List<ChatMessage> messages, AgentContext context,
-                                                 OrchestrationContext orchestrationCtx) {
+                                                 OrchestrationContext orchestrationCtx,
+                                                 String apiKey) {
         // Pas de specialistes -> impossible d'orchestrer
         if (registry.size() == 0) {
             return OrchestrationResult.error("Aucun specialiste enregistre, orchestration impossible");
@@ -162,7 +181,8 @@ public class OrchestratorAgent {
             AtomicReference<List<ChatMessage.ToolCall>> toolCallsRef = new AtomicReference<>(List.of());
             AtomicReference<String> errorMsg = new AtomicReference<>();
 
-            chatProvider.streamChat(req, event -> {
+            // Fix bloquant #4 : utiliser la cle BYOK org si fournie.
+            java.util.function.Consumer<ChatEvent> eventConsumer = event -> {
                 if (event instanceof ChatEvent.TextDelta td) {
                     textOut.set(textOut.get() + td.delta());
                 } else if (event instanceof ChatEvent.ToolCallRequest tcr) {
@@ -173,7 +193,12 @@ public class OrchestratorAgent {
                 } else if (event instanceof ChatEvent.Error err) {
                     errorMsg.set(err.message());
                 }
-            });
+            };
+            if (apiKey != null) {
+                chatProvider.streamChat(req, eventConsumer, apiKey);
+            } else {
+                chatProvider.streamChat(req, eventConsumer);
+            }
 
             if (errorMsg.get() != null) {
                 return OrchestrationResult.error("Orchestrator LLM error : " + errorMsg.get());
@@ -208,7 +233,7 @@ public class OrchestratorAgent {
                             "Arguments invalides pour delegate_to (besoin de specialist + query)"));
                     continue;
                 }
-                SpecialistResult result = invokeSpecialist(args, context, orchestrationCtx);
+                SpecialistResult result = invokeSpecialist(args, context, orchestrationCtx, apiKey);
                 delegationsLog.add(args.specialist() + " → " + (result.isSuccess() ? "OK" : "ERR"));
                 // Aggregation des widgets : permet au frontend de continuer a afficher
                 // les visualisations (KPI cards, charts) en mode multi-agent.
@@ -232,14 +257,17 @@ public class OrchestratorAgent {
     }
 
     private SpecialistResult invokeSpecialist(DelegateArgs args, AgentContext context,
-                                                 OrchestrationContext orchestrationCtx) {
+                                                 OrchestrationContext orchestrationCtx,
+                                                 String apiKey) {
         // ConfirmationRequiredException remonte intacte (re-throw automatique du
         // .map(...).orElseGet(...)) : le caller AgentOrchestrator l'intercepte
         // pour bascule sur le mono-agent qui gere la pause-confirmation.
-        // OrchestrationContext propage memoire + RAG aux specialists pour qu'ils
-        // beneficient des memes ressources que l'orchestrator.
+        // OrchestrationContext propage memoire + RAG aux specialists ;
+        // apiKey assure que les specialists consomment sur la meme cle BYOK
+        // que l'orchestrator (Fix bloquant #4).
         return registry.find(args.specialist())
-                .map(spec -> spec.handle(SpecialistRequest.of(args.query(), context, orchestrationCtx)))
+                .map(spec -> spec.handle(SpecialistRequest.of(args.query(), context,
+                        orchestrationCtx, apiKey)))
                 .orElseGet(() -> SpecialistResult.error(
                         "Specialiste inconnu : '" + args.specialist() + "'. "
                                 + "Specialistes disponibles : " + registry.all().keySet()

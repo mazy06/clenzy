@@ -284,6 +284,80 @@ class OrchestratorAgentTest {
     }
 
     @Test
+    void orchestrate_with_apiKey_uses_3arg_streamChat_overload() {
+        // Fix bloquant #4 : si l'org a un BYOK key, le multi-agent DOIT l'utiliser
+        // (sinon les orgs BYOK consomment sur la cle plateforme = bug billing).
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            consumer.accept(new ChatEvent.TextDelta("Bonjour"));
+            consumer.accept(new ChatEvent.Done(20, 5, "claude", "end_turn", "Bonjour"));
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any(), any(String.class));
+
+        OrchestratorAgent.OrchestrationResult r = orchestrator.orchestrate(
+                List.of(ChatMessage.user("hello")),
+                AgentContext.minimal(1L, "kc"),
+                OrchestrationContext.empty(),
+                "sk-ant-byok-key-xyz"
+        );
+
+        assertThat(r.isSuccess()).isTrue();
+        // Verifier que c'est BIEN la version 3-arg avec apiKey qui a ete appelee
+        verify(chatProvider).streamChat(any(ChatRequest.class), any(), org.mockito.ArgumentMatchers.eq("sk-ant-byok-key-xyz"));
+        // Et PAS la version 2-arg sans apiKey
+        verify(chatProvider, org.mockito.Mockito.never()).streamChat(any(ChatRequest.class), any());
+    }
+
+    @Test
+    void orchestrate_without_apiKey_uses_2arg_streamChat_overload() {
+        // Si apiKey est null, le 2-arg classique est appele (la cle plateforme
+        // est utilisee par le provider via sa config par defaut).
+        stubLlm("Bonjour", List.of(), 20, 5);
+
+        orchestrator.orchestrate(List.of(ChatMessage.user("hello")),
+                AgentContext.minimal(1L, "kc"), OrchestrationContext.empty(), null);
+
+        verify(chatProvider).streamChat(any(ChatRequest.class), any());
+        verify(chatProvider, org.mockito.Mockito.never())
+                .streamChat(any(ChatRequest.class), any(), any(String.class));
+    }
+
+    @Test
+    void orchestrate_propagates_apiKey_to_specialist() {
+        // Fix bloquant #4 : les specialists doivent aussi recevoir l'apiKey
+        // (sinon orchestrator BYOK + specialists plateforme = mix billing).
+        ChatMessage.ToolCall delegate = new ChatMessage.ToolCall(
+                "tc1", "delegate_to",
+                "{\"specialist\":\"data_analyst\",\"query\":\"liste\"}"
+        );
+
+        ArgumentCaptor<SpecialistRequest> specReqCaptor =
+                ArgumentCaptor.forClass(SpecialistRequest.class);
+        when(dataAnalyst.handle(specReqCaptor.capture())).thenReturn(
+                SpecialistResult.success("Tu as 5 biens.", List.of("list_properties"), 30, 15)
+        );
+
+        AtomicInteger callCount = new AtomicInteger();
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            if (callCount.getAndIncrement() == 0) {
+                consumer.accept(new ChatEvent.ToolCallRequest(List.of(delegate)));
+                consumer.accept(new ChatEvent.Done(40, 5, "claude", "tool_use", ""));
+            } else {
+                consumer.accept(new ChatEvent.TextDelta("OK"));
+                consumer.accept(new ChatEvent.Done(60, 10, "claude", "end_turn", "OK"));
+            }
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any(), any(String.class));
+
+        orchestrator.orchestrate(List.of(ChatMessage.user("liste")),
+                AgentContext.minimal(1L, "kc"), OrchestrationContext.empty(),
+                "sk-ant-byok-secret");
+
+        assertThat(specReqCaptor.getValue().apiKey()).isEqualTo("sk-ant-byok-secret");
+    }
+
+    @Test
     void orchestrate_propagates_orchestration_context_to_specialist() {
         // Fix bloquant #3 : les specialists doivent recevoir le contexte aussi.
         ChatMessage.ToolCall delegate = new ChatMessage.ToolCall(
