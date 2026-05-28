@@ -8,6 +8,7 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.dto.UpdateCheckInInstructionsDto;
 import com.clenzy.tenant.TenantContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +43,14 @@ class CheckInInstructionsControllerTest {
     @BeforeEach
     void setUp() {
         tenantContext = new TenantContext();
+        // CRITIQUE : depuis le refactor TenantContext en ThreadLocal static
+        // (commit d1e14acc), l'etat survit a travers les tests du meme thread
+        // surefire pool. Si un test precedent a fait setSuperAdmin(true) sans
+        // clear() final, on heriterait de superAdmin=true ici, ce qui ferait
+        // que validatePropertyAccess retournerait sans throw l'AccessDeniedException
+        // attendue (early return sur isSuperAdmin()). Ce clear() garantit un
+        // etat propre au demarrage de CHAQUE test.
+        tenantContext.clear();
         tenantContext.setOrganizationId(1L);
         controller = new CheckInInstructionsController(
             instructionsRepository, propertyRepository, userRepository, tenantContext);
@@ -64,6 +73,15 @@ class CheckInInstructionsControllerTest {
 
         // Mock pour que validatePropertyAccess trouve le user et verifie ownership
         lenient().when(userRepository.findByKeycloakId("owner-kc-id")).thenReturn(Optional.of(owner));
+    }
+
+    @AfterEach
+    void tearDown() {
+        // Symmetric a setUp : on nettoie le ThreadLocal pour ne pas polluer
+        // les tests suivants (peu importe leur classe — surefire reuse les threads).
+        if (tenantContext != null) {
+            tenantContext.clear();
+        }
     }
 
     @Test
