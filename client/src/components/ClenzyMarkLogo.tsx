@@ -14,8 +14,6 @@ import { Box, useTheme } from '@mui/material';
  * <h3>Typo</h3>
  * Wordmark "clenzy" en <b>Space Grotesk 600</b>. Choix dicte par le skill
  * {@code ui-ux-pro-max} (pairing "Tech Startup", optim AI / data-tech).
- * Plus de chasse + terminations distinctives sur "y" qui cassent le cote
- * "Helvetica generique" de Plus Jakarta Sans.
  *
  * <h3>Animation — 3 phases coordonnees, jamais statique</h3>
  *
@@ -23,45 +21,49 @@ import { Box, useTheme } from '@mui/material';
  *   <li><b>Boot sequence</b> au mount, joue UNE FOIS (~1.4s) :
  *     <ul>
  *       <li>0ms : centre fade-in + scale 0→1 (back-out 400ms)</li>
- *       <li>200ms : 8 lignes radiales se tracent (stroke-dashoffset 500ms ease-out)</li>
+ *       <li>200ms : groupe "lignes" fade-in (opacity 0→0.35, 500ms ease-out)</li>
  *       <li>600ms+ : 8 nodes pop-in en stagger horaire (60ms d'ecart, back-out 350ms)</li>
  *     </ul>
  *   </li>
  *   <li><b>Idle constant</b> apres le boot, infini mais sub-perceptible :
  *     <ul>
- *       <li>Centre <i>breathing</i> : scale 1 ↔ 0.94, opacity 1 ↔ 0.88, cycle 4s
- *           ease-in-out — suggere "orchestrator alive"</li>
- *       <li>8 nodes <i>active scan</i> : un node a la fois s'illumine et
- *           <b>se decale radialement vers l'exterieur</b> (~2.5 unites SVG),
- *           creant un gap visible avec la ligne. Le "spotlight" tourne
- *           clockwise sur 6.4s (0.8s par node). Le decalage radial rend
- *           le changement immediatement lisible — on voit clairement que
- *           ce node-la est en train de "communiquer" avec l'orchestrator.</li>
+ *       <li>Centre <i>breathing</i> : scale 1 ↔ 0.94, opacity 1 ↔ 0.88, cycle 4s</li>
+ *       <li>8 nodes <i>active scan</i> : un node a la fois s'illumine et se
+ *           decale radialement vers l'exterieur (~2.5 unites SVG). Rotation
+ *           horaire complete en 6.4s.</li>
  *     </ul>
  *   </li>
- *   <li><b>Hover wave</b> au survol (~900ms) : centre pulse + drop-shadow
- *       glow, lines brightening sync, puis ripple horaire vers les 8 nodes
- *       avec <b>decalage radial plus pronnonce</b> (~4 unites SVG) + scale
- *       1.5 + brightness 1.5. Override l'idle pour donner le focus.</li>
+ *   <li><b>Hover wave</b> au survol (~900ms) :
+ *     <ul>
+ *       <li>Centre pulse + drop-shadow glow ("thinking")</li>
+ *       <li><b>Lignes absorbees vers le centre</b> via transition
+ *           stroke-dashoffset 0→18 — le trait se retracte de l'exterieur
+ *           vers l'interieur et disparait dans le node central. Reversible
+ *           naturellement au hover-out (transition handle les deux sens).</li>
+ *       <li>Ripple horaire vers les 8 nodes (radial translate + scale 1.5)</li>
+ *     </ul>
+ *   </li>
  * </ol>
  *
- * Conformite UX (ui-ux-pro-max) :
- * - {@code prefers-reduced-motion: reduce} kill TOUTES les animations
- * - Easing : cubic-bezier back-out ou ease-in-out, jamais linear
+ * <h3>Architecture animation : pourquoi transition pour les lignes</h3>
+ * <p>L'absorb des lignes utilise {@code transition} et non {@code animation}
+ * parce qu'au hover-out on veut un retour symetrique smooth (line s'emerge
+ * depuis le centre). Avec une animation, le hover-out aurait declenche un
+ * snap brutal a l'etat de base (line visible instantanement). La transition
+ * gere les deux sens automatiquement avec le meme easing.</p>
+ *
+ * <p>Le boot des lignes est deplace sur le groupe parent ({@code <g>}) via
+ * une animation opacity 0→0.35 pour eviter le conflit animation/transition
+ * sur le meme element (sinon le hover-out ferait potentiellement rejouer
+ * le boot draw — bug visible).</p>
  */
 export interface ClenzyMarkLogoProps {
-  /** Facteur d'echelle multiplicatif. {@code 1} = icone 56px + wordmark 32px. */
   scale?: number;
-  /** {@code "full"} (defaut) / {@code "mark"} (icone) / {@code "wordmark"} (typo). */
   variant?: 'full' | 'mark' | 'wordmark';
-  /** {@code "auto"} suit le theme MUI. {@code "light"} / {@code "dark"} force. */
   tone?: 'auto' | 'light' | 'dark';
-  /** Desactive TOUTES les animations (utile pour screenshots / tests visuels). */
   disableAnimation?: boolean;
 }
 
-// Coordonnees pre-calculees des 8 nodes en octogone parfait (rayon 18, centre 28,28).
-// Ordre horaire commencant a 12h => permet l'animation scan clockwise.
 const OCTAGON_NODES: ReadonlyArray<{ x: number; y: number }> = [
   { x: 28, y: 10 },     // 0 — 12h N
   { x: 40.7, y: 15.3 }, // 1 — 1h30 NE
@@ -74,21 +76,14 @@ const OCTAGON_NODES: ReadonlyArray<{ x: number; y: number }> = [
 ];
 
 const CENTER = { x: 28, y: 28 };
+const LINE_LENGTH = 18; // distance centre -> chaque node (rayon octogone)
 
-// Duree d'un cycle de scan idle (un tour complet du spotlight).
 const SCAN_CYCLE_MS = 6400;
-const SCAN_NODE_SLICE_PCT = 100 / OCTAGON_NODES.length; // = 12.5%
+const SCAN_NODE_SLICE_PCT = 100 / OCTAGON_NODES.length;
 
-// Decalages radiaux au peak (en unites SVG, viewBox 0-56).
-// Le node s'eloigne du centre vers l'exterieur => gap visible avec sa ligne.
-const RADIAL_DELTA_SCAN_IDLE = 2.5; // subtile au repos
-const RADIAL_DELTA_HOVER_WAVE = 4;  // plus pronnonce au survol
+const RADIAL_DELTA_SCAN_IDLE = 2.5;
+const RADIAL_DELTA_HOVER_WAVE = 4;
 
-/**
- * Vecteur unitaire radial centre -> node, multiplie par {@code delta}.
- * Donne le translate(x, y) a appliquer pour eloigner le node de delta
- * unites SVG dans sa direction radiale propre.
- */
 function radialTranslate(node: { x: number; y: number }, delta: number): { tx: string; ty: string } {
   const dx = node.x - CENTER.x;
   const dy = node.y - CENTER.y;
@@ -111,25 +106,23 @@ export default function ClenzyMarkLogo({
   const resolvedTone =
     tone === 'auto' ? (theme.palette.mode === 'dark' ? 'dark' : 'light') : tone;
 
-  // ─── Palette ──────────────────────────────────────────────────────────
   const palette = resolvedTone === 'dark'
-    ? { nodes: '#89B1C2', center: '#FFFFFF', lines: '#89B1C2', wordmark: '#FFFFFF' }
-    : { nodes: '#6B8A9A', center: '#4A6B7B', lines: '#6B8A9A', wordmark: theme.palette.text.primary };
+    ? { nodes: '#89B1C2', center: '#FFFFFF', lines: '#89B1C2', wordmark: '#FFFFFF', linesOpacity: 0.4 }
+    : { nodes: '#6B8A9A', center: '#4A6B7B', lines: '#6B8A9A', wordmark: theme.palette.text.primary, linesOpacity: 0.35 };
 
   const iconSize = 56 * scale;
   const fontSize = 32 * scale;
   const gap = 14 * scale;
 
-  // ─── Classes scoped par useId ─────────────────────────────────────────
   const cls = {
     root: `clenzy-mark-root-${uid}`,
     svg: `clenzy-mark-svg-${uid}`,
     center: `clenzy-mark-center-${uid}`,
+    linesGroup: `clenzy-mark-lines-group-${uid}`,
     line: `clenzy-mark-line-${uid}`,
     node: `clenzy-mark-node-${uid}`,
   };
 
-  // ─── SVG ──────────────────────────────────────────────────────────────
   const mark = (
     <svg
       className={cls.svg}
@@ -141,7 +134,9 @@ export default function ClenzyMarkLogo({
       aria-label="Clenzy"
       style={{ flexShrink: 0, overflow: 'visible' }}
     >
-      <g stroke={palette.lines} strokeWidth="1" opacity="0.35">
+      {/* Group lines : boot animation deportee ici (fade-in opacity) pour
+          eviter le conflit animation/transition sur <line>. */}
+      <g className={cls.linesGroup} stroke={palette.lines} strokeWidth="1">
         {OCTAGON_NODES.map((n, i) => (
           <line key={`l-${i}`} className={cls.line} x1={CENTER.x} y1={CENTER.y} x2={n.x} y2={n.y} />
         ))}
@@ -159,7 +154,6 @@ export default function ClenzyMarkLogo({
     </svg>
   );
 
-  // ─── Wordmark — Space Grotesk 600 ─────────────────────────────────────
   const wordmark = (
     <span
       style={{
@@ -177,13 +171,6 @@ export default function ClenzyMarkLogo({
     </span>
   );
 
-  // ─── Animation CSS scoped ─────────────────────────────────────────────
-
-  /**
-   * Construit la keyframe scan-idle pour un node : pendant son "slot"
-   * temporel (12.5% du cycle), le node sur-scale + s'illumine + s'eloigne
-   * radialement, puis revient idle pour le reste du cycle.
-   */
   const buildScanKeyframes = (i: number, node: typeof OCTAGON_NODES[number]): string => {
     const peakPct = i * SCAN_NODE_SLICE_PCT + SCAN_NODE_SLICE_PCT / 2;
     const startPct = Math.max(0, peakPct - SCAN_NODE_SLICE_PCT / 2);
@@ -198,11 +185,6 @@ export default function ClenzyMarkLogo({
     `;
   };
 
-  /**
-   * Construit la keyframe wave-hover pour un node : au peak, scale plus
-   * pronnonce + decalage radial plus large que l'idle pour un effet
-   * "communication explicite".
-   */
   const buildWaveKeyframes = (i: number, node: typeof OCTAGON_NODES[number]): string => {
     const { tx, ty } = radialTranslate(node, RADIAL_DELTA_HOVER_WAVE);
     return `
@@ -215,17 +197,16 @@ export default function ClenzyMarkLogo({
   };
 
   const animationCss = !disableAnimation ? `
-    /* ─── Boot sequence (joue 1 fois, ~1.4s) ─────────────────────────── */
+    /* ─── Boot : centre + groupe lines + nodes ──────────────────────── */
     .${cls.center} {
       transform-origin: ${CENTER.x}px ${CENTER.y}px;
       animation:
         ${cls.center}-boot 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
         ${cls.center}-breathe 4s ease-in-out 1500ms infinite;
     }
-    .${cls.line} {
-      stroke-dasharray: 36;
-      stroke-dashoffset: 36;
-      animation: ${cls.line}-draw 500ms ease-out 200ms both;
+    .${cls.linesGroup} {
+      opacity: 0;
+      animation: ${cls.linesGroup}-fade 500ms ease-out 200ms forwards;
     }
     .${cls.node} {
       transform-box: fill-box;
@@ -240,14 +221,22 @@ export default function ClenzyMarkLogo({
       }
     `).join('')}
 
-    /* ─── Hover wave (~900ms, override l'idle) ───────────────────────── */
+    /* ─── Lines : etat de base + transition pour hover absorb ────────── */
+    .${cls.line} {
+      stroke-dasharray: ${LINE_LENGTH};
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 450ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ─── Hover wave ─────────────────────────────────────────────────── */
     .${cls.root}:hover .${cls.center} {
       animation: ${cls.center}-pulse 800ms cubic-bezier(0.4, 0, 0.2, 1);
     }
+    /* Lignes : dashoffset transite vers ${LINE_LENGTH} => le trait se
+       retracte depuis l'exterieur vers le centre, disparait dans le node
+       central. Au hover-out, la transition reverse naturellement. */
     .${cls.root}:hover .${cls.line} {
-      stroke-dasharray: none;
-      stroke-dashoffset: 0;
-      animation: ${cls.line}-pulse 700ms cubic-bezier(0.4, 0, 0.2, 1) 100ms;
+      stroke-dashoffset: ${LINE_LENGTH};
     }
     ${OCTAGON_NODES.map((_, i) => `
       .${cls.root}:hover .${cls.node}-${i} {
@@ -260,10 +249,9 @@ export default function ClenzyMarkLogo({
       0%   { transform: scale(0);   opacity: 0; }
       100% { transform: scale(1);   opacity: 1; }
     }
-    @keyframes ${cls.line}-draw {
-      0%   { stroke-dashoffset: 36; opacity: 0; }
-      30%  { opacity: 0.35; }
-      100% { stroke-dashoffset: 0;  opacity: 0.35; }
+    @keyframes ${cls.linesGroup}-fade {
+      0%   { opacity: 0; }
+      100% { opacity: ${palette.linesOpacity}; }
     }
     @keyframes ${cls.node}-pop {
       0%   { transform: translate(0, 0) scale(0);   opacity: 0; }
@@ -278,38 +266,35 @@ export default function ClenzyMarkLogo({
     }
     ${OCTAGON_NODES.map((node, i) => buildScanKeyframes(i, node)).join('')}
 
-    /* ─── Keyframes : hover wave polish ──────────────────────────────── */
+    /* ─── Keyframes : hover wave (centre + nodes uniquement) ─────────── */
     @keyframes ${cls.center}-pulse {
       0%   { transform: scale(1);    filter: brightness(1)   drop-shadow(0 0 0 transparent); }
       35%  { transform: scale(1.3);  filter: brightness(1.4) drop-shadow(0 0 4px currentColor); }
       100% { transform: scale(1);    filter: brightness(1)   drop-shadow(0 0 0 transparent); }
-    }
-    @keyframes ${cls.line}-pulse {
-      0%   { opacity: 0.35; stroke-width: 1; }
-      40%  { opacity: 0.75; stroke-width: 1.3; }
-      100% { opacity: 0.35; stroke-width: 1; }
     }
     ${OCTAGON_NODES.map((node, i) => buildWaveKeyframes(i, node)).join('')}
 
     /* ─── prefers-reduced-motion : tout kill ─────────────────────────── */
     @media (prefers-reduced-motion: reduce) {
       .${cls.center},
+      .${cls.linesGroup},
       .${cls.line},
       .${cls.node},
       .${cls.root}:hover .${cls.center},
       .${cls.root}:hover .${cls.line},
       .${cls.root}:hover .${cls.node} {
         animation: none !important;
+        transition: none !important;
         opacity: 1 !important;
         transform: none !important;
         stroke-dashoffset: 0 !important;
         stroke-dasharray: none !important;
         filter: none !important;
       }
+      .${cls.linesGroup} { opacity: ${palette.linesOpacity} !important; }
     }
   ` : '';
 
-  // ─── Render ───────────────────────────────────────────────────────────
   const content =
     variant === 'mark' ? mark :
     variant === 'wordmark' ? wordmark :
