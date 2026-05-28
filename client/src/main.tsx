@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import ReactDOM from 'react-dom/client'
-import { CssBaseline, ThemeProvider, createTheme } from '@mui/material'
+import { CssBaseline, ThemeProvider } from '@mui/material'
 import { CacheProvider } from '@emotion/react'
 import createCache from '@emotion/cache'
 import rtlPlugin from 'stylis-plugin-rtl'
@@ -10,8 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as Sentry from '@sentry/react'
 import posthog from 'posthog-js'
 import App from './modules/App'
-import lightTheme from './theme/theme'
-import darkTheme from './theme/darkTheme'
+import { createClenzyTheme } from './theme/createClenzyTheme'
 import ThemeSafetyWrapper from './components/ThemeSafetyWrapper'
 import { NotificationProvider } from './hooks/useNotification'
 import { ThemeModeProvider, useThemeMode } from './hooks/useThemeMode'
@@ -100,20 +99,14 @@ function AppWithTheme() {
     document.documentElement.lang = i18n.language || 'fr';
   }, [isRtl, i18n.language]);
 
-  const currentTheme = useMemo(() => {
-    const baseTheme = isDark ? darkTheme : lightTheme;
-    return createTheme({
-      ...baseTheme,
-      direction: isRtl ? 'rtl' : 'ltr',
-      // Mode arabe : applique Tajawal sur toute l'UI MUI (Typography, Button,
-      // TextField, etc. heritent de theme.typography.fontFamily). En LTR on
-      // garde la stack par defaut (Plus Jakarta Sans).
-      typography: isRtl ? {
-        ...baseTheme.typography,
-        fontFamily: '"Tajawal", "Tahoma", "Geeza Pro", "Arabic Typesetting", "Traditional Arabic", sans-serif',
-      } : baseTheme.typography,
-    });
-  }, [isDark, isRtl]);
+  // Theme principal : factory single source of truth (cf. createClenzyTheme).
+  // Tous les ThemeProvider de l'app (AppWithTheme + AuthLayout +
+  // InscriptionSuccess/Confirm + Support) DOIVENT passer par cette factory
+  // sinon les overrides langue (Tajawal en arabe) + direction RTL sont KO.
+  const currentTheme = useMemo(
+    () => createClenzyTheme({ isDark, isRtl }),
+    [isDark, isRtl]
+  );
 
   const emotionCache = isRtl ? rtlCache : ltrCache;
 

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography, useTheme, alpha, useMediaQuery, CssBaseline, ThemeProvider } from '@mui/material';
-import lightTheme from '../../theme/theme';
+import { createClenzyTheme } from '../../theme/createClenzyTheme';
 import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 
 /**
@@ -40,8 +40,16 @@ export interface AuthLayoutProps {
 }
 
 export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutProps) {
+  // Theme arabe-aware : applique Tajawal + dir=rtl quand la langue UI est 'ar'.
+  // Sans ca, les pages de login/inscription wrap lightTheme directement -> les
+  // overrides du AppWithTheme (qui set Tajawal en RTL) sont IGNORES car ce
+  // ThemeProvider local prend la priorite.
+  const { i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
+  const theme = useMemo(() => createClenzyTheme({ isDark: false, isRtl }), [isRtl]);
+
   return (
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthLayoutInner maxFormWidth={maxFormWidth}>{children}</AuthLayoutInner>
     </ThemeProvider>
