@@ -32,6 +32,7 @@ import {
   Chat,
   BarChart,
   StarRate,
+  AutoAwesome,
   CheckCircle,
   OpenInNew,
 } from '../../icons';
@@ -122,6 +123,7 @@ const PROVIDER_IDS = Object.keys(PROVIDER_LABELS);
 // ─── Feature Config ────────────────────────────────────────────────────────
 
 const AI_FEATURES = [
+  { key: 'ASSISTANT_CHAT', label: 'Assistant IA', desc: 'Orchestrator multi-agent + specialists du chat + briefings', icon: <AutoAwesome />, color: '#6B8A9A' },
   { key: 'DESIGN', label: 'Design IA', desc: 'Generation CSS/JS du booking engine', icon: <Palette />, color: '#7C3AED' },
   { key: 'PRICING', label: 'Tarification IA', desc: 'Recommandations de prix', icon: <AttachMoney />, color: '#059669' },
   { key: 'MESSAGING', label: 'Messagerie IA', desc: 'Detection intention + reponses', icon: <Chat />, color: '#2563EB' },

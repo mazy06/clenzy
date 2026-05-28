@@ -265,6 +265,7 @@ public class AgentOrchestrator {
     private final com.clenzy.service.agent.multiagent.OrchestratorAgent multiAgentOrchestrator;
     private final com.clenzy.service.agent.multiagent.SpecialistRegistry specialistRegistry;
     private final com.clenzy.service.AiTokenBudgetService aiTokenBudgetService;
+    private final com.clenzy.service.PlatformAiConfigService platformAiConfigService;
 
     /**
      * Feature flag : si true, utilise l'architecture multi-agent (orchestrator
@@ -334,6 +335,7 @@ public class AgentOrchestrator {
                               com.clenzy.service.agent.multiagent.OrchestratorAgent multiAgentOrchestrator,
                               com.clenzy.service.agent.multiagent.SpecialistRegistry specialistRegistry,
                               com.clenzy.service.AiTokenBudgetService aiTokenBudgetService,
+                              com.clenzy.service.PlatformAiConfigService platformAiConfigService,
                               @org.springframework.beans.factory.annotation.Value("${clenzy.assistant.prompt.v2.enabled:true}")
                               boolean promptV2Enabled,
                               @org.springframework.beans.factory.annotation.Value("${clenzy.assistant.multi-agent.enabled:false}")
@@ -353,6 +355,7 @@ public class AgentOrchestrator {
         this.multiAgentOrchestrator = multiAgentOrchestrator;
         this.specialistRegistry = specialistRegistry;
         this.aiTokenBudgetService = aiTokenBudgetService;
+        this.platformAiConfigService = platformAiConfigService;
         this.promptV2Enabled = promptV2Enabled;
         this.multiAgentEnabled = multiAgentEnabled;
     }
@@ -433,10 +436,18 @@ public class AgentOrchestrator {
             try {
                 com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx =
                         new com.clenzy.service.agent.multiagent.OrchestrationContext(memories, kbHits);
+                // Resoud le modele a utiliser : context.modelOverride > Settings >
+                // null. Si l'admin a assigne un modele a la feature ASSISTANT_CHAT
+                // dans Settings > IA, on l'utilise pour piloter orchestrator +
+                // specialists. Sinon fallback sur le defaut provider (Sonnet).
+                String multiAgentModel = resolveAssistantModel(context.modelOverride());
+                AgentContext effectiveContext = multiAgentModel != null
+                        ? context.withModelOverride(multiAgentModel)
+                        : context;
 
                 boolean handledByMultiAgent = tryMultiAgentFlow(
                         effectiveMessage, chatMessages, orchestrationCtx, apiKey,
-                        context, conversation, consumer);
+                        effectiveContext, conversation, consumer);
                 if (handledByMultiAgent) {
                     // 6. Update conversation updatedAt + title si manquant
                     conversation.setUpdatedAt(LocalDateTime.now());
@@ -468,10 +479,15 @@ public class AgentOrchestrator {
 
         // 7 (fallback). Boucle tool-calling mono-agent (27 tools), avec reutilisation
         //    des memoires + RAG pre-chargees (pas de second appel embeddings).
+        //    Resolution du modele (priorite decroissante) :
+        //      1. context.modelOverride() : forcage explicite (briefings = Haiku)
+        //      2. Modele assigne a la feature ASSISTANT_CHAT dans Settings > IA
+        //      3. null → defaut provider (Anthropic Sonnet)
         List<ToolDescriptor> tools = toolRegistry.listDescriptors();
         String systemPrompt = buildSystemPrompt(context, effectiveMessage, memories, kbHits);
+        String resolvedModel = resolveAssistantModel(context.modelOverride());
         ChatRequest request = new ChatRequest(
-                systemPrompt, chatMessages, tools, context.modelOverride(),
+                systemPrompt, chatMessages, tools, resolvedModel,
                 DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN);
 
         runToolLoop(request, conversation, context, apiKey, consumer);
@@ -1099,6 +1115,42 @@ public class AgentOrchestrator {
      * resilient au schema (storageKey + mediaType minimum) pour pouvoir relire
      * meme apres une evolution du modele.
      */
+    /**
+     * Resoud le modele a utiliser pour le chat assistant (orchestrator
+     * multi-agent + specialists + mono-agent fallback).
+     *
+     * <p>Priorite decroissante :</p>
+     * <ol>
+     *   <li>{@code overrideFromContext} (briefings : Haiku force par
+     *       BriefingComposer pour reduire les couts)</li>
+     *   <li>Modele assigne a la feature {@code ASSISTANT_CHAT} dans Settings
+     *       &gt; IA &gt; Modeles &amp; features (configurable par l'admin)</li>
+     *   <li>{@code null} → le ChatLLMProvider utilise son modele defaut
+     *       (Claude Sonnet 4 actuellement)</li>
+     * </ol>
+     *
+     * <p>Fail-safe : si la lookup Settings throw (DB down), on retourne
+     * {@code overrideFromContext} → degradation gracieuse vers le defaut
+     * provider.</p>
+     */
+    private String resolveAssistantModel(String overrideFromContext) {
+        // Priorite 1 : modelOverride explicite du AgentContext (briefings, etc.)
+        if (overrideFromContext != null && !overrideFromContext.isBlank()) {
+            return overrideFromContext;
+        }
+        // Priorite 2 : modele assigne a la feature ASSISTANT_CHAT en Settings
+        if (platformAiConfigService == null) return null;
+        try {
+            return platformAiConfigService
+                    .getActiveModelForFeature(com.clenzy.model.AiFeature.ASSISTANT_CHAT.name())
+                    .map(com.clenzy.model.PlatformAiModel::getModelId)
+                    .orElse(null);
+        } catch (Exception e) {
+            log.debug("Failed to resolve assistant model from Settings : {}", e.getMessage());
+            return null;
+        }
+    }
+
     /**
      * Enregistre la consommation tokens dans {@code ai_token_usage} (feature
      * {@code ASSISTANT_CHAT}). Wrappee defensivement : ne propage JAMAIS
