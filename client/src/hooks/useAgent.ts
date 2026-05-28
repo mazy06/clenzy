@@ -146,6 +146,11 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
           role: m.role,
           content: m.content ?? '',
           attachments: parseAttachmentsJsonSafe(m.attachments),
+          // Hydrate les toolCalls depuis le JSONB backend. Sans ca, les
+          // widgets riches (KPI, charts, tables) disparaissent au reload
+          // d'une conversation : MessageBubble skip leur rendu car
+          // message.toolCalls === undefined.
+          toolCalls: parseToolCallsJsonSafe(m.toolCalls),
           toolCallId: m.toolCallId,
           createdAt: m.createdAt,
         }));
@@ -441,6 +446,37 @@ function parseAttachmentsJsonSafe(raw: string | undefined): NonNullable<DisplayM
       return a && typeof a.storageKey === 'string'
         && typeof a.mediaType === 'string'
         && typeof a.url === 'string';
+    });
+    return valid.length > 0 ? valid : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Parse la colonne {@code tool_calls} (JSON string array, serialisee par
+ * {@code AgentOrchestrator.serializeToolCallsSafe}) en {@link ToolCallExecuted}[].
+ *
+ * <p><b>Pourquoi cette fonction existe</b> : pendant le streaming, les
+ * toolCalls sont construits incrementalement via les evenements SSE
+ * {@code tool_call_executed} et accumules dans le draft message. Au reload
+ * d'une conversation existante via {@code loadConversation}, le backend
+ * renvoie ces toolCalls deja sous forme de JSON string (raw JSONB column).
+ * Sans ce parser, les widgets riches (KPI tiles, charts, tables) ne se
+ * re-hydratent pas et l'user voit juste le texte plain — bug visible
+ * "les schemas/tableaux/graphiques disparaissent au reload" rapporte
+ * par l'utilisateur.</p>
+ */
+function parseToolCallsJsonSafe(raw: string | undefined): ToolCallExecuted[] | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return undefined;
+    const valid = parsed.filter((tc): tc is ToolCallExecuted => {
+      return tc
+        && typeof tc.toolName === 'string'
+        && typeof tc.toolCallId === 'string'
+        && typeof tc.toolError === 'boolean';
     });
     return valid.length > 0 ? valid : undefined;
   } catch {
