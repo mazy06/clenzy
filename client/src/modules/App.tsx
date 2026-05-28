@@ -23,6 +23,38 @@ import MainLayoutFull from './layout/MainLayoutFull';
 import AuthenticatedApp from './AuthenticatedApp';
 import { clearTokens } from '../services/storageService';
 
+/**
+ * Redirige vers /login via un HARD reload (window.location.href) plutot que
+ * via React Router. Indispensable apres un deploy de nouvelle version :
+ *
+ * <p>Scenario du bug : un utilisateur garde un onglet ouvert plusieurs jours.
+ * Le bundle JS (App.tsx + Login.tsx + chunks lies) reste en memoire. Un nouveau
+ * deploy hashe les chunks differemment dans le nouvel index.html. Si le cookie
+ * `clenzy_auth` expire pendant ce temps, un {@code <Navigate to="/login">}
+ * React Router ne refetch PAS index.html — il rerend l'ancien Login depuis la
+ * memoire. L'utilisateur voit l'UI pre-deploy alors que le nouveau code est
+ * deja en prod. Resultat visible : ancien design / strings i18n obsoletes /
+ * boutons supprimes qui reapparaissent.</p>
+ *
+ * <p>{@code window.location.href} force le browser a refetch index.html (sert
+ * en {@code Cache-Control: no-cache} cote Vite ET nginx), donc charge les
+ * nouveaux chunks hashes. {@code clearTokens()} avant la redirection garantit
+ * un etat local propre (pas de leak de keys legacy localStorage).</p>
+ *
+ * <p>Cout : un full page reload (white flash bref) au lieu d'une transition
+ * SPA. Acceptable car l'utilisateur va vers une page d'auth — perdre le state
+ * de la page protegee precedente est attendu.</p>
+ */
+function HardRedirectToLogin(): null {
+  useEffect(() => {
+    // Defensive cleanup : meme si rien n'est cense etre en localStorage
+    // (regle securite #7), purge tout residu legacy avant le reload.
+    clearTokens();
+    window.location.href = '/login';
+  }, []);
+  return null;
+}
+
 // Routes publiques accessibles sans authentification
 const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/support', '/accept-invitation'];
 
@@ -277,11 +309,14 @@ const App: React.FC = () => {
           <Route path="/verify-key/:token" element={<PublicKeyVerification />} />
         
         {/* Routes protégées */}
-        <Route 
-          path="/*" 
+        <Route
+          path="/*"
           element={
             !authenticated || !keycloak.authenticated ? (
-              <Navigate to="/login" replace />
+              // HARD redirect (cf. HardRedirectToLogin) au lieu d'un Navigate
+              // React Router : evite que l'ancien bundle Login en memoire ne
+              // soit rerendu apres un deploy sans refetch d'index.html.
+              <HardRedirectToLogin />
             ) : (
               // Si authentifié, afficher soit le chargement soit l'app
               authLoading ? (
