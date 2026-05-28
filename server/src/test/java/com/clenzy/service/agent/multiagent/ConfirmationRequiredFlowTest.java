@@ -163,6 +163,39 @@ class ConfirmationRequiredFlowTest {
     }
 
     @Test
+    void specialist_with_arabic_language_injects_rtl_hint() {
+        // Coverage parite avec OrchestratorAgentTest : verifie que le specialist
+        // (impl differente du orchestrator) injecte aussi le hint Arabic (RTL)
+        // pour eviter une divergence entre les deux renderers user_context.
+        ToolHandler readHandler = mock(ToolHandler.class);
+        ObjectNode schema = objectMapper.createObjectNode();
+        schema.put("type", "object");
+        ToolDescriptor readDescriptor = ToolDescriptor.readOnly("list_properties", "Liste", schema);
+        when(readHandler.descriptor()).thenReturn(readDescriptor);
+        when(toolRegistry.find("list_properties")).thenReturn(Optional.of(readHandler));
+        when(toolRegistry.listDescriptors()).thenReturn(List.of(readDescriptor));
+
+        TestSpecialist spec = new TestSpecialist(chatProvider, toolRegistry,
+                objectMapper, meterRegistry, Set.of("list_properties"));
+
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            consumer.accept(new ChatEvent.TextDelta("لديك 5 عقارات."));
+            consumer.accept(new ChatEvent.Done(20, 8, "claude", "end_turn", "..."));
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any());
+
+        AgentContext ctx = new AgentContext(1L, "kc", null, "ar", null, null);
+        spec.handle(SpecialistRequest.of("اعرض", ctx));
+
+        ArgumentCaptor<ChatRequest> reqCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+        verify(chatProvider).streamChat(reqCaptor.capture(), any());
+        assertThat(reqCaptor.getValue().systemPrompt())
+                .contains("<language>ar</language>")
+                .contains("Arabic (RTL)");
+    }
+
+    @Test
     void read_only_tool_executes_normally_no_exception() {
         // Setup d'un tool read-only
         ToolHandler readHandler = mock(ToolHandler.class);

@@ -205,14 +205,9 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
         return sb.toString();
     }
 
-    /** Echappement XML basique (& < > " ') — suffisant pour les valeurs de memoire/RAG. */
+    /** Delegate au StringUtils partage pour eviter la divergence avec OrchestratorAgent. */
     private static String escapeXml(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&apos;");
+        return com.clenzy.util.StringUtils.escapeXml(s);
     }
 
     @Override

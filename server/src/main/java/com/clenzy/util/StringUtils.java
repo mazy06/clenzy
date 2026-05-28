@@ -51,6 +51,27 @@ public final class StringUtils {
     }
 
     /**
+     * Echappe les caracteres reserves XML (& {@literal <} {@literal >} " ').
+     *
+     * <p>Utilise pour injecter des valeurs user-controlled (memoire long-terme,
+     * snippets RAG, contexte UI) dans les balises XML d'un system prompt LLM —
+     * empeche qu'un memoryValue contenant {@code </item><injected>...} ne
+     * trompe le parseur du LLM ou n'injecte une instruction parasite.</p>
+     *
+     * <p>Difference avec {@link #escapeHtml(String)} : utilise l'entite nommee
+     * {@code &apos;} (standard XML) au lieu de {@code &#39;} (decimal HTML).</p>
+     */
+    public static String escapeXml(String value) {
+        if (value == null) return "";
+        return value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
+    }
+
+    /**
      * Calcule le hash SHA-256 d'un email normalise (lowercase + trim).
      * Utilise pour le lookup d'utilisateurs par email chiffre.
      */
