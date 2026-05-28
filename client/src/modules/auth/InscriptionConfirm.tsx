@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -21,7 +21,7 @@ import {
   LockOutlined as LockIcon,
   Login as LoginIcon,
 } from '../../icons';
-import lightTheme from '../../theme/theme';
+import { createClenzyTheme } from '../../theme/createClenzyTheme';
 import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
 import keycloak from '../../keycloak';
@@ -54,7 +54,11 @@ const getForfaitShortLabel = (t: TFunction, key: string): string => {
 };
 
 export default function InscriptionConfirm() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const theme = useMemo(
+    () => createClenzyTheme({ isRtl: i18n.language === 'ar' }),
+    [i18n.language]
+  );
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token') || '';
@@ -157,7 +161,7 @@ export default function InscriptionConfirm() {
   };
 
   return (
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box
         sx={{
