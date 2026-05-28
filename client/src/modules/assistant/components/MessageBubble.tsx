@@ -172,15 +172,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         },
       }}
     >
-      {/* Avatar sparkles — signature visuelle de l'assistant */}
+      {/* Avatar Clenzy mark — signature visuelle de l'assistant.
+          Pas de bg circulaire : le mark a son propre dessin (8 nodes +
+          centre + lignes) qui se suffit a lui-meme. Container minimal
+          pour aligner la taille avec le premier ligne de texte. */}
       <Box
         sx={{
           flexShrink: 0,
           width: 28,
           height: 28,
-          borderRadius: '50%',
-          bgcolor: alpha(theme.palette.primary.main, 0.12),
-          color: theme.palette.primary.main,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
