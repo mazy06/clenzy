@@ -99,6 +99,7 @@ class AgentOrchestratorMultiAgentTest {
                 mock(PromptBuilder.class),
                 multiAgent, specialistRegistry,
                 mock(com.clenzy.service.AiTokenBudgetService.class),
+                mock(com.clenzy.service.PlatformAiConfigService.class),
                 false, multiAgentEnabled
         );
     }

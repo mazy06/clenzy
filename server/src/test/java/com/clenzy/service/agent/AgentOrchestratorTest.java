@@ -62,6 +62,7 @@ class AgentOrchestratorTest {
                 mock(com.clenzy.service.agent.multiagent.OrchestratorAgent.class),
                 mock(com.clenzy.service.agent.multiagent.SpecialistRegistry.class),
                 mock(com.clenzy.service.AiTokenBudgetService.class),
+                mock(com.clenzy.service.PlatformAiConfigService.class),
                 false,  // v2 prompt OFF -> exercise v1 legacy path
                 false); // multi-agent OFF -> exercise mono-agent runToolLoop
         ctx = AgentContext.minimal(1L, "user-123");
