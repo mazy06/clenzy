@@ -61,7 +61,7 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 480 }}>
           Pose-moi une question sur tes proprietes, reservations, menages ou KPIs.
-          J&apos;utilise tes donnees Clenzy en temps reel.
+          J&apos;utilise tes donnees Baitly en temps reel.
         </Typography>
       </Box>
 

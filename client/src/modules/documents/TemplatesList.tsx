@@ -25,7 +25,7 @@ import { useTemplates, useActivateTemplate, useDeleteTemplate } from './hooks/us
 import TemplateUpload from './TemplateUpload';
 import { softChipSx } from '../../utils/statusUtils';
 
-// Palette Clenzy (accents valides)
+// Palette Baitly (accents valides)
 const PRIMARY = '#6B8A9A';
 const ACCENT_TEAL = '#4A9B8E';
 const SOFT_BLUE = '#7BA3C2';

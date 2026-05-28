@@ -107,7 +107,7 @@
     "titleHousekeeper": "Housekeeper Dashboard",
     "titleSupervisor": "Supervisor Dashboard",
     "subtitle": "Overview of your activity",
-    "subtitleAdmin": "Complete overview of the Clenzy platform",
+    "subtitleAdmin": "Complete overview of the Baitly platform",
     "subtitleManager": "Operations management and team tracking",
     "subtitleHost": "Track your properties and service requests",
     "subtitleTechnician": "Your interventions and work planning",
@@ -358,7 +358,7 @@
       "noRecommendations": "No recommendations available"
     },
     "emptyState": {
-      "title": "Welcome to Clenzy!",
+      "title": "Welcome to Baitly!",
       "description": "Start by creating your first property to unlock all dashboard features.",
       "cta": "Create my first property"
     },
@@ -497,8 +497,8 @@
         "configureDevice": "Configure my sensor"
       },
       "clenzy": {
-        "detailTitle": "Clenzy Hardware - Proprietary solution",
-        "detailDescription": "Our Tuya OEM-based solution provides noise monitoring with no monthly subscription. The CLENZY-TUYA-NM-01 sensor integrates natively into the Clenzy platform with real-time data.",
+        "detailTitle": "Baitly Hardware - Proprietary solution",
+        "detailDescription": "Our Tuya OEM-based solution provides noise monitoring with no monthly subscription. The BAITLY-TUYA-NM-01 sensor integrates natively into the Baitly platform with real-time data.",
         "articleRef": "Article ref.",
         "orderExternal": "Order from the store",
         "configureDevice": "Configure my sensor"
@@ -568,7 +568,7 @@
       "title": "Key Management",
       "subtitle": "Set up a key storage point for your properties without a smart lock.",
       "keyvault": {
-        "title": "Clenzy KeyVault — Partner Merchants",
+        "title": "Baitly KeyVault — Partner Merchants",
         "description": "Manage your own network of trusted merchants. Integrated PMS solution at no extra cost.",
         "free": "Free",
         "includedInPlan": "Included in your plan",
@@ -1843,7 +1843,7 @@
       "changeIcon": "Change icon",
       "resetIcon": "Reset icon",
       "tabs": {
-        "reference": "Clenzy reference"
+        "reference": "Baitly reference"
       },
       "iconPicker": {
         "title": "Pick an icon",
@@ -1854,12 +1854,12 @@
         "resetToDefault": "Revert to default icon"
       },
       "reference": {
-        "intro": "Clenzy reference: {{count}} amenities ready to use. Click an icon to customize it (lucide-react catalog, ~80 icons). The amenity code is invariant — only the icon changes.",
+        "intro": "Baitly reference: {{count}} amenities ready to use. Click an icon to customize it (lucide-react catalog, ~80 icons). The amenity code is invariant — only the icon changes.",
         "customizedTooltip": "Custom icon — revert to default"
       },
       "custom": {
         "emptyTitle": "No custom amenity",
-        "emptySubtitle": "Create your own amenities when the Clenzy reference does not cover an equipment."
+        "emptySubtitle": "Create your own amenities when the Baitly reference does not cover an equipment."
       },
       "ignored": {
         "emptyTitle": "No ignored amenity",
@@ -1951,7 +1951,7 @@
       "ibanInvalid": "Invalid IBAN format (e.g. FR7630006000011234567890189)",
       "sepaSuccess": "Bank details saved",
       "sepaError": "Error saving details",
-      "verificationNote": "After modification, your details will be verified by Clenzy before activation.",
+      "verificationNote": "After modification, your details will be verified by Baitly before activation.",
       "stripeSection": "Stripe Connect",
       "stripeDescription": "Connect your Stripe account to receive your payouts automatically.",
       "stripeConnectBtn": "Connect my Stripe account",
@@ -2130,7 +2130,7 @@
   },
   "reports": {
     "title": "Reports",
-    "subtitle": "Generate and consult reports for your Clenzy platform",
+    "subtitle": "Generate and consult reports for your Baitly platform",
     "permission": "Permission",
     "available": "Available",
     "notAuthorized": "Not authorized",
@@ -2401,9 +2401,9 @@
         "feature4": "24/7 support"
       },
       "clenzy": {
-        "title": "Clenzy Hardware",
+        "title": "Baitly Hardware",
         "badge": "Proprietary",
-        "description": "Proprietary solution based on Tuya OEM. One-time cost with no subscription, natively integrated into the Clenzy platform.",
+        "description": "Proprietary solution based on Tuya OEM. One-time cost with no subscription, natively integrated into the Baitly platform.",
         "pricingModel": "One-time cost (no subscription)",
         "onQuote": "On request",
         "onQuoteHint": "Price will be communicated when your solution is configured",
@@ -2417,7 +2417,7 @@
         "supportPriceHelp": "Extended support and warranty",
         "total": "Total per sensor",
         "feature1": "No monthly subscription",
-        "feature2": "Native Clenzy integration",
+        "feature2": "Native Baitly integration",
         "feature3": "Real-time data",
         "feature4": "No external dependency"
       }
@@ -2729,7 +2729,7 @@
     },
     "pushPricing": {
       "title": "Push to Airbnb",
-      "description": "Sync Clenzy calendar prices to Airbnb",
+      "description": "Sync Baitly calendar prices to Airbnb",
       "push": "Push prices",
       "button": "Push prices",
       "tooltip": "Push resolved prices to Airbnb (365 days)",
@@ -2784,7 +2784,7 @@
     },
     "connect": {
       "title": "Connect {{channel}}",
-      "description": "Enter your API credentials to connect {{channel}} to Clenzy.",
+      "description": "Enter your API credentials to connect {{channel}} to Baitly.",
       "hotelId": "Hotel ID",
       "propertyId": "Property ID",
       "username": "Username",
@@ -3552,7 +3552,7 @@
         "loadError": "Unable to load AI configuration. Please try again."
       },
       "features": {
-        "title": "Clenzy AI Solutions",
+        "title": "Baitly AI Solutions",
         "subtitle": "Enable or disable AI modules based on your needs",
         "design": {
           "name": "Design AI",
@@ -3778,7 +3778,7 @@
   },
   "shop": {
     "title": "Hardware Shop",
-    "subtitle": "Equip your properties with Clenzy-compatible IoT sensors",
+    "subtitle": "Equip your properties with Baitly-compatible IoT sensors",
     "allProducts": "All products",
     "kits": "Kits",
     "noiseMonitoring": "Noise monitoring",
@@ -3795,11 +3795,11 @@
     "shipping": "Free shipping in metropolitan France",
     "shippingIntl": "Contact us for international shipping",
     "noSubscription": "No monthly subscription",
-    "nativeIntegration": "Native Clenzy integration",
+    "nativeIntegration": "Native Baitly integration",
     "kitContents": "Kit contents",
     "savings": "Savings",
     "perUnit": "per unit",
-    "infoBanner": "All our products are Tuya-compatible and integrate natively with your Clenzy PMS. No monthly subscription.",
+    "infoBanner": "All our products are Tuya-compatible and integrate natively with your Baitly PMS. No monthly subscription.",
     "badges": {
       "new": "New",
       "bestseller": "Popular",
@@ -3948,7 +3948,7 @@
         "payment": "Payment providers (Stripe, PayPal, PayTabs, CMI…) and split rules.",
         "integrations": "Connect your third-party tools: e-signature, accounting, KYC, legal compliance, OTA channels.",
         "payouts": "Schedule and calculation rules for owner payouts.",
-        "amenitiesOta": "Map amenities detected on your OTA listings (Airbnb, Booking, etc.) to the Clenzy reference. Create your own amenities if nothing matches."
+        "amenitiesOta": "Map amenities detected on your OTA listings (Airbnb, Booking, etc.) to the Baitly reference. Create your own amenities if nothing matches."
       }
     },
     "dashboard": {
@@ -4007,7 +4007,7 @@
     },
     "reports": {
       "title": "Reports",
-      "default": "Generate and view reports from your Clenzy platform",
+      "default": "Generate and view reports from your Baitly platform",
       "subtitle": {
         "financial": "Revenue per property, operating costs, net margin and accounting exports for the chosen period.",
         "interventions": "Volume, average delays and completion rates of interventions by type and team.",
@@ -4041,7 +4041,7 @@
     },
     "monitoring": {
       "title": "System Monitoring",
-      "default": "Complete monitoring of the Clenzy platform",
+      "default": "Complete monitoring of the Baitly platform",
       "lastUpdate": "Last update",
       "tabs": {
         "tokens": "Token Monitoring",
@@ -4075,7 +4075,7 @@
         "calendar": "Audit of calendar commands (book, cancel, block, price) and detection of multi-channel conflicts.",
         "mappings": "Property ↔ external listing correspondences per channel (Airbnb ID, Booking hotel ID, etc.).",
         "diagnostics": "System diagnostics: scheduled tasks, jobs in progress, recent errors and integrations status.",
-        "reconciliation": "Calendar reconciliation runs: detection of divergences between Clenzy and OTA, manual triggering."
+        "reconciliation": "Calendar reconciliation runs: detection of divergences between Baitly and OTA, manual triggering."
       }
     }
   },
@@ -4146,7 +4146,7 @@
       "cguLinkText": "terms of service",
       "cguMiddle": "and the",
       "privacyLinkText": "privacy policy",
-      "newsletterOptIn": "I want to receive the Clenzy newsletter (product updates, rental management tips).",
+      "newsletterOptIn": "I want to receive the Baitly newsletter (product updates, rental management tips).",
       "submit": "Continue to payment",
       "alreadyAccount": "Already have an account?",
       "loginLink": "Sign in",

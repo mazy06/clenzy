@@ -107,7 +107,7 @@
     "titleHousekeeper": "Tableau de bord Agent de ménage",
     "titleSupervisor": "Tableau de bord Superviseur",
     "subtitle": "Vue d'ensemble de votre activité",
-    "subtitleAdmin": "Vue d'ensemble complète de la plateforme Clenzy",
+    "subtitleAdmin": "Vue d'ensemble complète de la plateforme Baitly",
     "subtitleManager": "Gestion des opérations et suivi des équipes",
     "subtitleHost": "Suivi de vos propriétés et demandes de service",
     "subtitleTechnician": "Vos interventions et planification de travail",
@@ -370,7 +370,7 @@
       "noRecommendations": "Aucune recommandation disponible"
     },
     "emptyState": {
-      "title": "Bienvenue sur Clenzy !",
+      "title": "Bienvenue sur Baitly !",
       "description": "Commencez par créer votre première propriété pour débloquer toutes les fonctionnalités du tableau de bord.",
       "cta": "Créer ma première propriété"
     },
@@ -511,8 +511,8 @@
         "configureDevice": "Configurer mon capteur"
       },
       "clenzy": {
-        "detailTitle": "Clenzy Hardware - Solution propriétaire",
-        "detailDescription": "Notre solution basée sur Tuya OEM offre un monitoring sonore sans abonnement mensuel. Le capteur CLENZY-TUYA-NM-01 s'intègre nativement dans la plateforme Clenzy avec des données en temps réel.",
+        "detailTitle": "Baitly Hardware - Solution propriétaire",
+        "detailDescription": "Notre solution basée sur Tuya OEM offre un monitoring sonore sans abonnement mensuel. Le capteur BAITLY-TUYA-NM-01 s'intègre nativement dans la plateforme Baitly avec des données en temps réel.",
         "articleRef": "Réf. article",
         "orderExternal": "Commander sur la boutique",
         "configureDevice": "Configurer mon capteur"
@@ -582,7 +582,7 @@
       "title": "Gestion des clés",
       "subtitle": "Configurez un point de gardiennage de clés pour vos logements sans serrure connectée.",
       "keyvault": {
-        "title": "Clenzy KeyVault — Gardiens de clés",
+        "title": "Baitly KeyVault — Gardiens de clés",
         "description": "Gérez votre propre réseau de gardiens de clés — commerçants ou particuliers à proximité. Solution intégrée au PMS, sans coût supplémentaire.",
         "free": "Gratuit",
         "includedInPlan": "Inclus dans votre abonnement",
@@ -1865,7 +1865,7 @@
       "changeIcon": "Changer l'icône",
       "resetIcon": "Réinitialiser l'icône",
       "tabs": {
-        "reference": "Référentiel Clenzy"
+        "reference": "Référentiel Baitly"
       },
       "iconPicker": {
         "title": "Choisir une icône",
@@ -1876,12 +1876,12 @@
         "resetToDefault": "Revenir à l'icône par défaut"
       },
       "reference": {
-        "intro": "Référentiel Clenzy : {{count}} commodités prêtes à l'emploi. Cliquez sur une icône pour la personnaliser (catalogue lucide-react, ~80 icônes). Le code de la commodité reste invariant — seule l'icône change.",
+        "intro": "Référentiel Baitly : {{count}} commodités prêtes à l'emploi. Cliquez sur une icône pour la personnaliser (catalogue lucide-react, ~80 icônes). Le code de la commodité reste invariant — seule l'icône change.",
         "customizedTooltip": "Icône personnalisée — revenir à l'icône par défaut"
       },
       "custom": {
         "emptyTitle": "Aucune commodité custom",
-        "emptySubtitle": "Créez vos propres commodités quand le référentiel Clenzy ne couvre pas un équipement."
+        "emptySubtitle": "Créez vos propres commodités quand le référentiel Baitly ne couvre pas un équipement."
       },
       "ignored": {
         "emptyTitle": "Aucune amenity ignorée",
@@ -1973,7 +1973,7 @@
       "ibanInvalid": "Format IBAN invalide (ex: FR7630006000011234567890189)",
       "sepaSuccess": "Coordonnees bancaires enregistrees",
       "sepaError": "Erreur lors de l'enregistrement",
-      "verificationNote": "Apres modification, vos coordonnees seront verifiees par Clenzy avant activation.",
+      "verificationNote": "Apres modification, vos coordonnees seront verifiees par Baitly avant activation.",
       "stripeSection": "Stripe Connect",
       "stripeDescription": "Connectez votre compte Stripe pour recevoir vos reversements automatiquement.",
       "stripeConnectBtn": "Connecter mon compte Stripe",
@@ -2152,7 +2152,7 @@
   },
   "reports": {
     "title": "Rapports",
-    "subtitle": "Générez et consultez les rapports de votre plateforme Clenzy",
+    "subtitle": "Générez et consultez les rapports de votre plateforme Baitly",
     "permission": "Permission",
     "available": "Disponible",
     "notAuthorized": "Non autorisé",
@@ -2423,9 +2423,9 @@
         "feature4": "Support 24/7"
       },
       "clenzy": {
-        "title": "Clenzy Hardware",
+        "title": "Baitly Hardware",
         "badge": "Propriétaire",
-        "description": "Solution propriétaire basée sur Tuya OEM. Coût unique sans abonnement, avec intégration native dans la plateforme Clenzy.",
+        "description": "Solution propriétaire basée sur Tuya OEM. Coût unique sans abonnement, avec intégration native dans la plateforme Baitly.",
         "pricingModel": "Coût unique (sans abonnement)",
         "onQuote": "Sur devis",
         "onQuoteHint": "Le tarif sera communiqué lors de la configuration de votre solution",
@@ -2439,7 +2439,7 @@
         "supportPriceHelp": "Assistance et garantie étendue",
         "total": "Total par capteur",
         "feature1": "Sans abonnement mensuel",
-        "feature2": "Intégration Clenzy native",
+        "feature2": "Intégration Baitly native",
         "feature3": "Données en temps réel",
         "feature4": "Aucune dépendance externe"
       }
@@ -2736,7 +2736,7 @@
     },
     "connect": {
       "title": "Connecter {{channel}}",
-      "description": "Entrez vos identifiants API pour connecter {{channel}} a Clenzy.",
+      "description": "Entrez vos identifiants API pour connecter {{channel}} a Baitly.",
       "hotelId": "ID Hotel",
       "propertyId": "ID Propriete",
       "username": "Nom d'utilisateur",
@@ -2824,7 +2824,7 @@
     },
     "pushPricing": {
       "title": "Pousser vers Airbnb",
-      "description": "Synchroniser les prix du calendrier Clenzy vers Airbnb",
+      "description": "Synchroniser les prix du calendrier Baitly vers Airbnb",
       "push": "Pousser les prix",
       "button": "Push prix",
       "tooltip": "Pousser les prix resolus vers Airbnb (365 jours)",
@@ -3608,7 +3608,7 @@
         "loadError": "Impossible de charger la configuration IA. Veuillez réessayer."
       },
       "features": {
-        "title": "Solutions IA Clenzy",
+        "title": "Solutions IA Baitly",
         "subtitle": "Activez ou désactivez les modules IA selon vos besoins",
         "design": {
           "name": "Design IA",
@@ -3912,7 +3912,7 @@
   },
   "shop": {
     "title": "Boutique Hardware",
-    "subtitle": "Équipez vos propriétés avec nos capteurs IoT compatibles Clenzy",
+    "subtitle": "Équipez vos propriétés avec nos capteurs IoT compatibles Baitly",
     "allProducts": "Tous les produits",
     "kits": "Kits",
     "noiseMonitoring": "Monitoring sonore",
@@ -3929,11 +3929,11 @@
     "shipping": "Livraison offerte en France métropolitaine",
     "shippingIntl": "Contactez-nous pour les livraisons internationales",
     "noSubscription": "Sans abonnement mensuel",
-    "nativeIntegration": "Intégration Clenzy native",
+    "nativeIntegration": "Intégration Baitly native",
     "kitContents": "Contenu du kit",
     "savings": "Économie",
     "perUnit": "par unité",
-    "infoBanner": "Tous nos produits sont compatibles Tuya et s'intègrent nativement dans votre PMS Clenzy. Sans abonnement mensuel.",
+    "infoBanner": "Tous nos produits sont compatibles Tuya et s'intègrent nativement dans votre PMS Baitly. Sans abonnement mensuel.",
     "badges": {
       "new": "Nouveau",
       "bestseller": "Populaire",
@@ -4004,7 +4004,7 @@
         "payment": "Fournisseurs de paiement (Stripe, PayPal, PayTabs, CMI…) et règles de répartition.",
         "integrations": "Connectez vos outils tiers : signature électronique, comptabilité, KYC, conformité légale, channels OTA.",
         "payouts": "Calendrier et règles de calcul des reversements aux propriétaires.",
-        "amenitiesOta": "Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Clenzy. Créez vos propres commodités si rien ne correspond."
+        "amenitiesOta": "Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Baitly. Créez vos propres commodités si rien ne correspond."
       }
     },
     "dashboard": {
@@ -4063,7 +4063,7 @@
     },
     "reports": {
       "title": "Rapports",
-      "default": "Générez et consultez les rapports de votre plateforme Clenzy",
+      "default": "Générez et consultez les rapports de votre plateforme Baitly",
       "subtitle": {
         "financial": "Revenus par bien, coûts d'exploitation, marge nette et exports comptables sur la période choisie.",
         "interventions": "Volume, délais moyens et taux de réalisation des interventions par type et par équipe.",
@@ -4097,7 +4097,7 @@
     },
     "monitoring": {
       "title": "Monitoring Système",
-      "default": "Surveillance complète de la plateforme Clenzy",
+      "default": "Surveillance complète de la plateforme Baitly",
       "lastUpdate": "Dernière mise à jour",
       "tabs": {
         "tokens": "Monitoring des Tokens",
@@ -4131,7 +4131,7 @@
         "calendar": "Audit des commandes calendrier (book, cancel, block, price) et détection des conflits multi-canal.",
         "mappings": "Correspondances propriété ↔ listing externe par canal (Airbnb ID, Booking hotel ID, etc.).",
         "diagnostics": "Diagnostics système : tâches planifiées, jobs en cours, erreurs récentes et état des intégrations.",
-        "reconciliation": "Runs de réconciliation calendrier : détection des divergences entre Clenzy et OTA, déclenchement manuel."
+        "reconciliation": "Runs de réconciliation calendrier : détection des divergences entre Baitly et OTA, déclenchement manuel."
       }
     }
   },
@@ -4202,7 +4202,7 @@
       "cguLinkText": "conditions générales d'utilisation",
       "cguMiddle": "et la",
       "privacyLinkText": "politique de confidentialité",
-      "newsletterOptIn": "Je souhaite recevoir la newsletter Clenzy (nouveautés produit, conseils gestion locative).",
+      "newsletterOptIn": "Je souhaite recevoir la newsletter Baitly (nouveautés produit, conseils gestion locative).",
       "submit": "Continuer vers le paiement",
       "alreadyAccount": "Deja un compte ?",
       "loginLink": "Se connecter",

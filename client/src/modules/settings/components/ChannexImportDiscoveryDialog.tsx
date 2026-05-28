@@ -1,15 +1,15 @@
 /**
  * Channex Import Discovery Dialog — Import en masse depuis Channex
  *
- * Detecte les properties Channex qui n'ont pas encore de mapping Clenzy
+ * Detecte les properties Channex qui n'ont pas encore de mapping Baitly
  * (typiquement creees automatiquement par Channex apres OAuth Airbnb) et
- * permet a l'admin de les importer en masse comme Properties Clenzy avec
+ * permet a l'admin de les importer en masse comme Properties Baitly avec
  * leurs metadonnees deja pre-remplies.
  *
  * Flow :
  *   1. Au montage : GET /integrations/channex/discover
  *   2. Liste les properties Channex non-mappees avec checkboxes
- *   3. Admin selectionne + override le type Clenzy (APARTMENT/HOUSE/STUDIO/...)
+ *   3. Admin selectionne + override le type Baitly (APARTMENT/HOUSE/STUDIO/...)
  *   4. Click "Importer" → POST /integrations/channex/import
  *   5. Recap : N created, M skipped, K errors
  */
@@ -60,7 +60,7 @@ interface ChannexImportDiscoveryDialogProps {
   onImported?: () => void;
   /**
    * Callback invoque quand l'utilisateur clique sur le CTA "Connecter une propriete
-   * Clenzy" depuis l'etat vide (hub sans aucune propriete) : permet au parent de
+   * Baitly" depuis l'etat vide (hub sans aucune propriete) : permet au parent de
    * fermer ce sub-dialog et de basculer la vue principale sur 'CONNECT_EXISTING'.
    */
   onRequestConnectExisting?: () => void;
@@ -310,7 +310,7 @@ export default function ChannexImportDiscoveryDialog({
 
       // 2. Disconnects (cases decochees sur des proprietes importees)
       //    Chaque appel supprime le mapping Channex local + libere la Property
-      //    Clenzy de la sync hub (la Property elle-meme est conservee).
+      //    Baitly de la sync hub (la Property elle-meme est conservee).
       let disconnectedCount = 0;
       const disconnectErrors: string[] = [];
       for (const p of diff.toDisconnect) {
@@ -337,7 +337,7 @@ export default function ChannexImportDiscoveryDialog({
               channexPropertyId: p.channexPropertyId,
               status: 'CREATED' as const, // reuse type, on differencie via message
               clenzyPropertyId: p.clenzyPropertyId,
-              message: `Desimportee : "${p.title}" (Property Clenzy conservee, sync hub arretee)`,
+              message: `Desimportee : "${p.title}" (Property Baitly conservee, sync hub arretee)`,
             })),
         ],
       });
@@ -402,7 +402,7 @@ export default function ChannexImportDiscoveryDialog({
               Importer une propriete deja en ligne
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.4 }}>
-              Detecte les listings Airbnb/Booking/Vrbo deja connus du hub de distribution et non encore dans Clenzy
+              Detecte les listings Airbnb/Booking/Vrbo deja connus du hub de distribution et non encore dans Baitly
             </Typography>
           </Box>
         </Stack>
@@ -443,7 +443,7 @@ export default function ChannexImportDiscoveryDialog({
           <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.5 }}>
             Apres avoir connecte votre compte Airbnb (ou autre OTA) via le widget de configuration,
             tous vos listings detectes apparaissent ici. Selectionnez ceux a importer dans
-            Clenzy — leur nom, devise, pays et capacite sont pre-remplis automatiquement.
+            Baitly — leur nom, devise, pays et capacite sont pre-remplis automatiquement.
           </Typography>
         </Stack>
 
@@ -512,7 +512,7 @@ export default function ChannexImportDiscoveryDialog({
                 sx={{ display: 'block', maxWidth: 500, lineHeight: 1.6 }}
               >
                 Choisissez l'OTA sur lequel vous avez deja des proprietes en ligne.
-                Apres authentification, Clenzy detectera automatiquement vos listings
+                Apres authentification, Baitly detectera automatiquement vos listings
                 et vous proposera de les importer.
               </Typography>
             </Stack>
@@ -612,7 +612,7 @@ export default function ChannexImportDiscoveryDialog({
               })}
             </Stack>
 
-            {/* Action secondaire : si l'utilisateur prefere passer par une property Clenzy existante */}
+            {/* Action secondaire : si l'utilisateur prefere passer par une property Baitly existante */}
             {onRequestConnectExisting && (
               <Stack direction="row" spacing={1} justifyContent="center" sx={{ mt: 2 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
@@ -623,7 +623,7 @@ export default function ChannexImportDiscoveryDialog({
                   onClick={onRequestConnectExisting}
                   sx={{ textTransform: 'none', color: 'text.secondary', fontSize: '0.78rem' }}
                 >
-                  Connecter une propriete Clenzy existante
+                  Connecter une propriete Baitly existante
                 </Button>
                 <Button
                   size="small"
@@ -666,7 +666,7 @@ export default function ChannexImportDiscoveryDialog({
                 sx={{ display: 'block', mb: 2, maxWidth: 480, lineHeight: 1.6 }}
               >
                 Vos {totalInHub} propriete{totalInHub > 1 ? 's' : ''} en ligne {totalInHub > 1 ? 'sont' : 'est'} deja
-                import{totalInHub > 1 ? 'ees' : 'ee'} dans Clenzy. Si vous avez ajoute de nouvelles
+                import{totalInHub > 1 ? 'ees' : 'ee'} dans Baitly. Si vous avez ajoute de nouvelles
                 proprietes cote OTA depuis, re-detectez-les ci-dessous.
               </Typography>
               <Button
@@ -811,7 +811,7 @@ export default function ChannexImportDiscoveryDialog({
               <Alert severity="warning" variant="outlined" sx={{ mb: 1, fontSize: '0.78rem' }}>
                 <strong>{diff.toDisconnect.length} propriete{diff.toDisconnect.length > 1 ? 's' : ''}</strong>
                 {' '}va etre desimport{diff.toDisconnect.length > 1 ? 'ees' : 'ee'} : le lien avec le hub sera
-                supprime mais la Property Clenzy correspondante sera conservee (vous pourrez la re-importer
+                supprime mais la Property Baitly correspondante sera conservee (vous pourrez la re-importer
                 plus tard).
               </Alert>
             )}
@@ -1017,7 +1017,7 @@ export default function ChannexImportDiscoveryDialog({
                       )}
                     </Box>
                     {/* Colonne droite : logos OTA + chip "Actif" en haut,
-                        dropdown type Clenzy en dessous. */}
+                        dropdown type Baitly en dessous. */}
                     <Stack direction="column" spacing={1} alignItems="flex-end" sx={{ flexShrink: 0 }}>
                       {(p.connectedOtas?.length > 0 || p.hasActiveOta) && (
                         <Stack direction="row" alignItems="center" spacing={0.75}>
@@ -1040,7 +1040,7 @@ export default function ChannexImportDiscoveryDialog({
                           )}
                         </Stack>
                       )}
-                      {/* Dropdown type Clenzy : visible UNIQUEMENT pour les nouveaux
+                      {/* Dropdown type Baitly : visible UNIQUEMENT pour les nouveaux
                           imports (proprietes non-importees). */}
                       {!p.isImported && (
                         <FormControl size="small" sx={{ minWidth: 130 }}>

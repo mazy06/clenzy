@@ -9,7 +9,7 @@
  */
 
 const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org';
-const USER_AGENT = 'Clenzy-PMS/1.0 (contact@clenzy.fr)';
+const USER_AGENT = 'Baitly-PMS/1.0 (contact@clenzy.fr)';
 
 // ─── Types Nominatim API ──────────────────────────────────────────────────────
 

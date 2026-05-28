@@ -18,7 +18,7 @@ export interface CreateClenzyThemeOpts {
 }
 
 /**
- * Factory du theme MUI Clenzy — single source of truth pour les overrides
+ * Factory du theme MUI Baitly — single source of truth pour les overrides
  * dependant de la langue / mode (dark/rtl).
  *
  * <p>Pourquoi pas direct {@code <ThemeProvider theme={lightTheme}>} partout :</p>

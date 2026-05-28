@@ -1,5 +1,5 @@
 /**
- * Catalogue d'icones pour les commodites Clenzy.
+ * Catalogue d'icones pour les commodites Baitly.
  *
  * Source : lucide-react (1400+ icones disponibles). On expose ici un sous-ensemble
  * curate pertinent pour les amenities, groupe par theme pour que le picker reste
@@ -178,7 +178,7 @@ export const ICON_CATALOG: IconGroup[] = [
 ];
 
 /**
- * Icone par defaut pour chaque commodite built-in Clenzy.
+ * Icone par defaut pour chaque commodite built-in Baitly.
  * Si une commodite custom n'a pas d'override, on retombe sur 'Sparkles'.
  */
 export const DEFAULT_AMENITY_ICONS: Record<string, string> = {

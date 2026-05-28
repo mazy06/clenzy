@@ -1,5 +1,5 @@
 /**
- * Barrel d'icones centralise — Clenzy PMS
+ * Barrel d'icones centralise — Baitly PMS
  *
  * Source par defaut : Lucide React (look moderne, stroke 2px, ~1600 icones)
  * Fallback : Iconify (acces a 150+ sets d'icones via lazy-loading)

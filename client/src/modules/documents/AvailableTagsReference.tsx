@@ -31,10 +31,10 @@ import {
 } from '../../icons';
 import { softChipSx } from '../../utils/statusUtils';
 
-// ─── Palette Clenzy (accents valides) ────────────────────────────────────────
+// ─── Palette Baitly (accents valides) ────────────────────────────────────────
 // On evite les couleurs MUI brutes (#1976d2, #2e7d32, #e65100...) au profit
 // des accents du produit pour eviter le rendu "templated" generique.
-const PRIMARY = '#6B8A9A';        // bleu-gris Clenzy
+const PRIMARY = '#6B8A9A';        // bleu-gris Baitly
 const ACCENT_TEAL = '#4A9B8E';    // teal
 const SOFT_BLUE = '#7BA3C2';      // bleu doux
 const WARM = '#D4A574';           // warm sand
@@ -109,7 +109,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     icon: <Business />,
     color: PRIMARY,
     tags: [
-      { tag: 'entreprise.nom', description: 'Nom de la société', example: 'Clenzy', type: 'text' },
+      { tag: 'entreprise.nom', description: 'Nom de la société', example: 'Baitly', type: 'text' },
       { tag: 'entreprise.adresse', description: 'Adresse complète', example: '12 rue de la Paix, 75002 Paris', type: 'text' },
       { tag: 'entreprise.siret', description: 'Numéro SIRET', example: '123 456 789 00012', type: 'text' },
       { tag: 'entreprise.email', description: 'Email de contact', example: 'info@clenzy.fr', type: 'text' },
@@ -146,7 +146,7 @@ const TAG_CATEGORIES: TagCategory[] = [
       { tag: 'technicien.nom_complet', description: 'Nom complet', example: 'Pierre Martin', type: 'text' },
       { tag: 'technicien.email', description: 'Adresse email', example: 'p.martin@clenzy.fr', type: 'text' },
       { tag: 'technicien.telephone', description: 'Numéro de téléphone', example: '06 98 76 54 32', type: 'text' },
-      { tag: 'technicien.societe', description: 'Société', example: 'Clenzy', type: 'text' },
+      { tag: 'technicien.societe', description: 'Société', example: 'Baitly', type: 'text' },
       { tag: 'technicien.ville', description: 'Ville', example: 'Lyon', type: 'text' },
       { tag: 'technicien.code_postal', description: 'Code postal', example: '69001', type: 'text' },
       { tag: 'technicien.role', description: 'Rôle', example: 'TECHNICIAN', type: 'text' },
@@ -252,7 +252,7 @@ const TAG_CATEGORIES: TagCategory[] = [
   },
 ];
 
-// Couleurs des types alignees sur la palette Clenzy via softChipSx.
+// Couleurs des types alignees sur la palette Baitly via softChipSx.
 const TYPE_COLORS: Record<string, string> = {
   text:   NEUTRAL,       // texte = valeur generique
   date:   SOFT_BLUE,     // date = info temporelle
@@ -382,7 +382,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', minWidth: 0 }}>
-              {/* Badge icone Clenzy (tile 26x26 tintee, icon 16px) */}
+              {/* Badge icone Baitly (tile 26x26 tintee, icon 16px) */}
               <Box
                 sx={{
                   width: 26,

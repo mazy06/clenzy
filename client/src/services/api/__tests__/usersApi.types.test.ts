@@ -78,7 +78,7 @@ describe('User interface completeness', () => {
       servicesDevis: 'deep_cleaning',
       deferredPayment: true,
       organizationId: 42,
-      organizationName: 'Clenzy SAS',
+      organizationName: 'Baitly SAS',
     };
 
     expect(mockUser.id).toBe(1);

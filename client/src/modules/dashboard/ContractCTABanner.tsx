@@ -29,7 +29,7 @@ import { propertiesApi, type Property } from '../../services/api/propertiesApi';
 import { STORAGE_KEYS, getItem, setItem } from '../../services/storageService';
 import { useCurrency } from '../../hooks/useCurrency';
 
-// ─── Couleurs Clenzy (brand) ───────────────────────────────────────────────
+// ─── Couleurs Baitly (brand) ───────────────────────────────────────────────
 const C = {
   primary:      '#6B8A9A',
   success:      '#4A9B8E',

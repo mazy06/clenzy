@@ -2,7 +2,7 @@
  * Channex Embedded Dialog — Connexion OTAs (Airbnb, Booking, Vrbo, Expedia)
  *
  * Embarque le widget officiel Channex dans une iframe pour permettre a l'admin
- * de connecter ses comptes OTAs a une property deja mappee, sans quitter Clenzy.
+ * de connecter ses comptes OTAs a une property deja mappee, sans quitter Baitly.
  *
  * Flux :
  *   1. Au clic sur le bouton "Connecter OTAs" dans ChannexMappingDialog,
@@ -39,7 +39,7 @@ import {
 interface ChannexEmbedDialogProps {
   open: boolean;
   onClose: () => void;
-  /** Property Clenzy a connecter aux OTAs (doit deja avoir un mapping Channex actif). */
+  /** Property Baitly a connecter aux OTAs (doit deja avoir un mapping Channex actif). */
   clenzyPropertyId: number | null;
   /** Nom affiche dans le header du dialog. */
   propertyName: string;
@@ -119,7 +119,7 @@ export default function ChannexEmbedDialog({
         if (cancelled) return;
         const raw = err instanceof Error ? err.message : '';
         // Cas frequent : la property Channex liee a ete supprimee cote Channex
-        // (cleanup manuel, reset staging, etc.) → le mapping Clenzy est stale.
+        // (cleanup manuel, reset staging, etc.) → le mapping Baitly est stale.
         // On detecte les erreurs Channex 404 / "not found" / "property not found"
         // et on donne une instruction claire au lieu d'un message generique.
         const looksLikeStaleMapping = /not.?found|404|invalide.*api|property.*invalid|does not exist/i.test(raw);
@@ -424,7 +424,7 @@ export default function ChannexEmbedDialog({
                             Not mapped
                           </Box>
                           {' '}→ un dropdown s'ouvre. Selectionnez une room + un rate
-                          plan (le pivot Clenzy si vous n'avez encore rien d'autre),
+                          plan (le pivot Baitly si vous n'avez encore rien d'autre),
                           puis{' '}
                           <Box
                             component="span"
@@ -443,7 +443,7 @@ export default function ChannexEmbedDialog({
                             Save
                           </Box>
                           . Fermez le wizard et cliquez{' '}
-                          <strong>Re-detecter</strong> dans Clenzy — la propriete
+                          <strong>Re-detecter</strong> dans Baitly — la propriete
                           apparaitra (renommable a l'import).
                         </>
                       ),

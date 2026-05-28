@@ -175,7 +175,7 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
           onChange={(e) => setName(e.target.value)}
           size="small"
           fullWidth
-          placeholder="Clenzy SAS"
+          placeholder="Baitly SAS"
         />
         <TextField
           label={t('settings.sepaDebtor.ibanLabel', 'IBAN')}
@@ -197,7 +197,7 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
               ? ibanUnchanged
                 ? t('settings.sepaDebtor.ibanPreserved', 'IBAN actuel conservé. Tapez un nouvel IBAN pour le remplacer.')
                 : t('settings.sepaDebtor.ibanNewFormat', 'Nouvel IBAN. Format : FR76 1234 5678 9012 3456 7890 123')
-              : t('settings.sepaDebtor.ibanRequired', 'Renseignez l\'IBAN du compte débiteur Clenzy.')
+              : t('settings.sepaDebtor.ibanRequired', 'Renseignez l\'IBAN du compte débiteur Baitly.')
           }
           InputProps={{ sx: { fontFamily: 'monospace', fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' } }}
         />

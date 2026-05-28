@@ -53,13 +53,13 @@ const PAYOUT_METHOD_LABELS: Record<PayoutMethod, string> = {
   OPEN_BANKING: 'Open Banking',
 };
 
-// Palette Clenzy tintée pour les chips de méthode
+// Palette Baitly tintée pour les chips de méthode
 const PAYOUT_METHOD_COLORS: Record<PayoutMethod, string> = {
   MANUAL: '#8A8378',
   STRIPE_CONNECT: '#635BFF', // brand Stripe (preserved for recognizability)
   SEPA_TRANSFER: '#7BA3C2',
   WISE: '#00B9FF',           // brand Wise teal — préservé pour reconnaissance
-  OPEN_BANKING: '#4A9B8E',   // brand Clenzy accent (Open Banking = approche maison)
+  OPEN_BANKING: '#4A9B8E',   // brand Baitly accent (Open Banking = approche maison)
 };
 
 const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;

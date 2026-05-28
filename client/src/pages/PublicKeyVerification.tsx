@@ -266,7 +266,7 @@ const PublicKeyVerification: React.FC = () => {
         {/* Footer */}
         <Box sx={{ textAlign: 'center', mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
           <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
-            Propulsé par Clenzy — Gestion immobilière
+            Propulsé par Baitly — Gestion immobilière
           </Typography>
         </Box>
       </Paper>

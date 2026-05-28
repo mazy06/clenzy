@@ -1,4 +1,4 @@
-import type { ClenzyTheme } from './types';
+import type { BaitlyTheme } from './types';
 
 /** Parse hex color to RGB components */
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -42,7 +42,7 @@ function scaleRadius(base: string, factor: number): string {
 }
 
 /** Default theme tokens */
-const DEFAULTS: Required<ClenzyTheme> = {
+const DEFAULTS: Required<BaitlyTheme> = {
   primaryColor: '#635BFF',
   primaryHoverColor: '#4B44CC',
   primaryLightColor: '#F6F5FF',
@@ -57,7 +57,7 @@ const DEFAULTS: Required<ClenzyTheme> = {
 };
 
 /** Generate CSS custom properties string from theme config */
-export function generateThemeCSS(theme?: ClenzyTheme): string {
+export function generateThemeCSS(theme?: BaitlyTheme): string {
   const t = { ...DEFAULTS, ...theme };
 
   // Auto-derive colors if not explicitly set

@@ -13,15 +13,15 @@ import {
 import { ArrowBack } from '../../icons';
 import { createClenzyTheme } from '../../theme/createClenzyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import clenzyLogo from '../../assets/Clenzy_logo.png';
+import clenzyLogo from '../../assets/Baitly_logo.png';
 
 /**
  * Layout commun pour les pages legales publiques (CGU, Politique de confidentialite).
  *
- * <p>Volontairement sobre : logo Clenzy en header, navigation retour vers login,
+ * <p>Volontairement sobre : logo Baitly en header, navigation retour vers login,
  * conteneur centre <= 720px pour la lisibilite du texte legal (line-length ideal
  * ~65-75 caracteres). Pas de gradient, pas de glassmorphism — register product
- * Clenzy.</p>
+ * Baitly.</p>
  *
  * <p>Le {@code lastUpdated} affiche la date de derniere modification du document
  * (information legale obligatoire selon CNIL).</p>
@@ -58,7 +58,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
                 <Box
                   component="img"
                   src={clenzyLogo}
-                  alt="Clenzy"
+                  alt="Baitly"
                   sx={{ height: 32, width: 'auto' }}
                 />
               </Link>

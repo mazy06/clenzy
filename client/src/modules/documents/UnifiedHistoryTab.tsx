@@ -71,7 +71,7 @@ interface UnifiedRow {
 
 // ─── Status Configs ─────────────────────────────────────────────────────────
 
-// Palette Clenzy : remplace les couleurs MUI (#d32f2f, #ED6C02, #0288d1)
+// Palette Baitly : remplace les couleurs MUI (#d32f2f, #ED6C02, #0288d1)
 // par les accents valides du produit.
 const ACCENT_TEAL = '#4A9B8E';
 const WARM = '#D4A574';
@@ -335,7 +335,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
         </Alert>
       )}
 
-      {/* Filter chips — Clenzy soft palette, active = PRIMARY tinted, inactif = NEUTRAL */}
+      {/* Filter chips — Baitly soft palette, active = PRIMARY tinted, inactif = NEUTRAL */}
       <Box sx={{ display: 'flex', gap: 0.75, mb: 2 }}>
         {FILTER_OPTIONS.map((opt) => {
           const active = filter === opt.key;
@@ -388,7 +388,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               <TableBody>
                 {unifiedRows.map((row) => (
                   <TableRow key={row.id} hover>
-                    {/* Type icon (Clenzy palette : message = SOFT_BLUE, document = VIOLET) */}
+                    {/* Type icon (Baitly palette : message = SOFT_BLUE, document = VIOLET) */}
                     <TableCell sx={{ pr: 0 }}>
                       <Tooltip title={row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')} arrow>
                         {row.kind === 'message'

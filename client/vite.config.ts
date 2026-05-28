@@ -11,9 +11,9 @@ export default defineConfig({
       // qui suffit (browsers modernes supportent SVG comme favicon depuis 2020+)
       includeAssets: ['icons/icon.svg'],
       manifest: {
-        name: 'Clenzy PMS',
-        short_name: 'Clenzy',
-        description: 'Système de gestion immobilière Clenzy',
+        name: 'Baitly PMS',
+        short_name: 'Baitly',
+        description: 'Baitly — Property Management System pour locations courte durée',
         theme_color: '#6B8A9A',
         background_color: '#ffffff',
         display: 'standalone',

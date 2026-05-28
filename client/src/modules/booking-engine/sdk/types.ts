@@ -4,7 +4,7 @@ export interface ClenzyBookingConfig {
   container: string | HTMLElement;
   apiKey: string;
   baseUrl?: string;
-  theme?: ClenzyTheme;
+  theme?: BaitlyTheme;
   language?: 'fr' | 'en' | 'ar';
   currency?: string;
   defaultGuests?: { adults: number; children: number };
@@ -21,7 +21,7 @@ export interface ClenzyBookingConfig {
   onDateChange?: (dates: { checkIn: string | null; checkOut: string | null }) => void;
 }
 
-export interface ClenzyTheme {
+export interface BaitlyTheme {
   primaryColor?: string;
   primaryHoverColor?: string;
   primaryLightColor?: string;

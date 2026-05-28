@@ -107,7 +107,7 @@
     "titleHousekeeper": "لوحة تحكم عامل التنظيف",
     "titleSupervisor": "لوحة تحكم المشرف",
     "subtitle": "نظرة عامة على نشاطك",
-    "subtitleAdmin": "نظرة شاملة على منصة Clenzy",
+    "subtitleAdmin": "نظرة شاملة على منصة Baitly",
     "subtitleManager": "إدارة العمليات ومتابعة الفرق",
     "subtitleHost": "متابعة عقاراتك وطلبات الخدمة",
     "subtitleTechnician": "تدخلاتك وتخطيط العمل",
@@ -358,7 +358,7 @@
       "noRecommendations": "لا توجد توصيات متاحة"
     },
     "emptyState": {
-      "title": "مرحباً بك في Clenzy!",
+      "title": "مرحباً بك في Baitly!",
       "description": "ابدأ بإنشاء عقارك الأول لفتح جميع ميزات لوحة التحكم.",
       "cta": "إنشاء عقاري الأول"
     },
@@ -499,8 +499,8 @@
         "configureDevice": "إعداد المستشعر"
       },
       "clenzy": {
-        "detailTitle": "Clenzy Hardware - حل مملوك",
-        "detailDescription": "حلنا المبني على Tuya OEM يوفر مراقبة ضوضاء بدون اشتراك شهري. يتكامل المستشعر CLENZY-TUYA-NM-01 أصليًا في منصة Clenzy مع بيانات في الوقت الفعلي.",
+        "detailTitle": "Baitly Hardware - حل مملوك",
+        "detailDescription": "حلنا المبني على Tuya OEM يوفر مراقبة ضوضاء بدون اشتراك شهري. يتكامل المستشعر BAITLY-TUYA-NM-01 أصليًا في منصة Baitly مع بيانات في الوقت الفعلي.",
         "articleRef": "مرجع المنتج",
         "orderExternal": "الطلب من المتجر",
         "configureDevice": "إعداد المستشعر"
@@ -570,7 +570,7 @@
       "title": "إدارة المفاتيح",
       "subtitle": "قم بإعداد نقطة حفظ مفاتيح لعقاراتك التي لا تحتوي على أقفال ذكية.",
       "keyvault": {
-        "title": "Clenzy KeyVault — حراس المفاتيح",
+        "title": "Baitly KeyVault — حراس المفاتيح",
         "description": "أدِر شبكتك الخاصة من حراس المفاتيح — تجار أو أفراد قريبون. حل متكامل مع PMS، بدون تكلفة إضافية.",
         "free": "مجاني",
         "includedInPlan": "مشمول في اشتراكك",
@@ -1921,7 +1921,7 @@
       "ibanInvalid": "صيغة IBAN غير صالحة (مثال: FR7630006000011234567890189)",
       "sepaSuccess": "تم حفظ البيانات البنكية",
       "sepaError": "خطأ في الحفظ",
-      "verificationNote": "بعد التعديل، سيتم التحقق من بياناتك من قبل Clenzy قبل التفعيل.",
+      "verificationNote": "بعد التعديل، سيتم التحقق من بياناتك من قبل Baitly قبل التفعيل.",
       "stripeSection": "Stripe Connect",
       "stripeDescription": "اربط حساب Stripe الخاص بك لاستلام تحويلاتك تلقائياً.",
       "stripeConnectBtn": "ربط حساب Stripe",
@@ -2100,7 +2100,7 @@
   },
   "reports": {
     "title": "التقارير",
-    "subtitle": "قم بإنشاء وعرض تقارير منصة Clenzy الخاصة بك",
+    "subtitle": "قم بإنشاء وعرض تقارير منصة Baitly الخاصة بك",
     "permission": "الصلاحية",
     "available": "متاح",
     "notAuthorized": "غير مصرح",
@@ -2352,9 +2352,9 @@
         "feature4": "دعم على مدار الساعة"
       },
       "clenzy": {
-        "title": "Clenzy Hardware",
+        "title": "Baitly Hardware",
         "badge": "ملكية خاصة",
-        "description": "حل خاص مبني على Tuya OEM. تكلفة لمرة واحدة بدون اشتراك، مع تكامل أصلي في منصة Clenzy.",
+        "description": "حل خاص مبني على Tuya OEM. تكلفة لمرة واحدة بدون اشتراك، مع تكامل أصلي في منصة Baitly.",
         "pricingModel": "تكلفة لمرة واحدة (بدون اشتراك)",
         "onQuote": "حسب العرض",
         "onQuoteHint": "سيتم إبلاغك بالسعر عند إعداد الحل الخاص بك",
@@ -2368,7 +2368,7 @@
         "supportPriceHelp": "المساعدة والضمان الممتد",
         "total": "الإجمالي لكل مستشعر",
         "feature1": "بدون اشتراك شهري",
-        "feature2": "تكامل أصلي مع Clenzy",
+        "feature2": "تكامل أصلي مع Baitly",
         "feature3": "بيانات في الوقت الحقيقي",
         "feature4": "بدون تبعية خارجية"
       }
@@ -2657,7 +2657,7 @@
     },
     "connect": {
       "title": "ربط {{channel}}",
-      "description": "أدخل بيانات اعتماد API الخاصة بك لربط {{channel}} بـ Clenzy.",
+      "description": "أدخل بيانات اعتماد API الخاصة بك لربط {{channel}} بـ Baitly.",
       "hotelId": "معرّف الفندق",
       "propertyId": "معرّف العقار",
       "username": "اسم المستخدم",
@@ -2745,7 +2745,7 @@
     },
     "pushPricing": {
       "title": "دفع الأسعار إلى Airbnb",
-      "description": "مزامنة أسعار تقويم Clenzy مع Airbnb",
+      "description": "مزامنة أسعار تقويم Baitly مع Airbnb",
       "push": "دفع الأسعار",
       "button": "دفع الأسعار",
       "tooltip": "دفع الأسعار المحسوبة إلى Airbnb (365 يومًا)",
@@ -3462,7 +3462,7 @@
         "loadError": "تعذر تحميل تكوين الذكاء الاصطناعي. يرجى المحاولة مرة أخرى."
       },
       "features": {
-        "title": "حلول الذكاء الاصطناعي Clenzy",
+        "title": "حلول الذكاء الاصطناعي Baitly",
         "subtitle": "قم بتفعيل أو تعطيل وحدات الذكاء الاصطناعي حسب احتياجاتك",
         "design": {
           "name": "تصميم ذكي",
@@ -3863,7 +3863,7 @@
       "cguLinkText": "الشروط العامة للاستخدام",
       "cguMiddle": "و",
       "privacyLinkText": "سياسة الخصوصية",
-      "newsletterOptIn": "أرغب في استلام نشرة Clenzy الإخبارية (تحديثات المنتج، نصائح إدارة الإيجار).",
+      "newsletterOptIn": "أرغب في استلام نشرة Baitly الإخبارية (تحديثات المنتج، نصائح إدارة الإيجار).",
       "submit": "المتابعة إلى الدفع",
       "alreadyAccount": "هل لديك حساب بالفعل؟",
       "loginLink": "تسجيل الدخول",

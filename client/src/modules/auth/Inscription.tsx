@@ -791,7 +791,7 @@ export default function Inscription() {
                 }
                 label={
                   <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.4 }}>
-                    {t('auth.inscription.newsletterOptIn', 'Je souhaite recevoir la newsletter Clenzy (nouveautés produit, conseils gestion locative).')}
+                    {t('auth.inscription.newsletterOptIn', 'Je souhaite recevoir la newsletter Baitly (nouveautés produit, conseils gestion locative).')}
                   </Typography>
                 }
                 sx={{ alignItems: 'flex-start', mr: 0, mt: 0.5, '& .MuiFormControlLabel-label': { mt: 0.4 } }}

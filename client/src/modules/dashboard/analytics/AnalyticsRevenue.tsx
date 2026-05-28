@@ -9,7 +9,7 @@ import AnalyticsWidgetCard from './AnalyticsWidgetCard';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { RevenueMetrics } from '../../../hooks/useAnalyticsEngine';
 
-// ─── Chart constants (Clenzy palette) ────────────────────────────────────────
+// ─── Chart constants (Baitly palette) ────────────────────────────────────────
 
 const AXIS_TICK = { fontSize: 10, fill: '#94A3B8' } as const;
 const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 6, border: '1px solid #E2E8F0', boxShadow: 'none' } as const;

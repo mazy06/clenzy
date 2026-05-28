@@ -13,7 +13,7 @@ import { usersApi } from '../../services/api';
 
 /**
  * Card de gestion des preferences marketing — actuellement uniquement l'opt-in
- * newsletter Clenzy.
+ * newsletter Baitly.
  *
  * <p><b>Conformite RGPD article 7-3</b> : le retrait du consentement doit etre
  * aussi simple que son octroi. Cette card permet a l'utilisateur de retirer
@@ -90,7 +90,7 @@ export default function MarketingPreferencesCard() {
       </Box>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.8rem' }}>
-        Gérez les communications marketing que vous recevez de Clenzy. Vous pouvez retirer
+        Gérez les communications marketing que vous recevez de Baitly. Vous pouvez retirer
         votre consentement à tout moment, conformément à l'article 7-3 du RGPD.
       </Typography>
 
@@ -119,7 +119,7 @@ export default function MarketingPreferencesCard() {
         >
           <Box sx={{ flex: 1, minWidth: 0, pr: 2 }}>
             <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
-              Newsletter Clenzy
+              Newsletter Baitly
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.75rem' }}>
               Nouveautés produit, conseils gestion locative, témoignages clients.
@@ -130,7 +130,7 @@ export default function MarketingPreferencesCard() {
             checked={!!newsletterOptIn}
             onChange={(e) => handleToggle(e.target.checked)}
             disabled={saving}
-            inputProps={{ 'aria-label': 'Activer ou désactiver la newsletter Clenzy' }}
+            inputProps={{ 'aria-label': 'Activer ou désactiver la newsletter Baitly' }}
           />
         </Box>
       )}

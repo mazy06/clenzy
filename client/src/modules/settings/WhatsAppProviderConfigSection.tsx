@@ -184,7 +184,7 @@ export default function WhatsAppProviderConfigSection() {
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {t('settings.whatsapp.subtitle',
-              "Choisissez comment Clenzy envoie vos messages WhatsApp à vos voyageurs.")}
+              "Choisissez comment Baitly envoie vos messages WhatsApp à vos voyageurs.")}
           </Typography>
         </Box>
         {statusChip}
@@ -314,7 +314,7 @@ export default function WhatsAppProviderConfigSection() {
             placeholder="owa-prod-org-1"
             fullWidth
             size="small"
-            helperText="Identifiant de votre session sur l'instance OpenWA Clenzy (créée au scan du QR code)."
+            helperText="Identifiant de votre session sur l'instance OpenWA Baitly (créée au scan du QR code)."
           />
           <TextField
             label={t('settings.whatsapp.openwa.apiKey', 'API Key per-session')}
@@ -324,7 +324,7 @@ export default function WhatsAppProviderConfigSection() {
             placeholder={config?.hasOpenwaApiKey ? '••••••••••••  (déjà configuré, laissez vide pour conserver)' : 'owa_xxxxxxxxxxxxxxxx'}
             fullWidth
             size="small"
-            helperText="Clé API associée à votre session, fournie par l'admin Clenzy."
+            helperText="Clé API associée à votre session, fournie par l'admin Baitly."
             autoComplete="off"
           />
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1, flexWrap: 'wrap' }}>
@@ -370,7 +370,7 @@ export default function WhatsAppProviderConfigSection() {
           </Typography>
           <Typography variant="caption" color="text.secondary">
             {enabled
-              ? t('settings.whatsapp.enableOn', "Clenzy enverra les messages WhatsApp via le provider sélectionné.")
+              ? t('settings.whatsapp.enableOn', "Baitly enverra les messages WhatsApp via le provider sélectionné.")
               : t('settings.whatsapp.enableOff', "Aucun message WhatsApp ne sera envoyé.")}
           </Typography>
         </Box>

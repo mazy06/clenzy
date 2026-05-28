@@ -42,10 +42,10 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
       'Écran LED',
       'WiFi 2.4GHz',
       'Alertes temps réel',
-      'Intégration Clenzy native',
+      'Intégration Baitly native',
     ],
     icon: 'VolumeUp',
-    imageAlt: 'Capteur de bruit mural Clenzy avec écran LED',
+    imageAlt: 'Capteur de bruit mural Baitly avec écran LED',
   },
   {
     id: 'clenzy-sl-01',
@@ -67,7 +67,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
       "Historique d'accès",
     ],
     icon: 'Lock',
-    imageAlt: 'Serrure connectée Clenzy avec lecteur empreinte',
+    imageAlt: 'Serrure connectée Baitly avec lecteur empreinte',
   },
   {
     id: 'clenzy-th-01',
@@ -202,7 +202,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
       'Économie de 17%',
     ],
     icon: 'AllInclusive',
-    imageAlt: 'Kit Complet — tous les capteurs Clenzy pour une propriété',
+    imageAlt: 'Kit Complet — tous les capteurs Baitly pour une propriété',
   },
 ];
 

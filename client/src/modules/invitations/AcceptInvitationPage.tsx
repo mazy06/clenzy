@@ -25,7 +25,7 @@ import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi
 import apiClient from '../../services/apiClient';
 import { createClenzyTheme } from '../../theme/createClenzyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import clenzyLogo from '../../assets/Clenzy_logo.png';
+import clenzyLogo from '../../assets/Baitly_logo.png';
 
 type PageState = 'loading' | 'info' | 'accepting' | 'complete_profile' | 'accepted' | 'error';
 
@@ -202,7 +202,7 @@ export default function AcceptInvitationPage() {
         >
           {/* Logo */}
           <Box sx={{ mb: 3 }}>
-            <img src={clenzyLogo} alt="Clenzy" style={{ height: 48 }} />
+            <img src={clenzyLogo} alt="Baitly" style={{ height: 48 }} />
           </Box>
 
           {/* Loading */}

@@ -32,7 +32,7 @@ import { softChipSx } from '../../utils/statusUtils';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-// Palette Clenzy : remplace les couleurs MUI brutes (ED6C02, 0288d1...) par
+// Palette Baitly : remplace les couleurs MUI brutes (ED6C02, 0288d1...) par
 // les accents valides du produit.
 const ACCENT_TEAL = '#4A9B8E';
 const WARM = '#D4A574';

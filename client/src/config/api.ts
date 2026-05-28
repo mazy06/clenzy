@@ -31,7 +31,7 @@ export const KEYCLOAK_CONFIG = {
 
 // Configuration de l'application
 export const APP_CONFIG = {
-  NAME: import.meta.env.VITE_APP_NAME || 'Clenzy',
+  NAME: import.meta.env.VITE_APP_NAME || 'Baitly',
   VERSION: import.meta.env.VITE_APP_VERSION || '1.0.0',
 } as const;
 

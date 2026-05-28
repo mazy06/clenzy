@@ -328,7 +328,7 @@ export default function MyPayoutSettings() {
               {t('settings.myPayout.saveSepa', 'Enregistrer')}
             </Button>
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
-              {t('settings.myPayout.verificationNote', 'Apres modification, vos coordonnees seront verifiees par Clenzy avant activation.')}
+              {t('settings.myPayout.verificationNote', 'Apres modification, vos coordonnees seront verifiees par Baitly avant activation.')}
             </Typography>
           </Box>
         </Box>

@@ -184,7 +184,7 @@ const Reports: React.FC = () => {
   };
   const { title, subtitle } = resolveTabHeader(
     t('tabHeaders.reports.title', 'Rapports'),
-    t('tabHeaders.reports.default', 'Générez et consultez les rapports de votre plateforme Clenzy'),
+    t('tabHeaders.reports.default', 'Générez et consultez les rapports de votre plateforme Baitly'),
     visibleTabs.map((tab) => tab.label),
     activeTab,
     reportsTabMeta,

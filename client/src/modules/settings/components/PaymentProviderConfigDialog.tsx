@@ -109,7 +109,7 @@ const PROVIDER_FIELDS: Record<PaymentProviderType, FieldSpec[]> = {
       required: false,
       goesInConfigJson: true,
       placeholder: 'https://api.clenzy.fr/api/webhooks/payments/paytabs',
-      helper: 'URL ou PayTabs envoie les notifications de paiement. Defaut : prod Clenzy.',
+      helper: 'URL ou PayTabs envoie les notifications de paiement. Defaut : prod Baitly.',
     },
   ],
   CMI: [
@@ -156,7 +156,7 @@ const PROVIDER_FIELDS: Record<PaymentProviderType, FieldSpec[]> = {
       required: false,
       goesInConfigJson: true,
       placeholder: 'https://api.clenzy.fr/api/webhooks/payments/cmi',
-      helper: 'URL server-to-server pour la confirmation. Defaut : prod Clenzy.',
+      helper: 'URL server-to-server pour la confirmation. Defaut : prod Baitly.',
     },
   ],
   PAYZONE: [

@@ -174,7 +174,7 @@ export default function Sidebar({
         }}
         onClick={() => handleNavigation('/dashboard')}
       >
-        {/* Logo Clenzy adapte au state du sidebar :
+        {/* Logo Baitly adapte au state du sidebar :
             - Collapsed (64px) : mark seul, anime (idle scan + breathe).
               Seul element visuel dans la column = on lui laisse de la vie.
               size=36 dans 64px = 56% du width, lisible, 14px padding total.
