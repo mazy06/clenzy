@@ -37,11 +37,13 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
     >
       <Box
         sx={{
-          // Empty state : tonne de vertical space inutilise => le mark
-          // devient l'ancre visuelle principale. Container 128px +
-          // mark 88px (~69% du container, 20px padding visuel total).
-          width: 128,
-          height: 128,
+          // Container 64px conserve (taille initiale), mais mark a l'interieur
+          // agrandi de 32 -> 52 pour qu'il occupe ~81% du container et soit
+          // bien visible (6px padding visuel de chaque cote). Le mark a
+          // overflow:visible donc le radial translate des nodes au peak
+          // (~2.5 SVG units) peut deborder sans etre coupe.
+          width: 64,
+          height: 64,
           borderRadius: '50%',
           bgcolor: alpha(theme.palette.primary.main, 0.1),
           display: 'flex',
@@ -50,7 +52,7 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
           color: theme.palette.primary.main,
         }}
       >
-        <ClenzyMarkLogo variant="mark" size={88} />
+        <ClenzyMarkLogo variant="mark" size={52} />
       </Box>
 
       <Box>
