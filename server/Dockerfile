@@ -21,8 +21,11 @@ RUN mvn -B exec:java -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="
 # 4. Copier le code source
 COPY src /workspace/src
 
-# 5. Build jar (skip tests) — les dependances sont deja en cache
-RUN mvn -B -DskipTests clean package && \
+# 5. Build jar (skip tests) — les dependances sont deja en cache local du
+# container apres go-offline ci-dessus. Flag `-o` (offline) garantit que
+# Maven n'essaie PAS de re-verifier les updates sur repo.maven.apache.org,
+# ce qui evite les timeouts reseau intermittents (Cloudflare / DNS).
+RUN mvn -B -o -DskipTests clean package && \
     rm -rf ~/.m2/repository
 
 # ====== Runtime stage ======
