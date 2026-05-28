@@ -1106,8 +1106,16 @@ public class AgentOrchestrator {
     private void recordUsageSafe(Long organizationId, String providerName,
                                    int promptTokens, int completionTokens,
                                    String model, String finishReason) {
-        if (promptTokens <= 0 && completionTokens <= 0) return;
-        if (model == null || model.isBlank()) return;
+        if (promptTokens <= 0 && completionTokens <= 0) {
+            log.info("[USAGE] Skip recordUsage : tokens={}/{} model='{}' (zero)",
+                    promptTokens, completionTokens, model);
+            return;
+        }
+        if (model == null || model.isBlank()) {
+            log.info("[USAGE] Skip recordUsage : model null/blank, tokens={}/{}",
+                    promptTokens, completionTokens);
+            return;
+        }
         try {
             com.clenzy.config.ai.AiResponse resp = new com.clenzy.config.ai.AiResponse(
                     "",  // content non requis pour le tracking
@@ -1122,9 +1130,13 @@ public class AgentOrchestrator {
                     providerName != null ? providerName : "anthropic",
                     resp
             );
+            log.info("[USAGE] Recorded ASSISTANT_CHAT : org={} provider={} model='{}' "
+                    + "tokens={}/{}", organizationId, providerName, model,
+                    promptTokens, completionTokens);
         } catch (Exception e) {
-            // Tracking non-critique : log debug + continue
-            log.debug("Failed to record assistant token usage : {}", e.getMessage());
+            // Tracking non-critique : log WARN (pas debug) pour voir les vrais bugs
+            log.warn("[USAGE] Failed to record assistant token usage : {}",
+                    e.getMessage(), e);
         }
     }
 
