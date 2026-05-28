@@ -24,6 +24,21 @@ import AuthenticatedApp from './AuthenticatedApp';
 import { clearTokens } from '../services/storageService';
 
 /**
+ * URL de redirection /login avec cache-buster timestamp. Indispensable car
+ * {@code window.location.href = '/login'} est un NO-OP dans certains browsers
+ * si l'URL courante est deja /login (cas qui arrive en race condition : un
+ * {@code setAuthenticated(false)} dans handleGlobalLogout declenche un
+ * re-render React, le re-render rend un {@code <Navigate to="/login">} qui
+ * change l'URL via React Router, et le {@code window.location.href} qui suit
+ * voit deja /login => ne fait rien => bundle obsolete persiste en memoire).
+ * Le {@code ?_t=Date.now()} garantit une URL distincte => le browser navigue
+ * et refetch index.html quoi qu'il arrive.
+ */
+function loginUrlWithCacheBuster(): string {
+  return '/login?_t=' + Date.now();
+}
+
+/**
  * Redirige vers /login via un HARD reload (window.location.href) plutot que
  * via React Router. Indispensable apres un deploy de nouvelle version :
  *
@@ -50,7 +65,7 @@ function HardRedirectToLogin(): null {
     // Defensive cleanup : meme si rien n'est cense etre en localStorage
     // (regle securite #7), purge tout residu legacy avant le reload.
     clearTokens();
-    window.location.href = '/login';
+    window.location.href = loginUrlWithCacheBuster();
   }, []);
   return null;
 }
@@ -103,41 +118,38 @@ const App: React.FC = () => {
 
   // Gestion de la déconnexion globale
   const handleGlobalLogout = useCallback(() => {
-    // Arrêter le monitoring des tokens
-    if (stopTokenMonitoringRef.current) {
-      stopTokenMonitoringRef.current();
-    }
-    
-    // Reset du service de tokens
-    if (resetTokenServiceRef.current) {
-      resetTokenServiceRef.current();
-    }
-    
-    // Nettoyer l'état local
-    setAuthenticated(false);
-    
-    // Forcer la mise à jour de l'état Keycloak
+    // ORDRE CRITIQUE : declencher d'abord le hard reload, AVANT le
+    // setAuthenticated(false). Pourquoi : si on update React state d'abord,
+    // un re-render se declenche dans le meme tick. Le re-render evalue la
+    // catch-all route avec !authenticated => Navigate (ancien bundle) ou
+    // HardRedirectToLogin (nouveau bundle) => l'URL devient /login. Quand
+    // window.location.href = '/login' s'execute apres, l'URL est deja /login
+    // => no-op dans certains browsers => le bundle obsolete persiste en
+    // memoire et l'ancien Login s'affiche. Le ?_t=Date.now() ajoute en plus
+    // un cache-buster qui garantit une URL distincte => navigation forcee
+    // quel que soit l'etat courant de l'URL.
+
+    // Nettoyer localStorage AVANT le reload (asynchrone safe : c'est sync).
+    clearTokens();
+
+    // Forcer la mise a jour de l'etat Keycloak (utile si le reload echoue
+    // pour une raison reseau et que le code continue en SPA mode).
     keycloak.authenticated = false;
     keycloak.token = undefined;
     keycloak.refreshToken = undefined;
-    
-    // Nettoyer localStorage
-    clearTokens();
 
-    // Hard redirect (pas navigate) pour forcer un reload complet du shell HTML.
-    // Pourquoi : apres un deploy de nouvelle version, les chunks JS deja
-    // charges en memoire (notamment le Login bundle) ne sont pas remplaces par
-    // une simple navigation React Router. Un window.location.href force le
-    // browser a refetch index.html (no-cache cote nginx) et recharger les
-    // nouveaux chunks hashes. Sans ca, l'utilisateur voit l'ancien Login
-    // jusqu'a un hard refresh manuel.
-    //
-    // Side-effects souhaites :
-    //   - Le SPA est totalement re-initialise (state propre, pas de leak)
-    //   - Le service worker (PWA) detecte le nouveau index.html et active la
-    //     nouvelle version (skipWaiting + clientsClaim deja configures)
-    //   - Tous les listeners / timers / intervalles sont nettoyes par le GC
-    window.location.href = '/login';
+    // Arreter le monitoring des tokens
+    if (stopTokenMonitoringRef.current) {
+      stopTokenMonitoringRef.current();
+    }
+    if (resetTokenServiceRef.current) {
+      resetTokenServiceRef.current();
+    }
+
+    // Hard redirect avec cache-buster. Le browser refetch index.html (servi
+    // Cache-Control: no-cache cote Vite/nginx), donc recharge les chunks
+    // hashes a jour. Le SPA repart de zero, etat propre, plus de leak.
+    window.location.href = loginUrlWithCacheBuster();
   }, []);
 
   // Callbacks pour la gestion des tokens
