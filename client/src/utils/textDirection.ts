@@ -70,10 +70,10 @@ export function isArabicHeavy(text: string | null | undefined, threshold = 0.3):
  * </ul>
  */
 export const arabicTextSx = {
-  fontSize: '1.18em',
-  lineHeight: 1.85,
+  fontSize: '1.30em',  // +30% pour compenser densite arabe (was 1.18em — encore trop petit selon user)
+  lineHeight: 1.95,    // un peu plus aere pour les diacritiques (was 1.85)
   fontFamily:
-    '"Tahoma", "Geeza Pro", "Arabic Typesetting", "Traditional Arabic", inherit',
+    '"Tajawal", "Tahoma", "Geeza Pro", "Arabic Typesetting", "Traditional Arabic", inherit',
 };
 
 /**
