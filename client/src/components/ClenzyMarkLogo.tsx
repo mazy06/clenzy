@@ -70,7 +70,25 @@ export interface ClenzyMarkLogoProps {
   variant?: 'full' | 'mark' | 'wordmark';
   /** {@code "auto"} suit le theme MUI. {@code "light"} / {@code "dark"} force. */
   tone?: 'auto' | 'light' | 'dark';
-  /** Desactive TOUTES les animations (utile pour screenshots / tests visuels). */
+  /**
+   * Etat "actif" pilote par le code : declenche la meme animation que :hover
+   * (lines absorb, centre pulse-loop, nodes orbit). Utile pour signaler "l'IA
+   * est en train de travailler" sans necessiter le survol souris. Hover manuel
+   * et active prop coexistent (les deux declenchent l'animation).
+   */
+  active?: boolean;
+  /**
+   * Si false, desactive les animations idle (boot pop, scan node, centre
+   * breathe). L'animation hover/active continue de fonctionner. Defaut true.
+   * A mettre false quand le mark est rendu en grande quantite (ex: avatar
+   * sur chaque message de chat) ou dans une sidebar toujours visible : le
+   * scan en boucle creerait du visual noise constant.
+   */
+  idleAnimation?: boolean;
+  /**
+   * Desactive TOUTES les animations (idle + hover + active). Utile pour
+   * screenshots, tests visuels, ou contextes ou tout mouvement est interdit.
+   */
   disableAnimation?: boolean;
 }
 
@@ -108,6 +126,8 @@ export default function ClenzyMarkLogo({
   size,
   variant = 'full',
   tone = 'auto',
+  active = false,
+  idleAnimation = true,
   disableAnimation = false,
 }: ClenzyMarkLogoProps) {
   const theme = useTheme();
@@ -135,6 +155,9 @@ export default function ClenzyMarkLogo({
     line: `clenzy-mark-line-${uid}`,
     nodesGroup: `clenzy-mark-nodes-group-${uid}`,
     node: `clenzy-mark-node-${uid}`,
+    // Modificateurs sur le root pour piloter le comportement via className
+    active: `clenzy-mark-active-${uid}`,
+    idleOff: `clenzy-mark-idle-off-${uid}`,
   };
 
   const mark = (
@@ -250,38 +273,53 @@ export default function ClenzyMarkLogo({
       .${cls.line}-${i} { transition-delay: ${300 + i * 60}ms; }
     `).join('')}
 
-    /* ─── Hover ──────────────────────────────────────────────────────── */
-    /* Centre : on garde le boot (deja complete, fill:both => no visible
-       restart) et on remplace breathe par pulse-loop infini avec delay 450ms
-       (= duree de l'absorb des lignes). Quand hover s'arrete, l'animation
-       revient a [boot, breathe], pulse-loop est enleve => centre arrete de
-       pulser et reprend son breathing. */
-    .${cls.root}:hover .${cls.center} {
+    /* ─── Idle off : kill boot+scan+breathe (idleAnimation=false) ────── */
+    /* Pour les usages ou le mark est rendu en grande quantite (avatar de
+       chaque message chat, sidebar always visible). Hover/active continuent
+       de fonctionner. */
+    .${cls.root}.${cls.idleOff} .${cls.center} {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+    .${cls.root}.${cls.idleOff} .${cls.linesGroup} {
+      animation: none;
+      opacity: ${palette.linesOpacity};
+    }
+    .${cls.root}.${cls.idleOff} .${cls.node} {
+      animation: none;
+      opacity: 1;
+    }
+
+    /* ─── Hover OR active : meme animation declenchee par survol souris
+       OU par le prop active={true} (IA travaille). Les deux selecteurs
+       sont combines pour partager les memes keyframes. ─────────────── */
+
+    /* Centre : pulse-loop infini (1.4s, scale 1->1.25, drop-shadow glow).
+       Demarre 450ms apres le declenchement (= duree absorb des lignes). */
+    .${cls.root}:hover .${cls.center},
+    .${cls.root}.${cls.active} .${cls.center} {
       animation:
         ${cls.center}-boot 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
         ${cls.center}-pulse-loop 1.4s ease-in-out 450ms infinite;
     }
     /* Lignes : dashoffset transite vers ${LINE_LENGTH} => le trait se
-       retracte depuis l'exterieur vers le centre, disparait dans le node
-       central. Au hover-out, la transition reverse naturellement avec
-       la per-line delay du base rule => cascade re-emerge horaire.
-       Override transition-delay:0 ici pour absorb instantane sur tout
-       au hover-in (sinon les lines absorberaient aussi en cascade). */
-    .${cls.root}:hover .${cls.line} {
+       retracte depuis l'exterieur vers le centre. Reverse au desactive. */
+    .${cls.root}:hover .${cls.line},
+    .${cls.root}.${cls.active} .${cls.line} {
       stroke-dashoffset: ${LINE_LENGTH};
       transition-delay: 0ms;
     }
-    /* Au hover, le group nodes orbite autour du centre (qui pulse en
-       parallele). Demarre apres l'absorb des lignes (450ms). Stop au
-       hover-out (animation removed => snap to no transform = 0deg). */
-    .${cls.root}:hover .${cls.nodesGroup} {
+    /* Group nodes : orbite 360deg en 6s lineaire, demarre apres absorb. */
+    .${cls.root}:hover .${cls.nodesGroup},
+    .${cls.root}.${cls.active} .${cls.nodesGroup} {
       animation: ${cls.nodesGroup}-orbit 6s linear 450ms infinite;
     }
-    /* Nodes individuellement : animation:none pendant le hover pour
-       desactiver scan/pop (le orbit du group s'en occupe). opacity:1
-       explicite pour rester visible (sinon revient a opacity:0 du base). */
+    /* Nodes individuels : animation:none pour laisser le orbit du group
+       prendre le relais. opacity:1 explicite (sinon revient au base). */
     ${OCTAGON_NODES.map((_, i) => `
-      .${cls.root}:hover .${cls.node}-${i} {
+      .${cls.root}:hover .${cls.node}-${i},
+      .${cls.root}.${cls.active} .${cls.node}-${i} {
         opacity: 1;
         animation: none;
       }
@@ -327,7 +365,7 @@ export default function ClenzyMarkLogo({
       to   { transform: rotate(360deg); }
     }
 
-    /* ─── prefers-reduced-motion : tout kill ─────────────────────────── */
+    /* ─── prefers-reduced-motion : tout kill (idle + hover + active) ─── */
     @media (prefers-reduced-motion: reduce) {
       .${cls.center},
       .${cls.linesGroup},
@@ -337,7 +375,11 @@ export default function ClenzyMarkLogo({
       .${cls.root}:hover .${cls.center},
       .${cls.root}:hover .${cls.line},
       .${cls.root}:hover .${cls.nodesGroup},
-      .${cls.root}:hover .${cls.node} {
+      .${cls.root}:hover .${cls.node},
+      .${cls.root}.${cls.active} .${cls.center},
+      .${cls.root}.${cls.active} .${cls.line},
+      .${cls.root}.${cls.active} .${cls.nodesGroup},
+      .${cls.root}.${cls.active} .${cls.node} {
         animation: none !important;
         transition: none !important;
         opacity: 1 !important;
@@ -355,11 +397,20 @@ export default function ClenzyMarkLogo({
     variant === 'wordmark' ? wordmark :
     <>{mark}{wordmark}</>;
 
+  // Compose className based on behavior props.
+  // - active : ajoute .active => declenche l'animation hover-equivalent
+  // - !idleAnimation : ajoute .idle-off => kill boot/scan/breathe
+  const rootClassName = [
+    cls.root,
+    active && cls.active,
+    !idleAnimation && cls.idleOff,
+  ].filter(Boolean).join(' ');
+
   return (
     <>
       {!disableAnimation && <style>{animationCss}</style>}
       <Box
-        className={cls.root}
+        className={rootClassName}
         sx={{
           display: 'inline-flex',
           alignItems: 'center',

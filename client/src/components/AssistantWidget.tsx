@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { Box, IconButton, Drawer, Typography, useTheme, alpha, Tooltip } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AutoAwesome as SparklesIcon, Close as CloseIcon, OpenInNew as OpenInNewIcon } from '../icons';
+import { Close as CloseIcon, OpenInNew as OpenInNewIcon } from '../icons';
+import ClenzyMarkLogo from './ClenzyMarkLogo';
 import { useAgent } from '../hooks/useAgent';
 import { MessageList } from '../modules/assistant/components/MessageList';
 import { ChatInput } from '../modules/assistant/components/ChatInput';
@@ -63,6 +64,10 @@ const AssistantWidget: React.FC = () => {
     navigate('/assistant');
   }, [navigate]);
 
+  // "Working" = l'IA est en train de generer une reponse (sending = envoi
+  // initial, streaming = reponse en cours). Pilote l'animation active du mark.
+  const isWorking = status === 'sending' || status === 'streaming';
+
   if (isOnAssistantPage) return null;
 
   return (
@@ -97,7 +102,17 @@ const AssistantWidget: React.FC = () => {
             },
           }}
         >
-          <SparklesIcon size={24} strokeWidth={1.75} />
+          {/* tone="dark" : sur le bg primary, on veut un mark blanc (nodes
+              clairs + centre blanc) au lieu de la palette light qui se
+              confondrait avec le fond. active={isWorking} : declenche
+              l'animation hover-equivalent quand l'IA travaille. */}
+          <ClenzyMarkLogo
+            variant="mark"
+            size={24}
+            tone="dark"
+            idleAnimation={false}
+            active={isWorking}
+          />
         </IconButton>
       </Tooltip>
 
@@ -140,7 +155,14 @@ const AssistantWidget: React.FC = () => {
               justifyContent: 'center',
             }}
           >
-            <SparklesIcon size={16} strokeWidth={1.75} />
+            {/* Header du drawer : meme logique que le FAB, fond clair (light
+                tone par defaut). Active = IA en cours. */}
+            <ClenzyMarkLogo
+              variant="mark"
+              size={18}
+              idleAnimation={false}
+              active={isWorking}
+            />
           </Box>
           <Box sx={{ flex: 1 }}>
             <Typography variant="subtitle2" sx={{ lineHeight: 1.2, fontWeight: 600 }}>
@@ -197,7 +219,9 @@ const AssistantWidget: React.FC = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
-                <SparklesIcon size={22} strokeWidth={1.75} />
+                {/* Empty state du drawer : pas d'active (pas de conversation
+                    en cours), mais animation idle gardee pour le wow d'arrivee. */}
+                <ClenzyMarkLogo variant="mark" size={26} />
               </Box>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 Pose ta question
