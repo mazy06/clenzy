@@ -368,12 +368,24 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
           </Box>
 
           {/* Centre : carrousel slide actuel + dots verticaux a droite.
-              Layout horizontal : text column (narrow, ~400px) + dots
-              column (vertical, 24px) cote a cote. Le texte plus etroit
-              feel "plus vertical" et la pagination verticale a droite
-              signale plus clairement les slides disponibles. */}
-          <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Box sx={{ flex: 1, maxWidth: 400, minHeight: 360 }}>
+              Layout : `justifyContent: 'space-between'` pousse le texte au
+              bord gauche et les dots au bord droit du panneau brand (qui a
+              `p: 6` pour garantir une marge avec le bord vertical separant
+              brand et form). Avec un texte `maxWidth` responsive, l'espace
+              entre les deux s'adapte naturellement au viewport (plus large
+              sur 1920px, plus serre sur 1280px). Les dots restent toujours
+              dans la colonne brand. */}
+          <Box
+            sx={{
+              position: 'relative',
+              zIndex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 3,
+            }}
+          >
+            <Box sx={{ flex: '0 1 auto', maxWidth: { md: 440, lg: 520, xl: 580 }, minHeight: 360 }}>
               {/* key={slideIndex} force le remount a chaque slide => l'animation
                   CSS fade-in se rejoue automatiquement. Approche tres simple
                   vs framer-motion pour ce cas (1 element a la fois). */}
