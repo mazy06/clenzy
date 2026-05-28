@@ -42,6 +42,18 @@ export interface AuthLayoutProps {
 
 // ─── Carrousel marketing : 8 slides cyclant automatiquement ────────────────
 
+/**
+ * Service tier integre a Clenzy, affiche sous le slide en "chip" avec logo
+ * monochrome. Si le service n'est pas sur simple-icons (Pennylane, Nuki,
+ * KeyNest, Tuya...), on passe `slug: null` et seul le nom s'affiche.
+ */
+interface ServiceBadge {
+  /** Slug simple-icons (https://simpleicons.org). `null` = pas de logo, texte seul. */
+  slug: string | null;
+  /** Nom affiche dans la puce. */
+  name: string;
+}
+
 interface CarouselSlide {
   /** Texte d'intro avant le highlight (peut etre vide). */
   tagline: string;
@@ -51,6 +63,12 @@ interface CarouselSlide {
   end: string;
   /** Body texte de preuve / detail. */
   subtitle: string;
+  /**
+   * Services / partenaires proeminents pour ce slide. Affiches en puces avec
+   * logo monochrome sous le subtitle. Optionnel — slides "hook" sans
+   * integration specifique ont undefined.
+   */
+  services?: ServiceBadge[];
 }
 
 /**
@@ -95,48 +113,85 @@ const SLIDES: CarouselSlide[] = [
     tagline: 'De zéro à',
     highlight: '1ère réservation en 24 heures',
     end: '.',
-    subtitle: "Import automatique depuis Airbnb et Booking, descriptions générées par IA, photos analysées et notées. Setup en 15 minutes, première nuit vendue le lendemain. Pas 3 semaines comme chez les autres.",
+    subtitle: "Import automatique depuis vos canaux existants, descriptions générées par IA, photos analysées et notées. Setup en 15 minutes, première nuit vendue le lendemain. Pas 3 semaines comme chez les autres.",
+    services: [
+      { slug: 'airbnb', name: 'Airbnb' },
+      { slug: 'bookingdotcom', name: 'Booking.com' },
+    ],
   },
   // ─── Channels integration (6) — enrichi avec les 7 OTAs deployees ─────
   {
     tagline: 'Un seul calendrier pour',
-    highlight: 'Airbnb, Booking, Expedia, Vrbo, Agoda, Tripadvisor, Hotels.com',
+    highlight: 'tous vos canaux de distribution',
     end: '.',
     subtitle: "Synchronisation temps réel via Channex et nos connecteurs natifs. Plus de double-booking, plus de prix incohérents entre canaux. CalendarEngine source-of-truth, push instantané via outbox + Kafka.",
+    services: [
+      { slug: 'airbnb', name: 'Airbnb' },
+      { slug: 'bookingdotcom', name: 'Booking.com' },
+      { slug: 'expedia', name: 'Expedia' },
+      { slug: null, name: 'Vrbo' },
+      { slug: 'agoda', name: 'Agoda' },
+      { slug: 'tripadvisor', name: 'Tripadvisor' },
+    ],
   },
   // ─── Smart locks orchestration (7) — Nuki + KeyNest + Tuya prod ───────
   {
     tagline: 'Codes d’accès générés à la volée.',
-    highlight: 'Nuki, KeyNest, Tuya orchestrés depuis un seul dashboard',
+    highlight: 'Toutes vos serrures connectées orchestrées',
     end: '.',
-    subtitle: "Le code expire automatiquement au checkout, la batterie de la serrure est monitoree, les clés perdues chez KeyNest sont tracées en temps réel. Vous ne donnez plus jamais un code à la main.",
+    subtitle: "Le code expire automatiquement au checkout, la batterie de la serrure est monitorée, les clés perdues chez KeyNest sont tracées en temps réel. Vous ne donnez plus jamais un code à la main.",
+    services: [
+      { slug: null, name: 'Nuki' },
+      { slug: null, name: 'KeyNest' },
+      { slug: null, name: 'Tuya' },
+    ],
   },
   // ─── Guest messaging multi-channel (8) — Twilio prod ──────────────────
   {
     tagline: '',
     highlight: 'WhatsApp, SMS, email — tout sur un seul fil de discussion',
     end: '.',
-    subtitle: "Vos guests vous répondent où ils sont, sans installer d'app. Twilio Verify pour la confirmation d'identité, conversations centralisées coté Clenzy, réponses IA suggérées. La concurrence éclate ça en 3 outils, vous l'avez en un.",
+    subtitle: "Vos guests vous répondent où ils sont, sans installer d'app. Verify pour la confirmation d'identité, conversations centralisées côté Clenzy, réponses IA suggérées. La concurrence éclate ça en 3 outils, vous l'avez en un.",
+    services: [
+      { slug: 'whatsapp', name: 'WhatsApp' },
+      { slug: 'twilio', name: 'Twilio' },
+      { slug: 'gmail', name: 'Email' },
+    ],
   },
   // ─── Multi-country accounting (9) — Pennylane/QB/Xero/Sage prod ──────
   {
     tagline: 'Votre comptabilité connectée,',
     highlight: 'que vous soyez en France, UK, Australie ou USA',
     end: '.',
-    subtitle: "Pennylane (FR), QuickBooks (US/CA), Xero (UK/AU/NZ), Sage (Europe) — Clenzy s'adapte à votre juridiction. Factures synchro auto, supplier invoices importées, declarations fiscales preparees. Vos revenus consolides multi-pays en un dashboard.",
+    subtitle: "Clenzy s'adapte à votre juridiction. Factures synchronisées, supplier invoices importées, déclarations fiscales préparées. Vos revenus consolidés multi-pays en un seul dashboard.",
+    services: [
+      { slug: null, name: 'Pennylane' },
+      { slug: 'quickbooks', name: 'QuickBooks' },
+      { slug: 'xero', name: 'Xero' },
+      { slug: 'sage', name: 'Sage' },
+    ],
   },
   // ─── Comparative differentiators (10-11) — attaque frontale vs concurrence
   {
     tagline: 'Vos contrats signés',
     highlight: 'en 30 secondes, sans quitter Clenzy',
     end: '.',
-    subtitle: "Mandat de gestion, contrats de location courte durée, autorisations check-in. DocuSign eIDAS intégré nativement. Plus besoin de payer Yousign 39€/mois en parallèle.",
+    subtitle: "Mandat de gestion, contrats de location courte durée, autorisations check-in. Signature eIDAS intégrée nativement. Plus besoin de payer Yousign 39€/mois en parallèle.",
+    services: [
+      { slug: 'docusign', name: 'DocuSign' },
+    ],
   },
   {
     tagline: '',
     highlight: 'API ouverte, données exportables en un clic',
     end: '.',
-    subtitle: "Vos réservations, guests, finances, photos — tout exportable au format ouvert. Webhooks Zapier, intégrations Notion, Slack, Make. Pas de lock-in. Là où Guesty vous emprisonne, Clenzy vous libère.",
+    subtitle: "Vos réservations, guests, finances, photos — tout exportable au format ouvert. Webhooks et intégrations natives. Pas de lock-in. Là où Guesty vous emprisonne, Clenzy vous libère.",
+    services: [
+      { slug: 'zapier', name: 'Zapier' },
+      { slug: 'notion', name: 'Notion' },
+      { slug: 'slack', name: 'Slack' },
+      { slug: null, name: 'Make' },
+    ],
   },
 ];
 
@@ -313,12 +368,12 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
           </Box>
 
           {/* Centre : carrousel slide actuel + dots verticaux a droite.
-              Layout horizontal : text column (narrow, ~360px) + dots
+              Layout horizontal : text column (narrow, ~400px) + dots
               column (vertical, 24px) cote a cote. Le texte plus etroit
               feel "plus vertical" et la pagination verticale a droite
               signale plus clairement les slides disponibles. */}
           <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Box sx={{ flex: 1, maxWidth: 360, minHeight: 280 }}>
+            <Box sx={{ flex: 1, maxWidth: 400, minHeight: 360 }}>
               {/* key={slideIndex} force le remount a chaque slide => l'animation
                   CSS fade-in se rejoue automatiquement. Approche tres simple
                   vs framer-motion pour ce cas (1 element a la fois). */}
@@ -334,11 +389,18 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                   },
                 }}
               >
+                {/* Titre — bumped from h4 (2.125rem) to ~2.375rem pour creer
+                    une hierarchie plus marquee avec le subtitle (0.8125rem,
+                    ratio ~3x). letterSpacing negatif pour un feel modern SaaS
+                    (Linear, Vercel, Stripe Dashboard). Responsive : 2rem sur md,
+                    2.375rem sur lg (au-dela de 1200px). */}
                 <Typography
-                  variant="h4"
+                  component="h2"
                   sx={{
+                    fontSize: { md: '2rem', lg: '2.375rem' },
                     fontWeight: 600,
-                    lineHeight: 1.2,
+                    lineHeight: 1.15,
+                    letterSpacing: '-0.02em',
                     // Texte titre : blanc en photo mode (sur fond fonce),
                     // text.primary en sober mode (sur fond clair)
                     color: ENABLE_PHOTO_HERO ? '#FFFFFF' : 'text.primary',
@@ -346,7 +408,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                     // sur photo+overlay (sans tomber dans le "drop-shadow lourd")
                     textShadow: ENABLE_PHOTO_HERO ? '0 1px 12px rgba(0, 0, 0, 0.4)' : 'none',
                     textWrap: 'balance',
-                    mb: 2,
+                    mb: 2.5,
                   }}
                 >
                   {current.tagline && (
@@ -371,21 +433,39 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                     ? t('auth.layout.taglineEnd', current.end)
                     : current.end}
                 </Typography>
+                {/* Subtitle — reduit de 0.95rem a 0.8125rem (13px) pour
+                    creer une hierarchie nette avec le titre. Lineheight 1.7
+                    pour donner de l'air entre les lignes, color un peu plus
+                    muted (0.75 au lieu de 0.92) pour que le titre domine. */}
                 <Typography
-                  variant="body1"
+                  component="p"
                   sx={{
-                    // Subtitle : white-translucent renforce 0.92 (etait 0.85)
-                    // pour lisibilite sur l'overlay+photo darkened.
-                    color: ENABLE_PHOTO_HERO ? alpha('#FFFFFF', 0.92) : 'text.secondary',
-                    textShadow: ENABLE_PHOTO_HERO ? '0 1px 8px rgba(0, 0, 0, 0.3)' : 'none',
-                    lineHeight: 1.6,
-                    fontSize: '0.95rem',
+                    color: ENABLE_PHOTO_HERO ? alpha('#FFFFFF', 0.78) : 'text.secondary',
+                    textShadow: ENABLE_PHOTO_HERO ? '0 1px 6px rgba(0, 0, 0, 0.25)' : 'none',
+                    lineHeight: 1.7,
+                    fontSize: '0.8125rem',
+                    fontWeight: 400,
                   }}
                 >
                   {slideIndex === 0
                     ? t('auth.layout.subtitle', current.subtitle)
                     : current.subtitle}
                 </Typography>
+
+                {/* Services chips — affichees uniquement si le slide a des
+                    integrations specifiques (slides 5-11). Wrappe en flex
+                    pour gerer les slides a 4+ services (slide 6 channels). */}
+                {current.services && current.services.length > 0 && (
+                  <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    {current.services.map((service) => (
+                      <ServiceChip
+                        key={`${slideIndex}-${service.name}`}
+                        service={service}
+                        onDark={ENABLE_PHOTO_HERO}
+                      />
+                    ))}
+                  </Box>
+                )}
               </Box>
             </Box>
 
@@ -502,6 +582,90 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
           {children}
         </Box>
       </Box>
+    </Box>
+  );
+}
+
+/**
+ * Chip de service avec logo (via simple-icons CDN) et nom.
+ *
+ * <p><b>Logo</b> : recupere depuis `cdn.simpleicons.org/{slug}/{color}` qui
+ * sert des SVG monochromes prets a teinter. On utilise `white` en photo mode
+ * et la couleur primary en sober mode pour rester coherent avec le reste de
+ * l'UI. Si le service n'est pas sur simple-icons (Pennylane, Nuki, KeyNest,
+ * Tuya, Vrbo, Make...), on passe `slug: null` et seul le nom s'affiche.</p>
+ *
+ * <p><b>Fallback CDN</b> : `onError` cache l'img si le CDN renvoie 404 ou
+ * timeout. Le layout reste stable car le texte est toujours present.</p>
+ *
+ * <p><b>Pourquoi simple-icons</b> : c'est la lib la plus exhaustive (>3000
+ * brand icons), aucune cle d'API, CDN cache cote browser, ~600 bytes par
+ * icon. Alternative considere : embed inline SVG mais multiplie les KB du
+ * bundle alors que ces logos ne sont vus que sur la page d'auth.</p>
+ */
+function ServiceChip({
+  service,
+  onDark,
+}: {
+  service: ServiceBadge;
+  onDark: boolean;
+}) {
+  // Couleur du logo : blanc en photo mode, hex brand en sober mode.
+  // simple-icons accepte hex sans `#` ou keyword `white`/`black`.
+  const iconColor = onDark ? 'white' : '6B8A9A';
+
+  return (
+    <Box
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.625,
+        px: 1.125,
+        py: 0.5,
+        borderRadius: 999,
+        bgcolor: onDark ? alpha('#FFFFFF', 0.08) : alpha('#000000', 0.04),
+        border: `1px solid ${
+          onDark ? alpha('#FFFFFF', 0.12) : alpha('#000000', 0.06)
+        }`,
+        transition: 'background-color 200ms ease-out',
+        '&:hover': {
+          bgcolor: onDark ? alpha('#FFFFFF', 0.14) : alpha('#000000', 0.06),
+        },
+      }}
+    >
+      {service.slug && (
+        <Box
+          component="img"
+          src={`https://cdn.simpleicons.org/${service.slug}/${iconColor}`}
+          alt=""
+          aria-hidden
+          loading="lazy"
+          // Si CDN down ou slug inconnu : on cache l'img, le texte reste.
+          onError={(event) => {
+            (event.currentTarget as HTMLImageElement).style.display = 'none';
+          }}
+          sx={{
+            width: 11,
+            height: 11,
+            opacity: onDark ? 0.88 : 0.75,
+            objectFit: 'contain',
+            flexShrink: 0,
+          }}
+        />
+      )}
+      <Typography
+        component="span"
+        sx={{
+          color: onDark ? alpha('#FFFFFF', 0.88) : 'text.primary',
+          fontSize: '0.7rem',
+          fontWeight: 500,
+          letterSpacing: 0.2,
+          whiteSpace: 'nowrap',
+          lineHeight: 1.1,
+        }}
+      >
+        {service.name}
+      </Typography>
     </Box>
   );
 }
