@@ -246,12 +246,52 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
   useEffect(() => {
     // Pas d'auto-cycle si l'user prefere reduced-motion : on affiche
     // seulement le slide 0 (au mount). Il peut toujours cliquer les dots.
+    // On inclut slideIndex dans les deps : a chaque changement manuel
+    // (click dot ou fleches clavier), le timer reset et redonne 6s avant
+    // le prochain auto-advance — sinon l'user voit le slide changer 2s
+    // apres son interaction, ce qui est confusant.
     if (prefersReducedMotion || isPaused || !isMdUp) return;
     const id = window.setInterval(() => {
       setSlideIndex((i) => (i + 1) % SLIDES.length);
     }, SLIDE_DURATION_MS);
     return () => window.clearInterval(id);
-  }, [isPaused, prefersReducedMotion, isMdUp]);
+  }, [isPaused, prefersReducedMotion, isMdUp, slideIndex]);
+
+  // ─── Navigation clavier ──────────────────────────────────────────────
+  // Les fleches Haut/Bas/Gauche/Droite naviguent dans le carrousel. On
+  // accepte les 4 directions (orientation libre) parce que :
+  // - Horizontal (Left/Right) : convention historique des carrousels
+  // - Vertical (Up/Down) : convention de notre tablist vertical (les dots
+  //   sont en colonne)
+  //
+  // Guard : on ignore les events declenches depuis un champ de saisie
+  // (INPUT, TEXTAREA, SELECT, contentEditable) pour ne pas casser la
+  // navigation dans le form login a droite — un user qui edite son email
+  // et qui appuie sur fleche-droite pour bouger le curseur ne doit pas
+  // voir le carrousel changer.
+  useEffect(() => {
+    if (!isMdUp) return; // Carrousel cache sur mobile, no-op
+
+    const handler = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        if (target.isContentEditable) return;
+      }
+
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        setSlideIndex((i) => (i + 1) % SLIDES.length);
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        setSlideIndex((i) => (i - 1 + SLIDES.length) % SLIDES.length);
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isMdUp]);
 
   const current = SLIDES[slideIndex];
 
