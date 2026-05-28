@@ -159,7 +159,7 @@ public class OrchestratorAgent {
             return OrchestrationResult.error("Messages history vide, impossible d'orchestrer");
         }
 
-        String systemPrompt = buildOrchestratorSystemPrompt(orchestrationCtx);
+        String systemPrompt = buildOrchestratorSystemPrompt(orchestrationCtx, context);
         List<ToolDescriptor> tools = List.of(buildDelegateToolDescriptor());
         ChatRequest req = new ChatRequest(
                 systemPrompt,
@@ -290,17 +290,22 @@ public class OrchestratorAgent {
     }
 
     /**
-     * Backwards-compat : delegue a la version avec contexte vide. Conserve
-     * pour les tests existants qui appellent directement le prompt sans
-     * pre-chargement de memoire/RAG.
+     * Backwards-compat : delegue avec contexte vide + AgentContext null.
      */
     String buildOrchestratorSystemPrompt() {
-        return buildOrchestratorSystemPrompt(OrchestrationContext.empty());
+        return buildOrchestratorSystemPrompt(OrchestrationContext.empty(), null);
+    }
+
+    /** Backwards-compat 2-arg (sans AgentContext) — utilise par tests existants. */
+    String buildOrchestratorSystemPrompt(OrchestrationContext orchestrationCtx) {
+        return buildOrchestratorSystemPrompt(orchestrationCtx, null);
     }
 
     /**
      * System prompt orchestrator avec injection optionnelle de :
      * <ul>
+     *   <li>Section {@code <user_context>} : langue + page courante + propriete
+     *       selectionnee dans l'UI (Fix bloquant #5)</li>
      *   <li>Section {@code <memory>} : faits/preferences/objectifs de l'user</li>
      *   <li>Section {@code <knowledge_base>} : snippets doc relevants pour
      *       la query, avec source pour citation</li>
@@ -308,12 +313,21 @@ public class OrchestratorAgent {
      *
      * <p>Les sections ne sont rendues QUE si elles ont du contenu.</p>
      */
-    String buildOrchestratorSystemPrompt(OrchestrationContext orchestrationCtx) {
+    String buildOrchestratorSystemPrompt(OrchestrationContext orchestrationCtx,
+                                            AgentContext agentContext) {
         StringBuilder sb = new StringBuilder(1024);
 
-        // Memoire long-terme : injectee EN PREMIER pour que le LLM en
-        // tienne compte des l'analyse de la question (ex: "user prefere EUR" →
-        // orchestrator peut pre-formater la query au specialist).
+        // Context UI (langue + page + propriete) — utile a l'orchestrator pour
+        // contextualiser la query au specialist ("je suis sur /properties/42" →
+        // si la query est ambigue, assumer que c'est la propriete 42).
+        String contextSection = renderUserContextSection(agentContext);
+        if (!contextSection.isEmpty()) {
+            sb.append(contextSection).append("\n\n");
+        }
+
+        // Memoire long-terme : injectee pour que le LLM en tienne compte des
+        // l'analyse de la question (ex: "user prefere EUR" → orchestrator peut
+        // pre-formater la query au specialist).
         String memorySection = renderMemorySection(orchestrationCtx.memories());
         if (!memorySection.isEmpty()) {
             sb.append(memorySection).append("\n\n");
@@ -357,6 +371,44 @@ public class OrchestratorAgent {
                 .append("- Cite la source si l'info vient de la doc (Selon [titre](path)).\n")
                 .append("</output_format>");
 
+        return sb.toString();
+    }
+
+    /**
+     * Render XML du contexte UI (langue + page + propriete). Vide si pas
+     * d'AgentContext ou pas d'info contextuelle (au-dela de la langue par
+     * defaut "fr").
+     */
+    private String renderUserContextSection(AgentContext ctx) {
+        if (ctx == null) return "";
+        boolean hasUiHint = ctx.currentPage() != null || ctx.selectedPropertyId() != null;
+        boolean hasNonDefaultLang = ctx.language() != null && !"fr".equals(ctx.language());
+        if (!hasUiHint && !hasNonDefaultLang) return "";
+
+        StringBuilder sb = new StringBuilder(192);
+        sb.append("<user_context>\n");
+        if (ctx.language() != null && !ctx.language().isBlank()) {
+            sb.append("  <language>").append(escapeXml(ctx.language())).append("</language>\n");
+            // Hint explicite pour le LLM (le code langue seul ne suffit pas toujours)
+            sb.append("  <!-- Reponds en ");
+            switch (ctx.language()) {
+                case "en" -> sb.append("English");
+                case "ar" -> sb.append("Arabic (RTL)");
+                case "fr" -> sb.append("francais");
+                default -> sb.append("la langue indiquee");
+            }
+            sb.append(". -->\n");
+        }
+        if (ctx.currentPage() != null && !ctx.currentPage().isBlank()) {
+            sb.append("  <current_page>").append(escapeXml(ctx.currentPage())).append("</current_page>\n");
+        }
+        if (ctx.selectedPropertyId() != null) {
+            sb.append("  <selected_property_id>").append(ctx.selectedPropertyId())
+                    .append("</selected_property_id>\n");
+            sb.append("  <!-- L'utilisateur regarde cette propriete : si la query est ambigue, ")
+                    .append("assume qu'elle concerne cette propriete. -->\n");
+        }
+        sb.append("</user_context>");
         return sb.toString();
     }
 

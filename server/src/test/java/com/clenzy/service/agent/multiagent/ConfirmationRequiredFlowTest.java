@@ -5,6 +5,7 @@ import com.clenzy.config.ai.ChatLLMProvider;
 import com.clenzy.config.ai.ChatMessage;
 import com.clenzy.config.ai.ChatRequest;
 import com.clenzy.config.ai.ToolDescriptor;
+import com.clenzy.model.AssistantMemory;
 import com.clenzy.service.agent.AgentContext;
 import com.clenzy.service.agent.ToolHandler;
 import com.clenzy.service.agent.ToolRegistry;
@@ -15,14 +16,13 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectProvider;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -112,6 +112,54 @@ class ConfirmationRequiredFlowTest {
         double errorCount = meterRegistry.counter("assistant.specialist.errors",
                 "specialist", "test_specialist").count();
         assertThat(errorCount).isZero();
+    }
+
+    @Test
+    void specialist_injects_user_context_and_memory_in_system_prompt() {
+        // Fix bloquant #5 : le specialist DOIT injecter user_context (langue,
+        // page, propriete) + memory + RAG dans son system prompt pour produire
+        // une reponse personnalisee.
+        ToolHandler readHandler = mock(ToolHandler.class);
+        ObjectNode schema = objectMapper.createObjectNode();
+        schema.put("type", "object");
+        ToolDescriptor readDescriptor = ToolDescriptor.readOnly(
+                "list_properties", "Liste", schema);
+        when(readHandler.descriptor()).thenReturn(readDescriptor);
+        when(readHandler.execute(any(), any())).thenReturn(ToolResult.success("{}", "table"));
+        when(toolRegistry.find("list_properties")).thenReturn(Optional.of(readHandler));
+        when(toolRegistry.listDescriptors()).thenReturn(List.of(readDescriptor));
+
+        TestSpecialist spec = new TestSpecialist(chatProvider, toolRegistry,
+                objectMapper, meterRegistry, Set.of("list_properties"));
+
+        // LLM stub : repond directement avec texte (pas de tool call)
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            consumer.accept(new ChatEvent.TextDelta("You have 5 properties."));
+            consumer.accept(new ChatEvent.Done(20, 8, "claude", "end_turn", "You have 5 properties."));
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any());
+
+        AgentContext ctx = new AgentContext(1L, "kc", null, "en", "/properties", 42L);
+        AssistantMemory memory = new AssistantMemory(1L, "kc", "currency", "USD",
+                AssistantMemory.Scope.PREFERENCE);
+        SpecialistRequest req = SpecialistRequest.of("list", ctx,
+                new OrchestrationContext(List.of(memory), List.of()));
+
+        spec.handle(req);
+
+        ArgumentCaptor<ChatRequest> reqCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+        verify(chatProvider).streamChat(reqCaptor.capture(), any());
+        String sysPrompt = reqCaptor.getValue().systemPrompt();
+        assertThat(sysPrompt)
+                .contains("<user_context>")
+                .contains("<language>en</language>")
+                .contains("<current_page>/properties</current_page>")
+                .contains("<selected_property_id>42</selected_property_id>")
+                .contains("<memory>")
+                .contains("key=\"currency\"")
+                .contains("USD")
+                .contains("<role>");
     }
 
     @Test
