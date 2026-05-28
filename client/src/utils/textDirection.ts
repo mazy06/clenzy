@@ -15,7 +15,7 @@
 /**
  * Plages Unicode des scripts arabes (couvre arabic de base, supplements,
  * extended, presentation forms A et B). Ne couvre PAS l'hebreu, persan
- * specifique, etc. — focus sur l'arabe Clenzy (utilisateurs FR/MA/SA).
+ * specifique, etc. — focus sur l'arabe Baitly (utilisateurs FR/MA/SA).
  */
 const ARABIC_UNICODE_RANGES =
   /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;

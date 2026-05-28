@@ -285,7 +285,7 @@ const ReservationsList: React.FC = () => {
         <EmptyState
           icon={<EventNoteIcon />}
           title={t('reservations.noReservations')}
-          description="Ajoutez votre première réservation manuellement, ou laissez Clenzy importer vos calendriers Airbnb / Booking automatiquement."
+          description="Ajoutez votre première réservation manuellement, ou laissez Baitly importer vos calendriers Airbnb / Booking automatiquement."
           action={(
             <Button variant="outlined" size="small" startIcon={<AddIcon size={16} strokeWidth={1.75} />} onClick={handleCreate}>
               {t('reservations.create')}

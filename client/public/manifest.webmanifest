@@ -1,7 +1,7 @@
 {
-  "name": "Clenzy PMS",
-  "short_name": "Clenzy",
-  "description": "Système de gestion immobilière Clenzy",
+  "name": "Baitly PMS",
+  "short_name": "Baitly",
+  "description": "Baitly — Property Management System pour locations courte durée",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

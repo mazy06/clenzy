@@ -17,7 +17,7 @@ import {
 import { ArrowBack, CheckCircle } from '../../icons';
 import { createClenzyTheme } from '../../theme/createClenzyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import clenzyLogo from '../../assets/Clenzy_logo.png';
+import clenzyLogo from '../../assets/Baitly_logo.png';
 import apiClient from '../../services/apiClient';
 
 const textFieldSx = {
@@ -102,7 +102,7 @@ export default function Support() {
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
             <img
               src={clenzyLogo}
-              alt="Clenzy Logo"
+              alt="Baitly Logo"
               style={{ height: '48px', width: 'auto', maxWidth: '200px' }}
             />
           </Box>

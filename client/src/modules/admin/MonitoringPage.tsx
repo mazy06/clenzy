@@ -88,7 +88,7 @@ const MonitoringPage: React.FC = () => {
   // Resolution title/subtitle en fonction du tab actif.
   const { title, subtitle } = resolveTabHeader(
     t('tabHeaders.monitoring.title', 'Monitoring Système'),
-    t('tabHeaders.monitoring.default', 'Surveillance complète de la plateforme Clenzy'),
+    t('tabHeaders.monitoring.default', 'Surveillance complète de la plateforme Baitly'),
     monitoringTabs.map((tab) => tab.label),
     tabValue,
     monitoringTabMeta,

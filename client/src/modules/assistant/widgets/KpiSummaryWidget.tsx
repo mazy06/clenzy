@@ -30,7 +30,7 @@ interface KpiSummaryWidgetProps {
  *
  * <p>Affiche un score de readiness en grand + une grille de tiles KPI (id,
  * nom, valeur formattee, target, indicateur status). Design borderless, bg
- * tonal, conforme au registre product de Clenzy.</p>
+ * tonal, conforme au registre product de Baitly.</p>
  */
 export const KpiSummaryWidget: React.FC<KpiSummaryWidgetProps> = ({ data }) => {
   const theme = useTheme();

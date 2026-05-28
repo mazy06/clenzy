@@ -43,7 +43,7 @@ const STEPS: ProcedureStep[] = [
     icon: <FileTextIcon size={12} strokeWidth={2} />,
     title: 'Génération pain.001',
     body:
-      'Clenzy compile les payouts approuvés en un fichier XML ISO 20022 (norme pain.001.001.03), prêt à être traité par votre banque.',
+      'Baitly compile les payouts approuvés en un fichier XML ISO 20022 (norme pain.001.001.03), prêt à être traité par votre banque.',
   },
   {
     index: 2,
@@ -64,7 +64,7 @@ const STEPS: ProcedureStep[] = [
     icon: <VerifiedIcon size={12} strokeWidth={2} />,
     title: 'Marquer comme payé',
     body:
-      'Une fois le virement confirmé par la banque, revenez sur Clenzy et cliquez sur l\'icône « Payé » du payout. Renseignez la référence du virement (visible sur votre portail bancaire) pour traçabilité.',
+      'Une fois le virement confirmé par la banque, revenez sur Baitly et cliquez sur l\'icône « Payé » du payout. Renseignez la référence du virement (visible sur votre portail bancaire) pour traçabilité.',
   },
 ];
 

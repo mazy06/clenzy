@@ -33,7 +33,7 @@ interface KbDoc {
 
 /**
  * Administration de la knowledge base RAG : liste les documents indexes
- * (globaux Clenzy + propres a l'org), permet d'uploader un nouveau .md et
+ * (globaux Baitly + propres a l'org), permet d'uploader un nouveau .md et
  * de supprimer les docs existants. Les actions d'admin sont gatees cote
  * backend (PreAuthorize hasAnyRole...).
  */
@@ -110,7 +110,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
       subtitle={
         <>
           Documents indexés que l'assistant peut citer. Les docs <strong>globaux</strong> sont
-          accessibles à toutes les organisations (doc produit Clenzy) ; les docs <strong>org</strong>
+          accessibles à toutes les organisations (doc produit Baitly) ; les docs <strong>org</strong>
           {' '}sont privés à la vôtre. Format supporté : Markdown (.md), max 2&nbsp;MB.
         </>
       }
@@ -188,7 +188,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={doc.scope === 'global' ? 'Global Clenzy' : 'Mon organisation'}
+                      label={doc.scope === 'global' ? 'Global Baitly' : 'Mon organisation'}
                       size="small"
                       sx={{
                         bgcolor: doc.scope === 'global'

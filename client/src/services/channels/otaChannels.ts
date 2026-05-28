@@ -1,5 +1,5 @@
 /**
- * Catalogue des OTAs / canaux de reservation supportes par Clenzy.
+ * Catalogue des OTAs / canaux de reservation supportes par Baitly.
  *
  * <p>Source de verite partagee entre ChannelsPage (gestion des connexions) et
  * IntegrationsSection (vitrine visuelle dans l'onglet Integrations). Importer

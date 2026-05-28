@@ -234,7 +234,7 @@ export default function Settings() {
       sms: false,
     },
     business: {
-      companyName: 'Clenzy',
+      companyName: 'Baitly',
       timezone: 'Europe/Paris',
       currency: 'EUR',
       language: 'fr',
@@ -661,7 +661,7 @@ export default function Settings() {
       subtitle: t('tabHeaders.settings.subtitle.payouts', 'Calendrier et règles de calcul des reversements aux propriétaires.'),
     },
     [t('tabHeaders.settings.tabs.amenitiesOta', 'Commodités OTA')]: {
-      subtitle: t('tabHeaders.settings.subtitle.amenitiesOta', 'Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Clenzy. Créez vos propres commodités si rien ne correspond.'),
+      subtitle: t('tabHeaders.settings.subtitle.amenitiesOta', 'Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Baitly. Créez vos propres commodités si rien ne correspond.'),
     },
   };
   const settingsRootTitle = t('tabHeaders.settings.title', 'Paramètres');

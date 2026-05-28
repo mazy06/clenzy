@@ -50,7 +50,7 @@ export class ClenzyWidget {
       : this.config.container;
 
     if (!container) {
-      console.error('[ClenzyBooking] Container not found:', this.config.container);
+      console.error('[BaitlyBooking] Container not found:', this.config.container);
       return;
     }
 
@@ -123,7 +123,7 @@ export class ClenzyWidget {
     // Powered by
     const powered = document.createElement('div');
     powered.className = 'cb-powered';
-    powered.textContent = 'Powered by Clenzy';
+    powered.textContent = 'Powered by Baitly';
     widget.appendChild(powered);
 
     this.shadowRoot.appendChild(widget);

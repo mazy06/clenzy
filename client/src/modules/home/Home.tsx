@@ -23,7 +23,7 @@ export default function Home() {
 
   const header = useMemo(() => (
     <Stack direction="row" alignItems="center" justifyContent="space-between">
-      <Typography variant="h4" fontWeight={700} color="secondary.main">Clenzy</Typography>
+      <Typography variant="h4" fontWeight={700} color="secondary.main">Baitly</Typography>
       <Stack direction="row" spacing={2}>
         {!isAuthenticated() ? (
           <Button variant="contained" onClick={() => navigate('/login')}>Se connecter</Button>
@@ -71,7 +71,7 @@ export default function Home() {
     <Box>
       {header}
       <Box mt={6}>
-        <Typography variant="h5" gutterBottom>Plateforme de gestion Clenzy</Typography>
+        <Typography variant="h5" gutterBottom>Plateforme de gestion Baitly</Typography>
         <Typography color="text.secondary">Connectée à Keycloak et au backend Spring Boot</Typography>
         {keycloak.authenticated && (
           <Button sx={{ mt: 3 }} variant="contained" onClick={apiCall}>Tester /api/me</Button>

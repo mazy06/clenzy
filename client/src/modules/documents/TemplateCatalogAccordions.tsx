@@ -27,15 +27,15 @@ import { useNavigate } from 'react-router-dom';
 import type { DocumentTemplate } from '../../services/api/documentsApi';
 import { softChipSx } from '../../utils/statusUtils';
 
-// ─── Clenzy palette (accents valides) ───────────────────────────────────────
-// Toutes les couleurs respectent l'identite Clenzy (primer.md + Impeccable).
+// ─── Baitly palette (accents valides) ───────────────────────────────────────
+// Toutes les couleurs respectent l'identite Baitly (primer.md + Impeccable).
 // On evite les couleurs MUI brutes (#1976d2, #2e7d32...) au profit des accents
 // du produit pour eviter le rendu "templated" / generique.
 const ACCENT_TEAL = '#4A9B8E';   // teal — actions positives, welcoming
-const PRIMARY = '#6B8A9A';        // bleu-gris Clenzy — etat principal
+const PRIMARY = '#6B8A9A';        // bleu-gris Baitly — etat principal
 const WARM = '#D4A574';           // warm sand — transition/important
 const SOFT_BLUE = '#7BA3C2';      // bleu doux — info passive
-const NEUTRAL = '#8A8378';        // warm-gray Clenzy — secondaire/inactif
+const NEUTRAL = '#8A8378';        // warm-gray Baitly — secondaire/inactif
 const VIOLET = '#8b5cf6';         // violet — docs commerciaux (categorie distincte)
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -231,7 +231,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
       {
         id: 'doc-mandat',
         name: 'Mandat de gestion',
-        description: 'Mandat de gestion locative formalisant la relation entre le proprietaire et Clenzy.',
+        description: 'Mandat de gestion locative formalisant la relation entre le proprietaire et Baitly.',
         trigger: 'manual',
         triggerDetail: 'Generation manuelle',
         recipient: 'Proprietaire',
@@ -306,7 +306,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         id: 'invitation-org',
         name: 'Invitation organisation',
         description:
-          'Email d\'invitation envoye a un utilisateur pour rejoindre une organisation Clenzy. ' +
+          'Email d\'invitation envoye a un utilisateur pour rejoindre une organisation Baitly. ' +
           'Contient un lien d\'invitation avec expiration.',
         trigger: 'manual',
         triggerDetail: 'Action administrateur (ajout membre)',
@@ -321,7 +321,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
           'Email de notification interne genere lorsqu\'un prospect remplit le formulaire de demande de devis sur la landing page.',
         trigger: 'form',
         triggerDetail: 'Formulaire landing page',
-        recipient: 'Equipe interne Clenzy',
+        recipient: 'Equipe interne Baitly',
         channel: 'email',
         templateKind: 'hardcoded',
       },
@@ -332,7 +332,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
           'Email de notification interne genere lorsqu\'un prospect remplit le formulaire de demande de maintenance sur la landing page.',
         trigger: 'form',
         triggerDetail: 'Formulaire landing page',
-        recipient: 'Equipe interne Clenzy',
+        recipient: 'Equipe interne Baitly',
         channel: 'email',
         templateKind: 'hardcoded',
       },
@@ -342,7 +342,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// Couleurs des chips alignees sur la palette Clenzy via softChipSx.
+// Couleurs des chips alignees sur la palette Baitly via softChipSx.
 // Semantic mapping :
 //   auto      = PRIMARY (action systeme reguliere)
 //   manual    = NEUTRAL (action humaine)
@@ -418,7 +418,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%' }}>
-              {/* Badge icone Clenzy (tile 26x26, accent color, contraste WCAG AA+) */}
+              {/* Badge icone Baitly (tile 26x26, accent color, contraste WCAG AA+) */}
               <Box
                 sx={{
                   width: 26,
@@ -516,7 +516,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                       </Box>
                     )}
 
-                    {/* Footer status row — couleur tintee selon l'etat (palette Clenzy) */}
+                    {/* Footer status row — couleur tintee selon l'etat (palette Baitly) */}
                     {(() => {
                       // Etat = couleur d'accent + icone choisis selon le type de template
                       const status =

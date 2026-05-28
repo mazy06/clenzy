@@ -6,7 +6,7 @@
  *
  * Flux UX :
  *   1. Au clic sur la card Channex dans IntegrationsSection → ouverture du dialog
- *   2. Liste des properties Clenzy + statut Channex (badge + tooltip)
+ *   2. Liste des properties Baitly + statut Channex (badge + tooltip)
  *   3. Property non connectee → bouton "Connecter" qui ouvre un sub-form
  *      avec 3 champs (property/room_type/rate_plan IDs Channex)
  *   4. Property connectee → boutons "Resync" + "Deconnecter"
@@ -166,7 +166,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
   /**
    * Vue principale du dialog :
    * - 'CHOICE' : ecran de choix initial (3 cards)
-   * - 'CONNECT_EXISTING' : liste des proprietes Clenzy avec leur statut (sync, deconnexion, etc.)
+   * - 'CONNECT_EXISTING' : liste des proprietes Baitly avec leur statut (sync, deconnexion, etc.)
    * - 'MANAGE_OTAS' : liste des channels OTA connectes au hub avec bouton Disconnect
    *   (le mode IMPORT_FROM_OTA bascule directement sur le sub-dialog ChannexImportDiscoveryDialog)
    */
@@ -287,7 +287,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
       }
       Object.assign(payload, ids);
     }
-    // En mode AUTO_CREATE, le backend derive tout depuis la property Clenzy
+    // En mode AUTO_CREATE, le backend derive tout depuis la property Baitly
 
     setConnectForm((s) => ({ ...s, submitting: true, error: null }));
     try {
@@ -453,7 +453,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
               </Typography>
               <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
                 {view === 'CHOICE'
-                  ? 'Choisissez si vous voulez importer une propriete deja en ligne, ou connecter une propriete deja dans Clenzy.'
+                  ? 'Choisissez si vous voulez importer une propriete deja en ligne, ou connecter une propriete deja dans Baitly.'
                   : 'Selectionnez une propriete pour l\'enregistrer dans le hub puis y brancher Airbnb, Booking, etc.'}
               </Typography>
             </Box>
@@ -495,7 +495,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                       color: '#D97706',
                     }}
                   >
-                    Voir les conflits de prix Clenzy ↔ OTA ({activeDriftsCount})
+                    Voir les conflits de prix Baitly ↔ OTA ({activeDriftsCount})
                   </Button>
                 </Box>
               )}
@@ -560,7 +560,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                     sx={{ display: 'block', lineHeight: 1.5 }}
                   >
                     Vous avez deja des listings sur Airbnb / Booking / Vrbo qui ne sont pas
-                    encore dans Clenzy. Detectez et importez-les en masse avec leurs metadonnees
+                    encore dans Baitly. Detectez et importez-les en masse avec leurs metadonnees
                     (nom, devise, capacite) deja pre-remplies.
                   </Typography>
                 </Box>
@@ -613,14 +613,14 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="body2" fontWeight={700} sx={{ mb: 0.25 }}>
-                    Connecter une propriete deja dans Clenzy
+                    Connecter une propriete deja dans Baitly
                   </Typography>
                   <Typography
                     variant="caption"
                     color="text.secondary"
                     sx={{ display: 'block', lineHeight: 1.5 }}
                   >
-                    Vous avez une propriete dans Clenzy que vous voulez distribuer sur Airbnb,
+                    Vous avez une propriete dans Baitly que vous voulez distribuer sur Airbnb,
                     Booking, Vrbo, etc. Connectez-la au hub puis branchez les OTAs en quelques
                     clics.
                   </Typography>
@@ -1034,7 +1034,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                               </IconButton>
                             </span>
                           </Tooltip>
-                          <Tooltip title="Re-pousser prix + dispo Clenzy vers les OTAs (6 mois)">
+                          <Tooltip title="Re-pousser prix + dispo Baitly vers les OTAs (6 mois)">
                             <span>
                               <IconButton
                                 size="small"
@@ -1108,7 +1108,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
           </Typography>
           <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.25 }}>
             {connectForm.mode === 'AUTO_CREATE'
-              ? "Clenzy va creer Property + Room Type + Rate Plan automatiquement dans le hub"
+              ? "Baitly va creer Property + Room Type + Rate Plan automatiquement dans le hub"
               : "Renseignez les 3 identifiants du hub (visibles dans votre dashboard)"}
           </Typography>
         </DialogTitle>
@@ -1153,7 +1153,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                 </Typography>
               </Box>
               <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', ml: 3, mt: 0.5 }}>
-                Clenzy cree la Property, le Room Type et le Rate Plan automatiquement dans le hub de distribution en utilisant les infos de votre propriete.
+                Baitly cree la Property, le Room Type et le Rate Plan automatiquement dans le hub de distribution en utilisant les infos de votre propriete.
               </Typography>
             </Box>
 
@@ -1287,7 +1287,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
         </DialogContent>
       </Dialog>
 
-      {/* Picker OTA Clenzy-native : choix de l'OTA avant d'ouvrir la iframe Channex.
+      {/* Picker OTA Baitly-native : choix de l'OTA avant d'ouvrir la iframe Channex.
           Le wizard Channex s'ouvre filtre sur l'OTA choisi (param available_channels)
           ce qui evite a l'utilisateur de chercher dans 500+ options.
 
@@ -1326,11 +1326,11 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
         prefetchedEmbedUrl={embedDialog.prefetchedUrl}
         onClosedAfterConnection={() => {
           // L'utilisateur a connecte un OTA dans la iframe :
-          // 1. Push Clenzy -> Channex (resync) car maintenant qu'au moins 1 OTA
+          // 1. Push Baitly -> Channex (resync) car maintenant qu'au moins 1 OTA
           //    est actif, les prix/dispos doivent etre distribues. C'est le
           //    PREMIER push (la connect() initiale ne push pas pour eviter de
           //    polluer Channex tant qu'aucun OTA n'est branche).
-          // 2. Pull Channex -> Clenzy (pullBookings) pour rapatrier les
+          // 2. Pull Channex -> Baitly (pullBookings) pour rapatrier les
           //    reservations existantes sur l'OTA fraichement connecte (Airbnb
           //    a typiquement deja des bookings actifs).
           if (embedDialog.property) {
@@ -1346,14 +1346,14 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
         onClose={() => setImportDialogOpen(false)}
         onImported={() => {
           // Refresh la liste des properties + mappings pour faire apparaitre
-          // les nouvelles properties Clenzy fraichement importees, et bascule
+          // les nouvelles properties Baitly fraichement importees, et bascule
           // sur la vue CONNECT_EXISTING pour les voir tout de suite.
           void refresh();
           setView('CONNECT_EXISTING');
         }}
         onRequestConnectExisting={() => {
           // CTA depuis l'etat "hub vide" : ferme le sub-dialog et bascule la
-          // vue principale sur la liste des proprietes Clenzy (pour que le
+          // vue principale sur la liste des proprietes Baitly (pour que le
           // user puisse en connecter une et faire l'OAuth Airbnb).
           setImportDialogOpen(false);
           setView('CONNECT_EXISTING');
@@ -1450,7 +1450,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
             <strong>{disconnectOtaConfirm?.otaName}</strong> sera deconnecte du hub.
             Les tokens OAuth seront supprimes et vous devrez refaire toute l'authentification
-            pour reconnecter cet OTA. Les bookings deja synchronises restent dans Clenzy.
+            pour reconnecter cet OTA. Les bookings deja synchronises restent dans Baitly.
           </Typography>
         </DialogContent>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, px: 3, pb: 2 }}>

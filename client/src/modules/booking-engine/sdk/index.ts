@@ -1,10 +1,10 @@
 import type { ClenzyBookingConfig } from './types';
 import { ClenzyWidget } from './ClenzyWidget';
 
-export type { ClenzyBookingConfig, ClenzyTheme } from './types';
+export type { ClenzyBookingConfig, BaitlyTheme } from './types';
 
 /** Global SDK namespace */
-const ClenzyBooking = {
+const BaitlyBooking = {
   /** Initialize and mount the booking widget */
   init(config: ClenzyBookingConfig): ClenzyWidget {
     const widget = new ClenzyWidget(config);
@@ -18,8 +18,8 @@ const ClenzyBooking = {
 
 // Expose on window for script-tag usage
 if (typeof window !== 'undefined') {
-  (window as unknown as Record<string, unknown>).ClenzyBooking = ClenzyBooking;
+  (window as unknown as Record<string, unknown>).BaitlyBooking = BaitlyBooking;
 }
 
-export default ClenzyBooking;
+export default BaitlyBooking;
 export { ClenzyWidget };

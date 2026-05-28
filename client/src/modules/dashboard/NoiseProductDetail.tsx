@@ -72,7 +72,7 @@ const NoiseProductDetail: React.FC<NoiseProductDetailProps> = ({ type, onSubscri
       }
     : {
         icon: <Memory size={48} strokeWidth={1.75} color='#4A9B8E' />,
-        title: t('dashboard.noise.clenzy.detailTitle') || 'Clenzy Hardware - Solution proprietaire',
+        title: t('dashboard.noise.clenzy.detailTitle') || 'Baitly Hardware - Solution proprietaire',
         badge: t('tarification.monitoring.clenzy.badge') || 'Proprietaire',
         badgeColor: 'success' as const,
         description:

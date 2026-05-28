@@ -6,7 +6,7 @@
  * <ol>
  *   <li><b>Autoriser</b> : connecter un OTA cote hub (OAuth Airbnb/credentials Booking)</li>
  *   <li><b>Detecter</b> : Channex liste les properties detectees de cet OTA</li>
- *   <li><b>Synchroniser</b> : import dans Clenzy + push initial automatique</li>
+ *   <li><b>Synchroniser</b> : import dans Baitly + push initial automatique</li>
  * </ol>
  *
  * <p>L'etape courante est calculee depuis le state reel :</p>
@@ -29,7 +29,7 @@ interface ChannexImportProgressStepperProps {
   connectedOtaCount: number;
   /** Nb de properties detectees par Channex (mappees + non mappees). */
   totalInHub: number;
-  /** Nb de properties deja importees dans Clenzy. */
+  /** Nb de properties deja importees dans Baitly. */
   importedCount: number;
 }
 
@@ -73,7 +73,7 @@ function computeSteps(p: ChannexImportProgressStepperProps): Step[] {
       num: 3,
       title: 'Synchroniser',
       hint: hasImported
-        ? `${p.importedCount} importee${p.importedCount > 1 ? 's' : ''} dans Clenzy`
+        ? `${p.importedCount} importee${p.importedCount > 1 ? 's' : ''} dans Baitly`
         : hasHubProps
           ? 'Cocher + Importer en bas du tableau'
           : 'En attente de detection',

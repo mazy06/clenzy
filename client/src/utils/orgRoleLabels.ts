@@ -60,7 +60,7 @@ export function getOrgRoleColor(role: string): ChipColor {
   return ORG_ROLE_COLORS[role] || 'default';
 }
 
-// ─── Palette Clenzy par role (hex) ──────────────────────────────────────────
+// ─── Palette Baitly par role (hex) ──────────────────────────────────────────
 
 const ORG_ROLE_HEX: Record<string, string> = {
   OWNER: '#4A9B8E',

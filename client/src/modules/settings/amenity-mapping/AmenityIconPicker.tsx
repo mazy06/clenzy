@@ -40,7 +40,7 @@ const NEUTRAL = '#8A8378';
  * - Barre de recherche live (filtre par nom case-insensitive)
  * - Grille d'icones groupees par theme (Confort, Cuisine, Exterieur...)
  * - Click sur une icone = select + close immediat
- * - Bouton "Reinitialiser" si override actif (revient au defaut Clenzy)
+ * - Bouton "Reinitialiser" si override actif (revient au defaut Baitly)
  */
 export default function AmenityIconPicker({
   open,

@@ -20,16 +20,16 @@ declare module '@mui/material/Button' {
 
 const theme = createTheme({
   palette: {
-    // Couleur principale : Bleu-gris Clenzy (identité visuelle)
+    // Couleur principale : Bleu-gris Baitly (identité visuelle)
     primary: {
-      main: '#6B8A9A', // Bleu-gris foncé Clenzy - couleur principale
+      main: '#6B8A9A', // Bleu-gris foncé Baitly - couleur principale
       light: '#8BA3B3', // Bleu-gris moyen
       dark: '#5A7684', // Bleu-gris très foncé
       contrastText: '#ffffff',
     },
-    // Couleur secondaire : Bleu-gris clair Clenzy
+    // Couleur secondaire : Bleu-gris clair Baitly
     secondary: {
-      main: '#A6C0CE', // Bleu-gris clair Clenzy - couleur secondaire
+      main: '#A6C0CE', // Bleu-gris clair Baitly - couleur secondaire
       light: '#C5D5E0', // Bleu-gris très clair
       dark: '#8BA3B3', // Bleu-gris moyen
       contrastText: '#1e293b', // Texte foncé pour meilleur contraste
@@ -57,7 +57,7 @@ const theme = createTheme({
     },
     // Info : Bleu harmonieux avec la palette
     info: {
-      main: '#7BA3C2', // Bleu harmonieux avec Clenzy
+      main: '#7BA3C2', // Bleu harmonieux avec Baitly
       light: '#9BB8D1',
       dark: '#5B7A92',
       contrastText: '#ffffff',
@@ -69,14 +69,14 @@ const theme = createTheme({
       dark: '#6B7A8A',
       contrastText: '#ffffff',
     },
-    // Clenzy : Couleur de marque principale (bleu-gris clair)
+    // Baitly : Couleur de marque principale (bleu-gris clair)
     clenzy: {
-      main: '#A6C0CE', // Bleu-gris clair Clenzy
+      main: '#A6C0CE', // Bleu-gris clair Baitly
       light: '#C5D5E0', // Bleu-gris très clair
       dark: '#8BA3B3', // Bleu-gris moyen
       contrastText: '#1e293b', // Texte foncé pour meilleur contraste
     },
-    // Nuances de gris harmonisées avec la palette Clenzy
+    // Nuances de gris harmonisées avec la palette Baitly
     grey: {
       50: '#F8FAFC', // Fond très clair
       100: '#F1F5F9', // Fond clair

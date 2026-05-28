@@ -1,5 +1,5 @@
 /**
- * Source unique de verite des commodites Clenzy built-in (frontend).
+ * Source unique de verite des commodites Baitly built-in (frontend).
  *
  * Synchrone avec :
  *   - le formulaire PropertyForm (PropertyFormDetails.tsx)

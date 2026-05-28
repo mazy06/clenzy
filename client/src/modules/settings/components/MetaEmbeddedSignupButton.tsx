@@ -124,7 +124,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
           window.FB!.init({
             appId,
             cookie: true,
-            xfbml: false, // Pas besoin de parser des widgets XFBML cote Clenzy
+            xfbml: false, // Pas besoin de parser des widgets XFBML cote Baitly
             version,
           });
           fbInitialisedRef.current = true;
@@ -190,7 +190,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
           // status=unknown ou not_authorized = user a ferme la popup ou refuse
           if (response?.status === 'not_authorized') {
             setError(t('settings.whatsapp.meta.signup.denied',
-              "Vous avez refusé les permissions. Clenzy ne peut pas configurer WhatsApp sans elles."));
+              "Vous avez refusé les permissions. Baitly ne peut pas configurer WhatsApp sans elles."));
           }
           // status=unknown ferme silencieusement — pas d'error message
           return;
@@ -243,7 +243,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
         {success.templatesSubmitted > 0 && (
           <Typography variant="body2" sx={{ mt: 0.5 }}>
             {t('settings.whatsapp.meta.signup.templatesSubmitted',
-              "✓ {{count}} templates Clenzy standards soumis à Meta (validation ~24h).",
+              "✓ {{count}} templates Baitly standards soumis à Meta (validation ~24h).",
               { count: success.templatesSubmitted })}
           </Typography>
         )}
@@ -309,7 +309,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
           <strong>{t('settings.whatsapp.meta.signup.recommendedTitle', 'Méthode recommandée')}</strong>
           {' — '}
           {t('settings.whatsapp.meta.signup.recommendedBody',
-            "Pas de Meta Business Manager nécessaire en amont. Clenzy provisionne tout pour vous : compte WhatsApp Business, vérification du numéro, templates de messages.")}
+            "Pas de Meta Business Manager nécessaire en amont. Baitly provisionne tout pour vous : compte WhatsApp Business, vérification du numéro, templates de messages.")}
         </Typography>
       </Box>
     </Box>
