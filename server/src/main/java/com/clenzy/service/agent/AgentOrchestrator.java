@@ -269,14 +269,30 @@ public class AgentOrchestrator {
      * Feature flag : si true, utilise l'architecture multi-agent (orchestrator
      * + spécialistes ≤10 tools chacun) au lieu du mono-agent (27 tools en bloc).
      *
-     * <p><b>Defaut false</b> : audit pre-prod (2026-05-28) a identifie 7
-     * regressions bloquantes (confirmation user des write tools, memoire
-     * long-terme perdue, auto-injection RAG perdue, history conversationnelle
-     * non transmise, BYOK ignore, audit logging perdu, langue user ignoree).
-     * Le multi-agent reste opt-in jusqu'a ce que les fixes bloquants soient
-     * livres et valides en dev.</p>
+     * <p><b>Defaut false</b> : audit pre-prod (2026-05-28) avait identifie 7
+     * regressions bloquantes. Etat post-fixes (2026-05-28) :</p>
+     * <ul>
+     *   <li>✅ Fix #1 — Confirmation user des write tools : detection
+     *       {@code requiresConfirmation} dans AbstractAgentSpecialist →
+     *       fallback mono-agent (ConfirmationRequiredException).</li>
+     *   <li>✅ Fix #2 — History conversationnelle transmise via la signature
+     *       {@code orchestrate(List<ChatMessage>, ...)}.</li>
+     *   <li>✅ Fix #3 — Memory long-terme + RAG pre-charges, transmis via
+     *       {@link com.clenzy.service.agent.multiagent.OrchestrationContext}.</li>
+     *   <li>✅ Fix #4 — BYOK apiKey propage a l'orchestrator + specialists.</li>
+     *   <li>✅ Fix #5 — Langue + currentPage + selectedPropertyId injectes
+     *       en {@code <user_context>} XML dans les prompts.</li>
+     *   <li>✅ Fix #6 (implicite via #1) — Audit logging des write tools :
+     *       les writes passent par mono-agent qui log normalement.</li>
+     *   <li>✅ Fix #7 (implicite via #1) — resumeAfterConfirmation reste
+     *       utilisable car les writes basculent toujours en mono-agent.</li>
+     * </ul>
      *
-     * <p>Override (uniquement en dev pour tester) :
+     * <p>Le flag reste OFF par defaut jusqu'a validation manuelle en dev
+     * avec de vrais appels LLM (les tests unitaires/integration couvrent
+     * la mecanique mais pas les sorties LLM reelles).</p>
+     *
+     * <p>Override (en dev pour tester) :
      * {@code clenzy.assistant.multi-agent.enabled=true}</p>
      */
     private final boolean multiAgentEnabled;
