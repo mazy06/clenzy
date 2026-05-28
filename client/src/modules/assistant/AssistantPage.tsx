@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { Box, Typography, Paper, useTheme, alpha } from '@mui/material';
-import { AutoAwesome as SparklesIcon } from '../../icons';
+import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
 import PageHeader from '../../components/PageHeader';
 import { useAgent } from '../../hooks/useAgent';
 import { MessageList } from './components/MessageList';
@@ -47,7 +47,7 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
           color: theme.palette.primary.main,
         }}
       >
-        <SparklesIcon size={28} strokeWidth={1.75} />
+        <ClenzyMarkLogo variant="mark" size={32} />
       </Box>
 
       <Box>
@@ -171,7 +171,7 @@ const AssistantPage: React.FC = () => {
       <PageHeader
         title="Assistant"
         subtitle="Pose tes questions, obtiens des reponses en temps reel a partir de tes donnees."
-        iconBadge={<SparklesIcon size={18} strokeWidth={1.75} />}
+        iconBadge={<ClenzyMarkLogo variant="mark" size={22} />}
         actions={
           <AssistantUsageBadge
             usage={usage}

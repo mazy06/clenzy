@@ -29,8 +29,8 @@ import {
   Contacts,
   Public,
   StorefrontOutlined,
-  AutoAwesome,
 } from '../icons';
+import ClenzyMarkLogo from '../components/ClenzyMarkLogo';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -86,7 +86,10 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     group: 'main',
   },
   {
-    icon: <AutoAwesome />,
+    // Sidebar injecte size via React.cloneElement (size matches autres icones).
+    // disableAnimation : pas d'orbit/scan dans la sidebar (visual noise constant
+    // sur un element toujours visible). L'icone est statique mais brand-color.
+    icon: <ClenzyMarkLogo variant="mark" disableAnimation />,
     path: '/assistant',
     roles: ['all'],
     permission: 'ai:view',
