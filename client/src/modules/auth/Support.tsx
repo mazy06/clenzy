@@ -15,7 +15,8 @@ import {
   CssBaseline,
 } from '@mui/material';
 import { ArrowBack, CheckCircle } from '../../icons';
-import lightTheme from '../../theme/theme';
+import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
 import apiClient from '../../services/apiClient';
 
@@ -29,6 +30,9 @@ const textFieldSx = {
 
 export default function Support() {
   const { t } = useTranslation();
+  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
+  const { isRtl } = useGeoAuthLanguage();
+  const theme = useMemo(() => createClenzyTheme({ isRtl }), [isRtl]);
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
@@ -74,7 +78,7 @@ export default function Support() {
   };
 
   return (
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
     <Box sx={{
       minHeight: '100vh',

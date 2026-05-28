@@ -1,5 +1,6 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.AiFeatureUsageBreakdownDto;
 import com.clenzy.dto.AiUsageStatsDto;
 import com.clenzy.service.AiTokenBudgetService;
 import com.clenzy.tenant.TenantContext;
@@ -26,5 +27,17 @@ public class AiTokenUsageController {
     public AiUsageStatsDto getUsageStats() {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return aiTokenBudgetService.getUsageStats(orgId);
+    }
+
+    /**
+     * Breakdown detaille tokens + cout USD par (provider, model) au sein de
+     * chaque feature. Sert au tooltip "decomposition par modele" en hover sur
+     * le compteur de Settings &gt; IA. Resout l'agregation aveugle qui
+     * masquait que 100k Sonnet et 100k Haiku ont des couts tres differents.
+     */
+    @GetMapping("/breakdown")
+    public AiFeatureUsageBreakdownDto getUsageBreakdown() {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return aiTokenBudgetService.getUsageBreakdown(orgId);
     }
 }

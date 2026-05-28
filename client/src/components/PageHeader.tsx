@@ -167,7 +167,6 @@ export default function PageHeader({
                 size="small"
                 startIcon={isCompact ? undefined : <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} />}
                 onClick={handleBack}
-                title={backLabel}
                 sx={{
                   ...(isCompact && { minWidth: 30, px: 0.75 }),
                 }}
@@ -184,7 +183,6 @@ export default function PageHeader({
                 size="small"
                 startIcon={isCompact ? undefined : <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} />}
                 onClick={handleBack}
-                title={backLabel}
                 sx={{
                   ...(isCompact && { minWidth: 30, px: 0.75 }),
                 }}

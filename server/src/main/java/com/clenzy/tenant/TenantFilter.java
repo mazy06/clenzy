@@ -84,6 +84,11 @@ public class TenantFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } finally {
             MDC.remove("orgId");
+            // CRITIQUE securite : clear le ThreadLocal pour eviter une fuite
+            // cross-request quand Tomcat reutilise le thread. Le @RequestScope
+            // initial nettoyait automatiquement, le ThreadLocal singleton
+            // requiert un clear manuel.
+            tenantContext.clear();
         }
     }
 

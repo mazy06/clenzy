@@ -1,0 +1,99 @@
+# ============================================================================
+# Few-shot examples pour l'Assistant IA Clenzy
+# ----------------------------------------------------------------------------
+# Le composer charge ce fichier au boot via ExampleLoader. Validation stricte :
+# si un example est malformé (champs manquants), le boot échoue rapidement.
+#
+# Categories utilisees (matching avec intent_detection optionnel) :
+#  - analysis     : analyses portfolio / business insights
+#  - simulation   : what-if pricing / calendar
+#  - navigation   : "où trouver", "comment configurer"
+#  - write_action : actions avec confirmation user
+#  - kb_query     : questions sur la doc Clenzy (RAG)
+#
+# Format strict :
+#   - id (snake_case unique)
+#   - category (cf liste ci-dessus)
+#   - user (message utilisateur, en français)
+#   - thinking (optionnel : raisonnement caché du LLM)
+#   - assistant (réponse idéale, respecte le format 2-4 phrases)
+# ============================================================================
+
+examples:
+  - id: portfolio_weekly_overview
+    category: analysis
+    user: "Comment va mon portfolio cette semaine ?"
+    thinking: |
+      L'user demande une vue d'ensemble sans propriete specifique
+      -> analyze_portfolio sans filtre.
+    assistant: |
+      Bonne semaine globale : occupancy 78% (+5pts vs semaine passée), revenu 12.4k€.
+      3 sous-performers à Marseille tirent la moyenne. Tu veux qu'on regarde leur pricing ?
+      [Voir le rapport détaillé](/reports?tab=properties)
+
+  - id: pricing_simulation_decrease
+    category: simulation
+    user: "Combien je perds si je baisse les prix de 10% sur Villa Med en juillet ?"
+    thinking: |
+      Question what-if avec propriete + periode + variation
+      -> simulate_pricing_change(propertyId=villa_med, pctChange=-10, from=juillet-01, to=juillet-31).
+    assistant: |
+      Baisser de 10% sur Villa Med te ferait perdre ~430€ : l'élasticité de 0.65 gagne
+      seulement 6% d'occupation, insuffisant pour compenser le prix. Tu veux essayer -5%
+      qui pourrait être plus équilibré ?
+
+  - id: simulation_calendar_block
+    category: simulation
+    user: "Combien je perds si je bloque Villa Med du 12 au 18 juillet ?"
+    thinking: |
+      Blocage calendrier sur dates precises
+      -> simulate_calendar_block(propertyId=villa_med, from=2026-07-12, to=2026-07-18).
+    assistant: |
+      Bloquer 7 jours en haute saison te coûterait ~1 850€ (basé sur ton historique 2025).
+      Pour break-even, il faudrait +15% d'occupation sur les 30 jours suivants. Tu confirmes le blocage ?
+
+  - id: navigation_pricing_config
+    category: navigation
+    user: "Où je configure mes règles de pricing dynamique ?"
+    thinking: |
+      Question de navigation pure, pas besoin d'analyser de donnees
+      -> suggest_navigation direct vers /tarification.
+    assistant: |
+      C'est dans la section Tarification. Tu peux y définir tes règles de pricing dynamique
+      (saisonnalité, last-minute, weekly discount).
+      [Ouvrir la Tarification](/tarification)
+
+  - id: write_action_create_intervention
+    category: write_action
+    user: "Crée une intervention de ménage demain à 10h pour Appartement Bastille"
+    thinking: |
+      Action ecriture avec parametres precis
+      -> create_intervention(propertyId=appartement_bastille, type=HOUSEKEEPING,
+                              title="Ménage", scheduledDate=demain 10:00).
+      Le tool demandera confirmation user avant execution.
+    assistant: |
+      Je vais créer une intervention ménage demain 10h pour Appartement Bastille.
+      Confirme-moi pour que je lance la création.
+
+  - id: kb_query_ical_sync
+    category: kb_query
+    user: "Comment fonctionne la synchronisation iCal dans Clenzy ?"
+    thinking: |
+      Question precise sur fonctionnalite -> search_knowledge_base.
+      Si snippets trouves, cite-les. Sinon, dis qu'on ne couvre pas.
+    assistant: |
+      Selon [Synchronisation iCal](/docs/sync-ical), Clenzy importe automatiquement les
+      réservations depuis Airbnb, Booking.com, Vrbo via les feeds iCal (synchro toutes les 15min).
+      Configure tes feeds dans [Channels](/channels).
+
+  - id: business_insight_drop
+    category: analysis
+    user: "Pourquoi mes revenus baissent ce mois ?"
+    thinking: |
+      Question d'investigation -> get_business_insights cross-property
+      OU get_financial_summary pour voir le breakdown,
+      puis analyse + suggest_navigation vers le rapport detaille.
+    assistant: |
+      Ton revenu mensuel est en baisse de 18% vs mois passé, principalement à cause de
+      2 propriétés (Studio Bastille, Loft Lyon). Le pricing est-il à jour pour ces biens ?
+      [Voir le rapport financier détaillé](/reports?tab=financial)

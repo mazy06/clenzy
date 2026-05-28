@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Box, Typography, useTheme, alpha, CircularProgress, Dialog, DialogContent } from '@mui/material';
-import { AutoAwesome as SparklesIcon } from '../../../icons';
+import ClenzyMarkLogo from '../../../components/ClenzyMarkLogo';
 import type { DisplayMessage } from '../../../hooks/useAgent';
 import { ToolCallCard } from './ToolCallCard';
 import { ToolResultWidget } from '../widgets/ToolResultWidget';
 import { AssistantMarkdown } from './AssistantMarkdown';
+import { isArabicHeavy, arabicTextSx, arabicDirProp } from '../../../utils/textDirection';
 
 interface MessageBubbleProps {
   message: DisplayMessage;
@@ -102,10 +103,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             {message.content && (
               <Typography
                 variant="body2"
+                dir={arabicDirProp(message.content)}
                 sx={{
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word',
                   lineHeight: 1.55,
+                  // Si le message user est en arabe : agrandit + line-height
+                  // adapte + font-family arabe-friendly. Sinon styles latins.
+                  ...(isArabicHeavy(message.content) ? {
+                    ...arabicTextSx,
+                    textAlign: 'right',
+                  } : {}),
                 }}
               >
                 {message.content}
@@ -164,22 +172,33 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         },
       }}
     >
-      {/* Avatar sparkles — signature visuelle de l'assistant */}
+      {/* Avatar Clenzy mark — signature visuelle de l'assistant.
+          Pas de bg circulaire : le mark a son propre dessin (8 nodes +
+          centre + lignes) qui se suffit a lui-meme. Container minimal
+          pour aligner la taille avec le premier ligne de texte. */}
       <Box
         sx={{
           flexShrink: 0,
           width: 28,
           height: 28,
-          borderRadius: '50%',
-          bgcolor: alpha(theme.palette.primary.main, 0.12),
-          color: theme.palette.primary.main,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           mt: 0.25, // align with first line of text
         }}
       >
-        <SparklesIcon size={14} strokeWidth={1.75} />
+        {/* idleAnimation=false : pas de boot+scan+breathe sur chaque message
+            (visual noise constant si 50 messages). active={isStreaming} :
+            declenche l'animation hover-equivalent (lignes absorbees + centre
+            pulse + nodes orbit) UNIQUEMENT pendant que l'IA est en train de
+            generer cette reponse. Effet visuel "le mark s'illumine pendant
+            que l'IA travaille, puis se calme une fois la reponse terminee". */}
+        <ClenzyMarkLogo
+          variant="mark"
+          size={18}
+          idleAnimation={false}
+          active={isStreaming}
+        />
       </Box>
 
       {/* Contenu : tool calls + texte en flow document */}

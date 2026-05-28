@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -12,12 +12,16 @@ import {
   CssBaseline,
 } from '@mui/material';
 import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '../../icons';
-import lightTheme from '../../theme/theme';
-import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
+import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
+import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
 import apiClient from '../../services/apiClient';
 
 export default function InscriptionSuccess() {
   const { t } = useTranslation();
+  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
+  const { isRtl } = useGeoAuthLanguage();
+  const theme = useMemo(() => createClenzyTheme({ isRtl }), [isRtl]);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const sessionId = searchParams.get('session_id');
@@ -63,7 +67,7 @@ export default function InscriptionSuccess() {
   };
 
   return (
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{
         minHeight: '100vh',
@@ -85,7 +89,7 @@ export default function InscriptionSuccess() {
         }}>
           {/* Logo */}
           <Box sx={{ mb: 2 }}>
-            <ClenzyAnimatedLogo scale={1.1} />
+            <ClenzyMarkLogo scale={1.1} />
           </Box>
 
           {status === 'loading' && (

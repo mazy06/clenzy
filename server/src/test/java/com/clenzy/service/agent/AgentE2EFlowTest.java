@@ -82,7 +82,14 @@ class AgentE2EFlowTest {
         orchestrator = new AgentOrchestrator(chatProvider, toolRegistry,
                 convRepo, msgRepo, om, keyRepo, new AiProperties(), new PendingToolStore(),
                 memoryService, mock(com.clenzy.service.PhotoStorageService.class),
-                mock(com.clenzy.service.agent.kb.KbSearchService.class));
+                mock(com.clenzy.service.agent.kb.KbSearchService.class),
+                mock(com.clenzy.service.agent.prompt.PromptBuilder.class),
+                mock(com.clenzy.service.agent.multiagent.OrchestratorAgent.class),
+                mock(com.clenzy.service.agent.multiagent.SpecialistRegistry.class),
+                mock(com.clenzy.service.AiTokenBudgetService.class),
+                mock(com.clenzy.service.PlatformAiConfigService.class),
+                false,  // v2 prompt off
+                false); // multi-agent off : on teste le flow E2E, pas le prompt
 
         ctx = AgentContext.minimal(1L, "user-e2e");
 

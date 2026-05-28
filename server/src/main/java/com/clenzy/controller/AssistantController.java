@@ -156,7 +156,31 @@ public class AssistantController {
         String userMessage = hasMessage ? body.message() : "Analyse ces images.";
         List<AttachmentRef> attachments = hasAttachments ? body.attachments() : List.of();
 
+        // Capture le tenant context + SecurityContext AVANT le switch de thread.
+        // TenantContext est desormais singleton + ThreadLocal (ex @RequestScope qui
+        // ne survivait pas au handler HTTP done -> sseExecutor lifecycle async).
+        // On capture les valeurs scalaires (pas le bean lui-meme) pour les
+        // re-setter sur le thread du sseExecutor.
+        final boolean superAdmin = tenantContext.isSuperAdmin();
+        final boolean systemOrg = tenantContext.isSystemOrg();
+        final String countryCode = tenantContext.getCountryCode();
+        final String defaultCurrency = tenantContext.getDefaultCurrency();
+        final boolean vatRegistered = tenantContext.isVatRegistered();
+        final org.springframework.security.core.context.SecurityContext capturedSecurity =
+                org.springframework.security.core.context.SecurityContextHolder.getContext();
+
         sseExecutor.execute(() -> {
+            // Propage TenantContext + SecurityContext sur le thread du pool.
+            tenantContext.setOrganizationId(orgId);
+            tenantContext.setSuperAdmin(superAdmin);
+            tenantContext.setSystemOrg(systemOrg);
+            tenantContext.setCountryCode(countryCode);
+            tenantContext.setDefaultCurrency(defaultCurrency);
+            tenantContext.setVatRegistered(vatRegistered);
+            if (capturedSecurity != null) {
+                org.springframework.security.core.context.SecurityContextHolder
+                        .setContext(capturedSecurity);
+            }
             try {
                 orchestrator.handleMessage(
                         body.conversationId(),
@@ -174,6 +198,12 @@ public class AssistantController {
                 log.error("AssistantController.chat failed", e);
                 sendSseEvent(emitter, AgentSseEvent.error("Erreur interne : " + e.getMessage()));
                 emitter.completeWithError(e);
+            } finally {
+                // CRITIQUE securite : nettoyer les ThreadLocal avant que le thread
+                // du pool soit reattribue a une autre requete. Sinon fuite de
+                // contexte (un user pourrait recevoir le orgId du precedent).
+                tenantContext.clear();
+                org.springframework.security.core.context.SecurityContextHolder.clearContext();
             }
         });
 

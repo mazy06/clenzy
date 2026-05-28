@@ -1,11 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Box, Typography, Paper, useTheme, alpha } from '@mui/material';
-import { AutoAwesome as SparklesIcon } from '../../icons';
+import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
 import PageHeader from '../../components/PageHeader';
 import { useAgent } from '../../hooks/useAgent';
 import { MessageList } from './components/MessageList';
 import { ChatInput } from './components/ChatInput';
 import { ToolConfirmationDialog } from './components/ToolConfirmationDialog';
+import { AssistantUsageBadge } from './components/AssistantUsageBadge';
+import { ConversationSidebar } from './components/ConversationSidebar';
+import { useAssistantUsage } from './hooks/useAssistantUsage';
+import { useConversations } from './hooks/useConversations';
 import { ASSISTANT_QUICK_REPLY_EVENT } from './widgets/WorkflowWidget';
 
 const SUGGESTED_PROMPTS = [
@@ -33,6 +37,11 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
     >
       <Box
         sx={{
+          // Container 64px conserve (taille initiale), mais mark a l'interieur
+          // agrandi de 32 -> 52 pour qu'il occupe ~81% du container et soit
+          // bien visible (6px padding visuel de chaque cote). Le mark a
+          // overflow:visible donc le radial translate des nodes au peak
+          // (~2.5 SVG units) peut deborder sans etre coupe.
           width: 64,
           height: 64,
           borderRadius: '50%',
@@ -43,7 +52,7 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
           color: theme.palette.primary.main,
         }}
       >
-        <SparklesIcon size={28} strokeWidth={1.75} />
+        <ClenzyMarkLogo variant="mark" size={52} />
       </Box>
 
       <Box>
@@ -100,16 +109,53 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
 
 const AssistantPage: React.FC = () => {
   const {
+    conversationId,
     messages,
     status,
     error,
     pendingConfirmation,
     sendMessage,
     confirmTool,
+    loadConversation,
+    reset,
     abort,
   } = useAgent({
     currentPage: 'assistant',
   });
+
+  // Refetch usage : a chaque fois qu'un nouveau message assistant termine
+  // (status: idle apres avoir ete streaming). Granularite = nombre de messages
+  // assistant — augmente uniquement quand un tour LLM se termine.
+  const assistantMessageCount = useMemo(
+    () => messages.filter((m) => m.role === 'assistant').length,
+    [messages],
+  );
+  const { usage, loading: usageLoading, error: usageError } = useAssistantUsage({
+    period: 'month',
+    refreshKey: assistantMessageCount,
+  });
+
+  // Liste des conversations pour la sidebar — refresh quand :
+  // - une nouvelle conv est creee (conversationId passe de null a une valeur)
+  // - un message assistant arrive (le titre peut changer au 1er tour)
+  const {
+    conversations,
+    loading: conversationsLoading,
+    archive: archiveConversation,
+  } = useConversations({
+    refreshKey: `${conversationId ?? 'new'}-${assistantMessageCount}`,
+  });
+
+  const handleSelectConversation = (id: number) => {
+    if (id === conversationId) return; // deja active
+    void loadConversation(id);
+  };
+
+  const handleArchive = async (id: number) => {
+    await archiveConversation(id);
+    // Si la conv archivee etait celle active, reset pour repartir sur "Nouvelle"
+    if (id === conversationId) reset();
+  };
 
   // Quick replies emis par les widgets (ex: WorkflowWidget : Oui / Non) :
   // on rebranche sur sendMessage pour que l'agent puisse enchainer.
@@ -130,63 +176,103 @@ const AssistantPage: React.FC = () => {
       <PageHeader
         title="Assistant"
         subtitle="Pose tes questions, obtiens des reponses en temps reel a partir de tes donnees."
-        iconBadge={<SparklesIcon size={18} strokeWidth={1.75} />}
+        iconBadge={<ClenzyMarkLogo variant="mark" size={22} />}
+        actions={
+          <AssistantUsageBadge
+            usage={usage}
+            loading={usageLoading}
+            error={usageError}
+          />
+        }
       />
 
-      <Paper
-        elevation={0}
+      <Box
         sx={{
-          // Surface L1 (background.paper = white) sur fond L0 (background.default
-          // = light gray) : contraste de bg suffit pour delimiter la zone, pas de
-          // border. Approche Linear/Notion/Vercel.
           flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
           mx: { xs: 1, md: 2 },
           mb: { xs: 1, md: 2 },
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          borderRadius: 3,
+          gap: { xs: 1, md: 1.5 },
         }}
       >
-        <MessageList
-          messages={messages}
-          emptyState={<EmptyState onSuggest={(text) => sendMessage(text)} />}
-        />
+        {/* Sidebar conversations — masquee sur mobile pour ne pas voler l'espace
+            (TODO : drawer collapsible si feedback user) */}
+        <Paper
+          elevation={0}
+          sx={{
+            display: { xs: 'none', md: 'flex' },
+            flexDirection: 'column',
+            borderRadius: 3,
+            overflow: 'hidden',
+          }}
+        >
+          <ConversationSidebar
+            conversations={conversations}
+            activeConversationId={conversationId}
+            loading={conversationsLoading}
+            onSelect={handleSelectConversation}
+            onNew={reset}
+            onArchive={handleArchive}
+          />
+        </Paper>
 
-        {error && (
-          <Box
-            sx={{
-              // Aligne avec la colonne de lecture (maxWidth 760)
-              maxWidth: 760,
-              mx: 'auto',
-              width: '100%',
-              px: { xs: 2, md: 3 },
-              mb: 1,
-            }}
-          >
+        {/* Chat principal */}
+        <Paper
+          elevation={0}
+          sx={{
+            // Surface L1 (background.paper = white) sur fond L0 (background.default
+            // = light gray) : contraste de bg suffit pour delimiter la zone, pas de
+            // border. Approche Linear/Notion/Vercel.
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            borderRadius: 3,
+            minWidth: 0,
+          }}
+        >
+          <MessageList
+            messages={messages}
+            emptyState={<EmptyState onSuggest={(text) => sendMessage(text)} />}
+          />
+
+          {error && (
             <Box
               sx={{
-                px: 1.75,
-                py: 1,
-                bgcolor: (t) => alpha(t.palette.error.main, 0.10),
-                color: (t) => t.palette.error.dark,
-                fontSize: '0.8125rem',
-                fontWeight: 500,
-                borderRadius: 2,
+                // Aligne avec la colonne de lecture (maxWidth 760)
+                maxWidth: 760,
+                mx: 'auto',
+                width: '100%',
+                px: { xs: 2, md: 3 },
+                mb: 1,
               }}
             >
-              {error}
+              <Box
+                sx={{
+                  px: 1.75,
+                  py: 1,
+                  bgcolor: (t) => alpha(t.palette.error.main, 0.10),
+                  color: (t) => t.palette.error.dark,
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  borderRadius: 2,
+                }}
+              >
+                {error}
+              </Box>
             </Box>
-          </Box>
-        )}
+          )}
 
-        <ChatInput
-          status={status}
-          onSend={sendMessage}
-          onAbort={abort}
-          autoFocus
-        />
-      </Paper>
+          <ChatInput
+            status={status}
+            onSend={sendMessage}
+            onAbort={abort}
+            autoFocus
+          />
+        </Paper>
+      </Box>
 
       {/* Tool confirmation dialog (write tools, requiresConfirmation=true) */}
       <ToolConfirmationDialog

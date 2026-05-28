@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -23,12 +23,16 @@ import {
 import keycloak from '../../keycloak';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 import apiClient from '../../services/apiClient';
-import lightTheme from '../../theme/theme';
+import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
 
 type PageState = 'loading' | 'info' | 'accepting' | 'complete_profile' | 'accepted' | 'error';
 
 export default function AcceptInvitationPage() {
+  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
+  const { isRtl } = useGeoAuthLanguage();
+  const theme = useMemo(() => createClenzyTheme({ isRtl }), [isRtl]);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
@@ -174,7 +178,7 @@ export default function AcceptInvitationPage() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box
         sx={{
