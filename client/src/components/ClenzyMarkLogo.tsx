@@ -220,7 +220,7 @@ export default function ClenzyMarkLogo({
     ${OCTAGON_NODES.map((_, i) => `
       .${cls.node}-${i} {
         animation:
-          ${cls.node}-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) ${600 + i * 60}ms both,
+          ${cls.node}-pop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) ${300 + i * 60}ms both,
           ${cls.node}-scan-${i} ${SCAN_CYCLE_MS}ms ease-in-out ${1400 + i * 80}ms infinite;
       }
     `).join('')}
@@ -231,12 +231,13 @@ export default function ClenzyMarkLogo({
       stroke-dashoffset: 0;
       transition: stroke-dashoffset 450ms cubic-bezier(0.4, 0, 0.2, 1);
     }
-    /* Per-line transition-delay : cree le cascade au hover-out.
-       Quand hover finit, la rule hover (delay:0) ne s'applique plus, c'est
-       le base rule qui prend le relais avec sa delay specifique a chaque
-       line => les traits re-emergent un par un en cascade horaire. */
+    /* Per-line transition-delay : cree le cascade au hover-out, SYNCHRONISE
+       avec le node pop replay (meme formule ${300}+i*60ms). Quand l'user
+       sort du hover, chaque pair (line + node) re-emerge ensemble dans
+       l'ordre horaire. Le 300ms initial donne le temps au hover-out de
+       lire visuellement avant que le cascade commence. */
     ${OCTAGON_NODES.map((_, i) => `
-      .${cls.line}-${i} { transition-delay: ${i * 60}ms; }
+      .${cls.line}-${i} { transition-delay: ${300 + i * 60}ms; }
     `).join('')}
 
     /* ─── Hover ──────────────────────────────────────────────────────── */
