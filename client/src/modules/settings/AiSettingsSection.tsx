@@ -209,8 +209,14 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
               borderColor: alpha(accent, 0.12),
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-              <Typography variant="caption" color="text.secondary" fontWeight={500} fontSize="0.7rem">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5, minWidth: 0 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                fontWeight={500}
+                fontSize="0.7rem"
+                sx={{ flexShrink: 0 }}
+              >
                 {t('bookingEngine.ai.settings.keyLabel')}
               </Typography>
               <Typography
@@ -218,7 +224,17 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
                 fontFamily="monospace"
                 fontWeight={600}
                 fontSize="0.72rem"
-                sx={{ color: accent }}
+                title={status.maskedApiKey ?? undefined}
+                sx={{
+                  color: accent,
+                  // Tronque la cle masquee (60+ etoiles) sans casser le layout flex.
+                  // minWidth:0 sur le parent + flex:1 ici + overflow ellipsis = truncation propre.
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
               >
                 {status.maskedApiKey}
               </Typography>
