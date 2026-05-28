@@ -60,7 +60,12 @@ public class AssistantUsageService {
     private final AiProperties aiProperties;
     private final Clock clock;
 
-    /** Constructeur Spring (autowiring) : utilise UTC system clock. */
+    /**
+     * Constructeur Spring (autowiring) : utilise UTC system clock.
+     * {@code @Autowired} explicite pour lever l'ambiguite avec le constructeur
+     * testable 5-arg (sinon Spring 6 cherche un default no-arg et crash).
+     */
+    @org.springframework.beans.factory.annotation.Autowired
     public AssistantUsageService(AiTokenUsageRepository usageRepository,
                                    AssistantMessageRepository messageRepository,
                                    LlmPricingService pricingService,
@@ -69,11 +74,11 @@ public class AssistantUsageService {
     }
 
     /** Constructeur testable avec Clock injectable (fix time pour tests). */
-    public AssistantUsageService(AiTokenUsageRepository usageRepository,
-                                   AssistantMessageRepository messageRepository,
-                                   LlmPricingService pricingService,
-                                   AiProperties aiProperties,
-                                   Clock clock) {
+    AssistantUsageService(AiTokenUsageRepository usageRepository,
+                            AssistantMessageRepository messageRepository,
+                            LlmPricingService pricingService,
+                            AiProperties aiProperties,
+                            Clock clock) {
         this.usageRepository = usageRepository;
         this.messageRepository = messageRepository;
         this.pricingService = pricingService;
