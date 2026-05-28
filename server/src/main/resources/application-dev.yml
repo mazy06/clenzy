@@ -194,6 +194,13 @@ clenzy:
     enabled: true
     token-budget:
       default-monthly-tokens: 500000
+  assistant:
+    # Multi-agent (orchestrator + 8 specialists ≤10 tools chacun) au lieu du
+    # mono-agent (27 tools en bloc). Activé en dev pour validation manuelle
+    # des fixes pré-prod (cf. AgentOrchestrator.multiAgentEnabled javadoc).
+    # En prod : valeur par défaut du code = false (opt-in explicite requis).
+    multi-agent:
+      enabled: true
   channex:
     base-url: ${CHANNEX_BASE_URL:https://staging.channex.io/api/v1}
     api-key: ${CHANNEX_API_KEY:}
