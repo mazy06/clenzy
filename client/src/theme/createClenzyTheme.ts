@@ -38,11 +38,49 @@ export interface CreateClenzyThemeOpts {
 export function createClenzyTheme(opts: CreateClenzyThemeOpts = {}): Theme {
   const { isDark = false, isRtl = false } = opts;
   const baseTheme = isDark ? darkTheme : lightTheme;
-  return createTheme({
-    ...baseTheme,
-    direction: isRtl ? 'rtl' : 'ltr',
-    typography: isRtl
-      ? { ...baseTheme.typography, fontFamily: ARABIC_FONT_STACK }
-      : baseTheme.typography,
+
+  // IMPORTANT : utiliser createTheme(base, ...overrides) (signature 2-arg) qui
+  // fait un DEEP MERGE des overrides sur le baseTheme. Si on faisait
+  // createTheme({ ...baseTheme, typography: { fontFamily } }) avec un spread
+  // shallow, les sub-structures internes de MUI (components.MuiCssBaseline,
+  // palette, etc.) seraient cassees -> certains composants ne re-emettraient
+  // pas leur fontFamily depuis le nouveau theme (bug visible : tooltips
+  // hereditent OK mais body / Typography variants restent en Plus Jakarta).
+  if (!isRtl) {
+    // LTR : pas besoin d'override, on retourne le baseTheme inchange
+    return baseTheme;
+  }
+  return createTheme(baseTheme, {
+    direction: 'rtl',
+    typography: {
+      fontFamily: ARABIC_FONT_STACK,
+      // Force la fontFamily sur TOUS les variants Typography. Sans ca, MUI
+      // peut garder la fontFamily du baseTheme sur certains variants (h1, h2,
+      // body1, etc.) car ils n'heritent pas toujours de typography.fontFamily
+      // au runtime selon comment le baseTheme les a definis.
+      h1: { fontFamily: ARABIC_FONT_STACK },
+      h2: { fontFamily: ARABIC_FONT_STACK },
+      h3: { fontFamily: ARABIC_FONT_STACK },
+      h4: { fontFamily: ARABIC_FONT_STACK },
+      h5: { fontFamily: ARABIC_FONT_STACK },
+      h6: { fontFamily: ARABIC_FONT_STACK },
+      subtitle1: { fontFamily: ARABIC_FONT_STACK },
+      subtitle2: { fontFamily: ARABIC_FONT_STACK },
+      body1: { fontFamily: ARABIC_FONT_STACK },
+      body2: { fontFamily: ARABIC_FONT_STACK },
+      button: { fontFamily: ARABIC_FONT_STACK },
+      caption: { fontFamily: ARABIC_FONT_STACK },
+      overline: { fontFamily: ARABIC_FONT_STACK },
+    },
+    components: {
+      // Override CssBaseline pour forcer le body en Tajawal. Le CssBaseline
+      // par defaut applique theme.typography.fontFamily au body, mais avec
+      // le spread shallow il pouvait recoper l'ancienne valeur du baseTheme.
+      MuiCssBaseline: {
+        styleOverrides: {
+          body: { fontFamily: ARABIC_FONT_STACK },
+        },
+      },
+    },
   });
 }
