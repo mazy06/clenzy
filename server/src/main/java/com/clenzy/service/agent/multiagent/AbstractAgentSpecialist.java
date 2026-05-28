@@ -69,11 +69,47 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
     }
 
     /**
-     * System prompt specifique au specialiste. Implementation par defaut OK
-     * pour la plupart des cas — peut etre surchargee si besoin de prompt custom.
+     * Backwards-compat : delegue a la version request-aware avec request=null.
+     * Tests existants peuvent encore appeler buildSystemPrompt() sans arg.
      */
     protected String buildSystemPrompt() {
-        return """
+        return buildSystemPrompt(null);
+    }
+
+    /**
+     * System prompt specifique au specialiste, enrichi du contexte user
+     * (langue + page UI + propriete selectionnee + memoire + RAG) issu de
+     * la {@link SpecialistRequest}.
+     *
+     * <p>Sections injectees en prefix (avant {@code <role>}) :</p>
+     * <ul>
+     *   <li>{@code <user_context>} : langue + currentPage + selectedPropertyId</li>
+     *   <li>{@code <memory>} : memoires long-terme du user</li>
+     *   <li>{@code <knowledge_base>} : snippets RAG relevants</li>
+     * </ul>
+     *
+     * <p>Si {@code request} est null (test direct ou ancien code), seule la
+     * partie statique (role/task/output) est rendue.</p>
+     *
+     * <p>Peut etre surchargee par un specialist si besoin de prompt custom.
+     * Les overrides doivent prendre soin de continuer a injecter le contexte
+     * (appel super OU re-implementation).</p>
+     */
+    protected String buildSystemPrompt(SpecialistRequest request) {
+        StringBuilder sb = new StringBuilder(1024);
+
+        if (request != null) {
+            String ctxSection = renderUserContextSection(request.context());
+            if (!ctxSection.isEmpty()) sb.append(ctxSection).append("\n\n");
+
+            String memorySection = renderMemorySection(request.orchestrationCtx().memories());
+            if (!memorySection.isEmpty()) sb.append(memorySection).append("\n\n");
+
+            String kbSection = renderKbSection(request.orchestrationCtx().kbHits());
+            if (!kbSection.isEmpty()) sb.append(kbSection).append("\n\n");
+        }
+
+        sb.append("""
                 <role>
                 Tu es le specialiste %s pour Clenzy PMS. Ton domaine : %s.
                 </role>
@@ -92,7 +128,91 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                 special). Ton orchestrator combinera ta reponse avec d'autres pour
                 produire la reponse user finale.
                 </output>
-                """.formatted(name(), domain(), domain());
+                """.formatted(name(), domain(), domain()));
+
+        return sb.toString();
+    }
+
+    /**
+     * Render XML du contexte UI (langue + page + propriete). Vide si ctx null
+     * ou pas d'info contextuelle au-dela de la langue par defaut "fr".
+     */
+    private String renderUserContextSection(com.clenzy.service.agent.AgentContext ctx) {
+        if (ctx == null) return "";
+        boolean hasUiHint = ctx.currentPage() != null || ctx.selectedPropertyId() != null;
+        boolean hasNonDefaultLang = ctx.language() != null && !"fr".equals(ctx.language());
+        if (!hasUiHint && !hasNonDefaultLang) return "";
+
+        StringBuilder sb = new StringBuilder(192);
+        sb.append("<user_context>\n");
+        if (ctx.language() != null && !ctx.language().isBlank()) {
+            sb.append("  <language>").append(escapeXml(ctx.language())).append("</language>\n");
+            sb.append("  <!-- Reponds en ");
+            switch (ctx.language()) {
+                case "en" -> sb.append("English");
+                case "ar" -> sb.append("Arabic (RTL)");
+                case "fr" -> sb.append("francais");
+                default -> sb.append("la langue indiquee");
+            }
+            sb.append(". -->\n");
+        }
+        if (ctx.currentPage() != null && !ctx.currentPage().isBlank()) {
+            sb.append("  <current_page>").append(escapeXml(ctx.currentPage())).append("</current_page>\n");
+        }
+        if (ctx.selectedPropertyId() != null) {
+            sb.append("  <selected_property_id>").append(ctx.selectedPropertyId())
+                    .append("</selected_property_id>\n");
+        }
+        sb.append("</user_context>");
+        return sb.toString();
+    }
+
+    /** Render XML de la memoire user (vide si rien). */
+    private String renderMemorySection(java.util.List<com.clenzy.model.AssistantMemory> memories) {
+        if (memories == null || memories.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder(256);
+        sb.append("<memory>\n");
+        for (com.clenzy.model.AssistantMemory m : memories) {
+            com.clenzy.model.AssistantMemory.Scope scope = m.getScopeEnum();
+            sb.append("  <item scope=\"")
+                    .append(scope == null ? "unknown" : scope.name().toLowerCase())
+                    .append("\" key=\"").append(escapeXml(m.getMemoryKey())).append("\">")
+                    .append(escapeXml(m.getMemoryValue()))
+                    .append("</item>\n");
+        }
+        sb.append("</memory>");
+        return sb.toString();
+    }
+
+    /** Render XML des snippets RAG (vide si rien). */
+    private String renderKbSection(
+            java.util.List<com.clenzy.service.agent.kb.KbSearchService.KbSearchHit> kbHits) {
+        if (kbHits == null || kbHits.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder(512);
+        sb.append("<knowledge_base>\n")
+                .append("  <!-- Snippets de la doc Clenzy lies a la query. Cite la source ")
+                .append("(titre + path) si tu utilises l'info. N'invente jamais. -->\n");
+        for (int i = 0; i < kbHits.size(); i++) {
+            com.clenzy.service.agent.kb.KbSearchService.KbSearchHit h = kbHits.get(i);
+            sb.append("  <snippet idx=\"").append(i + 1).append("\" ")
+                    .append("title=\"").append(escapeXml(h.title() != null ? h.title() : "Document")).append("\" ")
+                    .append("path=\"").append(escapeXml(h.sourcePath())).append("\" ")
+                    .append("relevance=\"").append(Math.round(h.relevance() * 100)).append("%\">\n")
+                    .append("    ").append(escapeXml(h.snippet())).append("\n")
+                    .append("  </snippet>\n");
+        }
+        sb.append("</knowledge_base>");
+        return sb.toString();
+    }
+
+    /** Echappement XML basique (& < > " ') — suffisant pour les valeurs de memoire/RAG. */
+    private static String escapeXml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
     }
 
     @Override
@@ -128,9 +248,10 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                     name(), allowedTools.size(), tools.size());
         }
 
-        // Boucle LLM ↔ tools (bornee)
+        // Boucle LLM ↔ tools (bornee). buildSystemPrompt(request) injecte
+        // user_context + memory + RAG depuis SpecialistRequest (Fix bloquant #5).
         ChatRequest chatRequest = new ChatRequest(
-                buildSystemPrompt(),
+                buildSystemPrompt(request),
                 List.of(ChatMessage.user(request.query())),
                 tools,
                 null,             // model defaut provider

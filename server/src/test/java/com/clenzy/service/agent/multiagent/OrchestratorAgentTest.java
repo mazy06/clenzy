@@ -399,6 +399,63 @@ class OrchestratorAgentTest {
     }
 
     @Test
+    void orchestrate_with_user_context_injects_ui_section_in_prompt() {
+        // Fix bloquant #5 : la langue + page + propriete UI doivent etre
+        // injectees dans le prompt pour contextualiser la query.
+        AgentContext ctx = new AgentContext(1L, "kc", null, "en",
+                "/properties/42", 42L);
+
+        stubLlm("You have 5 properties.", List.of(), 50, 10);
+
+        orchestrator.orchestrate(List.of(ChatMessage.user("list my properties")),
+                ctx, OrchestrationContext.empty(), null);
+
+        ArgumentCaptor<ChatRequest> reqCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+        verify(chatProvider).streamChat(reqCaptor.capture(), any());
+        String sysPrompt = reqCaptor.getValue().systemPrompt();
+        assertThat(sysPrompt)
+                .contains("<user_context>")
+                .contains("<language>en</language>")
+                .contains("Reponds en English")
+                .contains("<current_page>/properties/42</current_page>")
+                .contains("<selected_property_id>42</selected_property_id>")
+                .contains("</user_context>");
+    }
+
+    @Test
+    void orchestrate_with_default_fr_context_omits_user_context_when_no_ui_hint() {
+        // Si langue=fr (defaut) + pas de page/propriete, la section est omise
+        // pour ne pas polluer le prompt avec du bruit.
+        AgentContext ctx = AgentContext.minimal(1L, "kc");  // fr, no page, no property
+
+        stubLlm("Tu as 5 biens.", List.of(), 50, 10);
+
+        orchestrator.orchestrate(List.of(ChatMessage.user("liste")),
+                ctx, OrchestrationContext.empty(), null);
+
+        ArgumentCaptor<ChatRequest> reqCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+        verify(chatProvider).streamChat(reqCaptor.capture(), any());
+        assertThat(reqCaptor.getValue().systemPrompt())
+                .doesNotContain("<user_context>");
+    }
+
+    @Test
+    void orchestrate_with_arabic_language_injects_rtl_hint() {
+        AgentContext ctx = new AgentContext(1L, "kc", null, "ar", null, null);
+
+        stubLlm("لديك 5 عقارات.", List.of(), 50, 10);
+
+        orchestrator.orchestrate(List.of(ChatMessage.user("اعرض عقاراتي")),
+                ctx, OrchestrationContext.empty(), null);
+
+        ArgumentCaptor<ChatRequest> reqCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+        verify(chatProvider).streamChat(reqCaptor.capture(), any());
+        assertThat(reqCaptor.getValue().systemPrompt())
+                .contains("<language>ar</language>")
+                .contains("Arabic (RTL)");
+    }
+
+    @Test
     void system_prompt_lists_all_specialists_and_their_descriptions() {
         String prompt = orchestrator.buildOrchestratorSystemPrompt();
         assertThat(prompt)
