@@ -5,7 +5,9 @@ import com.clenzy.config.ai.ChatLLMProvider;
 import com.clenzy.config.ai.ChatMessage;
 import com.clenzy.config.ai.ChatRequest;
 import com.clenzy.config.ai.ToolDescriptor;
+import com.clenzy.model.AssistantMemory;
 import com.clenzy.service.agent.AgentContext;
+import com.clenzy.service.agent.kb.KbSearchService.KbSearchHit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -85,33 +87,51 @@ public class OrchestratorAgent {
      * qui transmet l'historique complet.</p>
      */
     public OrchestrationResult orchestrate(String userMessage, AgentContext context) {
-        return orchestrate(List.of(ChatMessage.user(userMessage)), context);
+        return orchestrate(List.of(ChatMessage.user(userMessage)), context, OrchestrationContext.empty());
     }
 
     /**
      * Lance l'orchestration avec l'historique conversationnel complet.
      *
+     * <p>Backwards-compat : delegue a la version 3-arg avec un contexte vide
+     * (pas de memoire ni de RAG). Prefer la version 3-arg pour beneficier de
+     * la personnalisation user et de la doc Clenzy.</p>
+     */
+    public OrchestrationResult orchestrate(List<ChatMessage> messages, AgentContext context) {
+        return orchestrate(messages, context, OrchestrationContext.empty());
+    }
+
+    /**
+     * Lance l'orchestration avec historique + contexte (memoire + RAG) pre-charges.
+     *
      * <p><b>{@code messages}</b> contient l'historique chronologique des
      * echanges user/assistant/tool de la conversation, le dernier element
-     * etant la question courante de l'utilisateur. Le LLM orchestrator a
-     * ainsi acces au contexte des tours precedents — indispensable pour les
-     * follow-up ("annule celle dont on a parle"), les references implicites
-     * ("comme la derniere fois"), etc.</p>
+     * etant la question courante de l'utilisateur.</p>
+     *
+     * <p><b>{@code orchestrationCtx}</b> porte les memoires long-terme et
+     * les snippets RAG pre-charges par AgentOrchestrator. Ces elements sont
+     * injectes dans le system prompt de l'orchestrator (pour decider quel
+     * specialist invoquer en connaissance) ET propages aux specialists via
+     * SpecialistRequest (pour qu'ils citent la doc et respectent les
+     * preferences user).</p>
      *
      * <p>Version non-streaming (PoC). Le streaming SSE bidirectionnel
      * (orchestrator emet tools + specialists emettent au fur et a mesure)
      * sera ajoute en v2 quand l'integration AgentOrchestrator sera faite.</p>
      */
-    public OrchestrationResult orchestrate(List<ChatMessage> messages, AgentContext context) {
+    public OrchestrationResult orchestrate(List<ChatMessage> messages, AgentContext context,
+                                             OrchestrationContext orchestrationCtx) {
         long startNanos = System.nanoTime();
         try {
-            return doOrchestrate(messages, context);
+            return doOrchestrate(messages, context,
+                    orchestrationCtx == null ? OrchestrationContext.empty() : orchestrationCtx);
         } finally {
             orchestrateTimer.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
         }
     }
 
-    private OrchestrationResult doOrchestrate(List<ChatMessage> messages, AgentContext context) {
+    private OrchestrationResult doOrchestrate(List<ChatMessage> messages, AgentContext context,
+                                                 OrchestrationContext orchestrationCtx) {
         // Pas de specialistes -> impossible d'orchestrer
         if (registry.size() == 0) {
             return OrchestrationResult.error("Aucun specialiste enregistre, orchestration impossible");
@@ -120,7 +140,7 @@ public class OrchestratorAgent {
             return OrchestrationResult.error("Messages history vide, impossible d'orchestrer");
         }
 
-        String systemPrompt = buildOrchestratorSystemPrompt();
+        String systemPrompt = buildOrchestratorSystemPrompt(orchestrationCtx);
         List<ToolDescriptor> tools = List.of(buildDelegateToolDescriptor());
         ChatRequest req = new ChatRequest(
                 systemPrompt,
@@ -188,7 +208,7 @@ public class OrchestratorAgent {
                             "Arguments invalides pour delegate_to (besoin de specialist + query)"));
                     continue;
                 }
-                SpecialistResult result = invokeSpecialist(args, context);
+                SpecialistResult result = invokeSpecialist(args, context, orchestrationCtx);
                 delegationsLog.add(args.specialist() + " → " + (result.isSuccess() ? "OK" : "ERR"));
                 // Aggregation des widgets : permet au frontend de continuer a afficher
                 // les visualisations (KPI cards, charts) en mode multi-agent.
@@ -211,12 +231,15 @@ public class OrchestratorAgent {
         );
     }
 
-    private SpecialistResult invokeSpecialist(DelegateArgs args, AgentContext context) {
+    private SpecialistResult invokeSpecialist(DelegateArgs args, AgentContext context,
+                                                 OrchestrationContext orchestrationCtx) {
         // ConfirmationRequiredException remonte intacte (re-throw automatique du
         // .map(...).orElseGet(...)) : le caller AgentOrchestrator l'intercepte
         // pour bascule sur le mono-agent qui gere la pause-confirmation.
+        // OrchestrationContext propage memoire + RAG aux specialists pour qu'ils
+        // beneficient des memes ressources que l'orchestrator.
         return registry.find(args.specialist())
-                .map(spec -> spec.handle(SpecialistRequest.of(args.query(), context)))
+                .map(spec -> spec.handle(SpecialistRequest.of(args.query(), context, orchestrationCtx)))
                 .orElseGet(() -> SpecialistResult.error(
                         "Specialiste inconnu : '" + args.specialist() + "'. "
                                 + "Specialistes disponibles : " + registry.all().keySet()
@@ -238,9 +261,42 @@ public class OrchestratorAgent {
         }
     }
 
-    /** System prompt orchestrator : liste les specialistes + role + format. */
+    /**
+     * Backwards-compat : delegue a la version avec contexte vide. Conserve
+     * pour les tests existants qui appellent directement le prompt sans
+     * pre-chargement de memoire/RAG.
+     */
     String buildOrchestratorSystemPrompt() {
+        return buildOrchestratorSystemPrompt(OrchestrationContext.empty());
+    }
+
+    /**
+     * System prompt orchestrator avec injection optionnelle de :
+     * <ul>
+     *   <li>Section {@code <memory>} : faits/preferences/objectifs de l'user</li>
+     *   <li>Section {@code <knowledge_base>} : snippets doc relevants pour
+     *       la query, avec source pour citation</li>
+     * </ul>
+     *
+     * <p>Les sections ne sont rendues QUE si elles ont du contenu.</p>
+     */
+    String buildOrchestratorSystemPrompt(OrchestrationContext orchestrationCtx) {
         StringBuilder sb = new StringBuilder(1024);
+
+        // Memoire long-terme : injectee EN PREMIER pour que le LLM en
+        // tienne compte des l'analyse de la question (ex: "user prefere EUR" →
+        // orchestrator peut pre-formater la query au specialist).
+        String memorySection = renderMemorySection(orchestrationCtx.memories());
+        if (!memorySection.isEmpty()) {
+            sb.append(memorySection).append("\n\n");
+        }
+
+        // RAG : snippets doc avec source pour citation.
+        String kbSection = renderKbSection(orchestrationCtx.kbHits());
+        if (!kbSection.isEmpty()) {
+            sb.append(kbSection).append("\n\n");
+        }
+
         sb.append("<role>\n")
                 .append("Tu es l'orchestrateur principal de l'assistant Clenzy PMS. ")
                 .append("Tu ne reponds JAMAIS directement aux questions metier — tu delegues ")
@@ -274,6 +330,56 @@ public class OrchestratorAgent {
                 .append("</output_format>");
 
         return sb.toString();
+    }
+
+    /** Render XML de la memoire user (vide si rien). */
+    private String renderMemorySection(List<AssistantMemory> memories) {
+        if (memories == null || memories.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder(256);
+        sb.append("<memory>\n")
+                .append("  <!-- Memoire long-terme de l'utilisateur (preferences, faits, objectifs, projets). ")
+                .append("Utilise-la pour personnaliser la query envoyee au specialist. -->\n");
+        for (AssistantMemory m : memories) {
+            AssistantMemory.Scope scope = m.getScopeEnum();
+            sb.append("  <item scope=\"")
+                    .append(scope == null ? "unknown" : scope.name().toLowerCase())
+                    .append("\" key=\"").append(escapeXml(m.getMemoryKey())).append("\">")
+                    .append(escapeXml(m.getMemoryValue()))
+                    .append("</item>\n");
+        }
+        sb.append("</memory>");
+        return sb.toString();
+    }
+
+    /** Render XML des snippets RAG (vide si rien). */
+    private String renderKbSection(List<KbSearchHit> kbHits) {
+        if (kbHits == null || kbHits.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder(512);
+        sb.append("<knowledge_base>\n")
+                .append("  <!-- Snippets de la documentation Clenzy lies a la question. ")
+                .append("Le specialist doit citer source (titre + path) s'il utilise un extrait. ")
+                .append("N'invente JAMAIS une procedure qui n'est pas dans ces snippets. -->\n");
+        for (int i = 0; i < kbHits.size(); i++) {
+            KbSearchHit h = kbHits.get(i);
+            sb.append("  <snippet idx=\"").append(i + 1).append("\" ")
+                    .append("title=\"").append(escapeXml(h.title() != null ? h.title() : "Document")).append("\" ")
+                    .append("path=\"").append(escapeXml(h.sourcePath())).append("\" ")
+                    .append("relevance=\"").append(Math.round(h.relevance() * 100)).append("%\">\n")
+                    .append("    ").append(escapeXml(h.snippet())).append("\n")
+                    .append("  </snippet>\n");
+        }
+        sb.append("</knowledge_base>");
+        return sb.toString();
+    }
+
+    /** Echappement XML basique (& < > " ') — suffisant pour les valeurs de memoire/RAG. */
+    private static String escapeXml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
     }
 
     /** Schema JSON du meta-tool delegate_to. */
