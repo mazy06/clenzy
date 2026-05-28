@@ -2,18 +2,22 @@ package com.clenzy.service;
 
 import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiResponse;
+import com.clenzy.dto.AiFeatureUsageBreakdownDto;
 import com.clenzy.dto.AiUsageStatsDto;
 import com.clenzy.exception.AiBudgetExceededException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.AiTokenBudget;
+import com.clenzy.model.AiTokenUsage;
 import com.clenzy.repository.AiTokenBudgetRepository;
 import com.clenzy.repository.AiTokenUsageRepository;
+import com.clenzy.service.ai.LlmPricingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,6 +29,7 @@ class AiTokenBudgetServiceTest {
     private AiProperties aiProperties;
     private AiTokenBudgetRepository budgetRepository;
     private AiTokenUsageRepository usageRepository;
+    private LlmPricingService pricingService;
     private AiTokenBudgetService service;
 
     @BeforeEach
@@ -35,7 +40,8 @@ class AiTokenBudgetServiceTest {
 
         budgetRepository = mock(AiTokenBudgetRepository.class);
         usageRepository = mock(AiTokenUsageRepository.class);
-        service = spy(new AiTokenBudgetService(aiProperties, budgetRepository, usageRepository));
+        pricingService = new LlmPricingService(); // real impl — pure stateless, no Spring needed
+        service = spy(new AiTokenBudgetService(aiProperties, budgetRepository, usageRepository, pricingService));
 
         // Fix month for deterministic tests
         doReturn("2026-03").when(service).getCurrentMonthYear();
@@ -203,6 +209,97 @@ class AiTokenBudgetServiceTest {
             assertEquals(11_000L, stats.totalUsed());
             assertEquals(600_000L, stats.totalBudget()); // 6 features * 100k default
             assertEquals("2026-03", stats.monthYear());
+        }
+    }
+
+    // ─── getUsageBreakdown ──────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("getUsageBreakdown()")
+    class GetUsageBreakdown {
+
+        @Test
+        void groupsByProviderAndModel_andSortsByCostDesc() {
+            // ASSISTANT_CHAT : 2 appels Sonnet + 1 appel Haiku
+            AiTokenUsage sonnet1 = new AiTokenUsage(1L, AiFeature.ASSISTANT_CHAT, "anthropic",
+                    "claude-sonnet-4-20250514", 80_000, 10_000, 90_000, "2026-03");
+            AiTokenUsage sonnet2 = new AiTokenUsage(1L, AiFeature.ASSISTANT_CHAT, "anthropic",
+                    "claude-sonnet-4-20250514", 60_000, 8_000, 68_000, "2026-03");
+            AiTokenUsage haiku = new AiTokenUsage(1L, AiFeature.ASSISTANT_CHAT, "anthropic",
+                    "claude-haiku-4-5", 20_000, 3_000, 23_000, "2026-03");
+            // DESIGN : 1 appel modele inconnu
+            AiTokenUsage unknown = new AiTokenUsage(1L, AiFeature.DESIGN, "nvidia",
+                    "qwen3-coder-480b", 50_000, 8_000, 58_000, "2026-03");
+
+            when(usageRepository.findByOrganizationIdAndMonthYear(1L, "2026-03"))
+                    .thenReturn(List.of(sonnet1, sonnet2, haiku, unknown));
+
+            AiFeatureUsageBreakdownDto result = service.getUsageBreakdown(1L);
+
+            assertEquals("2026-03", result.monthYear());
+            // Toutes les features presentes (init pour stabilite UI)
+            assertTrue(result.breakdownByFeature().containsKey("PRICING"));
+            assertTrue(result.breakdownByFeature().get("PRICING").isEmpty());
+
+            // ASSISTANT_CHAT : 2 groupes (sonnet aggrege + haiku), Sonnet > Haiku en cost
+            List<AiFeatureUsageBreakdownDto.ModelUsage> assistant =
+                    result.breakdownByFeature().get("ASSISTANT_CHAT");
+            assertEquals(2, assistant.size());
+
+            AiFeatureUsageBreakdownDto.ModelUsage first = assistant.get(0);
+            assertEquals("claude-sonnet-4-20250514", first.model());
+            assertEquals(140_000L, first.tokensIn()); // 80k + 60k
+            assertEquals(18_000L,  first.tokensOut()); // 10k + 8k
+            assertEquals(2L,       first.callCount());
+            // Sonnet: 140k * $3/Mtok + 18k * $15/Mtok = $0.42 + $0.27 = $0.69
+            assertEquals(0, first.costUsd().compareTo(new java.math.BigDecimal("0.690000")));
+
+            AiFeatureUsageBreakdownDto.ModelUsage second = assistant.get(1);
+            assertEquals("claude-haiku-4-5", second.model());
+            assertEquals(20_000L, second.tokensIn());
+            // Haiku 4: 20k * $0.80/Mtok + 3k * $4/Mtok = $0.016 + $0.012 = $0.028
+            assertEquals(0, second.costUsd().compareTo(new java.math.BigDecimal("0.028000")));
+
+            // Sonnet plus cher => en premier
+            assertTrue(first.costUsd().compareTo(second.costUsd()) > 0);
+
+            // DESIGN: modele inconnu => cost zero, mais entree presente
+            List<AiFeatureUsageBreakdownDto.ModelUsage> design = result.breakdownByFeature().get("DESIGN");
+            assertEquals(1, design.size());
+            assertEquals("qwen3-coder-480b", design.get(0).model());
+            assertEquals(0, design.get(0).costUsd().compareTo(java.math.BigDecimal.ZERO.setScale(6)));
+        }
+
+        @Test
+        void noUsage_returnsEmptyListsPerFeature() {
+            when(usageRepository.findByOrganizationIdAndMonthYear(1L, "2026-03"))
+                    .thenReturn(List.of());
+
+            AiFeatureUsageBreakdownDto result = service.getUsageBreakdown(1L);
+
+            assertEquals("2026-03", result.monthYear());
+            // Toutes les features de l'enum doivent etre presentes mais vides
+            for (AiFeature f : AiFeature.values()) {
+                assertTrue(result.breakdownByFeature().containsKey(f.name()),
+                        "missing feature " + f.name());
+                assertTrue(result.breakdownByFeature().get(f.name()).isEmpty());
+            }
+        }
+
+        @Test
+        void nullProviderOrModel_falsBackToUnknown() {
+            AiTokenUsage anonymous = new AiTokenUsage(1L, AiFeature.PRICING, null,
+                    null, 1_000, 200, 1_200, "2026-03");
+            when(usageRepository.findByOrganizationIdAndMonthYear(1L, "2026-03"))
+                    .thenReturn(List.of(anonymous));
+
+            AiFeatureUsageBreakdownDto result = service.getUsageBreakdown(1L);
+            List<AiFeatureUsageBreakdownDto.ModelUsage> pricing =
+                    result.breakdownByFeature().get("PRICING");
+
+            assertEquals(1, pricing.size());
+            assertEquals("unknown", pricing.get(0).provider());
+            assertEquals("unknown", pricing.get(0).model());
         }
     }
 }

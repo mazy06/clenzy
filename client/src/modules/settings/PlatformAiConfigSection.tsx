@@ -51,8 +51,9 @@ import {
   useAiFeatureToggles,
   useSetAiFeatureToggle,
   useAiUsageStats,
+  useAiUsageBreakdown,
 } from '../../hooks/useAi';
-import type { PlatformAiModel, SavePlatformModelRequest, TestPlatformModelRequest } from '../../services/api/aiApi';
+import type { AiModelUsage, PlatformAiModel, SavePlatformModelRequest, TestPlatformModelRequest } from '../../services/api/aiApi';
 import AiSettingsCard from './AiSettingsCard';
 
 // ─── Provider / Model Catalog ──────────────────────────────────────────────
@@ -508,6 +509,90 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
   );
 }
 
+// ─── Usage Breakdown Tooltip ───────────────────────────────────────────────
+
+/**
+ * Tooltip qui detaille la consommation tokens + cout USD par (provider, model).
+ * Resout l'agregation aveugle de l'ancien compteur unique : 100k tokens Sonnet
+ * et 100k tokens Haiku ont des couts tres differents — il faut les distinguer.
+ *
+ * Wrapping permissif : si breakdown est vide, on rend juste le child sans tooltip
+ * pour eviter un popover vide qui suggererait une erreur.
+ */
+function UsageBreakdownTooltip({
+  breakdown,
+  totalCost,
+  feature,
+  children,
+}: {
+  breakdown: AiModelUsage[];
+  totalCost: number;
+  feature: typeof AI_FEATURES[number];
+  children: React.ReactElement;
+}) {
+  if (breakdown.length === 0) {
+    return children;
+  }
+  return (
+    <Tooltip
+      arrow
+      placement="left"
+      enterDelay={200}
+      enterNextDelay={150}
+      componentsProps={{
+        tooltip: {
+          sx: {
+            bgcolor: 'background.paper',
+            color: 'text.primary',
+            border: '1px solid',
+            borderColor: 'divider',
+            boxShadow: 4,
+            p: 0,
+            maxWidth: 360,
+            fontFamily: 'inherit',
+          },
+        },
+        arrow: { sx: { color: 'background.paper', '&::before': { border: '1px solid', borderColor: 'divider' } } },
+      }}
+      title={
+        <Box sx={{ p: 1.5, minWidth: 280 }}>
+          {/* Header */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, color: feature.color, letterSpacing: 0.4 }}>
+              {feature.label.toUpperCase()}
+            </Typography>
+            <Typography variant="caption" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+              ${totalCost.toFixed(4)} USD
+            </Typography>
+          </Box>
+          {/* Rows: 1 par (provider, model) */}
+          {breakdown.map((m) => {
+            const totalTokens = m.tokensIn + m.tokensOut;
+            return (
+              <Box key={`${m.provider}-${m.model}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: PROVIDER_COLORS[m.provider] || '#888', flexShrink: 0 }} />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {m.model}
+                  </Typography>
+                  <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '0.65rem', fontVariantNumeric: 'tabular-nums' }}>
+                    {Math.round(totalTokens / 1000)}k tok ({Math.round(m.tokensIn / 1000)}k in + {Math.round(m.tokensOut / 1000)}k out) · {m.callCount} call{m.callCount > 1 ? 's' : ''}
+                  </Typography>
+                </Box>
+                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.72rem', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                  ${m.costUsd.toFixed(4)}
+                </Typography>
+              </Box>
+            );
+          })}
+        </Box>
+      }
+    >
+      {children}
+    </Tooltip>
+  );
+}
+
 // ─── Feature Assignment Row ────────────────────────────────────────────────
 
 interface FeatureRowProps {
@@ -516,6 +601,8 @@ interface FeatureRowProps {
   assignedModel: PlatformAiModel | undefined;
   budget: number;
   used: number;
+  /** Decomposition par (provider, model) avec cout USD. Vide = pas d'usage ce mois. */
+  usageBreakdown: AiModelUsage[];
   enabled: boolean;
   onAssign: (feature: string, modelId: number) => void;
   onUnassign: (feature: string) => void;
@@ -524,7 +611,7 @@ interface FeatureRowProps {
   isAssigning: boolean;
 }
 
-function FeatureRow({ feature, models, assignedModel, budget, used, enabled, onAssign, onUnassign, onBudgetChange, onToggle, isAssigning }: FeatureRowProps) {
+function FeatureRow({ feature, models, assignedModel, budget, used, usageBreakdown, enabled, onAssign, onUnassign, onBudgetChange, onToggle, isAssigning }: FeatureRowProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -623,63 +710,66 @@ function FeatureRow({ feature, models, assignedModel, budget, used, enabled, onA
         ))}
       </TextField>
 
-      {/* Token budget with progress */}
+      {/* Token budget with progress + tooltip breakdown per (provider, model) */}
       {(() => {
         const pct = budget > 0 ? Math.min((used / budget) * 100, 100) : 0;
         const isOver = used >= budget;
         const barColor = isOver ? '#DC2626' : pct > 75 ? '#D97706' : feature.color;
+        const totalCost = usageBreakdown.reduce((sum, m) => sum + (m.costUsd ?? 0), 0);
         return (
-          <Box sx={{ position: 'relative', width: 170, flexShrink: 0 }}>
-            {/* Progress bar background */}
-            <Box
-              sx={{
-                position: 'absolute',
-                inset: 0,
-                borderRadius: 1,
-                overflow: 'hidden',
-                border: '1px solid',
-                borderColor: 'divider',
-              }}
-            >
+          <UsageBreakdownTooltip breakdown={usageBreakdown} totalCost={totalCost} feature={feature}>
+            <Box sx={{ position: 'relative', width: 170, flexShrink: 0, cursor: usageBreakdown.length > 0 ? 'help' : 'default' }}>
+              {/* Progress bar background */}
               <Box
                 sx={{
                   position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: `${pct}%`,
-                  bgcolor: alpha(barColor, 0.15),
-                  transition: 'width 0.3s ease, background-color 0.3s ease',
+                  inset: 0,
+                  borderRadius: 1,
+                  overflow: 'hidden',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: `${pct}%`,
+                    bgcolor: alpha(barColor, 0.15),
+                    transition: 'width 0.3s ease, background-color 0.3s ease',
+                  }}
+                />
+              </Box>
+              {/* Input on top */}
+              <TextField
+                size="small"
+                type="number"
+                value={budget}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  if (!isNaN(val) && val >= 0) onBudgetChange(feature.key, val);
+                }}
+                InputProps={{
+                  endAdornment: (
+                    <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', ml: 0.5, fontSize: '0.65rem', fontVariantNumeric: 'tabular-nums' }}>
+                      {Math.round(used / 1000)}k / {Math.round(budget / 1000)}k
+                    </Typography>
+                  ),
+                }}
+                sx={{
+                  width: '100%',
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.75rem',
+                    bgcolor: 'transparent',
+                    '& fieldset': { border: 'none' },
+                  },
+                  '& .MuiInputBase-input': { position: 'relative', zIndex: 1 },
                 }}
               />
             </Box>
-            {/* Input on top */}
-            <TextField
-              size="small"
-              type="number"
-              value={budget}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!isNaN(val) && val >= 0) onBudgetChange(feature.key, val);
-              }}
-              InputProps={{
-                endAdornment: (
-                  <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', ml: 0.5, fontSize: '0.65rem' }}>
-                    {Math.round(used / 1000)}k / {Math.round(budget / 1000)}k
-                  </Typography>
-                ),
-              }}
-              sx={{
-                width: '100%',
-                '& .MuiOutlinedInput-root': {
-                  fontSize: '0.75rem',
-                  bgcolor: 'transparent',
-                  '& fieldset': { border: 'none' },
-                },
-                '& .MuiInputBase-input': { position: 'relative', zIndex: 1 },
-              }}
-            />
-          </Box>
+          </UsageBreakdownTooltip>
         );
       })()}
 
@@ -706,6 +796,7 @@ export default function PlatformAiConfigSection() {
   const { data: budgets } = useFeatureBudgets();
   const { data: featureToggles } = useAiFeatureToggles();
   const { data: usageStats } = useAiUsageStats();
+  const { data: usageBreakdown } = useAiUsageBreakdown();
   const deleteMutation = useDeletePlatformModel();
   const assignMutation = useAssignModelToFeature();
   const unassignMutation = useUnassignFeature();
@@ -860,6 +951,7 @@ export default function PlatformAiConfigSection() {
               assignedModel={featureMap[feat.key]}
               budget={budgets?.[feat.key] ?? 100000}
               used={usageStats?.usageByFeature?.[feat.key] ?? 0}
+              usageBreakdown={usageBreakdown?.breakdownByFeature?.[feat.key] ?? []}
               enabled={featureToggles?.find(ft => ft.feature === feat.key)?.enabled ?? true}
               onAssign={handleAssign}
               onUnassign={handleUnassign}
