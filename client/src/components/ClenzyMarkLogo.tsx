@@ -138,7 +138,11 @@ export default function ClenzyMarkLogo({
           eviter le conflit animation/transition sur <line>. */}
       <g className={cls.linesGroup} stroke={palette.lines} strokeWidth="1">
         {OCTAGON_NODES.map((n, i) => (
-          <line key={`l-${i}`} className={cls.line} x1={CENTER.x} y1={CENTER.y} x2={n.x} y2={n.y} />
+          <line
+            key={`l-${i}`}
+            className={`${cls.line} ${cls.line}-${i}`}
+            x1={CENTER.x} y1={CENTER.y} x2={n.x} y2={n.y}
+          />
         ))}
       </g>
       <g fill={palette.nodes}>
@@ -227,6 +231,13 @@ export default function ClenzyMarkLogo({
       stroke-dashoffset: 0;
       transition: stroke-dashoffset 450ms cubic-bezier(0.4, 0, 0.2, 1);
     }
+    /* Per-line transition-delay : cree le cascade au hover-out.
+       Quand hover finit, la rule hover (delay:0) ne s'applique plus, c'est
+       le base rule qui prend le relais avec sa delay specifique a chaque
+       line => les traits re-emergent un par un en cascade horaire. */
+    ${OCTAGON_NODES.map((_, i) => `
+      .${cls.line}-${i} { transition-delay: ${i * 60}ms; }
+    `).join('')}
 
     /* ─── Hover ──────────────────────────────────────────────────────── */
     /* Centre : on garde le boot (deja complete, fill:both => no visible
@@ -241,9 +252,13 @@ export default function ClenzyMarkLogo({
     }
     /* Lignes : dashoffset transite vers ${LINE_LENGTH} => le trait se
        retracte depuis l'exterieur vers le centre, disparait dans le node
-       central. Au hover-out, la transition reverse naturellement. */
+       central. Au hover-out, la transition reverse naturellement avec
+       la per-line delay du base rule => cascade re-emerge horaire.
+       Override transition-delay:0 ici pour absorb instantane sur tout
+       au hover-in (sinon les lines absorberaient aussi en cascade). */
     .${cls.root}:hover .${cls.line} {
       stroke-dashoffset: ${LINE_LENGTH};
+      transition-delay: 0ms;
     }
     ${OCTAGON_NODES.map((_, i) => `
       .${cls.root}:hover .${cls.node}-${i} {

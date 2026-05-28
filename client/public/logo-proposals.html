@@ -63,12 +63,22 @@
 
     /* Lignes : transition stroke-dashoffset pour absorb au hover.
        dasharray=18 = longueur exacte de chaque ligne (rayon octogone).
-       dashoffset 0 = visible, dashoffset 18 = "absorbed" (dash fully shifted off). */
+       dashoffset 0 = visible, dashoffset 18 = "absorbed" (dash fully shifted off).
+       Per-line transition-delay : cascade au hover-out (chaque trait re-emerge
+       60ms apres le precedent), override delay:0 au hover-in pour absorb together. */
     .mark-svg .mark-line {
       stroke-dasharray: 18;
       stroke-dashoffset: 0;
       transition: stroke-dashoffset 450ms cubic-bezier(0.4, 0, 0.2, 1);
     }
+    .mark-svg .mark-line-0 { transition-delay: 0ms; }
+    .mark-svg .mark-line-1 { transition-delay: 60ms; }
+    .mark-svg .mark-line-2 { transition-delay: 120ms; }
+    .mark-svg .mark-line-3 { transition-delay: 180ms; }
+    .mark-svg .mark-line-4 { transition-delay: 240ms; }
+    .mark-svg .mark-line-5 { transition-delay: 300ms; }
+    .mark-svg .mark-line-6 { transition-delay: 360ms; }
+    .mark-svg .mark-line-7 { transition-delay: 420ms; }
 
     .mark-svg .mark-node {
       transform-box: fill-box;
@@ -94,9 +104,13 @@
         mark-center-pulse-loop 1.4s ease-in-out 450ms infinite;
     }
     /* Lignes : dashoffset 0 -> 18 = trait retracte de l'exterieur vers
-       le centre (= disparait dans le rond central). Au hover-out la
-       transition reverse naturellement (18 -> 0). */
-    .preview:hover .mark-svg .mark-line { stroke-dashoffset: 18; }
+       le centre (= disparait dans le rond central). transition-delay:0
+       override pour absorb instantane all together au hover-in. Au
+       hover-out, le base rule reprend avec ses per-line delays => cascade. */
+    .preview:hover .mark-svg .mark-line {
+      stroke-dashoffset: 18;
+      transition-delay: 0ms;
+    }
 
     /* opacity:1 explicite pour eviter que le node disparaisse apres la
        fin de l'animation wave (post-650ms revient a opacity:0 du base). */
@@ -163,14 +177,14 @@
           <div class="logo-row">
             <svg class="mark-svg" width="80" height="80" viewBox="0 0 56 56" fill="none">
               <g class="lines-group" stroke="#6B8A9A" stroke-width="1">
-                <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
-                <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
-                <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
-                <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
-                <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
-                <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
-                <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
-                <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
+                <line class="mark-line mark-line-0" x1="28" y1="28" x2="28"   y2="10"/>
+                <line class="mark-line mark-line-1" x1="28" y1="28" x2="40.7" y2="15.3"/>
+                <line class="mark-line mark-line-2" x1="28" y1="28" x2="46"   y2="28"/>
+                <line class="mark-line mark-line-3" x1="28" y1="28" x2="40.7" y2="40.7"/>
+                <line class="mark-line mark-line-4" x1="28" y1="28" x2="28"   y2="46"/>
+                <line class="mark-line mark-line-5" x1="28" y1="28" x2="15.3" y2="40.7"/>
+                <line class="mark-line mark-line-6" x1="28" y1="28" x2="10"   y2="28"/>
+                <line class="mark-line mark-line-7" x1="28" y1="28" x2="15.3" y2="15.3"/>
               </g>
               <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#6B8A9A"/>
               <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#6B8A9A"/>
@@ -191,14 +205,14 @@
           <div class="logo-row">
             <svg class="mark-svg" width="80" height="80" viewBox="0 0 56 56" fill="none">
               <g class="lines-group" stroke="#89B1C2" stroke-width="1">
-                <line class="mark-line" x1="28" y1="28" x2="28"   y2="10"/>
-                <line class="mark-line" x1="28" y1="28" x2="40.7" y2="15.3"/>
-                <line class="mark-line" x1="28" y1="28" x2="46"   y2="28"/>
-                <line class="mark-line" x1="28" y1="28" x2="40.7" y2="40.7"/>
-                <line class="mark-line" x1="28" y1="28" x2="28"   y2="46"/>
-                <line class="mark-line" x1="28" y1="28" x2="15.3" y2="40.7"/>
-                <line class="mark-line" x1="28" y1="28" x2="10"   y2="28"/>
-                <line class="mark-line" x1="28" y1="28" x2="15.3" y2="15.3"/>
+                <line class="mark-line mark-line-0" x1="28" y1="28" x2="28"   y2="10"/>
+                <line class="mark-line mark-line-1" x1="28" y1="28" x2="40.7" y2="15.3"/>
+                <line class="mark-line mark-line-2" x1="28" y1="28" x2="46"   y2="28"/>
+                <line class="mark-line mark-line-3" x1="28" y1="28" x2="40.7" y2="40.7"/>
+                <line class="mark-line mark-line-4" x1="28" y1="28" x2="28"   y2="46"/>
+                <line class="mark-line mark-line-5" x1="28" y1="28" x2="15.3" y2="40.7"/>
+                <line class="mark-line mark-line-6" x1="28" y1="28" x2="10"   y2="28"/>
+                <line class="mark-line mark-line-7" x1="28" y1="28" x2="15.3" y2="15.3"/>
               </g>
               <circle class="mark-node mark-node-0" cx="28"   cy="10"   r="2.5" fill="#89B1C2"/>
               <circle class="mark-node mark-node-1" cx="40.7" cy="15.3" r="2.5" fill="#89B1C2"/>
