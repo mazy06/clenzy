@@ -37,8 +37,11 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
     >
       <Box
         sx={{
-          width: 64,
-          height: 64,
+          // Empty state : tonne de vertical space inutilise => le mark
+          // devient l'ancre visuelle principale. Container 128px +
+          // mark 88px (~69% du container, 20px padding visuel total).
+          width: 128,
+          height: 128,
           borderRadius: '50%',
           bgcolor: alpha(theme.palette.primary.main, 0.1),
           display: 'flex',
@@ -47,7 +50,7 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
           color: theme.palette.primary.main,
         }}
       >
-        <ClenzyMarkLogo variant="mark" size={32} />
+        <ClenzyMarkLogo variant="mark" size={88} />
       </Box>
 
       <Box>
