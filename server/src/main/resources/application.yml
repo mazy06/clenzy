@@ -190,6 +190,19 @@ clenzy:
       analytics-ai: false
       sentiment-ai: false
 
+  # ─── WhatsApp providers ───────────────────────────────────────────────
+  # Meta Cloud API : pas de config globale, les credentials sont per-org
+  #   (cf. table whatsapp_configs : api_token, phone_number_id, etc.).
+  # OpenWA self-hosted : URL de l'instance partagee (container Docker
+  #   interne au reseau clenzy-network, cf. clenzy-infra docker-compose).
+  #   La cle API per-session est stockee per-org dans whatsapp_configs.openwa_api_key.
+  whatsapp:
+    openwa:
+      # En dev : "http://openwa:2785" si le container openwa est dans le meme
+      # docker-compose, sinon "http://localhost:2785" si l'instance tourne en
+      # standalone. En prod : URL interne du service Kubernetes/Docker swarm.
+      base-url: ${OPENWA_BASE_URL:http://openwa:2785}
+
 # ─── Firebase Cloud Messaging ─────────────────────────────────────────────────
 firebase:
   credentials-path: ${FIREBASE_CREDENTIALS_PATH:}

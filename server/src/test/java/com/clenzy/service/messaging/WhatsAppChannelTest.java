@@ -3,6 +3,8 @@ package com.clenzy.service.messaging;
 import com.clenzy.model.MessageChannelType;
 import com.clenzy.model.WhatsAppConfig;
 import com.clenzy.repository.WhatsAppConfigRepository;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProvider;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProviderResolver;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,20 +15,27 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class WhatsAppChannelTest {
 
-    @Mock private WhatsAppApiService apiService;
+    @Mock private WhatsAppProviderResolver providerResolver;
     @Mock private WhatsAppConfigRepository configRepository;
     @Mock private TenantContext tenantContext;
 
+    private WhatsAppProvider stubProvider;
     private WhatsAppChannel channel;
 
     @BeforeEach
     void setUp() {
-        channel = new WhatsAppChannel(apiService, configRepository, tenantContext);
+        // Stub provider mocke a part : on veut controler ses retours pour les
+        // tests d'envoi, et le faire renvoyer par le resolver.
+        stubProvider = mock(WhatsAppProvider.class);
+        channel = new WhatsAppChannel(providerResolver, configRepository, tenantContext);
     }
 
     @Test
@@ -84,14 +93,15 @@ class WhatsAppChannelTest {
     }
 
     @Test
-    void send_validPhone_callsApiService() {
+    void send_validPhone_resolvesProviderAndDelegates() {
         WhatsAppConfig config = new WhatsAppConfig();
         config.setEnabled(true);
         config.setApiToken("test-token");
 
         when(tenantContext.getOrganizationId()).thenReturn(1L);
         when(configRepository.findByOrganizationId(1L)).thenReturn(Optional.of(config));
-        when(apiService.sendTextMessage(config, "+33612345678", "Hello")).thenReturn("msg-123");
+        when(providerResolver.resolve(config)).thenReturn(stubProvider);
+        when(stubProvider.sendTextMessage(config, "+33612345678", "Hello")).thenReturn("msg-123");
 
         MessageDeliveryRequest request = new MessageDeliveryRequest(
             "test@email.com", "+33612345678", "Jean", "Subject", "<p>Hello</p>", "Hello", "fr");
@@ -103,13 +113,14 @@ class WhatsAppChannelTest {
     }
 
     @Test
-    void send_apiException_returnsFailure() {
+    void send_providerException_returnsFailure() {
         WhatsAppConfig config = new WhatsAppConfig();
         config.setEnabled(true);
 
         when(tenantContext.getOrganizationId()).thenReturn(1L);
         when(configRepository.findByOrganizationId(1L)).thenReturn(Optional.of(config));
-        when(apiService.sendTextMessage(any(), anyString(), anyString()))
+        when(providerResolver.resolve(config)).thenReturn(stubProvider);
+        when(stubProvider.sendTextMessage(any(), anyString(), anyString()))
             .thenThrow(new RuntimeException("API error"));
 
         MessageDeliveryRequest request = new MessageDeliveryRequest(
