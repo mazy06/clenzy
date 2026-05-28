@@ -4,7 +4,9 @@ import com.clenzy.config.ai.ChatEvent;
 import com.clenzy.config.ai.ChatLLMProvider;
 import com.clenzy.config.ai.ChatMessage;
 import com.clenzy.config.ai.ChatRequest;
+import com.clenzy.model.AssistantMemory;
 import com.clenzy.service.agent.AgentContext;
+import com.clenzy.service.agent.kb.KbSearchService.KbSearchHit;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -211,6 +213,115 @@ class OrchestratorAgentTest {
                 AgentContext.minimal(1L, "kc"));
         assertThat(r.isSuccess()).isFalse();
         assertThat(r.error()).contains("vide");
+    }
+
+    @Test
+    void orchestrate_with_memory_injects_memory_section_in_system_prompt() {
+        // Fix bloquant #3 : la memoire long-terme DOIT etre injectee dans le
+        // system prompt de l'orchestrator pour qu'il personnalise la query.
+        AssistantMemory memory = new AssistantMemory(1L, "kc", "currency",
+                "EUR", AssistantMemory.Scope.PREFERENCE);
+        OrchestrationContext ctx = new OrchestrationContext(List.of(memory), List.of());
+
+        stubLlm("Tu as 5 biens.", List.of(), 50, 10);
+
+        orchestrator.orchestrate(List.of(ChatMessage.user("liste mes biens")),
+                AgentContext.minimal(1L, "kc"), ctx);
+
+        ArgumentCaptor<ChatRequest> reqCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+        verify(chatProvider).streamChat(reqCaptor.capture(), any());
+        String sysPrompt = reqCaptor.getValue().systemPrompt();
+        assertThat(sysPrompt)
+                .contains("<memory>")
+                .contains("scope=\"preference\"")
+                .contains("key=\"currency\"")
+                .contains("EUR")
+                .contains("</memory>");
+    }
+
+    @Test
+    void orchestrate_with_kb_hits_injects_knowledge_base_section() {
+        // Fix bloquant #3 : les snippets RAG DOIVENT etre injectes pour citation.
+        KbSearchHit hit = new KbSearchHit(1L, 1L, "Tarification dynamique",
+                "/docs/pricing.md",
+                "Le pricing engine resout 6 niveaux : RateOverride > Promotional > ...",
+                0.92);
+        OrchestrationContext ctx = new OrchestrationContext(List.of(), List.of(hit));
+
+        stubLlm("Voici le pricing.", List.of(), 50, 10);
+
+        orchestrator.orchestrate(List.of(ChatMessage.user("comment marche le pricing ?")),
+                AgentContext.minimal(1L, "kc"), ctx);
+
+        ArgumentCaptor<ChatRequest> reqCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+        verify(chatProvider).streamChat(reqCaptor.capture(), any());
+        String sysPrompt = reqCaptor.getValue().systemPrompt();
+        assertThat(sysPrompt)
+                .contains("<knowledge_base>")
+                .contains("title=\"Tarification dynamique\"")
+                .contains("path=\"/docs/pricing.md\"")
+                .contains("relevance=\"92%\"")
+                .contains("RateOverride")
+                .contains("</knowledge_base>");
+    }
+
+    @Test
+    void orchestrate_with_empty_context_omits_memory_and_kb_sections() {
+        // Pas de pollution du prompt quand pas de memoire/RAG.
+        stubLlm("Bonjour !", List.of(), 30, 5);
+
+        orchestrator.orchestrate(List.of(ChatMessage.user("hello")),
+                AgentContext.minimal(1L, "kc"), OrchestrationContext.empty());
+
+        ArgumentCaptor<ChatRequest> reqCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+        verify(chatProvider).streamChat(reqCaptor.capture(), any());
+        String sysPrompt = reqCaptor.getValue().systemPrompt();
+        assertThat(sysPrompt)
+                .doesNotContain("<memory>")
+                .doesNotContain("<knowledge_base>")
+                .contains("<role>")  // sections statiques toujours la
+                .contains("<specialists>");
+    }
+
+    @Test
+    void orchestrate_propagates_orchestration_context_to_specialist() {
+        // Fix bloquant #3 : les specialists doivent recevoir le contexte aussi.
+        ChatMessage.ToolCall delegate = new ChatMessage.ToolCall(
+                "tc1", "delegate_to",
+                "{\"specialist\":\"data_analyst\",\"query\":\"liste les biens en EUR\"}"
+        );
+
+        ArgumentCaptor<SpecialistRequest> specReqCaptor =
+                ArgumentCaptor.forClass(SpecialistRequest.class);
+        when(dataAnalyst.handle(specReqCaptor.capture())).thenReturn(
+                SpecialistResult.success("Tu as 5 biens.", List.of("list_properties"), 30, 15)
+        );
+
+        AtomicInteger callCount = new AtomicInteger();
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            if (callCount.getAndIncrement() == 0) {
+                consumer.accept(new ChatEvent.ToolCallRequest(List.of(delegate)));
+                consumer.accept(new ChatEvent.Done(40, 5, "claude", "tool_use", ""));
+            } else {
+                consumer.accept(new ChatEvent.TextDelta("Tu as 5 biens en EUR."));
+                consumer.accept(new ChatEvent.Done(60, 10, "claude", "end_turn", "Tu as 5 biens en EUR."));
+            }
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any());
+
+        AssistantMemory memory = new AssistantMemory(1L, "kc", "currency",
+                "EUR", AssistantMemory.Scope.PREFERENCE);
+        OrchestrationContext ctx = new OrchestrationContext(List.of(memory), List.of());
+
+        orchestrator.orchestrate(List.of(ChatMessage.user("liste mes biens")),
+                AgentContext.minimal(1L, "kc"), ctx);
+
+        // Le specialist a recu le meme contexte
+        SpecialistRequest received = specReqCaptor.getValue();
+        assertThat(received.orchestrationCtx()).isNotNull();
+        assertThat(received.orchestrationCtx().memories()).hasSize(1);
+        assertThat(received.orchestrationCtx().memories().get(0).getMemoryKey()).isEqualTo("currency");
     }
 
     @Test

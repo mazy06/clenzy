@@ -397,8 +397,19 @@ public class AgentOrchestrator {
         //    Si multi-agent throw, on log et fallback automatiquement.
         if (canUseMultiAgent(context, hasAttachments)) {
             try {
+                // Pre-charge memoire + RAG UNE FOIS pour les deux paths (mono + multi)
+                // afin d'eviter la duplication d'appels embeddings. Utilises ici par
+                // le multi-agent ; le fallback mono-agent les re-chargera dans
+                // buildSystemPrompt() — pas optimal mais reste safe.
+                List<AssistantMemory> memories = loadMemories(context, effectiveMessage);
+                List<KbSearchService.KbSearchHit> kbHits =
+                        loadRelevantKbHits(effectiveMessage, context.organizationId());
+                com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx =
+                        new com.clenzy.service.agent.multiagent.OrchestrationContext(memories, kbHits);
+
                 boolean handledByMultiAgent = tryMultiAgentFlow(
-                        effectiveMessage, chatMessages, context, conversation, consumer);
+                        effectiveMessage, chatMessages, orchestrationCtx,
+                        context, conversation, consumer);
                 if (handledByMultiAgent) {
                     // 5. Update conversation updatedAt + title si manquant
                     conversation.setUpdatedAt(LocalDateTime.now());
@@ -548,21 +559,26 @@ public class AgentOrchestrator {
     /**
      * Execute le flow multi-agent et stream les events SSE.
      *
-     * @param userMessage   le message texte du tour courant (utilise pour
-     *                       deriver le titre et le logging — pas pour le LLM)
-     * @param chatHistory   historique complet de la conversation (incluant le
-     *                       message user courant en derniere position). Transmis
-     *                       a l'orchestrator pour preserver le contexte multi-tour.
+     * @param userMessage      le message texte du tour courant (utilise pour
+     *                          deriver le titre et le logging — pas pour le LLM)
+     * @param chatHistory      historique complet de la conversation (incluant le
+     *                          message user courant en derniere position). Transmis
+     *                          a l'orchestrator pour preserver le contexte multi-tour.
+     * @param orchestrationCtx memoire + RAG pre-charges (Fix bloquant #3) :
+     *                          memory long-terme + snippets doc relevants. Injectes
+     *                          dans le system prompt de l'orchestrator et propages
+     *                          aux specialists via SpecialistRequest.
      * @return true si le flow a reussi et les events ont ete emis ;
      *         false si une condition empeche le multi-agent (caller fallback mono-agent)
      */
     private boolean tryMultiAgentFlow(String userMessage,
                                         List<ChatMessage> chatHistory,
+                                        com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx,
                                         AgentContext context,
                                         AssistantConversation conversation,
                                         Consumer<AgentSseEvent> consumer) {
         com.clenzy.service.agent.multiagent.OrchestratorAgent.OrchestrationResult result =
-                multiAgentOrchestrator.orchestrate(chatHistory, context);
+                multiAgentOrchestrator.orchestrate(chatHistory, context, orchestrationCtx);
 
         if (!result.isSuccess()) {
             log.warn("Multi-agent returned error : {} — fallback mono-agent", result.error());
