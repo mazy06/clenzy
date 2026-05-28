@@ -1435,3 +1435,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0153 : WhatsApp Provider Strategy (Meta Cloud API vs OpenWA self-hosted) ---
+  - changeSet:
+      id: "0153-add-whatsapp-provider-strategy"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0153__add_whatsapp_provider_strategy.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

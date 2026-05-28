@@ -2,6 +2,7 @@ package com.clenzy.service.messaging;
 
 import com.clenzy.model.*;
 import com.clenzy.repository.WhatsAppConfigRepository;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProviderResolver;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -10,6 +11,22 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
+/**
+ * Webhook entrant <b>Meta Cloud API uniquement</b>. La structure de payload
+ * (entries -> changes -> value -> messages/statuses) et la verification
+ * (mode=subscribe + verify_token) sont specifiques au format Meta.
+ *
+ * <p>Pour OpenWA, un webhook distinct sera necessaire (format different :
+ * message.received avec signature HMAC). Pour l'instant, les orgs en
+ * provider=OPENWA ne recoivent PAS les messages entrants via Clenzy —
+ * ils restent sur le telephone du host. C'est documenté dans l'UI de
+ * configuration (mode "send-only" pour OpenWA en MVP).</p>
+ *
+ * <p>Le {@code markAsRead} est route via {@link WhatsAppProviderResolver}
+ * pour qu'il s'execute sur le bon provider — en pratique toujours Meta
+ * puisque seul Meta declenche ce webhook, mais on garde la generalisation
+ * pour quand OpenWA aura son propre webhook.</p>
+ */
 @Service
 public class WhatsAppWebhookService {
 
@@ -17,16 +34,16 @@ public class WhatsAppWebhookService {
 
     private final WhatsAppConfigRepository configRepository;
     private final ConversationService conversationService;
-    private final WhatsAppApiService apiService;
+    private final WhatsAppProviderResolver providerResolver;
     private final ObjectMapper objectMapper;
 
     public WhatsAppWebhookService(WhatsAppConfigRepository configRepository,
                                    ConversationService conversationService,
-                                   WhatsAppApiService apiService,
+                                   WhatsAppProviderResolver providerResolver,
                                    ObjectMapper objectMapper) {
         this.configRepository = configRepository;
         this.conversationService = conversationService;
-        this.apiService = apiService;
+        this.providerResolver = providerResolver;
         this.objectMapper = objectMapper;
     }
 
@@ -91,8 +108,11 @@ public class WhatsAppWebhookService {
 
                     conversationService.addInboundMessage(conv, senderName, from, text, null, messageId);
 
-                    // Mark as read
-                    try { apiService.markAsRead(config, messageId); } catch (Exception ignored) {}
+                    // Mark as read — route via le resolver pour utiliser le bon
+                    // provider (toujours Meta en pratique vu que ce webhook est
+                    // Meta-only, mais on garde l'abstraction pour quand OpenWA
+                    // aura son propre webhook).
+                    try { providerResolver.resolve(config).markAsRead(config, messageId); } catch (Exception ignored) {}
                 });
         }
     }
