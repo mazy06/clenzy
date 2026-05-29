@@ -174,7 +174,8 @@ clenzy:
     contact-dir: /tmp/clenzy-ci/uploads/contact
     templates-dir: /tmp/clenzy-ci/uploads/templates
     documents-dir: /tmp/clenzy-ci/uploads/documents
-    user-avatar-dir: /tmp/clenzy-ci/uploads/user-avatars
+    # NOTE: user-avatar-dir retire — les avatars sont maintenant stockes en
+    # Postgres BYTEA via BinaryAssetStorage (cf. 0159 + UserAvatarStorageService).
   libreoffice:
     url: http://localhost:8083
 

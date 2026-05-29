@@ -51,6 +51,7 @@ class UserServiceTest {
     @Mock private NotificationService notificationService;
     @Mock private EmailService emailService;
     @Mock private UserAvatarStorageService avatarStorage;
+    @Mock private AvatarSelfHealer avatarSelfHealer;
     @Mock private ObjectProvider<OutboxPublisher> outboxPublisherProvider;
     @Mock private ObjectProvider<UserProfileSyncService> profileSyncProvider;
 
@@ -74,7 +75,7 @@ class UserServiceTest {
                 userRepository, organizationRepository, memberRepository,
                 organizationService, permissionService,
                 newUserService, notificationService, emailService, tenantContext,
-                avatarStorage, outboxPublisherProvider, profileSyncProvider);
+                avatarStorage, avatarSelfHealer, outboxPublisherProvider, profileSyncProvider);
     }
 
     private User buildUser(Long id, String email, UserRole role) {
