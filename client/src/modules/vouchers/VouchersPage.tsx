@@ -94,8 +94,8 @@ export default function VouchersPage({
   const [editing, setEditing] = useState<BookingVoucher | null>(null);
   const [creating, setCreating] = useState(false);
   const [snackbar, setSnackbar] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
-  // Fix M-NEW-4 : confirmation supprimee via Dialog MUI (au lieu de
-  // window.confirm bloque en iframe, non accessible, non i18n).
+  // Confirmation de suppression via Dialog MUI (window.confirm est bloque
+  // en iframe, non accessible, non i18n).
   const [pendingDelete, setPendingDelete] = useState<BookingVoucher | null>(null);
 
   const statusFilter = filter === 'all' ? undefined : filter;
@@ -143,7 +143,6 @@ export default function VouchersPage({
       });
       return;
     }
-    // Ouvre la confirmation MUI (fix M-NEW-4).
     setPendingDelete(v);
   };
 
@@ -278,7 +277,6 @@ export default function VouchersPage({
         />
       )}
 
-      {/* Fix M-NEW-4 : confirmation MUI au lieu de window.confirm. */}
       <Dialog
         open={pendingDelete !== null}
         onClose={() => setPendingDelete(null)}
@@ -452,7 +450,7 @@ function makeFormatDiscount(t: (...args: any[]) => string) {
 }
 
 function formatValidity(from: string | null, until: string | null, locale: string): string {
-  // Fix H-NEW-3 : utilise la langue active (FR/EN/AR) au lieu du hardcode 'fr-FR'.
+  // Utilise la langue active (FR/EN/AR) pour le formatage Intl, pas un hardcode.
   const fmt = (iso: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'short' }).format(new Date(iso));
   if (from && until) return `${fmt(from)} → ${fmt(until)}`;
   if (until) return `→ ${fmt(until)}`;

@@ -37,7 +37,6 @@ import java.util.Optional;
  * <h3>Rate limiting</h3>
  * Limite a 20 req/min/IP via {@code RateLimitInterceptor} (cas specifique
  * {@code voucher-validate:<ip>}). Bloque le brute-force de codes voucher.
- * Fix M-NEW-3 du code review pass 2.
  */
 /**
  * <p><b>Securite</b> : pas de {@code @PreAuthorize("permitAll()")} explicite
@@ -68,13 +67,12 @@ public class PublicVoucherController {
     public VoucherValidationResponseDto validate(
         @RequestBody @Valid VoucherValidationRequestDto request
     ) {
-        // Fix C-NEW-2 : prevention de l'oracle d'enumeration cross-tenant.
-        // Sans cette verification, un attaquant pouvait passer (orgId=X,
-        // propertyId=Y_d'une_autre_org) et inferer l'existence d'un code
-        // chez X via les codes d'erreur (NOT_FOUND vs PAUSED vs EXPIRED).
-        // On force la coherence orgId == property.organizationId ; si
-        // mismatch, on renvoie NOT_FOUND (pas UNAUTHORIZED, pour ne pas
-        // confirmer l'existence de la property cross-tenant).
+        // Prevention de l'oracle d'enumeration cross-tenant : sans la
+        // verification orgId == property.organizationId, un attaquant
+        // pouvait passer (orgId=X, propertyId=Y_d'une_autre_org) et inferer
+        // l'existence d'un code chez X via les codes d'erreur (NOT_FOUND vs
+        // PAUSED vs EXPIRED). En cas de mismatch, on renvoie NOT_FOUND (pas
+        // UNAUTHORIZED, pour ne pas confirmer l'existence de la property).
         Optional<Property> propertyOpt = propertyRepository.findById(request.propertyId());
         if (propertyOpt.isEmpty()
             || !propertyOpt.get().getOrganizationId().equals(request.organizationId())) {

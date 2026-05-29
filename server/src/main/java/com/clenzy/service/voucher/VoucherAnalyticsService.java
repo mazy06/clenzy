@@ -90,7 +90,7 @@ public class VoucherAnalyticsService {
      * de l'org avant de retourner.
      */
     public VoucherStatsDto getVoucherStats(Long voucherId, Long orgId) {
-        // Fix M-NEW-1 : exceptions metier dediees -> codes HTTP coherents via
+        // Exceptions metier dediees -> codes HTTP coherents via
         // GlobalExceptionHandler (404 NotFound vs 403 Unauthorized vs 500
         // genere par IllegalArgumentException).
         BookingVoucher v = voucherRepo.findById(voucherId)
