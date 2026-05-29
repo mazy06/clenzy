@@ -6,6 +6,7 @@ import com.clenzy.exception.VoucherException;
 import com.clenzy.model.BookingVoucher;
 import com.clenzy.model.Organization;
 import com.clenzy.model.Property;
+import com.clenzy.model.User;
 import com.clenzy.model.VoucherPropertyScope;
 import com.clenzy.model.voucher.VoucherChannelScope;
 import com.clenzy.model.voucher.VoucherCreatorOrgType;
@@ -681,6 +682,115 @@ class BookingVoucherServiceTest {
                 .thenReturn(List.of(v));
 
             assertThat(service.listByOrg(ORG_ID, VoucherStatus.ACTIVE)).hasSize(1);
+        }
+    }
+
+    // ─── DETECT CREATOR ORG TYPE ────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("detectCreatorOrgType")
+    class DetectCreatorOrgType {
+
+        @Test
+        @DisplayName("Liste vide → HOST par defaut (legacy 'all properties')")
+        void emptyListIsHost() {
+            assertThat(service.detectCreatorOrgType(USER_ID, List.of()))
+                .isEqualTo(VoucherCreatorOrgType.HOST);
+            assertThat(service.detectCreatorOrgType(USER_ID, null))
+                .isEqualTo(VoucherCreatorOrgType.HOST);
+        }
+
+        @Test
+        @DisplayName("Toutes les properties owned par userId → HOST")
+        void allOwnedIsHost() {
+            Property p1 = property(PROPERTY_ID, ORG_ID);
+            User owner = new User();
+            owner.setId(USER_ID);
+            p1.setOwner(owner);
+            when(propertyRepo.findAllById(List.of(PROPERTY_ID))).thenReturn(List.of(p1));
+
+            assertThat(service.detectCreatorOrgType(USER_ID, List.of(PROPERTY_ID)))
+                .isEqualTo(VoucherCreatorOrgType.HOST);
+        }
+
+        @Test
+        @DisplayName("Au moins une property non-owned → MANAGEMENT_ORG")
+        void anyNotOwnedIsMgmt() {
+            Property p1 = property(PROPERTY_ID, ORG_ID);
+            User owner = new User();
+            owner.setId(999L); // pas USER_ID
+            p1.setOwner(owner);
+            when(propertyRepo.findAllById(List.of(PROPERTY_ID))).thenReturn(List.of(p1));
+
+            assertThat(service.detectCreatorOrgType(USER_ID, List.of(PROPERTY_ID)))
+                .isEqualTo(VoucherCreatorOrgType.MANAGEMENT_ORG);
+        }
+
+        @Test
+        @DisplayName("Property avec owner=null → MANAGEMENT_ORG (defensif)")
+        void nullOwnerIsMgmt() {
+            Property p1 = property(PROPERTY_ID, ORG_ID);
+            p1.setOwner(null);
+            when(propertyRepo.findAllById(List.of(PROPERTY_ID))).thenReturn(List.of(p1));
+
+            assertThat(service.detectCreatorOrgType(USER_ID, List.of(PROPERTY_ID)))
+                .isEqualTo(VoucherCreatorOrgType.MANAGEMENT_ORG);
+        }
+    }
+
+    @Nested
+    @DisplayName("detectCreatorOrgTypeFromExistingScope")
+    class DetectFromExistingScope {
+
+        @Test
+        @DisplayName("Scope vide + voucher HOST → HOST (preserve le type original)")
+        void emptyScopeHostVoucher() {
+            BookingVoucher v = voucher(VOUCHER_ID, ORG_ID, VoucherStatus.ACTIVE);
+            v.setCreatedByOrgType(VoucherCreatorOrgType.HOST);
+            when(scopeRepo.findPropertyIdsByVoucherId(VOUCHER_ID)).thenReturn(Set.of());
+            when(voucherRepo.findById(VOUCHER_ID)).thenReturn(Optional.of(v));
+
+            assertThat(service.detectCreatorOrgTypeFromExistingScope(VOUCHER_ID, USER_ID))
+                .isEqualTo(VoucherCreatorOrgType.HOST);
+        }
+
+        @Test
+        @DisplayName("Scope vide + voucher MANAGEMENT_ORG → MANAGEMENT_ORG (fix H-PASS4-1)")
+        void emptyScopeMgmtVoucher() {
+            BookingVoucher v = voucher(VOUCHER_ID, ORG_ID, VoucherStatus.ACTIVE);
+            v.setCreatedByOrgType(VoucherCreatorOrgType.MANAGEMENT_ORG);
+            when(scopeRepo.findPropertyIdsByVoucherId(VOUCHER_ID)).thenReturn(Set.of());
+            when(voucherRepo.findById(VOUCHER_ID)).thenReturn(Optional.of(v));
+
+            // Avant le fix : retournait HOST → bypass des permissions MANAGEMENT_ORG.
+            assertThat(service.detectCreatorOrgTypeFromExistingScope(VOUCHER_ID, USER_ID))
+                .isEqualTo(VoucherCreatorOrgType.MANAGEMENT_ORG);
+        }
+
+        @Test
+        @DisplayName("Scope vide + voucher introuvable → HOST (fallback defensif)")
+        void emptyScopeOrphanedVoucher() {
+            when(scopeRepo.findPropertyIdsByVoucherId(VOUCHER_ID)).thenReturn(Set.of());
+            when(voucherRepo.findById(VOUCHER_ID)).thenReturn(Optional.empty());
+
+            assertThat(service.detectCreatorOrgTypeFromExistingScope(VOUCHER_ID, USER_ID))
+                .isEqualTo(VoucherCreatorOrgType.HOST);
+        }
+
+        @Test
+        @DisplayName("Scope non-vide → delegue a detectCreatorOrgType (pas de lookup voucher)")
+        void nonEmptyScopeDelegates() {
+            Property p1 = property(PROPERTY_ID, ORG_ID);
+            User owner = new User();
+            owner.setId(USER_ID);
+            p1.setOwner(owner);
+            when(scopeRepo.findPropertyIdsByVoucherId(VOUCHER_ID)).thenReturn(Set.of(PROPERTY_ID));
+            when(propertyRepo.findAllById(List.of(PROPERTY_ID))).thenReturn(List.of(p1));
+
+            assertThat(service.detectCreatorOrgTypeFromExistingScope(VOUCHER_ID, USER_ID))
+                .isEqualTo(VoucherCreatorOrgType.HOST);
+            // voucherRepo.findById NE doit PAS etre appele dans ce path (scope non-vide).
+            verify(voucherRepo, never()).findById(anyLong());
         }
     }
 }

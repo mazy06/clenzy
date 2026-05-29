@@ -263,6 +263,16 @@ public class BookingVoucherService {
      *
      * <p>Helper expose publique pour que le controller delegue (evite la
      * duplication de logique entre controller et service).</p>
+     *
+     * <p><b>Securite multi-tenant</b> : {@code propertyRepo.findAllById}
+     * est automatiquement scope par le {@code @Filter(organizationFilter)}
+     * pose sur {@link Property} (active par {@code TenantFilter} sur tout
+     * endpoint authentifie). Un property_id forge d'une autre org sera
+     * silencieusement filtre et n'apparaitra pas dans le resultat — la
+     * detection reste correcte (le caller en aval, via
+     * {@code resolveAndCheckProperties}, verifiera explicitement
+     * l'appartenance org de chaque property residuelle et refusera si
+     * mismatch).</p>
      */
     @Transactional(readOnly = true)
     public VoucherCreatorOrgType detectCreatorOrgType(Long userId, List<Long> propertyIds) {
@@ -279,7 +289,13 @@ public class BookingVoucherService {
 
     /**
      * Variante pour l'update sans changement de scope : recupere le scope
-     * existant en DB puis applique la meme detection.
+     * existant en DB puis applique la detection.
+     *
+     * <p><b>Defense en profondeur</b> : quand le scope est vide (voucher
+     * "all properties"), on consulte {@code voucher.createdByOrgType} pour
+     * preserver le type original. Sans ca, un voucher cree par
+     * MANAGEMENT_ORG (puis scope vide quel qu'en soit la cause) repasserait
+     * en HOST a l'update et bypasserait le check has_voucher_contract.</p>
      *
      * <p><b>Trade-off perf</b> : sur l'update path, ce helper + le re-read
      * interne de {@code update()} produisent 2 SQL sur le scope. Acceptable
@@ -290,6 +306,13 @@ public class BookingVoucherService {
     @Transactional(readOnly = true)
     public VoucherCreatorOrgType detectCreatorOrgTypeFromExistingScope(Long voucherId, Long userId) {
         Set<Long> scope = scopeRepo.findPropertyIdsByVoucherId(voucherId);
+        if (scope.isEmpty()) {
+            // Scope vide : on ne peut pas inferer le type via les properties.
+            // On preserve le type original du voucher.
+            return voucherRepo.findById(voucherId)
+                .map(BookingVoucher::getCreatedByOrgType)
+                .orElse(VoucherCreatorOrgType.HOST);
+        }
         return detectCreatorOrgType(userId, List.copyOf(scope));
     }
 
