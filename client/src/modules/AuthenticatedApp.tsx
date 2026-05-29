@@ -89,6 +89,9 @@ import TokenMonitoringPage from './admin/TokenMonitoringPage';
 import MonitoringPage from './admin/MonitoringPage';
 import SyncAdminPage from './admin/SyncAdminPage';
 import PromoCodesPage from './admin/PromoCodesPage';
+// VouchersPage est desormais monte comme tab #3 dans PropertiesPage
+// (cf. /properties?tab=2). L'ancienne route /vouchers est conservee
+// en redirection pour preserver les bookmarks.
 import KpiReadinessPage from './admin/KpiReadinessPage';
 import DatabaseAdminPage from './admin/DatabaseAdminPage';
 import ExchangeRateHistoryPage from './admin/ExchangeRateHistoryPage';
@@ -406,6 +409,11 @@ const AuthenticatedApp: React.FC = () => {
             </ErrorBoundary>
           </ProtectedRoute>
         } />
+
+        {/* Vouchers : la page a ete integree comme tab #3 dans Propriétés
+            (depuis qu'elle est conceptuellement liee aux biens). On garde
+            un redirect pour les bookmarks existants. */}
+        <Route path="/vouchers" element={<Navigate to="/properties?tab=2" replace />} />
 
         <Route path="/admin/exchange-rates" element={
           <ProtectedRoute requiredPermission="users:manage">

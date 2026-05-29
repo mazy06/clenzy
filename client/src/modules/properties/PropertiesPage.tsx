@@ -3,6 +3,7 @@ import { Box } from '@mui/material';
 import {
   Home,
   TrendingUp,
+  LocalOffer,
 } from '../../icons';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -16,6 +17,7 @@ import {
 } from '../../components/PageHeaderActionsContext';
 import PropertiesList from './PropertiesList';
 import DynamicPricing from '../pricing/DynamicPricing';
+import VouchersPage from '../vouchers/VouchersPage';
 
 // ─── Portal container for child actions in PageHeader ────────────────────────
 const PORTAL_STYLE = { display: 'contents' } as const;
@@ -24,6 +26,7 @@ const PORTAL_STYLE = { display: 'contents' } as const;
 
 const TAB_PROPERTIES = 0;
 const TAB_PRICING = 1;
+const TAB_VOUCHERS = 2;
 
 // La metadata par tab (breadcrumb + subtitle) est construite dans le composant
 // via t() pour reagir au changement de langue (cf. propertiesTabMeta plus bas).
@@ -36,7 +39,7 @@ const PropertiesPage: React.FC = () => {
 
   const initialTab = parseInt(searchParams.get('tab') || '0', 10);
   const [activeTab, setActiveTab] = useState(
-    isNaN(initialTab) ? 0 : Math.min(initialTab, TAB_PRICING)
+    isNaN(initialTab) ? 0 : Math.min(initialTab, TAB_VOUCHERS)
   );
 
   // Portal containers: child components render their actions/filters into these DOM elements
@@ -59,7 +62,7 @@ const PropertiesPage: React.FC = () => {
     const tabParam = searchParams.get('tab');
     if (tabParam) {
       const parsed = parseInt(tabParam, 10);
-      if (!isNaN(parsed) && parsed >= 0 && parsed <= TAB_PRICING && parsed !== activeTab) {
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= TAB_VOUCHERS && parsed !== activeTab) {
         setActiveTab(parsed);
       }
     }
@@ -70,6 +73,7 @@ const PropertiesPage: React.FC = () => {
   const tabs = [
     { value: TAB_PROPERTIES, label: t('propertiesPage.tabs.properties'), icon: <Home /> },
     { value: TAB_PRICING,    label: t('propertiesPage.tabs.pricing'),    icon: <TrendingUp /> },
+    { value: TAB_VOUCHERS,   label: t('propertiesPage.tabs.vouchers', 'Codes promo'), icon: <LocalOffer /> },
   ];
   const visibleTabs = tabs.filter((tab) => !(tab as { hidden?: boolean }).hidden);
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
@@ -79,6 +83,9 @@ const PropertiesPage: React.FC = () => {
     },
     [t('propertiesPage.tabs.pricing')]: {
       subtitle: t('tabHeaders.properties.subtitle.pricing', 'Configuration de la tarification dynamique par bien : prix de base, saisonnalité, ajustements.'),
+    },
+    [t('propertiesPage.tabs.vouchers', 'Codes promo')]: {
+      subtitle: t('tabHeaders.properties.subtitle.vouchers', 'Codes promo et campagnes auto applicables aux nuitées : remises pourcentage ou montant fixe, scope par bien.'),
     },
   };
   const { title, subtitle } = resolveTabHeader(
@@ -121,6 +128,9 @@ const PropertiesPage: React.FC = () => {
         )}
         {activeTab === TAB_PRICING && (
           <DynamicPricing embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} tabInlineContainer={tabInlineContainer} />
+        )}
+        {activeTab === TAB_VOUCHERS && (
+          <VouchersPage embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
         )}
       </Box>
     </PageHeaderActionsProvider>

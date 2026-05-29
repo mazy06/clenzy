@@ -55,6 +55,7 @@
     "settings": "Paramètres",
     "rolesPermissions": "Roles & Permissions",
     "tarification": "Tarification",
+    "vouchers": "Promos & Vouchers",
     "payments": "Paiements",
     "billing": "Facturation",
     "accounting": "Comptabilité",
@@ -866,6 +867,8 @@
     "checkOutTime": "Heure de départ par défaut",
     "bookingEngineVisible": "Visible sur le Booking Engine",
     "bookingEngineVisibleHelper": "Rendre cette propriété disponible à la réservation en ligne",
+    "orgCanCreateVouchers": "Autoriser ma conciergerie à créer des promos",
+    "orgCanCreateVouchersHelper": "Permet à l'organisation gestionnaire de ce logement de créer des codes promo (vouchers) sur les nuitées. Nécessite aussi un contrat voucher signé côté plateforme.",
     "cleaningPricing": "Tarification ménage",
     "cleaningBasePrice": "Prix de base (€)",
     "cleaningBasePriceHelper": "Prix fixe par intervention",
@@ -2332,7 +2335,8 @@
     "subtitle": "Gestion des propriétés et des tarifs dynamiques",
     "tabs": {
       "properties": "Propriétés",
-      "pricing": "Prix dynamique"
+      "pricing": "Prix dynamique",
+      "vouchers": "Codes promo"
     }
   },
   "directoryPage": {
@@ -4123,7 +4127,8 @@
       "default": "Gestion des propriétés et des tarifs dynamiques",
       "subtitle": {
         "properties": "Liste de vos biens immobiliers avec leur statut, taux d'occupation et alertes.",
-        "pricing": "Configuration de la tarification dynamique par bien : prix de base, saisonnalité, ajustements."
+        "pricing": "Configuration de la tarification dynamique par bien : prix de base, saisonnalité, ajustements.",
+        "vouchers": "Codes promo et campagnes auto applicables aux nuitées : remises pourcentage ou montant fixe, scope par bien."
       }
     },
     "directory": {
@@ -4463,6 +4468,114 @@
       "footerCgu": "CGU",
       "footerPrivacy": "Politique de confidentialité",
       "footerSupport": "Support"
+    }
+  },
+  "vouchers": {
+    "title": "Promos & Vouchers",
+    "subtitle": "Codes promo et campagnes appliqués au prix des nuitées dans le booking engine.",
+    "createButton": "Créer un voucher",
+    "loadError": "Impossible de charger les vouchers.",
+    "empty": "Aucun voucher pour le moment. Crée-en un pour offrir des réductions aux voyageurs.",
+    "autoCampaign": "Auto",
+    "typeAuto": "Campagne auto",
+    "typeManual": "Code manuel",
+    "pause": "Mettre en pause",
+    "resume": "Réactiver",
+    "pauseSuccess": "Voucher mis en pause.",
+    "pauseError": "Impossible de mettre en pause ce voucher.",
+    "resumeSuccess": "Voucher réactivé.",
+    "resumeError": "Impossible de réactiver ce voucher.",
+    "saveSuccess": "Voucher enregistré.",
+    "deleteSuccess": "Voucher supprimé.",
+    "deleteError": "Impossible de supprimer ce voucher.",
+    "deleteConfirmTitle": "Supprimer ce voucher ?",
+    "deleteConfirm": "Supprimer définitivement « {{name}} » ? Cette action est irréversible.",
+    "deleteRefusedUsed": "Ce voucher a déjà été utilisé {{count}} fois. Mets-le en pause plutôt que de le supprimer.",
+    "filter": {
+      "all": "Tous",
+      "active": "Actifs",
+      "draft": "Brouillons",
+      "paused": "En pause",
+      "expired": "Expirés"
+    },
+    "table": {
+      "name": "Nom",
+      "code": "Code",
+      "type": "Type",
+      "discount": "Remise",
+      "validity": "Validité",
+      "usage": "Utilisé",
+      "status": "Statut"
+    },
+    "status": {
+      "ACTIVE": "Actif",
+      "DRAFT": "Brouillon",
+      "PAUSED": "En pause",
+      "EXPIRED": "Expiré"
+    },
+    "editor": {
+      "createTitle": "Nouveau voucher",
+      "editTitle": "Modifier le voucher",
+      "name": "Nom de la campagne",
+      "nameHelper": "Visible uniquement par toi (ex: « Black Friday 2026 »).",
+      "description": "Description (optionnelle)",
+      "status": "Statut",
+      "type": "Type",
+      "typeAutoHelper": "Appliqué automatiquement aux réservations éligibles sans saisie de code.",
+      "typeManualHelper": "Le voyageur saisit le code dans le booking engine pour bénéficier de la remise.",
+      "code": "Code",
+      "codeHelper": "Sera saisi par le voyageur. Insensible à la casse, stocké en majuscules.",
+      "discountType": "Type de remise",
+      "discountValue": "Valeur",
+      "discountPercentage": "Pourcentage",
+      "discountFixed": "Montant fixe",
+      "discountFreeNights": "Nuits gratuites",
+      "comingSoon": "bientôt",
+      "channelScope": "Canal autorisé",
+      "channelAll": "Tous les canaux",
+      "channelBookingEngine": "Booking engine uniquement",
+      "channelDirectLink": "Lien direct uniquement",
+      "validFrom": "Début de validité",
+      "validFromHelper": "Vide = effectif immédiatement.",
+      "validUntil": "Fin de validité",
+      "validUntilHelper": "Vide = pas d'expiration.",
+      "minStayNights": "Min. nuits",
+      "maxStayNights": "Max. nuits",
+      "minTotalAmount": "Min. total",
+      "maxUsesTotal": "Plafond total",
+      "maxUsesTotalHelper": "Nombre max d'utilisations toutes guests confondus. Vide = illimité.",
+      "maxUsesPerGuest": "Plafond par guest",
+      "maxUsesPerGuestHelper": "Nombre max par guest_email. Vide = illimité. Défaut = 1 (one-shot).",
+      "applyToAll": "Appliquer à toutes mes propriétés",
+      "targetProperties": "Propriétés ciblées",
+      "targetPropertiesPlaceholder": "Sélectionne les logements éligibles",
+      "nights": "nuits",
+      "nights_one": "nuit",
+      "nights_other": "nuits",
+      "errors": {
+        "nameRequired": "Le nom est obligatoire.",
+        "codeRequiredForManual": "Un code est requis pour un voucher MANUAL_CODE.",
+        "discountValueInvalid": "La valeur de remise doit être supérieure à 0.",
+        "percentTooBig": "Un pourcentage ne peut pas dépasser 100.",
+        "saveFailed": "Impossible d'enregistrer le voucher."
+      }
+    },
+    "analytics": {
+      "title": "Performance — 30 derniers jours",
+      "loadError": "Impossible de charger les statistiques.",
+      "noUsageYet": "Aucun voucher utilisé pour le moment. {{active}} voucher(s) actif(s) prêt(s) à recevoir des codes.",
+      "totalUsages": "Utilisations",
+      "totalGross": "CA brut",
+      "totalDiscount": "Remise totale",
+      "totalNet": "CA net",
+      "topVouchersTitle": "Top vouchers de la période",
+      "colName": "Nom",
+      "colCode": "Code",
+      "colUsages": "Util.",
+      "colGross": "CA brut",
+      "colDiscount": "Remise",
+      "colNet": "CA net",
+      "colAvgPct": "% moy."
     }
   }
 }

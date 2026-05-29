@@ -1486,3 +1486,32 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0157 : Booking Vouchers — promos/voucher sur les nuitees de location ---
+  # Cree booking_voucher + voucher_property_scope + voucher_usage + colonnes
+  # organization.has_voucher_contract, property.org_can_create_vouchers, et
+  # reservation.{original_total, discount_amount, voucher_code, booking_voucher_id}.
+  # Distinct de platform_promo_codes (0152) qui s'applique aux abonnements PMS.
+  # splitStatements: false a cause du bloc CREATE FUNCTION (trigger updated_at).
+  - changeSet:
+      id: "0157-add-booking-vouchers"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0157__add_booking_vouchers.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  # --- 0158 : Defense en profondeur multi-tenant sur voucher_property_scope ---
+  # Ajoute organization_id denormalise pour permettre l'application du
+  # Hibernate @Filter("organizationFilter") sur l'entite. Backfill depuis
+  # booking_voucher. Fix C-NEW-3 du code review pass 2.
+  # splitStatements: false a cause du bloc DO $$ (verif rows orphelines).
+  - changeSet:
+      id: "0158-voucher-property-scope-organization-id"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0158__voucher_property_scope_organization_id.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
