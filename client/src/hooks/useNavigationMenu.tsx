@@ -160,19 +160,9 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.tarification',
     group: 'management',
   },
-  // Promos/vouchers sur les nuitees (distinct des codes promo plateforme admin).
-  // Accessible aux HOST et a leur conciergerie eventuelle (SUPER_ADMIN/MANAGER).
-  // L'edition est gatee cote backend par BookingVoucherService selon le
-  // creatorOrgType (HOST vs MANAGEMENT_ORG + flags has_voucher_contract +
-  // org_can_create_vouchers).
-  {
-    icon: <LocalOffer />,
-    path: '/vouchers',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
-    permission: 'properties:view',
-    translationKey: 'navigation.vouchers',
-    group: 'management',
-  },
+  // Note : l'entree /vouchers a ete deplacee dans Propriétés (tab #3).
+  // La route /vouchers reste accessible mais redirige vers /properties?tab=2
+  // pour preserver les bookmarks. Pas d'entree sidebar dediee.
   {
     icon: <Payment />,
     path: '/billing',

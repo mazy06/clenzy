@@ -2311,7 +2311,8 @@
     "subtitle": "Manage properties and dynamic pricing",
     "tabs": {
       "properties": "Properties",
-      "pricing": "Dynamic Pricing"
+      "pricing": "Dynamic Pricing",
+      "vouchers": "Promo Codes"
     }
   },
   "directoryPage": {
@@ -4068,7 +4069,8 @@
       "default": "Properties and dynamic pricing management",
       "subtitle": {
         "properties": "List of your properties with their status, occupancy rate and alerts.",
-        "pricing": "Dynamic pricing configuration per property: base price, seasonality, adjustments."
+        "pricing": "Dynamic pricing configuration per property: base price, seasonality, adjustments.",
+        "vouchers": "Promo codes and auto campaigns applicable to nightly rates: percentage or fixed discount, per-property scope."
       }
     },
     "directory": {

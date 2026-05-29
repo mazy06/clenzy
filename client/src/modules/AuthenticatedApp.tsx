@@ -89,7 +89,9 @@ import TokenMonitoringPage from './admin/TokenMonitoringPage';
 import MonitoringPage from './admin/MonitoringPage';
 import SyncAdminPage from './admin/SyncAdminPage';
 import PromoCodesPage from './admin/PromoCodesPage';
-import VouchersPage from './vouchers/VouchersPage';
+// VouchersPage est desormais monte comme tab #3 dans PropertiesPage
+// (cf. /properties?tab=2). L'ancienne route /vouchers est conservee
+// en redirection pour preserver les bookmarks.
 import KpiReadinessPage from './admin/KpiReadinessPage';
 import DatabaseAdminPage from './admin/DatabaseAdminPage';
 import ExchangeRateHistoryPage from './admin/ExchangeRateHistoryPage';
@@ -408,17 +410,10 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        {/* Vouchers : promos host/conciergerie sur les nuitees (distinct des
-            promo codes admin pour abonnements PMS). Permission generique
-            properties:view : tout user authentifie de l'org peut voir les
-            vouchers, l'edition est gatee cote backend par le creatorOrgType. */}
-        <Route path="/vouchers" element={
-          <ProtectedRoute requiredPermission="properties:view">
-            <ErrorBoundary>
-              <VouchersPage />
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
+        {/* Vouchers : la page a ete integree comme tab #3 dans Propriétés
+            (depuis qu'elle est conceptuellement liee aux biens). On garde
+            un redirect pour les bookmarks existants. */}
+        <Route path="/vouchers" element={<Navigate to="/properties?tab=2" replace />} />
 
         <Route path="/admin/exchange-rates" element={
           <ProtectedRoute requiredPermission="users:manage">
