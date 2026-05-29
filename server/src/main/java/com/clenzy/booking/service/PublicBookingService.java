@@ -5,8 +5,12 @@ import com.clenzy.booking.model.BookingEngineConfig;
 import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.dto.TouristTaxCalculationDto;
 import com.clenzy.model.*;
+import com.clenzy.model.voucher.VoucherChannelScope;
 import com.clenzy.repository.*;
 import com.clenzy.service.*;
+import com.clenzy.service.voucher.VoucherApplyResult;
+import com.clenzy.service.voucher.VoucherEngine;
+import com.clenzy.service.voucher.VoucherValidationResult;
 import com.stripe.model.checkout.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +50,7 @@ public class PublicBookingService {
     private final TouristTaxService touristTaxService;
     private final StripeService stripeService;
     private final GuestReviewRepository guestReviewRepository;
+    private final VoucherEngine voucherEngine;
 
     public PublicBookingService(
             BookingEngineConfigRepository configRepository,
@@ -59,7 +64,8 @@ public class PublicBookingService {
             GuestService guestService,
             TouristTaxService touristTaxService,
             StripeService stripeService,
-            GuestReviewRepository guestReviewRepository) {
+            GuestReviewRepository guestReviewRepository,
+            VoucherEngine voucherEngine) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -72,6 +78,7 @@ public class PublicBookingService {
         this.touristTaxService = touristTaxService;
         this.stripeService = stripeService;
         this.guestReviewRepository = guestReviewRepository;
+        this.voucherEngine = voucherEngine;
     }
 
     // ─── Resolution org ──────────────────────────────────────────────────────────
@@ -305,7 +312,41 @@ public class PublicBookingService {
         reservation.setRoomRevenue(availability.subtotal());
         reservation.setCleaningFee(availability.cleaningFee());
         reservation.setTouristTaxAmount(availability.touristTax());
-        reservation.setTotalPrice(availability.total());
+
+        // Voucher : validate + apply si code fourni. Le total publie devient le
+        // {@code original_total}, le {@code total_price} final inclut le discount.
+        // Si le code est invalide, on degrade silencieusement (booking continue
+        // sans discount + log warning) plutot que de bloquer le booking en cours.
+        // L'endpoint /api/public/vouchers/validate doit etre appele AVANT par le
+        // booking engine pour eviter cette surprise UX.
+        BigDecimal originalTotal = availability.total();
+        VoucherApplyResult voucherApplied = null;
+        BookingVoucher appliedVoucher = null;
+        if (req.voucherCode() != null && !req.voucherCode().isBlank()) {
+            int nights = (int) ChronoUnit.DAYS.between(req.checkIn(), req.checkOut());
+            VoucherValidationResult validation = voucherEngine.validate(
+                orgId, req.voucherCode(), req.propertyId(), nights, originalTotal,
+                req.guest().email(), VoucherChannelScope.BOOKING_ENGINE
+            );
+            if (validation instanceof VoucherValidationResult.Valid valid) {
+                appliedVoucher = valid.voucher();
+                voucherApplied = voucherEngine.apply(appliedVoucher, originalTotal, nights);
+                reservation.setOriginalTotal(voucherApplied.originalTotal());
+                reservation.setDiscountAmount(voucherApplied.discountApplied());
+                reservation.setVoucherCode(appliedVoucher.getCode());
+                reservation.setBookingVoucherId(appliedVoucher.getId());
+                reservation.setTotalPrice(voucherApplied.finalTotal());
+                log.info("Voucher applied during reserve : code={}, discount={}",
+                    appliedVoucher.getCode(), voucherApplied.discountApplied());
+            } else {
+                VoucherValidationResult.Invalid invalid = (VoucherValidationResult.Invalid) validation;
+                log.warn("Voucher rejected during reserve : code={}, reason={} ({})",
+                    req.voucherCode(), invalid.reason(), invalid.message());
+                reservation.setTotalPrice(originalTotal);
+            }
+        } else {
+            reservation.setTotalPrice(originalTotal);
+        }
 
         // Code de confirmation unique
         reservation.setConfirmationCode(generateConfirmationCode());
@@ -323,6 +364,27 @@ public class PublicBookingService {
         }
 
         reservation = reservationRepository.save(reservation);
+
+        // 4b. Si un voucher a ete applique, enregistrer l'usage + incrementer
+        // le compteur atomiquement (CAS). Si la race condition se realise
+        // (autre booking simultane a consomme la derniere place), on rollback
+        // les champs voucher_* sur la reservation pour rester consistant.
+        if (appliedVoucher != null && voucherApplied != null) {
+            var usageOpt = voucherEngine.recordUsage(
+                appliedVoucher, reservation.getId(), orgId, req.propertyId(),
+                voucherApplied, req.guest().email(), "BOOKING_ENGINE"
+            );
+            if (usageOpt.isEmpty()) {
+                log.warn("Voucher race on max_uses_total : booking {} sauve sans discount",
+                    reservation.getConfirmationCode());
+                reservation.setOriginalTotal(null);
+                reservation.setDiscountAmount(null);
+                reservation.setVoucherCode(null);
+                reservation.setBookingVoucherId(null);
+                reservation.setTotalPrice(originalTotal);
+                reservation = reservationRepository.save(reservation);
+            }
+        }
 
         // 5. Bloquer les dates via CalendarEngine
         calendarEngine.book(
