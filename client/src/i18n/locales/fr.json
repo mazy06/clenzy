@@ -866,6 +866,8 @@
     "checkOutTime": "Heure de départ par défaut",
     "bookingEngineVisible": "Visible sur le Booking Engine",
     "bookingEngineVisibleHelper": "Rendre cette propriété disponible à la réservation en ligne",
+    "orgCanCreateVouchers": "Autoriser ma conciergerie à créer des promos",
+    "orgCanCreateVouchersHelper": "Permet à l'organisation gestionnaire de ce logement de créer des codes promo (vouchers) sur les nuitées. Nécessite aussi un contrat voucher signé côté plateforme.",
     "cleaningPricing": "Tarification ménage",
     "cleaningBasePrice": "Prix de base (€)",
     "cleaningBasePriceHelper": "Prix fixe par intervention",

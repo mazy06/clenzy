@@ -170,6 +170,50 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
               />
             </Grid>
 
+            {/* Org Voucher Consent — autorise la conciergerie a creer des
+                vouchers sur ce logement (combine avec organization.has_voucher_contract
+                cote backend). Default false : le host garde le controle. */}
+            <Grid item xs={12}>
+              <Controller
+                name="orgCanCreateVouchers"
+                control={control}
+                render={({ field }) => (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      py: 1,
+                      px: 1.5,
+                      borderRadius: 1.5,
+                      bgcolor: field.value ? 'success.50' : 'grey.50',
+                      border: '1px solid',
+                      borderColor: field.value ? 'success.200' : 'grey.200',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <Box component="span" sx={{ display: 'inline-flex', color: field.value ? 'success.main' : 'text.disabled' }}>
+                      <Language size={18} strokeWidth={1.75} />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                        {t('properties.orgCanCreateVouchers')}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                        {t('properties.orgCanCreateVouchersHelper')}
+                      </Typography>
+                    </Box>
+                    <Switch
+                      checked={field.value ?? false}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      size="small"
+                      color="success"
+                    />
+                  </Box>
+                )}
+              />
+            </Grid>
+
             <Grid item xs={6}>
               <Controller
                 name="defaultCheckInTime"

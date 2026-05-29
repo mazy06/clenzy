@@ -86,6 +86,7 @@ const DEFAULT_VALUES: PropertyFormValues = {
   amenities: [],
   cleaningNotes: undefined,
   bookingEngineVisible: false,
+  orgCanCreateVouchers: false,
 };
 
 // ============================================================================
@@ -177,6 +178,7 @@ export function usePropertyForm({
       amenities: p.amenities || [],
       cleaningNotes: p.cleaningNotes ?? undefined,
       bookingEngineVisible: p.bookingEngineVisible ?? false,
+      orgCanCreateVouchers: p.orgCanCreateVouchers ?? false,
       // Geolocalisation
       latitude: p.latitude ?? undefined,
       longitude: p.longitude ?? undefined,
@@ -222,6 +224,7 @@ export function usePropertyForm({
         amenities: formData.amenities,
         cleaningNotes: formData.cleaningNotes,
         bookingEngineVisible: formData.bookingEngineVisible,
+        orgCanCreateVouchers: formData.orgCanCreateVouchers,
         // Geolocalisation
         latitude: formData.latitude ?? undefined,
         longitude: formData.longitude ?? undefined,
