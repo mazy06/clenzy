@@ -2335,7 +2335,8 @@
     "subtitle": "Gestion des propriétés et des tarifs dynamiques",
     "tabs": {
       "properties": "Propriétés",
-      "pricing": "Prix dynamique"
+      "pricing": "Prix dynamique",
+      "vouchers": "Codes promo"
     }
   },
   "directoryPage": {
@@ -4126,7 +4127,8 @@
       "default": "Gestion des propriétés et des tarifs dynamiques",
       "subtitle": {
         "properties": "Liste de vos biens immobiliers avec leur statut, taux d'occupation et alertes.",
-        "pricing": "Configuration de la tarification dynamique par bien : prix de base, saisonnalité, ajustements."
+        "pricing": "Configuration de la tarification dynamique par bien : prix de base, saisonnalité, ajustements.",
+        "vouchers": "Codes promo et campagnes auto applicables aux nuitées : remises pourcentage ou montant fixe, scope par bien."
       }
     },
     "directory": {

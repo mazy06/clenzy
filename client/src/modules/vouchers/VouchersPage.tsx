@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Alert,
   Box,
@@ -57,6 +58,20 @@ const STATUS_COLOR: Record<VoucherStatus, string> = {
 type FilterMode = 'all' | VoucherStatus;
 
 /**
+ * Props pour le mode "embedded" : permet d'integrer la page comme tab d'un
+ * autre PageHeader (cf. {@code PropertiesPage} qui l'utilise comme 3e tab
+ * apres Propriétés et Prix dynamique). Quand {@code embedded === true},
+ * la page ne rend PAS son propre {@code PageHeader} et porte ses actions
+ * (boutons refresh + create) et ses filter chips dans les containers
+ * fournis par le parent via React Portal.
+ */
+interface VouchersPageProps {
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+  filtersContainer?: HTMLElement | null;
+}
+
+/**
  * Page de gestion des {@link BookingVoucher} pour l'org courante.
  *
  * <h3>Architecture</h3>
@@ -64,7 +79,11 @@ type FilterMode = 'all' | VoucherStatus;
  * controle visuellement la disponibilite (chips colores). Les pause/resume
  * sont des actions inline rapides (raccourci sans full edit).
  */
-export default function VouchersPage() {
+export default function VouchersPage({
+  embedded = false,
+  actionsContainer,
+  filtersContainer,
+}: VouchersPageProps = {}) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<FilterMode>('all');
   const [editing, setEditing] = useState<BookingVoucher | null>(null);
@@ -125,93 +144,110 @@ export default function VouchersPage() {
     }
   };
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <PageHeader
-        title={t('vouchers.title')}
-        subtitle={t('vouchers.subtitle')}
-        actions={
-          <Stack direction="row" spacing={1}>
-            <Tooltip title={t('common.refresh')}>
-              <IconButton onClick={() => refetch()} size="small" sx={{ cursor: 'pointer' }}>
-                <Refresh size={18} strokeWidth={1.75} />
-              </IconButton>
-            </Tooltip>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<Add size={16} strokeWidth={2} />}
-              onClick={() => setCreating(true)}
-              sx={{
-                bgcolor: ACCENT_TEAL,
-                textTransform: 'none',
-                '&:hover': { bgcolor: '#3d8276' },
-              }}
-            >
-              {t('vouchers.createButton')}
-            </Button>
-          </Stack>
-        }
-      />
-
-      <VoucherAnalyticsPanel />
-
-      <ToggleButtonGroup
-        value={filter}
-        exclusive
-        onChange={(_, v) => v && setFilter(v)}
+  // Actions et filtres extraits pour pouvoir etre portales dans le
+  // PageHeader du parent (mode embedded) ou rendus inline (mode standalone).
+  const actions = (
+    <Stack direction="row" spacing={1}>
+      <Tooltip title={t('common.refresh')}>
+        <IconButton onClick={() => refetch()} size="small" sx={{ cursor: 'pointer' }}>
+          <Refresh size={18} strokeWidth={1.75} />
+        </IconButton>
+      </Tooltip>
+      <Button
+        variant="contained"
         size="small"
-        sx={{ mb: 2 }}
+        startIcon={<Add size={16} strokeWidth={2} />}
+        onClick={() => setCreating(true)}
+        sx={{
+          bgcolor: ACCENT_TEAL,
+          textTransform: 'none',
+          '&:hover': { bgcolor: '#3d8276' },
+        }}
       >
-        <ToggleButton value="all">{t('vouchers.filter.all')}</ToggleButton>
-        <ToggleButton value="ACTIVE">{t('vouchers.filter.active')}</ToggleButton>
-        <ToggleButton value="DRAFT">{t('vouchers.filter.draft')}</ToggleButton>
-        <ToggleButton value="PAUSED">{t('vouchers.filter.paused')}</ToggleButton>
-        <ToggleButton value="EXPIRED">{t('vouchers.filter.expired')}</ToggleButton>
-      </ToggleButtonGroup>
+        {t('vouchers.createButton')}
+      </Button>
+    </Stack>
+  );
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {t('vouchers.loadError')}
-        </Alert>
+  const filterBar = (
+    <ToggleButtonGroup
+      value={filter}
+      exclusive
+      onChange={(_, v) => v && setFilter(v)}
+      size="small"
+    >
+      <ToggleButton value="all">{t('vouchers.filter.all')}</ToggleButton>
+      <ToggleButton value="ACTIVE">{t('vouchers.filter.active')}</ToggleButton>
+      <ToggleButton value="DRAFT">{t('vouchers.filter.draft')}</ToggleButton>
+      <ToggleButton value="PAUSED">{t('vouchers.filter.paused')}</ToggleButton>
+      <ToggleButton value="EXPIRED">{t('vouchers.filter.expired')}</ToggleButton>
+    </ToggleButtonGroup>
+  );
+
+  return (
+    <Box sx={{ p: embedded ? 0 : 3 }}>
+      {/* Mode standalone : on rend notre propre PageHeader. */}
+      {!embedded && (
+        <PageHeader
+          title={t('vouchers.title')}
+          subtitle={t('vouchers.subtitle')}
+          actions={actions}
+        />
       )}
 
-      {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
-          <CircularProgress />
-        </Box>
-      ) : sortedVouchers.length === 0 ? (
-        <Alert severity="info">{t('vouchers.empty')}</Alert>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>{t('vouchers.table.name')}</TableCell>
-                <TableCell>{t('vouchers.table.code')}</TableCell>
-                <TableCell>{t('vouchers.table.type')}</TableCell>
-                <TableCell>{t('vouchers.table.discount')}</TableCell>
-                <TableCell>{t('vouchers.table.validity')}</TableCell>
-                <TableCell align="center">{t('vouchers.table.usage')}</TableCell>
-                <TableCell align="center">{t('vouchers.table.status')}</TableCell>
-                <TableCell align="right">{t('common.actions')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {sortedVouchers.map((v) => (
-                <VoucherRow
-                  key={v.id}
-                  voucher={v}
-                  onEdit={() => setEditing(v)}
-                  onPause={() => handlePause(v)}
-                  onResume={() => handleResume(v)}
-                  onDelete={() => handleDelete(v)}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+      {/* Mode embedded : on porte actions + filter dans les slots du parent. */}
+      {embedded && actionsContainer && createPortal(actions, actionsContainer)}
+      {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
+
+      <Box sx={{ p: embedded ? 3 : 0 }}>
+        <VoucherAnalyticsPanel />
+
+        {/* Mode standalone : filter inline sous l'analytics panel. */}
+        {!embedded && <Box sx={{ mb: 2 }}>{filterBar}</Box>}
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {t('vouchers.loadError')}
+          </Alert>
+        )}
+
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
+            <CircularProgress />
+          </Box>
+        ) : sortedVouchers.length === 0 ? (
+          <Alert severity="info">{t('vouchers.empty')}</Alert>
+        ) : (
+          <TableContainer component={Paper}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>{t('vouchers.table.name')}</TableCell>
+                  <TableCell>{t('vouchers.table.code')}</TableCell>
+                  <TableCell>{t('vouchers.table.type')}</TableCell>
+                  <TableCell>{t('vouchers.table.discount')}</TableCell>
+                  <TableCell>{t('vouchers.table.validity')}</TableCell>
+                  <TableCell align="center">{t('vouchers.table.usage')}</TableCell>
+                  <TableCell align="center">{t('vouchers.table.status')}</TableCell>
+                  <TableCell align="right">{t('common.actions')}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {sortedVouchers.map((v) => (
+                  <VoucherRow
+                    key={v.id}
+                    voucher={v}
+                    onEdit={() => setEditing(v)}
+                    onPause={() => handlePause(v)}
+                    onResume={() => handleResume(v)}
+                    onDelete={() => handleDelete(v)}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Box>
 
       {(creating || editing) && (
         <VoucherEditorDialog
@@ -254,7 +290,9 @@ interface RowProps {
 
 const VoucherRow: React.FC<RowProps> = ({ voucher, onEdit, onPause, onResume, onDelete }) => {
   const { t } = useTranslation();
-  const formatDiscount = makeFormatDiscount(t);
+  // Cast pour s'aligner sur la signature `(key, opts?) => string`. Le retour
+  // de i18next peut etre object | string mais nos usages sont tous string.
+  const formatDiscount = makeFormatDiscount(t as unknown as (...args: any[]) => string);
   const v = voucher;
   const isAuto = v.type === 'AUTO_CAMPAIGN';
   const canPause = v.status === 'ACTIVE';
@@ -354,8 +392,11 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, onEdit, onPause, onResume, on
 /**
  * Format helper pour le discount selon le type. Le mot "nuit/nuits" passe par
  * une closure i18n pour eviter le hardcode FR (fix M4 review).
+ *
+ * Signature de {@code t} typee comme {@code (...args: any[]) => string} pour
+ * accepter la signature i18next sans casser nos call-sites.
  */
-function makeFormatDiscount(t: (key: string, opts?: object) => string) {
+function makeFormatDiscount(t: (...args: any[]) => string) {
   return (type: VoucherDiscountType, value: string): string => {
     const n = Number(value);
     if (type === 'PERCENTAGE') return `−${n}%`;
@@ -366,6 +407,8 @@ function makeFormatDiscount(t: (key: string, opts?: object) => string) {
 }
 
 function formatValidity(from: string | null, until: string | null): string {
+  // Note (H-NEW-3 review) : pour V1 on garde fr-FR car le PMS est principalement
+  // utilise en France. A passer en currentLanguage si besoin EN/AR.
   const fmt = (iso: string) => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short' }).format(new Date(iso));
   if (from && until) return `${fmt(from)} → ${fmt(until)}`;
   if (until) return `→ ${fmt(until)}`;
