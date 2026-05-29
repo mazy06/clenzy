@@ -405,11 +405,11 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-      {/* Portal actions into parent's PageHeader when embedded */}
-      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
-
-      {/* Portal filters into parent's PageHeader when embedded */}
-      {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
+      {/* Portal actions into parent's PageHeader when embedded.
+          Ternaires explicites (au lieu de &&) pour eviter de passer le
+          booleen false en children — MUI Box.propTypes rale sinon. */}
+      {embedded && actionsContainer ? createPortal(actionButtons, actionsContainer) : null}
+      {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
       {!embedded && (
         <Box sx={{ flexShrink: 0 }}>

@@ -66,7 +66,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                   <Typography variant="caption" color="text.disabled">...</Typography>
                 </Box>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data.byMonth} margin={{ top: 4, right: 6, left: -18, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
@@ -96,7 +96,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                 </Box>
               ) : (
                 <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                  <Box sx={{ flex: 1, minHeight: 0 }}>
+                  <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -143,7 +143,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                   <Typography variant="caption" color="text.disabled">...</Typography>
                 </Box>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.byProperty} layout="vertical" margin={{ top: 4, right: 6, left: 0, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} horizontal={false} />
