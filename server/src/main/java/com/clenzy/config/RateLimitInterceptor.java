@@ -41,6 +41,10 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private static final int AUTH_RATE_LIMIT = 30;   // par IP sur /api/auth/** (hors session)
     private static final int SESSION_RATE_LIMIT = 120; // /api/auth/session — appele a chaque navigation
     private static final int API_RATE_LIMIT = 300;
+    // Protection brute-force des codes voucher (endpoint public, non auth).
+    // 20 essais/min/IP suffit largement pour un guest qui tape son code,
+    // bloque l'enumeration auto.
+    private static final int VOUCHER_VALIDATE_RATE_LIMIT = 20;
     private static final long WINDOW_MS = 60_000;
     private static final String REDIS_PREFIX = "ratelimit:";
 
@@ -73,6 +77,11 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         } else if (path.startsWith("/api/auth/")) {
             key = "auth:" + getClientIp(request);
             limit = AUTH_RATE_LIMIT;
+        } else if (path.equals("/api/public/vouchers/validate")) {
+            // Limite stricte par IP sur la validation publique de code voucher
+            // (protection brute-force).
+            key = "voucher-validate:" + getClientIp(request);
+            limit = VOUCHER_VALIDATE_RATE_LIMIT;
         } else {
             String userId = getCurrentUserId();
             if (userId != null) {

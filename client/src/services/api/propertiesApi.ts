@@ -48,6 +48,8 @@ export interface Property {
   cleaningNotes?: string;
   // Booking Engine
   bookingEngineVisible?: boolean;
+  /** Consentement host pour que l'org gestionnaire cree des vouchers sur ce logement. */
+  orgCanCreateVouchers?: boolean;
   // Geolocalisation
   latitude?: number;
   longitude?: number;
@@ -109,6 +111,8 @@ export interface PropertyFormData {
   cleaningNotes?: string;
   // Booking Engine
   bookingEngineVisible?: boolean;
+  /** Consentement host pour que l'org gestionnaire cree des vouchers sur ce logement. */
+  orgCanCreateVouchers?: boolean;
   // Geolocalisation
   latitude?: number;
   longitude?: number;

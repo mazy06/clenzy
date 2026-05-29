@@ -222,6 +222,19 @@ public class Property {
     @Column(name = "booking_engine_visible", nullable = false)
     private boolean bookingEngineVisible = false;
 
+    /**
+     * Consentement du host pour que son org gestionnaire (conciergerie) cree
+     * des {@link BookingVoucher} sur ce logement.
+     *
+     * <p>Toggle dans Property Settings cote host. Combine avec
+     * {@code organization.has_voucher_contract = true} pour activer la
+     * creation par MANAGEMENT_ORG (les DEUX flags doivent etre true).</p>
+     *
+     * <p>Default false : le host garde le controle de ses promos par defaut.</p>
+     */
+    @Column(name = "org_can_create_vouchers", nullable = false)
+    private boolean orgCanCreateVouchers = false;
+
     @Column(name = "cleaning_notes", columnDefinition = "TEXT")
     private String cleaningNotes;
 
@@ -723,6 +736,14 @@ public class Property {
 
     public void setBookingEngineVisible(boolean bookingEngineVisible) {
         this.bookingEngineVisible = bookingEngineVisible;
+    }
+
+    public boolean isOrgCanCreateVouchers() {
+        return orgCanCreateVouchers;
+    }
+
+    public void setOrgCanCreateVouchers(boolean orgCanCreateVouchers) {
+        this.orgCanCreateVouchers = orgCanCreateVouchers;
     }
 
     public Long getOrganizationId() { return organizationId; }

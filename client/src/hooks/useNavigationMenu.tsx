@@ -160,6 +160,9 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.tarification',
     group: 'management',
   },
+  // Note : l'entree /vouchers a ete deplacee dans Propriétés (tab #3).
+  // La route /vouchers reste accessible mais redirige vers /properties?tab=2
+  // pour preserver les bookmarks. Pas d'entree sidebar dediee.
   {
     icon: <Payment />,
     path: '/billing',

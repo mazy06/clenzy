@@ -38,6 +38,10 @@ export const propertySchema = z.object({
   cleaningNotes: z.string().optional(),
   // Booking Engine
   bookingEngineVisible: z.boolean().default(false),
+  // Voucher consent : autorise l'org gestionnaire (conciergerie) a creer des
+  // BookingVoucher sur ce logement. Combine cote backend avec
+  // organization.has_voucher_contract. Default false (host garde le controle).
+  orgCanCreateVouchers: z.boolean().default(false),
   // Geolocalisation
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),

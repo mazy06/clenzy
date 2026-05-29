@@ -124,6 +124,17 @@ export interface ReserveRequest {
   guests: number;
   guest: GuestInfo;
   notes?: string;
+  /**
+   * Voucher code optionnel saisi par le guest. Valide cote backend, applique
+   * automatiquement au prix final si le voucher est valide. En cas de race
+   * condition sur le plafond {@code maxUsesTotal}, la reservation est
+   * conservee sans discount (degradation gracieuse).
+   *
+   * <p>Le frontend devrait appeler {@code validateVoucher()} AVANT le
+   * {@code reserve()} pour montrer le discount en preview et eviter la
+   * surprise UX.</p>
+   */
+  voucherCode?: string;
 }
 
 export interface GuestInfo {
@@ -141,6 +152,69 @@ export interface ReserveResult {
   total: number;
   currency: string;
   expiresAt: string;
+}
+
+// ─── Vouchers (promos sur les nuitees) ───────────────────────────────────────
+
+/** Canal d'application autorise pour un voucher. */
+export type VoucherChannelScope = 'ALL' | 'BOOKING_ENGINE' | 'DIRECT_LINK' | 'WHATSAPP' | 'EMAIL';
+
+/**
+ * Codes d'erreur de la validation d'un voucher cote guest. Chaque code se
+ * traduit en frontend par un message i18n dedie permettant d'expliquer au
+ * voyageur pourquoi son code n'est pas accepte.
+ */
+export type VoucherValidationError =
+  | 'NOT_FOUND'
+  | 'DRAFT_NOT_ACTIVE'
+  | 'PAUSED'
+  | 'EXPIRED'
+  | 'NOT_YET_ACTIVE'
+  | 'PROPERTY_NOT_IN_SCOPE'
+  | 'MIN_STAY_NOT_MET'
+  | 'MAX_STAY_EXCEEDED'
+  | 'MIN_TOTAL_NOT_MET'
+  | 'USAGE_LIMIT_REACHED'
+  | 'GUEST_LIMIT_REACHED'
+  | 'CHANNEL_NOT_ALLOWED'
+  | 'INVALID_INPUT';
+
+/**
+ * Payload pour pre-valider un voucher avant le {@code reserve()}.
+ *
+ * <p>Le {@code subtotal} doit etre celui calcule par
+ * {@link AvailabilityResult.total} (apres frais menage + taxe sejour, donc
+ * le total publie). Le backend appliquera le voucher sur ce montant.</p>
+ */
+export interface VoucherValidationRequest {
+  organizationId: number;
+  code: string;
+  propertyId: number;
+  stayNights: number;
+  subtotal: number | string;
+  /** Optional. Sert au check {@code maxUsesPerGuest}. */
+  guestEmail?: string;
+  /** Default: 'BOOKING_ENGINE' si non fourni. */
+  channel?: VoucherChannelScope;
+}
+
+/**
+ * Reponse a la validation. {@code valid=true} : {@code discountAmount} et
+ * {@code finalTotal} sont remplis pour preview UI. {@code valid=false} :
+ * {@code errorCode} indique pourquoi (a traduire en i18n).
+ */
+export interface VoucherValidationResponse {
+  valid: boolean;
+  /** Echo du code valide (pour l'UI). NULL si invalid. */
+  code: string | null;
+  /** Discount calcule en EUR (string pour precision decimal). NULL si invalid. */
+  discountAmount: string | null;
+  /** Total apres discount en EUR. NULL si invalid. */
+  finalTotal: string | null;
+  /** Code d'erreur enum (i18n key). NULL si valid. */
+  errorCode: VoucherValidationError | null;
+  /** Message en clair backend (pour logs/debug). NULL si valid. */
+  errorMessage: string | null;
 }
 
 // ─── Checkout ────────────────────────────────────────────────────────────────
