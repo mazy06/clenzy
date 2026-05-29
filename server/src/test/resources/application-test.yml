@@ -124,4 +124,4 @@ clenzy:
     contact-dir: ${java.io.tmpdir}/clenzy-test/uploads/contact
     documents-dir: ${java.io.tmpdir}/clenzy-test/uploads/documents
     templates-dir: ${java.io.tmpdir}/clenzy-test/uploads/templates
-    user-avatar-dir: ${java.io.tmpdir}/clenzy-test/uploads/user-avatars
+    # NOTE: user-avatar-dir retire — avatars en Postgres BYTEA via BinaryAssetStorage (0159).
