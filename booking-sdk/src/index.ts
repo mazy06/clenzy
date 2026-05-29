@@ -12,6 +12,8 @@ import type {
   CheckoutResult,
   BookingConfirmation,
   BookingError,
+  VoucherValidationRequest,
+  VoucherValidationResponse,
 } from './types';
 
 // Re-export all types for consumers
@@ -32,6 +34,10 @@ export type {
   BookingError,
   BookingEventMap,
   BookingEventName,
+  VoucherChannelScope,
+  VoucherValidationError,
+  VoucherValidationRequest,
+  VoucherValidationResponse,
 } from './types';
 
 const DEFAULT_BASE_URL = 'https://api.clenzy.fr';
@@ -147,6 +153,51 @@ export class ClenzyBooking extends EventEmitter {
       const result = await this.api.post<ReserveResult>(this.path('/reserve'), request);
       this.emit('reservation:created', result);
       return result;
+    });
+  }
+
+  // ─── Voucher (preview discount avant reserve) ──────────────────────────────
+
+  /**
+   * Pre-valide un code voucher dans le contexte du booking en cours et
+   * retourne le discount applicable. Utilise pour afficher le prix final
+   * au guest AVANT le {@code reserve()} (UX critique : eviter la surprise
+   * d'un code refuse au dernier moment).
+   *
+   * <p>Endpoint public {@code POST /api/public/vouchers/validate}, pas
+   * besoin de l'API Key du booking engine (org passe explicitement dans le
+   * body). Si le code est valide, le {@code discountAmount} est positif et
+   * {@code finalTotal} est le total apres discount.</p>
+   *
+   * <p>{@code channel} default a 'BOOKING_ENGINE' si non fourni.</p>
+   *
+   * @example
+   * ```js
+   * const v = await booking.validateVoucher({
+   *   organizationId: 42,
+   *   code: 'WELCOME20',
+   *   propertyId: 100,
+   *   stayNights: 3,
+   *   subtotal: 501,
+   *   guestEmail: 'jane@example.com',
+   * });
+   * if (v.valid) {
+   *   showDiscount(v.discountAmount, v.finalTotal);
+   * } else {
+   *   showError(i18n(`voucher.error.${v.errorCode}`));
+   * }
+   * ```
+   */
+  async validateVoucher(request: VoucherValidationRequest): Promise<VoucherValidationResponse> {
+    return this.withLoading(async () => {
+      // L'endpoint /api/public/vouchers/validate n'est PAS org-scope (pas de
+      // slug dans le path : l'org est passe explicitement dans le body).
+      // On bypass donc path() qui prepend '/api/public/booking/{org}/...'.
+      const payload = {
+        ...request,
+        channel: request.channel ?? 'BOOKING_ENGINE',
+      };
+      return await this.api.post<VoucherValidationResponse>('/api/public/vouchers/validate', payload);
     });
   }
 
