@@ -6,6 +6,11 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   Paper,
   Snackbar,
@@ -84,11 +89,14 @@ export default function VouchersPage({
   actionsContainer,
   filtersContainer,
 }: VouchersPageProps = {}) {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const [filter, setFilter] = useState<FilterMode>('all');
   const [editing, setEditing] = useState<BookingVoucher | null>(null);
   const [creating, setCreating] = useState(false);
   const [snackbar, setSnackbar] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
+  // Fix M-NEW-4 : confirmation supprimee via Dialog MUI (au lieu de
+  // window.confirm bloque en iframe, non accessible, non i18n).
+  const [pendingDelete, setPendingDelete] = useState<BookingVoucher | null>(null);
 
   const statusFilter = filter === 'all' ? undefined : filter;
   const { data: vouchers = [], isLoading, error, refetch } = useBookingVouchersList(statusFilter);
@@ -127,7 +135,7 @@ export default function VouchersPage({
     }
   };
 
-  const handleDelete = async (v: BookingVoucher) => {
+  const handleDelete = (v: BookingVoucher) => {
     if (v.usageCount > 0) {
       setSnackbar({
         msg: t('vouchers.deleteRefusedUsed', { count: v.usageCount }),
@@ -135,9 +143,16 @@ export default function VouchersPage({
       });
       return;
     }
-    if (!window.confirm(t('vouchers.deleteConfirm', { name: v.name }))) return;
+    // Ouvre la confirmation MUI (fix M-NEW-4).
+    setPendingDelete(v);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const target = pendingDelete;
+    setPendingDelete(null);
     try {
-      await deleteMutation.mutateAsync(v.id);
+      await deleteMutation.mutateAsync(target.id);
       setSnackbar({ msg: t('vouchers.deleteSuccess'), severity: 'success' });
     } catch (e: any) {
       setSnackbar({ msg: e?.message ?? t('vouchers.deleteError'), severity: 'error' });
@@ -237,6 +252,7 @@ export default function VouchersPage({
                   <VoucherRow
                     key={v.id}
                     voucher={v}
+                    locale={currentLanguage}
                     onEdit={() => setEditing(v)}
                     onPause={() => handlePause(v)}
                     onResume={() => handleResume(v)}
@@ -262,6 +278,34 @@ export default function VouchersPage({
         />
       )}
 
+      {/* Fix M-NEW-4 : confirmation MUI au lieu de window.confirm. */}
+      <Dialog
+        open={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>{t('vouchers.deleteConfirmTitle', 'Supprimer ce voucher ?')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {pendingDelete && t('vouchers.deleteConfirm', { name: pendingDelete.name })}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPendingDelete(null)} sx={{ textTransform: 'none' }}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            onClick={confirmDelete}
+            variant="contained"
+            sx={{ bgcolor: DANGER_SOFT, textTransform: 'none', '&:hover': { bgcolor: '#b86c6c' } }}
+            autoFocus
+          >
+            {t('common.delete')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar
         open={Boolean(snackbar)}
         autoHideDuration={4000}
@@ -282,13 +326,14 @@ export default function VouchersPage({
 
 interface RowProps {
   voucher: BookingVoucher;
+  locale: string;
   onEdit: () => void;
   onPause: () => void;
   onResume: () => void;
   onDelete: () => void;
 }
 
-const VoucherRow: React.FC<RowProps> = ({ voucher, onEdit, onPause, onResume, onDelete }) => {
+const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onResume, onDelete }) => {
   const { t } = useTranslation();
   // Cast pour s'aligner sur la signature `(key, opts?) => string`. Le retour
   // de i18next peut etre object | string mais nos usages sont tous string.
@@ -335,7 +380,7 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, onEdit, onPause, onResume, on
       </TableCell>
       <TableCell>
         <Typography variant="caption" color="text.secondary">
-          {formatValidity(v.validFrom, v.validUntil)}
+          {formatValidity(v.validFrom, v.validUntil, locale)}
         </Typography>
       </TableCell>
       <TableCell align="center">
@@ -406,10 +451,9 @@ function makeFormatDiscount(t: (...args: any[]) => string) {
   };
 }
 
-function formatValidity(from: string | null, until: string | null): string {
-  // Note (H-NEW-3 review) : pour V1 on garde fr-FR car le PMS est principalement
-  // utilise en France. A passer en currentLanguage si besoin EN/AR.
-  const fmt = (iso: string) => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short' }).format(new Date(iso));
+function formatValidity(from: string | null, until: string | null, locale: string): string {
+  // Fix H-NEW-3 : utilise la langue active (FR/EN/AR) au lieu du hardcode 'fr-FR'.
+  const fmt = (iso: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'short' }).format(new Date(iso));
   if (from && until) return `${fmt(from)} → ${fmt(until)}`;
   if (until) return `→ ${fmt(until)}`;
   if (from) return `${fmt(from)} → ∞`;

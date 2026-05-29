@@ -357,23 +357,46 @@ class BookingVoucherServiceTest {
         }
 
         @Test
-        @DisplayName("Fix H3 : update scope vide existant ne casse pas pour MANAGEMENT_ORG")
-        void emptyScopeExistingNotBroken() {
+        @DisplayName("Fix H-NEW-2 : MANAGEMENT_ORG sans contrat refuse update sur voucher 'all properties'")
+        void emptyScopeMgmtOrgWithoutContractRefused() {
             BookingVoucher existing = voucher(VOUCHER_ID, ORG_ID, VoucherStatus.ACTIVE);
             existing.setCreatedByOrgType(VoucherCreatorOrgType.HOST);
             when(voucherRepo.findById(VOUCHER_ID)).thenReturn(Optional.of(existing));
             // Scope existant vide (= toutes les properties), payload n'y touche pas
             when(scopeRepo.findPropertyIdsByVoucherId(VOUCHER_ID)).thenReturn(Set.of());
-            when(voucherRepo.save(any(BookingVoucher.class))).thenAnswer(inv -> inv.getArgument(0));
+            // org sans has_voucher_contract
+            Organization org = new Organization();
+            org.setId(ORG_ID);
+            org.setHasVoucherContract(false);
+            when(orgRepo.findById(ORG_ID)).thenReturn(Optional.of(org));
 
-            // L'update juste un champ name, sans toucher au scope
             VoucherUpdatePayload p = new VoucherUpdatePayload(
                 "Updated name", null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null  // propertyIds = null = pas de changement
+                null, null, null, null, null, null
             );
-            // Avant fix H3 : MANAGEMENT_ORG sur scope vide existant → UnauthorizedException
+            // Fix H-NEW-2 : le bypass d'autorisation introduit par H3 est leve.
+            // MANAGEMENT_ORG sans contrat NE PEUT PAS editer un voucher "all
+            // properties" (l'ancien comportement permettait l'edition silencieuse).
+            assertThatThrownBy(() -> service.update(VOUCHER_ID, ORG_ID, USER_ID,
+                VoucherCreatorOrgType.MANAGEMENT_ORG, p))
+                .isInstanceOf(UnauthorizedException.class);
+        }
+
+        @Test
+        @DisplayName("HOST update scope vide existant -> OK (creator est le proprio)")
+        void emptyScopeHostAllowed() {
+            BookingVoucher existing = voucher(VOUCHER_ID, ORG_ID, VoucherStatus.ACTIVE);
+            existing.setCreatedByOrgType(VoucherCreatorOrgType.HOST);
+            when(voucherRepo.findById(VOUCHER_ID)).thenReturn(Optional.of(existing));
+            when(scopeRepo.findPropertyIdsByVoucherId(VOUCHER_ID)).thenReturn(Set.of());
+            when(voucherRepo.save(any(BookingVoucher.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            VoucherUpdatePayload p = new VoucherUpdatePayload(
+                "Updated name", null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null
+            );
             BookingVoucher result = service.update(VOUCHER_ID, ORG_ID, USER_ID,
-                VoucherCreatorOrgType.MANAGEMENT_ORG, p);
+                VoucherCreatorOrgType.HOST, p);
             assertThat(result.getName()).isEqualTo("Updated name");
         }
 
@@ -594,9 +617,9 @@ class BookingVoucherServiceTest {
         @Test
         @DisplayName("Groupe les properties par voucher_id en 1 SQL")
         void groupsCorrectly() {
-            VoucherPropertyScope s1 = new VoucherPropertyScope(VOUCHER_ID, PROPERTY_ID);
-            VoucherPropertyScope s2 = new VoucherPropertyScope(VOUCHER_ID, PROPERTY_ID_2);
-            VoucherPropertyScope s3 = new VoucherPropertyScope(43L, PROPERTY_ID_2);
+            VoucherPropertyScope s1 = new VoucherPropertyScope(VOUCHER_ID, PROPERTY_ID, ORG_ID);
+            VoucherPropertyScope s2 = new VoucherPropertyScope(VOUCHER_ID, PROPERTY_ID_2, ORG_ID);
+            VoucherPropertyScope s3 = new VoucherPropertyScope(43L, PROPERTY_ID_2, ORG_ID);
             when(scopeRepo.findByVoucherIdIn(List.of(VOUCHER_ID, 43L)))
                 .thenReturn(List.of(s1, s2, s3));
 

@@ -2,6 +2,8 @@ package com.clenzy.service.voucher;
 
 import com.clenzy.dto.voucher.VoucherAnalyticsDto;
 import com.clenzy.dto.voucher.VoucherStatsDto;
+import com.clenzy.exception.NotFoundException;
+import com.clenzy.exception.UnauthorizedException;
 import com.clenzy.model.BookingVoucher;
 import com.clenzy.model.voucher.VoucherStatus;
 import com.clenzy.repository.BookingVoucherRepository;
@@ -347,18 +349,18 @@ class VoucherAnalyticsServiceTest {
         }
 
         @Test
-        @DisplayName("Voucher inexistant -> IllegalArgumentException")
+        @DisplayName("Voucher inexistant -> NotFoundException (404, fix M-NEW-1)")
         void notFound() {
             when(voucherRepo.findById(VOUCHER_ID)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.getVoucherStats(VOUCHER_ID, ORG_ID))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("introuvable");
             verify(usageRepo, never()).aggregateStatsByVoucher(anyLong());
         }
 
         @Test
-        @DisplayName("Voucher d'une autre org -> IllegalArgumentException (cross-tenant)")
+        @DisplayName("Voucher d'une autre org -> UnauthorizedException (403, fix M-NEW-1)")
         void crossOrgAccessDenied() {
             BookingVoucher v = new BookingVoucher();
             v.setId(VOUCHER_ID);
@@ -367,7 +369,7 @@ class VoucherAnalyticsServiceTest {
             when(voucherRepo.findById(VOUCHER_ID)).thenReturn(Optional.of(v));
 
             assertThatThrownBy(() -> service.getVoucherStats(VOUCHER_ID, ORG_ID))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(UnauthorizedException.class);
             verify(usageRepo, never()).aggregateStatsByVoucher(anyLong());
         }
 

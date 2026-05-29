@@ -255,11 +255,14 @@ public class VoucherEngine {
         List<Long> activeIds = active.stream().map(BookingVoucher::getId).toList();
 
         // Map voucher_id -> nb de rows dans le scope. Si absent de la map = 0.
+        // Fix C-NEW-1 : cast defensif via Number.longValue() pour eviter une
+        // ClassCastException si Hibernate retourne Integer ou BigInteger selon
+        // le driver/dialect au lieu de Long.
         Map<Long, Long> scopeCountByVoucher = scopeRepo.countByVoucherIdIn(activeIds)
             .stream()
             .collect(Collectors.toMap(
-                row -> (Long) row[0],
-                row -> (Long) row[1]
+                row -> ((Number) row[0]).longValue(),
+                row -> ((Number) row[1]).longValue()
             ));
 
         // Pour les vouchers AVEC scope, recupere ceux qui matchent la property

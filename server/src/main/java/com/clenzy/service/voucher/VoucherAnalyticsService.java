@@ -2,6 +2,8 @@ package com.clenzy.service.voucher;
 
 import com.clenzy.dto.voucher.VoucherAnalyticsDto;
 import com.clenzy.dto.voucher.VoucherStatsDto;
+import com.clenzy.exception.NotFoundException;
+import com.clenzy.exception.UnauthorizedException;
 import com.clenzy.model.BookingVoucher;
 import com.clenzy.model.voucher.VoucherStatus;
 import com.clenzy.repository.BookingVoucherRepository;
@@ -88,10 +90,16 @@ public class VoucherAnalyticsService {
      * de l'org avant de retourner.
      */
     public VoucherStatsDto getVoucherStats(Long voucherId, Long orgId) {
+        // Fix M-NEW-1 : exceptions metier dediees -> codes HTTP coherents via
+        // GlobalExceptionHandler (404 NotFound vs 403 Unauthorized vs 500
+        // genere par IllegalArgumentException).
         BookingVoucher v = voucherRepo.findById(voucherId)
-            .filter(x -> x.getOrganizationId().equals(orgId))
-            .orElseThrow(() -> new IllegalArgumentException(
-                "Voucher " + voucherId + " introuvable pour cette organisation"));
+            .orElseThrow(() -> new NotFoundException(
+                "Voucher " + voucherId + " introuvable"));
+        if (!v.getOrganizationId().equals(orgId)) {
+            throw new UnauthorizedException(
+                "Voucher " + voucherId + " n'appartient pas a cette organisation");
+        }
 
         var stats = usageRepo.aggregateStatsByVoucher(voucherId);
         return new VoucherStatsDto(

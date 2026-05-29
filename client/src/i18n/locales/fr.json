@@ -4488,6 +4488,7 @@
     "saveSuccess": "Voucher enregistré.",
     "deleteSuccess": "Voucher supprimé.",
     "deleteError": "Impossible de supprimer ce voucher.",
+    "deleteConfirmTitle": "Supprimer ce voucher ?",
     "deleteConfirm": "Supprimer définitivement « {{name}} » ? Cette action est irréversible.",
     "deleteRefusedUsed": "Ce voucher a déjà été utilisé {{count}} fois. Mets-le en pause plutôt que de le supprimer.",
     "filter": {

@@ -138,12 +138,13 @@ public class BookingVoucherController {
     ) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         Long userId = resolveUserId(jwt);
-        // Pour l'update, on detecte le creatorType sur le scope demande (si change)
-        // ou sur le scope existant (si non touche).
-        List<Long> effectiveScope = request.propertyIds() != null
-            ? request.propertyIds()
-            : List.copyOf(voucherService.getScopedPropertyIds(id));
-        VoucherCreatorOrgType creatorType = detectCreatorOrgType(userId, effectiveScope);
+        // Fix M-NEW-2 : evite la double lecture du scope (controller + service).
+        // Si le scope ne change pas, on confie la detection au service qui a
+        // deja besoin du scope existant en interne ; on passe creatorType=null
+        // comme signal "detection a deleguer".
+        VoucherCreatorOrgType creatorType = request.propertyIds() != null
+            ? detectCreatorOrgType(userId, request.propertyIds())
+            : voucherService.detectCreatorOrgTypeForExistingScope(id, userId);
 
         BookingVoucher updated = voucherService.update(id, orgId, userId, creatorType, request.toPayload());
         return BookingVoucherDto.from(updated, voucherService.getScopedPropertyIds(updated.getId()));

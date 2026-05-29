@@ -4132,6 +4132,7 @@
     "saveSuccess": "تم حفظ القسيمة.",
     "deleteSuccess": "تم حذف القسيمة.",
     "deleteError": "تعذر حذف القسيمة.",
+    "deleteConfirmTitle": "حذف هذه القسيمة؟",
     "deleteConfirm": "حذف «{{name}}» نهائيًا؟ لا يمكن التراجع عن هذا.",
     "deleteRefusedUsed": "تم استخدام هذه القسيمة {{count}} مرة. أوقفها بدلاً من حذفها.",
     "filter": {
