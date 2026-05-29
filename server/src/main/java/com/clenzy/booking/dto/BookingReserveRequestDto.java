@@ -28,7 +28,14 @@ public record BookingReserveRequestDto(
     @Valid
     GuestInfo guest,
 
-    String notes
+    String notes,
+
+    /**
+     * Code voucher optionnel saisi par le guest dans le booking engine.
+     * Valide + applique au moment de la creation de la reservation.
+     * NULL si pas de voucher.
+     */
+    String voucherCode
 ) {
     public record GuestInfo(
         @NotBlank(message = "Le nom du guest est obligatoire")
