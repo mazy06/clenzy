@@ -257,7 +257,9 @@ class BriefingDeliveryTest {
         assertTrue(html.contains("Mon titre"));
         assertTrue(html.contains("Ligne 1<br/>Ligne 2"));
         assertTrue(html.contains("/assistant/conversations/42"));
-        assertTrue(html.contains("Clenzy Assistant"));
+        // Rebrand Clenzy -> Baitly (cf. commit fa4b7f45) : le template HTML
+        // utilise desormais "Baitly Assistant" comme brand name.
+        assertTrue(html.contains("Baitly Assistant"));
     }
 
     @Test
