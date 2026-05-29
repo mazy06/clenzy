@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -102,14 +102,18 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
   const isEdit = voucher !== null;
   const [form, setForm] = useState<FormState>(() => initFromVoucher(voucher));
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // Guard synchrone contre le double-submit (clic rapide avant que React
+  // ne propage `isPending`). isPending est async, useRef est sync.
+  const submittingRef = useRef(false);
 
-  // Fix M-NEW-5 : re-hydrate le form quand le voucher change (ex: clic sur
-  // un autre voucher dans la liste sans demonter le dialog). Sans ce reset,
-  // l'utilisateur garderait les valeurs du voucher precedent.
+  // Re-hydrate le form quand le voucher change (clic sur un autre voucher
+  // sans demonter le dialog). Sans ce reset, l'utilisateur garderait les
+  // valeurs du voucher precedent.
   useEffect(() => {
     if (open) {
       setForm(initFromVoucher(voucher));
       setErrorMsg(null);
+      submittingRef.current = false;
     }
   }, [voucher, open]);
 
@@ -129,6 +133,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
     setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = async () => {
+    // Guard sync contre les double-clicks (avant que isPending ne se propage).
+    if (submittingRef.current) return;
     setErrorMsg(null);
     // Validation client legere : Bean Validation backend fait l'autorite.
     if (!form.name.trim()) {
@@ -148,6 +154,7 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
       setErrorMsg(t('vouchers.editor.errors.percentTooBig'));
       return;
     }
+    submittingRef.current = true;
 
     const payload: BookingVoucherCreateRequest = {
       name: form.name.trim(),
@@ -177,6 +184,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
       onSaved();
     } catch (e: any) {
       setErrorMsg(e?.message ?? t('vouchers.editor.errors.saveFailed'));
+    } finally {
+      submittingRef.current = false;
     }
   };
 

@@ -7,11 +7,8 @@ import com.clenzy.dto.voucher.VoucherAnalyticsDto;
 import com.clenzy.dto.voucher.VoucherStatsDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.BookingVoucher;
-import com.clenzy.model.Property;
 import com.clenzy.model.User;
-import com.clenzy.model.voucher.VoucherCreatorOrgType;
 import com.clenzy.model.voucher.VoucherStatus;
-import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.voucher.BookingVoucherService;
 import com.clenzy.service.voucher.VoucherAnalyticsService;
@@ -41,19 +38,8 @@ import java.util.List;
  * + explicitement dans {@link BookingVoucherService}.
  *
  * <h3>Detection HOST vs MANAGEMENT_ORG</h3>
- * Pour la creation, le controller determine automatiquement le
- * {@link VoucherCreatorOrgType} :
- * <ul>
- *   <li>Si le requester est proprietaire de TOUTES les properties cibles
- *       ({@code property.ownerId == requesterUserId}) → HOST</li>
- *   <li>Si au moins une property a un autre owner → MANAGEMENT_ORG
- *       (le service verifiera alors les flags {@code has_voucher_contract} +
- *       {@code org_can_create_vouchers})</li>
- * </ul>
- * <p>Cas particulier : si {@code propertyIds} vide (= toutes les properties
- * de l'org), considere comme HOST. Si en realite le requester n'est pas owner,
- * le service refusera (HOST type ne peut creer un voucher cross-property que
- * sur les properties qu'il possede).</p>
+ * Deleguee au service (cf. {@code BookingVoucherService.detectCreatorOrgType}).
+ * Le controller ne fait que router : userId + orgId + payload → service.
  */
 @RestController
 @RequestMapping("/api/vouchers")
@@ -65,20 +51,17 @@ public class BookingVoucherController {
 
     private final BookingVoucherService voucherService;
     private final VoucherAnalyticsService analyticsService;
-    private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
 
     public BookingVoucherController(
         BookingVoucherService voucherService,
         VoucherAnalyticsService analyticsService,
-        PropertyRepository propertyRepository,
         UserRepository userRepository,
         TenantContext tenantContext
     ) {
         this.voucherService = voucherService;
         this.analyticsService = analyticsService;
-        this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
     }
@@ -121,8 +104,7 @@ public class BookingVoucherController {
     ) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         Long userId = resolveUserId(jwt);
-        VoucherCreatorOrgType creatorType = detectCreatorOrgType(userId, request.propertyIds());
-
+        var creatorType = voucherService.detectCreatorOrgType(userId, request.propertyIds());
         BookingVoucher created = voucherService.create(orgId, userId, creatorType, request.toPayload());
         log.info("Voucher created : id={}, code={}, by user={}, type={}",
             created.getId(), created.getCode(), userId, creatorType);
@@ -138,14 +120,11 @@ public class BookingVoucherController {
     ) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         Long userId = resolveUserId(jwt);
-        // Fix M-NEW-2 : evite la double lecture du scope (controller + service).
-        // Si le scope ne change pas, on confie la detection au service qui a
-        // deja besoin du scope existant en interne ; on passe creatorType=null
-        // comme signal "detection a deleguer".
-        VoucherCreatorOrgType creatorType = request.propertyIds() != null
-            ? detectCreatorOrgType(userId, request.propertyIds())
-            : voucherService.detectCreatorOrgTypeForExistingScope(id, userId);
-
+        // Detection delegue au service : si scope dans le payload, on l'utilise ;
+        // sinon le service relit le scope existant en interne (1 seul SQL).
+        var creatorType = request.propertyIds() != null
+            ? voucherService.detectCreatorOrgType(userId, request.propertyIds())
+            : voucherService.detectCreatorOrgTypeFromExistingScope(id, userId);
         BookingVoucher updated = voucherService.update(id, orgId, userId, creatorType, request.toPayload());
         return BookingVoucherDto.from(updated, voucherService.getScopedPropertyIds(updated.getId()));
     }
@@ -200,35 +179,5 @@ public class BookingVoucherController {
         User user = userRepository.findByKeycloakId(keycloakId)
             .orElseThrow(() -> new NotFoundException("User " + keycloakId + " introuvable"));
         return user.getId();
-    }
-
-    /**
-     * Detecte le type de createur en fonction du lien user-property.
-     *
-     * <ul>
-     *   <li>HOST si le user est owner de TOUTES les properties cibles (ou
-     *       liste vide = pas de scope explicite, on considere HOST par
-     *       defaut — si en realite il n'est pas owner d'une property dans
-     *       son org, le service le verifiera quand il listera les properties
-     *       affectees).</li>
-     *   <li>MANAGEMENT_ORG des qu'au moins une property a un autre owner
-     *       (le service verifiera les consentements requis).</li>
-     * </ul>
-     */
-    private VoucherCreatorOrgType detectCreatorOrgType(Long userId, List<Long> propertyIds) {
-        if (propertyIds == null || propertyIds.isEmpty()) {
-            // Scope vide = "toutes les properties de l'org" : on parie HOST
-            // (le service refusera si MANAGEMENT_ORG necessite scope explicit).
-            return VoucherCreatorOrgType.HOST;
-        }
-        List<Property> properties = propertyRepository.findAllById(propertyIds);
-        for (Property p : properties) {
-            // Si un seul property n'est pas owned par le requester, c'est MANAGEMENT_ORG
-            User owner = p.getOwner();
-            if (owner == null || owner.getId() == null || !owner.getId().equals(userId)) {
-                return VoucherCreatorOrgType.MANAGEMENT_ORG;
-            }
-        }
-        return VoucherCreatorOrgType.HOST;
     }
 }

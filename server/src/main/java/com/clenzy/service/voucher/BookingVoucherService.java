@@ -156,16 +156,12 @@ public class BookingVoucherService {
                 "Voucher " + voucherId + " en statut " + v.getStatus() + " (non modifiable)");
         }
 
-        // Fix H-NEW-2 : on revalide TOUJOURS les permissions a l'update sur
-        // le scope effectif (nouveau si modifie, sinon existant). Le fix H3
-        // initial introduisait un bypass d'autorisation pour MANAGEMENT_ORG
-        // sur les vouchers "all properties" : un MANAGEMENT_ORG sans
-        // has_voucher_contract pouvait alors editer un voucher cree par le
-        // HOST original. La regle securisee : si le voucher cible "all
-        // properties" et que le requester est MANAGEMENT_ORG, on exige le
-        // contrat (sinon l'utilisateur doit explicitement restreindre le
-        // scope, ce qui re-active resolveAndCheckProperties + consentement
-        // org_can_create_vouchers).
+        // Revalide TOUJOURS les permissions sur le scope effectif. Si le
+        // scope cible "all properties" (existant ou demande) et que le
+        // requester est MANAGEMENT_ORG, on exige has_voucher_contract.
+        // Pas d'exception pour les vouchers legacy : un voucher cree par le
+        // HOST original ne doit pas etre editable par la conciergerie sans
+        // contrat (sinon bypass d'autorisation).
         List<Long> nextScope = payload.propertyIds() != null
             ? payload.propertyIds()
             : List.copyOf(scopeRepo.findPropertyIdsByVoucherId(voucherId));
@@ -254,21 +250,24 @@ public class BookingVoucherService {
     }
 
     /**
-     * Detecte le {@link VoucherCreatorOrgType} pour un voucher existant,
-     * sur la base de son scope deja persiste. Evite la double-lecture
-     * du scope dans le pattern {@code controller.update → service.update}
-     * (fix M-NEW-2 du code review).
+     * Detecte le {@link VoucherCreatorOrgType} a partir d'une liste de
+     * property ids cibles.
      *
-     * <p>Semantique identique au helper {@code detectCreatorOrgType} du
-     * controller : si toutes les properties du scope appartiennent au user,
-     * c'est HOST ; sinon MANAGEMENT_ORG. Scope vide = HOST par defaut (le
-     * service refusera ensuite si MANAGEMENT_ORG sans contrat).</p>
+     * <ul>
+     *   <li>Liste vide / null = HOST par defaut (cas "all properties").
+     *       Le service refusera ensuite si MANAGEMENT_ORG sans contrat
+     *       (cf. {@code checkCreatePermissions}).</li>
+     *   <li>Toutes les properties owned par {@code userId} = HOST.</li>
+     *   <li>Au moins une property non-owned = MANAGEMENT_ORG.</li>
+     * </ul>
+     *
+     * <p>Helper expose publique pour que le controller delegue (evite la
+     * duplication de logique entre controller et service).</p>
      */
     @Transactional(readOnly = true)
-    public VoucherCreatorOrgType detectCreatorOrgTypeForExistingScope(Long voucherId, Long userId) {
-        Set<Long> scope = scopeRepo.findPropertyIdsByVoucherId(voucherId);
-        if (scope.isEmpty()) return VoucherCreatorOrgType.HOST;
-        List<Property> properties = propertyRepo.findAllById(scope);
+    public VoucherCreatorOrgType detectCreatorOrgType(Long userId, List<Long> propertyIds) {
+        if (propertyIds == null || propertyIds.isEmpty()) return VoucherCreatorOrgType.HOST;
+        List<Property> properties = propertyRepo.findAllById(propertyIds);
         for (Property p : properties) {
             var owner = p.getOwner();
             if (owner == null || owner.getId() == null || !owner.getId().equals(userId)) {
@@ -276,6 +275,22 @@ public class BookingVoucherService {
             }
         }
         return VoucherCreatorOrgType.HOST;
+    }
+
+    /**
+     * Variante pour l'update sans changement de scope : recupere le scope
+     * existant en DB puis applique la meme detection.
+     *
+     * <p><b>Trade-off perf</b> : sur l'update path, ce helper + le re-read
+     * interne de {@code update()} produisent 2 SQL sur le scope. Acceptable
+     * car endpoint admin a basse frequence ; alternative (retourner
+     * scope + creatorType groupes) compliquerait l'API publique pour un
+     * gain marginal.</p>
+     */
+    @Transactional(readOnly = true)
+    public VoucherCreatorOrgType detectCreatorOrgTypeFromExistingScope(Long voucherId, Long userId) {
+        Set<Long> scope = scopeRepo.findPropertyIdsByVoucherId(voucherId);
+        return detectCreatorOrgType(userId, List.copyOf(scope));
     }
 
     /**
@@ -367,10 +382,13 @@ public class BookingVoucherService {
         if (propertyIds == null || propertyIds.isEmpty()) {
             return List.of();
         }
-        List<Property> resolved = propertyRepo.findAllById(propertyIds);
-        if (resolved.size() != propertyIds.size()) {
+        // Dedup defensif : sans ca, un payload [100, 100] ferait crasher le
+        // size-check sous "Property ids introuvables : demande 2, trouve 1".
+        List<Long> dedup = propertyIds.stream().distinct().toList();
+        List<Property> resolved = propertyRepo.findAllById(dedup);
+        if (resolved.size() != dedup.size()) {
             throw new VoucherException(
-                "Property ids introuvables : demande " + propertyIds.size()
+                "Property ids introuvables : demande " + dedup.size()
                 + ", trouve " + resolved.size());
         }
         for (Property p : resolved) {
@@ -450,7 +468,7 @@ public class BookingVoucherService {
     private void replaceScope(Long voucherId, Long orgId, List<Long> propertyIds) {
         scopeRepo.deleteByVoucherId(voucherId);
         if (propertyIds == null || propertyIds.isEmpty()) return;
-        // organization_id denormalise pour le @Filter Hibernate (fix C-NEW-3).
+        // organization_id denormalise pour le @Filter Hibernate.
         Set<Long> dedup = new HashSet<>(propertyIds);
         for (Long pid : dedup) {
             scopeRepo.save(new VoucherPropertyScope(voucherId, pid, orgId));

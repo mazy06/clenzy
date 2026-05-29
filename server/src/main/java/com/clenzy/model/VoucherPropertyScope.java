@@ -19,10 +19,10 @@ import java.util.Objects;
  * de tracker d'identite ailleurs.</p>
  *
  * <p><b>Multi-tenant</b> : porte {@code organization_id} denormalise depuis
- * {@code booking_voucher} (migration 0158, fix C-NEW-3 review pass 2) +
- * {@link Filter} {@code organizationFilter} applique automatiquement par
- * le {@code TenantFilter}. Defense en profondeur — les queries restent
- * toujours scopees a l'org meme si un voucher_id leak entre tenants.</p>
+ * {@code booking_voucher} (migration 0158) + {@link Filter}
+ * {@code organizationFilter} applique automatiquement par le {@code TenantFilter}.
+ * Defense en profondeur — les queries restent toujours scopees a l'org
+ * meme si un voucher_id leak entre tenants.</p>
  */
 @Entity
 @Table(name = "voucher_property_scope")

@@ -238,6 +238,33 @@ class BookingVoucherServiceTest {
         }
 
         @Test
+        @DisplayName("propertyIds dupliques sont dedoublonnes (fix M-PASS3-2)")
+        void duplicatePropertyIdsAreDeduped() {
+            // payload demande [PROPERTY_ID, PROPERTY_ID], DB retourne [PROPERTY_ID]
+            // (Spring Data findAllById dedup automatiquement).
+            VoucherCreatePayload p = new VoucherCreatePayload(
+                "Test", null, "X", VoucherType.MANUAL_CODE, VoucherDiscountType.PERCENTAGE,
+                new BigDecimal("10"), null, null, null, null, null, null, 1,
+                VoucherChannelScope.ALL, VoucherStatus.DRAFT,
+                List.of(PROPERTY_ID, PROPERTY_ID)  // <-- doublon
+            );
+            when(propertyRepo.findAllById(List.of(PROPERTY_ID)))
+                .thenReturn(List.of(property(PROPERTY_ID, ORG_ID)));
+            when(voucherRepo.findByOrgAndCodeIgnoreCase(anyLong(), any())).thenReturn(Optional.empty());
+            when(voucherRepo.save(any(BookingVoucher.class))).thenAnswer(inv -> {
+                BookingVoucher v = inv.getArgument(0);
+                v.setId(VOUCHER_ID);
+                return v;
+            });
+
+            // Sans le dedup, le size-check throw "Property ids introuvables :
+            // demande 2, trouve 1". Avec le dedup, le create reussit.
+            BookingVoucher result = service.create(ORG_ID, USER_ID,
+                VoucherCreatorOrgType.HOST, p);
+            assertThat(result.getId()).isEqualTo(VOUCHER_ID);
+        }
+
+        @Test
         @DisplayName("Code deja utilise leve VoucherException")
         void codeDuplicate() {
             when(propertyRepo.findAllById(List.of(PROPERTY_ID)))
@@ -357,7 +384,7 @@ class BookingVoucherServiceTest {
         }
 
         @Test
-        @DisplayName("Fix H-NEW-2 : MANAGEMENT_ORG sans contrat refuse update sur voucher 'all properties'")
+        @DisplayName("MANAGEMENT_ORG sans contrat refuse update sur voucher 'all properties'")
         void emptyScopeMgmtOrgWithoutContractRefused() {
             BookingVoucher existing = voucher(VOUCHER_ID, ORG_ID, VoucherStatus.ACTIVE);
             existing.setCreatedByOrgType(VoucherCreatorOrgType.HOST);
@@ -374,9 +401,9 @@ class BookingVoucherServiceTest {
                 "Updated name", null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null
             );
-            // Fix H-NEW-2 : le bypass d'autorisation introduit par H3 est leve.
-            // MANAGEMENT_ORG sans contrat NE PEUT PAS editer un voucher "all
-            // properties" (l'ancien comportement permettait l'edition silencieuse).
+            // MANAGEMENT_ORG sans has_voucher_contract NE PEUT PAS editer
+            // un voucher "all properties" : le check checkCreatePermissions
+            // s'applique TOUJOURS au scope effectif (existant si non modifie).
             assertThatThrownBy(() -> service.update(VOUCHER_ID, ORG_ID, USER_ID,
                 VoucherCreatorOrgType.MANAGEMENT_ORG, p))
                 .isInstanceOf(UnauthorizedException.class);
