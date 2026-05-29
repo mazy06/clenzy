@@ -6,6 +6,7 @@
   },
   "common": {
     "save": "حفظ",
+    "saving": "جاري الحفظ…",
     "cancel": "إلغاء",
     "delete": "حذف",
     "edit": "تعديل",
@@ -2760,12 +2761,96 @@
       "error": "خطأ أثناء مزامنة الأسعار"
     }
   },
+  "systemEmailTemplates": {
+    "loadError": "تعذر تحميل قوالب البريد الإلكتروني.",
+    "empty": "لا توجد قوالب بريد إلكتروني مكونة. ستظهر قوالب النظام في Baitly هنا بعد تطبيق الترحيل.",
+    "badge": {
+      "system": "النظام",
+      "customized": "مخصص"
+    },
+    "card": {
+      "languagesCount": "{{count}} لغة مكونة"
+    },
+    "recipient": {
+      "OWNER": "المستلم: المالك",
+      "GUEST": "المستلم: الضيف",
+      "INTERNAL_TEAM": "المستلم: فريق Baitly الداخلي",
+      "INVITED_USER": "المستلم: المستخدم المدعو"
+    },
+    "recipientShort": {
+      "OWNER": "المالك",
+      "GUEST": "الضيف",
+      "INTERNAL_TEAM": "فريق داخلي",
+      "INVITED_USER": "مستخدم مدعو"
+    },
+    "keys": {
+      "noise_alert_owner": "تنبيه الضوضاء — المالك",
+      "noise_alert_guest": "تنبيه الضوضاء — الضيف",
+      "invitation_organization": "دعوة للانضمام إلى منظمة",
+      "quote_request_internal": "إشعار داخلي — طلب عرض سعر",
+      "maintenance_request_internal": "إشعار داخلي — طلب صيانة"
+    },
+    "dialog": {
+      "loadError": "فشل تحميل القالب.",
+      "subject": "موضوع البريد الإلكتروني",
+      "subjectCharCount": "{{count}} / 255 حرف",
+      "subjectTooLong": "موضوع طويل جدا (الحد الأقصى 255): {{count}} حرف",
+      "body": "محتوى الرسالة",
+      "bodyHelper": "نص حر. التنسيق: *عريض*، _مائل_، فقرات مفصولة بسطر فارغ. يتم تطبيق غلاف HTML تلقائيا عند الإرسال.",
+      "bodyTooLong": "طويل جدا (الحد الأقصى 100,000): {{count}} حرف",
+      "preview": "معاينة (تم استبدال المتغيرات بقيم مثال)",
+      "previewNote": "يتم إنشاء العرض المرئي النهائي (رأس Baitly، تنسيق HTML) على الخادم عند الإرسال.",
+      "variables": "المتغيرات المتاحة (انقر لإدراج)",
+      "systemVariables": "متغيرات النظام المستخدمة (محتوى تم إعداده مسبقا)",
+      "systemVariableHint": "يحتوي هذا المتغير على محتوى HTML تم إنشاؤه تلقائيا بواسطة الخادم (أقسام ديناميكية، قوائم). لا تعدل أو تحذف.",
+      "languageNotAvailable": "هذه اللغة غير مكونة بعد لهذا القالب.",
+      "save": "حفظ هذه اللغة",
+      "resetToSystem": "استعادة الإعداد الافتراضي للنظام",
+      "saveError": "فشل الحفظ.",
+      "resetError": "فشل استعادة الإعداد الافتراضي."
+    }
+  },
+  "whatsappTemplates": {
+    "loadError": "تعذر تحميل قوالب واتساب.",
+    "table": {
+      "preview": "معاينة الرسالة"
+    },
+    "empty": "لا توجد قوالب واتساب مكونة. ستظهر قوالب النظام في Baitly هنا بعد تطبيق الترحيل.",
+    "badge": {
+      "system": "النظام",
+      "customized": "مخصص"
+    },
+    "card": {
+      "languagesCount": "{{count}} لغة مكونة"
+    },
+    "keys": {
+      "checkin_instructions": "تعليمات تسجيل الدخول (قبل يوم)",
+      "arrival_code": "رمز الدخول + واي فاي (يوم الوصول)",
+      "checkout_reminder": "تذكير المغادرة (يوم المغادرة)",
+      "review_request": "طلب تقييم (بعد يوم)",
+      "booking_confirmation": "تأكيد الحجز (قبل 7 أيام)"
+    },
+    "dialog": {
+      "subtitle": "فئة Meta: {{category}}",
+      "loadError": "فشل تحميل القالب.",
+      "preview": "معاينة (لم يتم استبدال المتغيرات)",
+      "variables": "المتغيرات المتاحة (انقر لإدراج)",
+      "tooLong": "طويل جدا (الحد الأقصى 1024): {{count}} حرف",
+      "charCount": "{{count}} / 1024 حرف",
+      "save": "حفظ هذه اللغة",
+      "resetToSystem": "استعادة الإعداد الافتراضي للنظام",
+      "saveError": "فشل الحفظ.",
+      "resetError": "فشل استعادة الإعداد الافتراضي."
+    }
+  },
   "documents": {
     "title": "المستندات والاتصالات",
     "subtitle": "القوالب والسجل والامتثال التنظيمي",
     "tabs": {
       "catalog": "الكتالوج",
       "messageTemplates": "قوالب الرسائل",
+      "whatsappTemplates": "قوالب واتساب",
+      "emailTemplates": "قوالب البريد الإلكتروني",
       "documentTemplates": "قوالب المستندات",
       "history": "السجل",
       "variablesAndTags": "المتغيرات والعلامات",

@@ -16,6 +16,7 @@ import {
   Add,
   Send,
   Search,
+  Forum,
 } from '../../icons';
 import { useSearchParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -30,6 +31,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useTemplates } from './hooks/useDocuments';
 import TemplateCatalogAccordions from './TemplateCatalogAccordions';
 import MessageTemplatesSection, { type MessageTemplatesSectionRef } from './MessageTemplatesSection';
+import WhatsAppTemplatesSection, { type WhatsAppTemplatesSectionRef } from './WhatsAppTemplatesSection';
 import TemplatesList, { type TemplatesListRef } from './TemplatesList';
 import UnifiedHistoryTab, { type UnifiedHistoryTabRef } from './UnifiedHistoryTab';
 import AvailableTagsReference from './AvailableTagsReference';
@@ -37,12 +39,16 @@ import ComplianceDashboard, { type ComplianceDashboardRef } from './ComplianceDa
 
 // ─── Tab indices ────────────────────────────────────────────────────────────
 
+// IMPORTANT : ajouter une tab decale TOUS les indices suivants. Toute logique
+// indexed-based (URL ?tab=N, switch case) doit etre relue. Les templates email
+// systeme sont fusionnees dans TAB_MSG_TEMPLATES (cf. MessageTemplatesSection).
 const TAB_CATALOG = 0;
 const TAB_MSG_TEMPLATES = 1;
-const TAB_DOC_TEMPLATES = 2;
-const TAB_HISTORY = 3;
-const TAB_VARIABLES = 4;
-const TAB_COMPLIANCE = 5;
+const TAB_WHATSAPP_TEMPLATES = 2;
+const TAB_DOC_TEMPLATES = 3;
+const TAB_HISTORY = 4;
+const TAB_VARIABLES = 5;
+const TAB_COMPLIANCE = 6;
 
 // La metadata par tab (breadcrumb + subtitle) est construite dans le composant
 // via t() pour reagir au changement de langue (cf. documentsTabMeta plus bas).
@@ -53,12 +59,13 @@ const DocumentsPage: React.FC = () => {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = parseInt(searchParams.get('tab') || '0', 10);
-  const [activeTab, setActiveTab] = useState(isNaN(initialTab) ? 0 : Math.min(initialTab, 5));
+  const [activeTab, setActiveTab] = useState(isNaN(initialTab) ? 0 : Math.min(initialTab, 6));
 
   const [tagsSearch, setTagsSearch] = useState('');
   const [complianceSearch, setComplianceSearch] = useState('');
 
   const msgTemplatesRef = useRef<MessageTemplatesSectionRef>(null);
+  const whatsappTemplatesRef = useRef<WhatsAppTemplatesSectionRef>(null);
   const docTemplatesRef = useRef<TemplatesListRef>(null);
   const historyRef = useRef<UnifiedHistoryTabRef>(null);
   const complianceRef = useRef<ComplianceDashboardRef>(null);
@@ -81,7 +88,7 @@ const DocumentsPage: React.FC = () => {
     const tabParam = searchParams.get('tab');
     if (tabParam) {
       const parsed = parseInt(tabParam, 10);
-      if (!isNaN(parsed) && parsed >= 0 && parsed <= 5 && parsed !== activeTab) {
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 6 && parsed !== activeTab) {
         setActiveTab(parsed);
       }
     }
@@ -95,12 +102,13 @@ const DocumentsPage: React.FC = () => {
   // Source de verite des tabs — utilisee pour PageTabs ET pour la resolution
   // {title, subtitle} via resolveTabHeader (indexe par label).
   const tabs = [
-    { value: TAB_CATALOG,       label: t('documents.tabs.catalog'),           icon: <ViewList /> },
-    { value: TAB_MSG_TEMPLATES, label: t('documents.tabs.messageTemplates'),  icon: <ChatBubbleOutline /> },
-    { value: TAB_DOC_TEMPLATES, label: t('documents.tabs.documentTemplates'), icon: <Description /> },
-    { value: TAB_HISTORY,       label: t('documents.tabs.history'),           icon: <History /> },
-    { value: TAB_VARIABLES,     label: t('documents.tabs.variablesAndTags'),  icon: <LocalOffer /> },
-    { value: TAB_COMPLIANCE,    label: t('documents.tabs.compliance'),        icon: <GppGood /> },
+    { value: TAB_CATALOG,            label: t('documents.tabs.catalog'),            icon: <ViewList /> },
+    { value: TAB_MSG_TEMPLATES,      label: t('documents.tabs.messageTemplates'),   icon: <ChatBubbleOutline /> },
+    { value: TAB_WHATSAPP_TEMPLATES, label: t('documents.tabs.whatsappTemplates'), icon: <Forum /> },
+    { value: TAB_DOC_TEMPLATES,      label: t('documents.tabs.documentTemplates'),  icon: <Description /> },
+    { value: TAB_HISTORY,            label: t('documents.tabs.history'),            icon: <History /> },
+    { value: TAB_VARIABLES,          label: t('documents.tabs.variablesAndTags'),   icon: <LocalOffer /> },
+    { value: TAB_COMPLIANCE,         label: t('documents.tabs.compliance'),         icon: <GppGood /> },
   ];
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const documentsTabMeta: Record<string, TabHeaderMeta> = {
@@ -109,6 +117,9 @@ const DocumentsPage: React.FC = () => {
     },
     [t('documents.tabs.messageTemplates')]: {
       subtitle: t('tabHeaders.documents.subtitle.messageTemplates', 'Templates de messagerie automatique (check-in, bienvenue, push tarification) déclenchés par évènement.'),
+    },
+    [t('documents.tabs.whatsappTemplates')]: {
+      subtitle: t('tabHeaders.documents.subtitle.whatsappTemplates'),
     },
     [t('documents.tabs.documentTemplates')]: {
       subtitle: t('tabHeaders.documents.subtitle.documentTemplates', 'Bibliothèque des templates PDF (factures, attestations, état des lieux) versionnés et réutilisables.'),
@@ -150,6 +161,17 @@ const DocumentsPage: React.FC = () => {
             {t('messaging.templates.create')}
           </Button>
         </>
+      );
+    }
+    if (activeTab === TAB_WHATSAPP_TEMPLATES) {
+      return (
+        <Button
+          startIcon={<Refresh size={14} strokeWidth={1.75} />}
+          size="small"
+          onClick={() => whatsappTemplatesRef.current?.refresh()}
+        >
+          {t('common.refresh')}
+        </Button>
       );
     }
     if (activeTab === TAB_DOC_TEMPLATES) {
@@ -249,9 +271,16 @@ const DocumentsPage: React.FC = () => {
               setTimeout(() => docTemplatesRef.current?.openUpload(), 100);
             }}
             onSwitchToMessagingTab={switchToMessagingTab}
+            onOpenSystemEmail={() => {
+              // Les system templates sont desormais dans la tab "Templates messages".
+              // On switch dessus — l'user voit la liste fusionnee user+system.
+              setActiveTab(TAB_MSG_TEMPLATES);
+              setSearchParams({ tab: String(TAB_MSG_TEMPLATES) }, { replace: true });
+            }}
           />
         )}
         {activeTab === TAB_MSG_TEMPLATES && <MessageTemplatesSection ref={msgTemplatesRef} />}
+        {activeTab === TAB_WHATSAPP_TEMPLATES && <WhatsAppTemplatesSection ref={whatsappTemplatesRef} />}
         {activeTab === TAB_DOC_TEMPLATES && <TemplatesList ref={docTemplatesRef} />}
         {activeTab === TAB_HISTORY && <UnifiedHistoryTab ref={historyRef} />}
         {activeTab === TAB_VARIABLES && <AvailableTagsReference search={tagsSearch} />}

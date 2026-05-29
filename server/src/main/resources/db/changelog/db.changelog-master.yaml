@@ -1445,3 +1445,44 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0154 : Templates WhatsApp editables en base (remplace YAML hardcodes) ---
+  # Cree la table whatsapp_template_content + seed les 5 templates systeme.
+  # splitStatements: false car le bloc CREATE FUNCTION (trigger update_at)
+  # contient des ; internes a ne pas couper (regle CLAUDE.md DO $$ / FUNCTION).
+  - changeSet:
+      id: "0154-add-whatsapp-template-content"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0154__add_whatsapp_template_content.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  # --- 0155 : Templates email systeme editables (remplace String.format Java) ---
+  # Cree la table system_email_template + seed les 5 templates systeme :
+  # noise_alert_owner, noise_alert_guest, invitation_organization,
+  # quote_request_internal, maintenance_request_internal.
+  # splitStatements: false pour le bloc CREATE FUNCTION (trigger).
+  - changeSet:
+      id: "0155-add-system-email-templates"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0155__add_system_email_templates.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  # --- 0156 : Conversion system_email_template en plain text + wrapper_style ---
+  # body_html -> body (plain text), ajout wrapper_style (NOTIFICATION_OWNER,
+  # NOTIFICATION_GUEST, INVITATION, INTERNAL_FORM, INTERNAL_URGENT).
+  # Le wrapper HTML uniforme est applique cote serveur par EmailWrapperService
+  # avant l'envoi. L'editeur frontend manipule du plain text uniquement.
+  - changeSet:
+      id: "0156-convert-system-email-templates-to-plain-text"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0156__convert_system_email_templates_to_plain_text.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

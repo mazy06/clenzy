@@ -10,19 +10,19 @@ import {
   Grid,
   Box,
   Typography,
-  Chip,
   Paper,
   CircularProgress,
   Alert,
   Divider,
 } from '@mui/material';
-import { Save, ContentCopy } from '../../icons';
+import { Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   guestMessagingApi,
   type MessageTemplate,
   type TemplateVariable,
 } from '../../services/api/guestMessagingApi';
+import VariablePicker from '../documents/components/VariablePicker';
 
 interface MessageTemplateEditorProps {
   open: boolean;
@@ -83,15 +83,26 @@ export default function MessageTemplateEditor({
     guestMessagingApi.getVariables().then(setVariables).catch(() => {});
   }, []);
 
+  // Champ actif (subject ou body) pour decider ou inserer la variable au click.
+  // Default: body — c'est la zone la plus large/utilisee.
+  const [activeField, setActiveField] = useState<'subject' | 'body'>('body');
+
   const handleInsertVariable = (key: string) => {
     const variable = `{${key}}`;
-    setBody((prev) => prev + variable);
+    if (activeField === 'subject') {
+      setSubject((prev) => prev + variable);
+    } else {
+      setBody((prev) => prev + variable);
+    }
   };
 
-  const handleInsertVariableInSubject = (key: string) => {
-    const variable = `{${key}}`;
-    setSubject((prev) => prev + variable);
-  };
+  // Variables actuellement utilisees dans subject + body (highlight dans le picker)
+  const usedVariables = (() => {
+    const all = subject + ' ' + body;
+    const matches = all.match(/\{([a-zA-Z][a-zA-Z0-9_]*)\}/g);
+    if (!matches) return new Set<string>();
+    return new Set(matches.map((m) => m.slice(1, -1)));
+  })();
 
   const handleSave = async () => {
     if (!name.trim() || !subject.trim() || !body.trim()) {
@@ -201,6 +212,7 @@ export default function MessageTemplateEditor({
                   label={t('messaging.templates.editor.subject')}
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
+                  onFocus={() => setActiveField('subject')}
                   size="small"
                   required
                   helperText={t('messaging.templates.editor.subjectHelper')}
@@ -212,6 +224,7 @@ export default function MessageTemplateEditor({
                   label={t('messaging.templates.editor.body')}
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
+                  onFocus={() => setActiveField('body')}
                   multiline
                   rows={12}
                   required
@@ -240,7 +253,9 @@ export default function MessageTemplateEditor({
             </Box>
           </Grid>
 
-          {/* Variables sidebar */}
+          {/* Variables sidebar — refactor sur VariablePicker (chips colorees
+              par categorie, palette Baitly). Composant partage avec
+              SystemTemplateEditDialog pour coherence visuelle. */}
           <Grid item xs={12} md={5}>
             <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
               <Typography variant="subtitle2" fontWeight={600} gutterBottom>
@@ -249,44 +264,12 @@ export default function MessageTemplateEditor({
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
                 {t('messaging.templates.editor.variablesDesc')}
               </Typography>
-
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {variables.map((v) => (
-                  <Chip
-                    key={v.key}
-                    label={`{${v.key}}`}
-                    size="small"
-                    variant="outlined"
-                    onClick={() => handleInsertVariable(v.key)}
-                    title={`${v.description} — ex: ${v.example}`}
-                    sx={{
-                      cursor: 'pointer',
-                      fontFamily: 'monospace',
-                      fontSize: '0.75rem',
-                      '&:hover': { bgcolor: 'primary.light', color: 'primary.contrastText' },
-                    }}
-                  />
-                ))}
-              </Box>
-
-              {variables.length > 0 && (
-                <Box sx={{ mt: 2 }}>
-                  <Divider sx={{ mb: 1.5 }} />
-                  <Typography variant="caption" fontWeight={600} display="block" gutterBottom>
-                    {t('messaging.templates.editor.variablesList')}
-                  </Typography>
-                  {variables.map((v) => (
-                    <Box key={v.key} sx={{ mb: 0.5 }}>
-                      <Typography variant="caption" component="span" fontFamily="monospace" color="primary">
-                        {`{${v.key}}`}
-                      </Typography>
-                      <Typography variant="caption" component="span" color="text.secondary">
-                        {' — '}{v.description}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              )}
+              <VariablePicker
+                variables={variables}
+                usedKeys={usedVariables}
+                onInsert={handleInsertVariable}
+                showDetails
+              />
             </Paper>
           </Grid>
         </Grid>

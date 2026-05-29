@@ -26,7 +26,17 @@ public class TemplateInterpolationService {
      * Variables dont la valeur est du HTML genere cote serveur (non saisie par l'utilisateur).
      * Elles ne doivent PAS etre echappees HTML pour ne pas casser le balisage.
      */
-    private static final Set<String> HTML_SAFE_VARIABLES = Set.of("locationMap", "paymentLink");
+    // Variables dont la valeur EST DEJA du HTML pre-rendu cote serveur (donc
+    // ne PAS re-echapper sinon les balises s'affichent en clair). Etendue avec
+    // les variables systeme des templates email DB (system_email_template).
+    private static final Set<String> HTML_SAFE_VARIABLES = Set.of(
+        "locationMap",        // Mapbox embed HTML
+        "paymentLink",        // bouton HTML rich pre-genere
+        "detailsHtml",        // sections dynamiques pre-rendues (devis/maintenance)
+        "urgencyBanner",      // banner colore selon urgency (maintenance)
+        "severityColor",      // hex color string injecte dans style="" (alerte bruit)
+        "severityLabel"       // label "CRITIQUE"/"AVERTISSEMENT" — safe car borne
+    );
 
     /**
      * Variables supportees avec leur description (pour l'endpoint /variables).
@@ -196,6 +206,20 @@ public class TemplateInterpolationService {
         vars.put("confirmationCode", nullToEmpty(reservation.getConfirmationCode()));
 
         return vars;
+    }
+
+    /**
+     * Remplace les variables {name} dans le texte.
+     * Si escapeHtml=true, les valeurs sont echappees pour le HTML (sauf celles
+     * listees dans {@link #HTML_SAFE_VARIABLES} qui contiennent deja du HTML
+     * pre-rendu cote serveur).
+     *
+     * <p>Public pour permettre aux services qui consomment les templates
+     * editables ({@code SystemEmailTemplateService} etc.) de reutiliser la meme
+     * logique d'interpolation que les MessageTemplate.</p>
+     */
+    public String interpolate(String text, Map<String, String> vars, boolean escapeHtml) {
+        return replaceVariables(text, vars, escapeHtml);
     }
 
     /**

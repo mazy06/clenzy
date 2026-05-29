@@ -49,7 +49,13 @@ interface CatalogItem {
   recipient: string;
   channel: 'email' | 'in-app' | 'document' | 'email+in-app';
   variables?: string[];
-  templateKind: 'document' | 'message' | 'hardcoded';
+  templateKind: 'document' | 'message' | 'hardcoded' | 'system-email';
+  /**
+   * Pour templateKind='system-email' uniquement : cle dans la table
+   * system_email_template. Permet d'ouvrir l'editeur de la nouvelle tab
+   * "Templates email" sur le bon template.
+   */
+  systemEmailKey?: string;
   /** DocumentType to match with uploaded .odt templates */
   documentType?: string;
   /** Link to message template management page */
@@ -145,7 +151,8 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         triggerDetail: 'Automatique (capteur Minut/Tuya — depassement de seuil)',
         recipient: 'Proprietaire',
         channel: 'email+in-app',
-        templateKind: 'hardcoded',
+        templateKind: 'system-email',
+        systemEmailKey: 'noise_alert_owner',
       },
       {
         id: 'noise-alert-guest',
@@ -157,7 +164,8 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         triggerDetail: 'Automatique (si active dans la config alerte bruit)',
         recipient: 'Voyageur',
         channel: 'email',
-        templateKind: 'hardcoded',
+        templateKind: 'system-email',
+        systemEmailKey: 'noise_alert_guest',
       },
       {
         id: 'custom-message',
@@ -312,7 +320,8 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         triggerDetail: 'Action administrateur (ajout membre)',
         recipient: 'Utilisateur invite',
         channel: 'email',
-        templateKind: 'hardcoded',
+        templateKind: 'system-email',
+        systemEmailKey: 'invitation_organization',
       },
       {
         id: 'notif-devis-landing',
@@ -323,7 +332,8 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         triggerDetail: 'Formulaire landing page',
         recipient: 'Equipe interne Baitly',
         channel: 'email',
-        templateKind: 'hardcoded',
+        templateKind: 'system-email',
+        systemEmailKey: 'quote_request_internal',
       },
       {
         id: 'notif-maintenance-landing',
@@ -334,7 +344,8 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         triggerDetail: 'Formulaire landing page',
         recipient: 'Equipe interne Baitly',
         channel: 'email',
-        templateKind: 'hardcoded',
+        templateKind: 'system-email',
+        systemEmailKey: 'maintenance_request_internal',
       },
     ],
   },
@@ -368,9 +379,15 @@ interface TemplateCatalogAccordionsProps {
   templates: DocumentTemplate[];
   onOpenUpload: () => void;
   onSwitchToMessagingTab?: () => void;
+  /**
+   * Callback invoque quand l'user clique "Personnaliser" sur un template
+   * system-email. Le parent (DocumentsPage) switch sur la tab "Templates email"
+   * et ouvre l'editeur sur la cle fournie.
+   */
+  onOpenSystemEmail?: (systemEmailKey: string) => void;
 }
 
-const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ templates, onOpenUpload, onSwitchToMessagingTab }) => {
+const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ templates, onOpenUpload, onSwitchToMessagingTab, onOpenSystemEmail }) => {
   const navigate = useNavigate();
   const [expandedGroup, setExpandedGroup] = useState<string | false>(false);
 
@@ -629,6 +646,31 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                             <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
                               Template intégré au système — non modifiable
                             </Typography>
+                          )}
+
+                          {item.templateKind === 'system-email' && (
+                            <>
+                              <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.primary' }}>
+                                Template email systeme — éditable dans <Box component="span" sx={{ fontWeight: 600 }}>Templates email</Box>
+                              </Typography>
+                              {onOpenSystemEmail && item.systemEmailKey && (
+                                <Button
+                                  size="small"
+                                  startIcon={<OpenInNew size={13} strokeWidth={1.75} />}
+                                  onClick={() => onOpenSystemEmail(item.systemEmailKey!)}
+                                  sx={{
+                                    fontSize: '0.6875rem',
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    color: status.hex,
+                                    cursor: 'pointer',
+                                    '&:hover': { backgroundColor: `${status.hex}14` },
+                                  }}
+                                >
+                                  Personnaliser
+                                </Button>
+                              )}
+                            </>
                           )}
                         </Box>
                       );
