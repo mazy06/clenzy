@@ -22,7 +22,7 @@ import ProductHero, { PRODUCT_PALETTE } from './ProductHero';
 
 const SAVINGS_FEATURE_RE = /^\s*économie\s+de\s+\d+\s*%\s*$/i;
 
-// ─── Badge styles (palette Clenzy) ───────────────────────────────────────────
+// ─── Badge styles (palette Baitly) ───────────────────────────────────────────
 
 const BADGE_STYLES: Record<string, { bg: string; color: string; border: string }> = {
   new: { bg: '#4A9B8E14', color: '#4A9B8E', border: '#4A9B8E40' },

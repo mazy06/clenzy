@@ -89,14 +89,14 @@ const METHOD_OPTIONS: Array<{
   {
     value: 'SEPA_TRANSFER',
     label: 'Virement SEPA',
-    description: 'Génération XML pain.001 + upload manuel sur le portail bancaire Clenzy.',
+    description: 'Génération XML pain.001 + upload manuel sur le portail bancaire Baitly.',
     badge: 'SEMI-AUTO',
     badgeColor: WARM,
   },
   {
     value: 'MANUAL',
     label: 'Manuel',
-    description: 'Paiement hors-Clenzy (espèces, chèque, virement perso). Aucune automatisation.',
+    description: 'Paiement hors-Baitly (espèces, chèque, virement perso). Aucune automatisation.',
     badge: 'MANUEL',
     badgeColor: NEUTRAL,
   },
@@ -516,7 +516,7 @@ export default function PayoutMethodEditDialog({
           <Stack spacing={1.5}>
             <Alert severity="info" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
               En cliquant sur "Connecter ma banque" ci-dessous, vous serez redirigé vers le portail
-              de votre banque pour signer le SCA bancaire. Le consent est valable 90 jours et permet à Clenzy
+              de votre banque pour signer le SCA bancaire. Le consent est valable 90 jours et permet à Baitly
               d'initier des virements SEPA depuis votre compte sans repasser par 2FA.
             </Alert>
             <TextField
@@ -585,7 +585,7 @@ export default function PayoutMethodEditDialog({
         {/* ─── Section Manual ──────────────────────────────────────── */}
         {selectedMethod === 'MANUAL' && (
           <Alert severity="warning" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-            Le propriétaire reçoit ses paiements hors-Clenzy (espèces, chèque, virement perso).
+            Le propriétaire reçoit ses paiements hors-Baitly (espèces, chèque, virement perso).
             Aucune exécution automatique possible : les payouts devront être marqués comme payés à la main.
           </Alert>
         )}

@@ -1,0 +1,41 @@
+# Template Clenzy : rappel checkout (jour de depart 9h)
+# ============================================================================
+# Envoye automatiquement le jour du depart a 9h heure locale.
+# Type UTILITY.
+#
+# Parametres :
+#   {{1}} = prenom du guest
+#   {{2}} = heure limite checkout (HH:MM)
+#   {{3}} = instructions specifiques au logement (ranger, jeter cles, etc.)
+# ============================================================================
+
+key: checkout_reminder
+category: UTILITY
+languages:
+  fr_FR:
+    body: |
+      Bonjour {{1}} 👋
+
+      Petit rappel : votre check-out est aujourd'hui avant *{{2}}*.
+
+      Avant de partir : {{3}}
+
+      On espère que votre séjour s'est bien passé. Bon retour !
+  en_US:
+    body: |
+      Hi {{1}} 👋
+
+      Friendly reminder: check-out is today before *{{2}}*.
+
+      Before leaving: {{3}}
+
+      Hope you enjoyed your stay. Safe trip back!
+  ar_AR:
+    body: |
+      مرحبا {{1}} 👋
+
+      تذكير: موعد المغادرة اليوم قبل *{{2}}*.
+
+      قبل المغادرة: {{3}}
+
+      نتمنى أن تكون استمتعت بإقامتك. عودة سعيدة!

@@ -5,7 +5,7 @@ import React, {
   useEffect,
   useState,
 } from 'react';
-import keycloak, { syncAuthCookie } from '../keycloak';
+import keycloak, { keycloakInitPromise, syncAuthCookie } from '../keycloak';
 import { API_CONFIG } from '../config/api';
 import { clearTokenCookie } from '../services/apiClient';
 import PermissionSyncService from '../services/PermissionSyncService';
@@ -111,6 +111,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // instance, et un useRef garde-fou empecherait le 2e setup d'attacher les
     // listeners alors que la cleanup les a deja detaches.
     const loadUserInfo = async () => {
+      // CRITIQUE — await keycloakInitPromise AVANT de checker keycloak.authenticated.
+      // Sans ce wait, ce useEffect s'execute AVANT que l'init Keycloak (qui inclut
+      // la restauration du token via le cookie HttpOnly clenzy_auth) ait fini. On
+      // tombe dans le else, setUser(null), et aucun re-fetch n'est jamais declenche
+      // → user reste null → spinner infini ou HardRedirectToLogin (cf. App.tsx).
+      // Le promise est partage avec App.tsx (resolve une seule fois pour les 2).
+      try {
+        await keycloakInitPromise;
+      } catch {
+        // L'erreur d'init est geree dans keycloak.ts — on continue avec le state
+        // courant de keycloak (authenticated=false probablement) et on logout.
+      }
+
       if (keycloak.authenticated && keycloak.token) {
         await loadUserFromKeycloak();
       } else {

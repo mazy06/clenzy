@@ -3,7 +3,7 @@ import { Typography, Alert } from '@mui/material';
 import LegalLayout from './LegalLayout';
 
 /**
- * Conditions Generales d'Utilisation Clenzy.
+ * Conditions Generales d'Utilisation Baitly.
  *
  * <p>Page publique liee depuis le formulaire d'inscription (case CGU obligatoire).
  * Le contenu actuel est un stub clairement identifie comme tel — il doit etre
@@ -26,8 +26,8 @@ export default function Cgu() {
       <Typography component="h2">1. Objet</Typography>
       <Typography component="p">
         Les présentes conditions générales d'utilisation (ci-après « CGU ») ont pour objet de
-        définir les modalités d'utilisation de la plateforme Clenzy, un logiciel de gestion
-        de locations courte durée (Property Management System) édité par la société Clenzy.
+        définir les modalités d'utilisation de la plateforme Baitly, un logiciel de gestion
+        de locations courte durée (Property Management System) édité par la société Baitly.
       </Typography>
       <Typography component="p">
         L'inscription au service vaut acceptation pleine et entière des présentes CGU.
@@ -53,21 +53,21 @@ export default function Cgu() {
 
       <Typography component="h2">4. Propriété intellectuelle</Typography>
       <Typography component="p">
-        L'ensemble des éléments composant la plateforme Clenzy (interface, code, marques,
+        L'ensemble des éléments composant la plateforme Baitly (interface, code, marques,
         logos, contenus) est protégé par le droit de la propriété intellectuelle. Toute
         reproduction non autorisée est strictement interdite.
       </Typography>
 
       <Typography component="h2">5. Disponibilité du service</Typography>
       <Typography component="p">
-        Clenzy met en œuvre les moyens raisonnables pour assurer la disponibilité de la
+        Baitly met en œuvre les moyens raisonnables pour assurer la disponibilité de la
         plateforme 24h/24, 7j/7. Des interruptions peuvent survenir pour maintenance ou en
         cas de force majeure.
       </Typography>
 
       <Typography component="h2">6. Responsabilité</Typography>
       <Typography component="p">
-        Clenzy est tenu à une obligation de moyens et ne saurait être tenu responsable des
+        Baitly est tenu à une obligation de moyens et ne saurait être tenu responsable des
         pertes indirectes, pertes de données ou pertes de chiffre d'affaires subies par
         l'utilisateur.
       </Typography>

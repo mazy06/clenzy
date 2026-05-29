@@ -103,7 +103,7 @@ const SyncAdminPage: React.FC = () => {
       subtitle: t('tabHeaders.syncAdmin.subtitle.diagnostics', 'Diagnostics système : tâches planifiées, jobs en cours, erreurs récentes et état des intégrations.'),
     },
     [t('tabHeaders.syncAdmin.tabs.reconciliation', 'Reconciliation')]: {
-      subtitle: t('tabHeaders.syncAdmin.subtitle.reconciliation', 'Runs de réconciliation calendrier : détection des divergences entre Clenzy et OTA, déclenchement manuel.'),
+      subtitle: t('tabHeaders.syncAdmin.subtitle.reconciliation', 'Runs de réconciliation calendrier : détection des divergences entre Baitly et OTA, déclenchement manuel.'),
     },
   };
 

@@ -27,15 +27,15 @@ import { useNavigate } from 'react-router-dom';
 import type { DocumentTemplate } from '../../services/api/documentsApi';
 import { softChipSx } from '../../utils/statusUtils';
 
-// ─── Clenzy palette (accents valides) ───────────────────────────────────────
-// Toutes les couleurs respectent l'identite Clenzy (primer.md + Impeccable).
+// ─── Baitly palette (accents valides) ───────────────────────────────────────
+// Toutes les couleurs respectent l'identite Baitly (primer.md + Impeccable).
 // On evite les couleurs MUI brutes (#1976d2, #2e7d32...) au profit des accents
 // du produit pour eviter le rendu "templated" / generique.
 const ACCENT_TEAL = '#4A9B8E';   // teal — actions positives, welcoming
-const PRIMARY = '#6B8A9A';        // bleu-gris Clenzy — etat principal
+const PRIMARY = '#6B8A9A';        // bleu-gris Baitly — etat principal
 const WARM = '#D4A574';           // warm sand — transition/important
 const SOFT_BLUE = '#7BA3C2';      // bleu doux — info passive
-const NEUTRAL = '#8A8378';        // warm-gray Clenzy — secondaire/inactif
+const NEUTRAL = '#8A8378';        // warm-gray Baitly — secondaire/inactif
 const VIOLET = '#8b5cf6';         // violet — docs commerciaux (categorie distincte)
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -49,7 +49,13 @@ interface CatalogItem {
   recipient: string;
   channel: 'email' | 'in-app' | 'document' | 'email+in-app';
   variables?: string[];
-  templateKind: 'document' | 'message' | 'hardcoded';
+  templateKind: 'document' | 'message' | 'hardcoded' | 'system-email';
+  /**
+   * Pour templateKind='system-email' uniquement : cle dans la table
+   * system_email_template. Permet d'ouvrir l'editeur de la nouvelle tab
+   * "Templates email" sur le bon template.
+   */
+  systemEmailKey?: string;
   /** DocumentType to match with uploaded .odt templates */
   documentType?: string;
   /** Link to message template management page */
@@ -145,7 +151,8 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         triggerDetail: 'Automatique (capteur Minut/Tuya — depassement de seuil)',
         recipient: 'Proprietaire',
         channel: 'email+in-app',
-        templateKind: 'hardcoded',
+        templateKind: 'system-email',
+        systemEmailKey: 'noise_alert_owner',
       },
       {
         id: 'noise-alert-guest',
@@ -157,7 +164,8 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         triggerDetail: 'Automatique (si active dans la config alerte bruit)',
         recipient: 'Voyageur',
         channel: 'email',
-        templateKind: 'hardcoded',
+        templateKind: 'system-email',
+        systemEmailKey: 'noise_alert_guest',
       },
       {
         id: 'custom-message',
@@ -231,7 +239,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
       {
         id: 'doc-mandat',
         name: 'Mandat de gestion',
-        description: 'Mandat de gestion locative formalisant la relation entre le proprietaire et Clenzy.',
+        description: 'Mandat de gestion locative formalisant la relation entre le proprietaire et Baitly.',
         trigger: 'manual',
         triggerDetail: 'Generation manuelle',
         recipient: 'Proprietaire',
@@ -306,13 +314,14 @@ const CATALOG_GROUPS: CatalogGroup[] = [
         id: 'invitation-org',
         name: 'Invitation organisation',
         description:
-          'Email d\'invitation envoye a un utilisateur pour rejoindre une organisation Clenzy. ' +
+          'Email d\'invitation envoye a un utilisateur pour rejoindre une organisation Baitly. ' +
           'Contient un lien d\'invitation avec expiration.',
         trigger: 'manual',
         triggerDetail: 'Action administrateur (ajout membre)',
         recipient: 'Utilisateur invite',
         channel: 'email',
-        templateKind: 'hardcoded',
+        templateKind: 'system-email',
+        systemEmailKey: 'invitation_organization',
       },
       {
         id: 'notif-devis-landing',
@@ -321,9 +330,10 @@ const CATALOG_GROUPS: CatalogGroup[] = [
           'Email de notification interne genere lorsqu\'un prospect remplit le formulaire de demande de devis sur la landing page.',
         trigger: 'form',
         triggerDetail: 'Formulaire landing page',
-        recipient: 'Equipe interne Clenzy',
+        recipient: 'Equipe interne Baitly',
         channel: 'email',
-        templateKind: 'hardcoded',
+        templateKind: 'system-email',
+        systemEmailKey: 'quote_request_internal',
       },
       {
         id: 'notif-maintenance-landing',
@@ -332,9 +342,10 @@ const CATALOG_GROUPS: CatalogGroup[] = [
           'Email de notification interne genere lorsqu\'un prospect remplit le formulaire de demande de maintenance sur la landing page.',
         trigger: 'form',
         triggerDetail: 'Formulaire landing page',
-        recipient: 'Equipe interne Clenzy',
+        recipient: 'Equipe interne Baitly',
         channel: 'email',
-        templateKind: 'hardcoded',
+        templateKind: 'system-email',
+        systemEmailKey: 'maintenance_request_internal',
       },
     ],
   },
@@ -342,7 +353,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// Couleurs des chips alignees sur la palette Clenzy via softChipSx.
+// Couleurs des chips alignees sur la palette Baitly via softChipSx.
 // Semantic mapping :
 //   auto      = PRIMARY (action systeme reguliere)
 //   manual    = NEUTRAL (action humaine)
@@ -368,9 +379,15 @@ interface TemplateCatalogAccordionsProps {
   templates: DocumentTemplate[];
   onOpenUpload: () => void;
   onSwitchToMessagingTab?: () => void;
+  /**
+   * Callback invoque quand l'user clique "Personnaliser" sur un template
+   * system-email. Le parent (DocumentsPage) switch sur la tab "Templates email"
+   * et ouvre l'editeur sur la cle fournie.
+   */
+  onOpenSystemEmail?: (systemEmailKey: string) => void;
 }
 
-const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ templates, onOpenUpload, onSwitchToMessagingTab }) => {
+const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ templates, onOpenUpload, onSwitchToMessagingTab, onOpenSystemEmail }) => {
   const navigate = useNavigate();
   const [expandedGroup, setExpandedGroup] = useState<string | false>(false);
 
@@ -418,7 +435,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%' }}>
-              {/* Badge icone Clenzy (tile 26x26, accent color, contraste WCAG AA+) */}
+              {/* Badge icone Baitly (tile 26x26, accent color, contraste WCAG AA+) */}
               <Box
                 sx={{
                   width: 26,
@@ -516,7 +533,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                       </Box>
                     )}
 
-                    {/* Footer status row — couleur tintee selon l'etat (palette Clenzy) */}
+                    {/* Footer status row — couleur tintee selon l'etat (palette Baitly) */}
                     {(() => {
                       // Etat = couleur d'accent + icone choisis selon le type de template
                       const status =
@@ -629,6 +646,31 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                             <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
                               Template intégré au système — non modifiable
                             </Typography>
+                          )}
+
+                          {item.templateKind === 'system-email' && (
+                            <>
+                              <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.primary' }}>
+                                Template email systeme — éditable dans <Box component="span" sx={{ fontWeight: 600 }}>Templates email</Box>
+                              </Typography>
+                              {onOpenSystemEmail && item.systemEmailKey && (
+                                <Button
+                                  size="small"
+                                  startIcon={<OpenInNew size={13} strokeWidth={1.75} />}
+                                  onClick={() => onOpenSystemEmail(item.systemEmailKey!)}
+                                  sx={{
+                                    fontSize: '0.6875rem',
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    color: status.hex,
+                                    cursor: 'pointer',
+                                    '&:hover': { backgroundColor: `${status.hex}14` },
+                                  }}
+                                >
+                                  Personnaliser
+                                </Button>
+                              )}
+                            </>
                           )}
                         </Box>
                       );

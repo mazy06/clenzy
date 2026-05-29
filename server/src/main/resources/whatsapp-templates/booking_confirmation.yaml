@@ -1,0 +1,43 @@
+# Template Clenzy : confirmation de reservation (J-7 avant arrivee)
+# ============================================================================
+# Envoye automatiquement 7 jours avant la date d'arrivee du guest.
+# Type UTILITY (transactionnel, pas marketing) → eligible facturation utility
+# Meta (~$0.022/conv FR au lieu de $0.069 marketing).
+#
+# Parametres :
+#   {{1}} = prenom du guest
+#   {{2}} = nom de la propriete
+#   {{3}} = date d'arrivee (format localise)
+#   {{4}} = date de depart (format localise)
+# ============================================================================
+
+key: booking_confirmation
+category: UTILITY
+languages:
+  fr_FR:
+    body: |
+      Bonjour {{1}} 👋
+
+      Votre réservation à *{{2}}* du {{3}} au {{4}} est confirmée.
+
+      Nous vous contacterons à J-1 pour vous transmettre les instructions de check-in (adresse exacte, code d'accès, wifi).
+
+      Bon séjour à venir !
+  en_US:
+    body: |
+      Hello {{1}} 👋
+
+      Your booking at *{{2}}* from {{3}} to {{4}} is confirmed.
+
+      We will reach out the day before your arrival with check-in details (exact address, access code, WiFi).
+
+      Looking forward to welcoming you!
+  ar_AR:
+    body: |
+      مرحبا {{1}} 👋
+
+      تم تأكيد حجزك في *{{2}}* من {{3}} إلى {{4}}.
+
+      سنتواصل معك قبل يوم من وصولك لإرسال تفاصيل تسجيل الدخول (العنوان الدقيق، رمز الدخول، واي فاي).
+
+      نتطلع لاستقبالك!

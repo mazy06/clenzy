@@ -18,7 +18,7 @@ import { Box, Typography, Tooltip, useTheme, alpha } from '@mui/material';
  * exposes via un {@link Tooltip} au hover/focus — UX moderne et discrete qui
  * libere de la place verticale sans sacrifier l'info.</p>
  *
- * <p>Conformite Clenzy / Impeccable : pas de gradient, pas de scale hover,
+ * <p>Conformite Baitly / Impeccable : pas de gradient, pas de scale hover,
  * pas de glow shadow. Transitions discretes (150ms). Accessible : role button,
  * aria-pressed, focus-visible ring, Enter/Space keyboard.</p>
  */

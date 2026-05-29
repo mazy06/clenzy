@@ -408,10 +408,10 @@ export function getAmenityHex(amenity: string): string {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// SHARED CHIP STYLING — soft-tinted, 6px radius (Clenzy product register)
+// SHARED CHIP STYLING — soft-tinted, 6px radius (Baitly product register)
 // ═════════════════════════════════════════════════════════════════════════════
 
-/** Maps MUI semantic color names to Clenzy palette hex codes. */
+/** Maps MUI semantic color names to Baitly palette hex codes. */
 const SEMANTIC_HEX: Record<string, string> = {
   success: '#4A9B8E',
   warning: '#D4A574',
@@ -426,7 +426,7 @@ export function semanticToHex(semantic: string | undefined): string {
   return SEMANTIC_HEX[semantic ?? 'default'] ?? SEMANTIC_HEX.default;
 }
 
-/** Soft-tinted chip styling — unified Clenzy pattern (no pills, 6px radius). */
+/** Soft-tinted chip styling — unified Baitly pattern (no pills, 6px radius). */
 export function softChipSx(hex: string) {
   return {
     backgroundColor: `${hex}18`,

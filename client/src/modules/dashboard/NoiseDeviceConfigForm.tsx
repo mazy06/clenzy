@@ -66,7 +66,7 @@ const NoiseDeviceConfigForm: React.FC<NoiseDeviceConfigFormProps> = ({
   // Auto-generate device name suggestion when property/room changes
   useEffect(() => {
     if (form.activeStep === 2 && form.deviceName === '') {
-      const typeLabel = form.deviceType === 'minut' ? 'Minut' : 'Clenzy';
+      const typeLabel = form.deviceType === 'minut' ? 'Minut' : 'Baitly';
       const roomPart = form.roomName ? ` - ${form.roomName}` : '';
       const suggestion = `${typeLabel} - ${form.selectedPropertyName}${roomPart}`;
       setFormField('deviceName', suggestion);
@@ -260,7 +260,7 @@ const NoiseDeviceConfigForm: React.FC<NoiseDeviceConfigFormProps> = ({
                 {t('dashboard.noise.config.confirmDeviceType') || 'Type de capteur'}
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                {isMinut ? 'Minut' : 'Clenzy Hardware'}
+                {isMinut ? 'Minut' : 'Baitly Hardware'}
               </Typography>
             </Box>
           </Box>

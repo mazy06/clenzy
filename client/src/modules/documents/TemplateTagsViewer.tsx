@@ -20,17 +20,17 @@ interface TemplateTagsViewerProps {
   tags: DocumentTemplateTag[];
 }
 
-// Palette Clenzy (alignee sur les accents valides) — primary bleu-gris,
+// Palette Baitly (alignee sur les accents valides) — primary bleu-gris,
 // teal pour propriete/intervention, warm sand pour DEVIS, neutral pour SYSTEM.
 const CATEGORY_COLORS: Record<string, string> = {
   CLIENT: '#7BA3C2',       // bleu doux
-  PROPERTY: '#4A9B8E',     // teal Clenzy
+  PROPERTY: '#4A9B8E',     // teal Baitly
   INTERVENTION: '#D4A574', // warm sand
   DEVIS: '#8b5cf6',        // violet (reste branche pour les docs commerciaux)
-  FACTURE: '#C97A7A',      // rouge doux Clenzy
+  FACTURE: '#C97A7A',      // rouge doux Baitly
   PAIEMENT: '#ec4899',     // pink (documents financiers)
-  ENTREPRISE: '#6B8A9A',   // primary Clenzy
-  SYSTEM: '#8A8378',       // neutral warm-gray Clenzy
+  ENTREPRISE: '#6B8A9A',   // primary Baitly
+  SYSTEM: '#8A8378',       // neutral warm-gray Baitly
 };
 
 const NEUTRAL = '#8A8378';

@@ -173,7 +173,7 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
 function typeToColor(type: string | undefined, theme: Theme): string {
   switch (type?.toUpperCase()) {
     case 'PUBLIC_HOLIDAY': return theme.palette.error.main;
-    case 'FESTIVAL':       return '#D4A574'; // ambre Clenzy
+    case 'FESTIVAL':       return '#D4A574'; // ambre Baitly
     case 'SPORT':          return theme.palette.success.main;
     case 'FAIR':           return theme.palette.info.main;
     default:               return theme.palette.text.secondary;

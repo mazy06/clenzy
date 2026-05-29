@@ -75,7 +75,7 @@ function buildStatusChipSx(color: string) {
   } as const;
 }
 
-// ─── Share colors (palette Clenzy) ──────────────────────────────────────────
+// ─── Share colors (palette Baitly) ──────────────────────────────────────────
 
 const SHARE_OWNER = '#4A9B8E';
 const SHARE_PLATFORM = '#6B8A9A';

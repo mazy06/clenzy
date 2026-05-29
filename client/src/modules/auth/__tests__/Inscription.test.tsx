@@ -420,7 +420,7 @@ describe('Inscription', () => {
       renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
       acceptTerms();
       // Cocher la newsletter
-      fireEvent.click(screen.getByRole('checkbox', { name: /newsletter Clenzy/i }));
+      fireEvent.click(screen.getByRole('checkbox', { name: /newsletter Baitly/i }));
       fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
 
       await waitFor(() => {

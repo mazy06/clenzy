@@ -2,14 +2,14 @@
  * Settings → Commodités OTA
  *
  * Page de gestion du mapping entre les amenities OTA brutes (detectees a
- * l'import depuis Channex) et le referentiel Clenzy + custom amenities.
+ * l'import depuis Channex) et le referentiel Baitly + custom amenities.
  *
  * 5 onglets :
  *   - "À mapper" : amenities OTA detectees sans alias ni ignored (focus principal)
- *   - "Mes mappings" : aliases rawName → code Clenzy deja crees
- *   - "Commodites custom" : commodites Clenzy custom definies par l'org
+ *   - "Mes mappings" : aliases rawName → code Baitly deja crees
+ *   - "Commodites custom" : commodites Baitly custom definies par l'org
  *   - "Ignores" : amenities marquees comme a masquer definitivement
- *   - "Referentiel Clenzy" : commodites built-in disponibles (lecture seule)
+ *   - "Referentiel Baitly" : commodites built-in disponibles (lecture seule)
  *     -> permet de savoir quelles commodites existent deja avant de creer un custom
  *
  * Header avec 4 KPI tuiles (À mapper / Aliases / Custom / Properties affectees).
@@ -169,7 +169,7 @@ export default function AmenityMappingPage() {
     return [...builtIn, ...custom].sort((a, b) => a.label.localeCompare(b.label));
   }, [customs, t]);
 
-  /** Pour afficher un code Clenzy (built-in ou custom) en label humain. */
+  /** Pour afficher un code Baitly (built-in ou custom) en label humain. */
   const codeLabelOf = useCallback(
     (code: string) => allCodeOptions.find((o) => o.value === code)?.label ?? code,
     [allCodeOptions],
@@ -374,7 +374,7 @@ export default function AmenityMappingPage() {
           <Tab label={`Mes mappings (${aliases.length})`} value="aliases" />
           <Tab label={`Commodités custom (${customs.length})`} value="custom" />
           <Tab label={`Ignorés (${ignored.length})`} value="ignored" />
-          <Tab label={`${t('settings.amenities.tabs.reference', 'Référentiel Clenzy')} (${BUILT_IN_AMENITIES.length})`} value="reference" />
+          <Tab label={`${t('settings.amenities.tabs.reference', 'Référentiel Baitly')} (${BUILT_IN_AMENITIES.length})`} value="reference" />
         </Tabs>
       </Box>
 
@@ -560,7 +560,7 @@ export default function AmenityMappingPage() {
           ) : customs.length === 0 ? (
             <EmptyState
               title={t('settings.amenities.custom.emptyTitle', 'Aucune commodité custom')}
-              subtitle={t('settings.amenities.custom.emptySubtitle', 'Créez vos propres commodités quand le référentiel Clenzy ne couvre pas un équipement.')}
+              subtitle={t('settings.amenities.custom.emptySubtitle', 'Créez vos propres commodités quand le référentiel Baitly ne couvre pas un équipement.')}
             />
           ) : (
             customs.map((c) => {
@@ -677,13 +677,13 @@ export default function AmenityMappingPage() {
         </Stack>
       )}
 
-      {/* TAB : Référentiel Clenzy (grille compacte avec icones editables) ─── */}
+      {/* TAB : Référentiel Baitly (grille compacte avec icones editables) ─── */}
       {tab === 'reference' && (
         <Stack spacing={2}>
           <Alert severity="info" variant="outlined" sx={{ borderRadius: 1, fontSize: '0.78rem', py: 0.5 }}>
             {t(
               'settings.amenities.reference.intro',
-              "Référentiel Clenzy : {{count}} commodités prêtes à l'emploi. Cliquez sur une icône pour la personnaliser (catalogue lucide-react, ~80 icônes). Le code de la commodité reste invariant — seule l'icône change.",
+              "Référentiel Baitly : {{count}} commodités prêtes à l'emploi. Cliquez sur une icône pour la personnaliser (catalogue lucide-react, ~80 icônes). Le code de la commodité reste invariant — seule l'icône change.",
               { count: BUILT_IN_AMENITIES.length },
             )}
           </Alert>
@@ -880,7 +880,7 @@ export default function AmenityMappingPage() {
           <Typography variant="body2" color="text.secondary">
             Cette action applique <strong>{aliases.length}</strong> alias et <strong>{ignored.length}</strong> ignored à
             toutes les propriétés de votre organisation. Les commodités OTA brutes seront soit converties en codes
-            Clenzy, soit retirées si ignorées. Sans effet sur les amenities déjà mappées manuellement.
+            Baitly, soit retirées si ignorées. Sans effet sur les amenities déjà mappées manuellement.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 1.5 }}>
@@ -1062,7 +1062,7 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
             ))}
           </Select>
         </FormControl>
-        <Tooltip title="Créer une nouvelle commodité Clenzy à partir de ce nom">
+        <Tooltip title="Créer une nouvelle commodité Baitly à partir de ce nom">
           <IconButton size="small" onClick={onCreateCustom}
                       sx={{ color: ACCENT, border: '1px solid', borderColor: 'rgba(15, 118, 110, 0.25)' }}>
             <Plus size={14} />

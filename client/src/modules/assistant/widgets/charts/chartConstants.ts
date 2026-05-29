@@ -6,7 +6,7 @@
  * l'assistant aient le meme aspect que ceux de /reports.</p>
  */
 
-// ─── Palette Clenzy (alignee avec primary.main #6B8A9A) ──────────────────────
+// ─── Palette Baitly (alignee avec primary.main #6B8A9A) ──────────────────────
 
 export const CHART_PRIMARY = '#6B8A9A';
 export const CHART_SUCCESS = '#4A9B8E';

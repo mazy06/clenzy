@@ -1,5 +1,5 @@
 /**
- * Modal de creation d'une commodite Clenzy custom.
+ * Modal de creation d'une commodite Baitly custom.
  *
  * UX :
  *   - Pre-remplie avec le rawOtaName si on arrive depuis un item "a mapper"
@@ -170,7 +170,7 @@ export default function CreateCustomAmenityModal({
         <Box>
           <Typography variant="subtitle1" fontWeight={600}>Nouvelle commodité</Typography>
           <Typography variant="caption" color="text.secondary">
-            Étend le référentiel Clenzy pour votre organisation
+            Étend le référentiel Baitly pour votre organisation
           </Typography>
         </Box>
         <IconButton size="small" onClick={onClose}><X size={18} /></IconButton>

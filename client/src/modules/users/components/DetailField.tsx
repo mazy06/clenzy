@@ -3,7 +3,7 @@ import { Box, IconButton, Tooltip, Typography } from '@mui/material';
 import { ContentCopy, Check } from '../../../icons';
 
 interface DetailFieldProps {
-  /** Small uppercase label rendered above the value (Clenzy product register). */
+  /** Small uppercase label rendered above the value (Baitly product register). */
   label: string;
   /** Primary value. Falls back to em-dash when empty. */
   value?: React.ReactNode;

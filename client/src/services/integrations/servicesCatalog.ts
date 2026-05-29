@@ -1,5 +1,5 @@
 /**
- * Catalogue des services tiers integrables a Clenzy.
+ * Catalogue des services tiers integrables a Baitly.
  *
  * <h2>Role</h2>
  * <p>Source de verite unique pour la vitrine des services dans l'onglet
@@ -29,8 +29,8 @@ export type ServiceCategory =
 
 /**
  * Tag commercial du service. Affiche comme un petit chip a cote du nom.
- *   - proprietary : solution Clenzy native (incluse / sans abonnement)
- *   - free        : gratuit / inclus dans l'abonnement Clenzy
+ *   - proprietary : solution Baitly native (incluse / sans abonnement)
+ *   - free        : gratuit / inclus dans l'abonnement Baitly
  *   - partner     : accord commercial / certifie partenaire
  *   - external    : service tiers independant (default, pas affiche)
  */
@@ -59,8 +59,8 @@ export interface CatalogService {
   /** Tag commercial optionnel (proprietary/free/partner/external). */
   tag?: ServiceTag;
   /**
-   * Route interne Clenzy si le service est natif/proprietaire. Si presente,
-   * le modal affiche "Configurer dans Clenzy" qui navigate vers cette route
+   * Route interne Baitly si le service est natif/proprietaire. Si presente,
+   * le modal affiche "Configurer dans Baitly" qui navigate vers cette route
    * (au lieu de "Visiter le site").
    */
   internalRoute?: string;
@@ -438,15 +438,15 @@ export const CATALOG_SERVICES: CatalogService[] = [
   // ─── Gestion des cles (key handover) ─────────────────────────────────────
   {
     id: 'clenzy_keyvault',
-    name: 'Clenzy KeyVault',
+    name: 'Baitly KeyVault',
     category: 'key_management',
     brandColor: '#6B8A9A',
     brandTextColor: '#FFFFFF',
     shortDescription: 'Réseau de gardiens propriétaire',
     tooltipDescription:
-      'Solution native Clenzy pour gérer votre propre réseau de gardiens de clés (commerçants, particuliers du quartier). Génération de codes à 6 chiffres avec durée de validité, page de vérification web sans appli, suivi en temps réel des mouvements. Alternative gratuite à KeyNest pour les conciergeries qui ont déjà leurs partenaires locaux.',
+      'Solution native Baitly pour gérer votre propre réseau de gardiens de clés (commerçants, particuliers du quartier). Génération de codes à 6 chiffres avec durée de validité, page de vérification web sans appli, suivi en temps réel des mouvements. Alternative gratuite à KeyNest pour les conciergeries qui ont déjà leurs partenaires locaux.',
     websiteUrl: 'https://clenzy.fr',
-    accessModality: 'Inclus dans votre abonnement Clenzy (partenaires & codes illimités). Configuration depuis Admin → Gestion des clés → Configurer un gardien.',
+    accessModality: 'Inclus dans votre abonnement Baitly (partenaires & codes illimités). Configuration depuis Admin → Gestion des clés → Configurer un gardien.',
     available: true,
     region: 'Global',
     tag: 'free',
@@ -503,15 +503,15 @@ export const CATALOG_SERVICES: CatalogService[] = [
   },
   {
     id: 'clenzy_hardware',
-    name: 'Clenzy Hardware',
+    name: 'Baitly Hardware',
     category: 'noise_monitoring',
     brandColor: '#4A9B8E',
     brandTextColor: '#FFFFFF',
     shortDescription: 'Capteur OEM Tuya · sans abonnement',
     tooltipDescription:
-      'Solution propriétaire Clenzy basée sur Tuya OEM. Capteur de bruit avec coût unique d\'achat (sans abonnement mensuel récurrent), intégration native dans la plateforme Clenzy, données en temps réel, aucune dépendance à un service externe. Alternative économique à Minut pour les conciergeries qui veulent maîtriser leur TCO.',
+      'Solution propriétaire Baitly basée sur Tuya OEM. Capteur de bruit avec coût unique d\'achat (sans abonnement mensuel récurrent), intégration native dans la plateforme Baitly, données en temps réel, aucune dépendance à un service externe. Alternative économique à Minut pour les conciergeries qui veulent maîtriser leur TCO.',
     websiteUrl: 'https://clenzy.fr',
-    accessModality: 'Capteur Clenzy à acheter (coût unique, contactez le commercial pour un devis). Configuration plug-and-play depuis Admin → Nuisance sonore → Souscrire.',
+    accessModality: 'Capteur Baitly à acheter (coût unique, contactez le commercial pour un devis). Configuration plug-and-play depuis Admin → Nuisance sonore → Souscrire.',
     available: true,
     region: 'Global',
     tag: 'proprietary',

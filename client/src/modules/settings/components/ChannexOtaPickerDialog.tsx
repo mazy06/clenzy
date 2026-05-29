@@ -1,7 +1,7 @@
 /**
  * Channex OTA Picker Dialog
  *
- * Petit dialog Clenzy-native qui presente les OTAs supportes par Channex
+ * Petit dialog Baitly-native qui presente les OTAs supportes par Channex
  * sous forme de cards visuelles avec couleurs brand. Permet a l'utilisateur
  * de choisir un OTA AVANT d'ouvrir le widget iframe Channex, qui sera alors
  * pre-filtre sur l'OTA selectionne (param available_channels=<code>).
@@ -11,7 +11,7 @@
  *     programmatiquement (API reservee aux comptes whitelabel)
  *   - Le wizard iframe Channex affiche par defaut les 500+ channels supportes
  *   - Pre-filtrer ameliore drastiquement l'UX : 1 seul OTA visible dans la liste
- *   - L'utilisateur reste guide cote Clenzy avant de basculer dans Channex
+ *   - L'utilisateur reste guide cote Baitly avant de basculer dans Channex
  */
 import React from 'react';
 import {

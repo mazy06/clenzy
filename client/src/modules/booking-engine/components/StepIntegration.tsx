@@ -55,7 +55,7 @@ const StepIntegration: React.FC<StepIntegrationProps> = ({
   const apiKey = config?.apiKey || '';
   const baseUrl = window.location.origin;
 
-  const embedCode = `<!-- Clenzy Booking Engine -->
+  const embedCode = `<!-- Baitly Booking Engine -->
 <div id="clenzy-booking-engine" data-api-key="${apiKey}"></div>
 <script src="${baseUrl}/sdk/booking-engine.js" async></script>`;
 

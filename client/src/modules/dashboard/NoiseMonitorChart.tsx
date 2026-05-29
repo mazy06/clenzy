@@ -39,7 +39,7 @@ const AXIS_TICK = { fontSize: 11, fill: '#94A3B8' } as const;
 const GRID_STROKE = '#F1F5F9';
 
 const PROPERTY_COLORS = [
-  '#6B8A9A', // Clenzy primary
+  '#6B8A9A', // Baitly primary
   '#4A9B8E', // teal
   '#D4A574', // warm
   '#8B7EC8', // purple

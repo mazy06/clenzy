@@ -63,7 +63,7 @@ const InterventionsPendingPayment: React.FC = () => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
-  // ─── Couleurs Clenzy (theme-aware) ──────────────────────────────────────────
+  // ─── Couleurs Baitly (theme-aware) ──────────────────────────────────────────
   const C = {
     primary: theme.palette.primary.main,
     primaryLight: isDark ? theme.palette.primary.light : '#8BA3B3',

@@ -2,6 +2,9 @@ package com.clenzy.service;
 
 import com.clenzy.dto.MaintenanceRequestDto;
 import com.clenzy.dto.QuoteRequestDto;
+import com.clenzy.model.SystemEmailTemplate;
+import com.clenzy.service.messaging.SystemEmailTemplateService;
+import com.clenzy.service.messaging.TemplateInterpolationService;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,16 +45,69 @@ class EmailServiceTest {
     @Mock
     private JavaMailSender mailSender;
 
+    @Mock
+    private SystemEmailTemplateService systemEmailTemplateService;
+
+    // Pas de mock : l'interpolation est une operation pure, on utilise le vrai
+    // service pour valider que les variables sont correctement substituees.
+    private TemplateInterpolationService templateInterpolationService;
+
     private EmailService emailService;
 
     @BeforeEach
     void setUp() {
         when(mailSenderProvider.getIfAvailable()).thenReturn(mailSender);
-        emailService = new EmailService(mailSenderProvider);
+        // TranslationService mock null-friendly : on n'utilise PAS la traduction
+        // dans ces tests (les variables sont en FR direct). Le service appelle
+        // translationService uniquement via interpolateAndTranslate qu'on n'invoque pas.
+        templateInterpolationService = new TemplateInterpolationService(
+            org.mockito.Mockito.mock(com.clenzy.service.messaging.TranslationService.class));
+        emailService = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
         ReflectionTestUtils.setField(emailService, "fromAddress", "info@clenzy.fr");
         ReflectionTestUtils.setField(emailService, "notificationTo", "info@clenzy.fr");
         ReflectionTestUtils.setField(emailService, "maxAttachments", 10);
         ReflectionTestUtils.setField(emailService, "maxAttachmentSizeBytes", 10_485_760L);
+
+        // Stub default : retourne un template systeme minimal pour les 3 cles
+        // utilisees par les tests existants (devis, maintenance, invitation).
+        // Tests qui veulent un autre comportement override avec when().thenReturn().
+        // lenient() : certains tests n'utilisent pas tous les stubs → ne pas
+        // faire echouer Mockito sur "unused stubbing".
+        org.mockito.Mockito.lenient().when(systemEmailTemplateService.resolve(any(), any(), any()))
+            .thenAnswer(inv -> java.util.Optional.of(buildStubTemplate(inv.getArgument(1))));
+    }
+
+    /**
+     * Renvoie un template stub minimal avec subject+body contenant les variables
+     * utilisees par chaque cle. Permet aux tests de valider que :
+     * (1) le service appelle bien systemEmailTemplateService.resolve avec la bonne cle
+     * (2) le subject+body sont interpoles avec les variables
+     */
+    private static SystemEmailTemplate buildStubTemplate(Object key) {
+        SystemEmailTemplate t = new SystemEmailTemplate();
+        t.setTemplateKey(String.valueOf(key));
+        t.setLanguage("fr");
+        t.setRecipientType("INTERNAL_TEAM");
+        t.setSystem(true);
+        switch (String.valueOf(key)) {
+            case "quote_request_internal" -> {
+                t.setSubject("📋 Nouvelle demande de devis — {fullName} — {city}");
+                t.setBody("<html><body>{detailsHtml}<p>Forfait {recommendedPackage} {recommendedRate}€</p></body></html>");
+            }
+            case "maintenance_request_internal" -> {
+                t.setSubject("{urgencyTag}🔧 Demande de devis maintenance — {fullName} — {city}");
+                t.setBody("<html><body>{urgencyBanner}{detailsHtml}</body></html>");
+            }
+            case "invitation_organization" -> {
+                t.setSubject("Invitation a rejoindre {orgName} sur Baitly");
+                t.setBody("<html><body><p>{inviterName} vous invite a {orgName} ({roleName})</p><a href=\"{invitationLink}\">Accepter</a><p>Expire : {expiresAt}</p></body></html>");
+            }
+            default -> {
+                t.setSubject("Template " + key);
+                t.setBody("<html><body>Stub</body></html>");
+            }
+        }
+        return t;
     }
 
     private MimeMessage createRealMimeMessage() {
@@ -102,7 +158,7 @@ class EmailServiceTest {
         void whenMailSenderAvailable_thenNoException() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(mailSender);
 
-            assertThatCode(() -> new EmailService(mailSenderProvider))
+            assertThatCode(() -> new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService()))
                     .doesNotThrowAnyException();
         }
 
@@ -110,7 +166,7 @@ class EmailServiceTest {
         void whenMailSenderNull_thenNoExceptionButWarningLogged() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
 
-            assertThatCode(() -> new EmailService(mailSenderProvider))
+            assertThatCode(() -> new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService()))
                     .doesNotThrowAnyException();
         }
     }
@@ -125,7 +181,7 @@ class EmailServiceTest {
         @Test
         void whenMailSenderNull_thenThrowsIllegalStateException() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
-            EmailService serviceWithoutMail = new EmailService(mailSenderProvider);
+            EmailService serviceWithoutMail = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
             ReflectionTestUtils.setField(serviceWithoutMail, "fromAddress", "info@clenzy.fr");
             ReflectionTestUtils.setField(serviceWithoutMail, "notificationTo", "info@clenzy.fr");
 
@@ -460,7 +516,7 @@ class EmailServiceTest {
         @Test
         void whenMailSenderNull_thenThrowsIllegalStateException() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
-            EmailService serviceWithoutMail = new EmailService(mailSenderProvider);
+            EmailService serviceWithoutMail = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
             ReflectionTestUtils.setField(serviceWithoutMail, "fromAddress", "info@clenzy.fr");
             ReflectionTestUtils.setField(serviceWithoutMail, "notificationTo", "info@clenzy.fr");
             ReflectionTestUtils.setField(serviceWithoutMail, "maxAttachments", 10);
@@ -536,7 +592,7 @@ class EmailServiceTest {
         @Test
         void whenMailSenderNull_thenThrowsRuntimeException() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
-            EmailService serviceWithoutMail = new EmailService(mailSenderProvider);
+            EmailService serviceWithoutMail = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
             ReflectionTestUtils.setField(serviceWithoutMail, "fromAddress", "info@clenzy.fr");
 
             assertThatThrownBy(() -> serviceWithoutMail.sendDocumentEmail(
@@ -581,7 +637,9 @@ class EmailServiceTest {
             verify(mailSender).send(mimeMessage);
             assertThat(mimeMessage.getSubject()).contains("Invitation a rejoindre");
             assertThat(mimeMessage.getSubject()).contains("Mon Organisation");
-            assertThat(mimeMessage.getSubject()).contains("Clenzy");
+            // Rebrand Clenzy → Baitly : le subject reference desormais Baitly via
+            // le template DB (cf. migration 0155 seed invitation_organization).
+            assertThat(mimeMessage.getSubject()).contains("Baitly");
             assertThat(mimeMessage.getAllRecipients()[0].toString()).contains("invite@example.com");
         }
 
@@ -616,7 +674,7 @@ class EmailServiceTest {
         @Test
         void whenMailSenderNull_thenThrowsRuntimeException() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
-            EmailService serviceWithoutMail = new EmailService(mailSenderProvider);
+            EmailService serviceWithoutMail = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
             ReflectionTestUtils.setField(serviceWithoutMail, "fromAddress", "info@clenzy.fr");
 
             // sendInvitationEmail now catches Exception and wraps in RuntimeException

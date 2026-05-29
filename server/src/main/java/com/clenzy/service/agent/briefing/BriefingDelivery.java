@@ -11,7 +11,8 @@ import com.clenzy.service.NotificationService;
 import com.clenzy.service.messaging.EmailChannel;
 import com.clenzy.service.messaging.MessageDeliveryRequest;
 import com.clenzy.service.messaging.MessageDeliveryResult;
-import com.clenzy.service.messaging.WhatsAppApiService;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProvider;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProviderResolver;
 import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,9 +59,12 @@ public class BriefingDelivery {
     /** Cle logique du briefing dans org_whatsapp_templates. */
     static final String WHATSAPP_TEMPLATE_KEY_BRIEFING = "briefing";
 
+    /** Cap WhatsApp text message a 4096 chars (limite Meta partagee par OpenWA pour coherence). */
+    private static final int WHATSAPP_TEXT_MAX_CHARS = 4096;
+
     private final NotificationService notificationService;
     private final EmailChannel emailChannel;
-    private final WhatsAppApiService whatsAppApiService;
+    private final WhatsAppProviderResolver whatsAppProviderResolver;
     private final UserRepository userRepository;
     private final WhatsAppConfigRepository whatsAppConfigRepository;
     private final OrgWhatsAppTemplateRepository orgWaTemplateRepository;
@@ -68,14 +72,14 @@ public class BriefingDelivery {
 
     public BriefingDelivery(NotificationService notificationService,
                               EmailChannel emailChannel,
-                              WhatsAppApiService whatsAppApiService,
+                              WhatsAppProviderResolver whatsAppProviderResolver,
                               UserRepository userRepository,
                               WhatsAppConfigRepository whatsAppConfigRepository,
                               OrgWhatsAppTemplateRepository orgWaTemplateRepository,
                               EmailTemplateLoader emailTemplateLoader) {
         this.notificationService = notificationService;
         this.emailChannel = emailChannel;
-        this.whatsAppApiService = whatsAppApiService;
+        this.whatsAppProviderResolver = whatsAppProviderResolver;
         this.userRepository = userRepository;
         this.whatsAppConfigRepository = whatsAppConfigRepository;
         this.orgWaTemplateRepository = orgWaTemplateRepository;
@@ -233,15 +237,44 @@ public class BriefingDelivery {
             return false;
         }
 
-        // Lookup du template custom per-org, fallback default applicatif
+        // Resolution du provider (Meta ou OpenWA) selon la config de l'org
+        WhatsAppProvider provider = whatsAppProviderResolver.resolve(configOpt.get());
+
+        // Lookup du template custom per-org, fallback default applicatif.
+        // OpenWA ne supporte pas les templates Meta-approuves, donc on essaye
+        // d'abord en template puis fallback texte libre (le body du briefing)
+        // si UnsupportedOperationException. C'est en realite MIEUX pour l'user
+        // OpenWA car il recoit le contenu du briefing au lieu d'un template
+        // generique "Vous avez un nouveau briefing".
         TemplateResolution tpl = resolveWhatsAppTemplate(organizationId);
         try {
-            String response = whatsAppApiService.sendTemplateMessage(
+            String response = provider.sendTemplateMessage(
                     configOpt.get(),
                     userOpt.get().getPhoneNumber(),
                     tpl.name,
                     tpl.language);
             return response != null;
+        } catch (UnsupportedOperationException templateNotSupported) {
+            // Provider OpenWA : on envoie le body du briefing en texte libre.
+            // Truncate a 4096 chars (limite Meta historique, reapplied par
+            // coherence — un briefing typique fait <2000 chars de toute facon).
+            String body = result.body() != null ? result.body() : "";
+            String text = body.length() > WHATSAPP_TEXT_MAX_CHARS
+                ? body.substring(0, WHATSAPP_TEXT_MAX_CHARS - 1) + "…"
+                : body;
+            try {
+                String response = provider.sendTextMessage(
+                        configOpt.get(),
+                        userOpt.get().getPhoneNumber(),
+                        text);
+                log.info("Briefing whatsapp envoye via {} (fallback texte) pour user {}",
+                        provider.getProviderType(), userOpt.get().getKeycloakId());
+                return response != null;
+            } catch (Exception e) {
+                log.warn("Briefing whatsapp fallback texte failed for user {} : {}",
+                        userOpt.get().getKeycloakId(), e.getMessage());
+                return false;
+            }
         } catch (Exception e) {
             log.warn("Briefing whatsapp failed for user {} : {}",
                     userOpt.get().getKeycloakId(), e.getMessage());

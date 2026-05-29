@@ -3,14 +3,18 @@ package com.clenzy.service;
 import com.clenzy.model.*;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
-import com.clenzy.util.StringUtils;
+import com.clenzy.service.messaging.EmailWrapperService;
+import com.clenzy.service.messaging.SystemEmailTemplateService;
+import com.clenzy.service.messaging.TemplateInterpolationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Fan-out de notifications pour les alertes bruit.
@@ -26,15 +30,24 @@ public class NoiseAlertNotificationService {
     private final EmailService emailService;
     private final PropertyRepository propertyRepository;
     private final ReservationRepository reservationRepository;
+    private final SystemEmailTemplateService systemEmailTemplateService;
+    private final TemplateInterpolationService templateInterpolationService;
+    private final EmailWrapperService emailWrapperService;
 
     public NoiseAlertNotificationService(NotificationService notificationService,
                                           EmailService emailService,
                                           PropertyRepository propertyRepository,
-                                          ReservationRepository reservationRepository) {
+                                          ReservationRepository reservationRepository,
+                                          SystemEmailTemplateService systemEmailTemplateService,
+                                          TemplateInterpolationService templateInterpolationService,
+                                          EmailWrapperService emailWrapperService) {
         this.notificationService = notificationService;
         this.emailService = emailService;
         this.propertyRepository = propertyRepository;
         this.reservationRepository = reservationRepository;
+        this.systemEmailTemplateService = systemEmailTemplateService;
+        this.templateInterpolationService = templateInterpolationService;
+        this.emailWrapperService = emailWrapperService;
     }
 
     /**
@@ -99,10 +112,19 @@ public class NoiseAlertNotificationService {
                 return;
             }
 
-            String severityLabel = alert.getSeverity() == NoiseAlert.AlertSeverity.CRITICAL
-                ? "CRITIQUE" : "AVERTISSEMENT";
-            String subject = String.format("[Clenzy] Alerte bruit %s — %s", severityLabel, propertyName);
-            String htmlBody = buildAlertEmailHtml(alert, propertyName, severityLabel);
+            // Resolution du template depuis system_email_template avec fallback
+            // systeme si l'org n'a pas d'override (cf. SystemEmailTemplateService).
+            var template = systemEmailTemplateService.resolve(
+                alert.getOrganizationId(), "noise_alert_owner", "fr").orElse(null);
+            if (template == null) {
+                log.warn("Template systeme noise_alert_owner introuvable — alerte {} non envoyee", alert.getId());
+                return;
+            }
+
+            Map<String, String> vars = buildNoiseAlertVariables(alert, propertyName);
+            String subject = templateInterpolationService.interpolate(template.getSubject(), vars, false);
+            String interpolatedBody = templateInterpolationService.interpolate(template.getBody(), vars, true);
+            String htmlBody = emailWrapperService.wrap(template.getWrapperStyle(), interpolatedBody);
 
             for (String recipient : recipients) {
                 emailService.sendContactMessage(
@@ -112,6 +134,26 @@ public class NoiseAlertNotificationService {
         } catch (Exception e) {
             log.error("Erreur notification email pour alerte {}: {}", alert.getId(), e.getMessage());
         }
+    }
+
+    /**
+     * Construit la map des variables d'interpolation pour le template
+     * {@code noise_alert_owner}. Les valeurs HTML-safe (severityColor,
+     * severityLabel) sont listees dans
+     * {@link TemplateInterpolationService#HTML_SAFE_VARIABLES} pour ne pas etre
+     * re-echappees au rendu.
+     */
+    private Map<String, String> buildNoiseAlertVariables(NoiseAlert alert, String propertyName) {
+        boolean critical = alert.getSeverity() == NoiseAlert.AlertSeverity.CRITICAL;
+        Map<String, String> vars = new HashMap<>();
+        vars.put("propertyName", propertyName);
+        vars.put("severityLabel", critical ? "CRITIQUE" : "AVERTISSEMENT");
+        vars.put("severityColor", critical ? "#D32F2F" : "#ED6C02");
+        vars.put("measuredDb", String.format("%.0f", alert.getMeasuredDb()));
+        vars.put("thresholdDb", String.valueOf(alert.getThresholdDb()));
+        vars.put("timeWindow", alert.getTimeWindowLabel() != null ? alert.getTimeWindowLabel() : "—");
+        vars.put("alertTime", alert.getCreatedAt() != null ? alert.getCreatedAt().format(TIME_FMT) : "—");
+        return vars;
     }
 
     private List<String> resolveEmailRecipients(NoiseAlertConfig config, Property property) {
@@ -124,37 +166,6 @@ public class NoiseAlertNotificationService {
             return List.of(property.getOwner().getEmail());
         }
         return List.of();
-    }
-
-    private String buildAlertEmailHtml(NoiseAlert alert, String propertyName, String severityLabel) {
-        String color = alert.getSeverity() == NoiseAlert.AlertSeverity.CRITICAL ? "#D32F2F" : "#ED6C02";
-        return String.format("""
-            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-              <div style="background:%s;color:white;padding:16px;border-radius:8px 8px 0 0">
-                <h2 style="margin:0">Alerte bruit %s</h2>
-              </div>
-              <div style="padding:20px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px">
-                <p><strong>Logement :</strong> %s</p>
-                <p><strong>Niveau mesure :</strong> %.0f dB</p>
-                <p><strong>Seuil depasse :</strong> %d dB</p>
-                <p><strong>Creneau :</strong> %s</p>
-                <p><strong>Heure :</strong> %s</p>
-                <hr style="border:none;border-top:1px solid #e0e0e0;margin:16px 0">
-                <p style="color:#666;font-size:12px">
-                  Cette alerte a ete generee automatiquement par Clenzy.
-                  Vous pouvez configurer vos alertes depuis le tableau de bord.
-                </p>
-              </div>
-            </div>
-            """,
-            StringUtils.escapeHtml(color),
-            StringUtils.escapeHtml(severityLabel),
-            StringUtils.escapeHtml(propertyName),
-            alert.getMeasuredDb(),
-            alert.getThresholdDb(),
-            StringUtils.escapeHtml(alert.getTimeWindowLabel() != null ? alert.getTimeWindowLabel() : "—"),
-            alert.getCreatedAt() != null ? alert.getCreatedAt().format(TIME_FMT) : "—"
-        );
     }
 
     // ─── Guest message ─────────────────────────────────────────────────────────
@@ -180,9 +191,23 @@ public class NoiseAlertNotificationService {
                 return;
             }
 
-            String subject = "Information importante concernant le bruit — " + propertyName;
+            // Resolution du template noise_alert_guest depuis system_email_template
+            // (override per-org > systeme).
+            var template = systemEmailTemplateService.resolve(
+                alert.getOrganizationId(), "noise_alert_guest", "fr").orElse(null);
+            if (template == null) {
+                log.warn("Template systeme noise_alert_guest introuvable — alerte {} non envoyee", alert.getId());
+                return;
+            }
+
             String guestName = guest.getFullName() != null ? guest.getFullName() : "Cher voyageur";
-            String htmlBody = buildGuestMessageHtml(alert, propertyName, guestName);
+            Map<String, String> vars = Map.of(
+                "guestName", guestName,
+                "propertyName", propertyName
+            );
+            String subject = templateInterpolationService.interpolate(template.getSubject(), vars, false);
+            String interpolatedBody = templateInterpolationService.interpolate(template.getBody(), vars, true);
+            String htmlBody = emailWrapperService.wrap(template.getWrapperStyle(), interpolatedBody);
 
             emailService.sendContactMessage(
                 guest.getEmail(), guestName, null, null, subject, htmlBody, List.of());
@@ -195,24 +220,4 @@ public class NoiseAlertNotificationService {
         }
     }
 
-    private String buildGuestMessageHtml(NoiseAlert alert, String propertyName, String guestName) {
-        return String.format("""
-            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-              <div style="background:#6B8A9A;color:white;padding:16px;border-radius:8px 8px 0 0">
-                <h2 style="margin:0">Information importante</h2>
-              </div>
-              <div style="padding:20px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px">
-                <p>Bonjour %s,</p>
-                <p>Nous avons detecte un niveau sonore eleve dans votre logement <strong>%s</strong>.</p>
-                <p>Nous vous rappelons que le reglement interieur du logement prevoit le respect
-                   du voisinage, en particulier pendant les heures de repos.</p>
-                <p>Merci de bien vouloir veiller a reduire le niveau sonore.</p>
-                <p>Cordialement,<br>L'equipe de gestion</p>
-              </div>
-            </div>
-            """,
-            StringUtils.escapeHtml(guestName),
-            StringUtils.escapeHtml(propertyName)
-        );
-    }
 }

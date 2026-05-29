@@ -24,8 +24,8 @@ export interface ChannexMappingDto {
 
 /**
  * Mode de connexion :
- * - AUTO_CREATE : Clenzy cree Property + Room Type + Rate Plan dans Channex
- *   en derivant les attributs depuis la Property Clenzy (nom, pays, devise, max guests)
+ * - AUTO_CREATE : Baitly cree Property + Room Type + Rate Plan dans Channex
+ *   en derivant les attributs depuis la Property Baitly (nom, pays, devise, max guests)
  * - IMPORT_EXISTING : l'utilisateur fournit les 3 IDs deja crees dans Channex
  */
 export type ChannexConnectMode = 'AUTO_CREATE' | 'IMPORT_EXISTING';
@@ -64,7 +64,7 @@ export const channexApi = {
   },
 
   /**
-   * Connecte une property Clenzy a Channex.
+   * Connecte une property Baitly a Channex.
    * Cote backend : verifie l'existence de la property Channex, cree le mapping,
    * declenche un push initial 6 mois.
    */
@@ -137,7 +137,7 @@ export const channexApi = {
    * min/max nights) vers Channex via PUT /rate_plans/{id} — Phase 5.
    *
    * <p>A appeler quand l'admin modifie un RatePlan(WEEKEND), OccupancyPricing
-   * ou LengthOfStayDiscount cote Clenzy et veut le repercuter sur l'OTA.</p>
+   * ou LengthOfStayDiscount cote Baitly et veut le repercuter sur l'OTA.</p>
    */
   pushPricingSettings(clenzyPropertyId: number): Promise<ChannexSyncResult> {
     return apiClient.post<ChannexSyncResult>(
@@ -401,7 +401,7 @@ export const channexApi = {
   },
 
   /**
-   * Discovery : retourne les properties du hub non encore mappees a Clenzy +
+   * Discovery : retourne les properties du hub non encore mappees a Baitly +
    * un compteur global pour distinguer "hub vide" vs "tout deja importe".
    */
   discoverUnmappedProperties(): Promise<ChannexDiscoveryResponse> {
@@ -412,7 +412,7 @@ export const channexApi = {
 
   /**
    * Import en masse : pour chaque ID Channex selectionne, le backend cree
-   * une Property Clenzy auto-fillee (depuis les attributs Channex) + un
+   * une Property Baitly auto-fillee (depuis les attributs Channex) + un
    * ChannexPropertyMapping (sync_status PENDING).
    *
    * Idempotent : si un mapping existe deja pour un channexPropertyId, il est
@@ -518,11 +518,11 @@ export interface ChannexDiscoveredProperty {
   hasDescription: boolean;
   /** True si Channex expose une address non-vide. */
   hasAddress: boolean;
-  /** True si cette property est deja mappee a une Property Clenzy. */
+  /** True si cette property est deja mappee a une Property Baitly. */
   isImported: boolean;
-  /** ID de la Property Clenzy si isImported, null sinon. */
+  /** ID de la Property Baitly si isImported, null sinon. */
   clenzyPropertyId: number | null;
-  /** Nom de la Property Clenzy si isImported, null sinon. */
+  /** Nom de la Property Baitly si isImported, null sinon. */
   clenzyPropertyName: string | null;
   /** OTAs synchronises sur cette property (vide si aucun OAuth). */
   connectedOtas: ChannexPropertyOtaSync[];
@@ -578,7 +578,7 @@ export interface ChannexDiscoveryResponse {
   items: ChannexDiscoveredProperty[];
   /** Nombre total de proprietes presentes dans le hub (mappees ou non). 0 = hub vide. */
   totalInHub: number;
-  /** Nombre de proprietes non encore importees dans Clenzy (= items.length). */
+  /** Nombre de proprietes non encore importees dans Baitly (= items.length). */
   totalUnmapped: number;
 }
 
@@ -619,7 +619,7 @@ export interface ChannexOtaChannelResponse {
 /**
  * Codes Channex 3 lettres pour les OTAs majeurs.
  * Reference : docs.channex.io/api-v.1-documentation/channel-codes
- * Channex en supporte 500+ ; on expose ici les plus pertinents pour Clenzy.
+ * Channex en supporte 500+ ; on expose ici les plus pertinents pour Baitly.
  */
 export type ChannexOtaCode = 'ABB' | 'BDC' | 'VRB' | 'EXP' | 'AGO';
 
@@ -707,7 +707,7 @@ export interface ChannexResyncContentResult {
  * - `DEACTIVATE_CHANNEL`: PUT is_active=false (= libere l'OTA — critique)
  * - `DELETE_CHANNEL`    : DELETE /channels/{id} (nettoyage hub)
  * - `DELETE_PROPERTY`   : DELETE /properties/{id} (reset hub complet, optionnel)
- * - `CLEANUP_LOCAL`     : suppression mapping + ota_channels en DB Clenzy
+ * - `CLEANUP_LOCAL`     : suppression mapping + ota_channels en DB Baitly
  */
 export interface ChannexFullDisconnectStep {
   code:
@@ -739,7 +739,7 @@ export interface ChannexFullDisconnectResult {
  * - `API_REACHABLE`        : API Channex joignable + auth OK
  * - `WHITELABEL_CAPABILITIES` : snapshot des capabilities WL disponibles
  * - `HUB_STATE`            : nb properties dans le hub + nb deja mappees
- * - `PROPERTY_EXISTS`      : property Clenzy existe + meme org
+ * - `PROPERTY_EXISTS`      : property Baitly existe + meme org
  * - `PROPERTY_NOT_MAPPED`  : pas de mapping deja present
  * - `PROPERTY_NAME` / `PROPERTY_CURRENCY` / `PROPERTY_COUNTRY` : attributs requis
  */
@@ -748,7 +748,7 @@ export interface ChannexPreflightCheck {
     | 'API_REACHABLE'
     | 'WHITELABEL_CAPABILITIES'
     | 'HUB_STATE'
-    | 'PRICE_DRIFTS_ALIGNMENT'  // Phase 5 audit UX : detecte les ecarts Clenzy ↔ OTA
+    | 'PRICE_DRIFTS_ALIGNMENT'  // Phase 5 audit UX : detecte les ecarts Baitly ↔ OTA
     | 'PROPERTY_EXISTS'
     | 'PROPERTY_NOT_MAPPED'
     | 'PROPERTY_NAME'
@@ -831,13 +831,13 @@ export interface ChannexHealthSummary {
 /**
  * Qui pilote les prix d'une property — Phase 5 audit.
  *
- * - CLENZY : Clenzy push vers OTA (defaut, comportement historique)
+ * - CLENZY : Baitly push vers OTA (defaut, comportement historique)
  * - OTA    : Channex pull vers RateOverride, push desactive
  * - MANUAL : aucune sync auto
  */
 export type PriceSourceOfTruth = 'CLENZY' | 'OTA' | 'MANUAL';
 
-/** Strategie de resolution d'un drift de prix Clenzy vs OTA. */
+/** Strategie de resolution d'un drift de prix Baitly vs OTA. */
 export type ChannexPriceDriftResolution = 'KEEP_CLENZY' | 'KEEP_OTA' | 'DISMISSED';
 
 /** DTO d'un drift de prix retourne par GET /price-drifts. */

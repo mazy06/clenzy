@@ -51,7 +51,7 @@ function FeatureItem({ text }: { text: string }) {
 export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbol }: TabMonitoringProps) {
   const { t } = useTranslation();
 
-  // ─── Clenzy total calculation ─────────────────────────────────────────────
+  // ─── Baitly total calculation ─────────────────────────────────────────────
   const clenzyTotalCents =
     (config.monitoringClenzyDevicePriceCents || 0) +
     (config.monitoringClenzyInstallationPriceCents || 0) +
