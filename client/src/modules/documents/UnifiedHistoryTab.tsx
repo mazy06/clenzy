@@ -451,7 +451,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                 aria-label="Voir les details"
                                 sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: SOFT_BLUE, backgroundColor: `${SOFT_BLUE}14` } }}
                               >
-                                <Visibility fontSize="small" />
+                                <Visibility size={16} strokeWidth={1.75} />
                               </IconButton>
                             </Tooltip>
                             {row.messageLog.status === 'FAILED' && row.messageLog.guestId && (
@@ -465,7 +465,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                   aria-label="Modifier l'email"
                                   sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: WARM, backgroundColor: `${WARM}14` } }}
                                 >
-                                  <EditIcon fontSize="small" />
+                                  <EditIcon size={16} strokeWidth={1.75} />
                                 </IconButton>
                               </Tooltip>
                             )}
@@ -473,7 +473,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                               <Tooltip title="Réservation anonymisée (iCal Airbnb/Booking) — l'email du voyageur n'est pas exposé par le canal. Crée un guest manuel pour pouvoir envoyer le message.">
                                 <span>
                                   <IconButton size="small" disabled>
-                                    <EditIcon fontSize="small" />
+                                    <EditIcon size={16} strokeWidth={1.75} />
                                   </IconButton>
                                 </span>
                               </Tooltip>
@@ -499,7 +499,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                     >
                                       {resendingId === row.messageLog!.id
                                         ? <CircularProgress size={16} />
-                                        : <Replay fontSize="small" />}
+                                        : <Replay size={16} strokeWidth={1.75} />}
                                     </IconButton>
                                   </span>
                                 </Tooltip>
@@ -518,7 +518,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                   aria-label="Telecharger"
                                   sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: PRIMARY, backgroundColor: `${PRIMARY}14` } }}
                                 >
-                                  <Download fontSize="small" />
+                                  <Download size={16} strokeWidth={1.75} />
                                 </IconButton>
                               </Tooltip>
                             )}
@@ -530,7 +530,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                   aria-label="Verifier l'integrite"
                                   sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: SOFT_BLUE, backgroundColor: `${SOFT_BLUE}14` } }}
                                 >
-                                  <Fingerprint fontSize="small" />
+                                  <Fingerprint size={16} strokeWidth={1.75} />
                                 </IconButton>
                               </Tooltip>
                             )}

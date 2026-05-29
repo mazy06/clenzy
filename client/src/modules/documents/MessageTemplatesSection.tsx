@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -27,13 +27,14 @@ import {
   guestMessagingApi,
   type MessageTemplate,
 } from '../../services/api/guestMessagingApi';
+import { systemEmailTemplatesApi, type SystemEmailTemplateGroup } from '../../services/api/systemEmailTemplatesApi';
 import MessageTemplateEditor from '../messaging/MessageTemplateEditor';
+import SystemTemplateEditDialog from './SystemTemplateEditDialog';
 import { softChipSx } from '../../utils/statusUtils';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-// Palette Baitly : remplace les couleurs MUI brutes (ED6C02, 0288d1...) par
-// les accents valides du produit.
+// Palette Baitly : remplace les couleurs MUI brutes par les accents valides du produit.
 const ACCENT_TEAL = '#4A9B8E';
 const WARM = '#D4A574';
 const SOFT_BLUE = '#7BA3C2';
@@ -51,10 +52,19 @@ const TYPE_LABELS: Record<string, string> = {
   CHECK_IN: 'Check-in',
   CHECK_OUT: 'Check-out',
   WELCOME: 'Bienvenue',
-  CUSTOM: 'Personnalise',
+  CUSTOM: 'Personnalisé',
 };
 
-// ─── Ref Interface ──────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+/**
+ * Vue unifiee dans la table : les 2 origines (user/system) sont fusionnees
+ * via cette interface commune. Click "Edit" route vers le bon dialog selon
+ * l'origine.
+ */
+type UnifiedRow =
+  | { origin: 'user'; data: MessageTemplate }
+  | { origin: 'system'; data: SystemEmailTemplateGroup };
 
 export interface MessageTemplatesSectionRef {
   fetchTemplates: () => void;
@@ -65,20 +75,33 @@ export interface MessageTemplatesSectionRef {
 
 const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) => {
   const { t } = useTranslation();
-  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+  const [userTemplates, setUserTemplates] = useState<MessageTemplate[]>([]);
+  const [systemTemplates, setSystemTemplates] = useState<SystemEmailTemplateGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<MessageTemplate | null>(null);
+  const [systemEditingKey, setSystemEditingKey] = useState<string | null>(null);
 
   const loadTemplates = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await guestMessagingApi.getTemplates();
-      setTemplates(data);
-    } catch {
-      setError(t('messaging.templates.loadError'));
+      // Fetch en parallele : user templates (table message_templates) + system
+      // templates (table system_email_template). Best-effort : si une des
+      // 2 echoue, on affiche l'autre + une banniere d'erreur.
+      const [users, systems] = await Promise.allSettled([
+        guestMessagingApi.getTemplates(),
+        systemEmailTemplatesApi.list(),
+      ]);
+      if (users.status === 'fulfilled') {
+        setUserTemplates(users.value);
+      } else {
+        setError(t('messaging.templates.loadError'));
+      }
+      if (systems.status === 'fulfilled') {
+        setSystemTemplates(systems.value);
+      }
     } finally {
       setLoading(false);
     }
@@ -101,6 +124,10 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
     setEditorOpen(true);
   };
 
+  const handleEditSystem = (templateKey: string) => {
+    setSystemEditingKey(templateKey);
+  };
+
   const handleDelete = async (id: number) => {
     try {
       await guestMessagingApi.deleteTemplate(id);
@@ -120,6 +147,24 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
     await loadTemplates();
   };
 
+  const handleSystemDialogClose = () => {
+    setSystemEditingKey(null);
+    // Refetch pour reflechir un eventuel override save/delete.
+    loadTemplates();
+  };
+
+  // Construction de la liste unifiee. Systeme d'abord (templates "officiels"
+  // Baitly), puis les custom user. Au sein de chaque groupe, tri stable.
+  const rows: UnifiedRow[] = useMemo(() => {
+    const systemRows: UnifiedRow[] = [...systemTemplates]
+      .sort((a, b) => a.templateKey.localeCompare(b.templateKey))
+      .map((g) => ({ origin: 'system' as const, data: g }));
+    const userRows: UnifiedRow[] = [...userTemplates]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((t) => ({ origin: 'user' as const, data: t }));
+    return [...systemRows, ...userRows];
+  }, [systemTemplates, userTemplates]);
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -136,9 +181,11 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
         </Alert>
       )}
 
-      {templates.length === 0 ? (
+      {rows.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 2 }}><Email size={48} strokeWidth={1.75} /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 2 }}>
+            <Email size={40} strokeWidth={1.5} />
+          </Box>
           <Typography variant="h6" color="text.secondary" gutterBottom>
             {t('messaging.templates.empty')}
           </Typography>
@@ -147,7 +194,8 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
           </Typography>
           <Button
             variant="contained"
-            startIcon={<Add />}
+            startIcon={<Add size={14} strokeWidth={1.75} />}
+            size="small"
             onClick={() => {
               setEditingTemplate(null);
               setEditorOpen(true);
@@ -162,82 +210,36 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
             <TableHead>
               <TableRow>
                 <TableCell>{t('messaging.templates.name')}</TableCell>
-                <TableCell>{t('messaging.templates.type')}</TableCell>
+                <TableCell>{t('messaging.templates.origin')}</TableCell>
                 <TableCell>{t('messaging.templates.subject')}</TableCell>
                 <TableCell>{t('messaging.templates.language')}</TableCell>
                 <TableCell align="center">{t('messaging.templates.status')}</TableCell>
+                <TableCell align="center">{t('messaging.templates.version')}</TableCell>
+                <TableCell>{t('messaging.templates.createdBy')}</TableCell>
                 <TableCell align="right">{t('common.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {templates.map((template) => (
-                <TableRow key={template.id} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={600}>
-                      {template.name}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={TYPE_LABELS[template.type] || template.type}
-                      size="small"
-                      sx={softChipSx(TYPE_HEX[template.type] ?? NEUTRAL)}
+              {rows.map((row) => (
+                row.origin === 'user'
+                  ? <UserRow
+                      key={`u-${row.data.id}`}
+                      template={row.data}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
                     />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" noWrap sx={{ maxWidth: 250, fontSize: '0.8125rem' }}>
-                      {template.subject}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    {/* Langue affichee en chip neutre (lieu de uppercase brut) */}
-                    <Chip
-                      label={template.language?.toUpperCase()}
-                      size="small"
-                      sx={softChipSx(NEUTRAL)}
+                  : <SystemRow
+                      key={`s-${row.data.templateKey}`}
+                      group={row.data}
+                      onEdit={handleEditSystem}
                     />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={template.isActive ? t('messaging.templates.active') : t('messaging.templates.inactive')}
-                      size="small"
-                      sx={softChipSx(template.isActive ? ACCENT_TEAL : NEUTRAL)}
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title={t('common.edit')} arrow>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleEdit(template)}
-                        aria-label={t('common.edit')}
-                        sx={{ cursor: 'pointer', '&:hover': { color: ACCENT_TEAL } }}
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={t('common.delete')} arrow>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDelete(template.id)}
-                        aria-label={t('common.delete')}
-                        sx={{
-                          cursor: 'pointer',
-                          color: 'text.secondary',
-                          '&:hover': { color: DANGER_SOFT, backgroundColor: `${DANGER_SOFT}14` },
-                        }}
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
       )}
 
-      {/* Editor Dialog */}
+      {/* Editor user templates (flow existant inchange) */}
       {editorOpen && (
         <MessageTemplateEditor
           open={editorOpen}
@@ -246,10 +248,189 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
           onSave={handleEditorSave}
         />
       )}
+
+      {/* Editor system templates (plain text + 3 langues + override per-org) */}
+      {systemEditingKey && (
+        <SystemTemplateEditDialog
+          templateKey={systemEditingKey}
+          open={true}
+          onClose={handleSystemDialogClose}
+        />
+      )}
     </Box>
   );
 });
 
 MessageTemplatesSection.displayName = 'MessageTemplatesSection';
+
+// ─── Row : template user (custom messages voyageurs) ─────────────────────────
+
+interface UserRowProps {
+  template: MessageTemplate;
+  onEdit: (template: MessageTemplate) => void;
+  onDelete: (id: number) => void;
+}
+
+const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
+  const { t } = useTranslation();
+  return (
+    <TableRow hover>
+      <TableCell>
+        <Stack0Spaced>
+          <Typography variant="body2" fontWeight={600}>{template.name}</Typography>
+          <Chip
+            label={TYPE_LABELS[template.type] || template.type}
+            size="small"
+            sx={softChipSx(TYPE_HEX[template.type] ?? NEUTRAL)}
+          />
+        </Stack0Spaced>
+      </TableCell>
+      <TableCell>
+        <Chip
+          label={t('messaging.templates.originUser')}
+          size="small"
+          sx={softChipSx(NEUTRAL)}
+        />
+      </TableCell>
+      <TableCell>
+        <Typography variant="body2" noWrap sx={{ maxWidth: 280, fontSize: '0.8125rem' }}>
+          {template.subject}
+        </Typography>
+      </TableCell>
+      <TableCell>
+        <Chip label={template.language?.toUpperCase()} size="small" sx={softChipSx(NEUTRAL)} />
+      </TableCell>
+      <TableCell align="center">
+        <Chip
+          label={template.isActive ? t('messaging.templates.active') : t('messaging.templates.inactive')}
+          size="small"
+          sx={softChipSx(template.isActive ? ACCENT_TEAL : NEUTRAL)}
+        />
+      </TableCell>
+      <TableCell align="center">
+        <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>v1</Typography>
+      </TableCell>
+      <TableCell>
+        {/* Pas de createdBy dans le DTO actuel pour les user templates.
+            Affiche un dash pour ne pas mentir et garder la colonne alignee. */}
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>—</Typography>
+      </TableCell>
+      <TableCell align="right">
+        <Tooltip title={t('common.edit')} arrow>
+          <IconButton
+            size="small"
+            onClick={() => onEdit(template)}
+            aria-label={t('common.edit')}
+            sx={{ cursor: 'pointer', '&:hover': { color: ACCENT_TEAL } }}
+          >
+            <Edit size={16} strokeWidth={1.75} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={t('common.delete')} arrow>
+          <IconButton
+            size="small"
+            onClick={() => onDelete(template.id)}
+            aria-label={t('common.delete')}
+            sx={{
+              cursor: 'pointer',
+              color: 'text.secondary',
+              '&:hover': { color: DANGER_SOFT, backgroundColor: `${DANGER_SOFT}14` },
+            }}
+          >
+            <Delete size={16} strokeWidth={1.75} />
+          </IconButton>
+        </Tooltip>
+      </TableCell>
+    </TableRow>
+  );
+};
+
+// ─── Row : template systeme Baitly (alertes, invitations, notifications) ────
+
+interface SystemRowProps {
+  group: SystemEmailTemplateGroup;
+  onEdit: (templateKey: string) => void;
+}
+
+const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
+  const { t } = useTranslation();
+
+  // Affichage compact : nom system + subject de la 1ere langue dispo (fr en general)
+  const firstLang = Object.values(group.languages)[0];
+
+  return (
+    <TableRow hover>
+      <TableCell>
+        <Stack0Spaced>
+          <Typography variant="body2" fontWeight={600}>
+            {t(`systemEmailTemplates.keys.${group.templateKey}`)}
+          </Typography>
+          <Chip
+            label={t(`systemEmailTemplates.recipientShort.${group.recipientType}`)}
+            size="small"
+            sx={softChipSx(group.recipientType === 'GUEST' ? SOFT_BLUE : group.recipientType === 'OWNER' ? ACCENT_TEAL : NEUTRAL)}
+          />
+        </Stack0Spaced>
+      </TableCell>
+      <TableCell>
+        <Chip
+          label={group.isCustomized
+            ? t('messaging.templates.originCustomized')
+            : t('messaging.templates.originSystem')}
+          size="small"
+          sx={softChipSx(group.isCustomized ? ACCENT_TEAL : NEUTRAL)}
+          variant={group.isCustomized ? 'filled' : 'outlined'}
+        />
+      </TableCell>
+      <TableCell>
+        <Typography variant="body2" noWrap sx={{ maxWidth: 280, fontSize: '0.8125rem' }}>
+          {firstLang?.subject ?? '—'}
+        </Typography>
+      </TableCell>
+      <TableCell>
+        {/* Chip langue identique a UserRow pour coherence (1ere langue dispo —
+            les autres sont accessibles dans le dialog d'edition via le selecteur). */}
+        <Chip
+          label={Object.keys(group.languages)[0]?.toUpperCase() ?? '—'}
+          size="small"
+          sx={softChipSx(NEUTRAL)}
+        />
+      </TableCell>
+      <TableCell align="center">
+        {/* Templates systeme toujours actifs (pas de notion d'activation cote BDD). */}
+        <Chip
+          label={t('messaging.templates.active')}
+          size="small"
+          sx={softChipSx(ACCENT_TEAL)}
+        />
+      </TableCell>
+      <TableCell align="center">
+        <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>v1</Typography>
+      </TableCell>
+      <TableCell>
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+          {t('messaging.templates.systemAuthor')}
+        </Typography>
+      </TableCell>
+      <TableCell align="right">
+        <Tooltip title={t('common.edit')} arrow>
+          <IconButton
+            size="small"
+            onClick={() => onEdit(group.templateKey)}
+            aria-label={t('common.edit')}
+            sx={{ cursor: 'pointer', '&:hover': { color: ACCENT_TEAL } }}
+          >
+            <Edit size={16} strokeWidth={1.75} />
+          </IconButton>
+        </Tooltip>
+      </TableCell>
+    </TableRow>
+  );
+};
+
+// Petit helper layout : inline-flex stack horizontale avec gap.
+const Stack0Spaced: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>{children}</Box>
+);
 
 export default MessageTemplatesSection;

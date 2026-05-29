@@ -6,6 +6,7 @@
   },
   "common": {
     "save": "Enregistrer",
+    "saving": "Enregistrement…",
     "cancel": "Annuler",
     "delete": "Supprimer",
     "edit": "Modifier",
@@ -2839,12 +2840,96 @@
       "error": "Erreur lors de la synchronisation des prix"
     }
   },
+  "systemEmailTemplates": {
+    "loadError": "Impossible de charger les templates email.",
+    "empty": "Aucun template email configuré. Les templates système Baitly apparaitront ici après l'application de la migration.",
+    "badge": {
+      "system": "Système",
+      "customized": "Personnalisé"
+    },
+    "card": {
+      "languagesCount": "{{count}} langue(s) configurée(s)"
+    },
+    "recipient": {
+      "OWNER": "Destinataire : Propriétaire",
+      "GUEST": "Destinataire : Voyageur",
+      "INTERNAL_TEAM": "Destinataire : Équipe interne Baitly",
+      "INVITED_USER": "Destinataire : Utilisateur invité"
+    },
+    "recipientShort": {
+      "OWNER": "Propriétaire",
+      "GUEST": "Voyageur",
+      "INTERNAL_TEAM": "Équipe interne",
+      "INVITED_USER": "Utilisateur invité"
+    },
+    "keys": {
+      "noise_alert_owner": "Alerte bruit — Propriétaire",
+      "noise_alert_guest": "Alerte bruit — Voyageur",
+      "invitation_organization": "Invitation à rejoindre une organisation",
+      "quote_request_internal": "Notification interne — Demande de devis",
+      "maintenance_request_internal": "Notification interne — Demande de maintenance"
+    },
+    "dialog": {
+      "loadError": "Erreur de chargement du template.",
+      "subject": "Sujet de l'email",
+      "subjectCharCount": "{{count}} / 255 caractères",
+      "subjectTooLong": "Sujet trop long (max 255) : {{count}} caractères",
+      "body": "Corps du message",
+      "bodyHelper": "Texte libre. Mise en page : *gras*, _italique_, paragraphes séparés par une ligne vide. L'habillage HTML est appliqué automatiquement à l'envoi.",
+      "bodyTooLong": "Trop long (max 100 000) : {{count}} caractères",
+      "preview": "Aperçu (variables remplacées par des valeurs d'exemple)",
+      "previewNote": "L'aperçu visuel final (header Baitly, mise en forme HTML) est généré côté serveur au moment de l'envoi.",
+      "variables": "Variables disponibles (cliquer pour insérer)",
+      "systemVariables": "Variables système utilisées (contenu pré-rendu)",
+      "systemVariableHint": "Cette variable contient du contenu HTML généré automatiquement par le serveur (sections dynamiques, listes). Ne pas modifier ni supprimer.",
+      "languageNotAvailable": "Cette langue n'est pas encore configurée pour ce template.",
+      "save": "Enregistrer cette langue",
+      "resetToSystem": "Restaurer le défaut système",
+      "saveError": "Échec de l'enregistrement.",
+      "resetError": "Échec de la restauration du défaut."
+    }
+  },
+  "whatsappTemplates": {
+    "loadError": "Impossible de charger les templates WhatsApp.",
+    "table": {
+      "preview": "Aperçu du message"
+    },
+    "empty": "Aucun template WhatsApp configuré. Les templates système Baitly apparaitront ici après l'application de la migration.",
+    "badge": {
+      "system": "Système",
+      "customized": "Personnalisé"
+    },
+    "card": {
+      "languagesCount": "{{count}} langue(s) configurée(s)"
+    },
+    "keys": {
+      "checkin_instructions": "Instructions check-in (J-1)",
+      "arrival_code": "Code d'accès + Wi-Fi (jour d'arrivée)",
+      "checkout_reminder": "Rappel checkout (jour de départ)",
+      "review_request": "Demande d'avis (J+1)",
+      "booking_confirmation": "Confirmation de réservation (J-7)"
+    },
+    "dialog": {
+      "subtitle": "Catégorie Meta : {{category}}",
+      "loadError": "Erreur de chargement du template.",
+      "preview": "Aperçu (variables non remplacées)",
+      "variables": "Variables disponibles (cliquer pour insérer)",
+      "tooLong": "Trop long (max 1024) : {{count}} caractères",
+      "charCount": "{{count}} / 1024 caractères",
+      "save": "Enregistrer cette langue",
+      "resetToSystem": "Restaurer le défaut système",
+      "saveError": "Échec de l'enregistrement.",
+      "resetError": "Échec de la restauration du défaut."
+    }
+  },
   "documents": {
     "title": "Documents & Communications",
     "subtitle": "Templates, historique et conformite reglementaire",
     "tabs": {
       "catalog": "Catalogue",
       "messageTemplates": "Templates messages",
+      "whatsappTemplates": "Templates WhatsApp",
+      "emailTemplates": "Templates email",
       "documentTemplates": "Templates documents",
       "history": "Historique",
       "variablesAndTags": "Variables & Tags",
@@ -2937,9 +3022,21 @@
       "status": "Statut",
       "active": "Actif",
       "inactive": "Inactif",
+      "origin": "Origine",
+      "originUser": "Personnalisé",
+      "originSystem": "Système Baitly",
+      "originCustomized": "Système · Personnalisé",
+      "version": "Version",
+      "createdBy": "Créé par",
+      "systemAuthor": "Baitly",
       "editor": {
         "createTitle": "Nouveau template",
         "editTitle": "Modifier le template",
+        "editSystemTitle": "Modifier le template système",
+        "editWhatsappTitle": "Modifier le template WhatsApp",
+        "systemNameHelper": "Nom système — non modifiable",
+        "recipient": "Destinataire",
+        "metaCategory": "Catégorie Meta",
         "name": "Nom du template",
         "type": "Type",
         "language": "Langue",
@@ -4060,6 +4157,8 @@
       "subtitle": {
         "catalog": "Catalogue des templates par étape du parcours voyageur : messagerie, documents, communications.",
         "messageTemplates": "Templates de messagerie automatique (check-in, bienvenue, push tarification) déclenchés par évènement.",
+        "whatsappTemplates": "Templates WhatsApp standards (checkin, code accès, rappel checkout) — éditables par langue, soumis à Meta pour approbation.",
+        "emailTemplates": "Templates email système Baitly (alertes bruit, invitations, notifications landing) — sujet et corps HTML éditables par langue.",
         "documentTemplates": "Bibliothèque des templates PDF (factures, attestations, état des lieux) versionnés et réutilisables.",
         "history": "Historique unifié des messages envoyés et documents générés, filtrable par canal et statut.",
         "variablesAndTags": "Référence des variables disponibles ({{guest.name}}, {{property.address}}…) pour personnaliser vos templates.",

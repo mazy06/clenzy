@@ -5,6 +5,9 @@ import com.clenzy.model.NoiseAlert.AlertSeverity;
 import com.clenzy.model.NoiseAlert.AlertSource;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.messaging.SystemEmailTemplateService;
+import com.clenzy.service.messaging.TemplateInterpolationService;
+import com.clenzy.service.messaging.TranslationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +29,11 @@ class NoiseAlertNotificationServiceTest {
     @Mock private EmailService emailService;
     @Mock private PropertyRepository propertyRepository;
     @Mock private ReservationRepository reservationRepository;
+    @Mock private SystemEmailTemplateService systemEmailTemplateService;
+
+    // Pas un mock — service pur sans IO, on l'instancie avec un TranslationService
+    // mock car on n'invoque pas interpolateAndTranslate dans NoiseAlert flow.
+    private TemplateInterpolationService templateInterpolationService;
 
     @InjectMocks
     private NoiseAlertNotificationService service;
@@ -37,6 +45,37 @@ class NoiseAlertNotificationServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Construit le service manuellement pour pouvoir injecter le vrai
+        // TemplateInterpolationService (pas mockable proprement) en plus des mocks.
+        // On contourne @InjectMocks pour ce service.
+        templateInterpolationService = new TemplateInterpolationService(org.mockito.Mockito.mock(TranslationService.class));
+        service = new NoiseAlertNotificationService(
+            notificationService, emailService, propertyRepository, reservationRepository,
+            systemEmailTemplateService, templateInterpolationService,
+            new com.clenzy.service.messaging.EmailWrapperService());
+
+        // Stub default : retourne un template systeme minimal avec le subject+body
+        // necessaires pour interpoler. Tests sont lenient car certains n'appellent
+        // pas dispatchEmail/dispatchGuestMessage.
+        SystemEmailTemplate ownerTpl = new SystemEmailTemplate();
+        ownerTpl.setTemplateKey("noise_alert_owner");
+        ownerTpl.setLanguage("fr");
+        ownerTpl.setSubject("[Baitly] Alerte bruit {severityLabel} — {propertyName}");
+        ownerTpl.setBody("<p>{propertyName} {measuredDb}/{thresholdDb} dB</p>");
+        ownerTpl.setSystem(true);
+
+        SystemEmailTemplate guestTpl = new SystemEmailTemplate();
+        guestTpl.setTemplateKey("noise_alert_guest");
+        guestTpl.setLanguage("fr");
+        guestTpl.setSubject("Information importante concernant le bruit — {propertyName}");
+        guestTpl.setBody("<p>Bonjour {guestName}, le logement {propertyName} ...</p>");
+        guestTpl.setSystem(true);
+
+        org.mockito.Mockito.lenient().when(systemEmailTemplateService.resolve(any(), eq("noise_alert_owner"), any()))
+            .thenReturn(Optional.of(ownerTpl));
+        org.mockito.Mockito.lenient().when(systemEmailTemplateService.resolve(any(), eq("noise_alert_guest"), any()))
+            .thenReturn(Optional.of(guestTpl));
+
         owner = new User();
         owner.setKeycloakId("owner-kc-id");
         owner.setEmail("owner@example.com");

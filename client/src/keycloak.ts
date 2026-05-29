@@ -83,6 +83,10 @@ export const keycloakInitPromise: Promise<boolean> = (async () => {
     })
 
     if (authenticated && keycloak.token) {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log('[keycloak] check-sso reussi — session restauree via Keycloak natif')
+      }
       setSessionCookie(keycloak.token)
       return true
     }
@@ -91,6 +95,10 @@ export const keycloakInitPromise: Promise<boolean> = (async () => {
     // hostname mismatch), mais le backend a confirme la session via le
     // cookie HttpOnly clenzy_auth (bootstrapToken). On force-set manuellement.
     if (bootstrapToken) {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log('[keycloak] check-sso a echoue mais bootstrap token recupere du cookie HttpOnly — bypass active')
+      }
       keycloak.token = bootstrapToken
       keycloak.authenticated = true
       keycloak.tokenParsed = decodeJwt(bootstrapToken)
@@ -102,6 +110,10 @@ export const keycloakInitPromise: Promise<boolean> = (async () => {
       return true
     }
 
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.warn('[keycloak] aucune session restauree — ni check-sso, ni cookie HttpOnly')
+    }
     return false
   } catch {
     // Silent — l'init peut echouer si Keycloak n'est pas joignable ;
