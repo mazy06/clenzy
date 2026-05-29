@@ -89,6 +89,7 @@ import TokenMonitoringPage from './admin/TokenMonitoringPage';
 import MonitoringPage from './admin/MonitoringPage';
 import SyncAdminPage from './admin/SyncAdminPage';
 import PromoCodesPage from './admin/PromoCodesPage';
+import VouchersPage from './vouchers/VouchersPage';
 import KpiReadinessPage from './admin/KpiReadinessPage';
 import DatabaseAdminPage from './admin/DatabaseAdminPage';
 import ExchangeRateHistoryPage from './admin/ExchangeRateHistoryPage';
@@ -403,6 +404,18 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="users:manage">
             <ErrorBoundary>
               <PromoCodesPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        {/* Vouchers : promos host/conciergerie sur les nuitees (distinct des
+            promo codes admin pour abonnements PMS). Permission generique
+            properties:view : tout user authentifie de l'org peut voir les
+            vouchers, l'edition est gatee cote backend par le creatorOrgType. */}
+        <Route path="/vouchers" element={
+          <ProtectedRoute requiredPermission="properties:view">
+            <ErrorBoundary>
+              <VouchersPage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />
