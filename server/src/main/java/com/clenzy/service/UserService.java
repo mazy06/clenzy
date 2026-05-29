@@ -52,6 +52,7 @@ public class UserService {
     private final EmailService emailService;
     private final TenantContext tenantContext;
     private final UserAvatarStorageService avatarStorage;
+    private final AvatarSelfHealer avatarSelfHealer;
     private final OutboxPublisher outboxPublisher;
     private final UserProfileSyncService profileSyncService;
 
@@ -64,6 +65,7 @@ public class UserService {
                        NotificationService notificationService, EmailService emailService,
                        TenantContext tenantContext,
                        UserAvatarStorageService avatarStorage,
+                       AvatarSelfHealer avatarSelfHealer,
                        ObjectProvider<OutboxPublisher> outboxPublisherProvider,
                        ObjectProvider<UserProfileSyncService> profileSyncProvider) {
         this.userRepository = userRepository;
@@ -76,6 +78,7 @@ public class UserService {
         this.emailService = emailService;
         this.tenantContext = tenantContext;
         this.avatarStorage = avatarStorage;
+        this.avatarSelfHealer = avatarSelfHealer;
         // ObjectProvider keeps the dependency optional — works in test contexts where the
         // outbox / Kafka stack isn't wired (matches the pattern used by
         // ContactMessageEventPublisher).
@@ -507,7 +510,14 @@ public class UserService {
             return null;
         }
         if (!avatarStorage.exists(path)) {
-            log.warn("Avatar file missing for user {} (path={})", userId, path);
+            log.warn("Avatar file missing for user {} (path={}), self-healing DB", userId, path);
+            // Self-heal : clear le champ pour que le prochain /me ne renvoie plus
+            // la claim, ce qui evite le 404 cosmetique a chaque requete frontend.
+            // Cas typique : storage local efface (dev restart sans volume nomme)
+            // ou objet S3 supprime hors workflow Clenzy.
+            // Delegue a avatarSelfHealer (Spring proxy externe) car
+            // @Transactional via self-invocation ne marcherait pas.
+            avatarSelfHealer.clearStaleReference(userId);
             return null;
         }
         Resource resource = avatarStorage.load(path);
