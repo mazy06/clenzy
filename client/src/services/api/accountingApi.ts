@@ -9,7 +9,7 @@ export type PayoutMethod =
   | 'STRIPE_CONNECT'
   | 'SEPA_TRANSFER'
   | 'WISE'           // Wise Business — virements internationaux MA/KSA/+80 pays
-  | 'OPEN_BANKING';  // Open Banking PIS — auto-SEPA depuis le compte Clenzy
+  | 'OPEN_BANKING';  // Open Banking PIS — auto-SEPA depuis le compte Baitly
 
 export interface OwnerPayout {
   id: number;

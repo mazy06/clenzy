@@ -94,7 +94,7 @@ const USER_FIXTURE = {
   email: 'admin@clenzy.fr',
   preferred_username: 'admin',
   firstName: 'Admin',
-  lastName: 'Clenzy',
+  lastName: 'Baitly',
   role: 'SUPER_ADMIN',
   organizationId: 2,
 };

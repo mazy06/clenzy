@@ -172,7 +172,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         },
       }}
     >
-      {/* Avatar Clenzy mark — signature visuelle de l'assistant.
+      {/* Avatar Baitly mark — signature visuelle de l'assistant.
           Pas de bg circulaire : le mark a son propre dessin (8 nodes +
           centre + lignes) qui se suffit a lui-meme. Container minimal
           pour aligner la taille avec le premier ligne de texte. */}

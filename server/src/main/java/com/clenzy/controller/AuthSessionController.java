@@ -42,6 +42,41 @@ public class AuthSessionController {
     private int cookieMaxAge;
 
     /**
+     * Recupere le token contenu dans le cookie HttpOnly clenzy_auth.
+     *
+     * <h3>Pourquoi cet endpoint</h3>
+     * Le frontend ne peut pas lire un cookie HttpOnly (par design securite).
+     * Au boot (hard refresh), Keycloak JS n'a plus de token en memoire et son
+     * check-sso peut echouer (cross-origin, SameSite restrictions, timeout
+     * session Keycloak). Cet endpoint permet au frontend de restaurer le token
+     * directement depuis le cookie pour pre-remplir keycloak.token avant init.
+     *
+     * <h3>Securite</h3>
+     * Permet de lire le token cote frontend SEULEMENT si le cookie HttpOnly
+     * est valide (le {@code TokenCookieFilter} injecte deja le token en header
+     * Authorization avant ce controller). Si pas de cookie ou cookie expire,
+     * Spring Security rejette la requete avec 401.
+     *
+     * <h3>Securite (suite)</h3>
+     * Le token retourne est le MEME que celui qui voyageait dans le header
+     * Authorization avant la migration HttpOnly. Donc pas de leak supplementaire
+     * vs l'ancien flow localStorage. L'attaquant qui peut faire cet appel
+     * pouvait deja s'authentifier — donc rien de nouveau.
+     */
+    @GetMapping
+    public ResponseEntity<Map<String, String>> getSession(HttpServletRequest request) {
+        // Extraire le token du header Authorization. TokenCookieFilter l'a deja
+        // copie depuis le cookie si l'user a un cookie valide. Sinon Spring
+        // Security aurait deja rejete la requete avec 401.
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Pas de session active"));
+        }
+        String token = authHeader.substring(7);
+        return ResponseEntity.ok(Map.of("token", token));
+    }
+
+    /**
      * Stocke le JWT dans un cookie HttpOnly.
      * Le token est deja valide par Spring Security (Bearer header requis).
      */

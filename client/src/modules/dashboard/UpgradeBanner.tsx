@@ -15,7 +15,7 @@ import {
 } from '../../icons';
 import { subscriptionApi } from '../../services/api/subscriptionApi';
 
-// ─── Couleurs Clenzy (brand) ───────────────────────────────────────────────
+// ─── Couleurs Baitly (brand) ───────────────────────────────────────────────
 const C = {
   primary:      '#6B8A9A',
   primaryLight: '#8BA3B3',

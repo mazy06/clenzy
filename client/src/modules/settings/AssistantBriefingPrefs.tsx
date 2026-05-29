@@ -59,7 +59,7 @@ const FREQUENCY_OPTIONS: Array<{ value: Frequency; label: string; description: s
 ];
 
 const CHANNEL_OPTIONS: Array<{ value: string; label: string; description: string }> = [
-  { value: 'in_app', label: 'In-app', description: 'Notification dans Clenzy + lien direct vers la conversation.' },
+  { value: 'in_app', label: 'In-app', description: 'Notification dans Baitly + lien direct vers la conversation.' },
   { value: 'email', label: 'Email', description: 'Briefing complet envoyé à ton adresse email.' },
   { value: 'whatsapp', label: 'WhatsApp', description: 'Court résumé via template approuvé.' },
 ];

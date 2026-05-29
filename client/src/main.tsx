@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as Sentry from '@sentry/react'
 import posthog from 'posthog-js'
 import App from './modules/App'
+import AppUpdateBanner from './components/AppUpdateBanner'
 import { createClenzyTheme } from './theme/createClenzyTheme'
 import ThemeSafetyWrapper from './components/ThemeSafetyWrapper'
 import { NotificationProvider } from './hooks/useNotification'
@@ -19,6 +20,46 @@ import { useGeoDetection } from './hooks/useGeoDetection'
 import { AuthProvider } from './contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
 import './i18n/config'
+
+// ─── Service Worker kill-switch en mode DEV ──────────────────────────────────
+// Probleme historique : un SW PWA installe via `npm run preview` ou via un
+// container Docker en mode prod reste colle a localhost:3000 et continue a
+// servir l'ancien bundle compile (avec ancien composant ClenzyAnimatedLogo +
+// ancienne logique d'auth). Symptomes constates :
+//   - Hard refresh affiche l'ancien design (goutte d'eau "Propreté & Multiservices")
+//   - User authentifie est deconnecte au hard refresh (ancien bundle ne reconnait
+//     pas les cookies actuels et redirige vers /login)
+//
+// Solution : au boot DEV, on desinstalle TOUS les SW + on vide les caches.
+// Effet immediat : la page actuelle bypasse l'ancien SW, le prochain refresh
+// fetch directement le dev server Vite (plus de souci).
+//
+// En PROD : ce code ne s'execute pas (import.meta.env.DEV = false) — le SW
+// reste actif pour les benefits offline + perf.
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  void (async () => {
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      if (regs.length > 0) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[dev] Detecte ${regs.length} Service Worker(s) — desinstall en cours pour eviter ` +
+          `les conflits avec l'ancien bundle PWA. Hard refresh recommande apres.`
+        );
+        await Promise.all(regs.map((reg) => reg.unregister()));
+        // Vider aussi les caches Workbox (sinon le browser peut encore servir
+        // des assets cached meme apres unregister du SW).
+        if ('caches' in window) {
+          const cacheKeys = await caches.keys();
+          await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+        }
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[dev] SW kill-switch failed:', err);
+    }
+  })();
+}
 
 // ─── Emotion caches for LTR and RTL ─────────────────────────────────────────
 const ltrCache = createCache({ key: 'mui' })
@@ -121,6 +162,10 @@ function AppWithTheme() {
                 <BrowserRouter>
                   <AuthProvider>
                     <App />
+                    {/* AppUpdateBanner : banniere "Nouvelle version disponible"
+                        qui ecoute le SW PWA. Monte au niveau racine pour etre
+                        visible sur toutes les routes. Rend null en dev (pas de SW). */}
+                    <AppUpdateBanner />
                   </AuthProvider>
                 </BrowserRouter>
               </ThemeSafetyWrapper>

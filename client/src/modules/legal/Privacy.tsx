@@ -3,7 +3,7 @@ import { Typography, Alert } from '@mui/material';
 import LegalLayout from './LegalLayout';
 
 /**
- * Politique de confidentialite Clenzy (RGPD).
+ * Politique de confidentialite Baitly (RGPD).
  *
  * <p>Page publique liee depuis le formulaire d'inscription (lien CGU) et le footer.
  * Stub a remplacer par la version definitive validee par le DPO.</p>
@@ -21,7 +21,7 @@ export default function Privacy() {
 
       <Typography component="h2">1. Responsable du traitement</Typography>
       <Typography component="p">
-        Le responsable du traitement de vos données personnelles est la société Clenzy.
+        Le responsable du traitement de vos données personnelles est la société Baitly.
         Pour toute demande relative à vos données, contactez notre Délégué à la Protection
         des Données (DPO) à <a href="mailto:dpo@clenzy.fr">dpo@clenzy.fr</a>.
       </Typography>
@@ -51,7 +51,7 @@ export default function Privacy() {
 
       <Typography component="h2">4. Destinataires</Typography>
       <Typography component="p">
-        Vos données sont accessibles aux équipes Clenzy strictement habilitées et à nos
+        Vos données sont accessibles aux équipes Baitly strictement habilitées et à nos
         sous-traitants techniques :
       </Typography>
       <ul>

@@ -10,7 +10,8 @@ import com.clenzy.service.NotificationService;
 import com.clenzy.service.messaging.EmailChannel;
 import com.clenzy.service.messaging.MessageDeliveryRequest;
 import com.clenzy.service.messaging.MessageDeliveryResult;
-import com.clenzy.service.messaging.WhatsAppApiService;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProvider;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProviderResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -28,7 +29,8 @@ class BriefingDeliveryTest {
 
     private NotificationService notificationService;
     private EmailChannel emailChannel;
-    private WhatsAppApiService whatsAppApiService;
+    private WhatsAppProviderResolver whatsAppProviderResolver;
+    private WhatsAppProvider whatsAppProvider;
     private UserRepository userRepository;
     private WhatsAppConfigRepository whatsAppConfigRepository;
     private com.clenzy.repository.OrgWhatsAppTemplateRepository orgWaTemplateRepository;
@@ -39,14 +41,19 @@ class BriefingDeliveryTest {
     void setUp() {
         notificationService = mock(NotificationService.class);
         emailChannel = mock(EmailChannel.class);
-        whatsAppApiService = mock(WhatsAppApiService.class);
+        whatsAppProviderResolver = mock(WhatsAppProviderResolver.class);
+        whatsAppProvider = mock(WhatsAppProvider.class);
+        // Par defaut le resolver retourne le mock provider — chaque test peut
+        // surcharger ce comportement (ex: simuler UnsupportedOperationException
+        // pour le scenario OpenWA fallback texte).
+        when(whatsAppProviderResolver.resolve(any())).thenReturn(whatsAppProvider);
         userRepository = mock(UserRepository.class);
         whatsAppConfigRepository = mock(WhatsAppConfigRepository.class);
         orgWaTemplateRepository = mock(com.clenzy.repository.OrgWhatsAppTemplateRepository.class);
         // Loader reel : utilise le template du classpath pour valider l'integration
         emailTemplateLoader = new EmailTemplateLoader();
         emailTemplateLoader.load();
-        delivery = new BriefingDelivery(notificationService, emailChannel, whatsAppApiService,
+        delivery = new BriefingDelivery(notificationService, emailChannel, whatsAppProviderResolver,
                 userRepository, whatsAppConfigRepository, orgWaTemplateRepository,
                 emailTemplateLoader);
     }
@@ -82,7 +89,7 @@ class BriefingDeliveryTest {
                 eq("Briefing matinal"), anyString(), actionUrl.capture(), eq(1L));
         assertEquals("/assistant/conversations/42", actionUrl.getValue());
         verifyNoInteractions(emailChannel);
-        verifyNoInteractions(whatsAppApiService);
+        verifyNoInteractions(whatsAppProvider);
     }
 
     @Test
@@ -158,13 +165,13 @@ class BriefingDeliveryTest {
         WhatsAppConfig config = new WhatsAppConfig();
         config.setEnabled(true);
         when(whatsAppConfigRepository.findByOrganizationId(1L)).thenReturn(Optional.of(config));
-        when(whatsAppApiService.sendTemplateMessage(eq(config), eq("+33611223344"),
+        when(whatsAppProvider.sendTemplateMessage(eq(config), eq("+33611223344"),
                 anyString(), eq("fr"))).thenReturn("wa-msg-1");
 
         List<String> delivered = delivery.dispatch(sample(), "user-x", 1L, List.of("whatsapp"));
 
         assertEquals(List.of("whatsapp"), delivered);
-        verify(whatsAppApiService).sendTemplateMessage(eq(config), eq("+33611223344"),
+        verify(whatsAppProvider).sendTemplateMessage(eq(config), eq("+33611223344"),
                 anyString(), eq("fr"));
     }
 
@@ -175,7 +182,7 @@ class BriefingDeliveryTest {
 
         List<String> delivered = delivery.dispatch(sample(), "user-x", 1L, List.of("whatsapp"));
         assertTrue(delivered.isEmpty());
-        verifyNoInteractions(whatsAppApiService);
+        verifyNoInteractions(whatsAppProvider);
     }
 
     @Test
@@ -188,7 +195,7 @@ class BriefingDeliveryTest {
 
         List<String> delivered = delivery.dispatch(sample(), "user-x", 1L, List.of("whatsapp"));
         assertTrue(delivered.isEmpty());
-        verifyNoInteractions(whatsAppApiService);
+        verifyNoInteractions(whatsAppProvider);
     }
 
     // ─── multi-canal + isolation ───────────────────────────────────────────
@@ -202,7 +209,7 @@ class BriefingDeliveryTest {
         WhatsAppConfig config = new WhatsAppConfig();
         config.setEnabled(true);
         when(whatsAppConfigRepository.findByOrganizationId(1L)).thenReturn(Optional.of(config));
-        when(whatsAppApiService.sendTemplateMessage(any(), any(), any(), any())).thenReturn("ok");
+        when(whatsAppProvider.sendTemplateMessage(any(), any(), any(), any())).thenReturn("ok");
 
         List<String> delivered = delivery.dispatch(sample(), "user-x", 1L,
                 List.of("in_app", "email", "whatsapp"));
@@ -250,7 +257,9 @@ class BriefingDeliveryTest {
         assertTrue(html.contains("Mon titre"));
         assertTrue(html.contains("Ligne 1<br/>Ligne 2"));
         assertTrue(html.contains("/assistant/conversations/42"));
-        assertTrue(html.contains("Clenzy Assistant"));
+        // Rebrand Clenzy -> Baitly (cf. commit fa4b7f45) : le template HTML
+        // utilise desormais "Baitly Assistant" comme brand name.
+        assertTrue(html.contains("Baitly Assistant"));
     }
 
     @Test
@@ -305,16 +314,63 @@ class BriefingDeliveryTest {
         when(orgWaTemplateRepository.findByOrganizationIdAndTemplateKey(eq(1L), eq("briefing")))
                 .thenReturn(Optional.of(custom));
 
-        when(whatsAppApiService.sendTemplateMessage(eq(config), eq("+33611223344"),
+        when(whatsAppProvider.sendTemplateMessage(eq(config), eq("+33611223344"),
                 eq("my_briefing_v2"), eq("en"))).thenReturn("wa-msg-2");
 
         List<String> delivered = delivery.dispatch(sample(), "user-x", 1L, List.of("whatsapp"));
 
         assertEquals(List.of("whatsapp"), delivered);
         // Le template custom DOIT etre utilise, pas le default
-        verify(whatsAppApiService).sendTemplateMessage(eq(config), eq("+33611223344"),
+        verify(whatsAppProvider).sendTemplateMessage(eq(config), eq("+33611223344"),
                 eq("my_briefing_v2"), eq("en"));
-        verify(whatsAppApiService, never()).sendTemplateMessage(any(), any(),
+        verify(whatsAppProvider, never()).sendTemplateMessage(any(), any(),
                 eq("engagement_update"), any());
+    }
+
+    // ─── OpenWA fallback : pas de templates -> envoi texte libre ────────────
+
+    @Test
+    void dispatch_whatsapp_openwaProvider_fallsBackToTextMessage() {
+        when(userRepository.findByKeycloakId("user-x"))
+                .thenReturn(Optional.of(user("a@b.com", "+33611223344")));
+        WhatsAppConfig config = new WhatsAppConfig();
+        config.setEnabled(true);
+        config.setProvider(com.clenzy.model.WhatsAppProviderType.OPENWA);
+        when(whatsAppConfigRepository.findByOrganizationId(1L)).thenReturn(Optional.of(config));
+
+        // Simule OpenWA : sendTemplateMessage throw UnsupportedOperationException,
+        // BriefingDelivery doit catch et fallback sur sendTextMessage avec le body
+        when(whatsAppProvider.sendTemplateMessage(any(), any(), any(), any()))
+                .thenThrow(new UnsupportedOperationException("OpenWA ne supporte pas les templates"));
+        when(whatsAppProvider.sendTextMessage(eq(config), eq("+33611223344"), anyString()))
+                .thenReturn("openwa-msg-1");
+
+        List<String> delivered = delivery.dispatch(sample(), "user-x", 1L, List.of("whatsapp"));
+
+        assertEquals(List.of("whatsapp"), delivered);
+        // Le fallback texte DOIT etre appele avec le body du briefing
+        ArgumentCaptor<String> bodyCap = ArgumentCaptor.forClass(String.class);
+        verify(whatsAppProvider).sendTextMessage(eq(config), eq("+33611223344"), bodyCap.capture());
+        assertTrue(bodyCap.getValue().contains("Voici ton briefing"),
+                "Le body envoye doit etre le contenu du briefing (pas un template)");
+    }
+
+    @Test
+    void dispatch_whatsapp_openwa_fallbackTextAlsoFails_returnsEmpty() {
+        when(userRepository.findByKeycloakId("user-x"))
+                .thenReturn(Optional.of(user("a@b.com", "+33611223344")));
+        WhatsAppConfig config = new WhatsAppConfig();
+        config.setEnabled(true);
+        config.setProvider(com.clenzy.model.WhatsAppProviderType.OPENWA);
+        when(whatsAppConfigRepository.findByOrganizationId(1L)).thenReturn(Optional.of(config));
+
+        when(whatsAppProvider.sendTemplateMessage(any(), any(), any(), any()))
+                .thenThrow(new UnsupportedOperationException("nope"));
+        when(whatsAppProvider.sendTextMessage(any(), any(), any()))
+                .thenThrow(new RuntimeException("OpenWA instance down"));
+
+        List<String> delivered = delivery.dispatch(sample(), "user-x", 1L, List.of("whatsapp"));
+
+        assertTrue(delivered.isEmpty(), "Si le fallback texte echoue aussi, on drop le canal proprement");
     }
 }

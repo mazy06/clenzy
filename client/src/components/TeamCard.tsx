@@ -39,7 +39,7 @@ interface TeamCardProps {
   canEdit?: boolean;
 }
 
-// ─── Accent color par catégorie (palette Clenzy) ─────────────────────────────
+// ─── Accent color par catégorie (palette Baitly) ─────────────────────────────
 
 const getAccentColor = (type: string): string => {
   const opt = INTERVENTION_TYPE_OPTIONS.find(t => t.value === type);

@@ -204,7 +204,7 @@ function iconFromCode(code: number | null | undefined): WeatherIcon {
 
 function iconColor(code: number | null | undefined, theme: Theme): string {
   if (code == null) return theme.palette.text.disabled;
-  if (code === 0) return '#D4A574'; // soleil — accent ambre Clenzy
+  if (code === 0) return '#D4A574'; // soleil — accent ambre Baitly
   if (code >= 95 && code <= 99) return theme.palette.warning.main;
   if (code >= 61 && code <= 82) return theme.palette.info.main;
   if (code >= 71 && code <= 86) return theme.palette.info.light;

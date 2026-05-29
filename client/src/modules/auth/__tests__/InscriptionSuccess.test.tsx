@@ -103,7 +103,7 @@ describe('InscriptionSuccess', () => {
       expect(screen.getByText(/jean@test.com/i)).toBeInTheDocument();
     });
 
-    it('affiche le logo Clenzy', () => {
+    it('affiche le logo Baitly', () => {
       renderSuccess('?session_id=cs_test_123');
       expect(screen.getByTestId('clenzy-logo')).toBeInTheDocument();
     });

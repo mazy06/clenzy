@@ -6,7 +6,7 @@
  * seul appel REST et affiche une checklist par etape pour la transparence.
  *
  * <p><b>Pourquoi ce dialog existe</b> : la deconnexion "simple" via {@code DELETE
- * /disconnect} ne fait qu'effacer le mapping en DB Clenzy — la property reste
+ * /disconnect} ne fait qu'effacer le mapping en DB Baitly — la property reste
  * cote hub, les channels OTA restent actifs et continuent de pusher (= les OTAs
  * sont toujours bloques cote host). Cette version fait <b>vraiment</b> tout :
  * desactive chaque OTA pour rendre la main aux hosts, supprime les channels du
@@ -66,7 +66,7 @@ const STEP_LABEL_FR: Record<ChannexFullDisconnectStep['code'], string> = {
   DEACTIVATE_CHANNEL: 'Desactivation du channel (OTA libere)',
   DELETE_CHANNEL: 'Suppression du channel du hub',
   DELETE_PROPERTY: 'Suppression de la property cote hub',
-  CLEANUP_LOCAL: 'Nettoyage du mapping local Clenzy',
+  CLEANUP_LOCAL: 'Nettoyage du mapping local Baitly',
 };
 
 function StepIcon({ status }: { status: ChannexFullDisconnectStep['status'] }) {
@@ -256,7 +256,7 @@ export default function ChannexFullDisconnectDialog({
                 3. <b>Supprimer</b> chaque channel du hub (tokens OAuth detruits)
               </Typography>
               <Typography variant="body2" color="text.primary">
-                4. <b>Nettoyer</b> le mapping local Clenzy
+                4. <b>Nettoyer</b> le mapping local Baitly
               </Typography>
             </Stack>
 

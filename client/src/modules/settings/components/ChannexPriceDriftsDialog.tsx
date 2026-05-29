@@ -1,11 +1,11 @@
 /**
  * Channex Price Drifts Dialog — Phase 3 OTA pricing (sync continue) + audit O1.
  *
- * <p>Liste les drifts de prix actifs (Clenzy ↔ OTA) detectes par le
+ * <p>Liste les drifts de prix actifs (Baitly ↔ OTA) detectes par le
  * {@code ChannexRatesReconciliationScheduler} et permet a l'admin de les
  * resoudre en 1 clic :</p>
  * <ul>
- *   <li><b>KEEP_CLENZY</b> : on conserve le prix Clenzy, push au prochain cycle ecrasera Channex</li>
+ *   <li><b>KEEP_CLENZY</b> : on conserve le prix Baitly, push au prochain cycle ecrasera Channex</li>
  *   <li><b>KEEP_OTA</b>    : on cree un {@code RateOverride(source="OTA:RESOLVED")}
  *       avec le prix OTA → PriceEngine resoudra cette date avec ce prix</li>
  *   <li><b>DISMISSED</b>   : on ignore l'ecart (cas de difference attendue)</li>
@@ -55,7 +55,7 @@ interface ChannexPriceDriftsDialogProps {
 }
 
 const RESOLUTION_LABEL: Record<ChannexPriceDriftResolution, string> = {
-  KEEP_CLENZY: 'Garder Clenzy',
+  KEEP_CLENZY: 'Garder Baitly',
   KEEP_OTA: 'Garder OTA',
   DISMISSED: 'Ignorer',
 };
@@ -126,7 +126,7 @@ function DriftRow({
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
             <Chip
               size="small"
-              label={`Clenzy ${drift.clenzyPrice}${drift.currency}`}
+              label={`Baitly ${drift.clenzyPrice}${drift.currency}`}
               sx={{
                 height: 22,
                 fontSize: '0.72rem',
@@ -303,7 +303,7 @@ export default function ChannexPriceDriftsDialog({
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '1.05rem' }}>
-            Conflits de prix Clenzy ↔ Channex
+            Conflits de prix Baitly ↔ Channex
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.4 }}>
             {drifts.length === 0 && !loading
@@ -345,7 +345,7 @@ export default function ChannexPriceDriftsDialog({
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <CheckCircle2 size={36} color="#10B981" strokeWidth={2} />
             <Typography variant="body2" sx={{ mt: 1.5, color: 'text.secondary' }}>
-              Tous les prix sont alignes entre Clenzy et Channex.
+              Tous les prix sont alignes entre Baitly et Channex.
             </Typography>
           </Box>
         )}

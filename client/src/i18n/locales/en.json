@@ -1,6 +1,12 @@
 {
+  "appUpdate": {
+    "message": "A new version of Baitly is available.",
+    "reload": "Reload now",
+    "later": "Later"
+  },
   "common": {
     "save": "Save",
+    "saving": "Saving…",
     "cancel": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
@@ -107,7 +113,7 @@
     "titleHousekeeper": "Housekeeper Dashboard",
     "titleSupervisor": "Supervisor Dashboard",
     "subtitle": "Overview of your activity",
-    "subtitleAdmin": "Complete overview of the Clenzy platform",
+    "subtitleAdmin": "Complete overview of the Baitly platform",
     "subtitleManager": "Operations management and team tracking",
     "subtitleHost": "Track your properties and service requests",
     "subtitleTechnician": "Your interventions and work planning",
@@ -358,7 +364,7 @@
       "noRecommendations": "No recommendations available"
     },
     "emptyState": {
-      "title": "Welcome to Clenzy!",
+      "title": "Welcome to Baitly!",
       "description": "Start by creating your first property to unlock all dashboard features.",
       "cta": "Create my first property"
     },
@@ -497,8 +503,8 @@
         "configureDevice": "Configure my sensor"
       },
       "clenzy": {
-        "detailTitle": "Clenzy Hardware - Proprietary solution",
-        "detailDescription": "Our Tuya OEM-based solution provides noise monitoring with no monthly subscription. The CLENZY-TUYA-NM-01 sensor integrates natively into the Clenzy platform with real-time data.",
+        "detailTitle": "Baitly Hardware - Proprietary solution",
+        "detailDescription": "Our Tuya OEM-based solution provides noise monitoring with no monthly subscription. The BAITLY-TUYA-NM-01 sensor integrates natively into the Baitly platform with real-time data.",
         "articleRef": "Article ref.",
         "orderExternal": "Order from the store",
         "configureDevice": "Configure my sensor"
@@ -568,7 +574,7 @@
       "title": "Key Management",
       "subtitle": "Set up a key storage point for your properties without a smart lock.",
       "keyvault": {
-        "title": "Clenzy KeyVault — Partner Merchants",
+        "title": "Baitly KeyVault — Partner Merchants",
         "description": "Manage your own network of trusted merchants. Integrated PMS solution at no extra cost.",
         "free": "Free",
         "includedInPlan": "Included in your plan",
@@ -1843,7 +1849,7 @@
       "changeIcon": "Change icon",
       "resetIcon": "Reset icon",
       "tabs": {
-        "reference": "Clenzy reference"
+        "reference": "Baitly reference"
       },
       "iconPicker": {
         "title": "Pick an icon",
@@ -1854,12 +1860,12 @@
         "resetToDefault": "Revert to default icon"
       },
       "reference": {
-        "intro": "Clenzy reference: {{count}} amenities ready to use. Click an icon to customize it (lucide-react catalog, ~80 icons). The amenity code is invariant — only the icon changes.",
+        "intro": "Baitly reference: {{count}} amenities ready to use. Click an icon to customize it (lucide-react catalog, ~80 icons). The amenity code is invariant — only the icon changes.",
         "customizedTooltip": "Custom icon — revert to default"
       },
       "custom": {
         "emptyTitle": "No custom amenity",
-        "emptySubtitle": "Create your own amenities when the Clenzy reference does not cover an equipment."
+        "emptySubtitle": "Create your own amenities when the Baitly reference does not cover an equipment."
       },
       "ignored": {
         "emptyTitle": "No ignored amenity",
@@ -1951,7 +1957,7 @@
       "ibanInvalid": "Invalid IBAN format (e.g. FR7630006000011234567890189)",
       "sepaSuccess": "Bank details saved",
       "sepaError": "Error saving details",
-      "verificationNote": "After modification, your details will be verified by Clenzy before activation.",
+      "verificationNote": "After modification, your details will be verified by Baitly before activation.",
       "stripeSection": "Stripe Connect",
       "stripeDescription": "Connect your Stripe account to receive your payouts automatically.",
       "stripeConnectBtn": "Connect my Stripe account",
@@ -2130,7 +2136,7 @@
   },
   "reports": {
     "title": "Reports",
-    "subtitle": "Generate and consult reports for your Clenzy platform",
+    "subtitle": "Generate and consult reports for your Baitly platform",
     "permission": "Permission",
     "available": "Available",
     "notAuthorized": "Not authorized",
@@ -2401,9 +2407,9 @@
         "feature4": "24/7 support"
       },
       "clenzy": {
-        "title": "Clenzy Hardware",
+        "title": "Baitly Hardware",
         "badge": "Proprietary",
-        "description": "Proprietary solution based on Tuya OEM. One-time cost with no subscription, natively integrated into the Clenzy platform.",
+        "description": "Proprietary solution based on Tuya OEM. One-time cost with no subscription, natively integrated into the Baitly platform.",
         "pricingModel": "One-time cost (no subscription)",
         "onQuote": "On request",
         "onQuoteHint": "Price will be communicated when your solution is configured",
@@ -2417,7 +2423,7 @@
         "supportPriceHelp": "Extended support and warranty",
         "total": "Total per sensor",
         "feature1": "No monthly subscription",
-        "feature2": "Native Clenzy integration",
+        "feature2": "Native Baitly integration",
         "feature3": "Real-time data",
         "feature4": "No external dependency"
       }
@@ -2729,7 +2735,7 @@
     },
     "pushPricing": {
       "title": "Push to Airbnb",
-      "description": "Sync Clenzy calendar prices to Airbnb",
+      "description": "Sync Baitly calendar prices to Airbnb",
       "push": "Push prices",
       "button": "Push prices",
       "tooltip": "Push resolved prices to Airbnb (365 days)",
@@ -2784,7 +2790,7 @@
     },
     "connect": {
       "title": "Connect {{channel}}",
-      "description": "Enter your API credentials to connect {{channel}} to Clenzy.",
+      "description": "Enter your API credentials to connect {{channel}} to Baitly.",
       "hotelId": "Hotel ID",
       "propertyId": "Property ID",
       "username": "Username",
@@ -2812,12 +2818,96 @@
       "status": "Status"
     }
   },
+  "systemEmailTemplates": {
+    "loadError": "Unable to load email templates.",
+    "empty": "No email template configured yet. Baitly system templates will appear here once the migration is applied.",
+    "badge": {
+      "system": "System",
+      "customized": "Customized"
+    },
+    "card": {
+      "languagesCount": "{{count}} language(s) configured"
+    },
+    "recipient": {
+      "OWNER": "Recipient: Owner",
+      "GUEST": "Recipient: Guest",
+      "INTERNAL_TEAM": "Recipient: Baitly internal team",
+      "INVITED_USER": "Recipient: Invited user"
+    },
+    "recipientShort": {
+      "OWNER": "Owner",
+      "GUEST": "Guest",
+      "INTERNAL_TEAM": "Internal team",
+      "INVITED_USER": "Invited user"
+    },
+    "keys": {
+      "noise_alert_owner": "Noise alert — Owner",
+      "noise_alert_guest": "Noise alert — Guest",
+      "invitation_organization": "Invitation to join an organization",
+      "quote_request_internal": "Internal notification — Quote request",
+      "maintenance_request_internal": "Internal notification — Maintenance request"
+    },
+    "dialog": {
+      "loadError": "Failed to load template.",
+      "subject": "Email subject",
+      "subjectCharCount": "{{count}} / 255 characters",
+      "subjectTooLong": "Subject too long (max 255): {{count}} characters",
+      "body": "Message body",
+      "bodyHelper": "Free text. Formatting: *bold*, _italic_, paragraphs separated by an empty line. The HTML wrapper is applied automatically on send.",
+      "bodyTooLong": "Too long (max 100,000): {{count}} characters",
+      "preview": "Preview (variables replaced with example values)",
+      "previewNote": "The final visual rendering (Baitly header, HTML formatting) is generated server-side at send time.",
+      "variables": "Available variables (click to insert)",
+      "systemVariables": "System variables used (pre-rendered content)",
+      "systemVariableHint": "This variable contains HTML content auto-generated by the server (dynamic sections, lists). Do not modify or remove.",
+      "languageNotAvailable": "This language is not yet configured for this template.",
+      "save": "Save this language",
+      "resetToSystem": "Restore system default",
+      "saveError": "Failed to save.",
+      "resetError": "Failed to restore default."
+    }
+  },
+  "whatsappTemplates": {
+    "loadError": "Unable to load WhatsApp templates.",
+    "table": {
+      "preview": "Message preview"
+    },
+    "empty": "No WhatsApp template configured yet. Baitly system templates will appear here once the migration is applied.",
+    "badge": {
+      "system": "System",
+      "customized": "Customized"
+    },
+    "card": {
+      "languagesCount": "{{count}} language(s) configured"
+    },
+    "keys": {
+      "checkin_instructions": "Check-in instructions (D-1)",
+      "arrival_code": "Access code + Wi-Fi (arrival day)",
+      "checkout_reminder": "Checkout reminder (departure day)",
+      "review_request": "Review request (D+1)",
+      "booking_confirmation": "Booking confirmation (D-7)"
+    },
+    "dialog": {
+      "subtitle": "Meta category: {{category}}",
+      "loadError": "Failed to load template.",
+      "preview": "Preview (variables not substituted)",
+      "variables": "Available variables (click to insert)",
+      "tooLong": "Too long (max 1024): {{count}} characters",
+      "charCount": "{{count}} / 1024 characters",
+      "save": "Save this language",
+      "resetToSystem": "Restore system default",
+      "saveError": "Failed to save.",
+      "resetError": "Failed to restore default."
+    }
+  },
   "documents": {
     "title": "Documents & Communications",
     "subtitle": "Templates, history and regulatory compliance",
     "tabs": {
       "catalog": "Catalog",
       "messageTemplates": "Message templates",
+      "whatsappTemplates": "WhatsApp templates",
+      "emailTemplates": "Email templates",
       "documentTemplates": "Document templates",
       "history": "History",
       "variablesAndTags": "Variables & Tags",
@@ -2910,9 +3000,21 @@
       "status": "Status",
       "active": "Active",
       "inactive": "Inactive",
+      "origin": "Origin",
+      "originUser": "Custom",
+      "originSystem": "Baitly system",
+      "originCustomized": "System · Customized",
+      "version": "Version",
+      "createdBy": "Created by",
+      "systemAuthor": "Baitly",
       "editor": {
         "createTitle": "New template",
         "editTitle": "Edit template",
+        "editSystemTitle": "Edit system template",
+        "editWhatsappTitle": "Edit WhatsApp template",
+        "systemNameHelper": "System name — read-only",
+        "recipient": "Recipient",
+        "metaCategory": "Meta category",
         "name": "Template name",
         "type": "Type",
         "language": "Language",
@@ -3552,7 +3654,7 @@
         "loadError": "Unable to load AI configuration. Please try again."
       },
       "features": {
-        "title": "Clenzy AI Solutions",
+        "title": "Baitly AI Solutions",
         "subtitle": "Enable or disable AI modules based on your needs",
         "design": {
           "name": "Design AI",
@@ -3778,7 +3880,7 @@
   },
   "shop": {
     "title": "Hardware Shop",
-    "subtitle": "Equip your properties with Clenzy-compatible IoT sensors",
+    "subtitle": "Equip your properties with Baitly-compatible IoT sensors",
     "allProducts": "All products",
     "kits": "Kits",
     "noiseMonitoring": "Noise monitoring",
@@ -3795,11 +3897,11 @@
     "shipping": "Free shipping in metropolitan France",
     "shippingIntl": "Contact us for international shipping",
     "noSubscription": "No monthly subscription",
-    "nativeIntegration": "Native Clenzy integration",
+    "nativeIntegration": "Native Baitly integration",
     "kitContents": "Kit contents",
     "savings": "Savings",
     "perUnit": "per unit",
-    "infoBanner": "All our products are Tuya-compatible and integrate natively with your Clenzy PMS. No monthly subscription.",
+    "infoBanner": "All our products are Tuya-compatible and integrate natively with your Baitly PMS. No monthly subscription.",
     "badges": {
       "new": "New",
       "bestseller": "Popular",
@@ -3948,7 +4050,7 @@
         "payment": "Payment providers (Stripe, PayPal, PayTabs, CMI…) and split rules.",
         "integrations": "Connect your third-party tools: e-signature, accounting, KYC, legal compliance, OTA channels.",
         "payouts": "Schedule and calculation rules for owner payouts.",
-        "amenitiesOta": "Map amenities detected on your OTA listings (Airbnb, Booking, etc.) to the Clenzy reference. Create your own amenities if nothing matches."
+        "amenitiesOta": "Map amenities detected on your OTA listings (Airbnb, Booking, etc.) to the Baitly reference. Create your own amenities if nothing matches."
       }
     },
     "dashboard": {
@@ -3999,6 +4101,8 @@
       "subtitle": {
         "catalog": "Template catalog by guest journey step: messaging, documents, communications.",
         "messageTemplates": "Automated messaging templates (check-in, welcome, pricing push) triggered by events.",
+        "whatsappTemplates": "Standard WhatsApp templates (check-in, access code, checkout reminder) — editable per language, submitted to Meta for approval.",
+        "emailTemplates": "Baitly system email templates (noise alerts, invitations, landing notifications) — subject and HTML body editable per language.",
         "documentTemplates": "Library of PDF templates (invoices, certificates, inventory) versioned and reusable.",
         "history": "Unified history of sent messages and generated documents, filterable by channel and status.",
         "variablesAndTags": "Reference for available variables ({{guest.name}}, {{property.address}}…) to personalize your templates.",
@@ -4007,7 +4111,7 @@
     },
     "reports": {
       "title": "Reports",
-      "default": "Generate and view reports from your Clenzy platform",
+      "default": "Generate and view reports from your Baitly platform",
       "subtitle": {
         "financial": "Revenue per property, operating costs, net margin and accounting exports for the chosen period.",
         "interventions": "Volume, average delays and completion rates of interventions by type and team.",
@@ -4041,7 +4145,7 @@
     },
     "monitoring": {
       "title": "System Monitoring",
-      "default": "Complete monitoring of the Clenzy platform",
+      "default": "Complete monitoring of the Baitly platform",
       "lastUpdate": "Last update",
       "tabs": {
         "tokens": "Token Monitoring",
@@ -4075,7 +4179,7 @@
         "calendar": "Audit of calendar commands (book, cancel, block, price) and detection of multi-channel conflicts.",
         "mappings": "Property ↔ external listing correspondences per channel (Airbnb ID, Booking hotel ID, etc.).",
         "diagnostics": "System diagnostics: scheduled tasks, jobs in progress, recent errors and integrations status.",
-        "reconciliation": "Calendar reconciliation runs: detection of divergences between Clenzy and OTA, manual triggering."
+        "reconciliation": "Calendar reconciliation runs: detection of divergences between Baitly and OTA, manual triggering."
       }
     }
   },
@@ -4146,7 +4250,7 @@
       "cguLinkText": "terms of service",
       "cguMiddle": "and the",
       "privacyLinkText": "privacy policy",
-      "newsletterOptIn": "I want to receive the Clenzy newsletter (product updates, rental management tips).",
+      "newsletterOptIn": "I want to receive the Baitly newsletter (product updates, rental management tips).",
       "submit": "Continue to payment",
       "alreadyAccount": "Already have an account?",
       "loginLink": "Sign in",

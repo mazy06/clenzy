@@ -97,7 +97,7 @@ export default function PWAInstallBanner() {
         <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0 }}><GetAppIcon size={32} strokeWidth={1.75} /></Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={600} noWrap>
-            Installer Clenzy PMS
+            Installer Baitly PMS
           </Typography>
           <Typography variant="body2" sx={{ opacity: 0.9 }}>
             Installez l'application sur votre appareil pour un acc&egrave;s rapide.

@@ -164,7 +164,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
             value={emailSubject}
             onChange={(e) => setEmailSubject(e.target.value)}
             fullWidth
-            placeholder="Ex: Votre facture Clenzy"
+            placeholder="Ex: Votre facture Baitly"
           />
 
           <TextField

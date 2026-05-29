@@ -56,7 +56,7 @@ import OtaShowcaseSection from './components/OtaShowcaseSection';
 import ServiceCatalogSection from './components/ServiceCatalogSection';
 import ServiceTooltip from './components/ServiceTooltip';
 
-// ─── Style helpers (Clenzy palette) ─────────────────────────────────────────
+// ─── Style helpers (Baitly palette) ─────────────────────────────────────────
 
 const ACCENT = '#4A9B8E';
 const PRIMARY = '#6B8A9A';
@@ -1528,7 +1528,7 @@ export default function IntegrationsSection({
             serviceFilter={selectedServiceId}
             category="key_management"
             title="Gestion des clés"
-            description="Réseaux de gardiens de clés pour les logements sans serrure connectée. Solution propriétaire Clenzy ou partenaires externes."
+            description="Réseaux de gardiens de clés pour les logements sans serrure connectée. Solution propriétaire Baitly ou partenaires externes."
           />
         </Box>
       )}
@@ -1539,7 +1539,7 @@ export default function IntegrationsSection({
             serviceFilter={selectedServiceId}
             category="noise_monitoring"
             title="Monitoring sonore"
-            description="Surveillez le niveau de bruit en temps réel pour prévenir les nuisances et protéger vos relations de voisinage. Hardware Clenzy ou capteur partenaire."
+            description="Surveillez le niveau de bruit en temps réel pour prévenir les nuisances et protéger vos relations de voisinage. Hardware Baitly ou capteur partenaire."
           />
         </Box>
       )}

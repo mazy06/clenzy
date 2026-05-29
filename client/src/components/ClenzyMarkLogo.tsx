@@ -2,11 +2,11 @@ import React, { useId } from 'react';
 import { Box, useTheme } from '@mui/material';
 
 /**
- * Logo Clenzy SaaS — option "8 nodes orchestration" + wordmark Space Grotesk.
+ * Logo Baitly SaaS — option "8 nodes orchestration" + wordmark Space Grotesk.
  *
  * <h3>Concept</h3>
  * 8 nodes disposes en octogone autour d'un node central — visualisation
- * litterale de l'architecture multi-agents Clenzy (OrchestratorAgent +
+ * litterale de l'architecture multi-agents Baitly (OrchestratorAgent +
  * 8 specialistes). Le mark a remplace l'ancien {@code ClenzyAnimatedLogo}
  * (goutte d'eau + script + "PROPRETE & MULTISERVICES") qui evoquait un
  * service de menage, pas un PMS SaaS.
@@ -168,7 +168,7 @@ export default function ClenzyMarkLogo({
       viewBox="0 0 56 56"
       fill="none"
       role="img"
-      aria-label="Clenzy"
+      aria-label="Baitly"
       style={{ flexShrink: 0, overflow: 'visible' }}
     >
       {/* Group lines : boot animation deportee ici (fade-in opacity) pour
@@ -212,7 +212,7 @@ export default function ClenzyMarkLogo({
         whiteSpace: 'nowrap',
       }}
     >
-      clenzy
+      baitly
     </span>
   );
 

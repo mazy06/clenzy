@@ -77,7 +77,7 @@ const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 6, border: '1px solid #E2E8F
 const LEGEND_STYLE = { fontSize: 10, letterSpacing: '0.02em' } as const;
 const GRID_STROKE = '#F1F5F9';
 
-// Clenzy palette for charts
+// Baitly palette for charts
 const CHART_PRIMARY = '#6B8A9A';
 const CHART_SUCCESS = '#4A9B8E';
 const CHART_WARNING = '#D4A574';

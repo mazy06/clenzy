@@ -452,7 +452,7 @@ const AssistantWidget: React.FC = () => {
                 Pose ta question
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 280 }}>
-                J&apos;utilise tes donnees Clenzy en temps reel. Pour un historique
+                J&apos;utilise tes donnees Baitly en temps reel. Pour un historique
                 complet, ouvre la page Assistant.
               </Typography>
             </Box>

@@ -181,7 +181,7 @@ export const featureFlags = {
 
 /**
  * PostHog event tracking helper.
- * Provides type-safe wrappers around posthog.capture() for common Clenzy events.
+ * Provides type-safe wrappers around posthog.capture() for common Baitly events.
  *
  * Includes domain events (reservation, intervention, key code, invoice)
  * and funnel events (onboarding, check-in flow, key exchange flow).

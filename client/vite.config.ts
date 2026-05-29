@@ -6,14 +6,20 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' : le nouveau SW est installe en background mais ne prend PAS
+      // le controle automatiquement. On expose un hook useRegisterSW au composant
+      // <AppUpdateBanner /> qui affiche une bannière "Nouvelle version disponible
+      // — Recharger maintenant" a l'user. Au clic, on appelle updateServiceWorker(true)
+      // qui active le nouveau SW + reload la page. Evite la friction du hard refresh
+      // pour les users prod qui ne connaissent pas Cmd+Shift+R.
+      registerType: 'prompt',
       // favicon.ico retire : on n'a pas de version PNG/ICO, juste l'icon.svg
       // qui suffit (browsers modernes supportent SVG comme favicon depuis 2020+)
       includeAssets: ['icons/icon.svg'],
       manifest: {
-        name: 'Clenzy PMS',
-        short_name: 'Clenzy',
-        description: 'Système de gestion immobilière Clenzy',
+        name: 'Baitly PMS',
+        short_name: 'Baitly',
+        description: 'Baitly — Property Management System pour locations courte durée',
         theme_color: '#6B8A9A',
         background_color: '#ffffff',
         display: 'standalone',
@@ -28,13 +34,16 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Active immediatement le nouveau service worker sans attendre la
-        // fermeture de tous les onglets, ET prend le controle des onglets deja
-        // ouverts. Sans ces deux flags, l'utilisateur devait hard refresh
-        // apres chaque deploy pour voir la nouvelle version (le vieux SW
-        // continuait a servir l'ancien index.html depuis son cache).
-        skipWaiting: true,
-        clientsClaim: true,
+        // skipWaiting + clientsClaim a `false` car on est en mode `prompt` :
+        // le nouveau SW reste en "waiting" jusqu'a ce que l'user clique
+        // "Recharger" dans <AppUpdateBanner />. C'est le hook updateServiceWorker(true)
+        // qui envoie le message SKIP_WAITING + reload la page au moment voulu.
+        //
+        // Si on les laissait a `true`, le nouveau SW prendrait le controle
+        // silencieusement et l'user verrait potentiellement des erreurs (chunk
+        // hash mismatch entre HTML cache et JS frais) avant le reload.
+        skipWaiting: false,
+        clientsClaim: false,
         // Cleanup des caches obsoletes au boot du nouveau SW (chunks JS d'une
         // ancienne version qui ne sont plus referenced par le nouvel index.html).
         cleanupOutdatedCaches: true,

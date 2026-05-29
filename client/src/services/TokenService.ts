@@ -164,6 +164,14 @@ class TokenService {
    * Gère l'expiration du token
    */
   private handleTokenExpired(): void {
+    // Cas hard refresh : pas de refresh token disponible (cf. refreshToken()
+    // commentaire). Sans refresh token, keycloak.logout() est la seule option,
+    // mais on ne veut PAS forcer le logout silencieusement — laisser le 401
+    // de la prochaine requete API declencher le flow naturel via apiClient.
+    if (!keycloak.refreshToken) {
+      return;
+    }
+
     // Essayer de rafraîchir le token
     this.refreshTokenWithRetry().catch(() => {
       // Si le rafraîchissement échoue, forcer la re-connexion
@@ -219,6 +227,22 @@ class TokenService {
           success: false,
           error: 'Utilisateur non authentifié'
         };
+      }
+
+      // Cas hard refresh : le cookie HttpOnly clenzy_auth ne stocke QUE le
+      // access token (pas le refresh token — voir tache de suivi #156). Apres
+      // un hard refresh, keycloak.refreshToken est undefined car restaure
+      // manuellement via le cookie. keycloak.updateToken() rejette dans ce cas
+      // avec "no refresh token", ce qui declenche le retry loop puis le logout
+      // cascade dans handleTokenExpired() (line 170 → keycloak.logout()) →
+      // onAuthLogout → handleGlobalLogout() → window.location = /login.
+      //
+      // Tant que le refresh token n'est pas dans le cookie, on traite l'absence
+      // comme "pas de refresh possible" en succes silencieux (le token actuel
+      // reste valide jusqu'a son expiration naturelle ~1h, l'user fera un re-login
+      // a ce moment-la). C'est une degradation gracieuse, pas un logout force.
+      if (!keycloak.refreshToken) {
+        return { success: true };
       }
 
       const refreshed = await keycloak.updateToken(70); // Rafraîchir si expiré dans moins de 70 secondes

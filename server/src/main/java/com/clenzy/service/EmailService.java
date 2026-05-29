@@ -2,6 +2,9 @@ package com.clenzy.service;
 
 import com.clenzy.dto.MaintenanceRequestDto;
 import com.clenzy.dto.QuoteRequestDto;
+import com.clenzy.service.messaging.EmailWrapperService;
+import com.clenzy.service.messaging.SystemEmailTemplateService;
+import com.clenzy.service.messaging.TemplateInterpolationService;
 import com.clenzy.util.AttachmentValidator;
 import com.clenzy.util.StringUtils;
 import jakarta.mail.MessagingException;
@@ -18,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -102,8 +106,18 @@ public class EmailService {
             "non", "Me faire recontacter"
     );
 
-    public EmailService(ObjectProvider<JavaMailSender> mailSenderProvider) {
+    private final SystemEmailTemplateService systemEmailTemplateService;
+    private final TemplateInterpolationService templateInterpolationService;
+    private final EmailWrapperService emailWrapperService;
+
+    public EmailService(ObjectProvider<JavaMailSender> mailSenderProvider,
+                        SystemEmailTemplateService systemEmailTemplateService,
+                        TemplateInterpolationService templateInterpolationService,
+                        EmailWrapperService emailWrapperService) {
         this.mailSender = mailSenderProvider.getIfAvailable();
+        this.systemEmailTemplateService = systemEmailTemplateService;
+        this.templateInterpolationService = templateInterpolationService;
+        this.emailWrapperService = emailWrapperService;
         if (this.mailSender == null) {
             log.warn("JavaMailSender non configure: l'envoi d'emails est desactive. Configurez spring.mail.host (ou spring.mail.jndi-name) pour l'activer.");
         }
@@ -118,10 +132,38 @@ public class EmailService {
 
     /**
      * Envoie un email de notification pour une nouvelle demande de devis.
+     *
+     * <p>Le subject et le wrapper HTML sont resolus depuis
+     * {@code system_email_template} (cle {@code quote_request_internal}) avec
+     * fallback systeme. Les sections dynamiques (coordonnees, services
+     * selectionnes) sont pre-rendues en {@code {detailsHtml}} cote Java avant
+     * l'interpolation finale, car elles contiennent des boucles non-templating.</p>
      */
     public void sendQuoteRequestNotification(QuoteRequestDto dto, String recommendedPackage, int recommendedRate) {
         try {
             JavaMailSender ms = requireMailSender();
+
+            // Resolution du template depuis la BDD (systeme par defaut, pas de
+            // tenant car notification interne equipe Baitly).
+            var template = systemEmailTemplateService.resolve(null, "quote_request_internal", "fr")
+                .orElseThrow(() -> new IllegalStateException(
+                    "Template systeme quote_request_internal introuvable en BDD"));
+
+            Map<String, String> vars = new HashMap<>();
+            vars.put("fullName", nullToEmpty(dto.getFullName()));
+            vars.put("city", nullToEmpty(dto.getCity()));
+            vars.put("recommendedPackage", formatPackageName(recommendedPackage));
+            vars.put("recommendedRate", String.valueOf(recommendedRate));
+            // Variable speciale : sections dynamiques pre-rendues (boucles services etc).
+            // HTML safe (listee dans HTML_SAFE_VARIABLES) → pas re-echappee a l'interpolation.
+            vars.put("detailsHtml", renderQuoteDetailsHtml(dto));
+
+            String subject = templateInterpolationService.interpolate(template.getSubject(), vars, false);
+            // Interpolation du body plain text + wrapping HTML uniforme. Le
+            // wrapper applique header/footer Baitly et convertit le markdown
+            // leger (*gras*, _italique_, paragraphes) en HTML inline-styled.
+            String interpolatedBody = templateInterpolationService.interpolate(template.getBody(), vars, true);
+            String htmlBody = emailWrapperService.wrap(template.getWrapperStyle(), interpolatedBody);
 
             MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -129,8 +171,8 @@ public class EmailService {
             helper.setFrom(fromAddress);
             helper.setTo(notificationTo);
             helper.setReplyTo(dto.getEmail());
-            helper.setSubject("📋 Nouvelle demande de devis — " + sanitizeHeaderValue(dto.getFullName()) + " — " + sanitizeHeaderValue(dto.getCity()));
-            helper.setText(buildHtmlBody(dto, recommendedPackage, recommendedRate), true);
+            helper.setSubject(sanitizeHeaderValue(subject));
+            helper.setText(htmlBody, true);
             ms.send(message);
             log.info("Email de notification devis envoyé pour : {} ({})", dto.getFullName(), dto.getEmail());
 
@@ -143,23 +185,14 @@ public class EmailService {
         }
     }
 
-    private String buildHtmlBody(QuoteRequestDto dto, String recommendedPackage, int recommendedRate) {
+    /**
+     * Pre-rend les sections dynamiques du template devis (coordonnees, bien,
+     * services). Le rendu est injecte dans {@code {detailsHtml}} du template
+     * editable. L'user voit cette variable comme "section non-editable
+     * pre-generee" dans la sidebar de l'UI.
+     */
+    private String renderQuoteDetailsHtml(QuoteRequestDto dto) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>");
-        sb.append("<div style='font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;'>");
-
-        // Header
-        sb.append("<div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;'>");
-        sb.append("<h1 style='color: white; margin: 0; font-size: 22px;'>📋 Nouvelle demande de devis</h1>");
-        sb.append("<p style='color: rgba(255,255,255,0.9); margin: 5px 0 0;'>Clenzy — Formulaire Landing Page</p>");
-        sb.append("</div>");
-
-        // Recommended package banner
-        sb.append("<div style='background: #f0fdf4; border-left: 4px solid #22c55e; padding: 15px 20px;'>");
-        sb.append("<strong style='color: #15803d;'>🎯 Forfait recommandé :</strong> ");
-        sb.append("<span style='font-size: 18px; font-weight: bold; color: #15803d;'>").append(formatPackageName(recommendedPackage)).append("</span>");
-        sb.append(" <span style='color: #666;'>(à partir de ").append(recommendedRate).append(" € par intervention)</span>");
-        sb.append("</div>");
 
         // Section: Coordonnées
         sb.append(sectionStart("#f8fafc", "👤 Coordonnées"));
@@ -214,13 +247,11 @@ public class EmailService {
         }
         sb.append("</div>");
 
-        // Footer
-        sb.append("<div style='text-align: center; padding: 20px; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0;'>");
-        sb.append("<p>Cet email a été généré automatiquement par le formulaire de devis Clenzy.</p>");
-        sb.append("</div>");
-
-        sb.append("</div></body></html>");
         return sb.toString();
+    }
+
+    private static String nullToEmpty(String s) {
+        return s != null ? s : "";
     }
 
     private String sectionStart(String bgColor, String title) {
@@ -303,10 +334,31 @@ public class EmailService {
 
     /**
      * Envoie un email de notification pour une demande de devis maintenance.
+     *
+     * <p>Subject + wrapper resolus depuis {@code system_email_template} (cle
+     * {@code maintenance_request_internal}). Variables speciales pre-rendues :
+     * {@code {urgencyBanner}} (couleur selon urgency level) et {@code {detailsHtml}}
+     * (sections dynamiques travaux + description).</p>
      */
     public void sendMaintenanceNotification(MaintenanceRequestDto dto) {
         try {
             JavaMailSender ms = requireMailSender();
+
+            var template = systemEmailTemplateService.resolve(null, "maintenance_request_internal", "fr")
+                .orElseThrow(() -> new IllegalStateException(
+                    "Template systeme maintenance_request_internal introuvable en BDD"));
+
+            Map<String, String> vars = new HashMap<>();
+            vars.put("fullName", nullToEmpty(dto.getFullName()));
+            vars.put("city", dto.getCity() != null && !dto.getCity().isBlank() ? dto.getCity() : "");
+            vars.put("urgencyTag", "urgent".equals(dto.getUrgency()) ? "🔴 URGENT — " : "");
+            // Variables HTML-safe pre-rendues
+            vars.put("urgencyBanner", renderUrgencyBanner(dto));
+            vars.put("detailsHtml", renderMaintenanceDetailsHtml(dto));
+
+            String subject = templateInterpolationService.interpolate(template.getSubject(), vars, false);
+            String interpolatedBody = templateInterpolationService.interpolate(template.getBody(), vars, true);
+            String htmlBody = emailWrapperService.wrap(template.getWrapperStyle(), interpolatedBody);
 
             MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -314,12 +366,8 @@ public class EmailService {
             helper.setFrom(fromAddress);
             helper.setTo(notificationTo);
             helper.setReplyTo(dto.getEmail());
-
-            String urgencyTag = "urgent".equals(dto.getUrgency()) ? "🔴 URGENT — " : "";
-            helper.setSubject(urgencyTag + "🔧 Demande de devis maintenance — " + sanitizeHeaderValue(dto.getFullName())
-                    + (dto.getCity() != null && !dto.getCity().isBlank() ? " — " + sanitizeHeaderValue(dto.getCity()) : ""));
-
-            helper.setText(buildMaintenanceHtmlBody(dto), true);
+            helper.setSubject(sanitizeHeaderValue(subject));
+            helper.setText(htmlBody, true);
             ms.send(message);
             log.info("Email de notification maintenance envoyé pour : {} ({})", dto.getFullName(), dto.getEmail());
 
@@ -332,24 +380,29 @@ public class EmailService {
         }
     }
 
-    private String buildMaintenanceHtmlBody(MaintenanceRequestDto dto) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>");
-        sb.append("<div style='font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;'>");
-
-        // Header
-        sb.append("<div style='background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px; border-radius: 10px 10px 0 0;'>");
-        sb.append("<h1 style='color: white; margin: 0; font-size: 22px;'>🔧 Demande de devis maintenance</h1>");
-        sb.append("<p style='color: rgba(255,255,255,0.9); margin: 5px 0 0;'>Clenzy — Formulaire Landing Page</p>");
-        sb.append("</div>");
-
-        // Urgency banner
+    /**
+     * Banner d'urgence pre-rendu HTML pour le template
+     * {@code maintenance_request_internal}. Couleur rouge/orange/bleu selon
+     * urgency level. Injecte dans la variable speciale {@code {urgencyBanner}}.
+     */
+    private String renderUrgencyBanner(MaintenanceRequestDto dto) {
         String urgencyLabel = URGENCY_LABELS.getOrDefault(dto.getUrgency(), "Normal");
-        String urgencyBg = "urgent".equals(dto.getUrgency()) ? "#fef2f2" : "normal".equals(dto.getUrgency()) ? "#fff7ed" : "#eff6ff";
-        String urgencyBorder = "urgent".equals(dto.getUrgency()) ? "#ef4444" : "normal".equals(dto.getUrgency()) ? "#f97316" : "#3b82f6";
-        sb.append("<div style='background: ").append(urgencyBg).append("; border-left: 4px solid ").append(urgencyBorder).append("; padding: 15px 20px;'>");
-        sb.append("<strong>Niveau d'urgence :</strong> ").append(urgencyLabel);
-        sb.append("</div>");
+        String urgencyBg = "urgent".equals(dto.getUrgency()) ? "#fef2f2"
+            : "normal".equals(dto.getUrgency()) ? "#fff7ed" : "#eff6ff";
+        String urgencyBorder = "urgent".equals(dto.getUrgency()) ? "#ef4444"
+            : "normal".equals(dto.getUrgency()) ? "#f97316" : "#3b82f6";
+        return "<div style='background: " + urgencyBg + "; border-left: 4px solid " + urgencyBorder
+            + "; padding: 15px 20px;'>"
+            + "<strong>Niveau d'urgence :</strong> " + StringUtils.escapeHtml(urgencyLabel)
+            + "</div>";
+    }
+
+    /**
+     * Sections dynamiques maintenance (coordonnees, travaux, besoin specifique,
+     * description). Pre-rendu HTML injecte dans {@code {detailsHtml}}.
+     */
+    private String renderMaintenanceDetailsHtml(MaintenanceRequestDto dto) {
+        StringBuilder sb = new StringBuilder();
 
         // Section: Coordonnées
         sb.append(sectionStart("#f8fafc", "👤 Coordonnées"));
@@ -391,12 +444,6 @@ public class EmailService {
             sb.append("</div>");
         }
 
-        // Footer
-        sb.append("<div style='text-align: center; padding: 20px; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0;'>");
-        sb.append("<p>Cet email a été généré automatiquement par le formulaire de devis maintenance Clenzy.</p>");
-        sb.append("</div>");
-
-        sb.append("</div></body></html>");
         return sb.toString();
     }
 
@@ -537,17 +584,46 @@ public class EmailService {
     /**
      * Envoie un email d'invitation a rejoindre une organisation.
      */
+    /**
+     * Envoie un email d'invitation a rejoindre une organisation.
+     *
+     * <p>Subject + body resolus depuis {@code system_email_template} (cle
+     * {@code invitation_organization}). Variables : {@code {orgName}},
+     * {@code {inviterName}}, {@code {roleName}}, {@code {invitationLink}},
+     * {@code {expiresAt}}.</p>
+     */
     public void sendInvitationEmail(String toEmail, String orgName, String inviterName,
                                       String roleName, String invitationLink, LocalDateTime expiresAt) {
         try {
             JavaMailSender ms = requireMailSender();
+
+            var template = systemEmailTemplateService.resolve(null, "invitation_organization", "fr")
+                .orElseThrow(() -> new IllegalStateException(
+                    "Template systeme invitation_organization introuvable en BDD"));
+
+            String expiresStr = expiresAt != null
+                    ? expiresAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy a HH:mm"))
+                    : "7 jours";
+
+            Map<String, String> vars = Map.of(
+                "orgName", nullToEmpty(orgName),
+                "inviterName", nullToEmpty(inviterName),
+                "roleName", formatRoleName(roleName),
+                "invitationLink", nullToEmpty(invitationLink),
+                "expiresAt", expiresStr
+            );
+
+            String subject = templateInterpolationService.interpolate(template.getSubject(), vars, false);
+            String interpolatedBody = templateInterpolationService.interpolate(template.getBody(), vars, true);
+            String htmlBody = emailWrapperService.wrap(template.getWrapperStyle(), interpolatedBody);
+
             MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setFrom(fromAddress);
             helper.setTo(toEmail);
-            helper.setSubject(sanitizeHeaderValue("Invitation a rejoindre " + orgName + " sur Clenzy"));
-            helper.setText(buildInvitationHtmlBody(orgName, inviterName, roleName, invitationLink, expiresAt), true);
+            helper.setSubject(sanitizeHeaderValue(subject));
+            helper.setText(htmlBody, true);
             ms.send(message);
             log.info("Email d'invitation envoye a {} pour l'organisation {}", toEmail, orgName);
         } catch (MessagingException e) {
@@ -557,45 +633,6 @@ public class EmailService {
             log.error("Erreur d'envoi email d'invitation a {}: {}", toEmail, e.getMessage(), e);
             throw new RuntimeException("Erreur d'envoi de l'email d'invitation", e);
         }
-    }
-
-    private String buildInvitationHtmlBody(String orgName, String inviterName,
-                                            String roleName, String invitationLink, LocalDateTime expiresAt) {
-        String safeOrgName = StringUtils.escapeHtml(orgName);
-        String safeInviterName = StringUtils.escapeHtml(inviterName);
-        String safeRoleName = StringUtils.escapeHtml(formatRoleName(roleName));
-        String safeLink = StringUtils.escapeHtml(invitationLink);
-        String expiresStr = expiresAt != null
-                ? expiresAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy a HH:mm"))
-                : "7 jours";
-
-        return "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>"
-                + "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;'>"
-                // Header
-                + "<div style='background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:30px;border-radius:10px 10px 0 0;text-align:center;'>"
-                + "<h1 style='color:white;margin:0;font-size:22px;'>Invitation a rejoindre une organisation</h1>"
-                + "</div>"
-                // Body
-                + "<div style='background:#ffffff;padding:30px;border:1px solid #e2e8f0;'>"
-                + "<p style='font-size:16px;color:#334155;'>Bonjour,</p>"
-                + "<p style='font-size:15px;color:#475569;'><strong>" + safeInviterName + "</strong> vous invite a rejoindre "
-                + "l'organisation <strong>" + safeOrgName + "</strong> en tant que <strong>" + safeRoleName + "</strong>.</p>"
-                // CTA Button
-                + "<div style='text-align:center;margin:30px 0;'>"
-                + "<a href='" + safeLink + "' style='display:inline-block;padding:14px 32px;"
-                + "background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;"
-                + "text-decoration:none;border-radius:8px;font-size:16px;font-weight:bold;'>"
-                + "Accepter l'invitation</a>"
-                + "</div>"
-                + "<p style='font-size:13px;color:#94a3b8;'>Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :</p>"
-                + "<p style='font-size:12px;color:#667eea;word-break:break-all;'>" + safeLink + "</p>"
-                + "</div>"
-                // Footer
-                + "<div style='background:#f8fafc;padding:20px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;text-align:center;'>"
-                + "<p style='margin:0;color:#94a3b8;font-size:12px;'>Cette invitation expire le " + StringUtils.escapeHtml(expiresStr) + ".</p>"
-                + "<p style='margin:5px 0 0;color:#94a3b8;font-size:12px;'>Si vous n'avez pas demande cette invitation, vous pouvez ignorer ce message.</p>"
-                + "</div>"
-                + "</div></body></html>";
     }
 
     private String formatRoleName(String role) {

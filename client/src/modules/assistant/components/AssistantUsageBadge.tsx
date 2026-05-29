@@ -12,7 +12,7 @@ interface AssistantUsageBadgeProps {
  * Badge compact "$0.12 ce mois · 1.2k tokens" affiche dans le header du chat.
  *
  * <p>Pattern visuel : pill discrete, low-contrast, sans bordure colorée — on
- * suit le register "product" Clenzy (Linear/Notion vibes). Hover →
+ * suit le register "product" Baitly (Linear/Notion vibes). Hover →
  * tooltip riche avec breakdown par modele + budget.</p>
  *
  * <p>States :</p>

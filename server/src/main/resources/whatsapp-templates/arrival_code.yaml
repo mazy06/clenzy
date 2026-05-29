@@ -1,0 +1,42 @@
+# Template Clenzy : code d'acces + wifi (jour J 14h)
+# ============================================================================
+# Envoye automatiquement le jour d'arrivee a 14h heure locale du logement.
+# Type UTILITY (transactionnel).
+#
+# Parametres :
+#   {{1}} = prenom du guest
+#   {{2}} = code d'acces de la porte/boite a cles
+#   {{3}} = nom du wifi (SSID)
+#   {{4}} = mot de passe wifi
+# ============================================================================
+
+key: arrival_code
+category: UTILITY
+languages:
+  fr_FR:
+    body: |
+      {{1}}, voici vos infos d'accès 🔑
+
+      *Code porte* : {{2}}
+      *Wifi* : {{3}}
+      *Mot de passe wifi* : {{4}}
+
+      Bienvenue ! N'hésitez pas si besoin de quoi que ce soit.
+  en_US:
+    body: |
+      {{1}}, here are your access details 🔑
+
+      *Door code*: {{2}}
+      *WiFi*: {{3}}
+      *WiFi password*: {{4}}
+
+      Welcome! Reach out anytime if you need anything.
+  ar_AR:
+    body: |
+      {{1}}، إليك تفاصيل الدخول 🔑
+
+      *رمز الباب*: {{2}}
+      *واي فاي*: {{3}}
+      *كلمة سر الواي فاي*: {{4}}
+
+      أهلا بك! تواصل معنا في أي وقت إذا احتجت أي شيء.

@@ -20,7 +20,7 @@ import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
  *       un logo compact en haut pour preserver l'identite.</li>
  * </ul>
  *
- * <h3>Anti-patterns evites (Impeccable + Clenzy)</h3>
+ * <h3>Anti-patterns evites (Impeccable + Baitly)</h3>
  * <ul>
  *   <li>Pas de linear-gradient agressif (interdit absolu : gradients cyan,
  *       purple, lavande "AI-slop")</li>
@@ -43,7 +43,7 @@ export interface AuthLayoutProps {
 // ─── Carrousel marketing : 8 slides cyclant automatiquement ────────────────
 
 /**
- * Service tier integre a Clenzy, affiche sous le slide en "chip" avec logo
+ * Service tier integre a Baitly, affiche sous le slide en "chip" avec logo
  * monochrome. Si le service n'est pas sur simple-icons (Pennylane, Nuki,
  * KeyNest, Tuya...), on passe `slug: null` et seul le nom s'affiche.
  */
@@ -74,7 +74,7 @@ interface CarouselSlide {
 /**
  * Liste des 8 slides du carrousel marketing. Chaque slide adresse un pain
  * point ou benefice specifique aux hosts/gestionnaires de location courte
- * duree (cible Clenzy). Validees par l'user 2026-05-28.
+ * duree (cible Baitly). Validees par l'user 2026-05-28.
  *
  * <p><b>TODO i18n</b> : actuellement hardcode en FR. Les utilisateurs hors-FR
  * voient le francais (acceptable V1, le marche prioritaire est FR/MAGHREB).
@@ -151,7 +151,7 @@ const SLIDES: CarouselSlide[] = [
     tagline: '',
     highlight: 'WhatsApp, SMS, email — tout sur un seul fil de discussion',
     end: '.',
-    subtitle: "Vos guests vous répondent où ils sont, sans installer d'app. Verify pour la confirmation d'identité, conversations centralisées côté Clenzy, réponses IA suggérées. La concurrence éclate ça en 3 outils, vous l'avez en un.",
+    subtitle: "Vos guests vous répondent où ils sont, sans installer d'app. Verify pour la confirmation d'identité, conversations centralisées côté Baitly, réponses IA suggérées. La concurrence éclate ça en 3 outils, vous l'avez en un.",
     services: [
       { slug: 'whatsapp', name: 'WhatsApp' },
       { slug: 'twilio', name: 'Twilio' },
@@ -163,7 +163,7 @@ const SLIDES: CarouselSlide[] = [
     tagline: 'Votre comptabilité connectée,',
     highlight: 'que vous soyez en France, UK, Australie ou USA',
     end: '.',
-    subtitle: "Clenzy s'adapte à votre juridiction. Factures synchronisées, supplier invoices importées, déclarations fiscales préparées. Vos revenus consolidés multi-pays en un seul dashboard.",
+    subtitle: "Baitly s'adapte à votre juridiction. Factures synchronisées, supplier invoices importées, déclarations fiscales préparées. Vos revenus consolidés multi-pays en un seul dashboard.",
     services: [
       { slug: null, name: 'Pennylane' },
       { slug: 'quickbooks', name: 'QuickBooks' },
@@ -174,7 +174,7 @@ const SLIDES: CarouselSlide[] = [
   // ─── Comparative differentiators (10-11) — attaque frontale vs concurrence
   {
     tagline: 'Vos contrats signés',
-    highlight: 'en 30 secondes, sans quitter Clenzy',
+    highlight: 'en 30 secondes, sans quitter Baitly',
     end: '.',
     subtitle: "Mandat de gestion, contrats de location courte durée, autorisations check-in. Signature eIDAS intégrée nativement. Plus besoin de payer Yousign 39€/mois en parallèle.",
     services: [
@@ -185,7 +185,7 @@ const SLIDES: CarouselSlide[] = [
     tagline: '',
     highlight: 'API ouverte, données exportables en un clic',
     end: '.',
-    subtitle: "Vos réservations, guests, finances, photos — tout exportable au format ouvert. Webhooks et intégrations natives. Pas de lock-in. Là où Guesty vous emprisonne, Clenzy vous libère.",
+    subtitle: "Vos réservations, guests, finances, photos — tout exportable au format ouvert. Webhooks et intégrations natives. Pas de lock-in. Là où Guesty vous emprisonne, Baitly vous libère.",
     services: [
       { slug: 'zapier', name: 'Zapier' },
       { slug: 'notion', name: 'Notion' },

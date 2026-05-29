@@ -67,6 +67,7 @@ import type { NotificationPreferencesHandle } from './NotificationPreferencesCar
 import MarketingPreferencesCard from './MarketingPreferencesCard';
 import OrganizationSection from '../organization/OrganizationSection';
 import MessagingAutomationSection from '../messaging/MessagingAutomationSection';
+import WhatsAppProviderConfigSection from './WhatsAppProviderConfigSection';
 import FiscalProfileSection from './FiscalProfileSection';
 import type { FiscalProfileHandle } from './FiscalProfileSection';
 import SepaDebtorSettings, { type SepaDebtorHandle } from './SepaDebtorSettings';
@@ -233,7 +234,7 @@ export default function Settings() {
       sms: false,
     },
     business: {
-      companyName: 'Clenzy',
+      companyName: 'Baitly',
       timezone: 'Europe/Paris',
       currency: 'EUR',
       language: 'fr',
@@ -660,7 +661,7 @@ export default function Settings() {
       subtitle: t('tabHeaders.settings.subtitle.payouts', 'Calendrier et règles de calcul des reversements aux propriétaires.'),
     },
     [t('tabHeaders.settings.tabs.amenitiesOta', 'Commodités OTA')]: {
-      subtitle: t('tabHeaders.settings.subtitle.amenitiesOta', 'Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Clenzy. Créez vos propres commodités si rien ne correspond.'),
+      subtitle: t('tabHeaders.settings.subtitle.amenitiesOta', 'Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Baitly. Créez vos propres commodités si rien ne correspond.'),
     },
   };
   const settingsRootTitle = t('tabHeaders.settings.title', 'Paramètres');
@@ -1041,7 +1042,13 @@ export default function Settings() {
 
       {/* ─── Onglet Messagerie ────────────────────────────────────────── */}
       <TabPanel value={tabValue} index={2}>
-        <MessagingAutomationSection />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {/* Provider WhatsApp (Meta Cloud API ou OpenWA self-hosted) :
+              section en premier car bloquante — sans provider configure,
+              les automations ci-dessous n'envoient rien sur le canal WhatsApp. */}
+          <WhatsAppProviderConfigSection />
+          <MessagingAutomationSection />
+        </Box>
       </TabPanel>
 
       {/* ─── Onglet Mes reversements (HOST) ────────────────────────── */}

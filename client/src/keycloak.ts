@@ -25,24 +25,110 @@ keycloak.onAuthLogout = () => {
 cleanupLegacyTokens()
 
 // Configuration Keycloak.
-// Apres l'init, si l'utilisateur est authentifie (via SSO check ou cookie KC),
-// on synchronise le cookie clenzy_session — sans cela, un reload de la page PMS
-// restaure la session Keycloak mais ne re-pose pas le cookie partage avec la
-// landing, qui pense alors que l'utilisateur n'est pas connecte.
-keycloak.init({
-  onLoad: 'check-sso',
-  silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
-  checkLoginIframe: false,
-  enableLogging: true,
-  pkceMethod: 'S256'
-}).then((authenticated) => {
-  if (authenticated && keycloak.token) {
-    setSessionCookie(keycloak.token)
+//
+// IMPORTANT — restauration du token depuis le cookie HttpOnly au boot :
+// Le check-sso Keycloak (iframe silent) est fragile en localhost (ports
+// differents = cross-site, cookies Keycloak SameSite=Lax pas envoyes) et
+// en prod avec Safari ITP. Resultat : meme si l'user a un cookie HttpOnly
+// `clenzy_auth` valide cote backend, keycloak.init() retourne `authenticated=false`
+// → l'app deconnecte l'user au hard refresh.
+//
+// Fix : AVANT keycloak.init(), on appelle GET /api/auth/session avec le
+// cookie HttpOnly. Si le backend retourne un token valide (Spring Security
+// + TokenCookieFilter valident le cookie), on pre-rempli keycloak.token et
+// on init avec ce token directement. Sinon, fallback sur check-sso normal.
+//
+// Ce qu'on appelle ici DOIT etre une fonction asynchrone — d'ou le wrap
+// dans une IIFE async. La promise resultante est exportee pour que App.tsx
+// puisse l'await avant toute decision auth (cf. useEffect d'init App).
+export const keycloakInitPromise: Promise<boolean> = (async () => {
+  // Step 1 : tenter de recuperer le token depuis le cookie HttpOnly via backend.
+  // Si reussi → l'user est encore authentifie, on a son token valide.
+  let bootstrapToken: string | undefined
+  try {
+    const { API_CONFIG } = await import('./config/api')
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/auth/session`, {
+      method: 'GET',
+      credentials: 'include', // Envoyer le cookie HttpOnly clenzy_auth
+    })
+    if (response.ok) {
+      const data = await response.json() as { token?: string }
+      if (data.token) {
+        bootstrapToken = data.token
+      }
+    }
+  } catch {
+    // Silent — backend pas joignable ou pas de cookie → on tombera sur check-sso
   }
-}).catch(() => {
-  // Silent — l'init peut echouer si Keycloak n'est pas joignable ;
-  // l'app gere ce cas via les guards habituels.
-})
+
+  // Step 2 : init Keycloak avec check-sso classique. On NE passe PAS le
+  // bootstrapToken a init() directement : Keycloak JS valide l'issuer du
+  // token contre son URL configuree, et en dev il y a un mismatch :
+  //   - Token issuer : http://clenzy-keycloak:8080 (URL Docker interne, utilisee
+  //     par le backend pour valider les JWT)
+  //   - Frontend Keycloak URL : http://localhost:8083 (URL browser exposee)
+  // Donc init({token}) rejette le token avec "issuer mismatch".
+  //
+  // Strategie : on tente check-sso normal (qui ne valide rien cote client).
+  // Si Keycloak retourne authenticated=true (cookies Keycloak natifs OK) → fin.
+  // Sinon mais on a bootstrapToken valide cote backend → on force-set keycloak
+  // manuellement (bypass de la validation issuer).
+  try {
+    const authenticated = await keycloak.init({
+      onLoad: 'check-sso',
+      silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+      checkLoginIframe: false,
+      enableLogging: true,
+      pkceMethod: 'S256',
+    })
+
+    if (authenticated && keycloak.token) {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log('[keycloak] check-sso reussi — session restauree via Keycloak natif')
+      }
+      setSessionCookie(keycloak.token)
+      return true
+    }
+
+    // Fallback : check-sso a echoue (cookies Keycloak natifs absents ou
+    // hostname mismatch), mais le backend a confirme la session via le
+    // cookie HttpOnly clenzy_auth (bootstrapToken). On force-set manuellement.
+    if (bootstrapToken) {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log('[keycloak] check-sso a echoue mais bootstrap token recupere du cookie HttpOnly — bypass active')
+      }
+      keycloak.token = bootstrapToken
+      keycloak.authenticated = true
+      keycloak.tokenParsed = decodeJwt(bootstrapToken)
+      // Note : on n'a pas le refreshToken (le cookie ne contient que le access
+      // token). Le user devra se re-login quand le token expire (~1h). Pour
+      // un refresh automatique, il faudrait que le backend stocke aussi le
+      // refresh token (TODO suivi).
+      setSessionCookie(bootstrapToken)
+      return true
+    }
+
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.warn('[keycloak] aucune session restauree — ni check-sso, ni cookie HttpOnly')
+    }
+    return false
+  } catch {
+    // Silent — l'init peut echouer si Keycloak n'est pas joignable ;
+    // l'app gere ce cas via les guards habituels.
+    if (bootstrapToken) {
+      // Meme en cas d'erreur init, si on a un token backend valide, on l'utilise
+      keycloak.token = bootstrapToken
+      keycloak.authenticated = true
+      keycloak.tokenParsed = decodeJwt(bootstrapToken)
+      setSessionCookie(bootstrapToken)
+      return true
+    }
+    return false
+  }
+})()
 
 function decodeJwt(token?: string): KeycloakTokenParsed | undefined {
   if (!token) return undefined

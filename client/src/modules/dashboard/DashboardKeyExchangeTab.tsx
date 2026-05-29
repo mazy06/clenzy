@@ -116,7 +116,7 @@ function KeyExchangeOffersView({ onChooseKeyVault, onChooseKeyNest }: OffersView
       </Typography>
 
       <Grid container spacing={2}>
-        {/* ─── Card: Clenzy KeyVault ──────────────────────────────── */}
+        {/* ─── Card: Baitly KeyVault ──────────────────────────────── */}
         <Grid item xs={12} md={6}>
           <Paper
             elevation={0}
@@ -138,7 +138,7 @@ function KeyExchangeOffersView({ onChooseKeyVault, onChooseKeyNest }: OffersView
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <StoreIcon size={22} strokeWidth={1.75} color='#6B8A9A' />
               <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
-                Clenzy KeyVault
+                Baitly KeyVault
               </Typography>
               <Chip
                 label="Gratuit"
@@ -369,7 +369,7 @@ function KeyVaultView({
         </IconButton>
         <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><StoreIcon size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-          Clenzy KeyVault — Gardiens de clés
+          Baitly KeyVault — Gardiens de clés
         </Typography>
         <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
           <Button

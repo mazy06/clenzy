@@ -252,7 +252,7 @@ export default function ServiceCatalogSection({
                   variant="outlined"
                   sx={{ borderRadius: '8px', fontSize: '0.78rem', mb: 1.5 }}
                 >
-                  Cette intégration n'est pas encore configurable depuis Clenzy. Créez un compte chez le fournisseur — l'intégration native arrivera dans une prochaine release.
+                  Cette intégration n'est pas encore configurable depuis Baitly. Créez un compte chez le fournisseur — l'intégration native arrivera dans une prochaine release.
                 </Alert>
               )}
 

@@ -16,7 +16,7 @@ const darkTheme = createTheme({
   palette: {
     mode: 'dark',
 
-    // ── Couleur principale : Bleu-gris Clenzy (éclairci pour contraste dark) ──
+    // ── Couleur principale : Bleu-gris Baitly (éclairci pour contraste dark) ──
     primary: {
       main: '#7FA0B4',       // 5.8:1 sur #0F1923 (AA)
       light: '#A3BFD0',      // 8.2:1 sur #0F1923 (AAA)
@@ -24,7 +24,7 @@ const darkTheme = createTheme({
       contrastText: '#FFFFFF',
     },
 
-    // ── Couleur secondaire : Bleu-gris clair Clenzy ──
+    // ── Couleur secondaire : Bleu-gris clair Baitly ──
     secondary: {
       main: '#94B5C7',
       light: '#B8D1DE',
@@ -72,7 +72,7 @@ const darkTheme = createTheme({
       contrastText: '#FFFFFF',
     },
 
-    // ── Clenzy : Couleur de marque ──
+    // ── Baitly : Couleur de marque ──
     clenzy: {
       main: '#94B5C7',
       light: '#B8D1DE',

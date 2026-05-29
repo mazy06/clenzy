@@ -265,7 +265,7 @@ export default function OAuthProviderCard({
         {notConfigured ? (
           <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
             {labels.notConfiguredHelp ??
-              `${label} n'est pas configuré sur cet environnement. Contactez l'administrateur Clenzy pour activer l'intégration.`}
+              `${label} n'est pas configuré sur cet environnement. Contactez l'administrateur Baitly pour activer l'intégration.`}
           </Typography>
         ) : isConnected ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
