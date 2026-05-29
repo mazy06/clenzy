@@ -63,6 +63,19 @@ public class Organization {
     @Column(name = "sepa_debtor_bic", length = 20)
     private String sepaDebtorBic;
 
+    /**
+     * TRUE si l'org a signe un contrat lui permettant de creer des
+     * {@link BookingVoucher} sur les properties de ses hosts (gere par admin
+     * Baitly via UI ou API admin).
+     *
+     * <p>Pre-requis necessaire mais PAS SUFFISANT : pour qu'une org cree un
+     * voucher sur une property specifique, le host doit aussi avoir mis
+     * {@code property.org_can_create_vouchers = true} (consentement explicite
+     * par-property). Voir {@code BookingVoucherService.canCreateVoucherForProperty}.</p>
+     */
+    @Column(name = "has_voucher_contract", nullable = false)
+    private boolean hasVoucherContract = false;
+
     // --- Timestamps ---
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -123,6 +136,9 @@ public class Organization {
     public void setSepaDebtorIban(String sepaDebtorIban) { this.sepaDebtorIban = sepaDebtorIban; }
     public String getSepaDebtorBic() { return sepaDebtorBic; }
     public void setSepaDebtorBic(String sepaDebtorBic) { this.sepaDebtorBic = sepaDebtorBic; }
+
+    public boolean isHasVoucherContract() { return hasVoucherContract; }
+    public void setHasVoucherContract(boolean hasVoucherContract) { this.hasVoucherContract = hasVoucherContract; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

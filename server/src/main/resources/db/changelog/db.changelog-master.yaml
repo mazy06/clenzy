@@ -1486,3 +1486,18 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0157 : Booking Vouchers — promos/voucher sur les nuitees de location ---
+  # Cree booking_voucher + voucher_property_scope + voucher_usage + colonnes
+  # organization.has_voucher_contract, property.org_can_create_vouchers, et
+  # reservation.{original_total, discount_amount, voucher_code, booking_voucher_id}.
+  # Distinct de platform_promo_codes (0152) qui s'applique aux abonnements PMS.
+  # splitStatements: false a cause du bloc CREATE FUNCTION (trigger updated_at).
+  - changeSet:
+      id: "0157-add-booking-vouchers"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0157__add_booking_vouchers.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
