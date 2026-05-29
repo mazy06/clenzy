@@ -68,10 +68,49 @@ public interface VoucherUsageRepository extends JpaRepository<VoucherUsage, Long
     );
 
     /**
+     * Top vouchers de l'org sur une periode, tries par CA brut desc.
+     * Utilise pour le dashboard analytics ("top 5 campagnes performantes").
+     *
+     * <p>Note : la projection JPQL avec {@code new ...VoucherTopRow(...)}
+     * impose que toutes les colonnes proviennent du GROUP BY ou d'aggregat.
+     * On ramene voucher_id + somme + count, le service complete avec
+     * voucherName/code via lookup separe sur BookingVoucherRepository.</p>
+     */
+    @Query("""
+        SELECT new com.clenzy.repository.VoucherUsageRepository$VoucherTopRow(
+            u.voucherId,
+            COUNT(u),
+            COALESCE(SUM(u.originalTotal), 0),
+            COALESCE(SUM(u.discountApplied), 0),
+            COALESCE(SUM(u.finalTotal), 0)
+        )
+        FROM VoucherUsage u
+        WHERE u.organizationId = :orgId
+          AND u.appliedAt >= :from
+          AND u.appliedAt <= :to
+        GROUP BY u.voucherId
+        ORDER BY SUM(u.originalTotal) DESC
+    """)
+    List<VoucherTopRow> findTopVouchersByGross(
+        @Param("orgId") Long orgId,
+        @Param("from") Instant from,
+        @Param("to") Instant to
+    );
+
+    /**
      * Row d'agregation pour les rapports analytics. Java record pour la
      * projection JPQL via {@code new com.clenzy.repository.VoucherUsageRepository$VoucherStatsRow(...)}.
      */
     record VoucherStatsRow(
+        long usageCount,
+        BigDecimal totalGross,
+        BigDecimal totalDiscount,
+        BigDecimal totalNet
+    ) {}
+
+    /** Variante pour la projection "top par voucher" (incluant voucherId). */
+    record VoucherTopRow(
+        Long voucherId,
         long usageCount,
         BigDecimal totalGross,
         BigDecimal totalDiscount,

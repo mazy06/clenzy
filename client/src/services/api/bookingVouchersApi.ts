@@ -115,6 +115,32 @@ export interface VoucherValidationResponse {
   errorMessage: string | null;
 }
 
+// ─── Analytics ──────────────────────────────────────────────────────────────
+
+/** Stats individuelles d'un voucher (renvoye par /analytics et /{id}/analytics). */
+export interface VoucherStats {
+  voucherId: number;
+  voucherName: string;
+  voucherCode: string | null;
+  usageCount: number;
+  totalGross: string;
+  totalDiscount: string;
+  totalNet: string;
+  avgDiscountPct: string;
+}
+
+/** Reponse /api/vouchers/analytics — aggregation org-level. */
+export interface VoucherAnalytics {
+  from: string;
+  to: string;
+  totalUsages: number;
+  totalGross: string;
+  totalDiscount: string;
+  totalNet: string;
+  activeVouchersCount: number;
+  topVouchers: VoucherStats[];
+}
+
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 const BASE_ADMIN = '/vouchers';
@@ -144,6 +170,21 @@ export const bookingVouchersApi = {
 
   resume: (id: number): Promise<BookingVoucher> =>
     apiClient.post(`${BASE_ADMIN}/${id}/resume`, {}),
+
+  // ── Analytics (admin) ────────────────────────────────────────────────────
+  /**
+   * Aggregation cross-vouchers de l'org. `from`/`to` optionnels : default = 30 derniers jours.
+   */
+  getAnalytics: (from?: string, to?: string): Promise<VoucherAnalytics> => {
+    const params: string[] = [];
+    if (from) params.push(`from=${encodeURIComponent(from)}`);
+    if (to) params.push(`to=${encodeURIComponent(to)}`);
+    const qs = params.length ? `?${params.join('&')}` : '';
+    return apiClient.get(`${BASE_ADMIN}/analytics${qs}`);
+  },
+
+  getVoucherStats: (id: number): Promise<VoucherStats> =>
+    apiClient.get(`${BASE_ADMIN}/${id}/analytics`),
 
   // ── Public (booking engine guest) ────────────────────────────────────────
   validate: (payload: VoucherValidationRequest): Promise<VoucherValidationResponse> =>
