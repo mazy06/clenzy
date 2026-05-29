@@ -6,7 +6,6 @@ import com.clenzy.model.BookingVoucher;
 import com.clenzy.model.voucher.VoucherStatus;
 import com.clenzy.repository.BookingVoucherRepository;
 import com.clenzy.repository.VoucherUsageRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +35,8 @@ public class VoucherAnalyticsService {
     private final VoucherUsageRepository usageRepo;
     private final Clock clock;
 
-    @Autowired
+    // Constructeur unique → injection Spring auto, pas de @Autowired
+    // (regle CLAUDE.md Code Quality §1 DIP).
     public VoucherAnalyticsService(
         BookingVoucherRepository voucherRepo,
         VoucherUsageRepository usageRepo
@@ -65,9 +65,8 @@ public class VoucherAnalyticsService {
         Instant effectiveFrom = from != null ? from : effectiveTo.minus(DEFAULT_WINDOW_DAYS, ChronoUnit.DAYS);
 
         var stats = usageRepo.aggregateOrgStats(orgId, effectiveFrom, effectiveTo);
-        long activeCount = voucherRepo
-            .findByOrganizationIdAndStatusOrderByCreatedAtDesc(orgId, VoucherStatus.ACTIVE)
-            .size();
+        // Compteur via count SQL (fix M3) au lieu de charger toutes les entites.
+        long activeCount = voucherRepo.countByOrganizationIdAndStatus(orgId, VoucherStatus.ACTIVE);
 
         List<VoucherStatsDto> topVouchers = computeTopVouchers(orgId, effectiveFrom, effectiveTo);
 

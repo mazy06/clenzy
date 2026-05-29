@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Alert,
   Box,
+  Button,
   Chip,
   CircularProgress,
   IconButton,
@@ -136,25 +137,19 @@ export default function VouchersPage() {
                 <Refresh size={18} strokeWidth={1.75} />
               </IconButton>
             </Tooltip>
-            <button
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Add size={16} strokeWidth={2} />}
               onClick={() => setCreating(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 14px',
-                borderRadius: 8,
-                border: 'none',
-                background: ACCENT_TEAL,
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: 500,
+              sx={{
+                bgcolor: ACCENT_TEAL,
+                textTransform: 'none',
+                '&:hover': { bgcolor: '#3d8276' },
               }}
             >
-              <Add size={16} strokeWidth={2} />
               {t('vouchers.createButton')}
-            </button>
+            </Button>
           </Stack>
         }
       />
@@ -259,6 +254,7 @@ interface RowProps {
 
 const VoucherRow: React.FC<RowProps> = ({ voucher, onEdit, onPause, onResume, onDelete }) => {
   const { t } = useTranslation();
+  const formatDiscount = makeFormatDiscount(t);
   const v = voucher;
   const isAuto = v.type === 'AUTO_CAMPAIGN';
   const canPause = v.status === 'ACTIVE';
@@ -355,11 +351,18 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, onEdit, onPause, onResume, on
 
 // ─── Format helpers ──────────────────────────────────────────────────────────
 
-function formatDiscount(type: VoucherDiscountType, value: string): string {
-  const n = Number(value);
-  if (type === 'PERCENTAGE') return `−${n}%`;
-  if (type === 'FIXED_AMOUNT') return `−${n.toFixed(2).replace('.', ',')} €`;
-  return `−${n} ${n > 1 ? 'nuits' : 'nuit'}`;
+/**
+ * Format helper pour le discount selon le type. Le mot "nuit/nuits" passe par
+ * une closure i18n pour eviter le hardcode FR (fix M4 review).
+ */
+function makeFormatDiscount(t: (key: string, opts?: object) => string) {
+  return (type: VoucherDiscountType, value: string): string => {
+    const n = Number(value);
+    if (type === 'PERCENTAGE') return `−${n}%`;
+    if (type === 'FIXED_AMOUNT') return `−${n.toFixed(2).replace('.', ',')} €`;
+    // FREE_NIGHTS : la pluralisation est gerée par i18n
+    return `−${n} ${t('vouchers.editor.nights', { count: n })}`;
+  };
 }
 
 function formatValidity(from: string | null, until: string | null): string {

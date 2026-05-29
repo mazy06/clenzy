@@ -18,7 +18,6 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.VoucherPropertyScopeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,7 +71,8 @@ public class BookingVoucherService {
     private final PropertyRepository propertyRepo;
     private final OrganizationRepository orgRepo;
 
-    @Autowired
+    // Constructeur unique → Spring l'utilise automatiquement, pas besoin
+    // de @Autowired (interdit par CLAUDE.md Code Quality §1 DIP).
     public BookingVoucherService(
         BookingVoucherRepository voucherRepo,
         VoucherPropertyScopeRepository scopeRepo,
@@ -156,12 +156,27 @@ public class BookingVoucherService {
                 "Voucher " + voucherId + " en statut " + v.getStatus() + " (non modifiable)");
         }
 
-        // Si le scope change, on revalide les permissions sur le NOUVEAU scope
-        List<Long> nextScope = payload.propertyIds() != null
-            ? payload.propertyIds()
-            : List.copyOf(scopeRepo.findPropertyIdsByVoucherId(voucherId));
+        // Si le scope change, on revalide les permissions sur le NOUVEAU scope.
+        // Fix H3 : si payload.propertyIds() == null (scope non modifie) ET que
+        // le scope existant est vide, on saute le check create-time (qui exige
+        // un scope explicit pour MANAGEMENT_ORG). Le voucher existait deja
+        // legitimement, on ne le revalide pas comme une creation.
+        List<Long> nextScope;
+        boolean scopeChanged = payload.propertyIds() != null;
+        if (scopeChanged) {
+            nextScope = payload.propertyIds();
+        } else {
+            nextScope = List.copyOf(scopeRepo.findPropertyIdsByVoucherId(voucherId));
+        }
         List<Property> targets = resolveAndCheckProperties(orgId, nextScope);
-        checkCreatePermissions(orgId, userId, creatorType, targets);
+        // Skip checkCreatePermissions si scope inchange + scope vide existant
+        // (ie. voucher "all properties" cree avant les contraintes actuelles).
+        // Cas concret : un voucher HOST cree au depart, le user devient
+        // MANAGEMENT_ORG sur d'autres properties → on ne veut pas bloquer
+        // l'update du voucher original.
+        if (scopeChanged || !targets.isEmpty()) {
+            checkCreatePermissions(orgId, userId, creatorType, targets);
+        }
 
         if (payload.code() != null) {
             checkCodeUniqueness(orgId, payload.code(), voucherId);
@@ -207,9 +222,10 @@ public class BookingVoucherService {
     /** Pause/Resume rapide d'un voucher (raccourci sans full update). */
     public BookingVoucher setStatus(Long voucherId, Long orgId, VoucherStatus newStatus) {
         BookingVoucher v = findOrThrow(voucherId, orgId);
-        checkStatusTransition(v.getStatus(), newStatus);
+        VoucherStatus oldStatus = v.getStatus();
+        checkStatusTransition(oldStatus, newStatus);
         v.setStatus(newStatus);
-        logger.info("Voucher status change : id={}, {} -> {}", voucherId, v.getStatus(), newStatus);
+        logger.info("Voucher status change : id={}, {} -> {}", voucherId, oldStatus, newStatus);
         return voucherRepo.save(v);
     }
 
@@ -241,6 +257,29 @@ public class BookingVoucherService {
     @Transactional(readOnly = true)
     public Set<Long> getScopedPropertyIds(Long voucherId) {
         return scopeRepo.findPropertyIdsByVoucherId(voucherId);
+    }
+
+    /**
+     * Batch lookup : pour une liste de vouchers, retourne map voucher_id →
+     * Set<property_id>. Fix H2 du code review (N+1) : remplace N appels a
+     * getScopedPropertyIds par un seul SQL.
+     *
+     * <p>Les vouchers sans aucune row de scope (scope = "toutes les properties")
+     * ne sont PAS dans la map → le caller doit fallback sur empty set.</p>
+     */
+    @Transactional(readOnly = true)
+    public java.util.Map<Long, Set<Long>> getScopedPropertyIdsBatch(
+        java.util.Collection<Long> voucherIds
+    ) {
+        if (voucherIds == null || voucherIds.isEmpty()) return java.util.Map.of();
+        return scopeRepo.findByVoucherIdIn(voucherIds).stream()
+            .collect(java.util.stream.Collectors.groupingBy(
+                com.clenzy.model.VoucherPropertyScope::getVoucherId,
+                java.util.stream.Collectors.mapping(
+                    com.clenzy.model.VoucherPropertyScope::getPropertyId,
+                    java.util.stream.Collectors.toSet()
+                )
+            ));
     }
 
     // ─────────────────────────────────────────────────────────────────────────

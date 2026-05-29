@@ -4547,6 +4547,8 @@
       "targetProperties": "Propriétés ciblées",
       "targetPropertiesPlaceholder": "Sélectionne les logements éligibles",
       "nights": "nuits",
+      "nights_one": "nuit",
+      "nights_other": "nuits",
       "errors": {
         "nameRequired": "Le nom est obligatoire.",
         "codeRequiredForManual": "Un code est requis pour un voucher MANUAL_CODE.",

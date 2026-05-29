@@ -322,6 +322,9 @@ public class PublicBookingService {
         BigDecimal originalTotal = availability.total();
         VoucherApplyResult voucherApplied = null;
         BookingVoucher appliedVoucher = null;
+        // Tracker la raison de refus pour la remonter dans la response DTO
+        // (fix M1 code review : evite la degradation silencieuse cote guest).
+        com.clenzy.service.voucher.VoucherValidationError voucherRejectionReason = null;
         if (req.voucherCode() != null && !req.voucherCode().isBlank()) {
             int nights = (int) ChronoUnit.DAYS.between(req.checkIn(), req.checkOut());
             VoucherValidationResult validation = voucherEngine.validate(
@@ -340,6 +343,7 @@ public class PublicBookingService {
                     appliedVoucher.getCode(), voucherApplied.discountApplied());
             } else {
                 VoucherValidationResult.Invalid invalid = (VoucherValidationResult.Invalid) validation;
+                voucherRejectionReason = invalid.reason();
                 log.warn("Voucher rejected during reserve : code={}, reason={} ({})",
                     req.voucherCode(), invalid.reason(), invalid.message());
                 reservation.setTotalPrice(originalTotal);
@@ -401,16 +405,29 @@ public class PublicBookingService {
         log.info("Booking Engine: reservation {} {} creee pour property {} (org {}, requiresPayment={})",
             status, reservation.getConfirmationCode(), req.propertyId(), orgId, requiresPayment);
 
-        return new BookingReserveResponseDto(
-            reservation.getConfirmationCode(),
-            status,
-            property.getName(),
-            req.checkIn(),
-            req.checkOut(),
-            availability.total(),
-            property.getDefaultCurrency(),
-            expiresAt,
-            requiresPayment
+        // Construction du DTO via helpers explicites pour exposer l'etat du
+        // voucher au guest (succes / refus / pas demande).
+        if (voucherApplied != null) {
+            return BookingReserveResponseDto.withVoucherApplied(
+                reservation.getConfirmationCode(), status, property.getName(),
+                req.checkIn(), req.checkOut(),
+                reservation.getTotalPrice(), property.getDefaultCurrency(),
+                expiresAt, requiresPayment,
+                voucherApplied.originalTotal(), voucherApplied.discountApplied()
+            );
+        } else if (voucherRejectionReason != null) {
+            return BookingReserveResponseDto.withVoucherRejected(
+                reservation.getConfirmationCode(), status, property.getName(),
+                req.checkIn(), req.checkOut(),
+                reservation.getTotalPrice(), property.getDefaultCurrency(),
+                expiresAt, requiresPayment, voucherRejectionReason
+            );
+        }
+        return BookingReserveResponseDto.withoutVoucher(
+            reservation.getConfirmationCode(), status, property.getName(),
+            req.checkIn(), req.checkOut(),
+            reservation.getTotalPrice(), property.getDefaultCurrency(),
+            expiresAt, requiresPayment
         );
     }
 
@@ -527,7 +544,8 @@ public class PublicBookingService {
 
             grandTotal = grandTotal.add(availability.total());
 
-            responses.add(new BookingReserveResponseDto(
+            // Batch reserve : pas de support voucher en V1 (cf. TODO doc).
+            responses.add(BookingReserveResponseDto.withoutVoucher(
                 reservation.getConfirmationCode(),
                 reservation.getStatus().toUpperCase(),
                 property.getName(),

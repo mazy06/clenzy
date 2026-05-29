@@ -4489,6 +4489,8 @@
       "targetProperties": "Target properties",
       "targetPropertiesPlaceholder": "Select eligible properties",
       "nights": "nights",
+      "nights_one": "night",
+      "nights_other": "nights",
       "errors": {
         "nameRequired": "Name is required.",
         "codeRequiredForManual": "A code is required for MANUAL_CODE voucher.",

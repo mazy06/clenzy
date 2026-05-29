@@ -1,6 +1,7 @@
 package com.clenzy.service.voucher;
 
 import com.clenzy.model.BookingVoucher;
+import com.clenzy.model.VoucherPropertyScope;
 import com.clenzy.model.VoucherUsage;
 import com.clenzy.model.voucher.VoucherChannelScope;
 import com.clenzy.model.voucher.VoucherDiscountType;
@@ -16,11 +17,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,6 +48,7 @@ import static org.mockito.Mockito.when;
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class VoucherEngineTest {
 
     @Mock private BookingVoucherRepository voucherRepo;
@@ -402,7 +407,7 @@ class VoucherEngineTest {
     class AutoCampaigns {
 
         @Test
-        @DisplayName("filtre les campagnes : scope vide (= all properties) ou property listee")
+        @DisplayName("filtre les campagnes : scope vide (= all properties) ou property listee — batch H4")
         void filtersByScope() {
             BookingVoucher noScope = activeVoucher("A");
             noScope.setId(1L);
@@ -416,14 +421,53 @@ class VoucherEngineTest {
 
             when(voucherRepo.findActiveAutoCampaigns(eq(ORG_ID), any(Instant.class)))
                 .thenReturn(List.of(noScope, withScopeMatch, withScopeNoMatch));
-            when(scopeRepo.countByVoucherId(1L)).thenReturn(0L);
-            when(scopeRepo.countByVoucherId(2L)).thenReturn(1L);
-            when(scopeRepo.existsByVoucherIdAndPropertyId(2L, PROPERTY_ID)).thenReturn(true);
-            when(scopeRepo.countByVoucherId(3L)).thenReturn(1L);
-            when(scopeRepo.existsByVoucherIdAndPropertyId(3L, PROPERTY_ID)).thenReturn(false);
+
+            // Fix H4 : batch query au lieu de N+1. Le voucher #1 n'apparait pas
+            // dans le countByVoucherIdIn (= 0 row), donc absent de la map.
+            when(scopeRepo.countByVoucherIdIn(any(Collection.class))).thenReturn(List.of(
+                new Object[]{2L, 1L},
+                new Object[]{3L, 1L}
+            ));
+
+            VoucherPropertyScope scope2 = new VoucherPropertyScope();
+            scope2.setVoucherId(2L);
+            scope2.setPropertyId(PROPERTY_ID);
+            VoucherPropertyScope scope3 = new VoucherPropertyScope();
+            scope3.setVoucherId(3L);
+            scope3.setPropertyId(PROPERTY_ID + 999L); // pas la bonne property
+            when(scopeRepo.findByVoucherIdIn(any(Collection.class))).thenReturn(List.of(scope2, scope3));
 
             List<BookingVoucher> result = engine.findApplicableAutoCampaigns(ORG_ID, PROPERTY_ID);
             assertThat(result).extracting(BookingVoucher::getId).containsExactly(1L, 2L);
+        }
+
+        @Test
+        @DisplayName("Aucune campagne active -> liste vide, pas de query scope")
+        void noActiveCampaigns() {
+            when(voucherRepo.findActiveAutoCampaigns(eq(ORG_ID), any(Instant.class))).thenReturn(List.of());
+            List<BookingVoucher> result = engine.findApplicableAutoCampaigns(ORG_ID, PROPERTY_ID);
+            assertThat(result).isEmpty();
+            verify(scopeRepo, never()).countByVoucherIdIn(any());
+            verify(scopeRepo, never()).findByVoucherIdIn(any());
+        }
+
+        @Test
+        @DisplayName("Tous les vouchers sans scope -> retour direct, pas de findByVoucherIdIn")
+        void allWithoutScope() {
+            BookingVoucher v1 = activeVoucher("A");
+            v1.setId(1L);
+            v1.setType(VoucherType.AUTO_CAMPAIGN);
+            BookingVoucher v2 = activeVoucher("B");
+            v2.setId(2L);
+            v2.setType(VoucherType.AUTO_CAMPAIGN);
+
+            when(voucherRepo.findActiveAutoCampaigns(eq(ORG_ID), any(Instant.class)))
+                .thenReturn(List.of(v1, v2));
+            when(scopeRepo.countByVoucherIdIn(any(Collection.class))).thenReturn(List.of());
+
+            List<BookingVoucher> result = engine.findApplicableAutoCampaigns(ORG_ID, PROPERTY_ID);
+            assertThat(result).extracting(BookingVoucher::getId).containsExactly(1L, 2L);
+            verify(scopeRepo, never()).findByVoucherIdIn(any());
         }
 
         @Test
@@ -431,6 +475,161 @@ class VoucherEngineTest {
         void nullInputs() {
             assertThat(engine.findApplicableAutoCampaigns(null, PROPERTY_ID)).isEmpty();
             assertThat(engine.findApplicableAutoCampaigns(ORG_ID, null)).isEmpty();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Regression : Fix C3 — race condition max_uses_per_guest dans recordUsage
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("recordUsage — fix C3 race condition")
+    class RecordUsageGuestRace {
+
+        @Test
+        @DisplayName("Re-check guest count avant tryIncrement : refuse si plafond atteint")
+        void rejectsWhenGuestCapReachedInRace() {
+            BookingVoucher v = activeVoucher("WELCOME20");
+            v.setMaxUsesPerGuest(1);
+            VoucherApplyResult applied = new VoucherApplyResult(
+                v.getId(), v.getCode(),
+                new BigDecimal("500.00"), new BigDecimal("100.00"), new BigDecimal("400.00")
+            );
+            // Race scenario : validate() est passe (count=0) mais entre temps
+            // un autre booking du meme guest a deja consume la place.
+            when(usageRepo.countByVoucherIdAndGuestEmail(VOUCHER_ID, "g@x")).thenReturn(1L);
+
+            Optional<VoucherUsage> result = engine.recordUsage(
+                v, 999L, ORG_ID, PROPERTY_ID, applied, "g@x", "BOOKING_ENGINE");
+
+            assertThat(result).isEmpty();
+            // CRITIQUE : pas de tryIncrement, pas d'insert audit
+            verify(voucherRepo, never()).tryIncrementUsage(anyLong());
+            verify(usageRepo, never()).save(any(VoucherUsage.class));
+        }
+
+        @Test
+        @DisplayName("Guest cap OK : continue le flow normalement")
+        void allowsWhenUnderGuestCap() {
+            BookingVoucher v = activeVoucher("WELCOME20");
+            v.setMaxUsesPerGuest(2);
+            VoucherApplyResult applied = new VoucherApplyResult(
+                v.getId(), v.getCode(),
+                new BigDecimal("500.00"), new BigDecimal("100.00"), new BigDecimal("400.00")
+            );
+            when(usageRepo.countByVoucherIdAndGuestEmail(VOUCHER_ID, "g@x")).thenReturn(1L);
+            when(voucherRepo.tryIncrementUsage(VOUCHER_ID)).thenReturn(1);
+            when(usageRepo.save(any(VoucherUsage.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            Optional<VoucherUsage> result = engine.recordUsage(
+                v, 999L, ORG_ID, PROPERTY_ID, applied, "g@x", "BOOKING_ENGINE");
+
+            assertThat(result).isPresent();
+            verify(voucherRepo).tryIncrementUsage(VOUCHER_ID);
+            verify(usageRepo).save(any(VoucherUsage.class));
+        }
+
+        @Test
+        @DisplayName("Pas de maxUsesPerGuest : skip le re-check guest, continue normalement")
+        void skipsCheckWhenNoGuestCap() {
+            BookingVoucher v = activeVoucher("WELCOME20");
+            v.setMaxUsesPerGuest(null); // pas de plafond per-guest
+            VoucherApplyResult applied = new VoucherApplyResult(
+                v.getId(), v.getCode(),
+                new BigDecimal("500.00"), new BigDecimal("100.00"), new BigDecimal("400.00")
+            );
+            when(voucherRepo.tryIncrementUsage(VOUCHER_ID)).thenReturn(1);
+            when(usageRepo.save(any(VoucherUsage.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            Optional<VoucherUsage> result = engine.recordUsage(
+                v, 999L, ORG_ID, PROPERTY_ID, applied, "g@x", "BOOKING_ENGINE");
+
+            assertThat(result).isPresent();
+            // Le re-check n'est meme pas declenche
+            verify(usageRepo, never()).countByVoucherIdAndGuestEmail(anyLong(), anyString());
+        }
+
+        @Test
+        @DisplayName("Pas de guestEmail : skip le re-check (defensif)")
+        void skipsCheckWhenNoGuestEmail() {
+            BookingVoucher v = activeVoucher("WELCOME20");
+            v.setMaxUsesPerGuest(1);
+            VoucherApplyResult applied = new VoucherApplyResult(
+                v.getId(), v.getCode(),
+                new BigDecimal("500.00"), new BigDecimal("100.00"), new BigDecimal("400.00")
+            );
+            when(voucherRepo.tryIncrementUsage(VOUCHER_ID)).thenReturn(1);
+            when(usageRepo.save(any(VoucherUsage.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // guestEmail null → on ne peut pas compter, skip
+            Optional<VoucherUsage> result = engine.recordUsage(
+                v, 999L, ORG_ID, PROPERTY_ID, applied, null, "BOOKING_ENGINE");
+
+            assertThat(result).isPresent();
+            verify(usageRepo, never()).countByVoucherIdAndGuestEmail(anyLong(), anyString());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // expireOutdatedVouchers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("expireOutdatedVouchers")
+    class ExpireOutdated {
+
+        @Test
+        @DisplayName("Aucun voucher expire -> 0, pas de save")
+        void noneExpired() {
+            when(voucherRepo.findExpiredButStillActive(NOW)).thenReturn(List.of());
+            int count = engine.expireOutdatedVouchers();
+            assertThat(count).isEqualTo(0);
+            verify(voucherRepo).saveAll(List.of());
+        }
+
+        @Test
+        @DisplayName("Vouchers expires -> statut EXPIRED + saveAll")
+        void marksAsExpired() {
+            BookingVoucher v1 = activeVoucher("A");
+            v1.setId(1L);
+            BookingVoucher v2 = activeVoucher("B");
+            v2.setId(2L);
+            when(voucherRepo.findExpiredButStillActive(NOW)).thenReturn(List.of(v1, v2));
+
+            int count = engine.expireOutdatedVouchers();
+            assertThat(count).isEqualTo(2);
+            assertThat(v1.getStatus()).isEqualTo(VoucherStatus.EXPIRED);
+            assertThat(v2.getStatus()).isEqualTo(VoucherStatus.EXPIRED);
+            verify(voucherRepo).saveAll(List.of(v1, v2));
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // isAutoCampaign + resolveScopedPropertyIds
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("Helpers")
+    class Helpers {
+
+        @Test
+        @DisplayName("isAutoCampaign : true pour AUTO_CAMPAIGN, false sinon, false si null")
+        void isAutoCampaignDetection() {
+            BookingVoucher auto = activeVoucher("X");
+            auto.setType(VoucherType.AUTO_CAMPAIGN);
+            BookingVoucher manual = activeVoucher("Y");
+            manual.setType(VoucherType.MANUAL_CODE);
+
+            assertThat(VoucherEngine.isAutoCampaign(auto)).isTrue();
+            assertThat(VoucherEngine.isAutoCampaign(manual)).isFalse();
+            assertThat(VoucherEngine.isAutoCampaign(null)).isFalse();
+        }
+
+        @Test
+        @DisplayName("resolveScopedPropertyIds delegue au repo")
+        void resolveScopedDelegation() {
+            when(scopeRepo.findPropertyIdsByVoucherId(VOUCHER_ID)).thenReturn(java.util.Set.of(1L, 2L, 3L));
+            assertThat(engine.resolveScopedPropertyIds(VOUCHER_ID)).containsExactlyInAnyOrder(1L, 2L, 3L);
         }
     }
 

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -51,4 +52,24 @@ public interface VoucherPropertyScopeRepository
         WHERE vps.voucherId = :voucherId
     """)
     Set<Long> findPropertyIdsByVoucherId(@Param("voucherId") Long voucherId);
+
+    /**
+     * Batch lookup : pour une liste de voucher_ids, renvoie tous les
+     * (voucher_id, property_id) pour permettre la construction d'une
+     * Map en memoire en 1 seul SQL (evite N+1, fix H2 du code review).
+     */
+    List<VoucherPropertyScope> findByVoucherIdIn(Collection<Long> voucherIds);
+
+    /**
+     * Count batch des rows de scope pour une liste de vouchers. Utilise pour
+     * filtrer rapidement les vouchers "scope vide = all" dans
+     * findApplicableAutoCampaigns (evite N requetes count, fix H4 review).
+     */
+    @Query("""
+        SELECT vps.voucherId, COUNT(vps)
+        FROM VoucherPropertyScope vps
+        WHERE vps.voucherId IN :voucherIds
+        GROUP BY vps.voucherId
+    """)
+    List<Object[]> countByVoucherIdIn(@Param("voucherIds") Collection<Long> voucherIds);
 }

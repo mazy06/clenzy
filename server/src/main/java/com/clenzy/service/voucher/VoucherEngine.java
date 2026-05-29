@@ -1,6 +1,7 @@
 package com.clenzy.service.voucher;
 
 import com.clenzy.model.BookingVoucher;
+import com.clenzy.model.VoucherPropertyScope;
 import com.clenzy.model.VoucherUsage;
 import com.clenzy.model.voucher.VoucherChannelScope;
 import com.clenzy.model.voucher.VoucherDiscountType;
@@ -11,7 +12,6 @@ import com.clenzy.repository.VoucherPropertyScopeRepository;
 import com.clenzy.repository.VoucherUsageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,8 +20,10 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Moteur pur de validation + calcul + enregistrement d'application des
@@ -86,7 +88,8 @@ public class VoucherEngine {
     private final VoucherUsageRepository usageRepo;
     private final Clock clock;
 
-    @Autowired
+    // Constructeur unique → injection auto Spring, pas de @Autowired
+    // (interdit par CLAUDE.md Code Quality §1 DIP).
     public VoucherEngine(
         BookingVoucherRepository voucherRepo,
         VoucherPropertyScopeRepository scopeRepo,
@@ -244,11 +247,39 @@ public class VoucherEngine {
         if (orgId == null || propertyId == null) return List.of();
         Instant now = Instant.now(clock);
         List<BookingVoucher> active = voucherRepo.findActiveAutoCampaigns(orgId, now);
+        if (active.isEmpty()) return List.of();
+
+        // Fix H4 (N+1) : batch lookup des scopes en 2 queries totales au lieu
+        // de 2N queries (countByVoucherId + existsByVoucherIdAndPropertyId
+        // pour chaque candidat).
+        List<Long> activeIds = active.stream().map(BookingVoucher::getId).toList();
+
+        // Map voucher_id -> nb de rows dans le scope. Si absent de la map = 0.
+        Map<Long, Long> scopeCountByVoucher = scopeRepo.countByVoucherIdIn(activeIds)
+            .stream()
+            .collect(Collectors.toMap(
+                row -> (Long) row[0],
+                row -> (Long) row[1]
+            ));
+
+        // Pour les vouchers AVEC scope, recupere ceux qui matchent la property
+        // ciblee. On filtre d'abord pour ne pas charger inutilement.
+        List<Long> scopedVoucherIds = activeIds.stream()
+            .filter(id -> scopeCountByVoucher.getOrDefault(id, 0L) > 0L)
+            .toList();
+        Set<Long> matchingScopedIds = scopedVoucherIds.isEmpty()
+            ? Set.of()
+            : scopeRepo.findByVoucherIdIn(scopedVoucherIds).stream()
+                .filter(s -> s.getPropertyId().equals(propertyId))
+                .map(VoucherPropertyScope::getVoucherId)
+                .collect(Collectors.toSet());
+
         return active.stream()
             .filter(v -> {
-                long scopeCount = scopeRepo.countByVoucherId(v.getId());
-                return scopeCount == 0
-                    || scopeRepo.existsByVoucherIdAndPropertyId(v.getId(), propertyId);
+                long scopeCount = scopeCountByVoucher.getOrDefault(v.getId(), 0L);
+                // scope vide = applicable a toutes les properties
+                if (scopeCount == 0L) return true;
+                return matchingScopedIds.contains(v.getId());
             })
             .toList();
     }
@@ -332,6 +363,24 @@ public class VoucherEngine {
         String guestEmail,
         String appliedVia
     ) {
+        // Re-check max_uses_per_guest atomiquement (la validate() initiale a
+        // pu etre faite il y a quelques secondes ; un autre booking
+        // simultane du meme guest pourrait avoir consomme la place). Le
+        // tryIncrementUsage ci-dessous ne couvre que max_uses_total ; ce
+        // check supplementaire couvre max_uses_per_guest.
+        if (voucher.getMaxUsesPerGuest() != null
+            && guestEmail != null && !guestEmail.isBlank()) {
+            long alreadyUsed = usageRepo.countByVoucherIdAndGuestEmail(
+                voucher.getId(), guestEmail);
+            if (alreadyUsed >= voucher.getMaxUsesPerGuest()) {
+                logger.warn("recordUsage refused for voucherId={} : plafond "
+                    + "max_uses_per_guest atteint pour {} (race), used={}/{}",
+                    voucher.getId(), guestEmail, alreadyUsed,
+                    voucher.getMaxUsesPerGuest());
+                return Optional.empty();
+            }
+        }
+
         int updated = voucherRepo.tryIncrementUsage(voucher.getId());
         if (updated == 0) {
             logger.warn("recordUsage refused for voucherId={} : plafond max_uses_total atteint (race)",
