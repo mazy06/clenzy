@@ -79,6 +79,33 @@ public class Reservation {
     @Column(name = "tourist_tax_amount", precision = 10, scale = 2)
     private BigDecimal touristTaxAmount;
 
+    // --- Booking voucher / promo (migration 0157) ---
+    // {@code totalPrice} contient le montant FINAL (apres voucher). Les
+    // colonnes ci-dessous tracent l'application du voucher pour facturation,
+    // analytics, et reconciliation. Toutes NULL si aucun voucher applique.
+
+    /** Total AVANT application du voucher (NULL si pas de voucher). */
+    @Column(name = "original_total", precision = 10, scale = 2)
+    private BigDecimal originalTotal;
+
+    /** Montant du discount voucher applique (NULL si pas de voucher). */
+    @Column(name = "discount_amount", precision = 10, scale = 2)
+    private BigDecimal discountAmount;
+
+    /**
+     * Code texte du voucher applique. Denormalise pour audit meme si le
+     * voucher est supprime (le {@link #bookingVoucherId} sera alors NULL).
+     */
+    @Column(name = "voucher_code", length = 64)
+    private String voucherCode;
+
+    /**
+     * FK vers le {@link BookingVoucher} applique. SET NULL si le voucher est
+     * supprime ulterieurement (preservation du voucherCode pour audit).
+     */
+    @Column(name = "booking_voucher_id")
+    private Long bookingVoucherId;
+
     @Column(name = "confirmation_code", length = 100)
     private String confirmationCode;
 
@@ -232,6 +259,18 @@ public class Reservation {
 
     public BigDecimal getTouristTaxAmount() { return touristTaxAmount; }
     public void setTouristTaxAmount(BigDecimal touristTaxAmount) { this.touristTaxAmount = touristTaxAmount; }
+
+    public BigDecimal getOriginalTotal() { return originalTotal; }
+    public void setOriginalTotal(BigDecimal originalTotal) { this.originalTotal = originalTotal; }
+
+    public BigDecimal getDiscountAmount() { return discountAmount; }
+    public void setDiscountAmount(BigDecimal discountAmount) { this.discountAmount = discountAmount; }
+
+    public String getVoucherCode() { return voucherCode; }
+    public void setVoucherCode(String voucherCode) { this.voucherCode = voucherCode; }
+
+    public Long getBookingVoucherId() { return bookingVoucherId; }
+    public void setBookingVoucherId(Long bookingVoucherId) { this.bookingVoucherId = bookingVoucherId; }
 
     public LocalDateTime getPaymentLinkSentAt() { return paymentLinkSentAt; }
     public void setPaymentLinkSentAt(LocalDateTime paymentLinkSentAt) { this.paymentLinkSentAt = paymentLinkSentAt; }
