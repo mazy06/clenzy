@@ -34,6 +34,7 @@ import type {
   VoucherStatus,
 } from '../../services/api/bookingVouchersApi';
 import { softChipSx } from '../../utils/statusUtils';
+import VoucherAnalyticsPanel from './VoucherAnalyticsPanel';
 import VoucherEditorDialog from './VoucherEditorDialog';
 
 // ─── Palette Baitly (alignee sur les autres surfaces) ───────────────────────
@@ -157,6 +158,8 @@ export default function VouchersPage() {
           </Stack>
         }
       />
+
+      <VoucherAnalyticsPanel />
 
       <ToggleButtonGroup
         value={filter}

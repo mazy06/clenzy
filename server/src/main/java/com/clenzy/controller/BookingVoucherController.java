@@ -3,6 +3,8 @@ package com.clenzy.controller;
 import com.clenzy.dto.voucher.BookingVoucherCreateRequestDto;
 import com.clenzy.dto.voucher.BookingVoucherDto;
 import com.clenzy.dto.voucher.BookingVoucherUpdateRequestDto;
+import com.clenzy.dto.voucher.VoucherAnalyticsDto;
+import com.clenzy.dto.voucher.VoucherStatsDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.BookingVoucher;
 import com.clenzy.model.Property;
@@ -12,12 +14,14 @@ import com.clenzy.model.voucher.VoucherStatus;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.voucher.BookingVoucherService;
+import com.clenzy.service.voucher.VoucherAnalyticsService;
 import com.clenzy.tenant.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +29,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -59,17 +64,20 @@ public class BookingVoucherController {
     private static final Logger log = LoggerFactory.getLogger(BookingVoucherController.class);
 
     private final BookingVoucherService voucherService;
+    private final VoucherAnalyticsService analyticsService;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
 
     public BookingVoucherController(
         BookingVoucherService voucherService,
+        VoucherAnalyticsService analyticsService,
         PropertyRepository propertyRepository,
         UserRepository userRepository,
         TenantContext tenantContext
     ) {
         this.voucherService = voucherService;
+        this.analyticsService = analyticsService;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
@@ -157,6 +165,25 @@ public class BookingVoucherController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         BookingVoucher updated = voucherService.setStatus(id, orgId, VoucherStatus.ACTIVE);
         return BookingVoucherDto.from(updated, voucherService.getScopedPropertyIds(updated.getId()));
+    }
+
+    // ─── Analytics ──────────────────────────────────────────────────────────
+
+    @GetMapping("/analytics")
+    @Operation(summary = "Analytics agregees de tous les vouchers de l'org sur une periode")
+    public VoucherAnalyticsDto getOrgAnalytics(
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to
+    ) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return analyticsService.getOrgAnalytics(orgId, from, to);
+    }
+
+    @GetMapping("/{id}/analytics")
+    @Operation(summary = "Stats detaillees d'un voucher")
+    public VoucherStatsDto getVoucherAnalytics(@PathVariable Long id) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return analyticsService.getVoucherStats(id, orgId);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────

@@ -4553,6 +4553,23 @@
         "percentTooBig": "Un pourcentage ne peut pas dépasser 100.",
         "saveFailed": "Impossible d'enregistrer le voucher."
       }
+    },
+    "analytics": {
+      "title": "Performance — 30 derniers jours",
+      "loadError": "Impossible de charger les statistiques.",
+      "noUsageYet": "Aucun voucher utilisé pour le moment. {{active}} voucher(s) actif(s) prêt(s) à recevoir des codes.",
+      "totalUsages": "Utilisations",
+      "totalGross": "CA brut",
+      "totalDiscount": "Remise totale",
+      "totalNet": "CA net",
+      "topVouchersTitle": "Top vouchers de la période",
+      "colName": "Nom",
+      "colCode": "Code",
+      "colUsages": "Util.",
+      "colGross": "CA brut",
+      "colDiscount": "Remise",
+      "colNet": "CA net",
+      "colAvgPct": "% moy."
     }
   }
 }

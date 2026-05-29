@@ -4,6 +4,8 @@ import {
   type BookingVoucher,
   type BookingVoucherCreateRequest,
   type BookingVoucherUpdateRequest,
+  type VoucherAnalytics,
+  type VoucherStats,
   type VoucherStatus,
 } from '../services/api/bookingVouchersApi';
 
@@ -16,6 +18,9 @@ export const bookingVouchersKeys = {
   lists: () => [...bookingVouchersKeys.all, 'list'] as const,
   list: (status?: VoucherStatus) => [...bookingVouchersKeys.lists(), status ?? 'all'] as const,
   detail: (id: number) => [...bookingVouchersKeys.all, 'detail', id] as const,
+  analytics: (from?: string, to?: string) =>
+    [...bookingVouchersKeys.all, 'analytics', from ?? null, to ?? null] as const,
+  voucherStats: (id: number) => [...bookingVouchersKeys.all, 'stats', id] as const,
 };
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
@@ -89,5 +94,24 @@ export function useResumeBookingVoucher() {
       qc.invalidateQueries({ queryKey: bookingVouchersKeys.lists() });
       qc.invalidateQueries({ queryKey: bookingVouchersKeys.detail(id) });
     },
+  });
+}
+
+// ─── Analytics queries ───────────────────────────────────────────────────────
+
+export function useVoucherAnalytics(from?: string, to?: string) {
+  return useQuery<VoucherAnalytics>({
+    queryKey: bookingVouchersKeys.analytics(from, to),
+    queryFn: () => bookingVouchersApi.getAnalytics(from, to),
+    staleTime: 60_000,
+  });
+}
+
+export function useVoucherStats(id: number | null, enabled = true) {
+  return useQuery<VoucherStats>({
+    queryKey: bookingVouchersKeys.voucherStats(id ?? 0),
+    queryFn: () => bookingVouchersApi.getVoucherStats(id!),
+    enabled: enabled && id !== null && id > 0,
+    staleTime: 60_000,
   });
 }
