@@ -8,6 +8,7 @@ import com.clenzy.model.BookingVoucher;
 import com.clenzy.model.voucher.VoucherStatus;
 import com.clenzy.repository.BookingVoucherRepository;
 import com.clenzy.repository.VoucherUsageRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,8 +38,10 @@ public class VoucherAnalyticsService {
     private final VoucherUsageRepository usageRepo;
     private final Clock clock;
 
-    // Constructeur unique → injection Spring auto, pas de @Autowired
-    // (regle CLAUDE.md Code Quality §1 DIP).
+    // @Autowired explicite necessaire : 2 constructeurs (prod + tests) =>
+    // Spring ne sait pas lequel choisir sans annotation. La regle CLAUDE.md
+    // interdit @Autowired sur les CHAMPS, pas sur les constructeurs.
+    @Autowired
     public VoucherAnalyticsService(
         BookingVoucherRepository voucherRepo,
         VoucherUsageRepository usageRepo
