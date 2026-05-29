@@ -1,6 +1,7 @@
 package com.clenzy.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Filter;
 
 import java.io.Serializable;
 import java.time.Instant;
@@ -16,10 +17,17 @@ import java.util.Objects;
  *
  * <p>Entite avec cle composite (id_voucher + id_property) car pas de besoin
  * de tracker d'identite ailleurs.</p>
+ *
+ * <p><b>Multi-tenant</b> : porte {@code organization_id} denormalise depuis
+ * {@code booking_voucher} (migration 0158, fix C-NEW-3 review pass 2) +
+ * {@link Filter} {@code organizationFilter} applique automatiquement par
+ * le {@code TenantFilter}. Defense en profondeur — les queries restent
+ * toujours scopees a l'org meme si un voucher_id leak entre tenants.</p>
  */
 @Entity
 @Table(name = "voucher_property_scope")
 @IdClass(VoucherPropertyScope.PK.class)
+@Filter(name = "organizationFilter", condition = "organization_id = :orgId")
 public class VoucherPropertyScope {
 
     @Id
@@ -30,20 +38,27 @@ public class VoucherPropertyScope {
     @Column(name = "property_id")
     private Long propertyId;
 
+    /** Denormalise depuis booking_voucher.organization_id. NOT NULL en DB. */
+    @Column(name = "organization_id", nullable = false)
+    private Long organizationId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
     public VoucherPropertyScope() {}
 
-    public VoucherPropertyScope(Long voucherId, Long propertyId) {
+    public VoucherPropertyScope(Long voucherId, Long propertyId, Long organizationId) {
         this.voucherId = voucherId;
         this.propertyId = propertyId;
+        this.organizationId = organizationId;
     }
 
     public Long getVoucherId() { return voucherId; }
     public void setVoucherId(Long voucherId) { this.voucherId = voucherId; }
     public Long getPropertyId() { return propertyId; }
     public void setPropertyId(Long propertyId) { this.propertyId = propertyId; }
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 

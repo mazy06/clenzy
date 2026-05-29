@@ -131,7 +131,7 @@ public class BookingVoucherService {
         v.setCreatedByUserId(userId);
 
         BookingVoucher saved = voucherRepo.save(v);
-        replaceScope(saved.getId(), payload.propertyIds());
+        replaceScope(saved.getId(), orgId, payload.propertyIds());
         logger.info("Voucher created : id={}, code={}, orgId={}, by user={}, type={}, status={}",
             saved.getId(), saved.getCode(), orgId, userId, saved.getCreatedByOrgType(), saved.getStatus());
         return saved;
@@ -156,27 +156,21 @@ public class BookingVoucherService {
                 "Voucher " + voucherId + " en statut " + v.getStatus() + " (non modifiable)");
         }
 
-        // Si le scope change, on revalide les permissions sur le NOUVEAU scope.
-        // Fix H3 : si payload.propertyIds() == null (scope non modifie) ET que
-        // le scope existant est vide, on saute le check create-time (qui exige
-        // un scope explicit pour MANAGEMENT_ORG). Le voucher existait deja
-        // legitimement, on ne le revalide pas comme une creation.
-        List<Long> nextScope;
-        boolean scopeChanged = payload.propertyIds() != null;
-        if (scopeChanged) {
-            nextScope = payload.propertyIds();
-        } else {
-            nextScope = List.copyOf(scopeRepo.findPropertyIdsByVoucherId(voucherId));
-        }
+        // Fix H-NEW-2 : on revalide TOUJOURS les permissions a l'update sur
+        // le scope effectif (nouveau si modifie, sinon existant). Le fix H3
+        // initial introduisait un bypass d'autorisation pour MANAGEMENT_ORG
+        // sur les vouchers "all properties" : un MANAGEMENT_ORG sans
+        // has_voucher_contract pouvait alors editer un voucher cree par le
+        // HOST original. La regle securisee : si le voucher cible "all
+        // properties" et que le requester est MANAGEMENT_ORG, on exige le
+        // contrat (sinon l'utilisateur doit explicitement restreindre le
+        // scope, ce qui re-active resolveAndCheckProperties + consentement
+        // org_can_create_vouchers).
+        List<Long> nextScope = payload.propertyIds() != null
+            ? payload.propertyIds()
+            : List.copyOf(scopeRepo.findPropertyIdsByVoucherId(voucherId));
         List<Property> targets = resolveAndCheckProperties(orgId, nextScope);
-        // Skip checkCreatePermissions si scope inchange + scope vide existant
-        // (ie. voucher "all properties" cree avant les contraintes actuelles).
-        // Cas concret : un voucher HOST cree au depart, le user devient
-        // MANAGEMENT_ORG sur d'autres properties → on ne veut pas bloquer
-        // l'update du voucher original.
-        if (scopeChanged || !targets.isEmpty()) {
-            checkCreatePermissions(orgId, userId, creatorType, targets);
-        }
+        checkCreatePermissions(orgId, userId, creatorType, targets);
 
         if (payload.code() != null) {
             checkCodeUniqueness(orgId, payload.code(), voucherId);
@@ -200,7 +194,7 @@ public class BookingVoucherService {
         }
 
         if (payload.propertyIds() != null) {
-            replaceScope(voucherId, payload.propertyIds());
+            replaceScope(voucherId, orgId, payload.propertyIds());
         }
 
         logger.info("Voucher updated : id={}, code={}", voucherId, v.getCode());
@@ -257,6 +251,31 @@ public class BookingVoucherService {
     @Transactional(readOnly = true)
     public Set<Long> getScopedPropertyIds(Long voucherId) {
         return scopeRepo.findPropertyIdsByVoucherId(voucherId);
+    }
+
+    /**
+     * Detecte le {@link VoucherCreatorOrgType} pour un voucher existant,
+     * sur la base de son scope deja persiste. Evite la double-lecture
+     * du scope dans le pattern {@code controller.update → service.update}
+     * (fix M-NEW-2 du code review).
+     *
+     * <p>Semantique identique au helper {@code detectCreatorOrgType} du
+     * controller : si toutes les properties du scope appartiennent au user,
+     * c'est HOST ; sinon MANAGEMENT_ORG. Scope vide = HOST par defaut (le
+     * service refusera ensuite si MANAGEMENT_ORG sans contrat).</p>
+     */
+    @Transactional(readOnly = true)
+    public VoucherCreatorOrgType detectCreatorOrgTypeForExistingScope(Long voucherId, Long userId) {
+        Set<Long> scope = scopeRepo.findPropertyIdsByVoucherId(voucherId);
+        if (scope.isEmpty()) return VoucherCreatorOrgType.HOST;
+        List<Property> properties = propertyRepo.findAllById(scope);
+        for (Property p : properties) {
+            var owner = p.getOwner();
+            if (owner == null || owner.getId() == null || !owner.getId().equals(userId)) {
+                return VoucherCreatorOrgType.MANAGEMENT_ORG;
+            }
+        }
+        return VoucherCreatorOrgType.HOST;
     }
 
     /**
@@ -428,12 +447,13 @@ public class BookingVoucherService {
         // Transitions autres : DRAFT <-> ACTIVE <-> PAUSED toutes autorisees
     }
 
-    private void replaceScope(Long voucherId, List<Long> propertyIds) {
+    private void replaceScope(Long voucherId, Long orgId, List<Long> propertyIds) {
         scopeRepo.deleteByVoucherId(voucherId);
         if (propertyIds == null || propertyIds.isEmpty()) return;
+        // organization_id denormalise pour le @Filter Hibernate (fix C-NEW-3).
         Set<Long> dedup = new HashSet<>(propertyIds);
         for (Long pid : dedup) {
-            scopeRepo.save(new VoucherPropertyScope(voucherId, pid));
+            scopeRepo.save(new VoucherPropertyScope(voucherId, pid, orgId));
         }
     }
 

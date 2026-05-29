@@ -1501,3 +1501,17 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # --- 0158 : Defense en profondeur multi-tenant sur voucher_property_scope ---
+  # Ajoute organization_id denormalise pour permettre l'application du
+  # Hibernate @Filter("organizationFilter") sur l'entite. Backfill depuis
+  # booking_voucher. Fix C-NEW-3 du code review pass 2.
+  # splitStatements: false a cause du bloc DO $$ (verif rows orphelines).
+  - changeSet:
+      id: "0158-voucher-property-scope-organization-id"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0158__voucher_property_scope_organization_id.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

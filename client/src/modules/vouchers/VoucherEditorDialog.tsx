@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -100,8 +100,18 @@ function initFromVoucher(v: BookingVoucher | null): FormState {
 export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }: Props) {
   const { t } = useTranslation();
   const isEdit = voucher !== null;
-  const [form, setForm] = useState<FormState>(initFromVoucher(voucher));
+  const [form, setForm] = useState<FormState>(() => initFromVoucher(voucher));
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Fix M-NEW-5 : re-hydrate le form quand le voucher change (ex: clic sur
+  // un autre voucher dans la liste sans demonter le dialog). Sans ce reset,
+  // l'utilisateur garderait les valeurs du voucher precedent.
+  useEffect(() => {
+    if (open) {
+      setForm(initFromVoucher(voucher));
+      setErrorMsg(null);
+    }
+  }, [voucher, open]);
 
   const { properties = [] } = usePropertiesList();
   const createMutation = useCreateBookingVoucher();

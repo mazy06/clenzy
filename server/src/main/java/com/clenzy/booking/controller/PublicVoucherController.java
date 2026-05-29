@@ -2,8 +2,11 @@ package com.clenzy.booking.controller;
 
 import com.clenzy.dto.voucher.VoucherValidationRequestDto;
 import com.clenzy.dto.voucher.VoucherValidationResponseDto;
+import com.clenzy.model.Property;
+import com.clenzy.repository.PropertyRepository;
 import com.clenzy.service.voucher.VoucherApplyResult;
 import com.clenzy.service.voucher.VoucherEngine;
+import com.clenzy.service.voucher.VoucherValidationError;
 import com.clenzy.service.voucher.VoucherValidationResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,6 +17,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Optional;
 
 /**
  * Endpoints publics pour la validation d'un voucher cote booking engine
@@ -30,8 +35,9 @@ import org.springframework.web.bind.annotation.RestController;
  * voucher est verifie pour CE contexte de booking precis, pas dans l'absolu).
  *
  * <h3>Rate limiting</h3>
- * TODO P7 : ajouter rate limiting (~ 10 req/min/IP) pour eviter le brute-force
- * de codes.
+ * Limite a 20 req/min/IP via {@code RateLimitInterceptor} (cas specifique
+ * {@code voucher-validate:<ip>}). Bloque le brute-force de codes voucher.
+ * Fix M-NEW-3 du code review pass 2.
  */
 /**
  * <p><b>Securite</b> : pas de {@code @PreAuthorize("permitAll()")} explicite
@@ -47,9 +53,14 @@ public class PublicVoucherController {
     private static final Logger log = LoggerFactory.getLogger(PublicVoucherController.class);
 
     private final VoucherEngine voucherEngine;
+    private final PropertyRepository propertyRepository;
 
-    public PublicVoucherController(VoucherEngine voucherEngine) {
+    public PublicVoucherController(
+        VoucherEngine voucherEngine,
+        PropertyRepository propertyRepository
+    ) {
         this.voucherEngine = voucherEngine;
+        this.propertyRepository = propertyRepository;
     }
 
     @PostMapping("/validate")
@@ -57,6 +68,22 @@ public class PublicVoucherController {
     public VoucherValidationResponseDto validate(
         @RequestBody @Valid VoucherValidationRequestDto request
     ) {
+        // Fix C-NEW-2 : prevention de l'oracle d'enumeration cross-tenant.
+        // Sans cette verification, un attaquant pouvait passer (orgId=X,
+        // propertyId=Y_d'une_autre_org) et inferer l'existence d'un code
+        // chez X via les codes d'erreur (NOT_FOUND vs PAUSED vs EXPIRED).
+        // On force la coherence orgId == property.organizationId ; si
+        // mismatch, on renvoie NOT_FOUND (pas UNAUTHORIZED, pour ne pas
+        // confirmer l'existence de la property cross-tenant).
+        Optional<Property> propertyOpt = propertyRepository.findById(request.propertyId());
+        if (propertyOpt.isEmpty()
+            || !propertyOpt.get().getOrganizationId().equals(request.organizationId())) {
+            log.warn("Voucher validation refused : property {} hors org {} (possible enumeration)",
+                request.propertyId(), request.organizationId());
+            return VoucherValidationResponseDto.invalid(
+                VoucherValidationError.NOT_FOUND, "Code voucher inconnu pour cette org");
+        }
+
         VoucherValidationResult result = voucherEngine.validate(
             request.organizationId(),
             request.code(),
