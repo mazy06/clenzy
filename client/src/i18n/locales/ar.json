@@ -4192,6 +4192,8 @@
       "targetProperties": "العقارات المستهدفة",
       "targetPropertiesPlaceholder": "اختر العقارات المؤهلة",
       "nights": "ليالٍ",
+      "nights_one": "ليلة",
+      "nights_other": "ليالٍ",
       "errors": {
         "nameRequired": "الاسم مطلوب.",
         "codeRequiredForManual": "يلزم كود لقسيمة MANUAL_CODE.",

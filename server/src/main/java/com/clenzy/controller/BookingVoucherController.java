@@ -91,8 +91,14 @@ public class BookingVoucherController {
         @RequestParam(required = false) VoucherStatus status
     ) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return voucherService.listByOrg(orgId, status).stream()
-            .map(v -> BookingVoucherDto.from(v, voucherService.getScopedPropertyIds(v.getId())))
+        List<BookingVoucher> vouchers = voucherService.listByOrg(orgId, status);
+        if (vouchers.isEmpty()) return List.of();
+        // Fix H2 : batch lookup des scopes (1 SQL au lieu de N).
+        var scopesByVoucher = voucherService.getScopedPropertyIdsBatch(
+            vouchers.stream().map(BookingVoucher::getId).toList());
+        return vouchers.stream()
+            .map(v -> BookingVoucherDto.from(v,
+                scopesByVoucher.getOrDefault(v.getId(), java.util.Set.of())))
             .toList();
     }
 

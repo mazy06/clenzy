@@ -52,6 +52,12 @@ public interface BookingVoucherRepository extends JpaRepository<BookingVoucher, 
     List<BookingVoucher> findByOrganizationIdOrderByCreatedAtDesc(Long organizationId);
 
     /**
+     * Count rapide des vouchers d'une org par statut (evite charger les
+     * entites pour un simple compteur — perf optimisation M3 du code review).
+     */
+    long countByOrganizationIdAndStatus(Long organizationId, VoucherStatus status);
+
+    /**
      * Liste les vouchers AUTO_CAMPAIGN actuellement actifs pour une org.
      * Utilise par le {@code VoucherEngine} au calcul du quote pour appliquer
      * automatiquement les promos eligibles (sans saisie de code).
