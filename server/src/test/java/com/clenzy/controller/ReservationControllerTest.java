@@ -555,4 +555,277 @@ class ReservationControllerTest {
             assertThat(result.getStatusCode().value()).isEqualTo(200);
         }
     }
+
+    // ============= EXTENDED v2 =============
+
+    @Nested
+    @DisplayName("getReservations - filter combinations")
+    class GetReservationsExt {
+        @Test
+        void whenStatusEmpty_thenNoFilter() {
+            Jwt jwt = createJwt();
+            Reservation r1 = new Reservation();
+            r1.setStatus("confirmed");
+            when(reservationService.getReservations(any(), any(), any(), any()))
+                    .thenReturn(List.of(r1));
+            when(reservationMapper.toDto(r1)).thenReturn(sampleDto("confirmed"));
+
+            ResponseEntity<List<ReservationDto>> response = controller.getReservations(jwt, null, null, null, "");
+            assertThat(response.getBody()).hasSize(1);
+        }
+
+        @Test
+        void whenStatusFilterCaseInsensitive_thenMatches() {
+            Jwt jwt = createJwt();
+            Reservation r1 = new Reservation();
+            r1.setStatus("CONFIRMED");
+            when(reservationService.getReservations(any(), any(), any(), any()))
+                    .thenReturn(List.of(r1));
+            when(reservationMapper.toDto(r1)).thenReturn(sampleDto("CONFIRMED"));
+
+            ResponseEntity<List<ReservationDto>> response = controller.getReservations(jwt, null, null, null, "confirmed");
+            assertThat(response.getBody()).hasSize(1);
+        }
+
+        @Test
+        void whenFromAndToProvided_thenUsedAsIs() {
+            Jwt jwt = createJwt();
+            java.time.LocalDate from = java.time.LocalDate.of(2026, 1, 1);
+            java.time.LocalDate to = java.time.LocalDate.of(2026, 12, 31);
+            when(reservationService.getReservations(eq("user-123"), isNull(), eq(from), eq(to)))
+                    .thenReturn(List.of());
+
+            ResponseEntity<List<ReservationDto>> response = controller.getReservations(jwt, null, from, to, null);
+            assertThat(response.getBody()).isEmpty();
+            verify(reservationService).getReservations("user-123", null, from, to);
+        }
+
+        @Test
+        void whenPropertyIdsProvided_thenPassedThrough() {
+            Jwt jwt = createJwt();
+            when(reservationService.getReservations(eq("user-123"), eq(List.of(1L, 2L)), any(), any()))
+                    .thenReturn(List.of());
+
+            ResponseEntity<List<ReservationDto>> response = controller.getReservations(
+                    jwt, List.of(1L, 2L), null, null, null);
+            assertThat(response.getBody()).isEmpty();
+            verify(reservationService).getReservations(eq("user-123"), eq(List.of(1L, 2L)), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("validatePropertyAccess via cancel")
+    class ValidatePropertyAccess {
+        @Test
+        void whenPropertyOrgIdNull_thenAllowsAccess() {
+            // OrgId null is treated as "not set" -- ownership still checked
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            property.setOrganizationId(null);
+            Reservation existing = new Reservation();
+            existing.setProperty(property);
+
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(existing))
+                    .thenReturn(Optional.of(existing));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
+            when(reservationService.cancel(1L)).thenReturn(existing);
+            when(reservationMapper.toDto(existing)).thenReturn(sampleDto("cancelled"));
+
+            ResponseEntity<ReservationDto> response = controller.cancel(1L, jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenPlatformStaffRole_thenBypassesOwnership() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("someone-else");
+            Reservation existing = new Reservation();
+            existing.setProperty(property);
+            User caller = new User();
+            caller.setId(99L);
+            caller.setKeycloakId("user-123");
+            caller.setRole(com.clenzy.model.UserRole.SUPER_MANAGER);
+
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(existing))
+                    .thenReturn(Optional.of(existing));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(caller));
+            when(reservationService.cancel(1L)).thenReturn(existing);
+            when(reservationMapper.toDto(existing)).thenReturn(sampleDto("cancelled"));
+
+            ResponseEntity<ReservationDto> response = controller.cancel(1L, jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+    }
+
+    @Nested
+    @DisplayName("create - createCleaning flag")
+    class CreateWithCleaning {
+        @Test
+        void whenCreateCleaningTrue_thenInvokesCleaning() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
+
+            Reservation saved = new Reservation();
+            saved.setId(7L);
+            when(reservationService.save(any())).thenReturn(saved);
+            when(reservationRepository.findByIdFetchAll(7L)).thenReturn(Optional.of(saved));
+            when(reservationMapper.toDto(any())).thenReturn(sampleDto("confirmed"));
+
+            // createCleaning is the 21st field (index 20)
+            ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
+                    "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
+                    null, null, true, null, null, null, null, null, null);
+
+            ResponseEntity<ReservationDto> response = controller.create(dto, jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(reservationService).createCleaningForReservation(saved, "user-123");
+        }
+
+        @Test
+        void whenCreateCleaningFalse_thenSkipsCleaning() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
+
+            Reservation saved = new Reservation();
+            saved.setId(8L);
+            when(reservationService.save(any())).thenReturn(saved);
+            when(reservationRepository.findByIdFetchAll(8L)).thenReturn(Optional.of(saved));
+            when(reservationMapper.toDto(any())).thenReturn(sampleDto("confirmed"));
+
+            ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
+                    "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, false, null, null, null);
+
+            controller.create(dto, jwt);
+            verify(reservationService, never()).createCleaningForReservation(any(), any());
+        }
+
+        @Test
+        void whenSavedReloadFails_thenFallsBackToSaved() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(true);
+
+            Reservation saved = new Reservation();
+            saved.setId(11L);
+            when(reservationService.save(any())).thenReturn(saved);
+            // Reload returns empty -- should fall back to the original `saved`
+            when(reservationRepository.findByIdFetchAll(11L)).thenReturn(Optional.empty());
+            when(reservationMapper.toDto(saved)).thenReturn(sampleDto("confirmed"));
+
+            ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
+                    "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, false, null, null, null);
+
+            ResponseEntity<ReservationDto> response = controller.create(dto, jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+    }
+
+    @Nested
+    @DisplayName("update - intervention rescheduling")
+    class UpdateIntervention {
+        @Test
+        void whenCheckOutChangedAndInterventionLinked_thenReschedulesIntervention() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            Reservation existing = new Reservation();
+            existing.setId(1L);
+            existing.setProperty(property);
+            existing.setCheckOut(java.time.LocalDate.of(2026, 3, 4));
+
+            com.clenzy.model.Intervention intervention = new com.clenzy.model.Intervention();
+            intervention.setId(50L);
+            intervention.setScheduledDate(java.time.LocalDateTime.of(2026, 3, 4, 11, 0));
+            intervention.setEstimatedDurationHours(2);
+            existing.setIntervention(intervention);
+
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(existing));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
+            when(reservationRepository.save(existing)).thenAnswer(inv -> {
+                // After mapper.apply changes the checkOut, save it
+                existing.setCheckOut(java.time.LocalDate.of(2026, 3, 6));
+                return existing;
+            });
+            // Mock the mapper to update checkOut field on existing
+            org.mockito.Mockito.doAnswer(inv -> {
+                existing.setCheckOut(java.time.LocalDate.of(2026, 3, 6));
+                return null;
+            }).when(reservationMapper).apply(any(), any());
+            when(reservationMapper.toDto(any())).thenReturn(sampleDto("confirmed"));
+
+            ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
+                    "2026-03-01", "2026-03-06", null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, false, null, null, null);
+
+            controller.update(1L, dto, jwt);
+
+            verify(interventionRepository).save(any(com.clenzy.model.Intervention.class));
+        }
+
+        @Test
+        void whenGuestNullAndGuestNameSet_thenCreatesGuestBeforeApply() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            Reservation existing = new Reservation();
+            existing.setId(1L);
+            existing.setProperty(property);
+            existing.setGuestName("Anonymous");
+            existing.setSource("ical");
+            existing.setCheckOut(java.time.LocalDate.of(2026, 3, 4));
+
+            com.clenzy.model.Guest guest = new com.clenzy.model.Guest();
+            guest.setId(100L);
+
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(existing));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
+            when(guestService.findOrCreateFromName("Anonymous", "ical", 1L)).thenReturn(guest);
+            when(reservationRepository.save(existing)).thenReturn(existing);
+            when(reservationMapper.toDto(any())).thenReturn(sampleDto("confirmed"));
+
+            ReservationDto dto = sampleDto("confirmed");
+            controller.update(1L, dto, jwt);
+
+            verify(guestService).findOrCreateFromName("Anonymous", "ical", 1L);
+            assertThat(existing.getGuest()).isEqualTo(guest);
+        }
+    }
+
+    @Nested
+    @DisplayName("getById - LazyInitialization safety")
+    class GetByIdNested {
+        @Test
+        void whenFound_thenDtoConverted() {
+            Reservation r = new Reservation();
+            r.setId(50L);
+            when(reservationRepository.findByIdFetchAll(50L)).thenReturn(Optional.of(r));
+            when(reservationMapper.toDto(r)).thenReturn(sampleDto("confirmed"));
+
+            ResponseEntity<ReservationDto> response = controller.getById(50L);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().status()).isEqualTo("confirmed");
+        }
+    }
 }

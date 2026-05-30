@@ -191,4 +191,75 @@ class GuestMessagingControllerTest {
         log.setStatus(MessageStatus.SENT);
         return log;
     }
+
+    // ── Resend tests ──
+
+    @Test
+    void whenResendMessage_logFound_thenAttemptsResend() {
+        GuestMessageLog existing = buildLogEntry();
+        // reservationId/templateId are read-only — managed by JPA. We just verify the
+        // null-id path: messagingService.sendMessage(null, null, 1L)
+        GuestMessageLog newLog = buildLogEntry();
+        when(messageLogRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(messagingService.sendMessage(any(), any(), any())).thenReturn(newLog);
+
+        var response = controller.resendMessage(1L);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(messagingService).sendMessage(any(), any(), eq(1L));
+    }
+
+    @Test
+    void whenResendMessage_logNotFound_thenNotFound() {
+        when(messageLogRepository.findById(99L)).thenReturn(Optional.empty());
+
+        var response = controller.resendMessage(99L);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(messagingService, never()).sendMessage(any(), any(), any());
+    }
+
+    @Test
+    void whenResendMessage_logFromDifferentOrg_thenNotFound() {
+        GuestMessageLog otherOrgLog = buildLogEntry();
+        otherOrgLog.setOrganizationId(999L);
+        when(messageLogRepository.findById(1L)).thenReturn(Optional.of(otherOrgLog));
+
+        var response = controller.resendMessage(1L);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    // ── Preview tests ──
+
+    @Test
+    void whenPreviewMessage_logNotFound_thenNotFound() {
+        when(messageLogRepository.findById(99L)).thenReturn(Optional.empty());
+
+        var response = controller.previewMessage(99L);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    void whenPreviewMessage_logFromDifferentOrg_thenNotFound() {
+        GuestMessageLog otherOrgLog = buildLogEntry();
+        otherOrgLog.setOrganizationId(999L);
+        when(messageLogRepository.findById(1L)).thenReturn(Optional.of(otherOrgLog));
+
+        var response = controller.previewMessage(1L);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    void whenPreviewMessage_noTemplate_thenNotFound() {
+        GuestMessageLog logEntry = buildLogEntry();
+        logEntry.setTemplate(null);
+        when(messageLogRepository.findById(1L)).thenReturn(Optional.of(logEntry));
+
+        var response = controller.previewMessage(1L);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
 }

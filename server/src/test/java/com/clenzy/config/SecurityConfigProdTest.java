@@ -17,9 +17,12 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.core.Ordered;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.web.DefaultSecurityFilterChain;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.cors.CorsConfiguration;
@@ -39,6 +42,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests unitaires pour {@link SecurityConfigProd}.
@@ -464,6 +472,75 @@ class SecurityConfigProdTest {
                 Map.of("alg", "RS256"),
                 claims
             );
+        }
+    }
+
+    // ─── securityFilterChain DSL coverage ────────────────────────────────
+
+    @Nested
+    @DisplayName("securityFilterChain - HttpSecurity DSL configuration")
+    class SecurityFilterChainConfig {
+
+        @Test
+        @DisplayName("invokes all major HttpSecurity DSL methods and returns a SecurityFilterChain")
+        void securityFilterChain_callsAllDslMethods() throws Exception {
+            HttpSecurity http = mock(HttpSecurity.class);
+            TenantFilter tenantFilter = mock(TenantFilter.class);
+            TokenCookieFilter tokenCookieFilter = mock(TokenCookieFilter.class);
+            SecurityAuditAccessDeniedHandler accessDeniedHandler = mock(SecurityAuditAccessDeniedHandler.class);
+            SecurityAuditAuthEntryPoint authEntryPoint = mock(SecurityAuditAuthEntryPoint.class);
+
+            // Chain returns `http` from every DSL call
+            lenient().when(http.csrf(any())).thenReturn(http);
+            lenient().when(http.cors(any())).thenReturn(http);
+            lenient().when(http.headers(any())).thenReturn(http);
+            lenient().when(http.exceptionHandling(any())).thenReturn(http);
+            lenient().when(http.authorizeHttpRequests(any())).thenReturn(http);
+            lenient().when(http.oauth2ResourceServer(any())).thenReturn(http);
+            lenient().when(http.addFilterBefore(any(), any())).thenReturn(http);
+            lenient().when(http.addFilterAfter(any(), any())).thenReturn(http);
+
+            DefaultSecurityFilterChain expected = mock(DefaultSecurityFilterChain.class);
+            org.mockito.Mockito.doReturn(expected).when(http).build();
+
+            SecurityFilterChain chain = config.securityFilterChain(http, tenantFilter,
+                    tokenCookieFilter, accessDeniedHandler, authEntryPoint);
+
+            assertThat(chain).isSameAs(expected);
+
+            // Verify each DSL configurer is invoked exactly once
+            verify(http).csrf(any());
+            verify(http).cors(any());
+            verify(http).headers(any());
+            verify(http).exceptionHandling(any());
+            verify(http).authorizeHttpRequests(any());
+            verify(http).oauth2ResourceServer(any());
+            verify(http).addFilterBefore(any(), any());
+            verify(http).addFilterAfter(any(), any());
+            verify(http).build();
+        }
+
+        @Test
+        @DisplayName("propagates http.build() return value back through SecurityFilterChain")
+        void securityFilterChain_returnsBuiltChain() throws Exception {
+            HttpSecurity http = mock(HttpSecurity.class);
+            DefaultSecurityFilterChain expected = mock(DefaultSecurityFilterChain.class);
+            lenient().when(http.csrf(any())).thenReturn(http);
+            lenient().when(http.cors(any())).thenReturn(http);
+            lenient().when(http.headers(any())).thenReturn(http);
+            lenient().when(http.exceptionHandling(any())).thenReturn(http);
+            lenient().when(http.authorizeHttpRequests(any())).thenReturn(http);
+            lenient().when(http.oauth2ResourceServer(any())).thenReturn(http);
+            lenient().when(http.addFilterBefore(any(), any())).thenReturn(http);
+            lenient().when(http.addFilterAfter(any(), any())).thenReturn(http);
+            org.mockito.Mockito.doReturn(expected).when(http).build();
+
+            SecurityFilterChain chain = config.securityFilterChain(http,
+                    mock(TenantFilter.class), mock(TokenCookieFilter.class),
+                    mock(SecurityAuditAccessDeniedHandler.class),
+                    mock(SecurityAuditAuthEntryPoint.class));
+
+            assertThat(chain).isSameAs(expected);
         }
     }
 }

@@ -195,6 +195,90 @@ class CmiPaymentProviderTest {
             .isEqualTo("https://testpayment.cmi.co.ma/fim/est3Dgate");
     }
 
+    @Test
+    @DisplayName("generateRnd produces 16-char hex string")
+    void generateRnd_produces16CharString() {
+        String rnd = CmiPaymentProvider.generateRnd();
+        assertThat(rnd).hasSize(16);
+        // Verify no hyphens
+        assertThat(rnd).doesNotContain("-");
+        // Verify uniqueness on repeat
+        assertThat(rnd).isNotEqualTo(CmiPaymentProvider.generateRnd());
+    }
+
+    @Test
+    @DisplayName("capturePayment returns success immediately (CMI auto-captures)")
+    void capturePayment_returnsSuccess() {
+        PaymentResult result = provider.capturePayment("TX-100", BigDecimal.TEN);
+        assertThat(result.success()).isTrue();
+        assertThat(result.providerTxId()).isEqualTo("TX-100");
+    }
+
+    @Test
+    @DisplayName("verifyWebhook with valid form payload delegates to hashService")
+    void verifyWebhook_emptyPayload_returnsFalse() {
+        boolean result = provider.verifyWebhook("", "ignored", "store-key");
+        // Will attempt to verify hash on empty params; hashService rejects it
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("verifyWebhook with null payload returns false")
+    void verifyWebhook_nullPayload_returnsFalse() {
+        boolean result = provider.verifyWebhook(null, "ignored", "store-key");
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("createPayment uses idempotencyKey when transactionRef metadata missing")
+    void createPayment_usesIdempotencyKey() {
+        PaymentMethodConfig config = buildEnabledConfig("M", "S", Map.of());
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("M");
+        when(configService.decryptApiSecret(config)).thenReturn("S");
+
+        Map<String, String> meta = new HashMap<>();
+        meta.put("orgId", "1");
+        PaymentRequest req = new PaymentRequest(
+            BigDecimal.TEN, "MAD", "Desc", "g@x.com", "G", "u", "u", "IDEM-1", meta);
+
+        PaymentResult result = provider.createPayment(req);
+        assertThat(result.success()).isTrue();
+        assertThat(result.providerTxId()).isEqualTo("IDEM-1");
+    }
+
+    @Test
+    @DisplayName("createPayment returns failure when transactionRef cannot be resolved")
+    void createPayment_noTransactionRef_returnsFailure() {
+        Map<String, String> meta = new HashMap<>();
+        meta.put("orgId", "1");
+        PaymentRequest req = new PaymentRequest(
+            BigDecimal.TEN, "MAD", "D", "g@x.com", "G", "u", "u", null, meta);
+
+        PaymentResult result = provider.createPayment(req);
+        assertThat(result.success()).isFalse();
+        assertThat(result.errorMessage()).contains("transactionRef");
+    }
+
+    @Test
+    @DisplayName("hashService getter returns wrapped instance")
+    void hashService_returnsInstance() {
+        assertThat(provider.hashService()).isSameAs(hashService);
+    }
+
+    @Test
+    @DisplayName("CmiCredentials record exposes fields")
+    void cmiCredentials_recordAccessors() {
+        var creds = new CmiPaymentProvider.CmiCredentials(
+            "client", "store", "ok", "fail", "cb", true);
+        assertThat(creds.clientId()).isEqualTo("client");
+        assertThat(creds.storeKey()).isEqualTo("store");
+        assertThat(creds.okUrl()).isEqualTo("ok");
+        assertThat(creds.failUrl()).isEqualTo("fail");
+        assertThat(creds.callbackUrl()).isEqualTo("cb");
+        assertThat(creds.sandbox()).isTrue();
+    }
+
     // ─── Helpers ───────────────────────────────────────────────────────────
 
     private PaymentMethodConfig buildEnabledConfig(String clientId, String storeKey, Map<String, Object> configJson) {

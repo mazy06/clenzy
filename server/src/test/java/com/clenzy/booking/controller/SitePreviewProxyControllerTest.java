@@ -516,4 +516,122 @@ class SitePreviewProxyControllerTest {
         }
         throw new NoSuchMethodException(methodName + " with matching params");
     }
+
+    // ============= EXTENDED COVERAGE =============
+
+    @Nested
+    @DisplayName("Validation edge cases")
+    class ValidationEdges {
+        @Test
+        @DisplayName("validateUrl rejects empty host (URI parse edge)")
+        void validateUrl_rejectsBareScheme() {
+            // URI scheme without host should fail
+            assertThatThrownBy(() -> invokeNoSwallow("validateUrl", "https://"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("normalizeUrl produces https URL for tricky schemes")
+        void normalizeUrl_trickyVariants() throws Exception {
+            assertThat(invoke("normalizeUrl", "http://example.com:8080/p")).isEqualTo("https://example.com:8080/p");
+            assertThat(invoke("normalizeUrl", "https://example.com")).isEqualTo("https://example.com");
+            assertThat(invoke("normalizeUrl", "WWW.EXAMPLE.COM")).isEqualTo("https://WWW.EXAMPLE.COM");
+        }
+
+        @Test
+        @DisplayName("snapshotSite uses cache-control header")
+        void snapshotSite_cacheControl() {
+            when(snapshotService.captureSnapshot(anyString())).thenReturn("<html></html>");
+            ResponseEntity<String> result = controller.snapshotSite("example.com");
+            assertThat(result.getHeaders().getCacheControl()).contains("max-age");
+            assertThat(result.getHeaders().getContentType().toString()).contains("text/html");
+        }
+    }
+
+    @Nested
+    @DisplayName("rewriteHtml extended")
+    class RewriteHtmlExt {
+        @Test
+        @DisplayName("rewrites both single and double quoted attribute syntax")
+        void rewritesBothQuotes() throws Exception {
+            String html = "<html><body>"
+                    + "<a href=\"/double\">d</a>"
+                    + "<a href='/single'>s</a>"
+                    + "</body></html>";
+            String result = (String) invoke("rewriteHtml", html, "https://example.com/");
+            assertThat(result).contains("/double");
+            assertThat(result).contains("/single");
+        }
+
+        @Test
+        @DisplayName("history.replaceState shim injected for SPA route reset")
+        void historyShimInjected() throws Exception {
+            String html = "<html><head></head><body></body></html>";
+            String result = (String) invoke("rewriteHtml", html, "https://example.com/x");
+            assertThat(result).contains("history.replaceState(null,'','/')");
+            assertThat(result).contains("__PREVIEW_MODE__");
+        }
+
+        @Test
+        @DisplayName("style tag for min-height 100vh injected")
+        void minHeightStyleInjected() throws Exception {
+            String html = "<html><head></head><body></body></html>";
+            String result = (String) invoke("rewriteHtml", html, "https://example.com/");
+            assertThat(result).contains("min-height:100vh");
+            assertThat(result).contains("#root");
+        }
+    }
+
+    @Nested
+    @DisplayName("Filter registration patterns")
+    class FilterRegistration {
+        @Test
+        void registrationContainsExpectedPaths() {
+            FilterRegistrationBean<Filter> reg = controller.previewProxyFrameOptionsFilter();
+            assertThat(reg.getUrlPatterns()).hasSize(2);
+            assertThat(reg.getUrlPatterns()).contains("/api/public/preview-proxy");
+            assertThat(reg.getUrlPatterns()).contains("/api/public/preview-proxy/*");
+        }
+
+        @Test
+        void registrationOrderIsLowest() {
+            FilterRegistrationBean<Filter> reg = controller.previewProxyFrameOptionsFilter();
+            // Integer.MAX_VALUE = lowest precedence (last filter)
+            assertThat(reg.getOrder()).isEqualTo(Integer.MAX_VALUE);
+        }
+    }
+
+    @Nested
+    @DisplayName("Proxy validation - additional SSRF blocks")
+    class MoreSSRFBlocks {
+        @Test
+        void proxyAsset_refuses10_x() {
+            ResponseEntity<byte[]> result = controller.proxyAsset("https://10.5.5.5/asset");
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        void proxyPage_refuses192_168() {
+            ResponseEntity<byte[]> result = controller.proxyPage("https://192.168.0.1/page");
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        void proxyPage_refusesLocalSuffix() {
+            ResponseEntity<byte[]> result = controller.proxyPage("https://myhost.local/page");
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        void proxyAsset_refuses127() {
+            ResponseEntity<byte[]> result = controller.proxyAsset("https://127.0.0.1/asset");
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        void proxySite_refuses172_16() {
+            ResponseEntity<byte[]> result = controller.proxySite("https://172.16.5.5/site");
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+    }
 }
