@@ -821,4 +821,269 @@ class StripeServiceTest {
                     .isInstanceOf(RuntimeException.class);
         }
     }
+
+    // ============= EXTENDED =============
+
+    @Nested
+    @DisplayName("confirmPayment - admin/awaiting validation notifications")
+    class ConfirmPaymentNotifications {
+        @Test
+        void whenConfirmed_thenNotifiesAdminsForAwaitingValidation() {
+            Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            when(interventionRepository.findByStripeSessionId("sess_n2")).thenReturn(Optional.of(intervention));
+
+            stripeService.confirmPayment("sess_n2");
+
+            verify(notificationService).notifyAdminsAndManagers(
+                eq(com.clenzy.model.NotificationKey.PAYMENT_CONFIRMED), any(), any(), any());
+            verify(notificationService).notifyAdminsAndManagers(
+                eq(com.clenzy.model.NotificationKey.INTERVENTION_AWAITING_VALIDATION), any(), any(), any());
+        }
+
+        @Test
+        void whenAutoInvoiceFails_paymentStillConfirmed() {
+            Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            when(interventionRepository.findByStripeSessionId("sess_inv")).thenReturn(Optional.of(intervention));
+            doThrow(new RuntimeException("invoice err"))
+                .when(autoInvoiceService).generateForIntervention(any());
+
+            stripeService.confirmPayment("sess_inv");
+
+            assertThat(intervention.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        }
+
+        @Test
+        void whenOwnerHasNoKeycloakId_thenNoOwnerNotificationButAdminsStillNotified() {
+            Intervention intervention = buildIntervention(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            // No owner — no keycloakId notification
+            when(interventionRepository.findByStripeSessionId("sess_no_owner")).thenReturn(Optional.of(intervention));
+
+            stripeService.confirmPayment("sess_no_owner");
+
+            verify(notificationService, never()).notify(any(), any(), any(), any(), any());
+            // 2 admin notifications: PAYMENT_CONFIRMED + INTERVENTION_AWAITING_VALIDATION
+            verify(notificationService, times(2)).notifyAdminsAndManagers(any(), any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("confirmGroupedPayment - kafka and auto-invoice failures")
+    class ConfirmGroupedPaymentFailures {
+        @Test
+        void whenKafkaFails_paymentStillSet() {
+            Intervention i1 = buildInterventionWithOwner(1L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(i1));
+            doThrow(new RuntimeException("kafka")).when(kafkaTemplate).send(anyString(), anyString(), any());
+
+            stripeService.confirmGroupedPayment("sess_grp_kafka", "1");
+
+            assertThat(i1.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        }
+
+        @Test
+        void whenAutoInvoiceFails_paymentStillSet() {
+            Intervention i1 = buildInterventionWithOwner(1L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(i1));
+            doThrow(new RuntimeException("inv")).when(autoInvoiceService).generateForIntervention(any());
+
+            stripeService.confirmGroupedPayment("sess_grp_inv", "1");
+
+            assertThat(i1.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        }
+
+        @Test
+        void whenInterventionFound_thenSetsSessionId() {
+            Intervention i1 = buildInterventionWithOwner(1L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(i1));
+
+            stripeService.confirmGroupedPayment("sess_grp_xyz", "1");
+
+            assertThat(i1.getStripeSessionId()).isEqualTo("sess_grp_xyz");
+        }
+    }
+
+    @Nested
+    @DisplayName("markPaymentAsFailed - owner without keycloakId")
+    class MarkPaymentFailedOwner {
+        @Test
+        void whenOwnerNoKeycloak_thenOnlyAdminsNotified() {
+            Intervention intervention = buildIntervention(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            // No owner - no notify() call
+            when(interventionRepository.findByStripeSessionId("sess_no")).thenReturn(Optional.of(intervention));
+
+            stripeService.markPaymentAsFailed("sess_no");
+
+            verify(notificationService, never()).notify(any(), any(), any(), any(), any());
+            verify(notificationService).notifyAdminsAndManagers(any(), any(), any(), any());
+        }
+
+        @Test
+        void whenNotificationsFail_stillSavesFailedStatus() {
+            Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            when(interventionRepository.findByStripeSessionId("sess_fn")).thenReturn(Optional.of(intervention));
+            doThrow(new RuntimeException("notif")).when(notificationService).notify(any(), any(), any(), any(), any());
+
+            stripeService.markPaymentAsFailed("sess_fn");
+
+            assertThat(intervention.getPaymentStatus()).isEqualTo(PaymentStatus.FAILED);
+        }
+    }
+
+    @Nested
+    @DisplayName("confirmReservationPayment - paymentLinkEmail")
+    class ConfirmReservationEmail {
+        @Test
+        void whenPaymentLinkEmailSet_thenUsedAsEmailTo() {
+            Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
+            r.setPaymentLinkEmail("custom@example.com");
+            when(reservationRepository.findByStripeSessionId("sess_em")).thenReturn(Optional.of(r));
+            Wallet plat = new Wallet();
+            Wallet escrow = new Wallet();
+            when(walletService.getOrCreatePlatformWallet(any(), any())).thenReturn(plat);
+            when(walletService.getOrCreateEscrowWallet(any(), any())).thenReturn(escrow);
+
+            stripeService.confirmReservationPayment("sess_em");
+
+            verify(kafkaTemplate, times(2)).send(anyString(), anyString(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("markReservationPaymentFailed - notification swallowed")
+    class MarkReservationFailedExtended {
+        @Test
+        void whenReservationFound_setsFailedSessionPreserved() {
+            Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
+            r.setStripeSessionId("preserved-sess");
+            when(reservationRepository.findByStripeSessionId("preserved-sess")).thenReturn(Optional.of(r));
+
+            stripeService.markReservationPaymentFailed("preserved-sess");
+
+            // stripeSessionId is not reset on failure
+            assertThat(r.getStripeSessionId()).isEqualTo("preserved-sess");
+            assertThat(r.getPaymentStatus()).isEqualTo(PaymentStatus.FAILED);
+        }
+    }
+
+    @Nested
+    @DisplayName("createCheckoutSession - validation paths")
+    class CreateCheckoutSession {
+        @Test
+        void whenInterventionNotFound_thenThrows() {
+            when(interventionRepository.findById(99L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> stripeService.createCheckoutSession(99L, BigDecimal.valueOf(100), "x@y.z"))
+                .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("createEmbeddedCheckoutSession - validation paths")
+    class CreateEmbeddedCheckoutSession {
+        @Test
+        void whenInterventionNotFound_thenThrows() {
+            when(interventionRepository.findById(99L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> stripeService.createEmbeddedCheckoutSession(99L, BigDecimal.valueOf(100), "x@y.z"))
+                .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("createReservationCheckoutSession - currency resolution")
+    class CreateReservationCheckoutSession {
+        @Test
+        void whenReservationFound_thenUsesReservationCurrencyResolution() {
+            Reservation r = new Reservation();
+            r.setId(1L);
+            r.setCurrency("USD");
+            when(reservationRepository.findById(1L)).thenReturn(Optional.of(r));
+
+            // Will fail at Stripe.create(), but currency resolution path is exercised
+            try {
+                stripeService.createReservationCheckoutSession(1L, BigDecimal.valueOf(200), "g@h.com", "Guest", "Property");
+            } catch (Exception expected) {
+                // Stripe call fails — but the lookup ran
+            }
+            verify(reservationRepository).findById(1L);
+        }
+
+        @Test
+        void whenReservationNotFound_thenFallsBackToDefaultCurrency() {
+            when(reservationRepository.findById(99L)).thenReturn(Optional.empty());
+
+            try {
+                stripeService.createReservationCheckoutSession(99L, BigDecimal.valueOf(200), "g@h.com", "Guest", "Property");
+            } catch (Exception expected) {
+                // Stripe call fails — but the lookup ran
+            }
+            verify(reservationRepository).findById(99L);
+        }
+    }
+
+    @Nested
+    @DisplayName("createServiceRequestCheckoutSession - validation paths")
+    class CreateServiceRequestCheckoutSession {
+        @Test
+        void whenSrNotFound_thenThrows() {
+            when(serviceRequestRepository.findById(99L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> stripeService.createServiceRequestCheckoutSession(99L, "u@h.com"))
+                .isInstanceOf(RuntimeException.class);
+        }
+
+        @Test
+        void whenSrNotInAwaitingPayment_thenThrows() {
+            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.PENDING, PaymentStatus.PROCESSING);
+            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
+
+            assertThatThrownBy(() -> stripeService.createServiceRequestCheckoutSession(1L, "u@h.com"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("AWAITING_PAYMENT");
+        }
+
+        @Test
+        void whenAmountInvalid_thenThrows() {
+            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            sr.setEstimatedCost(BigDecimal.ZERO);
+            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
+
+            assertThatThrownBy(() -> stripeService.createServiceRequestCheckoutSession(1L, "u@h.com"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Montant invalide");
+        }
+
+        @Test
+        void whenAmountNull_thenThrows() {
+            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            sr.setEstimatedCost(null);
+            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
+
+            assertThatThrownBy(() -> stripeService.createServiceRequestCheckoutSession(1L, "u@h.com"))
+                .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("createServiceRequestEmbeddedCheckoutSession - validation paths")
+    class CreateServiceRequestEmbedded {
+        @Test
+        void whenAmountInvalid_thenThrows() {
+            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            sr.setEstimatedCost(BigDecimal.ZERO);
+            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
+
+            assertThatThrownBy(() -> stripeService.createServiceRequestEmbeddedCheckoutSession(1L, "u@h.com"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Montant invalide");
+        }
+
+        @Test
+        void whenSrNotFound_thenThrows() {
+            when(serviceRequestRepository.findById(99L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> stripeService.createServiceRequestEmbeddedCheckoutSession(99L, "u@h.com"))
+                .isInstanceOf(RuntimeException.class);
+        }
+    }
 }

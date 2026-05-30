@@ -520,4 +520,218 @@ class NotificationServiceTest {
             verify(notificationRepository).save(any(Notification.class));
         }
     }
+
+    // ============= EXTENDED =============
+
+    @Nested
+    class SendByOrgId {
+        private static final NotificationKey KEY = NotificationKey.PAYMENT_CONFIRMED;
+
+        @Test
+        void whenUserIdNull_returnsNull() {
+            NotificationDto result = service.sendByOrgId(null, KEY, TITLE, MESSAGE, ACTION_URL, ORG_ID);
+            assertNull(result);
+        }
+
+        @Test
+        void whenKeyNull_returnsNull() {
+            NotificationDto result = service.sendByOrgId(USER_ID, null, TITLE, MESSAGE, ACTION_URL, ORG_ID);
+            assertNull(result);
+        }
+
+        @Test
+        void whenPreferenceDisabled_returnsNull() {
+            when(preferenceService.isEnabled(USER_ID, KEY)).thenReturn(false);
+            NotificationDto result = service.sendByOrgId(USER_ID, KEY, TITLE, MESSAGE, ACTION_URL, ORG_ID);
+            assertNull(result);
+        }
+
+        @Test
+        void whenEnabled_savesWithOrgIdSet() {
+            when(preferenceService.isEnabled(USER_ID, KEY)).thenReturn(true);
+            ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+            when(notificationRepository.save(captor.capture())).thenAnswer(inv -> {
+                Notification n = inv.getArgument(0);
+                n.setId(99L);
+                n.setCreatedAt(LocalDateTime.now());
+                return n;
+            });
+
+            NotificationDto result = service.sendByOrgId(USER_ID, KEY, TITLE, MESSAGE, ACTION_URL, ORG_ID);
+
+            assertNotNull(result);
+            assertEquals(ORG_ID, captor.getValue().getOrganizationId());
+        }
+
+        @Test
+        void whenSaveThrows_returnsNullWithoutPropagating() {
+            when(preferenceService.isEnabled(USER_ID, KEY)).thenReturn(true);
+            when(notificationRepository.save(any(Notification.class)))
+                .thenThrow(new RuntimeException("DB"));
+
+            NotificationDto result = service.sendByOrgId(USER_ID, KEY, TITLE, MESSAGE, ACTION_URL, ORG_ID);
+            assertNull(result);
+        }
+    }
+
+    @Nested
+    class NotifyAdminsAndManagersByOrgIdNested {
+        private static final NotificationKey KEY = NotificationKey.INTERVENTION_OVERDUE;
+
+        @Test
+        void notifyAdminsAndManagersByOrgId_iteratesOverUsers() {
+            User admin = new User();
+            admin.setKeycloakId("admin-kc");
+            User other = new User();
+            other.setKeycloakId(null); // skipped
+
+            when(userRepository.findByRoleIn(
+                    Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER), ORG_ID
+            )).thenReturn(List.of(admin, other));
+            when(preferenceService.isEnabled("admin-kc", KEY)).thenReturn(true);
+            when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
+                Notification n = inv.getArgument(0);
+                n.setId(1L);
+                n.setCreatedAt(LocalDateTime.now());
+                return n;
+            });
+
+            service.notifyAdminsAndManagersByOrgId(ORG_ID, KEY, TITLE, MESSAGE, ACTION_URL);
+
+            verify(preferenceService).isEnabled("admin-kc", KEY);
+        }
+
+        @Test
+        void notifyAdminsAndManagersByOrgId_exceptionSwallowed() {
+            when(userRepository.findByRoleIn(any(), eq(ORG_ID))).thenThrow(new RuntimeException("DB"));
+            assertDoesNotThrow(() ->
+                service.notifyAdminsAndManagersByOrgId(ORG_ID, KEY, TITLE, MESSAGE, ACTION_URL));
+        }
+    }
+
+    @Nested
+    class NotifyAdminsAndManagersWithOrgIdOverload {
+        private static final NotificationKey KEY = NotificationKey.PAYMENT_FAILED;
+
+        @Test
+        void notifyAdminsAndManagers_withExplicitOrgId_works() {
+            User admin = new User();
+            admin.setKeycloakId("admin-kc");
+            when(userRepository.findByRoleIn(
+                    Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER), ORG_ID
+            )).thenReturn(List.of(admin));
+            when(preferenceService.isEnabled("admin-kc", KEY)).thenReturn(true);
+            when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
+                Notification n = inv.getArgument(0);
+                n.setId(1L);
+                n.setCreatedAt(LocalDateTime.now());
+                return n;
+            });
+
+            service.notifyAdminsAndManagers(KEY, TITLE, MESSAGE, ACTION_URL, ORG_ID);
+
+            verify(preferenceService).isEnabled("admin-kc", KEY);
+        }
+
+        @Test
+        void notifyAdminsAndManagers_overload_exceptionSwallowed() {
+            when(userRepository.findByRoleIn(any(), eq(ORG_ID))).thenThrow(new RuntimeException());
+            assertDoesNotThrow(() -> service.notifyAdminsAndManagers(KEY, TITLE, MESSAGE, ACTION_URL, ORG_ID));
+        }
+    }
+
+    @Nested
+    class SendOverloadWithExplicitOrgId {
+        private static final NotificationKey KEY = NotificationKey.GUEST_MESSAGE_SENT;
+
+        @Test
+        void send_withExplicitOrgId_savesWithThatOrgId() {
+            when(preferenceService.isEnabled(USER_ID, KEY)).thenReturn(true);
+            ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+            when(notificationRepository.save(captor.capture())).thenAnswer(inv -> {
+                Notification n = inv.getArgument(0);
+                n.setId(50L);
+                n.setCreatedAt(LocalDateTime.now());
+                return n;
+            });
+
+            NotificationDto result = service.send(USER_ID, KEY, TITLE, MESSAGE, ACTION_URL, ORG_ID);
+
+            assertNotNull(result);
+            assertEquals(ORG_ID, captor.getValue().getOrganizationId());
+        }
+    }
+
+    @Nested
+    class NotifyAllPlatformStaffNested {
+        private static final NotificationKey KEY = NotificationKey.PAYMENT_CONFIRMED;
+
+        @Test
+        void notifyAllPlatformStaff_skipsUsersWithoutKeycloakId() {
+            User noKc = new User();
+            noKc.setKeycloakId(null);
+            when(userRepository.findByStatusAndRoleInAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(
+                    eq(UserStatus.ACTIVE),
+                    eq(Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER))))
+                    .thenReturn(List.of(noKc));
+
+            service.notifyAllPlatformStaff(KEY, TITLE, MESSAGE, ACTION_URL);
+
+            verifyNoInteractions(preferenceService);
+            verifyNoInteractions(notificationRepository);
+        }
+
+        @Test
+        void notifyAllPlatformStaff_userWithOrgId_usesSendByOrgId() {
+            User user = new User();
+            user.setKeycloakId("user-kc");
+            user.setOrganizationId(50L);
+            when(userRepository.findByStatusAndRoleInAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(
+                    eq(UserStatus.ACTIVE),
+                    eq(Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER))))
+                    .thenReturn(List.of(user));
+            when(preferenceService.isEnabled("user-kc", KEY)).thenReturn(true);
+            when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
+                Notification n = inv.getArgument(0);
+                n.setId(1L);
+                n.setCreatedAt(LocalDateTime.now());
+                return n;
+            });
+
+            service.notifyAllPlatformStaff(KEY, TITLE, MESSAGE, ACTION_URL);
+
+            verify(preferenceService).isEnabled("user-kc", KEY);
+        }
+
+        @Test
+        void notifyAllPlatformStaff_userWithoutOrgId_fallsBackToSend() {
+            User user = new User();
+            user.setKeycloakId("user-kc");
+            user.setOrganizationId(null);
+            when(userRepository.findByStatusAndRoleInAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(
+                    eq(UserStatus.ACTIVE),
+                    eq(Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER))))
+                    .thenReturn(List.of(user));
+            when(preferenceService.isEnabled("user-kc", KEY)).thenReturn(true);
+            when(tenantContext.getOrganizationId()).thenReturn(ORG_ID);
+            when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
+                Notification n = inv.getArgument(0);
+                n.setId(1L);
+                n.setCreatedAt(LocalDateTime.now());
+                return n;
+            });
+
+            service.notifyAllPlatformStaff(KEY, TITLE, MESSAGE, ACTION_URL);
+
+            verify(preferenceService).isEnabled("user-kc", KEY);
+        }
+
+        @Test
+        void notifyAllPlatformStaff_exception_swallowed() {
+            when(userRepository.findByStatusAndRoleInAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(
+                    any(), any())).thenThrow(new RuntimeException("DB"));
+
+            assertDoesNotThrow(() -> service.notifyAllPlatformStaff(KEY, TITLE, MESSAGE, ACTION_URL));
+        }
+    }
 }

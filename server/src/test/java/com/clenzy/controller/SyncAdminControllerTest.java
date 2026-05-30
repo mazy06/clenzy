@@ -270,4 +270,191 @@ class SyncAdminControllerTest {
             assertThat(response.getStatusCode().value()).isEqualTo(400);
         }
     }
+
+    @Nested
+    @DisplayName("error paths")
+    class ErrorPaths {
+
+        @Test
+        void connectionsError_returns500() {
+            when(syncAdminService.getConnections()).thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getConnections();
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void connectionDetailError_returns500() {
+            when(syncAdminService.getConnectionDetail(1L)).thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getConnectionDetail(1L);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void healthCheckError_returns500() {
+            when(syncAdminService.forceHealthCheck(1L)).thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.forceHealthCheck(1L);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void syncEventsError_returns500() {
+            when(syncAdminService.getSyncEvents(any(), any(), any(), any()))
+                    .thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getSyncEvents(null, null, null, 0, 20);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void syncEventsWithChannelAndStatus_filtersWork() {
+            when(syncAdminService.getSyncEvents(any(), eq("ERROR"), any(), any()))
+                    .thenReturn(new PageImpl<>(List.of()));
+
+            ResponseEntity<?> response = controller.getSyncEvents("AIRBNB", "ERROR",
+                    "2024-01-01T00:00:00", 0, 20);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void syncEventsWithBadDate_returns500() {
+            // DateTimeParseException is a DateTimeException (not IllegalArgumentException)
+            // so the controller falls into the generic catch block returning 500.
+            ResponseEntity<?> response = controller.getSyncEvents(null, null,
+                    "NOT-A-DATE", 0, 20);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void eventStatsError_returns500() {
+            when(syncAdminService.getSyncEventStats()).thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getSyncEventStats();
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void outboxError_returns500() {
+            when(syncAdminService.getOutboxEvents(any(), any(), any()))
+                    .thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getOutboxEvents(null, null, 0, 20);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void outboxStatsError_returns500() {
+            when(syncAdminService.getOutboxStats()).thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getOutboxStats();
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void bulkRetryError_returns500() {
+            BulkRetryRequestDto request = mock(BulkRetryRequestDto.class);
+            when(request.ids()).thenReturn(List.of(1L));
+            when(syncAdminService.bulkRetryOutbox(any())).thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.bulkRetryOutbox(request);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void calendarCommandsError_returns500() {
+            when(syncAdminService.getCalendarCommands(any(), any()))
+                    .thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getCalendarCommands(null, 0, 20);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void calendarConflictsError_returns500() {
+            when(syncAdminService.getCalendarConflicts()).thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getCalendarConflicts();
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void mappingsError_returns500() {
+            when(syncAdminService.getMappings(any())).thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getMappings(0, 20);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void mappingDetailError_returns500() {
+            when(syncAdminService.getMappingDetail(1L)).thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getMappingDetail(1L);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void diagnosticsError_returns500() {
+            when(syncAdminService.getDiagnostics()).thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getDiagnostics();
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void metricsError_returns500() {
+            when(syncAdminService.getMetrics()).thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getMetrics();
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void reconciliationRunsError_returns500() {
+            when(syncAdminService.getReconciliationRuns(any(), any(), any()))
+                    .thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getReconciliationRuns(null, null, 0, 20);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void reconciliationStatsError_returns500() {
+            when(syncAdminService.getReconciliationStats()).thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.getReconciliationStats();
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void triggerError_returns500() {
+            ReconciliationTriggerRequestDto request = mock(ReconciliationTriggerRequestDto.class);
+            when(request.propertyId()).thenReturn(1L);
+            doThrow(new RuntimeException("boom")).when(syncAdminService).triggerReconciliation(1L);
+
+            ResponseEntity<?> response = controller.triggerReconciliation(request);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+    }
 }

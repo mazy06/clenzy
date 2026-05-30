@@ -381,4 +381,178 @@ class ReservationControllerTest {
             verify(reservationRepository, never()).save(any());
         }
     }
+
+    // ============= EXTENDED =============
+
+    @Nested
+    @DisplayName("update")
+    class UpdateReservation {
+        @Test
+        void whenReservationNotFound_thenNotFound() {
+            Jwt jwt = createJwt();
+            when(reservationRepository.findByIdFetchAll(99L)).thenReturn(Optional.empty());
+
+            ReservationDto dto = sampleDto("confirmed");
+            assertThatThrownBy(() -> controller.update(99L, dto, jwt))
+                    .isInstanceOf(NotFoundException.class);
+        }
+
+        @Test
+        void whenUpdated_thenReturnsDto() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            Reservation existing = new Reservation();
+            existing.setId(1L);
+            existing.setProperty(property);
+            existing.setCheckOut(java.time.LocalDate.of(2026, 3, 4));
+
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(existing));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
+            when(reservationRepository.save(existing)).thenReturn(existing);
+            when(reservationMapper.toDto(any())).thenReturn(sampleDto("confirmed"));
+
+            ReservationDto dto = sampleDto("confirmed");
+            ResponseEntity<ReservationDto> response = controller.update(1L, dto, jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(reservationService).notifyReservationUpdated(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("getReservations - filters defaults")
+    class GetReservationsFilters {
+        @Test
+        void whenFromIsNull_thenUsesDefaultStart() {
+            Jwt jwt = createJwt();
+            when(reservationService.getReservations(eq("user-123"), isNull(), any(), any()))
+                    .thenReturn(List.of());
+
+            ResponseEntity<List<ReservationDto>> response = controller.getReservations(
+                    jwt, null, null, null, null);
+            assertThat(response.getBody()).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("create - guest validation")
+    class CreateWithGuest {
+        @Test
+        void whenGuestIdNotFound_thenNotFound() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(true);
+            when(guestRepository.findByIdAndOrganizationId(50L, 1L)).thenReturn(Optional.empty());
+
+            ReservationDto dto = new ReservationDto(null, 1L, null, "G", 50L, null, null, 1,
+                    "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, false, null, null, null);
+
+            assertThatThrownBy(() -> controller.create(dto, jwt))
+                    .isInstanceOf(NotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("sendPaymentLink")
+    class SendPaymentLink {
+        @Test
+        void whenReservationNotFound_thenNotFound() {
+            Jwt jwt = createJwt();
+            when(reservationRepository.findByIdFetchAll(99L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> controller.sendPaymentLink(99L, java.util.Map.of(), jwt))
+                    .isInstanceOf(NotFoundException.class);
+        }
+
+        @Test
+        void whenNoEmailProvidedNoGuestEmail_thenIllegalArgument() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            Reservation r = new Reservation();
+            r.setProperty(property);
+            r.setTotalPrice(new java.math.BigDecimal("100"));
+
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(r));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
+
+            assertThatThrownBy(() -> controller.sendPaymentLink(1L, java.util.Map.of(), jwt))
+                    .isInstanceOf(RuntimeException.class);
+        }
+
+        @Test
+        void whenAmountZero_thenIllegalArgument() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            Reservation r = new Reservation();
+            r.setProperty(property);
+            r.setTotalPrice(java.math.BigDecimal.ZERO);
+
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(r));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
+
+            assertThatThrownBy(() -> controller.sendPaymentLink(1L, java.util.Map.of("email", "x@y.z"), jwt))
+                    .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("checkPaymentStatus")
+    class CheckPaymentStatus {
+        @Test
+        void whenReservationNotFound_thenReturns404() {
+            Jwt jwt = createJwt();
+            when(reservationRepository.findByIdFetchAll(99L)).thenReturn(Optional.empty());
+
+            ResponseEntity<?> result = controller.checkPaymentStatus(99L, jwt);
+            assertThat(result.getStatusCode().value()).isEqualTo(404);
+        }
+
+        @Test
+        void whenAlreadyPaid_thenReturnsPaidStatus() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            Reservation r = new Reservation();
+            r.setProperty(property);
+            r.setPaymentStatus(com.clenzy.model.PaymentStatus.PAID);
+
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(r));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
+
+            ResponseEntity<?> result = controller.checkPaymentStatus(1L, jwt);
+            assertThat(result.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenNoStripeSession_thenReturnsNoSession() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            Reservation r = new Reservation();
+            r.setProperty(property);
+            r.setPaymentStatus(com.clenzy.model.PaymentStatus.PROCESSING);
+            r.setStripeSessionId("  ");
+
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(r));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
+
+            ResponseEntity<?> result = controller.checkPaymentStatus(1L, jwt);
+            assertThat(result.getStatusCode().value()).isEqualTo(200);
+        }
+    }
 }
