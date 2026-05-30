@@ -17,6 +17,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -463,6 +464,239 @@ class InscriptionServiceTest {
 
             verify(pendingInscriptionRepository).deleteByStatusAndExpiresAtBefore(
                     eq(PendingInscriptionStatus.PENDING_PAYMENT), any());
+        }
+    }
+
+    // ===== COMPLETE INSCRIPTION WITH PASSWORD =====
+
+    @Nested
+    @DisplayName("completeInscriptionWithPassword")
+    class CompleteInscriptionWithPassword {
+
+        @Test
+        @DisplayName("when valid token + PAYMENT_CONFIRMED then creates Keycloak user + DB user + org + returns tokens")
+        void whenValid_thenCreatesAllAndReturnsTokens() {
+            PendingInscription pending = buildPending("jean@test.com", "sess_full");
+            pending.setStatus(PendingInscriptionStatus.PAYMENT_CONFIRMED);
+            pending.setCompanyName("Acme SARL");
+            pending.setOrganizationType("CONCIERGE");
+            pending.setStripeCustomerId("cus_x");
+            pending.setStripeSubscriptionId("sub_x");
+
+            when(pendingInscriptionRepository.findByConfirmationTokenHash(anyString()))
+                    .thenReturn(Optional.of(pending));
+            when(pendingInscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(keycloakService.createUser(any())).thenReturn("kc-new-id");
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // Mock RestTemplate for auto-login
+            Map<String, Object> tokenBody = new java.util.HashMap<>();
+            tokenBody.put("access_token", "ACC_TOKEN");
+            tokenBody.put("refresh_token", "REF_TOKEN");
+            tokenBody.put("id_token", "ID_TOKEN");
+            tokenBody.put("expires_in", 300);
+            tokenBody.put("token_type", "Bearer");
+            org.springframework.http.ResponseEntity<Map> response =
+                    org.springframework.http.ResponseEntity.ok(tokenBody);
+            when(restTemplate.postForEntity(anyString(), any(), eq(Map.class))).thenReturn(response);
+
+            Map<String, Object> result = inscriptionService.completeInscriptionWithPassword("raw-token", "Passw0rd!");
+
+            assertThat(result.get("access_token")).isEqualTo("ACC_TOKEN");
+            assertThat(result.get("refresh_token")).isEqualTo("REF_TOKEN");
+            assertThat(pending.getStatus()).isEqualTo(PendingInscriptionStatus.COMPLETED);
+
+            // Verify user was created
+            ArgumentCaptor<User> userCap = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userCap.capture());
+            User savedUser = userCap.getValue();
+            assertThat(savedUser.getEmail()).isEqualTo("jean@test.com");
+            assertThat(savedUser.getKeycloakId()).isEqualTo("kc-new-id");
+            assertThat(savedUser.getRole()).isEqualTo(UserRole.HOST);
+            assertThat(savedUser.getStatus()).isEqualTo(UserStatus.ACTIVE);
+            assertThat(savedUser.isEmailVerified()).isTrue();
+            assertThat(savedUser.getStripeCustomerId()).isEqualTo("cus_x");
+            assertThat(savedUser.getCompanyName()).isEqualTo("Acme SARL");
+
+            // Verify org was created with CONCIERGE type
+            verify(organizationService).createForUserWithBilling(
+                    any(User.class), eq("Acme SARL"),
+                    eq(OrganizationType.CONCIERGE),
+                    eq("cus_x"), eq("sub_x"),
+                    eq("essentiel"), eq("MONTHLY"));
+        }
+
+        @Test
+        @DisplayName("when invalid token then throws RuntimeException")
+        void whenInvalidToken_thenThrows() {
+            when(pendingInscriptionRepository.findByConfirmationTokenHash(anyString()))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> inscriptionService.completeInscriptionWithPassword("bad-token", "pwd"))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("invalide");
+        }
+
+        @Test
+        @DisplayName("when status is COMPLETED then throws (already finalized)")
+        void whenAlreadyCompleted_thenThrows() {
+            PendingInscription pending = buildPending("jean@test.com", "sess_x");
+            pending.setStatus(PendingInscriptionStatus.COMPLETED);
+            when(pendingInscriptionRepository.findByConfirmationTokenHash(anyString()))
+                    .thenReturn(Optional.of(pending));
+
+            assertThatThrownBy(() -> inscriptionService.completeInscriptionWithPassword("token", "pwd"))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("deja ete finalisee");
+        }
+
+        @Test
+        @DisplayName("when status is PENDING_PAYMENT then throws (payment not confirmed)")
+        void whenNotConfirmed_thenThrows() {
+            PendingInscription pending = buildPending("jean@test.com", "sess_x");
+            pending.setStatus(PendingInscriptionStatus.PENDING_PAYMENT);
+            when(pendingInscriptionRepository.findByConfirmationTokenHash(anyString()))
+                    .thenReturn(Optional.of(pending));
+
+            assertThatThrownBy(() -> inscriptionService.completeInscriptionWithPassword("token", "pwd"))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("paiement n'a pas encore");
+        }
+
+        @Test
+        @DisplayName("when token expired then throws RuntimeException")
+        void whenExpired_thenThrows() {
+            PendingInscription pending = buildPending("jean@test.com", "sess_x");
+            pending.setStatus(PendingInscriptionStatus.PAYMENT_CONFIRMED);
+            pending.setExpiresAt(LocalDateTime.now().minusHours(1));
+            when(pendingInscriptionRepository.findByConfirmationTokenHash(anyString()))
+                    .thenReturn(Optional.of(pending));
+
+            assertThatThrownBy(() -> inscriptionService.completeInscriptionWithPassword("token", "pwd"))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("expire");
+        }
+
+        @Test
+        @DisplayName("when invalid org type then falls back to INDIVIDUAL")
+        void whenInvalidOrgType_thenFallsBackToIndividual() {
+            PendingInscription pending = buildPending("jean@test.com", "sess_x");
+            pending.setStatus(PendingInscriptionStatus.PAYMENT_CONFIRMED);
+            pending.setOrganizationType("UNKNOWN_TYPE");
+
+            when(pendingInscriptionRepository.findByConfirmationTokenHash(anyString()))
+                    .thenReturn(Optional.of(pending));
+            when(pendingInscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(keycloakService.createUser(any())).thenReturn("kc-fallback");
+            when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            Map<String, Object> tokenBody = Map.of("access_token", "x", "refresh_token", "y");
+            when(restTemplate.postForEntity(anyString(), any(), eq(Map.class)))
+                    .thenReturn(org.springframework.http.ResponseEntity.ok(tokenBody));
+
+            inscriptionService.completeInscriptionWithPassword("tok", "pwd");
+
+            verify(organizationService).createForUserWithBilling(
+                    any(), anyString(),
+                    eq(OrganizationType.INDIVIDUAL),
+                    any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("when companyName blank then uses firstName + lastName for org name")
+        void whenBlankCompanyName_thenUsesNameForOrgName() {
+            PendingInscription pending = buildPending("jean@test.com", "sess_x");
+            pending.setStatus(PendingInscriptionStatus.PAYMENT_CONFIRMED);
+            pending.setCompanyName("");  // blank
+
+            when(pendingInscriptionRepository.findByConfirmationTokenHash(anyString()))
+                    .thenReturn(Optional.of(pending));
+            when(pendingInscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(keycloakService.createUser(any())).thenReturn("kc-x");
+            when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            Map<String, Object> tokenBody = Map.of("access_token", "x");
+            when(restTemplate.postForEntity(anyString(), any(), eq(Map.class)))
+                    .thenReturn(org.springframework.http.ResponseEntity.ok(tokenBody));
+
+            inscriptionService.completeInscriptionWithPassword("tok", "pwd");
+
+            verify(organizationService).createForUserWithBilling(
+                    any(), eq("Jean Dupont"),  // firstName + " " + lastName
+                    any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("when Keycloak fails then wraps RuntimeException")
+        void whenKeycloakFails_thenWraps() {
+            PendingInscription pending = buildPending("jean@test.com", "sess_x");
+            pending.setStatus(PendingInscriptionStatus.PAYMENT_CONFIRMED);
+
+            when(pendingInscriptionRepository.findByConfirmationTokenHash(anyString()))
+                    .thenReturn(Optional.of(pending));
+            when(keycloakService.createUser(any())).thenThrow(new RuntimeException("KC down"));
+
+            assertThatThrownBy(() -> inscriptionService.completeInscriptionWithPassword("tok", "pwd"))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("creation du compte");
+        }
+
+        @Test
+        @DisplayName("when Keycloak login fails then throws RuntimeException")
+        void whenKeycloakLoginFails_thenThrows() {
+            PendingInscription pending = buildPending("jean@test.com", "sess_x");
+            pending.setStatus(PendingInscriptionStatus.PAYMENT_CONFIRMED);
+
+            when(pendingInscriptionRepository.findByConfirmationTokenHash(anyString()))
+                    .thenReturn(Optional.of(pending));
+            when(pendingInscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(keycloakService.createUser(any())).thenReturn("kc-id");
+            when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            // RestTemplate returns 4xx (no body)
+            when(restTemplate.postForEntity(anyString(), any(), eq(Map.class)))
+                    .thenReturn(org.springframework.http.ResponseEntity.status(401).build());
+
+            assertThatThrownBy(() -> inscriptionService.completeInscriptionWithPassword("tok", "pwd"))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("creation du compte");  // wrapped error message
+        }
+    }
+
+    // ===== RESEND CONFIRMATION EMAIL =====
+
+    @Nested
+    @DisplayName("resendConfirmationEmail")
+    class ResendConfirmationEmail {
+
+        @Test
+        @DisplayName("when valid PAYMENT_CONFIRMED inscription then regenerates token + resends email")
+        void whenValid_thenResendsEmail() {
+            PendingInscription pending = buildPending("jean@test.com", "sess_x");
+            pending.setStatus(PendingInscriptionStatus.PAYMENT_CONFIRMED);
+            when(pendingInscriptionRepository.findByEmailAndStatus("jean@test.com", PendingInscriptionStatus.PAYMENT_CONFIRMED))
+                    .thenReturn(Optional.of(pending));
+            when(pendingInscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            inscriptionService.resendConfirmationEmail("jean@test.com");
+
+            assertThat(pending.getConfirmationTokenHash()).isNotNull();
+            assertThat(pending.getExpiresAt()).isAfter(LocalDateTime.now().plusHours(70));
+            verify(emailService).sendInscriptionConfirmationEmail(
+                    eq("jean@test.com"), eq("Jean Dupont"), anyString(), any(LocalDateTime.class));
+        }
+
+        @Test
+        @DisplayName("when no inscription found for email then throws RuntimeException")
+        void whenNotFound_thenThrows() {
+            when(pendingInscriptionRepository.findByEmailAndStatus(
+                    "unknown@test.com", PendingInscriptionStatus.PAYMENT_CONFIRMED))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> inscriptionService.resendConfirmationEmail("unknown@test.com"))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("Aucune inscription en attente");
+
+            verify(emailService, org.mockito.Mockito.never())
+                    .sendInscriptionConfirmationEmail(anyString(), anyString(), anyString(), any());
         }
     }
 }
