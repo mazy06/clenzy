@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.ServiceRequestDto;
+import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.RequestStatus;
 import com.clenzy.model.ServiceRequest;
 import com.clenzy.repository.ServiceRequestRepository;
@@ -210,6 +211,166 @@ class ServiceRequestControllerTest {
             ResponseEntity<Map<String, String>> result = controller.createPaymentSession(1L, jwt);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(result.getBody()).containsKey("error");
+        }
+
+        @Test
+        void whenSuccess_thenReturnsCheckoutUrl() throws Exception {
+            Jwt jwt = createJwt();
+            com.stripe.model.checkout.Session session = org.mockito.Mockito.mock(
+                    com.stripe.model.checkout.Session.class);
+            when(session.getUrl()).thenReturn("https://stripe.test/checkout/abc");
+            when(stripeService.createServiceRequestCheckoutSession(eq(1L), anyString()))
+                    .thenReturn(session);
+
+            ResponseEntity<Map<String, String>> result = controller.createPaymentSession(1L, jwt);
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(result.getBody()).containsEntry("checkoutUrl", "https://stripe.test/checkout/abc");
+        }
+    }
+
+    @Nested
+    @DisplayName("createEmbeddedPaymentSession")
+    class CreateEmbeddedSession {
+        @Test
+        void whenSuccess_thenReturnsSessionAndClientSecret() throws Exception {
+            Jwt jwt = createJwt();
+            com.stripe.model.checkout.Session session = org.mockito.Mockito.mock(
+                    com.stripe.model.checkout.Session.class);
+            when(session.getId()).thenReturn("sess_emb_1");
+            when(session.getClientSecret()).thenReturn("cs_xyz");
+            when(stripeService.createServiceRequestEmbeddedCheckoutSession(eq(2L), anyString()))
+                    .thenReturn(session);
+
+            ResponseEntity<?> result = controller.createEmbeddedPaymentSession(2L, jwt);
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            @SuppressWarnings("unchecked")
+            Map<String, String> body = (Map<String, String>) result.getBody();
+            assertThat(body).containsEntry("sessionId", "sess_emb_1")
+                    .containsEntry("clientSecret", "cs_xyz");
+        }
+
+        @Test
+        void whenError_thenReturns400() throws Exception {
+            Jwt jwt = createJwt();
+            when(stripeService.createServiceRequestEmbeddedCheckoutSession(any(), anyString()))
+                    .thenThrow(new RuntimeException("embed error"));
+
+            ResponseEntity<?> result = controller.createEmbeddedPaymentSession(2L, jwt);
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Nested
+    @DisplayName("checkPaymentStatus")
+    class CheckPaymentStatus {
+        @Test
+        void whenSrNotFound_thenReturns500() {
+            when(serviceRequestRepository.findById(99L)).thenReturn(java.util.Optional.empty());
+
+            ResponseEntity<?> result = controller.checkPaymentStatus(99L);
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        @Test
+        void whenAlreadyPaid_thenReturnsPaidStatus() {
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(5L);
+            sr.setPaymentStatus(PaymentStatus.PAID);
+            when(serviceRequestRepository.findById(5L)).thenReturn(java.util.Optional.of(sr));
+
+            ResponseEntity<?> result = controller.checkPaymentStatus(5L);
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            @SuppressWarnings("unchecked")
+            Map<String, String> body = (Map<String, String>) result.getBody();
+            assertThat(body).containsEntry("paymentStatus", "PAID");
+        }
+
+        @Test
+        void whenNoStripeSession_thenReturnsNoSession() {
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(5L);
+            sr.setPaymentStatus(PaymentStatus.PROCESSING);
+            sr.setStripeSessionId(null);
+            when(serviceRequestRepository.findById(5L)).thenReturn(java.util.Optional.of(sr));
+
+            ResponseEntity<?> result = controller.checkPaymentStatus(5L);
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            @SuppressWarnings("unchecked")
+            Map<String, String> body = (Map<String, String>) result.getBody();
+            assertThat(body).containsEntry("paymentStatus", "NO_SESSION");
+        }
+
+        @Test
+        void whenBlankStripeSession_thenReturnsNoSession() {
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(5L);
+            sr.setPaymentStatus(PaymentStatus.PROCESSING);
+            sr.setStripeSessionId("  ");
+            when(serviceRequestRepository.findById(5L)).thenReturn(java.util.Optional.of(sr));
+
+            ResponseEntity<?> result = controller.checkPaymentStatus(5L);
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        }
+    }
+
+    @Nested
+    @DisplayName("planning - with team and user assignees")
+    class PlanningWithAssignees {
+        @Test
+        void whenSrHasUserAssignee_thenIncludesNameInResult() {
+            Jwt jwt = createJwt();
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(8L);
+            sr.setTitle("Task");
+            sr.setEstimatedDurationHours(2);
+            sr.setAssignedToType("user");
+            sr.setAssignedToId(50L);
+            sr.setDesiredDate(LocalDateTime.of(2026, 4, 1, 9, 0));
+
+            when(serviceRequestRepository.findByStatusAndDesiredDateBetween(
+                    eq(RequestStatus.AWAITING_PAYMENT), any(), any(), eq(1L)))
+                    .thenReturn(List.of(sr));
+
+            com.clenzy.model.User user = new com.clenzy.model.User();
+            user.setId(50L);
+            user.setFirstName("Alice");
+            user.setLastName("Test");
+            when(userRepository.findAllById(eq(List.of(50L)))).thenReturn(List.of(user));
+
+            ResponseEntity<List<Map<String, Object>>> result =
+                    controller.getPlanningServiceRequests(jwt, null, null, null);
+            assertThat(result.getBody()).hasSize(1);
+            assertThat(result.getBody().get(0)).containsEntry("assignedToName", "Alice Test");
+            assertThat(result.getBody().get(0)).containsEntry("startTime", "09:00");
+            assertThat(result.getBody().get(0)).containsEntry("endTime", "11:00");
+        }
+
+        @Test
+        void whenSrHasTeamAssignee_thenIncludesTeamName() {
+            Jwt jwt = createJwt();
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(9L);
+            sr.setTitle("Task");
+            sr.setEstimatedDurationHours(3);
+            sr.setAssignedToType("team");
+            sr.setAssignedToId(60L);
+
+            when(serviceRequestRepository.findByStatusAndDesiredDateBetween(
+                    eq(RequestStatus.AWAITING_PAYMENT), any(), any(), eq(1L)))
+                    .thenReturn(List.of(sr));
+
+            com.clenzy.model.Team team = new com.clenzy.model.Team();
+            team.setId(60L);
+            team.setName("Team Bravo");
+            when(teamRepository.findAllById(eq(List.of(60L)))).thenReturn(List.of(team));
+
+            ResponseEntity<List<Map<String, Object>>> result =
+                    controller.getPlanningServiceRequests(jwt, null, null, null);
+            assertThat(result.getBody()).hasSize(1);
+            assertThat(result.getBody().get(0)).containsEntry("assignedToName", "Team Bravo");
+            assertThat(result.getBody().get(0)).containsEntry("startDate", (Object) null); // no desiredDate
         }
     }
 }

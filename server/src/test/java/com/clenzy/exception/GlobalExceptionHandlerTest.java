@@ -224,4 +224,152 @@ class GlobalExceptionHandlerTest {
             assertThat(body.get("status")).isEqualTo(401);
         }
     }
+
+    // ============= EXTENDED HANDLERS =============
+
+    @Nested
+    @DisplayName("IllegalArgumentException → 400")
+    class IllegalArgumentHandler {
+
+        @Test
+        void whenIllegalArg_thenReturns400() {
+            IllegalArgumentException ex = new IllegalArgumentException("Bad param");
+
+            ResponseEntity<Map<String, Object>> response = handler.handleIllegalArgument(ex);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(response.getBody()).containsEntry("error", "Requete invalide")
+                    .containsEntry("message", "Bad param")
+                    .containsEntry("status", 400);
+        }
+    }
+
+    @Nested
+    @DisplayName("MessagingRecipientMissingException → 400")
+    class MessagingRecipientMissingHandler {
+
+        @Test
+        void whenMissingEmail_thenReturns400WithDetails() {
+            MessagingRecipientMissingException ex = new MessagingRecipientMissingException(
+                    42L, "EMAIL", "Aucun email pour ce voyageur");
+
+            ResponseEntity<Map<String, Object>> response = handler.handleMessagingRecipientMissing(ex);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            Map<String, Object> body = response.getBody();
+            assertThat(body).containsEntry("error", "Destinataire manquant")
+                    .containsEntry("reservationId", 42L)
+                    .containsEntry("channel", "EMAIL")
+                    .containsEntry("code", "MESSAGING_RECIPIENT_MISSING")
+                    .containsEntry("status", 400);
+        }
+    }
+
+    @Nested
+    @DisplayName("AiNotConfiguredException → 422")
+    class AiNotConfiguredHandler {
+
+        @Test
+        void whenAiNotConfigured_thenReturns422WithErrorCode() {
+            AiNotConfiguredException ex = new AiNotConfiguredException(
+                    "AI_NOT_CONFIGURED", "chat", "Aucune cle API IA configuree");
+
+            ResponseEntity<Map<String, Object>> response = handler.handleAiNotConfigured(ex);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+            Map<String, Object> body = response.getBody();
+            assertThat(body).containsEntry("error", "IA non configuree")
+                    .containsEntry("errorCode", "AI_NOT_CONFIGURED")
+                    .containsEntry("feature", "chat")
+                    .containsEntry("status", 422);
+        }
+    }
+
+    @Nested
+    @DisplayName("AiBudgetExceededException → 429")
+    class AiBudgetExceededHandler {
+
+        @Test
+        void whenBudgetExceeded_thenReturns429WithUsageInfo() {
+            AiBudgetExceededException ex = new AiBudgetExceededException("chat", 1500L, 1000L);
+
+            ResponseEntity<Map<String, Object>> response = handler.handleAiBudgetExceeded(ex);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+            Map<String, Object> body = response.getBody();
+            assertThat(body).containsEntry("error", "Budget IA depasse")
+                    .containsEntry("errorCode", "AI_BUDGET_EXCEEDED")
+                    .containsEntry("feature", "chat")
+                    .containsEntry("used", 1500L)
+                    .containsEntry("limit", 1000L)
+                    .containsEntry("status", 429);
+        }
+    }
+
+    @Nested
+    @DisplayName("ObjectOptimisticLockingFailureException → 409")
+    class OptimisticLockHandler {
+
+        @Test
+        void whenOptimisticLock_thenReturns409() {
+            org.springframework.orm.ObjectOptimisticLockingFailureException ex =
+                    new org.springframework.orm.ObjectOptimisticLockingFailureException("Entity", 1L);
+
+            ResponseEntity<Map<String, Object>> response = handler.handleOptimisticLock(ex);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+            assertThat(response.getBody()).containsEntry("error", "Conflit de modification")
+                    .containsEntry("status", 409);
+        }
+    }
+
+    @Nested
+    @DisplayName("AccessDeniedException → 403")
+    class AccessDeniedHandler {
+
+        @Test
+        void whenAccessDenied_thenReturns403() {
+            org.springframework.security.access.AccessDeniedException ex =
+                    new org.springframework.security.access.AccessDeniedException("Forbidden");
+
+            ResponseEntity<Map<String, Object>> response = handler.handleAccessDeniedException(ex);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(response.getBody()).containsEntry("error", "Accès refusé")
+                    .containsEntry("status", 403);
+        }
+    }
+
+    @Nested
+    @DisplayName("NoResourceFoundException → 404")
+    class NoResourceFoundHandler {
+
+        @Test
+        void whenNoResourceFound_thenReturns404() throws Exception {
+            org.springframework.web.servlet.resource.NoResourceFoundException ex =
+                    new org.springframework.web.servlet.resource.NoResourceFoundException(
+                            org.springframework.http.HttpMethod.GET, "/missing");
+
+            ResponseEntity<Map<String, Object>> response = handler.handleNoResourceFound(ex);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(response.getBody()).containsEntry("error", "Ressource non trouvee")
+                    .containsEntry("status", 404);
+        }
+    }
+
+    @Nested
+    @DisplayName("ClientAbortException → 204")
+    class ClientAbortHandler {
+
+        @Test
+        void whenClientAborted_thenReturnsNoContent() {
+            org.apache.catalina.connector.ClientAbortException ex =
+                    new org.apache.catalina.connector.ClientAbortException("Broken pipe");
+
+            ResponseEntity<Void> response = handler.handleClientAbort(ex);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        }
+    }
 }
