@@ -39,7 +39,11 @@ public class BinaryAsset {
     @Column(name = "file_size", nullable = false)
     private long fileSize;
 
-    @Lob
+    // ATTENTION : ne JAMAIS mettre @Lob ici.
+    // Sur Postgres, @Lob + byte[] => Hibernate utilise les "Large Objects" (OID)
+    // au lieu de BYTEA, et l'INSERT echoue avec :
+    //   "column bytes is of type bytea but expression is of type bigint".
+    // Sans @Lob, Hibernate mappe `byte[]` directement vers BYTEA (ce qu'on veut).
     @Column(name = "bytes", nullable = false, columnDefinition = "BYTEA")
     private byte[] bytes;
 
