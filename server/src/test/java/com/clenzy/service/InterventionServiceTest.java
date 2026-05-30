@@ -403,4 +403,101 @@ class InterventionServiceTest {
                     .isInstanceOf(IllegalStateException.class);
         }
     }
+
+    // ===== listWithRoleBasedAccess =====
+
+    @Nested
+    @DisplayName("listWithRoleBasedAccess")
+    class ListWithRoleBasedAccess {
+
+        @Test
+        @DisplayName("when orgId null, returns empty page")
+        void whenOrgIdNull_thenReturnsEmpty() {
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+            when(tenantContext.getOrganizationId()).thenReturn(null);
+
+            org.springframework.data.domain.Page<InterventionResponse> result =
+                    service.listWithRoleBasedAccess(pageable, null, null, null, null, null, null, mockJwtWithRole("SUPER_ADMIN"));
+
+            assertThat(result.getContent()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when invalid status, returns empty")
+        void whenInvalidStatus_thenReturnsEmpty() {
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            org.springframework.data.domain.Page<InterventionResponse> result =
+                    service.listWithRoleBasedAccess(pageable, null, null, "INVALID_STATUS", null, null, null,
+                            mockJwtWithRole("SUPER_ADMIN"));
+
+            assertThat(result.getContent()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("SUPER_ADMIN uses findByFiltersWithRelations")
+        void whenSuperAdmin_thenUsesGeneralQuery() {
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            org.springframework.data.domain.Page<Intervention> page =
+                    new org.springframework.data.domain.PageImpl<>(List.of());
+            when(interventionRepository.findByFiltersWithRelations(
+                    any(), any(), any(), any(), any(), any(), any(), any()))
+                    .thenReturn(page);
+
+            org.springframework.data.domain.Page<InterventionResponse> result =
+                    service.listWithRoleBasedAccess(pageable, null, null, null, null, null, null,
+                            mockJwtWithRole("SUPER_ADMIN"));
+
+            assertThat(result.getContent()).isEmpty();
+        }
+    }
+
+    // ===== addPhotos =====
+
+    @Nested
+    @DisplayName("addPhotos")
+    class AddPhotos {
+
+        @Test
+        @DisplayName("when not IN_PROGRESS, throws")
+        void whenNotInProgress_thenThrows() {
+            Jwt jwt = mockJwtWithRole("HOST");
+            Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+
+            assertThatThrownBy(() -> service.addPhotos(1L, List.of(), "before", jwt))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("when wrong photoType, throws")
+        void whenWrongPhotoType_thenThrows() {
+            Jwt jwt = mockJwtWithRole("HOST");
+            Intervention intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+
+            assertThatThrownBy(() -> service.addPhotos(1L, List.of(), "wrong", jwt))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("when count > max, throws")
+        void whenTooManyPhotos_thenThrows() {
+            Jwt jwt = mockJwtWithRole("HOST");
+            Intervention intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(photoService.getPhotoCount(intervention)).thenReturn(20L);
+
+            // Create 1 mock file -> currentCount 20 + 1 = 21 > 20
+            org.springframework.web.multipart.MultipartFile mockFile =
+                    mock(org.springframework.web.multipart.MultipartFile.class);
+
+            assertThatThrownBy(() -> service.addPhotos(1L, List.of(mockFile), "before", jwt))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
 }

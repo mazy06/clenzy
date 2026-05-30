@@ -1,6 +1,8 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.ServiceRequestDto;
+import com.clenzy.model.RequestStatus;
+import com.clenzy.model.ServiceRequest;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.repository.UserRepository;
@@ -17,11 +19,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -44,6 +49,7 @@ class ServiceRequestControllerTest {
         return Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")
+                .claim("email", "user@example.com")
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(3600))
                 .build();
@@ -125,4 +131,85 @@ class ServiceRequestControllerTest {
         }
     }
 
+    @Nested
+    @DisplayName("refuse")
+    class Refuse {
+        @Test
+        void whenRefuse_thenReturnsOkWithDto() {
+            ServiceRequestDto dto = new ServiceRequestDto();
+            dto.id = 7L;
+            when(service.refuse(7L)).thenReturn(dto);
+
+            ResponseEntity<ServiceRequestDto> result = controller.refuse(7L);
+            assertThat(result.getStatusCode().value()).isEqualTo(200);
+            assertThat(result.getBody().id).isEqualTo(7L);
+        }
+    }
+
+    @Nested
+    @DisplayName("manualAssign")
+    class ManualAssign {
+        @Test
+        void whenAssign_thenDelegates() {
+            ServiceRequestDto dto = new ServiceRequestDto();
+            dto.id = 42L;
+            when(service.manualAssign(42L, 10L, "user")).thenReturn(dto);
+
+            ResponseEntity<ServiceRequestDto> result = controller.manualAssign(42L, 10L, "user");
+            assertThat(result.getBody().id).isEqualTo(42L);
+        }
+    }
+
+    @Nested
+    @DisplayName("getPlanningServiceRequests")
+    class GetPlanning {
+        @Test
+        void whenNoProperties_thenUsesGeneralQuery() {
+            Jwt jwt = createJwt();
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(serviceRequestRepository.findByStatusAndDesiredDateBetween(
+                    eq(RequestStatus.AWAITING_PAYMENT), any(LocalDateTime.class),
+                    any(LocalDateTime.class), eq(1L)))
+                    .thenReturn(List.of());
+
+            ResponseEntity<List<Map<String, Object>>> result = controller.getPlanningServiceRequests(jwt, null, null, null);
+
+            assertThat(result.getStatusCode().value()).isEqualTo(200);
+            assertThat(result.getBody()).isEmpty();
+        }
+
+        @Test
+        void whenWithPropertyIds_thenUsesPropertyQuery() {
+            Jwt jwt = createJwt();
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(5L);
+            sr.setTitle("Test SR");
+            sr.setEstimatedDurationHours(2);
+            when(serviceRequestRepository.findByStatusAndPropertyIdsAndDesiredDateBetween(
+                    any(), eq(List.of(10L)), any(), any(), eq(1L)))
+                    .thenReturn(List.of(sr));
+
+            ResponseEntity<List<Map<String, Object>>> result = controller.getPlanningServiceRequests(
+                    jwt, List.of(10L), null, null);
+
+            assertThat(result.getBody()).hasSize(1);
+            assertThat(result.getBody().get(0)).containsEntry("id", 5L).containsEntry("status", "AWAITING_PAYMENT");
+        }
+    }
+
+    @Nested
+    @DisplayName("createPaymentSession")
+    class CreatePaymentSession {
+        @Test
+        void whenStripeFails_thenReturns400() throws Exception {
+            Jwt jwt = createJwt();
+            when(stripeService.createServiceRequestCheckoutSession(eq(1L), anyString()))
+                    .thenThrow(new RuntimeException("Stripe error"));
+
+            ResponseEntity<Map<String, String>> result = controller.createPaymentSession(1L, jwt);
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(result.getBody()).containsKey("error");
+        }
+    }
 }
