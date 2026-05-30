@@ -240,5 +240,219 @@ class AirbnbReservationServiceTest {
             verify(serviceRequestRepository).save(argThat(s ->
                     ((ServiceRequest) s).getStatus() == RequestStatus.CANCELLED));
         }
+
+        @Test
+        void whenAlreadyCancelled_thenSkips() {
+            AirbnbListingMapping mapping = createMapping(5L, true);
+            when(listingMappingRepository.findByAirbnbListingId("airbnb-listing-1"))
+                    .thenReturn(Optional.of(mapping));
+
+            ServiceRequest sr = new ServiceRequest();
+            sr.setStatus(RequestStatus.CANCELLED);
+            sr.setSpecialInstructions("[AIRBNB:HMABC]");
+
+            when(serviceRequestRepository.findByPropertyId(5L, 10L))
+                    .thenReturn(List.of(sr));
+
+            service.handleReservationCancelled(Map.of(
+                    "listing_id", "airbnb-listing-1",
+                    "confirmation_code", "HMABC"));
+
+            verify(serviceRequestRepository, never()).save(any());
+        }
+
+        @Test
+        void whenNoMatchingCode_thenSkipsSave() {
+            AirbnbListingMapping mapping = createMapping(5L, true);
+            when(listingMappingRepository.findByAirbnbListingId("airbnb-listing-1"))
+                    .thenReturn(Optional.of(mapping));
+
+            ServiceRequest sr = new ServiceRequest();
+            sr.setStatus(RequestStatus.PENDING);
+            sr.setSpecialInstructions("[AIRBNB:HMOTHER] 1 guest");
+
+            when(serviceRequestRepository.findByPropertyId(5L, 10L))
+                    .thenReturn(List.of(sr));
+
+            service.handleReservationCancelled(Map.of(
+                    "listing_id", "airbnb-listing-1",
+                    "confirmation_code", "HMABC"));
+
+            verify(serviceRequestRepository, never()).save(any());
+        }
+
+        @Test
+        void whenMappingHasNoOrgIdAndPropertyMissing_thenWarnsAndExits() {
+            AirbnbListingMapping mapping = new AirbnbListingMapping();
+            mapping.setId(1L);
+            mapping.setPropertyId(5L);
+            mapping.setOrganizationId(null);
+            when(listingMappingRepository.findByAirbnbListingId("airbnb-listing-1"))
+                    .thenReturn(Optional.of(mapping));
+            when(propertyRepository.findById(5L)).thenReturn(Optional.empty());
+
+            service.handleReservationCancelled(Map.of(
+                    "listing_id", "airbnb-listing-1",
+                    "confirmation_code", "HM"));
+
+            verify(serviceRequestRepository, never()).save(any());
+            verify(serviceRequestRepository, never()).findByPropertyId(any(), any());
+        }
+    }
+
+    // ===== EXTENDED COVERAGE =====
+
+    @Nested
+    @DisplayName("handleReservationUpdated")
+    class Updated {
+
+        @Test
+        void whenMappingMissing_thenIgnoresWithoutAudit() {
+            when(listingMappingRepository.findByAirbnbListingId("unknown"))
+                    .thenReturn(Optional.empty());
+
+            service.handleReservationUpdated(Map.of(
+                    "listing_id", "unknown", "confirmation_code", "HM"));
+
+            verify(serviceRequestRepository, never()).findByPropertyId(any(), any());
+            verify(auditLogService, never()).logSync(any(), any(), any());
+        }
+
+        @Test
+        void whenMatchingSr_thenUpdatesDates() {
+            AirbnbListingMapping mapping = createMapping(5L, true);
+            when(listingMappingRepository.findByAirbnbListingId("airbnb-listing-1"))
+                    .thenReturn(Optional.of(mapping));
+
+            ServiceRequest sr = new ServiceRequest();
+            sr.setStatus(RequestStatus.PENDING);
+            sr.setSpecialInstructions("[AIRBNB:HMABC] 2 guests");
+
+            when(serviceRequestRepository.findByPropertyId(5L, 10L))
+                    .thenReturn(List.of(sr));
+
+            service.handleReservationUpdated(Map.of(
+                    "listing_id", "airbnb-listing-1",
+                    "confirmation_code", "HMABC",
+                    "check_in", "2026-05-01",
+                    "check_out", "2026-05-05"));
+
+            verify(serviceRequestRepository).save(argThat(s -> {
+                ServiceRequest u = (ServiceRequest) s;
+                return u.getDesiredDate() != null && u.getGuestCheckoutTime() != null;
+            }));
+        }
+
+        @Test
+        void whenNoMatchingSr_thenAuditButNoUpdate() {
+            AirbnbListingMapping mapping = createMapping(5L, true);
+            when(listingMappingRepository.findByAirbnbListingId("airbnb-listing-1"))
+                    .thenReturn(Optional.of(mapping));
+
+            ServiceRequest sr = new ServiceRequest();
+            sr.setStatus(RequestStatus.PENDING);
+            sr.setSpecialInstructions("[AIRBNB:HMOTHER]");
+
+            when(serviceRequestRepository.findByPropertyId(5L, 10L))
+                    .thenReturn(List.of(sr));
+
+            service.handleReservationUpdated(Map.of(
+                    "listing_id", "airbnb-listing-1",
+                    "confirmation_code", "HMNEW"));
+
+            verify(serviceRequestRepository, never()).save(any());
+            verify(auditLogService).logSync(anyString(), anyString(), anyString());
+        }
+
+        @Test
+        void whenPropertyHasCleaningDuration_thenSetsEstimatedHours() {
+            AirbnbListingMapping mapping = createMapping(5L, true);
+            when(listingMappingRepository.findByAirbnbListingId("airbnb-listing-1"))
+                    .thenReturn(Optional.of(mapping));
+
+            ServiceRequest sr = new ServiceRequest();
+            sr.setStatus(RequestStatus.PENDING);
+            sr.setSpecialInstructions("[AIRBNB:HMABC]");
+
+            Property prop = createProperty(5L, "Villa");
+            prop.setCleaningDurationMinutes(150);
+            when(propertyRepository.findById(5L)).thenReturn(Optional.of(prop));
+
+            when(serviceRequestRepository.findByPropertyId(5L, 10L))
+                    .thenReturn(List.of(sr));
+
+            service.handleReservationUpdated(Map.of(
+                    "listing_id", "airbnb-listing-1",
+                    "confirmation_code", "HMABC",
+                    "check_out", "2026-05-05"));
+
+            verify(serviceRequestRepository).save(argThat(s ->
+                    ((ServiceRequest) s).getEstimatedDurationHours() == 3));
+        }
+    }
+
+    @Nested
+    @DisplayName("handleReservationCreated - auto-create variants")
+    class CreatedVariants {
+
+        @Test
+        void whenAutoCreateEnabledWithMissingFields_thenStillSavesWithDefaults() {
+            AirbnbListingMapping mapping = createMapping(5L, true);
+            Property property = createProperty(5L, "Villa");
+            // No cleaning duration -> fallback to 2h
+            property.setCleaningBasePrice(new java.math.BigDecimal("75.00"));
+
+            when(listingMappingRepository.findByAirbnbListingId("airbnb-listing-1"))
+                    .thenReturn(Optional.of(mapping));
+            when(propertyRepository.findById(5L)).thenReturn(Optional.of(property));
+
+            // No check_out, no guest_count, no guest_name
+            service.handleReservationCreated(Map.of(
+                    "listing_id", "airbnb-listing-1",
+                    "confirmation_code", "HMTEST"));
+
+            ArgumentCaptor<ServiceRequest> captor = ArgumentCaptor.forClass(ServiceRequest.class);
+            verify(serviceRequestRepository).save(captor.capture());
+            ServiceRequest saved = captor.getValue();
+            // Fallback 2h
+            assertThat(saved.getEstimatedDurationHours()).isEqualTo(2);
+            assertThat(saved.getEstimatedCost()).isEqualByComparingTo("75.00");
+        }
+
+        @Test
+        void whenAutoCreateEnabledAndPropertyMissing_thenLogsAndSkips() {
+            AirbnbListingMapping mapping = createMapping(5L, true);
+            when(listingMappingRepository.findByAirbnbListingId("airbnb-listing-1"))
+                    .thenReturn(Optional.of(mapping));
+            when(propertyRepository.findById(5L)).thenReturn(Optional.empty());
+
+            service.handleReservationCreated(Map.of(
+                    "listing_id", "airbnb-listing-1",
+                    "confirmation_code", "HMTEST"));
+
+            verify(serviceRequestRepository, never()).save(any());
+        }
+
+        @Test
+        void whenGuestCountIntProvided_thenIncludedInInstructions() {
+            AirbnbListingMapping mapping = createMapping(5L, true);
+            Property property = createProperty(5L, "Villa");
+            property.setAccessInstructions("Lockbox 1234");
+
+            when(listingMappingRepository.findByAirbnbListingId("airbnb-listing-1"))
+                    .thenReturn(Optional.of(mapping));
+            when(propertyRepository.findById(5L)).thenReturn(Optional.of(property));
+
+            service.handleReservationCreated(Map.of(
+                    "listing_id", "airbnb-listing-1",
+                    "confirmation_code", "HMTEST",
+                    "guest_count", 4));
+
+            ArgumentCaptor<ServiceRequest> captor = ArgumentCaptor.forClass(ServiceRequest.class);
+            verify(serviceRequestRepository).save(captor.capture());
+            ServiceRequest saved = captor.getValue();
+            assertThat(saved.getSpecialInstructions()).contains("4 guests");
+            assertThat(saved.getSpecialInstructions()).contains("Lockbox 1234");
+        }
     }
 }

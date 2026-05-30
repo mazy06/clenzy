@@ -1010,6 +1010,89 @@ class DocumentGeneratorServiceTest {
         }
     }
 
+    // ─── Additional template/CRUD branches ─────────────────────────────────
+
+    @Nested
+    @DisplayName("updateTemplate - more branches")
+    class UpdateTemplateMoreBranches {
+
+        @Test
+        void whenDescriptionEmptyButNotNull_thenSetEmpty() {
+            DocumentTemplate t = new DocumentTemplate();
+            t.setId(1L);
+            t.setDescription("Old desc");
+            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
+            when(templateRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            DocumentTemplate result = service.updateTemplate(1L, null, "", null, null, null);
+            assertThat(result.getDescription()).isEmpty();
+        }
+
+        @Test
+        void whenEventTriggerProvided_thenSet() {
+            DocumentTemplate t = new DocumentTemplate();
+            t.setId(1L);
+            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
+            when(templateRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            DocumentTemplate result = service.updateTemplate(1L, null, null, "NEW_EVENT", null, null);
+            assertThat(result.getEventTrigger()).isEqualTo("NEW_EVENT");
+        }
+
+        @Test
+        void whenAllProvided_thenAllSet() {
+            DocumentTemplate t = new DocumentTemplate();
+            t.setId(1L);
+            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
+            when(templateRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            DocumentTemplate result = service.updateTemplate(1L, "Name", "Desc", "EV", "Subj", "Body");
+            assertThat(result.getName()).isEqualTo("Name");
+            assertThat(result.getDescription()).isEqualTo("Desc");
+            assertThat(result.getEventTrigger()).isEqualTo("EV");
+            assertThat(result.getEmailSubject()).isEqualTo("Subj");
+            assertThat(result.getEmailBody()).isEqualTo("Body");
+        }
+    }
+
+    // ─── reparseTemplate - additional branches ─────────────────────────────
+
+    @Nested
+    @DisplayName("reparseTemplate - branches")
+    class ReparseTemplateMoreBranches {
+
+        @Test
+        void whenTemplateContentMissing_thenThrowsStorageException() {
+            DocumentTemplate t = new DocumentTemplate();
+            t.setId(1L);
+            t.setFileContent(null);
+            t.setFilePath(null);
+            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
+
+            assertThatThrownBy(() -> service.reparseTemplate(1L))
+                    .isInstanceOf(com.clenzy.exception.DocumentStorageException.class);
+        }
+    }
+
+    // ─── generateFromEvent - email branch ──────────────────────────────────
+
+    @Nested
+    @DisplayName("generateFromEvent - email")
+    class GenerateFromEventWithEmail {
+
+        @Test
+        void whenEmailToBlank_thenSendEmailFalse() {
+            when(fiscalProfileRepository.findByOrganizationId(99L)).thenReturn(Optional.empty());
+            // No active template → returns null before generation
+            when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.MANDAT_GESTION))
+                    .thenReturn(Optional.empty());
+
+            DocumentGenerationDto result = service.generateFromEvent(
+                    DocumentType.MANDAT_GESTION, 1L, ReferenceType.PROPERTY, "   ", 99L);
+            assertThat(result).isNull();
+        }
+    }
+
     @Nested
     @DisplayName("preview - candidate type resolution")
     class PreviewCandidateResolution {

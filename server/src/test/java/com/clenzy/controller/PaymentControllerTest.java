@@ -859,4 +859,403 @@ class PaymentControllerTest {
             assertThat(response.getStatusCode().value()).isEqualTo(500);
         }
     }
+
+    // ─── Branches additionnelles ────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("createPaymentSession - additional branches")
+    class CreateSessionAdditional {
+
+        @Test
+        void whenOrchestrationResultHasNullErrorMessage_thenReturns500WithFallback() {
+            PaymentSessionRequest request = sessionRequest(7L, new BigDecimal("100"));
+            Intervention intervention = mock(Intervention.class);
+            when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
+            when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PENDING);
+            when(intervention.getCurrency()).thenReturn("EUR");
+            when(interventionRepository.findById(7L)).thenReturn(Optional.of(intervention));
+
+            // PaymentResult is null in the result → fallback message
+            PaymentOrchestrationResult orchResult = new PaymentOrchestrationResult(null, null, PaymentProviderType.STRIPE);
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+                    .thenReturn(orchResult);
+
+            ResponseEntity<?> response = controller.createPaymentSession(request, jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void whenOrchestrationThrowsRuntime_thenReturns500() {
+            PaymentSessionRequest request = sessionRequest(7L, new BigDecimal("100"));
+            Intervention intervention = mock(Intervention.class);
+            when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
+            when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PENDING);
+            when(intervention.getCurrency()).thenReturn("EUR");
+            when(interventionRepository.findById(7L)).thenReturn(Optional.of(intervention));
+
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+                    .thenThrow(new RuntimeException("boom"));
+
+            ResponseEntity<?> response = controller.createPaymentSession(request, jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+    }
+
+    // ─── getSessionStatus ─────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("getSessionStatus - additional branches")
+    class GetSessionStatusAdditional {
+
+        @Test
+        void whenInterventionPaidNotProcessing_thenNoStripeCall() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            Intervention intervention = mock(Intervention.class);
+            when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PAID);
+            when(intervention.getStatus()).thenReturn(InterventionStatus.COMPLETED);
+            when(interventionRepository.findByStripeSessionId("sess-paid", 1L))
+                    .thenReturn(Optional.of(intervention));
+
+            ResponseEntity<?> response = controller.getSessionStatus("sess-paid");
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            // No interaction with Stripe since not in PROCESSING
+            verify(stripeService, never()).confirmPayment(anyString());
+        }
+
+        @Test
+        void whenInterventionProcessing_butStripeNotPaid_thenNoConfirm() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            Intervention intervention = mock(Intervention.class);
+            when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PROCESSING);
+            when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
+            when(interventionRepository.findByStripeSessionId("sess-not-paid", 1L))
+                    .thenReturn(Optional.of(intervention));
+
+            Session stripeSession = mock(Session.class);
+            when(stripeSession.getPaymentStatus()).thenReturn("unpaid");
+
+            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
+                staticSession.when(() -> Session.retrieve("sess-not-paid")).thenReturn(stripeSession);
+
+                ResponseEntity<?> response = controller.getSessionStatus("sess-not-paid");
+
+                assertThat(response.getStatusCode().value()).isEqualTo(200);
+                verify(stripeService, never()).confirmPayment(anyString());
+            }
+        }
+
+        @Test
+        void whenReservationStripeNotPaid_thenNoConfirm() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(interventionRepository.findByStripeSessionId(anyString(), anyLong()))
+                    .thenReturn(Optional.empty());
+
+            Reservation reservation = new Reservation();
+            reservation.setPaymentStatus(PaymentStatus.PENDING);
+            reservation.setStatus("PENDING");
+            when(reservationRepository.findByStripeSessionId("sess-res-unpaid"))
+                    .thenReturn(Optional.of(reservation));
+
+            Session stripeSession = mock(Session.class);
+            when(stripeSession.getPaymentStatus()).thenReturn("unpaid");
+
+            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
+                staticSession.when(() -> Session.retrieve("sess-res-unpaid")).thenReturn(stripeSession);
+
+                ResponseEntity<?> response = controller.getSessionStatus("sess-res-unpaid");
+
+                assertThat(response.getStatusCode().value()).isEqualTo(200);
+                verify(stripeService, never()).confirmReservationPayment(anyString());
+            }
+        }
+
+        @Test
+        void whenReservationStripeThrows_thenStillReturns200() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(interventionRepository.findByStripeSessionId(anyString(), anyLong()))
+                    .thenReturn(Optional.empty());
+
+            Reservation reservation = new Reservation();
+            reservation.setPaymentStatus(PaymentStatus.PENDING);
+            when(reservationRepository.findByStripeSessionId("sess-res-err"))
+                    .thenReturn(Optional.of(reservation));
+
+            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
+                staticSession.when(() -> Session.retrieve("sess-res-err"))
+                        .thenThrow(new ApiException("down", null, "c", 500, null));
+
+                ResponseEntity<?> response = controller.getSessionStatus("sess-res-err");
+                assertThat(response.getStatusCode().value()).isEqualTo(200);
+            }
+        }
+
+        @Test
+        void whenSrPaidNotProcessing_thenNoConfirm() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(interventionRepository.findByStripeSessionId(anyString(), anyLong()))
+                    .thenReturn(Optional.empty());
+            when(reservationRepository.findByStripeSessionId(anyString()))
+                    .thenReturn(Optional.empty());
+
+            ServiceRequest sr = new ServiceRequest();
+            sr.setPaymentStatus(PaymentStatus.PAID);
+            sr.setStatus(RequestStatus.COMPLETED);
+            when(serviceRequestRepository.findByStripeSessionId("sess-sr-paid"))
+                    .thenReturn(Optional.of(sr));
+
+            ResponseEntity<?> response = controller.getSessionStatus("sess-sr-paid");
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(stripeService, never()).confirmServiceRequestPayment(anyString());
+        }
+
+        @Test
+        void whenSrStripeThrows_thenStillReturns200() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(interventionRepository.findByStripeSessionId(anyString(), anyLong()))
+                    .thenReturn(Optional.empty());
+            when(reservationRepository.findByStripeSessionId(anyString()))
+                    .thenReturn(Optional.empty());
+
+            ServiceRequest sr = new ServiceRequest();
+            sr.setPaymentStatus(PaymentStatus.PENDING);
+            sr.setStatus(RequestStatus.PENDING);
+            when(serviceRequestRepository.findByStripeSessionId("sess-sr-err"))
+                    .thenReturn(Optional.of(sr));
+
+            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
+                staticSession.when(() -> Session.retrieve("sess-sr-err"))
+                        .thenThrow(new ApiException("down", null, "c", 500, null));
+
+                ResponseEntity<?> response = controller.getSessionStatus("sess-sr-err");
+                assertThat(response.getStatusCode().value()).isEqualTo(200);
+            }
+        }
+
+        @Test
+        void whenSrStripeNotPaid_thenNoConfirm() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(interventionRepository.findByStripeSessionId(anyString(), anyLong()))
+                    .thenReturn(Optional.empty());
+            when(reservationRepository.findByStripeSessionId(anyString()))
+                    .thenReturn(Optional.empty());
+
+            ServiceRequest sr = new ServiceRequest();
+            sr.setPaymentStatus(PaymentStatus.PENDING);
+            sr.setStatus(RequestStatus.PENDING);
+            when(serviceRequestRepository.findByStripeSessionId("sess-sr-unpaid"))
+                    .thenReturn(Optional.of(sr));
+
+            Session stripeSession = mock(Session.class);
+            when(stripeSession.getPaymentStatus()).thenReturn("unpaid");
+
+            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
+                staticSession.when(() -> Session.retrieve("sess-sr-unpaid")).thenReturn(stripeSession);
+
+                ResponseEntity<?> response = controller.getSessionStatus("sess-sr-unpaid");
+                assertThat(response.getStatusCode().value()).isEqualTo(200);
+                verify(stripeService, never()).confirmServiceRequestPayment(anyString());
+            }
+        }
+    }
+
+    // ─── getPaymentHistory - additional branches ──────────────────────────
+
+    @Nested
+    @DisplayName("getPaymentHistory - additional branches")
+    class GetPaymentHistoryAdditional {
+
+        @Test
+        void whenWithHostIdFilter_thenAdminPasses() {
+            User user = mock(User.class);
+            when(user.getRole()).thenReturn(UserRole.SUPER_ADMIN);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            Page<Intervention> page = new PageImpl<>(List.of());
+            when(interventionRepository.findPaymentHistory(isNull(), eq(42L), any(), eq(1L))).thenReturn(page);
+            Page<Reservation> resPage = new PageImpl<>(List.of());
+            when(reservationRepository.findPaymentHistory(isNull(), any(), eq(1L))).thenReturn(resPage);
+            Page<ServiceRequest> srPage = new PageImpl<>(List.of());
+            when(serviceRequestRepository.findPaymentHistory(isNull(), eq(42L), any(), eq(1L))).thenReturn(srPage);
+
+            ResponseEntity<?> response = controller.getPaymentHistory(0, 10, null, 42L, jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenInterventionsAndReservationsExist_thenMergedAndPaginated() {
+            User user = mock(User.class);
+            when(user.getRole()).thenReturn(UserRole.SUPER_ADMIN);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            Intervention i = mock(Intervention.class);
+            when(i.getId()).thenReturn(1L);
+            when(i.getEstimatedCost()).thenReturn(new BigDecimal("100"));
+            when(i.getPaymentStatus()).thenReturn(PaymentStatus.PAID);
+            when(i.getTitle()).thenReturn("Menage Airbnb — Loft Paris");
+            Property prop = mock(Property.class);
+            when(prop.getName()).thenReturn("Loft Paris");
+            when(i.getProperty()).thenReturn(prop);
+            when(i.getPaidAt()).thenReturn(LocalDateTime.of(2025, 6, 1, 10, 0));
+            User requestor = mock(User.class);
+            when(requestor.getId()).thenReturn(7L);
+            when(requestor.getFullName()).thenReturn("Jean Dupont");
+            when(i.getRequestor()).thenReturn(requestor);
+
+            Reservation r = new Reservation();
+            r.setId(2L);
+            r.setSource("airbnb");
+            Property rProp = new Property();
+            rProp.setName("Studio");
+            r.setProperty(rProp);
+            r.setTotalPrice(new BigDecimal("200"));
+            r.setPaymentStatus(PaymentStatus.PAID);
+            r.setCheckIn(java.time.LocalDate.of(2025, 5, 10));
+            r.setCheckOut(java.time.LocalDate.of(2025, 5, 15));
+            r.setPaidAt(LocalDateTime.of(2025, 5, 11, 12, 0));
+            r.setGuestName("Guest A");
+            r.setPaymentLinkEmail("guesta@test.com");
+
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(3L);
+            sr.setTitle("Reparation");
+            sr.setEstimatedCost(new BigDecimal("50"));
+            sr.setPaymentStatus(PaymentStatus.PENDING);
+            sr.setStatus(RequestStatus.PENDING);
+            sr.setCreatedAt(LocalDateTime.of(2025, 7, 1, 9, 0));
+
+            Page<Intervention> ip = new PageImpl<>(List.of(i));
+            when(interventionRepository.findPaymentHistory(isNull(), isNull(), any(), eq(1L))).thenReturn(ip);
+            when(reservationRepository.findPaymentHistory(isNull(), any(), eq(1L)))
+                    .thenReturn(new PageImpl<>(List.of(r)));
+            when(serviceRequestRepository.findPaymentHistory(isNull(), isNull(), any(), eq(1L)))
+                    .thenReturn(new PageImpl<>(List.of(sr)));
+
+            ResponseEntity<?> response = controller.getPaymentHistory(0, 2, null, null, jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> body = (Map<String, Object>) response.getBody();
+            assertThat(body).containsEntry("totalElements", 3);
+        }
+    }
+
+    // ─── getPaymentSummary - additional branches ──────────────────────────
+
+    @Nested
+    @DisplayName("getPaymentSummary - additional branches")
+    class GetPaymentSummaryAdditional {
+
+        @Test
+        void whenAdminAndAllStatusesPresent_thenAggregatesCorrectly() {
+            User user = mock(User.class);
+            when(user.getRole()).thenReturn(UserRole.SUPER_ADMIN);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            Intervention paid = mock(Intervention.class);
+            when(paid.getEstimatedCost()).thenReturn(new BigDecimal("100"));
+            when(paid.getPaymentStatus()).thenReturn(PaymentStatus.PAID);
+            Intervention refunded = mock(Intervention.class);
+            when(refunded.getEstimatedCost()).thenReturn(new BigDecimal("50"));
+            when(refunded.getPaymentStatus()).thenReturn(PaymentStatus.REFUNDED);
+
+            Page<Intervention> ip = new PageImpl<>(List.of(paid, refunded));
+            when(interventionRepository.findPaymentHistory(isNull(), isNull(), any(), eq(1L))).thenReturn(ip);
+
+            Reservation rRef = new Reservation();
+            rRef.setTotalPrice(new BigDecimal("30"));
+            rRef.setPaymentStatus(PaymentStatus.REFUNDED);
+            Reservation rPending = new Reservation();
+            rPending.setTotalPrice(new BigDecimal("70"));
+            rPending.setPaymentStatus(PaymentStatus.PENDING);
+            when(reservationRepository.findAllWithPayment(1L)).thenReturn(List.of(rRef, rPending));
+
+            ServiceRequest awaitingSr = new ServiceRequest();
+            awaitingSr.setEstimatedCost(new BigDecimal("15"));
+            when(serviceRequestRepository.findAllAwaitingPayment(1L)).thenReturn(List.of(awaitingSr));
+
+            ResponseEntity<?> response = controller.getPaymentSummary(null, jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenSrAwaitingPaymentNullEstimatedCost_thenTreatsAsZero() {
+            User user = mock(User.class);
+            when(user.getRole()).thenReturn(UserRole.SUPER_ADMIN);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            Page<Intervention> ip = new PageImpl<>(List.of());
+            when(interventionRepository.findPaymentHistory(isNull(), isNull(), any(), eq(1L))).thenReturn(ip);
+            when(reservationRepository.findAllWithPayment(1L)).thenReturn(List.of());
+
+            ServiceRequest sr = new ServiceRequest();
+            sr.setEstimatedCost(null);
+            when(serviceRequestRepository.findAllAwaitingPayment(1L)).thenReturn(List.of(sr));
+
+            ResponseEntity<?> response = controller.getPaymentSummary(null, jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+    }
+
+    // ─── resolveCurrentUser branches ──────────────────────────────────────
+
+    @Nested
+    @DisplayName("resolveCurrentUser - lookup by email fallback")
+    class ResolveCurrentUserFallback {
+
+        @Test
+        void whenKeycloakIdAbsentInDb_thenFallsBackToEmail() {
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.empty());
+            User u = mock(User.class);
+            when(u.getRole()).thenReturn(UserRole.SUPER_ADMIN);
+            when(userRepository.findByEmailHash(anyString())).thenReturn(Optional.of(u));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            Page<Intervention> ip = new PageImpl<>(List.of());
+            when(interventionRepository.findPaymentHistory(isNull(), isNull(), any(), eq(1L))).thenReturn(ip);
+            when(reservationRepository.findPaymentHistory(isNull(), any(), eq(1L)))
+                    .thenReturn(new PageImpl<>(List.of()));
+            when(serviceRequestRepository.findPaymentHistory(isNull(), isNull(), any(), eq(1L)))
+                    .thenReturn(new PageImpl<>(List.of()));
+
+            ResponseEntity<?> response = controller.getPaymentHistory(0, 10, null, null, jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+    }
+
+    // ─── getHostsWithPayments - additional branches ────────────────────────
+
+    @Nested
+    @DisplayName("getHostsWithPayments - additional branches")
+    class GetHostsAdditional {
+
+        @Test
+        void whenSrHostAlreadyInInterventions_thenNotDuplicated() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            Object[] row = new Object[]{33L, "John", "Doe"};
+            List<Object[]> rows = new java.util.ArrayList<>();
+            rows.add(row);
+            when(interventionRepository.findDistinctHostsWithPayments(1L)).thenReturn(rows);
+
+            User u = new User();
+            u.setId(33L); // same id as the row
+            u.setFirstName("John");
+            u.setLastName("Doe");
+            ServiceRequest sr = new ServiceRequest();
+            sr.setUser(u);
+            when(serviceRequestRepository.findAllAwaitingPayment(1L)).thenReturn(List.of(sr));
+
+            ResponseEntity<?> response = controller.getHostsWithPayments();
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> body = (List<Map<String, Object>>) response.getBody();
+            assertThat(body).hasSize(1);
+        }
+    }
 }

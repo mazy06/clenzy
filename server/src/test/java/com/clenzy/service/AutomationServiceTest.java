@@ -120,4 +120,68 @@ class AutomationServiceTest {
         assertEquals(1, result.size());
         assertEquals(AutomationPlatform.ZAPIER, result.get(0).platform());
     }
+
+    @Test
+    void getAllTriggers_emptyList_returnsEmpty() {
+        when(triggerRepository.findAllByOrgId(ORG_ID)).thenReturn(List.of());
+
+        List<AutomationTriggerDto> result = service.getAllTriggers(ORG_ID);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getById_existing_returnsMappedDto() {
+        ExternalAutomation trigger = createTrigger(true);
+        when(triggerRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(trigger));
+
+        AutomationTriggerDto result = service.getById(1L, ORG_ID);
+
+        assertEquals(AutomationEvent.RESERVATION_CREATED, result.triggerEvent());
+        assertEquals("New Reservation", result.triggerName());
+    }
+
+    @Test
+    void getById_notFound_throwsIllegalArgument() {
+        when(triggerRepository.findByIdAndOrgId(99L, ORG_ID)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> service.getById(99L, ORG_ID));
+    }
+
+    @Test
+    void createTrigger_persistsActiveByDefault() {
+        when(triggerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AutomationTriggerDto result = service.createTrigger(
+            "My Trigger", AutomationPlatform.MAKE,
+            AutomationEvent.PAYOUT_GENERATED, "https://make.com/hook", ORG_ID);
+
+        assertTrue(result.isActive());
+        assertEquals(AutomationPlatform.MAKE, result.platform());
+        assertEquals(AutomationEvent.PAYOUT_GENERATED, result.triggerEvent());
+    }
+
+    @Test
+    void fireEvent_unreachableCallback_returnsZero() {
+        ExternalAutomation trigger = createTrigger(true);
+        trigger.setCallbackUrl("http://127.0.0.1:1/never-reachable");
+        when(triggerRepository.findActiveByEvent(AutomationEvent.RESERVATION_CREATED, ORG_ID))
+            .thenReturn(List.of(trigger));
+
+        int count = service.fireEvent(AutomationEvent.RESERVATION_CREATED, "data", ORG_ID);
+
+        assertEquals(0, count); // HTTP call fails silently, returns 0
+    }
+
+    @Test
+    void fireEvent_malformedUrl_skipsAndReturnsZero() {
+        ExternalAutomation trigger = createTrigger(true);
+        trigger.setCallbackUrl("not-a-url");
+        when(triggerRepository.findActiveByEvent(AutomationEvent.MESSAGE_RECEIVED, ORG_ID))
+            .thenReturn(List.of(trigger));
+
+        int count = service.fireEvent(AutomationEvent.MESSAGE_RECEIVED, "p", ORG_ID);
+
+        assertEquals(0, count);
+    }
 }

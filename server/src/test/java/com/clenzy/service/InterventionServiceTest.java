@@ -499,5 +499,358 @@ class InterventionServiceTest {
             assertThatThrownBy(() -> service.addPhotos(1L, List.of(mockFile), "before", jwt))
                     .isInstanceOf(IllegalArgumentException.class);
         }
+
+        @Test
+        @DisplayName("when valid 'before' photo, calls savePhotos and reloads")
+        void whenValidBeforePhoto_thenSaves() {
+            Jwt jwt = mockJwtWithRole("HOST");
+            Intervention intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(photoService.getPhotoCount(intervention)).thenReturn(5L);
+
+            InterventionResponse expectedResp = buildResultResponse(1L, "IN_PROGRESS", "Test");
+            when(interventionMapper.convertToResponse(any())).thenReturn(expectedResp);
+
+            org.springframework.web.multipart.MultipartFile mockFile =
+                    mock(org.springframework.web.multipart.MultipartFile.class);
+
+            InterventionResponse result = service.addPhotos(1L, List.of(mockFile), "before", jwt);
+
+            assertThat(result).isNotNull();
+            verify(photoService).savePhotos(any(), eq(List.of(mockFile)), eq("before"));
+        }
+
+        @Test
+        @DisplayName("when 'after' photo type accepted")
+        void whenAfterPhotoType_thenAccepted() {
+            Jwt jwt = mockJwtWithRole("HOST");
+            Intervention intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(photoService.getPhotoCount(intervention)).thenReturn(0L);
+
+            InterventionResponse expectedResp = buildResultResponse(1L, "IN_PROGRESS", "Test");
+            when(interventionMapper.convertToResponse(any())).thenReturn(expectedResp);
+
+            org.springframework.web.multipart.MultipartFile mockFile =
+                    mock(org.springframework.web.multipart.MultipartFile.class);
+
+            InterventionResponse result = service.addPhotos(1L, List.of(mockFile), "after", jwt);
+
+            assertThat(result).isNotNull();
+            verify(photoService).savePhotos(any(), eq(List.of(mockFile)), eq("after"));
+        }
+
+        @Test
+        @DisplayName("when intervention not found, throws NotFoundException")
+        void whenNotFound_thenThrows() {
+            Jwt jwt = mockJwtWithRole("HOST");
+            when(interventionRepository.findById(99L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.addPhotos(99L, List.of(), "before", jwt))
+                    .isInstanceOf(NotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("when savePhotos throws, wraps in RuntimeException")
+        void whenSavePhotosThrows_thenWrapsException() {
+            Jwt jwt = mockJwtWithRole("HOST");
+            Intervention intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(photoService.getPhotoCount(intervention)).thenReturn(0L);
+
+            org.springframework.web.multipart.MultipartFile mockFile =
+                    mock(org.springframework.web.multipart.MultipartFile.class);
+            org.mockito.Mockito.doThrow(new RuntimeException("storage error"))
+                    .when(photoService).savePhotos(any(), any(), any());
+
+            assertThatThrownBy(() -> service.addPhotos(1L, List.of(mockFile), "before", jwt))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("storage error");
+        }
+    }
+
+    // ====== EXTENDED COVERAGE ======
+
+    @Nested
+    @DisplayName("deletePhoto")
+    class DeletePhoto {
+        @Test
+        @DisplayName("when intervention not found, throws")
+        void whenNotFound_thenThrows() {
+            Jwt jwt = mockJwtWithRole("HOST");
+            when(interventionRepository.findById(99L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.deletePhoto(99L, 1L, jwt))
+                    .isInstanceOf(NotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("when intervention not IN_PROGRESS, throws")
+        void whenNotInProgress_thenThrows() {
+            Jwt jwt = mockJwtWithRole("HOST");
+            Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+
+            assertThatThrownBy(() -> service.deletePhoto(1L, 5L, jwt))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("when valid, deletes via photoService and reloads")
+        void whenValid_thenDeletes() {
+            Jwt jwt = mockJwtWithRole("HOST");
+            Intervention intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            InterventionResponse expectedResp = buildResultResponse(1L, "IN_PROGRESS", "Test");
+            when(interventionMapper.convertToResponse(any())).thenReturn(expectedResp);
+
+            InterventionResponse result = service.deletePhoto(1L, 5L, jwt);
+
+            verify(photoService).deletePhoto(5L, 1L);
+            assertThat(result).isNotNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("assign - notification side effects")
+    class AssignNotifications {
+        @Test
+        @DisplayName("when assignedUser exists, notifies them")
+        void whenUserAssigned_thenNotifies() {
+            Jwt jwt = mockJwtWithRole("SUPER_MANAGER");
+            lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
+
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(userRepository.findById(technician.getId())).thenReturn(Optional.of(technician));
+            when(interventionRepository.save(any())).thenAnswer(inv -> {
+                Intervention i = inv.getArgument(0);
+                i.setAssignedUser(technician);
+                return i;
+            });
+            InterventionResponse resp = buildResultResponse(1L, "PENDING", "Test");
+            when(interventionMapper.convertToResponse(any())).thenReturn(resp);
+
+            service.assign(1L, technician.getId(), null, jwt);
+
+            verify(notificationService).notify(eq("tech-kc"), eq(NotificationKey.INTERVENTION_ASSIGNED_TO_USER),
+                    any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("when neither userId nor teamId provided, just saves with no assignment changes")
+        void whenNeither_thenJustSaves() {
+            Jwt jwt = mockJwtWithRole("SUPER_MANAGER");
+            lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(interventionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            InterventionResponse resp = buildResultResponse(1L, "PENDING", "Test");
+            when(interventionMapper.convertToResponse(any())).thenReturn(resp);
+
+            InterventionResponse result = service.assign(1L, null, null, jwt);
+
+            assertThat(result).isNotNull();
+            verify(interventionRepository).save(intervention);
+        }
+
+        @Test
+        @DisplayName("when notification fails, does not propagate exception")
+        void whenNotificationFails_thenSwallowed() {
+            Jwt jwt = mockJwtWithRole("SUPER_MANAGER");
+            lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(userRepository.findById(technician.getId())).thenReturn(Optional.of(technician));
+            when(interventionRepository.save(any())).thenAnswer(inv -> {
+                Intervention i = inv.getArgument(0);
+                i.setAssignedUser(technician);
+                return i;
+            });
+            InterventionResponse resp = buildResultResponse(1L, "PENDING", "Test");
+            when(interventionMapper.convertToResponse(any())).thenReturn(resp);
+            org.mockito.Mockito.doThrow(new RuntimeException("notif down"))
+                    .when(notificationService).notify(any(), any(), any(), any(), any());
+
+            // Should not propagate
+            InterventionResponse result = service.assign(1L, technician.getId(), null, jwt);
+            assertThat(result).isNotNull();
+        }
+
+        @Test
+        @DisplayName("when user not found, throws NotFoundException")
+        void whenUserNotFound_thenThrows() {
+            Jwt jwt = mockJwtWithRole("SUPER_MANAGER");
+            lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.assign(1L, 999L, null, jwt))
+                    .isInstanceOf(NotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("when team not found, throws NotFoundException")
+        void whenTeamNotFound_thenThrows() {
+            Jwt jwt = mockJwtWithRole("SUPER_MANAGER");
+            lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(teamRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.assign(1L, null, 999L, jwt))
+                    .isInstanceOf(NotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("create - notification side effects")
+    class CreateNotifications {
+        @Test
+        @DisplayName("HOST sends AWAITING_VALIDATION notification")
+        void hostCreate_sendsAwaitingValidation() {
+            Jwt jwt = mockJwtWithRole("HOST");
+            CreateInterventionRequest request = buildCreateRequest();
+
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(interventionRepository.save(any(Intervention.class))).thenAnswer(inv -> {
+                Intervention saved = inv.getArgument(0);
+                saved.setId(1L);
+                saved.setProperty(property);
+                return saved;
+            });
+            InterventionResponse resp = buildResultResponse(1L, "AWAITING_VALIDATION", "Reparation fuite");
+            when(interventionMapper.convertToResponse(any())).thenReturn(resp);
+
+            service.create(request, jwt);
+
+            verify(notificationService).notifyAdminsAndManagers(
+                    eq(NotificationKey.INTERVENTION_AWAITING_VALIDATION), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("platform staff sends INTERVENTION_CREATED notification")
+        void platformStaffCreate_sendsCreated() {
+            Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
+            CreateInterventionRequest request = buildCreateRequest();
+
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(interventionRepository.save(any(Intervention.class))).thenAnswer(inv -> {
+                Intervention saved = inv.getArgument(0);
+                saved.setId(1L);
+                saved.setProperty(property);
+                return saved;
+            });
+            InterventionResponse resp = buildResultResponse(1L, "PENDING", "Reparation fuite");
+            when(interventionMapper.convertToResponse(any())).thenReturn(resp);
+
+            service.create(request, jwt);
+
+            verify(notificationService).notifyAdminsAndManagers(
+                    eq(NotificationKey.INTERVENTION_CREATED), any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("delete - notification side effect")
+    class DeleteNotifications {
+        @Test
+        @DisplayName("when admin deletes, sends INTERVENTION_DELETED notification")
+        void whenAdminDeletes_thenNotifies() {
+            Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
+            lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+
+            service.delete(1L, jwt);
+
+            verify(notificationService).notify(eq("owner-kc"), eq(NotificationKey.INTERVENTION_DELETED),
+                    any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("listWithRoleBasedAccess - operational roles")
+    class ListOperationalRoles {
+        @Test
+        @DisplayName("when TECHNICIAN and user not found, returns empty page")
+        void whenTechnicianUserNotFound_thenEmpty() {
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            Jwt jwt = mockJwtWithRole("TECHNICIAN");
+            when(jwt.getSubject()).thenReturn("tech-kc");
+            when(userRepository.findByKeycloakId("tech-kc")).thenReturn(Optional.empty());
+
+            org.springframework.data.domain.Page<InterventionResponse> result =
+                    service.listWithRoleBasedAccess(pageable, null, null, null, null, null, null, jwt);
+
+            assertThat(result.getContent()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when valid status PENDING string, uses filter")
+        void whenStatusValid_thenUsesFilter() {
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            org.springframework.data.domain.Page<Intervention> page =
+                    new org.springframework.data.domain.PageImpl<>(List.of());
+            when(interventionRepository.findByFiltersWithRelations(
+                    any(), any(), any(), any(), any(), any(), any(), any()))
+                    .thenReturn(page);
+
+            org.springframework.data.domain.Page<InterventionResponse> result =
+                    service.listWithRoleBasedAccess(pageable, null, null, "PENDING", null, null, null,
+                            mockJwtWithRole("SUPER_ADMIN"));
+
+            assertThat(result.getContent()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when invalid startDate, ignores and continues")
+        void whenInvalidStartDate_thenIgnoresAndContinues() {
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+
+            org.springframework.data.domain.Page<Intervention> page =
+                    new org.springframework.data.domain.PageImpl<>(List.of());
+            when(interventionRepository.findByFiltersWithRelations(
+                    any(), any(), any(), any(), any(), any(), any(), any()))
+                    .thenReturn(page);
+
+            // invalid date string -> parsing throws -> caught and treated as null
+            org.springframework.data.domain.Page<InterventionResponse> result =
+                    service.listWithRoleBasedAccess(pageable, null, null, null, null,
+                            "not-a-date", "2026-12-31", mockJwtWithRole("SUPER_ADMIN"));
+
+            assertThat(result.getContent()).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("getById - exception propagation")
+    class GetByIdExceptions {
+        @Test
+        @DisplayName("when accessPolicy throws UnauthorizedException, propagates")
+        void whenUnauthorized_thenPropagates() {
+            Jwt jwt = mockJwtWithRole("HOST");
+            Intervention intervention = buildIntervention(1L, InterventionStatus.PENDING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            org.mockito.Mockito.doThrow(new UnauthorizedException("denied"))
+                    .when(accessPolicy).assertCanAccess(intervention, jwt);
+
+            assertThatThrownBy(() -> service.getById(1L, jwt))
+                    .isInstanceOf(UnauthorizedException.class);
+        }
     }
 }
