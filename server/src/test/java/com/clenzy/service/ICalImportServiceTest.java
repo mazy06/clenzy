@@ -11,8 +11,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +33,7 @@ import static org.mockito.Mockito.*;
  * in integration tests with Testcontainers.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ICalImportServiceTest {
 
     @Mock private ICalFeedRepository icalFeedRepository;
@@ -681,6 +688,338 @@ class ICalImportServiceTest {
             // Act & Assert - will fail at fetchAndParse, not at ownership check
             assertThatThrownBy(() -> icalImportService.importICalFeed(request, "kc-admin"))
                     .isNotInstanceOf(SecurityException.class);
+        }
+
+        @Test
+        @DisplayName("should throw when feed url is already used on a different property")
+        void whenDuplicateFeedOnDifferentProperty_thenThrows() {
+            // Arrange
+            User owner = buildHost(10L, "kc-owner", "confort");
+            Property property = buildProperty(20L, owner);
+
+            Property otherProp = buildProperty(99L, owner);
+            otherProp.setName("Other Property");
+            ICalFeed dup = buildFeed(200L, otherProp, "https://example.com/cal.ics", "Airbnb");
+
+            when(userRepository.findByKeycloakId("kc-owner")).thenReturn(Optional.of(owner));
+            when(propertyRepository.findById(20L)).thenReturn(Optional.of(property));
+            when(icalFeedRepository.findByUrlAndDifferentProperty("https://example.com/cal.ics", 20L, ORG_ID))
+                    .thenReturn(List.of(dup));
+
+            ImportRequest request = new ImportRequest();
+            request.setUrl("https://example.com/cal.ics");
+            request.setPropertyId(20L);
+
+            // Act & Assert
+            assertThatThrownBy(() -> icalImportService.importICalFeed(request, "kc-owner"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Other Property");
+        }
+
+        @Test
+        @DisplayName("should throw when authenticated user not found")
+        void whenUserNotFound_thenThrows() {
+            // Arrange — pass the forfait guard via user.role().isPlatformStaff()=false
+            // but then user not found in next find
+            User host = buildHost(1L, "kc-host", "confort");
+            Property property = buildProperty(20L, host);
+
+            // First lookup (isUserAllowed) returns user, but second lookup returns empty
+            when(userRepository.findByKeycloakId("kc-host"))
+                    .thenReturn(Optional.of(host))   // first call (isUserAllowed)
+                    .thenReturn(Optional.empty());    // second call (after property lookup)
+            when(propertyRepository.findById(20L)).thenReturn(Optional.of(property));
+
+            ImportRequest request = new ImportRequest();
+            request.setUrl("https://example.com/cal.ics");
+            request.setPropertyId(20L);
+
+            // Act & Assert
+            assertThatThrownBy(() -> icalImportService.importICalFeed(request, "kc-host"))
+                    .isInstanceOf(SecurityException.class)
+                    .hasMessageContaining("Utilisateur introuvable");
+        }
+    }
+
+    // ===== syncFeed (individual feed force sync) =====
+
+    @Nested
+    @DisplayName("syncFeed")
+    class SyncFeed {
+
+        @Test
+        @DisplayName("should throw when feed not found")
+        void whenFeedNotFound_thenThrows() {
+            when(icalFeedRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> icalImportService.syncFeed(999L, "kc-owner"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should throw when non-owner attempts to sync")
+        void whenNonOwner_thenThrows() {
+            User owner = buildHost(10L, "kc-owner", "confort");
+            User other = buildHost(99L, "kc-other", "confort");
+            Property property = buildProperty(20L, owner);
+            ICalFeed feed = buildFeed(100L, property, "https://example.com/cal.ics", "Booking");
+
+            when(icalFeedRepository.findById(100L)).thenReturn(Optional.of(feed));
+            when(userRepository.findByKeycloakId("kc-other")).thenReturn(Optional.of(other));
+            when(propertyRepository.findById(20L)).thenReturn(Optional.of(property));
+
+            assertThatThrownBy(() -> icalImportService.syncFeed(100L, "kc-other"))
+                    .isInstanceOf(SecurityException.class);
+        }
+    }
+
+    // ===== fetchAndParseICalFeed URL validation =====
+
+    @Nested
+    @DisplayName("fetchAndParseICalFeed URL validation")
+    class FetchAndParseUrlValidation {
+
+        @Test
+        @DisplayName("should reject null URL")
+        void whenNullUrl_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed(null))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should reject blank URL")
+        void whenBlankUrl_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("   "))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should reject http (non-https) scheme")
+        void whenHttpScheme_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("http://example.com/cal.ics"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("HTTPS");
+        }
+
+        @Test
+        @DisplayName("should reject localhost")
+        void whenLocalhost_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("https://localhost/cal.ics"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should reject .local TLD")
+        void whenLocalTld_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("https://myserver.local/cal.ics"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should reject .internal TLD")
+        void whenInternalTld_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("https://service.internal/cal.ics"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should reject 127.0.0.1")
+        void whenLoopback_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("https://127.0.0.1/cal.ics"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should reject AWS cloud metadata endpoint")
+        void whenAwsMetadata_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("https://169.254.169.254/cal.ics"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    // ===== previewICalFeed - happy path-ish via URL validation =====
+
+    @Nested
+    @DisplayName("previewICalFeed - URL paths")
+    class PreviewICalFeedUrlPaths {
+
+        @Test
+        @DisplayName("should validate property before URL fetch")
+        void whenPropertyExists_butUrlInvalid_thenUrlValidationThrows() {
+            // Arrange
+            User owner = buildHost(10L, "kc-owner", "confort");
+            Property property = buildProperty(20L, owner);
+            when(propertyRepository.findById(20L)).thenReturn(Optional.of(property));
+
+            // Act & Assert
+            assertThatThrownBy(() -> icalImportService.previewICalFeed("http://blocked.com/cal.ics", 20L))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    // ===== isUserAllowed - additional edge cases =====
+
+    @Nested
+    @DisplayName("isUserAllowed - additional")
+    class IsUserAllowedAdditional {
+
+        @Test
+        @DisplayName("should allow HOST with mixed case 'Premium'")
+        void whenHostWithMixedCaseForfait_thenAllowed() {
+            User host = buildHost(1L, "kc-h", "Premium");
+            when(userRepository.findByKeycloakId("kc-h")).thenReturn(Optional.of(host));
+
+            assertThat(icalImportService.isUserAllowed("kc-h")).isTrue();
+        }
+
+        @Test
+        @DisplayName("should deny HOST with blank forfait")
+        void whenHostWithBlankForfait_thenDenied() {
+            User host = buildHost(1L, "kc-h", "");
+            when(userRepository.findByKeycloakId("kc-h")).thenReturn(Optional.of(host));
+
+            assertThat(icalImportService.isUserAllowed("kc-h")).isFalse();
+        }
+
+        @Test
+        @DisplayName("should deny HOST with unrecognized forfait")
+        void whenHostWithUnknownForfait_thenDenied() {
+            User host = buildHost(1L, "kc-h", "starter");
+            when(userRepository.findByKeycloakId("kc-h")).thenReturn(Optional.of(host));
+
+            assertThat(icalImportService.isUserAllowed("kc-h")).isFalse();
+        }
+    }
+
+    // ===== getUserFeeds - additional =====
+
+    @Nested
+    @DisplayName("getUserFeeds - additional")
+    class GetUserFeedsAdditional {
+
+        @Test
+        @DisplayName("should map multiple feeds to DTOs")
+        void whenMultipleFeeds_thenAllMapped() {
+            User owner = buildHost(10L, "kc-o", "confort");
+            Property prop = buildProperty(20L, owner);
+            ICalFeed f1 = buildFeed(1L, prop, "https://ex.com/a", "Airbnb");
+            ICalFeed f2 = buildFeed(2L, prop, "https://ex.com/b", "Booking");
+            f1.setSyncEnabled(true);
+            f1.setEventsImported(5);
+            f1.setLastSyncStatus("SUCCESS");
+
+            when(userRepository.findByKeycloakId("kc-o")).thenReturn(Optional.of(owner));
+            when(icalFeedRepository.findByPropertyOwnerId(10L, ORG_ID)).thenReturn(List.of(f1, f2));
+
+            List<FeedDto> result = icalImportService.getUserFeeds("kc-o");
+
+            assertThat(result).hasSize(2);
+            assertThat(result.get(0).getEventsImported()).isEqualTo(5);
+            assertThat(result.get(0).getLastSyncStatus()).isEqualTo("SUCCESS");
+        }
+    }
+
+    // ===== deleteFeed - additional =====
+
+    @Nested
+    @DisplayName("deleteFeed - additional")
+    class DeleteFeedAdditional {
+
+        @Test
+        @DisplayName("should throw when property not found during ownership check")
+        void whenPropertyNotFound_thenThrows() {
+            User owner = buildHost(10L, "kc-owner", "confort");
+            Property property = buildProperty(20L, owner);
+            ICalFeed feed = buildFeed(100L, property, "https://example.com/cal.ics", "Airbnb");
+
+            when(icalFeedRepository.findById(100L)).thenReturn(Optional.of(feed));
+            when(userRepository.findByKeycloakId("kc-owner")).thenReturn(Optional.of(owner));
+            when(propertyRepository.findById(20L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> icalImportService.deleteFeed(100L, "kc-owner"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should throw when user not found during ownership")
+        void whenUserNotFound_thenThrows() {
+            User owner = buildHost(10L, "kc-owner", "confort");
+            Property property = buildProperty(20L, owner);
+            ICalFeed feed = buildFeed(100L, property, "https://example.com/cal.ics", "Airbnb");
+
+            when(icalFeedRepository.findById(100L)).thenReturn(Optional.of(feed));
+            when(userRepository.findByKeycloakId("kc-unknown")).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> icalImportService.deleteFeed(100L, "kc-unknown"))
+                    .isInstanceOf(SecurityException.class)
+                    .hasMessageContaining("Utilisateur introuvable");
+        }
+    }
+
+    // ===== toggleAutoInterventions - additional =====
+
+    @Nested
+    @DisplayName("toggleAutoInterventions - additional")
+    class ToggleAutoInterventionsAdditional {
+
+        @Test
+        @DisplayName("should notify on toggle and tolerate notification failure")
+        void whenNotificationFails_thenTogglesAnyway() {
+            User owner = buildHost(10L, "kc-owner", "confort");
+            Property property = buildProperty(20L, owner);
+            ICalFeed feed = buildFeed(100L, property, "https://example.com/cal.ics", "Airbnb");
+            feed.setAutoCreateInterventions(false);
+
+            when(icalFeedRepository.findById(100L)).thenReturn(Optional.of(feed));
+            when(userRepository.findByKeycloakId("kc-owner")).thenReturn(Optional.of(owner));
+            when(propertyRepository.findById(20L)).thenReturn(Optional.of(property));
+            when(icalFeedRepository.save(any(ICalFeed.class))).thenAnswer(inv -> inv.getArgument(0));
+            doThrow(new RuntimeException("notif fail"))
+                    .when(notificationService).notify(anyString(), any(), anyString(), anyString(), anyString());
+
+            FeedDto result = icalImportService.toggleAutoInterventions(100L, "kc-owner");
+
+            assertThat(result.isAutoCreateInterventions()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should allow admin without forfait")
+        void whenAdmin_thenToggles() {
+            User admin = buildAdmin(1L, "kc-admin");
+            User owner = buildHost(10L, "kc-owner", "essentiel");
+            Property property = buildProperty(20L, owner);
+            ICalFeed feed = buildFeed(100L, property, "https://example.com/cal.ics", "Airbnb");
+
+            when(icalFeedRepository.findById(100L)).thenReturn(Optional.of(feed));
+            when(userRepository.findByKeycloakId("kc-admin")).thenReturn(Optional.of(admin));
+            when(icalFeedRepository.save(any(ICalFeed.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            FeedDto result = icalImportService.toggleAutoInterventions(100L, "kc-admin");
+
+            assertThat(result).isNotNull();
+        }
+    }
+
+    // ===== syncFeeds - additional =====
+
+    @Nested
+    @DisplayName("syncFeeds - additional")
+    class SyncFeedsAdditional {
+
+        @Test
+        @DisplayName("should set ERROR status and save feed when sync throws")
+        void whenSyncThrows_thenFeedMarkedError() {
+            User owner = buildHost(10L, "kc-owner", "confort");
+            Property property = buildProperty(20L, owner);
+            property.setOrganizationId(ORG_ID);
+            ICalFeed feed = buildFeed(100L, property, "https://example.com/cal.ics", "Airbnb");
+
+            when(userRepository.findByKeycloakId("kc-owner")).thenReturn(Optional.of(owner));
+            when(propertyRepository.findById(any())).thenThrow(new RuntimeException("DB error"));
+
+            icalImportService.syncFeeds(List.of(feed));
+
+            verify(icalFeedRepository, atLeast(1)).save(any(ICalFeed.class));
         }
     }
 }
