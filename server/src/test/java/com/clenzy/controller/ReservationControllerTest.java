@@ -1,11 +1,14 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.InterventionResponse;
 import com.clenzy.dto.ReservationDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.User;
 import com.clenzy.repository.GuestRepository;
+import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.MessageTemplateRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
@@ -23,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.Instant;
@@ -33,6 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,7 +47,7 @@ class ReservationControllerTest {
     @Mock private ReservationService reservationService;
     @Mock private ReservationMapper reservationMapper;
     @Mock private ReservationRepository reservationRepository;
-    @Mock private com.clenzy.repository.InterventionRepository interventionRepository;
+    @Mock private InterventionRepository interventionRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private UserRepository userRepository;
     @Mock private GuestRepository guestRepository;
@@ -49,7 +55,8 @@ class ReservationControllerTest {
     @Mock private StripeService stripeService;
     @Mock private EmailService emailService;
     @Mock private com.clenzy.service.messaging.GuestMessagingService guestMessagingService;
-    @Mock private com.clenzy.repository.MessageTemplateRepository messageTemplateRepository;
+    @Mock private MessageTemplateRepository messageTemplateRepository;
+    @Mock private InterventionMapper interventionMapper;
     @Mock private TenantContext tenantContext;
 
     private ReservationController controller;
@@ -85,7 +92,7 @@ class ReservationControllerTest {
         controller = new ReservationController(reservationService, reservationMapper,
                 reservationRepository, interventionRepository, propertyRepository, userRepository, guestRepository,
                 guestService, stripeService, emailService, guestMessagingService, messageTemplateRepository,
-                mock(InterventionMapper.class), tenantContext);
+                interventionMapper, tenantContext);
     }
 
     @Nested
@@ -117,6 +124,21 @@ class ReservationControllerTest {
 
             ResponseEntity<List<ReservationDto>> response = controller.getReservations(jwt, null, null, null, "confirmed");
             assertThat(response.getBody()).hasSize(1);
+        }
+
+        @Test
+        void whenStatusAll_thenNoFilter() {
+            Jwt jwt = createJwt();
+            Reservation r1 = new Reservation();
+            r1.setStatus("confirmed");
+            Reservation r2 = new Reservation();
+            r2.setStatus("cancelled");
+            when(reservationService.getReservations(any(), any(), any(), any()))
+                    .thenReturn(List.of(r1, r2));
+            when(reservationMapper.toDto(any())).thenReturn(sampleDto("any"));
+
+            ResponseEntity<List<ReservationDto>> response = controller.getReservations(jwt, null, null, null, "all");
+            assertThat(response.getBody()).hasSize(2);
         }
     }
 
@@ -157,6 +179,33 @@ class ReservationControllerTest {
     }
 
     @Nested
+    @DisplayName("getLinkedInterventions")
+    class GetLinkedInterventions {
+        @Test
+        void whenInterventionsExist_thenReturnsList() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            com.clenzy.model.Intervention intervention = new com.clenzy.model.Intervention();
+            when(interventionRepository.findByReservationId(1L, 1L)).thenReturn(List.of(intervention));
+            InterventionResponse response = InterventionResponse.builder().id(1L).build();
+            when(interventionMapper.convertToResponse(intervention)).thenReturn(response);
+
+            ResponseEntity<List<InterventionResponse>> result = controller.getLinkedInterventions(1L);
+
+            assertThat(result.getBody()).hasSize(1);
+        }
+
+        @Test
+        void whenNoInterventions_thenReturnsEmpty() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(interventionRepository.findByReservationId(1L, 1L)).thenReturn(List.of());
+
+            ResponseEntity<List<InterventionResponse>> result = controller.getLinkedInterventions(1L);
+
+            assertThat(result.getBody()).isEmpty();
+        }
+    }
+
+    @Nested
     @DisplayName("create")
     class Create {
         @Test
@@ -169,14 +218,88 @@ class ReservationControllerTest {
             when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
 
             Reservation saved = new Reservation();
+            saved.setId(99L);
             when(reservationService.save(any(Reservation.class))).thenReturn(saved);
-            when(reservationMapper.toDto(saved)).thenReturn(sampleDto("confirmed"));
+            when(reservationRepository.findByIdFetchAll(99L)).thenReturn(Optional.of(saved));
+            when(reservationMapper.toDto(any())).thenReturn(sampleDto("confirmed"));
 
             ReservationDto inputDto = new ReservationDto(null, 1L, null, "Guest", null, null, null, 2,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
                     null, null, null, null, null, false, null, null, null);
             ResponseEntity<ReservationDto> response = controller.create(inputDto, jwt);
 
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenPropertyNotInOrg_thenAccessDenied() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            property.setOrganizationId(99L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+
+            ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
+                    "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, false, null, null, null);
+
+            assertThatThrownBy(() -> controller.create(dto, jwt))
+                    .isInstanceOf(AccessDeniedException.class);
+        }
+
+        @Test
+        void whenUserNotOwner_thenAccessDenied() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("other-user");
+            User caller = new User();
+            caller.setId(99L);
+            caller.setKeycloakId("user-123");
+            caller.setRole(com.clenzy.model.UserRole.HOST);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(caller));
+
+            ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
+                    "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, false, null, null, null);
+
+            assertThatThrownBy(() -> controller.create(dto, jwt))
+                    .isInstanceOf(AccessDeniedException.class);
+        }
+
+        @Test
+        void whenPropertyNotFound_thenNotFound() {
+            Jwt jwt = createJwt();
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(99L)).thenReturn(Optional.empty());
+
+            ReservationDto dto = new ReservationDto(null, 99L, null, "G", null, null, null, 1,
+                    "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, false, null, null, null);
+
+            assertThatThrownBy(() -> controller.create(dto, jwt))
+                    .isInstanceOf(NotFoundException.class);
+        }
+
+        @Test
+        void whenSuperAdmin_thenBypassOwnership() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("other");
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(true);
+
+            Reservation saved = new Reservation();
+            saved.setId(10L);
+            when(reservationService.save(any())).thenReturn(saved);
+            when(reservationRepository.findByIdFetchAll(10L)).thenReturn(Optional.of(saved));
+            when(reservationMapper.toDto(any())).thenReturn(sampleDto("confirmed"));
+
+            ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
+                    "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, false, null, null, null);
+            ResponseEntity<ReservationDto> response = controller.create(dto, jwt);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
     }
@@ -190,7 +313,6 @@ class ReservationControllerTest {
             Property property = createOwnedProperty("user-123");
             Reservation existing = new Reservation();
             existing.setProperty(property);
-            // First call: find existing for access check; Second call: reload after cancel
             Reservation cancelled = new Reservation();
             when(reservationRepository.findByIdFetchAll(1L))
                     .thenReturn(Optional.of(existing))
@@ -205,6 +327,58 @@ class ReservationControllerTest {
 
             ResponseEntity<ReservationDto> response = controller.cancel(1L, jwt);
             assertThat(response.getBody().status()).isEqualTo("cancelled");
+        }
+
+        @Test
+        void whenReservationNotFound_thenNotFound() {
+            Jwt jwt = createJwt();
+            when(reservationRepository.findByIdFetchAll(99L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> controller.cancel(99L, jwt))
+                    .isInstanceOf(NotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("hideFromPlanning")
+    class HideFromPlanning {
+        @Test
+        void whenCancelled_thenHidesAndReturnsDto() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            Reservation existing = new Reservation();
+            existing.setProperty(property);
+            existing.setStatus("cancelled");
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(existing));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
+            when(reservationRepository.save(existing)).thenReturn(existing);
+            when(reservationMapper.toDto(existing)).thenReturn(sampleDto("cancelled"));
+
+            ResponseEntity<ReservationDto> response = controller.hideFromPlanning(1L, jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(existing.getHiddenFromPlanning()).isTrue();
+        }
+
+        @Test
+        void whenNotCancelled_thenBadRequest() {
+            Jwt jwt = createJwt();
+            Property property = createOwnedProperty("user-123");
+            Reservation existing = new Reservation();
+            existing.setProperty(property);
+            existing.setStatus("confirmed");
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(existing));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
+
+            ResponseEntity<ReservationDto> response = controller.hideFromPlanning(1L, jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            verify(reservationRepository, never()).save(any());
         }
     }
 }
