@@ -426,4 +426,236 @@ class MonitoringControllerTest {
             assertThat(response.getBody()).containsKey("available");
         }
     }
+
+    // ============= EXTENDED =============
+
+    @Nested
+    @DisplayName("getHealth - Kafka/Stripe/Storage paths")
+    class HealthExtended {
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenKafkaTemplateAvailable_thenReportsKafka() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("PONG");
+
+            // Reconstruct controller WITH kafkaTemplate available
+            ObjectProvider<KafkaTemplate<String, Object>> kp = mock(ObjectProvider.class);
+            KafkaTemplate<String, Object> kt = mock(KafkaTemplate.class);
+            when(kt.metrics()).thenReturn(java.util.Map.of());
+            when(kp.getIfAvailable()).thenReturn(kt);
+
+            ObjectProvider<JavaMailSender> mp = mock(ObjectProvider.class);
+            when(mp.getIfAvailable()).thenReturn(null);
+
+            controller = new MonitoringController(auditLogRepository, userRepository, jwtTokenService,
+                    dataSource, redisConnectionFactory, meterRegistry, kp, mp);
+
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            assertThat(services.stream().filter(s -> "Kafka".equals(s.get("name"))).findFirst())
+                    .isPresent();
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenKafkaUnconfigured_thenUnknown() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("PONG");
+
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            var kafka = services.stream().filter(s -> "Kafka".equals(s.get("name"))).findFirst();
+            assertThat(kafka).isPresent();
+            assertThat(kafka.get()).containsEntry("status", "UNKNOWN");
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenSmtpUnconfigured_thenUnknown() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("PONG");
+
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            var smtp = services.stream().filter(s -> "SMTP (Email)".equals(s.get("name"))).findFirst();
+            assertThat(smtp).isPresent();
+            assertThat(smtp.get()).containsEntry("status", "UNKNOWN");
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenStripeUnconfigured_thenUnknown() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("PONG");
+
+            // stripeSecretKey defaults to "" → UNKNOWN
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            var stripe = services.stream().filter(s -> "Stripe".equals(s.get("name"))).findFirst();
+            assertThat(stripe).isPresent();
+            assertThat(stripe.get()).containsEntry("status", "UNKNOWN");
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenStorageOk_thenUpStatusReported() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("PONG");
+
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            var storage = services.stream().filter(s -> "Stockage disque".equals(s.get("name"))).findFirst();
+            assertThat(storage).isPresent();
+            // Should be UP (we can write to /tmp)
+            assertThat(storage.get().get("status")).isIn("UP", "DEGRADED");
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenRedisPingNotPong_thenDegraded() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("WHATEVER");
+
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            var redis = services.stream().filter(s -> "Redis".equals(s.get("name"))).findFirst();
+            assertThat(redis).isPresent();
+            assertThat(redis.get()).containsEntry("status", "DEGRADED");
+        }
+    }
+
+    @Nested
+    @DisplayName("getKeycloakMetrics - performance section")
+    class KeycloakMetricsPerformance {
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenNoMicrometerData_thenDefaults() {
+            when(userRepository.count()).thenReturn(0L);
+            when(userRepository.countByStatus(UserStatus.ACTIVE)).thenReturn(0L);
+            when(userRepository.countByCreatedAtAfter(any())).thenReturn(0L);
+            when(jwtTokenService.getMetrics()).thenReturn(new JwtTokenService.TokenMetrics(0,0,0,0,0,0,0,0));
+            when(meterRegistry.find(anyString())).thenReturn(mock(io.micrometer.core.instrument.search.Search.class));
+            when(auditLogRepository.countByEventTypeAndCreatedAtAfter(any(), any())).thenReturn(0L);
+            when(auditLogRepository.findTopByEventTypeInOrderByCreatedAtDesc(anyList())).thenReturn(Optional.empty());
+
+            var response = controller.getKeycloakMetrics();
+            Map<String, Object> performance = (Map<String, Object>) response.getBody().get("performance");
+            assertThat(performance).containsKey("avgResponseTimeMs")
+                    .containsKey("totalRequests")
+                    .containsKey("errorRate")
+                    .containsKey("uptimePercent");
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenMicrometerHasTimerAndCounter_thenIncludedInPerformance() {
+            when(userRepository.count()).thenReturn(0L);
+            when(userRepository.countByStatus(UserStatus.ACTIVE)).thenReturn(0L);
+            when(userRepository.countByCreatedAtAfter(any())).thenReturn(0L);
+            when(jwtTokenService.getMetrics()).thenReturn(new JwtTokenService.TokenMetrics(0,0,0,0,0,0,0,0));
+
+            // Configure search to return a real timer + counter
+            io.micrometer.core.instrument.search.Search timerSearch = mock(io.micrometer.core.instrument.search.Search.class);
+            io.micrometer.core.instrument.Timer timer = mock(io.micrometer.core.instrument.Timer.class);
+            when(timer.count()).thenReturn(100L);
+            when(timer.mean(any())).thenReturn(50.0);
+            when(timerSearch.timer()).thenReturn(timer);
+
+            io.micrometer.core.instrument.search.Search counterSearch = mock(io.micrometer.core.instrument.search.Search.class);
+            io.micrometer.core.instrument.Counter counter = mock(io.micrometer.core.instrument.Counter.class);
+            when(counter.count()).thenReturn(1000.0);
+            when(counterSearch.counter()).thenReturn(counter);
+
+            io.micrometer.core.instrument.search.Search errSearch = mock(io.micrometer.core.instrument.search.Search.class);
+            io.micrometer.core.instrument.Counter errCounter = mock(io.micrometer.core.instrument.Counter.class);
+            when(errCounter.count()).thenReturn(10.0);
+            when(errSearch.counter()).thenReturn(errCounter);
+
+            when(meterRegistry.find("clenzy.api.request.duration")).thenReturn(timerSearch);
+            when(meterRegistry.find("clenzy.api.request.total")).thenReturn(counterSearch);
+            when(meterRegistry.find("clenzy.api.error.server")).thenReturn(errSearch);
+
+            when(auditLogRepository.countByEventTypeAndCreatedAtAfter(any(), any())).thenReturn(0L);
+            when(auditLogRepository.findTopByEventTypeInOrderByCreatedAtDesc(anyList())).thenReturn(Optional.empty());
+
+            var response = controller.getKeycloakMetrics();
+            Map<String, Object> performance = (Map<String, Object>) response.getBody().get("performance");
+            assertThat(performance.get("totalRequests")).isEqualTo(1000L);
+            assertThat((Number) performance.get("avgResponseTimeMs")).isEqualTo(50.0);
+        }
+    }
+
+    @Nested
+    @DisplayName("getTestCoverage - JaCoCo XML parsing")
+    class GetTestCoverageExtended {
+
+        @Test
+        void whenJacocoXmlExists_thenParsesCounters() throws Exception {
+            // Create a minimal JaCoCo XML in a temp file
+            java.io.File tempXml = java.io.File.createTempFile("jacoco-test-", ".xml");
+            tempXml.deleteOnExit();
+            String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+                    + "<!DOCTYPE report PUBLIC \"-//JACOCO//DTD Report 1.1//EN\" \"report.dtd\">"
+                    + "<report name=\"test\">"
+                    + "<counter type=\"INSTRUCTION\" missed=\"10\" covered=\"90\"/>"
+                    + "<counter type=\"BRANCH\" missed=\"5\" covered=\"15\"/>"
+                    + "<counter type=\"LINE\" missed=\"3\" covered=\"27\"/>"
+                    + "</report>";
+            java.nio.file.Files.writeString(tempXml.toPath(), xml);
+
+            // Set the report path via reflection
+            java.lang.reflect.Field field = MonitoringController.class.getDeclaredField("jacocoReportPath");
+            field.setAccessible(true);
+            field.set(controller, tempXml.getAbsolutePath());
+
+            var response = controller.getTestCoverage();
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).containsEntry("available", true);
+            assertThat(response.getBody()).containsEntry("instructionCovered", 90L);
+            assertThat(response.getBody()).containsEntry("instructionMissed", 10L);
+            assertThat((Number) response.getBody().get("instructionPercent")).isEqualTo(90.0);
+        }
+
+        @Test
+        void whenMalformedXml_thenReturnsErrorMessage() throws Exception {
+            java.io.File tempXml = java.io.File.createTempFile("jacoco-test-bad-", ".xml");
+            tempXml.deleteOnExit();
+            java.nio.file.Files.writeString(tempXml.toPath(), "not-xml");
+
+            java.lang.reflect.Field field = MonitoringController.class.getDeclaredField("jacocoReportPath");
+            field.setAccessible(true);
+            field.set(controller, tempXml.getAbsolutePath());
+
+            var response = controller.getTestCoverage();
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).containsEntry("available", false);
+            assertThat(response.getBody()).containsKey("message");
+        }
+    }
 }

@@ -259,5 +259,49 @@ class SubscriptionServiceTest {
             assertThatThrownBy(() -> subscriptionService.completeUpgrade("cs_test_fake_session"))
                     .isInstanceOf(RuntimeException.class);
         }
+
+        @Test
+        @DisplayName("should wrap with message containing 'Erreur Stripe' prefix")
+        void whenStripeFails_thenMessageHasPrefix() {
+            assertThatThrownBy(() -> subscriptionService.completeUpgrade("cs_bad"))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("Erreur Stripe");
+        }
+    }
+
+    @Nested
+    @DisplayName("createUpgradeCheckout - pricing & user lookup")
+    class CreateUpgradeCheckoutPricing {
+
+        @Test
+        @DisplayName("calls PricingConfigService to obtain monthly price")
+        void whenValidUpgrade_thenQueriesPricingConfig() {
+            User user = buildUser("kc-1", "essentiel");
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
+            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(2900);
+
+            // Will throw at Stripe API but should have read the price first
+            try {
+                subscriptionService.createUpgradeCheckout("kc-1", "confort");
+            } catch (Exception ignored) {
+            }
+
+            org.mockito.Mockito.verify(pricingConfigService).getPmsMonthlyPriceCents();
+        }
+
+        @Test
+        @DisplayName("user lookup via Keycloak ID")
+        void whenLookup_thenUsesKeycloakId() {
+            User user = buildUser("kc-special", "essentiel");
+            when(userRepository.findByKeycloakId("kc-special")).thenReturn(Optional.of(user));
+            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(2000);
+
+            try {
+                subscriptionService.createUpgradeCheckout("kc-special", "premium");
+            } catch (Exception ignored) {
+            }
+
+            org.mockito.Mockito.verify(userRepository).findByKeycloakId("kc-special");
+        }
     }
 }

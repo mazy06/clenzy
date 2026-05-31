@@ -65,6 +65,19 @@ public interface PromptSection {
     }
 
     /**
+     * Indique si le contenu de cette section est stable d'un tour a l'autre
+     * (donc cacheable cote provider). Defaut : {@code true}.
+     *
+     * <p>Les sections dont le rendu depend de la requete courante (memoire,
+     * RAG, contexte UI/date) retournent {@code false} : le composer les regroupe
+     * en SUFFIXE volatil, place apres le prefixe stable, pour que seul ce dernier
+     * porte le marqueur de cache Anthropic. Voir {@link ComposedSystemPrompt}.</p>
+     */
+    default boolean cacheable() {
+        return true;
+    }
+
+    /**
      * Rend le contenu textuel de la section. Retourne {@link Optional#empty()}
      * si la section est techniquement applicable mais n'a rien a dire (ex:
      * memory section avec 0 entries → mieux vaut rien render que une section vide).

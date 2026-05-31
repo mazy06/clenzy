@@ -630,4 +630,297 @@ class ReservationServiceTest {
             verifyNoInteractions(reservationRepository);
         }
     }
+
+    // ============ EXTENDED COVERAGE ============
+
+    @Nested
+    @DisplayName("save - minimum nights validation")
+    class SaveMinNights {
+
+        @Test
+        @DisplayName("throws when reservation is less than 1 night")
+        void whenZeroNights_thenThrows() {
+            Reservation reservation = new Reservation();
+            reservation.setOrganizationId(orgId);
+            reservation.setStatus("confirmed");
+            reservation.setProperty(property);
+            reservation.setCheckIn(checkIn);
+            reservation.setCheckOut(checkIn); // 0 nights
+
+            assertThatThrownBy(() -> reservationService.save(reservation))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("respects property minimumNights default")
+        void whenPropertyMinNightsExceeded_thenThrows() {
+            property.setMinimumNights(7);
+
+            Reservation reservation = new Reservation();
+            reservation.setOrganizationId(orgId);
+            reservation.setStatus("confirmed");
+            reservation.setProperty(property);
+            reservation.setCheckIn(checkIn);
+            reservation.setCheckOut(checkOut); // 4 nights < 7
+
+            assertThatThrownBy(() -> reservationService.save(reservation))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Minimum");
+        }
+
+        @Test
+        @DisplayName("respects MinNightsOverride if present")
+        void whenOverrideExceeded_thenThrows() {
+            property.setMinimumNights(1);
+            com.clenzy.model.MinNightsOverride override = new com.clenzy.model.MinNightsOverride();
+            override.setMinNights(10);
+            when(minNightsOverrideRepository.findByPropertyIdAndDate(eq(1L), eq(checkIn), eq(orgId)))
+                    .thenReturn(Optional.of(override));
+
+            Reservation reservation = new Reservation();
+            reservation.setOrganizationId(orgId);
+            reservation.setStatus("confirmed");
+            reservation.setSource("MANUAL");
+            reservation.setProperty(property);
+            reservation.setCheckIn(checkIn);
+            reservation.setCheckOut(checkOut); // 4 nights < 10
+
+            assertThatThrownBy(() -> reservationService.save(reservation))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("allows reservation when minNights satisfied")
+        void whenMinNightsSatisfied_thenSaves() {
+            property.setMinimumNights(2);
+            Reservation reservation = new Reservation();
+            reservation.setOrganizationId(orgId);
+            reservation.setStatus("confirmed");
+            reservation.setSource("MANUAL");
+            reservation.setProperty(property);
+            reservation.setCheckIn(checkIn);
+            reservation.setCheckOut(checkOut); // 4 nights >= 2
+
+            when(calendarEngine.book(anyLong(), any(), any(), any(), anyLong(), any(), any()))
+                    .thenReturn(List.of());
+
+            Reservation saved = new Reservation();
+            saved.setId(1L);
+            saved.setProperty(property);
+            saved.setCheckIn(checkIn);
+            saved.setCheckOut(checkOut);
+            when(reservationRepository.save(reservation)).thenReturn(saved);
+
+            reservationService.save(reservation);
+
+            verify(calendarEngine).book(anyLong(), any(), any(), any(), anyLong(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("save - guest stats recording")
+    class SaveGuestStats {
+        @Test
+        @DisplayName("when guest is set and totalPrice provided, records stay")
+        void whenGuestAndPrice_thenRecordsStay() {
+            Guest guest = new Guest();
+            guest.setId(50L);
+            Reservation reservation = new Reservation();
+            reservation.setOrganizationId(orgId);
+            reservation.setStatus("confirmed");
+            reservation.setSource("MANUAL");
+            reservation.setProperty(property);
+            reservation.setCheckIn(checkIn);
+            reservation.setCheckOut(checkOut);
+            reservation.setGuest(guest);
+            reservation.setTotalPrice(new java.math.BigDecimal("200.00"));
+
+            when(calendarEngine.book(anyLong(), any(), any(), any(), anyLong(), any(), any()))
+                    .thenReturn(List.of());
+
+            Reservation saved = new Reservation();
+            saved.setId(1L);
+            saved.setProperty(property);
+            saved.setCheckIn(checkIn);
+            saved.setCheckOut(checkOut);
+            saved.setGuest(guest);
+            saved.setTotalPrice(new java.math.BigDecimal("200.00"));
+            when(reservationRepository.save(reservation)).thenReturn(saved);
+
+            reservationService.save(reservation);
+
+            verify(guestService).recordStay(50L, new java.math.BigDecimal("200.00"));
+        }
+    }
+
+    @Nested
+    @DisplayName("createCleaningForReservation")
+    class CreateCleaning {
+        @Test
+        @DisplayName("creates ServiceRequest with PENDING status")
+        void createsServiceRequest() {
+            Reservation reservation = new Reservation();
+            reservation.setId(100L);
+            reservation.setOrganizationId(orgId);
+            reservation.setProperty(property);
+            reservation.setCheckOut(checkOut);
+            reservation.setCheckOutTime("11:00");
+            reservation.setGuestName("John");
+            reservation.setCleaningFee(new java.math.BigDecimal("50.00"));
+
+            User requestor = buildUser(1L, "kc-user", UserRole.HOST);
+
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
+            when(userRepository.findByKeycloakId("kc-user")).thenReturn(Optional.of(requestor));
+            when(serviceRequestRepository.save(any())).thenAnswer(inv -> {
+                ServiceRequest sr = inv.getArgument(0);
+                sr.setId(99L);
+                return sr;
+            });
+
+            reservationService.createCleaningForReservation(reservation, "kc-user");
+
+            org.mockito.ArgumentCaptor<ServiceRequest> captor = org.mockito.ArgumentCaptor.forClass(ServiceRequest.class);
+            verify(serviceRequestRepository).save(captor.capture());
+            assertThat(captor.getValue().getStatus()).isEqualTo(RequestStatus.PENDING);
+            assertThat(captor.getValue().getEstimatedCost()).isEqualByComparingTo("50.00");
+        }
+
+        @Test
+        @DisplayName("falls back to property.cleaningBasePrice when reservation has no fee")
+        void whenNoFee_thenUsesPropertyCleaningBase() {
+            property.setCleaningBasePrice(new java.math.BigDecimal("80.00"));
+            Reservation reservation = new Reservation();
+            reservation.setId(100L);
+            reservation.setOrganizationId(orgId);
+            reservation.setProperty(property);
+            reservation.setCheckOut(checkOut);
+            reservation.setCheckOutTime("11:00");
+            reservation.setGuestName("Jane");
+
+            User requestor = buildUser(1L, "kc-user", UserRole.HOST);
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
+            when(userRepository.findByKeycloakId("kc-user")).thenReturn(Optional.of(requestor));
+            when(serviceRequestRepository.save(any())).thenAnswer(inv -> {
+                ServiceRequest sr = inv.getArgument(0);
+                sr.setId(99L);
+                return sr;
+            });
+
+            reservationService.createCleaningForReservation(reservation, "kc-user");
+
+            org.mockito.ArgumentCaptor<ServiceRequest> captor = org.mockito.ArgumentCaptor.forClass(ServiceRequest.class);
+            verify(serviceRequestRepository).save(captor.capture());
+            assertThat(captor.getValue().getEstimatedCost()).isEqualByComparingTo("80.00");
+        }
+
+        @Test
+        @DisplayName("uses cleaning duration when available")
+        void whenDurationProvided_thenSetsEstimatedDuration() {
+            property.setCleaningDurationMinutes(150); // 2.5h -> ceil = 3h
+            Reservation reservation = new Reservation();
+            reservation.setId(100L);
+            reservation.setOrganizationId(orgId);
+            reservation.setProperty(property);
+            reservation.setCheckOut(checkOut);
+            reservation.setCheckOutTime("11:30");
+            reservation.setGuestName("X");
+
+            User requestor = buildUser(1L, "kc-user", UserRole.HOST);
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
+            when(userRepository.findByKeycloakId("kc-user")).thenReturn(Optional.of(requestor));
+            when(serviceRequestRepository.save(any())).thenAnswer(inv -> {
+                ServiceRequest sr = inv.getArgument(0);
+                sr.setId(99L);
+                return sr;
+            });
+
+            reservationService.createCleaningForReservation(reservation, "kc-user");
+
+            org.mockito.ArgumentCaptor<ServiceRequest> captor = org.mockito.ArgumentCaptor.forClass(ServiceRequest.class);
+            verify(serviceRequestRepository).save(captor.capture());
+            assertThat(captor.getValue().getEstimatedDurationHours()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("throws when reservation not found in reload")
+        void whenReservationGone_thenThrows() {
+            Reservation reservation = new Reservation();
+            reservation.setId(404L);
+
+            when(reservationRepository.findById(404L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> reservationService.createCleaningForReservation(reservation, "kc-user"))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("introuvable");
+        }
+
+        @Test
+        @DisplayName("throws when user not found")
+        void whenUserNotFound_thenThrows() {
+            Reservation reservation = new Reservation();
+            reservation.setId(100L);
+            reservation.setOrganizationId(orgId);
+            reservation.setProperty(property);
+            reservation.setCheckOut(checkOut);
+            reservation.setCheckOutTime("11:00");
+
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
+            when(userRepository.findByKeycloakId("ghost")).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> reservationService.createCleaningForReservation(reservation, "ghost"))
+                    .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("notifyReservationUpdated")
+    class NotifyReservationUpdated {
+        @Test
+        @DisplayName("notifies owner and admins when reservation has owner")
+        void whenOwnerPresent_thenNotifies() {
+            User owner = new User();
+            owner.setKeycloakId("owner-kc");
+            property.setOwner(owner);
+
+            Reservation reservation = new Reservation();
+            reservation.setProperty(property);
+            reservation.setGuestName("X");
+            reservation.setCheckIn(checkIn);
+            reservation.setCheckOut(checkOut);
+
+            reservationService.notifyReservationUpdated(reservation);
+
+            verify(notificationService).notify(eq("owner-kc"), eq(NotificationKey.RESERVATION_UPDATED),
+                    any(), any(), any());
+            verify(notificationService).notifyAdminsAndManagers(
+                    eq(NotificationKey.RESERVATION_UPDATED), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("safely handles null property")
+        void whenNullProperty_thenJustNotifiesAdmins() {
+            Reservation reservation = new Reservation();
+            reservation.setProperty(null);
+            reservation.setGuestName(null);
+
+            // Should not throw
+            reservationService.notifyReservationUpdated(reservation);
+            verify(notificationService).notifyAdminsAndManagers(
+                    eq(NotificationKey.RESERVATION_UPDATED), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("swallows downstream notification errors")
+        void whenNotificationFails_thenNoExceptionPropagates() {
+            org.mockito.Mockito.doThrow(new RuntimeException("notif down"))
+                    .when(notificationService).notifyAdminsAndManagers(any(), any(), any(), any());
+
+            Reservation reservation = new Reservation();
+            reservation.setProperty(null);
+
+            reservationService.notifyReservationUpdated(reservation);
+            // No exception propagated
+        }
+    }
 }

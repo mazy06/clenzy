@@ -33,6 +33,10 @@ public class ContextSection extends AbstractXmlPromptSection {
     @Override
     public int order() { return 20; }
 
+    /** Date / page UI / propriete focus changent par requete → suffixe volatil. */
+    @Override
+    public boolean cacheable() { return false; }
+
     @Override
     protected String tagName() { return "context"; }
 

@@ -209,9 +209,10 @@ export default function VouchersPage({
         />
       )}
 
-      {/* Mode embedded : on porte actions + filter dans les slots du parent. */}
-      {embedded && actionsContainer && createPortal(actions, actionsContainer)}
-      {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
+      {/* Mode embedded : on porte actions + filter dans les slots du parent.
+          Ternaire explicite pour eviter de passer le booleen false en children. */}
+      {embedded && actionsContainer ? createPortal(actions, actionsContainer) : null}
+      {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
       <Box sx={{ p: embedded ? 3 : 0 }}>
         <VoucherAnalyticsPanel />

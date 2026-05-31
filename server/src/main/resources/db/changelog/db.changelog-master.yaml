@@ -1515,3 +1515,17 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # --- 0159 : Binary asset table for unified BYTEA Postgres storage ---
+  # Backend de stockage unifie pour les assets binaires (avatars users V1,
+  # puis contact files, property photos en V2). Abstraction BinaryAssetStorage
+  # permet de switcher vers S3 sans toucher au code applicatif.
+  # TODO : migrer vers S3 quand on passera sous AWS (cf. CLAUDE.md "Storage strategy").
+  - changeSet:
+      id: "0159-add-binary-asset-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0159__add_binary_asset_table.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
