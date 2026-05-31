@@ -21,18 +21,19 @@ import java.util.List;
 public interface PromptBuilder {
 
     /**
-     * Construit le prompt pour un chat standard.
+     * Construit le prompt pour un chat standard, scinde en prefixe stable
+     * (cacheable) + suffixe volatil pour le prompt caching Anthropic.
      *
      * @param agentContext   identite + UI hints (jamais null)
      * @param userMessage    dernier message user (null OK pour resume-after-confirmation)
      * @param memories       memoires deja chargees (null tolere -> liste vide)
      * @param kbHits         hits RAG deja filtres par relevance (null tolere -> liste vide)
-     * @return prompt complet pret a etre envoye au LLM
+     * @return prompt scinde pret a etre envoye au LLM (voir {@link ComposedSystemPrompt})
      */
-    String buildChatPrompt(AgentContext agentContext,
-                            String userMessage,
-                            List<AssistantMemory> memories,
-                            List<KbSearchService.KbSearchHit> kbHits);
+    ComposedSystemPrompt buildChatPrompt(AgentContext agentContext,
+                                         String userMessage,
+                                         List<AssistantMemory> memories,
+                                         List<KbSearchService.KbSearchHit> kbHits);
 
     /**
      * Construit le prompt pour un briefing (DAILY/WEEKLY/ALERTS).

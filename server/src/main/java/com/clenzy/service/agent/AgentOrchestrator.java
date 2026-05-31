@@ -17,6 +17,7 @@ import com.clenzy.repository.OrgAiApiKeyRepository;
 import com.clenzy.service.AssistantMemoryService;
 import com.clenzy.service.PhotoStorageService;
 import com.clenzy.service.agent.kb.KbSearchService;
+import com.clenzy.service.agent.prompt.ComposedSystemPrompt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -484,11 +485,11 @@ public class AgentOrchestrator {
         //      2. Modele assigne a la feature ASSISTANT_CHAT dans Settings > IA
         //      3. null → defaut provider (Anthropic Sonnet)
         List<ToolDescriptor> tools = toolRegistry.listDescriptors();
-        String systemPrompt = buildSystemPrompt(context, effectiveMessage, memories, kbHits);
+        ComposedSystemPrompt systemPrompt = buildSegmentedSystemPrompt(context, effectiveMessage, memories, kbHits);
         String resolvedModel = resolveAssistantModel(context.modelOverride());
         ChatRequest request = new ChatRequest(
-                systemPrompt, chatMessages, tools, resolvedModel,
-                DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN);
+                systemPrompt.cacheablePrefix(), chatMessages, tools, resolvedModel,
+                DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN, systemPrompt.volatileSuffix());
 
         runToolLoop(request, conversation, context, apiKey, consumer);
 
@@ -568,9 +569,11 @@ public class AgentOrchestrator {
         List<ChatMessage> messages = new ArrayList<>(pending.pendingHistory());
         messages.add(ChatMessage.tool(pending.toolCallId(), result.content()));
 
+        ComposedSystemPrompt resumeSystem = buildSegmentedSystemPrompt(context);
         ChatRequest request = new ChatRequest(
-                buildSystemPrompt(context), messages, toolRegistry.listDescriptors(),
-                conversation.getModel(), DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN);
+                resumeSystem.cacheablePrefix(), messages, toolRegistry.listDescriptors(),
+                conversation.getModel(), DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN,
+                resumeSystem.volatileSuffix());
 
         String apiKey = resolveApiKey(context.organizationId());
         runToolLoop(request, conversation, context, apiKey, consumer);
@@ -628,41 +631,51 @@ public class AgentOrchestrator {
                                         AgentContext context,
                                         AssistantConversation conversation,
                                         Consumer<AgentSseEvent> consumer) {
+        // Streaming progressif : l'orchestrateur relaie chaque fragment du texte
+        // final via ce sink des qu'il arrive (parite UX avec le mono-agent), au
+        // lieu d'un unique delta apres coup. Seul le tour final produit du texte.
         com.clenzy.service.agent.multiagent.OrchestratorAgent.OrchestrationResult result =
-                multiAgentOrchestrator.orchestrate(chatHistory, context, orchestrationCtx, apiKey);
+                multiAgentOrchestrator.orchestrate(chatHistory, context, orchestrationCtx, apiKey,
+                        delta -> consumer.accept(AgentSseEvent.textDelta(delta)));
 
         if (!result.isSuccess()) {
             log.warn("Multi-agent returned error : {} — fallback mono-agent", result.error());
             return false;
         }
 
-        // 1. Emettre les tool_call_executed events pour chaque widget (preserve l'UX)
-        //    toolCallId synthetique UUID : evite la React key collision ("multiple
-        //    children with key=null") quand plusieurs tools sont invoques. Pas de
-        //    flow pause-confirm en multi-agent v1 donc pas besoin d'un id "trackable".
+        // Emettre les tool_call_executed events pour chaque widget ET les collecter
+        // pour la persistance. Un seul toolCallId synthetique par widget, partage
+        // entre le SSE (streaming) et le JSON tool_calls (reload) → les widgets se
+        // re-hydratent a l'identique au reload de la conversation (sinon ils
+        // disparaissent car parseToolCallsJsonSafe ne trouve rien — bug rapporte
+        // "les schemas/tableaux/graphiques disparaissent au reload").
+        //    toolCallId "ma-"+UUID : "ma" = multi-agent prefix ; evite la React key
+        //    collision ("multiple children with key=null") quand plusieurs tools
+        //    sont invoques. Pas de flow pause-confirm en multi-agent v1 donc pas
+        //    besoin d'un id "trackable".
+        //    Le frontend range les widgets dans draft.toolCalls[] (slot distinct du
+        //    texte) : l'ordre vis-a-vis des text_delta deja streames est sans effet
+        //    sur le rendu final.
+        List<PersistedToolCall> widgets = new ArrayList<>();
         for (com.clenzy.service.agent.multiagent.ToolInvocationSnapshot snap : result.toolInvocations()) {
+            String toolCallId = "ma-" + java.util.UUID.randomUUID();
+            String toolResult = snap.isError() ? null : snap.content();
             consumer.accept(AgentSseEvent.toolCallExecuted(
-                    snap.toolName(),
-                    "ma-" + java.util.UUID.randomUUID(),  // "ma" = multi-agent prefix
-                    snap.isError(),
-                    snap.displayHint(),
-                    snap.isError() ? null : snap.content()
-            ));
+                    snap.toolName(), toolCallId, snap.isError(), snap.displayHint(), toolResult));
+            widgets.add(new PersistedToolCall(
+                    snap.toolName(), toolCallId, snap.isError(), snap.displayHint(), toolResult));
         }
 
-        // 2. Emettre le texte final en un seul delta (pas de streaming caractere par
-        //    caractere en v1 — le streaming SSE bidirectionnel viendra en v2)
+        // Persister le message assistant (avec tokens + finish reason). finalText
+        //    == la concatenation des fragments deja streames via le sink. Les widgets
+        //    sont serialises dans la meme forme que le shape SSE (cf. PersistedToolCall)
+        //    pour que parseToolCallsJsonSafe les re-hydrate au reload.
         String finalText = result.finalText() == null ? "" : result.finalText();
-        if (!finalText.isEmpty()) {
-            consumer.accept(AgentSseEvent.textDelta(finalText));
-        }
-
-        // 3. Persister le message assistant (avec tokens + finish reason)
         AssistantMessage assistantMsg = AssistantMessage.assistant(
                 conversation.getId(),
                 context.organizationId(),
                 finalText,
-                null  // tool_calls JSON (multi-agent : detail interne, pas expose ici)
+                serializeWidgetsSafe(widgets)
         );
         assistantMsg.setPromptTokens(result.totalPromptTokens());
         assistantMsg.setCompletionTokens(result.totalCompletionTokens());
@@ -683,7 +696,7 @@ public class AgentOrchestrator {
                 result.totalPromptTokens(), result.totalCompletionTokens(),
                 multiAgentModel, result.truncated() ? "length" : "end_turn");
 
-        // 4. Emettre done
+        // Emettre done
         consumer.accept(AgentSseEvent.done(result.truncated() ? "length" : "end_turn"));
         return true;
     }
@@ -845,7 +858,16 @@ public class AgentOrchestrator {
      * (pas de nouvelle query memoire/RAG).</p>
      */
     String buildSystemPrompt(AgentContext context) {
-        return buildSystemPrompt(context, null);
+        return buildSegmentedSystemPrompt(context).full();
+    }
+
+    /**
+     * Variante segmentee du resume-after-confirmation : prefixe cacheable +
+     * suffixe volatil pour le prompt caching Anthropic (pas de nouvelle query
+     * memoire/RAG car {@code latestUserMessage == null}).
+     */
+    ComposedSystemPrompt buildSegmentedSystemPrompt(AgentContext context) {
+        return buildSegmentedSystemPrompt(context, null);
     }
 
     /**
@@ -869,13 +891,22 @@ public class AgentOrchestrator {
      * provider KO) — c'est du nice-to-have, pas un bloquant.</p>
      */
     String buildSystemPrompt(AgentContext context, String latestUserMessage) {
+        return buildSegmentedSystemPrompt(context, latestUserMessage).full();
+    }
+
+    /**
+     * Variante segmentee : charge memoires + RAG puis delegue. Le suffixe volatil
+     * (memoire/RAG/contexte) est isole du prefixe stable cacheable pour que ce
+     * dernier survive au prompt caching Anthropic d'un tour a l'autre.
+     */
+    ComposedSystemPrompt buildSegmentedSystemPrompt(AgentContext context, String latestUserMessage) {
         // 1. Pre-charge des memoires (commun v1/v2)
         List<AssistantMemory> memories = loadMemories(context, latestUserMessage);
 
         // 2. Pre-charge des hits RAG (commun v1/v2)
         List<KbSearchService.KbSearchHit> kbHits = loadRelevantKbHits(latestUserMessage, context.organizationId());
 
-        return buildSystemPrompt(context, latestUserMessage, memories, kbHits);
+        return buildSegmentedSystemPrompt(context, latestUserMessage, memories, kbHits);
     }
 
     /**
@@ -887,14 +918,14 @@ public class AgentOrchestrator {
      * {@code latestUserMessage} (sinon le prompt aura un decalage). En pratique
      * les deux sont charges via les memes helpers que cette methode utiliserait.</p>
      */
-    String buildSystemPrompt(AgentContext context, String latestUserMessage,
+    ComposedSystemPrompt buildSegmentedSystemPrompt(AgentContext context, String latestUserMessage,
                               List<AssistantMemory> memories,
                               List<KbSearchService.KbSearchHit> kbHits) {
         // Composition : v2 par defaut, fallback v1 si erreur ou resultat vide
         if (promptV2Enabled && promptBuilder != null) {
             try {
-                String v2 = promptBuilder.buildChatPrompt(context, latestUserMessage, memories, kbHits);
-                if (v2 != null && !v2.isBlank()) return v2;
+                ComposedSystemPrompt v2 = promptBuilder.buildChatPrompt(context, latestUserMessage, memories, kbHits);
+                if (v2 != null && v2.hasContent()) return v2;
                 // null/blank → traite comme fallback (defensive : mock en tests)
                 log.debug("PromptBuilder v2 returned null/blank, falling back to v1");
             } catch (Exception e) {
@@ -932,7 +963,7 @@ public class AgentOrchestrator {
     }
 
     /** Legacy v1 : ancien comportement (memory text-format + RAG markdown + DEFAULT_SYSTEM_PROMPT). */
-    private String buildLegacySystemPrompt(List<AssistantMemory> memories,
+    private ComposedSystemPrompt buildLegacySystemPrompt(List<AssistantMemory> memories,
                                              List<KbSearchService.KbSearchHit> kbHits) {
         StringBuilder prefix = new StringBuilder();
         if (memories != null && !memories.isEmpty()) {
@@ -944,8 +975,8 @@ public class AgentOrchestrator {
                 prefix.append(ragSection).append("\n\n");
             }
         }
-        if (prefix.length() == 0) return DEFAULT_SYSTEM_PROMPT;
-        return prefix.append(DEFAULT_SYSTEM_PROMPT).toString();
+        if (prefix.length() == 0) return ComposedSystemPrompt.of(DEFAULT_SYSTEM_PROMPT);
+        return ComposedSystemPrompt.of(prefix.append(DEFAULT_SYSTEM_PROMPT).toString());
     }
 
     /** Render legacy markdown des hits RAG (utilise par v1 uniquement). */
@@ -1270,6 +1301,31 @@ public class AgentOrchestrator {
             return objectMapper.writeValueAsString(calls);
         } catch (JsonProcessingException e) {
             log.warn("Failed to serialize tool_calls : {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Forme persistee d'un widget multi-agent, alignee sur l'interface frontend
+     * {@code ToolCallExecuted} (toolName / toolCallId / toolError / displayHint /
+     * toolResult). Jackson serialise les composants du record sous ces memes
+     * cles, ce que {@code parseToolCallsJsonSafe} attend pour re-hydrater les
+     * widgets au reload — a l'identique du shape SSE streame en direct.
+     */
+    private record PersistedToolCall(
+            String toolName,
+            String toolCallId,
+            boolean toolError,
+            String displayHint,
+            String toolResult
+    ) {}
+
+    private String serializeWidgetsSafe(List<PersistedToolCall> widgets) {
+        if (widgets == null || widgets.isEmpty()) return null;
+        try {
+            return objectMapper.writeValueAsString(widgets);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize multi-agent widgets : {}", e.getMessage());
             return null;
         }
     }

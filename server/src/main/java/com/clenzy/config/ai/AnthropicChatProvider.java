@@ -56,6 +56,14 @@ public class AnthropicChatProvider implements ChatLLMProvider {
     private static final Logger log = LoggerFactory.getLogger(AnthropicChatProvider.class);
     private static final String ANTHROPIC_VERSION = "2023-06-01";
     private static final Duration REQUEST_TIMEOUT = Duration.ofMinutes(2);
+    /**
+     * Marqueur de cache prompt Anthropic (TTL 5 min). Pose sur le bloc system et
+     * sur le dernier tool : Anthropic met alors en cache le prefixe stable
+     * {@code tools + system}, relu au tarif cache (~10% du cout input) sur les
+     * iterations 2..N de la boucle agentique (system inchange dans une boucle)
+     * et sur les requetes suivantes ou ce prefixe est identique.
+     */
+    private static final Map<String, Object> EPHEMERAL_CACHE = Map.of("type", "ephemeral");
 
     private final AiProperties aiProperties;
     private final ObjectMapper objectMapper;
@@ -196,6 +204,18 @@ public class AnthropicChatProvider implements ChatLLMProvider {
                         if (usage.has("input_tokens")) {
                             promptTokens[0] = usage.path("input_tokens").asInt(0);
                         }
+                        // Observabilite du prompt caching : cache_read = tokens relus
+                        // au tarif cache (~10%), cache_creation = tokens ecrits en
+                        // cache (~125%). Permet de verifier les hits sans changer le
+                        // modele d'usage existant.
+                        if (log.isDebugEnabled()
+                                && (usage.has("cache_read_input_tokens")
+                                    || usage.has("cache_creation_input_tokens"))) {
+                            log.debug("anthropic.cache read={} write={} fresh_input={}",
+                                    usage.path("cache_read_input_tokens").asInt(0),
+                                    usage.path("cache_creation_input_tokens").asInt(0),
+                                    promptTokens[0]);
+                        }
                     }
                     case "content_block_start" -> {
                         int index = event.path("index").asInt(-1);
@@ -287,7 +307,7 @@ public class AnthropicChatProvider implements ChatLLMProvider {
         body.put("max_tokens", request.maxTokens());
         body.put("stream", true);
         if (request.systemPrompt() != null && !request.systemPrompt().isBlank()) {
-            body.put("system", request.systemPrompt());
+            body.put("system", toCachedSystemBlocks(request.systemPrompt(), request.volatileSystemSuffix()));
         }
         if (request.temperature() >= 0) {
             body.put("temperature", request.temperature());
@@ -369,7 +389,51 @@ public class AnthropicChatProvider implements ChatLLMProvider {
             }
             out.add(entry);
         }
+        applyHistoryCacheBreakpoint(out);
         return out;
+    }
+
+    /**
+     * Pose un {@code cache_control} ephemeral sur le dernier bloc du dernier
+     * message. Couple avec les breakpoints tools + system, cela cache aussi
+     * l'historique de conversation : a chaque iteration de la boucle agentique
+     * (et a chaque tour utilisateur suivant dans la fenetre TTL 5 min), le
+     * prefixe deja ecrit la fois precedente est relu au tarif cache (~10%)
+     * au lieu d'etre refacture en entier. Le seul cout marginal est l'ecriture
+     * (~25%) du dernier message, negligeable devant l'historique cumule.
+     *
+     * <p>Les blocs construits via {@code Map.of}/{@code List.of} sont
+     * immuables : on recopie le dernier bloc (et sa liste) dans des structures
+     * mutables avant d'y attacher le marqueur.</p>
+     */
+    private void applyHistoryCacheBreakpoint(List<Map<String, Object>> messages) {
+        if (messages.isEmpty()) {
+            return;
+        }
+        Map<String, Object> lastMessage = messages.get(messages.size() - 1);
+        Object content = lastMessage.get("content");
+        if (content instanceof String s) {
+            // Un bloc texte vide serait rejete par Anthropic (400). On ne pose
+            // pas de breakpoint sur un dernier message vide (cas qui n'arrive
+            // pas via l'orchestrateur, garde defensive).
+            if (s.isBlank()) {
+                return;
+            }
+            Map<String, Object> block = new LinkedHashMap<>();
+            block.put("type", "text");
+            block.put("text", s);
+            block.put("cache_control", EPHEMERAL_CACHE);
+            lastMessage.put("content", new ArrayList<>(List.of(block)));
+        } else if (content instanceof List<?> rawBlocks && !rawBlocks.isEmpty()) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> blocks = (List<Map<String, Object>>) rawBlocks;
+            int lastIdx = blocks.size() - 1;
+            Map<String, Object> cachedBlock = new LinkedHashMap<>(blocks.get(lastIdx));
+            cachedBlock.put("cache_control", EPHEMERAL_CACHE);
+            List<Map<String, Object>> mutable = new ArrayList<>(blocks);
+            mutable.set(lastIdx, cachedBlock);
+            lastMessage.put("content", mutable);
+        }
     }
 
     /**
@@ -418,13 +482,45 @@ public class AnthropicChatProvider implements ChatLLMProvider {
                 || "image/webp".equalsIgnoreCase(mediaType);
     }
 
+    /**
+     * Emet le system prompt en blocs texte. Le prefixe stable porte le
+     * {@code cache_control} ephemeral (cache du prefixe {@code tools + system}
+     * stable, relu au tarif cache sur les tours suivants). Si un suffixe volatil
+     * (memoire/RAG/contexte) est fourni, il est emis comme un 2e bloc SANS
+     * marqueur : il change a chaque tour et reste donc hors du prefixe cache,
+     * sans invalider le bloc stable qui le precede.
+     *
+     * <p>Anthropic accepte {@code system} sous forme de string OU de liste de
+     * blocs ; la forme liste est requise pour attacher le marqueur de cache.</p>
+     */
+    private List<Map<String, Object>> toCachedSystemBlocks(String cacheablePrefix, String volatileSuffix) {
+        Map<String, Object> stable = new LinkedHashMap<>();
+        stable.put("type", "text");
+        stable.put("text", cacheablePrefix);
+        stable.put("cache_control", EPHEMERAL_CACHE);
+        if (volatileSuffix == null || volatileSuffix.isBlank()) {
+            return List.of(stable);
+        }
+        Map<String, Object> volatilePart = new LinkedHashMap<>();
+        volatilePart.put("type", "text");
+        volatilePart.put("text", volatileSuffix);
+        return List.of(stable, volatilePart);
+    }
+
     private List<Map<String, Object>> toAnthropicTools(List<ToolDescriptor> tools) {
         List<Map<String, Object>> out = new ArrayList<>(tools.size());
-        for (ToolDescriptor td : tools) {
+        for (int i = 0; i < tools.size(); i++) {
+            ToolDescriptor td = tools.get(i);
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("name", td.name());
             entry.put("description", td.description());
             entry.put("input_schema", td.jsonSchema());
+            // Cache breakpoint sur le dernier tool : met en cache tout le bloc
+            // tools (identique d'une requete a l'autre tant que la liste d'outils
+            // ne change pas), gros poste de tokens re-facture sinon.
+            if (i == tools.size() - 1) {
+                entry.put("cache_control", EPHEMERAL_CACHE);
+            }
             out.add(entry);
         }
         return out;
