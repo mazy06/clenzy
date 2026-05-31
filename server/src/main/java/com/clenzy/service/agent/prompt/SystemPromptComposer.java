@@ -18,4 +18,16 @@ public interface SystemPromptComposer {
      * @return prompt complet, peut etre vide si aucune section ne s'applique
      */
     String compose(PromptContext context);
+
+    /**
+     * Variante scindee pour le prompt caching : separe les sections stables
+     * ({@link PromptSection#cacheable()}) du contenu volatil (memoire, RAG,
+     * contexte). Le {@link ComposedSystemPrompt#full()} reconstruit est
+     * equivalent en contenu a {@link #compose(PromptContext)} (l'ordre interne
+     * place le groupe stable d'abord, le groupe volatil ensuite).
+     *
+     * @param context contexte immutable (jamais null)
+     * @return prompt scinde (les deux parties peuvent etre vides)
+     */
+    ComposedSystemPrompt composeSegmented(PromptContext context);
 }

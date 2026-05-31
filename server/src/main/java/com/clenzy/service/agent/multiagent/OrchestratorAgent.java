@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * Orchestrateur principal du multi-agent system : decide quel(s)
@@ -138,11 +139,32 @@ public class OrchestratorAgent {
     public OrchestrationResult orchestrate(List<ChatMessage> messages, AgentContext context,
                                              OrchestrationContext orchestrationCtx,
                                              String apiKey) {
+        return orchestrate(messages, context, orchestrationCtx, apiKey, null);
+    }
+
+    /**
+     * Variante streaming : {@code textDeltaSink} (nullable) recoit chaque
+     * fragment de texte de l'orchestrateur des qu'il arrive. Permet a
+     * l'AgentOrchestrator de relayer la reponse finale en SSE progressif
+     * (parite UX avec le mono-agent {@code streamOneTurn}).
+     *
+     * <p>Si {@code null} : comportement non-streaming inchange (le texte n'est
+     * disponible que dans {@link OrchestrationResult#finalText()}).</p>
+     *
+     * <p>En pratique seul le tour final produit du texte — l'orchestrateur
+     * delegue via tool calls sans preambule (cf. son system prompt). Les rares
+     * fragments emis sur un tour de delegation sont relayes ET accumules dans
+     * {@code finalText}, donc le texte streame == le texte persiste.</p>
+     */
+    public OrchestrationResult orchestrate(List<ChatMessage> messages, AgentContext context,
+                                             OrchestrationContext orchestrationCtx,
+                                             String apiKey,
+                                             Consumer<String> textDeltaSink) {
         long startNanos = System.nanoTime();
         try {
             return doOrchestrate(messages, context,
                     orchestrationCtx == null ? OrchestrationContext.empty() : orchestrationCtx,
-                    apiKey);
+                    apiKey, textDeltaSink);
         } finally {
             orchestrateTimer.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
         }
@@ -150,7 +172,8 @@ public class OrchestratorAgent {
 
     private OrchestrationResult doOrchestrate(List<ChatMessage> messages, AgentContext context,
                                                  OrchestrationContext orchestrationCtx,
-                                                 String apiKey) {
+                                                 String apiKey,
+                                                 Consumer<String> textDeltaSink) {
         // Pas de specialistes -> impossible d'orchestrer
         if (registry.size() == 0) {
             return OrchestrationResult.error("Aucun specialiste enregistre, orchestration impossible");
@@ -182,9 +205,13 @@ public class OrchestratorAgent {
             AtomicReference<String> errorMsg = new AtomicReference<>();
 
             // Fix bloquant #4 : utiliser la cle BYOK org si fournie.
-            java.util.function.Consumer<ChatEvent> eventConsumer = event -> {
+            Consumer<ChatEvent> eventConsumer = event -> {
                 if (event instanceof ChatEvent.TextDelta td) {
                     textOut.set(textOut.get() + td.delta());
+                    // Relai SSE progressif : forwarde le fragment des qu'il arrive.
+                    if (textDeltaSink != null) {
+                        textDeltaSink.accept(td.delta());
+                    }
                 } else if (event instanceof ChatEvent.ToolCallRequest tcr) {
                     toolCallsRef.set(tcr.calls());
                 } else if (event instanceof ChatEvent.Done done) {
@@ -204,10 +231,14 @@ public class OrchestratorAgent {
                 return OrchestrationResult.error("Orchestrator LLM error : " + errorMsg.get());
             }
 
+            // Accumule le texte de CE tour (vide sur les tours de delegation —
+            // l'orchestrateur delegue sans preambule). Garantit que le texte
+            // persiste == le texte relaye via textDeltaSink.
+            finalText.append(textOut.get());
+
             List<ChatMessage.ToolCall> toolCalls = toolCallsRef.get();
             if (toolCalls.isEmpty()) {
                 // Pas de delegation : l'orchestrator a tranche directement
-                finalText.append(textOut.get());
                 return OrchestrationResult.success(
                         finalText.toString().strip(),
                         delegationsLog,

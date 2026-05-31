@@ -56,6 +56,10 @@ public class MemorySection extends AbstractXmlPromptSection {
         return context.memories() != null && !context.memories().isEmpty();
     }
 
+    /** Les memoires varient par utilisateur/tour → suffixe volatil. */
+    @Override
+    public boolean cacheable() { return false; }
+
     @Override
     protected String tagName() { return "memory"; }
 

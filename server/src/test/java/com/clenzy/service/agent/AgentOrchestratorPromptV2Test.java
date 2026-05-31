@@ -8,6 +8,7 @@ import com.clenzy.repository.OrgAiApiKeyRepository;
 import com.clenzy.service.AssistantMemoryService;
 import com.clenzy.service.PhotoStorageService;
 import com.clenzy.service.agent.kb.KbSearchService;
+import com.clenzy.service.agent.prompt.ComposedSystemPrompt;
 import com.clenzy.service.agent.prompt.PromptBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,7 +67,7 @@ class AgentOrchestratorPromptV2Test {
     void v2_enabled_and_builder_returns_valid_prompt_uses_v2_output() throws Exception {
         String v2Output = "<role>SHINY-V2-PROMPT</role>";
         when(promptBuilder.buildChatPrompt(any(), anyString(), any(), any()))
-                .thenReturn(v2Output);
+                .thenReturn(new ComposedSystemPrompt(v2Output, null));
         AgentOrchestrator orchestrator = buildOrchestrator(true);
 
         String result = invokeBuildSystemPrompt(orchestrator, ctx, "Hello");
@@ -76,7 +77,7 @@ class AgentOrchestratorPromptV2Test {
     @Test
     void v2_enabled_but_builder_returns_blank_falls_back_to_v1() throws Exception {
         when(promptBuilder.buildChatPrompt(any(), ArgumentMatchers.nullable(String.class),
-                any(), any())).thenReturn("   \n  ");
+                any(), any())).thenReturn(new ComposedSystemPrompt("   \n  ", null));
         AgentOrchestrator orchestrator = buildOrchestrator(true);
 
         String result = invokeBuildSystemPrompt(orchestrator, ctx, "Hello");

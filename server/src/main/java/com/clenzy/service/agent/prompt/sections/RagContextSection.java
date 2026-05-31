@@ -46,6 +46,10 @@ public class RagContextSection extends AbstractXmlPromptSection {
         return hits != null && !hits.isEmpty();
     }
 
+    /** Les snippets RAG dependent du message courant → suffixe volatil. */
+    @Override
+    public boolean cacheable() { return false; }
+
     @Override
     protected String tagName() { return "kb_context"; }
 

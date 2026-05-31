@@ -158,14 +158,35 @@ class AnthropicChatProviderTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    void userMessageWithoutAttachments_keepsStringContent() {
+    void lastUserMessageWithoutAttachments_wrappedAsCachedTextBlock() {
         ChatRequest req = new ChatRequest("sys", List.of(ChatMessage.user("Bonjour")), List.of(),
                 "claude-sonnet-4-20250514", 0.3, 2000);
         Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
         Map<String, Object> msg = ((List<Map<String, Object>>) body.get("messages")).get(0);
-        // Pas d'attachments → content reste string brut (compat retro)
-        assertTrue(msg.get("content") instanceof String);
-        assertEquals("Bonjour", msg.get("content"));
+        // Dernier message sans attachments → wrappe en un unique bloc texte
+        // porteur du cache breakpoint (caching incremental de l'historique).
+        List<Map<String, Object>> blocks = (List<Map<String, Object>>) msg.get("content");
+        assertEquals(1, blocks.size());
+        assertEquals("text", blocks.get(0).get("type"));
+        assertEquals("Bonjour", blocks.get(0).get("text"));
+        assertEquals(Map.of("type", "ephemeral"), blocks.get(0).get("cache_control"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void nonLastUserMessageWithoutAttachments_keepsStringContent() {
+        // Seul le DERNIER message porte le breakpoint : les tours anterieurs
+        // gardent leur content string brut (relus depuis le cache).
+        ChatRequest req = new ChatRequest("sys", List.of(
+                ChatMessage.user("Premier tour"),
+                ChatMessage.assistant("Reponse"),
+                ChatMessage.user("Dernier tour")
+        ), List.of(), "claude-sonnet-4-20250514", 0.3, 2000);
+        Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+        List<Map<String, Object>> messages = (List<Map<String, Object>>) body.get("messages");
+        assertTrue(messages.get(0).get("content") instanceof String, "1er tour reste string");
+        assertEquals("Premier tour", messages.get(0).get("content"));
+        assertTrue(messages.get(1).get("content") instanceof String, "tour assistant reste string");
     }
 
     @Nested
@@ -187,7 +208,13 @@ class AnthropicChatProviderTest {
             assertEquals("claude-sonnet-4-20250514", body.get("model"));
             assertEquals(2000, body.get("max_tokens"));
             assertEquals(true, body.get("stream"));
-            assertEquals("Tu es un assistant.", body.get("system"));
+            // system est emis comme liste de blocs avec cache_control ephemeral
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> system = (List<Map<String, Object>>) body.get("system");
+            assertEquals(1, system.size());
+            assertEquals("text", system.get(0).get("type"));
+            assertEquals("Tu es un assistant.", system.get(0).get("text"));
+            assertEquals(Map.of("type", "ephemeral"), system.get(0).get("cache_control"));
             assertEquals(0.3, (double) body.get("temperature"), 0.0001);
             assertFalse(body.containsKey("tools"), "no tools => key absent");
 
@@ -195,7 +222,66 @@ class AnthropicChatProviderTest {
             List<Map<String, Object>> messages = (List<Map<String, Object>>) body.get("messages");
             assertEquals(1, messages.size());
             assertEquals("user", messages.get(0).get("role"));
-            assertEquals("Bonjour", messages.get(0).get("content"));
+            // dernier message => wrappe en bloc texte porteur du cache breakpoint
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> content = (List<Map<String, Object>>) messages.get(0).get("content");
+            assertEquals(1, content.size());
+            assertEquals("text", content.get(0).get("type"));
+            assertEquals("Bonjour", content.get(0).get("text"));
+            assertEquals(Map.of("type", "ephemeral"), content.get(0).get("cache_control"));
+        }
+
+        @Test
+        void systemWithVolatileSuffix_emitsTwoBlocks_onlyPrefixCached() {
+            // Prefixe stable (cacheable) + suffixe volatil (memoire/RAG/contexte).
+            // Le cache breakpoint ne doit porter QUE sur le prefixe : le suffixe
+            // change chaque tour et casserait le cache s'il etait inclus.
+            ChatRequest req = new ChatRequest(
+                    "PREFIXE-STABLE",
+                    List.of(ChatMessage.user("Bonjour")),
+                    List.of(),
+                    "claude-sonnet-4-20250514",
+                    0.3,
+                    2000,
+                    "SUFFIXE-VOLATIL");
+
+            Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> system = (List<Map<String, Object>>) body.get("system");
+            assertEquals(2, system.size(), "prefixe cacheable + suffixe volatil = 2 blocs");
+
+            // Bloc 0 : prefixe stable, porteur du cache breakpoint
+            assertEquals("text", system.get(0).get("type"));
+            assertEquals("PREFIXE-STABLE", system.get(0).get("text"));
+            assertEquals(Map.of("type", "ephemeral"), system.get(0).get("cache_control"));
+
+            // Bloc 1 : suffixe volatil, SANS cache_control (relu a chaque tour)
+            assertEquals("text", system.get(1).get("type"));
+            assertEquals("SUFFIXE-VOLATIL", system.get(1).get("text"));
+            assertFalse(system.get(1).containsKey("cache_control"),
+                    "le suffixe volatil ne doit jamais porter de cache breakpoint");
+        }
+
+        @Test
+        void systemWithBlankVolatileSuffix_emitsSingleCachedBlock() {
+            // Suffixe blank/vide → on retombe sur un seul bloc system cacheable.
+            ChatRequest req = new ChatRequest(
+                    "PREFIXE-STABLE",
+                    List.of(ChatMessage.user("Bonjour")),
+                    List.of(),
+                    "claude-sonnet-4-20250514",
+                    0.3,
+                    2000,
+                    "   ");
+
+            Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> system = (List<Map<String, Object>>) body.get("system");
+            assertEquals(1, system.size(), "suffixe blank => un seul bloc");
+            assertEquals("PREFIXE-STABLE", system.get(0).get("text"));
+            assertEquals(Map.of("type", "ephemeral"), system.get(0).get("cache_control"));
         }
 
         @Test
@@ -262,6 +348,8 @@ class AnthropicChatProviderTest {
             assertEquals("tool_result", toolContent.get(0).get("type"));
             assertEquals("toolu_abc", toolContent.get(0).get("tool_use_id"));
             assertEquals("{\"items\":[]}", toolContent.get(0).get("content"));
+            // dernier message (tool_result) => porte le cache breakpoint d'historique
+            assertEquals(Map.of("type", "ephemeral"), toolContent.get(0).get("cache_control"));
         }
 
         @Test
@@ -285,6 +373,8 @@ class AnthropicChatProviderTest {
             assertEquals("get_reservation", tools.get(0).get("name"));
             assertEquals("Recupere une reservation par id", tools.get(0).get("description"));
             assertEquals(schema, tools.get(0).get("input_schema"));
+            // dernier tool => porte le cache breakpoint
+            assertEquals(Map.of("type", "ephemeral"), tools.get(0).get("cache_control"));
         }
     }
 
