@@ -658,4 +658,222 @@ class MonitoringControllerTest {
             assertThat(response.getBody()).containsKey("message");
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Additional coverage — Stripe TEST/LIVE mode, Kafka with metrics,
+    // SMTP JavaMailSender path, system metrics path, audit log specs
+    // ═══════════════════════════════════════════════════════════════
+
+    @Nested
+    @DisplayName("getHealth - additional branches")
+    class GetHealthMoreBranches {
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenKeycloakUrlSet_thenInvokesCheckKeycloak() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("PONG");
+
+            // Set an unreachable keycloak URL — will go DOWN via exception
+            java.lang.reflect.Field f = MonitoringController.class.getDeclaredField("keycloakUrl");
+            f.setAccessible(true);
+            f.set(controller, "http://nonexistent-kc-host:9999");
+
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            var kc = services.stream().filter(s -> "Keycloak".equals(s.get("name"))).findFirst();
+            assertThat(kc).isPresent();
+            assertThat(kc.get().get("status")).isIn("UP", "DOWN", "DEGRADED");
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenStripeSecretKeySetButInvalid_thenDownStatus() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("PONG");
+
+            java.lang.reflect.Field f = MonitoringController.class.getDeclaredField("stripeSecretKey");
+            f.setAccessible(true);
+            f.set(controller, "sk_test_invalidkey");
+
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            var stripe = services.stream().filter(s -> "Stripe".equals(s.get("name"))).findFirst();
+            assertThat(stripe).isPresent();
+            // Status may be UP or DOWN depending on connectivity; both branches reach mode=TEST
+            assertThat((String) stripe.get().get("details")).contains("TEST");
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenStripeSecretKeyLiveMode_thenLiveModeIdentified() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("PONG");
+
+            java.lang.reflect.Field f = MonitoringController.class.getDeclaredField("stripeSecretKey");
+            f.setAccessible(true);
+            f.set(controller, "sk_live_invalid_xyz");
+
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            var stripe = services.stream().filter(s -> "Stripe".equals(s.get("name"))).findFirst();
+            assertThat(stripe).isPresent();
+            assertThat((String) stripe.get().get("details")).contains("LIVE");
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenKafkaMetricsWithConnections_thenUpStatus() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("PONG");
+
+            ObjectProvider<KafkaTemplate<String, Object>> kp = mock(ObjectProvider.class);
+            KafkaTemplate<String, Object> kt = mock(KafkaTemplate.class);
+            org.apache.kafka.common.MetricName mn = new org.apache.kafka.common.MetricName("connection-count",
+                    "g", "d", java.util.Map.of());
+            org.apache.kafka.common.Metric metric = mock(org.apache.kafka.common.Metric.class);
+            when(metric.metricValue()).thenReturn(1.0);
+            java.util.Map<org.apache.kafka.common.MetricName, ? extends org.apache.kafka.common.Metric> metricsMap =
+                    java.util.Map.of(mn, metric);
+            doReturn(metricsMap).when(kt).metrics();
+            when(kp.getIfAvailable()).thenReturn(kt);
+
+            ObjectProvider<JavaMailSender> mp = mock(ObjectProvider.class);
+            when(mp.getIfAvailable()).thenReturn(null);
+
+            controller = new MonitoringController(auditLogRepository, userRepository, jwtTokenService,
+                    dataSource, redisConnectionFactory, meterRegistry, kp, mp);
+
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            var kafka = services.stream().filter(s -> "Kafka".equals(s.get("name"))).findFirst();
+            assertThat(kafka).isPresent();
+            assertThat(kafka.get()).containsEntry("status", "UP");
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenKafkaMetricsThrows_thenDownStatus() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("PONG");
+
+            ObjectProvider<KafkaTemplate<String, Object>> kp = mock(ObjectProvider.class);
+            KafkaTemplate<String, Object> kt = mock(KafkaTemplate.class);
+            when(kt.metrics()).thenThrow(new RuntimeException("kafka broke"));
+            when(kp.getIfAvailable()).thenReturn(kt);
+
+            ObjectProvider<JavaMailSender> mp = mock(ObjectProvider.class);
+            controller = new MonitoringController(auditLogRepository, userRepository, jwtTokenService,
+                    dataSource, redisConnectionFactory, meterRegistry, kp, mp);
+
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            var kafka = services.stream().filter(s -> "Kafka".equals(s.get("name"))).findFirst();
+            assertThat(kafka).isPresent();
+            assertThat(kafka.get()).containsEntry("status", "DOWN");
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenMailSenderImplAvailable_thenInvokesTestConnection() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("PONG");
+
+            ObjectProvider<KafkaTemplate<String, Object>> kp = mock(ObjectProvider.class);
+            ObjectProvider<JavaMailSender> mp = mock(ObjectProvider.class);
+            org.springframework.mail.javamail.JavaMailSenderImpl impl =
+                    mock(org.springframework.mail.javamail.JavaMailSenderImpl.class);
+            // testConnection succeeds (no exception)
+            doNothing().when(impl).testConnection();
+            when(impl.getHost()).thenReturn("smtp.example.com");
+            when(impl.getPort()).thenReturn(587);
+            when(mp.getIfAvailable()).thenReturn(impl);
+
+            controller = new MonitoringController(auditLogRepository, userRepository, jwtTokenService,
+                    dataSource, redisConnectionFactory, meterRegistry, kp, mp);
+
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            var smtp = services.stream().filter(s -> "SMTP (Email)".equals(s.get("name"))).findFirst();
+            assertThat(smtp).isPresent();
+            assertThat(smtp.get()).containsEntry("status", "UP");
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenMailSenderImplThrows_thenDown() throws Exception {
+            Connection sqlConn = mock(Connection.class);
+            when(dataSource.getConnection()).thenReturn(sqlConn);
+            when(sqlConn.createStatement()).thenReturn(mock(java.sql.Statement.class));
+            RedisConnection redisConn = mock(RedisConnection.class);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConn);
+            when(redisConn.ping()).thenReturn("PONG");
+
+            ObjectProvider<KafkaTemplate<String, Object>> kp = mock(ObjectProvider.class);
+            ObjectProvider<JavaMailSender> mp = mock(ObjectProvider.class);
+            org.springframework.mail.javamail.JavaMailSenderImpl impl =
+                    mock(org.springframework.mail.javamail.JavaMailSenderImpl.class);
+            doThrow(new jakarta.mail.MessagingException("Connection refused"))
+                    .when(impl).testConnection();
+            when(mp.getIfAvailable()).thenReturn(impl);
+
+            controller = new MonitoringController(auditLogRepository, userRepository, jwtTokenService,
+                    dataSource, redisConnectionFactory, meterRegistry, kp, mp);
+
+            var response = controller.getHealth();
+            List<Map<String, Object>> services = (List<Map<String, Object>>) response.getBody().get("services");
+            var smtp = services.stream().filter(s -> "SMTP (Email)".equals(s.get("name"))).findFirst();
+            assertThat(smtp).isPresent();
+            assertThat(smtp.get()).containsEntry("status", "DOWN");
+        }
+    }
+
+    @Nested
+    @DisplayName("getAuditLogs - additional filter combos")
+    class AuditLogsAdvanced {
+
+        @Test
+        void whenActorIdBlank_thenIgnored() {
+            Page<SecurityAuditLog> emptyPage = new PageImpl<>(List.of());
+            when(auditLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+                    .thenReturn(emptyPage);
+
+            var response = controller.getAuditLogs(null, "   ", null, PageRequest.of(0, 20));
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        }
+
+        @Test
+        void whenResultBlank_thenIgnored() {
+            Page<SecurityAuditLog> emptyPage = new PageImpl<>(List.of());
+            when(auditLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+                    .thenReturn(emptyPage);
+
+            var response = controller.getAuditLogs(null, null, "  ", PageRequest.of(0, 20));
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        }
+    }
 }

@@ -264,4 +264,175 @@ class GuestServiceTest {
             verify(guestRepository, never()).save(any());
         }
     }
+
+    @Nested
+    class ChannelResolution {
+
+        @Test
+        void whenSourceIsVrbo_thenChannelIsVrbo() {
+            when(guestRepository.save(any(Guest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            guestService.findOrCreateFromName("Test", "vrbo", ORG_ID);
+
+            ArgumentCaptor<Guest> captor = ArgumentCaptor.forClass(Guest.class);
+            verify(guestRepository).save(captor.capture());
+            assertThat(captor.getValue().getChannel()).isEqualTo(GuestChannel.VRBO);
+        }
+
+        @Test
+        void whenSourceIsAbritel_thenChannelIsVrbo() {
+            when(guestRepository.save(any(Guest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            guestService.findOrCreateFromName("Test", "abritel", ORG_ID);
+
+            ArgumentCaptor<Guest> captor = ArgumentCaptor.forClass(Guest.class);
+            verify(guestRepository).save(captor.capture());
+            assertThat(captor.getValue().getChannel()).isEqualTo(GuestChannel.VRBO);
+        }
+
+        @Test
+        void whenSourceIsIcal_thenChannelIsIcal() {
+            when(guestRepository.save(any(Guest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            guestService.findOrCreateFromName("Test", "ical", ORG_ID);
+
+            ArgumentCaptor<Guest> captor = ArgumentCaptor.forClass(Guest.class);
+            verify(guestRepository).save(captor.capture());
+            assertThat(captor.getValue().getChannel()).isEqualTo(GuestChannel.ICAL);
+        }
+
+        @Test
+        void whenSourceIsManual_thenChannelIsDirect() {
+            when(guestRepository.save(any(Guest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            guestService.findOrCreateFromName("Test", "manual", ORG_ID);
+
+            ArgumentCaptor<Guest> captor = ArgumentCaptor.forClass(Guest.class);
+            verify(guestRepository).save(captor.capture());
+            assertThat(captor.getValue().getChannel()).isEqualTo(GuestChannel.DIRECT);
+        }
+
+        @Test
+        void whenSourceIsUnknown_thenChannelIsOther() {
+            when(guestRepository.save(any(Guest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            guestService.findOrCreateFromName("Test", "unknown-source", ORG_ID);
+
+            ArgumentCaptor<Guest> captor = ArgumentCaptor.forClass(Guest.class);
+            verify(guestRepository).save(captor.capture());
+            assertThat(captor.getValue().getChannel()).isEqualTo(GuestChannel.OTHER);
+        }
+
+        @Test
+        void whenSourceIsNull_thenChannelIsOther() {
+            when(guestRepository.save(any(Guest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            guestService.findOrCreateFromName("Test", null, ORG_ID);
+
+            ArgumentCaptor<Guest> captor = ArgumentCaptor.forClass(Guest.class);
+            verify(guestRepository).save(captor.capture());
+            assertThat(captor.getValue().getChannel()).isEqualTo(GuestChannel.OTHER);
+        }
+    }
+
+    @Nested
+    class UpdateIfNeeded {
+
+        @Test
+        void whenChannelMatch_andAllFieldsBlankOrSame_thenSkipsSave() {
+            Guest existing = buildGuest(1L, "Jean", "Dupont");
+            existing.setChannel(GuestChannel.AIRBNB);
+            existing.setChannelGuestId("airbnb-123");
+            existing.setEmail("jean@test.com");
+            existing.setPhone("+33600000000");
+            when(guestRepository.findByChannelAndChannelGuestId(
+                    GuestChannel.AIRBNB, "airbnb-123", ORG_ID))
+                    .thenReturn(Optional.of(existing));
+
+            // Pass same firstName/lastName, blank email — should not save
+            Guest result = guestService.findOrCreate("Jean", "Dupont", "  ", "  ",
+                    GuestChannel.AIRBNB, "airbnb-123", ORG_ID);
+
+            assertThat(result.getId()).isEqualTo(1L);
+            verify(guestRepository, never()).save(any());
+        }
+
+        @Test
+        void whenOnlyPhoneDifferent_thenUpdatesAndSaves() {
+            Guest existing = buildGuest(1L, "Jean", "Dupont");
+            existing.setChannel(GuestChannel.AIRBNB);
+            existing.setChannelGuestId("airbnb-123");
+            existing.setPhone("+33100000000");
+            when(guestRepository.findByChannelAndChannelGuestId(
+                    GuestChannel.AIRBNB, "airbnb-123", ORG_ID))
+                    .thenReturn(Optional.of(existing));
+            when(guestRepository.save(any(Guest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            guestService.findOrCreate(null, null, null, "+33600000000",
+                    GuestChannel.AIRBNB, "airbnb-123", ORG_ID);
+
+            verify(guestRepository).save(any(Guest.class));
+            assertThat(existing.getPhone()).isEqualTo("+33600000000");
+        }
+    }
+
+    @Nested
+    class RecalculateAllStats {
+
+        @Test
+        void whenNoGuests_thenReturnsZero() {
+            when(guestRepository.findAll()).thenReturn(List.of());
+
+            int updated = guestService.recalculateAllStats();
+
+            assertThat(updated).isZero();
+            verify(guestRepository, never()).save(any());
+        }
+
+        @Test
+        void whenStatsAreAlreadyCorrect_thenSkipsSave() {
+            Guest guest = buildGuest(1L, "Jean", "Dupont");
+            guest.setTotalStays(1);
+            guest.setTotalSpent(BigDecimal.valueOf(100));
+
+            com.clenzy.model.Reservation r = new com.clenzy.model.Reservation();
+            r.setStatus("confirmed");
+            r.setTotalPrice(BigDecimal.valueOf(100));
+
+            when(guestRepository.findAll()).thenReturn(List.of(guest));
+            when(reservationRepository.findByGuestId(1L)).thenReturn(List.of(r));
+
+            int updated = guestService.recalculateAllStats();
+
+            assertThat(updated).isZero();
+            verify(guestRepository, never()).save(any(Guest.class));
+        }
+
+        @Test
+        void whenStatsDifferent_thenUpdatesGuest() {
+            Guest guest = buildGuest(1L, "Jean", "Dupont");
+            guest.setTotalStays(5);
+            guest.setTotalSpent(BigDecimal.valueOf(500));
+
+            com.clenzy.model.Reservation r1 = new com.clenzy.model.Reservation();
+            r1.setStatus("confirmed");
+            r1.setTotalPrice(BigDecimal.valueOf(120));
+            com.clenzy.model.Reservation rCancelled = new com.clenzy.model.Reservation();
+            rCancelled.setStatus("cancelled");
+            rCancelled.setTotalPrice(BigDecimal.valueOf(50));
+            com.clenzy.model.Reservation rNullPrice = new com.clenzy.model.Reservation();
+            rNullPrice.setStatus("confirmed");
+            rNullPrice.setTotalPrice(null);
+
+            when(guestRepository.findAll()).thenReturn(List.of(guest));
+            when(reservationRepository.findByGuestId(1L)).thenReturn(List.of(r1, rCancelled, rNullPrice));
+            when(guestRepository.save(any(Guest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            int updated = guestService.recalculateAllStats();
+
+            assertThat(updated).isEqualTo(1);
+            assertThat(guest.getTotalStays()).isEqualTo(2); // r1 + rNullPrice (both confirmed)
+            assertThat(guest.getTotalSpent()).isEqualByComparingTo("120"); // only r1 has price
+        }
+    }
 }

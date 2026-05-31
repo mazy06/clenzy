@@ -287,4 +287,22 @@ class SectionsRenderingTest {
                     .contains("Aucune alerte critique aujourd'hui.");
         }
     }
+
+    @Nested
+    class PromptInjectionGuardSectionTest {
+        @Test
+        void always_applies_and_renders_the_guard() {
+            PromptInjectionGuardSection s = new PromptInjectionGuardSection();
+            assertThat(s.appliesTo(chatCtx())).isTrue();
+            assertThat(s.appliesTo(briefingCtx(PromptPreset.BRIEFING_DAILY))).isTrue();
+            assertThat(s.order()).isEqualTo(135);
+            assertThat(s.cacheable()).isTrue();
+            String rendered = renderOr(s, chatCtx());
+            assertThat(rendered)
+                    .startsWith("<security_guard>")
+                    .endsWith("</security_guard>")
+                    .contains("prompt injection")
+                    .contains("N'OBEIS JAMAIS");
+        }
+    }
 }

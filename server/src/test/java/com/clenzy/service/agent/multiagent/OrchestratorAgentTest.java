@@ -7,6 +7,7 @@ import com.clenzy.config.ai.ChatRequest;
 import com.clenzy.model.AssistantMemory;
 import com.clenzy.service.agent.AgentContext;
 import com.clenzy.service.agent.kb.KbSearchService.KbSearchHit;
+import com.clenzy.service.agent.prompt.PromptSecurityGuidance;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -519,6 +520,17 @@ class OrchestratorAgentTest {
                 .contains("delegate_to")
                 .contains("max 3")  // valeur de MAX_DELEGATIONS interpolee dans le prompt
                 .doesNotContain("undefined");
+    }
+
+    @Test
+    void system_prompt_includes_anti_injection_guard() {
+        // L'orchestrator voit memoire + RAG (donnees non fiables) : il doit porter
+        // la garde anti-injection, identique au reste de l'assistant.
+        String prompt = orchestrator.buildOrchestratorSystemPrompt();
+        assertThat(prompt)
+                .contains(PromptSecurityGuidance.block())
+                .contains("prompt injection")
+                .contains("N'OBEIS JAMAIS");
     }
 
     /** Stub generique : LLM renvoie texte + done. */

@@ -480,5 +480,264 @@ class AdvancedRateManagerTest {
             verify(rateOverrideRepository, never()).save(any());
             verify(rateAuditLogRepository, never()).save(any());
         }
+
+        @Test
+        @DisplayName("property not found skips evaluation")
+        void applyYieldRules_propertyNotFound_skips() {
+            YieldRule rule = new YieldRule();
+            rule.setRuleType(YieldRule.RuleType.DAYS_BEFORE_ARRIVAL);
+            rule.setAdjustmentType(YieldRule.AdjustmentType.PERCENTAGE);
+            rule.setAdjustmentValue(new BigDecimal("10"));
+            rule.setActive(true);
+
+            when(yieldRuleRepository.findActiveByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(List.of(rule));
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.empty());
+
+            advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
+
+            verify(rateOverrideRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("OCCUPANCY_THRESHOLD rule is logged but skipped")
+        void applyYieldRules_occupancyThreshold_isSkipped() throws Exception {
+            Property property = new Property();
+            property.setId(PROPERTY_ID);
+
+            YieldRule rule = new YieldRule();
+            rule.setName("OccupancyThresh");
+            rule.setRuleType(YieldRule.RuleType.OCCUPANCY_THRESHOLD);
+            rule.setAdjustmentType(YieldRule.AdjustmentType.PERCENTAGE);
+            rule.setAdjustmentValue(new BigDecimal("10"));
+            rule.setActive(true);
+            rule.setTriggerCondition("{}");
+
+            when(yieldRuleRepository.findActiveByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(List.of(rule));
+            when(propertyRepository.findById(PROPERTY_ID))
+                    .thenReturn(Optional.of(property));
+            when(objectMapper.readTree("{}"))
+                    .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{}"));
+
+            advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
+
+            verify(rateOverrideRepository, never()).save(any(RateOverride.class));
+        }
+
+        @Test
+        @DisplayName("LAST_MINUTE_FILL with -20% adjustment creates override")
+        void applyYieldRules_lastMinuteFill_appliesNegativeAdjustment() throws Exception {
+            Property property = new Property();
+            property.setId(PROPERTY_ID);
+
+            YieldRule rule = new YieldRule();
+            rule.setName("Last Minute -20%");
+            rule.setRuleType(YieldRule.RuleType.LAST_MINUTE_FILL);
+            rule.setAdjustmentType(YieldRule.AdjustmentType.PERCENTAGE);
+            rule.setAdjustmentValue(new BigDecimal("-20"));
+            rule.setActive(true);
+            rule.setTriggerCondition("{\"withinDays\": 2}");
+
+            when(yieldRuleRepository.findActiveByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(List.of(rule));
+            when(propertyRepository.findById(PROPERTY_ID))
+                    .thenReturn(Optional.of(property));
+            when(objectMapper.readTree("{\"withinDays\": 2}"))
+                    .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"withinDays\": 2}"));
+
+            when(priceEngine.resolvePrice(eq(PROPERTY_ID), any(LocalDate.class), eq(ORG_ID)))
+                    .thenReturn(new BigDecimal("100"));
+            when(rateOverrideRepository.findByPropertyIdAndDate(eq(PROPERTY_ID), any(LocalDate.class), eq(ORG_ID)))
+                    .thenReturn(Optional.empty());
+
+            advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
+
+            // 2 days within the window
+            verify(rateOverrideRepository, atLeast(1)).save(any(RateOverride.class));
+            verify(rateAuditLogRepository, atLeast(1)).save(any(RateAuditLog.class));
+        }
+
+        @Test
+        @DisplayName("DAYS_BEFORE_ARRIVAL with existing override updates it")
+        void applyYieldRules_existingOverride_isUpdated() throws Exception {
+            Property property = new Property();
+            property.setId(PROPERTY_ID);
+
+            YieldRule rule = new YieldRule();
+            rule.setName("Early Bird +15%");
+            rule.setRuleType(YieldRule.RuleType.DAYS_BEFORE_ARRIVAL);
+            rule.setAdjustmentType(YieldRule.AdjustmentType.PERCENTAGE);
+            rule.setAdjustmentValue(new BigDecimal("15"));
+            rule.setActive(true);
+            rule.setTriggerCondition("{\"daysAhead\": 30}");
+
+            when(yieldRuleRepository.findActiveByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(List.of(rule));
+            when(propertyRepository.findById(PROPERTY_ID))
+                    .thenReturn(Optional.of(property));
+            when(objectMapper.readTree("{\"daysAhead\": 30}"))
+                    .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"daysAhead\": 30}"));
+
+            LocalDate target = LocalDate.now().plusDays(30);
+            when(priceEngine.resolvePrice(PROPERTY_ID, target, ORG_ID))
+                    .thenReturn(new BigDecimal("100"));
+
+            // Existing override — should be updated, not created
+            RateOverride existing = new RateOverride();
+            existing.setNightlyPrice(new BigDecimal("80"));
+            when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, target, ORG_ID))
+                    .thenReturn(Optional.of(existing));
+
+            advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
+
+            verify(rateOverrideRepository).save(existing);
+            assertThat(existing.getSource()).isEqualTo("YIELD_RULE");
+        }
+
+        @Test
+        @DisplayName("yield rule with invalid JSON is caught silently")
+        void applyYieldRules_invalidJson_isCaught() throws Exception {
+            Property property = new Property();
+            property.setId(PROPERTY_ID);
+
+            YieldRule rule = new YieldRule();
+            rule.setName("BadRule");
+            rule.setRuleType(YieldRule.RuleType.DAYS_BEFORE_ARRIVAL);
+            rule.setAdjustmentType(YieldRule.AdjustmentType.PERCENTAGE);
+            rule.setAdjustmentValue(new BigDecimal("10"));
+            rule.setActive(true);
+            rule.setTriggerCondition("{invalid");
+
+            when(yieldRuleRepository.findActiveByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(List.of(rule));
+            when(propertyRepository.findById(PROPERTY_ID))
+                    .thenReturn(Optional.of(property));
+            when(objectMapper.readTree("{invalid"))
+                    .thenThrow(new com.fasterxml.jackson.core.JsonParseException(null, "bad json"));
+
+            // Should not throw
+            advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
+
+            verify(rateOverrideRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("resolveChannelPrice with null base")
+    class ResolveChannelPriceNullBase {
+
+        @Test
+        @DisplayName("returns null when base price is null")
+        void resolveChannelPrice_nullBase_returnsNull() {
+            when(priceEngine.resolvePrice(PROPERTY_ID, DATE, ORG_ID)).thenReturn(null);
+
+            BigDecimal result = advancedRateManager.resolveChannelPrice(
+                    PROPERTY_ID, DATE, ChannelName.BOOKING, ORG_ID);
+
+            assertThat(result).isNull();
+        }
+
+        @Test
+        @DisplayName("with nights+guests, null base returns null")
+        void resolveChannelPriceWithNightsGuests_nullBase_returnsNull() {
+            when(priceEngine.resolvePrice(PROPERTY_ID, DATE, ORG_ID)).thenReturn(null);
+
+            BigDecimal result = advancedRateManager.resolveChannelPrice(
+                    PROPERTY_ID, DATE, ChannelName.BOOKING, 3, 2, ORG_ID);
+
+            assertThat(result).isNull();
+        }
+
+        @Test
+        @DisplayName("with nights+guests, adds occupancy adjustment")
+        void resolveChannelPriceWithNightsGuests_addsOccupancy() {
+            when(priceEngine.resolvePrice(PROPERTY_ID, DATE, ORG_ID)).thenReturn(BASE_PRICE);
+            when(channelRateModifierRepository.findByPropertyIdAndChannel(PROPERTY_ID, ChannelName.BOOKING, ORG_ID))
+                    .thenReturn(List.of());
+            OccupancyPricing pricing = occupancyPricing(2, new BigDecimal("20.00"), 6);
+            when(occupancyPricingRepository.findByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(pricing));
+
+            BigDecimal result = advancedRateManager.resolveChannelPrice(
+                    PROPERTY_ID, DATE, ChannelName.BOOKING, 3, 4, ORG_ID);
+
+            // 100 + (4-2)*20 = 140
+            assertThat(result).isEqualByComparingTo("140.00");
+        }
+    }
+
+    @Nested
+    @DisplayName("resolveChannelPriceRange edge cases")
+    class ResolveChannelPriceRangeEdge {
+
+        @Test
+        @DisplayName("null base price keeps null in result map")
+        void rangeWithNullBase_keepsNullInResult() {
+            LocalDate from = DATE;
+            LocalDate to = DATE.plusDays(2);
+            Map<LocalDate, BigDecimal> basePrices = new LinkedHashMap<>();
+            basePrices.put(DATE, null);
+            basePrices.put(DATE.plusDays(1), new BigDecimal("80.00"));
+
+            when(priceEngine.resolvePriceRange(PROPERTY_ID, from, to, ORG_ID))
+                    .thenReturn(basePrices);
+            when(channelRateModifierRepository.findByPropertyIdAndChannel(PROPERTY_ID, ChannelName.BOOKING, ORG_ID))
+                    .thenReturn(List.of());
+
+            Map<LocalDate, BigDecimal> result = advancedRateManager.resolveChannelPriceRange(
+                    PROPERTY_ID, from, to, ChannelName.BOOKING, ORG_ID);
+
+            assertThat(result.get(DATE)).isNull();
+            assertThat(result.get(DATE.plusDays(1))).isEqualByComparingTo("80.00");
+        }
+    }
+
+    @Nested
+    @DisplayName("calculateLosDiscount edge cases")
+    class CalculateLosDiscountEdge {
+
+        @Test
+        @DisplayName("null total returns ZERO")
+        void nullTotal_returnsZero() {
+            BigDecimal result = advancedRateManager.calculateLosDiscount(PROPERTY_ID, 7, null, ORG_ID);
+            assertThat(result).isEqualByComparingTo("0");
+        }
+
+        @Test
+        @DisplayName("zero nights returns ZERO")
+        void zeroNights_returnsZero() {
+            BigDecimal result = advancedRateManager.calculateLosDiscount(
+                    PROPERTY_ID, 0, new BigDecimal("500"), ORG_ID);
+            assertThat(result).isEqualByComparingTo("0");
+        }
+
+        @Test
+        @DisplayName("negative nights returns ZERO")
+        void negativeNights_returnsZero() {
+            BigDecimal result = advancedRateManager.calculateLosDiscount(
+                    PROPERTY_ID, -1, new BigDecimal("500"), ORG_ID);
+            assertThat(result).isEqualByComparingTo("0");
+        }
+    }
+
+    @Nested
+    @DisplayName("calculateOccupancyAdjustment edge cases")
+    class CalculateOccupancyAdjustmentEdge {
+
+        @Test
+        @DisplayName("zero guests returns ZERO immediately")
+        void zeroGuests_returnsZero() {
+            BigDecimal result = advancedRateManager.calculateOccupancyAdjustment(PROPERTY_ID, 0, ORG_ID);
+            assertThat(result).isEqualByComparingTo("0");
+            verify(occupancyPricingRepository, never()).findByPropertyId(any(), any());
+        }
+
+        @Test
+        @DisplayName("negative guests returns ZERO")
+        void negativeGuests_returnsZero() {
+            BigDecimal result = advancedRateManager.calculateOccupancyAdjustment(PROPERTY_ID, -1, ORG_ID);
+            assertThat(result).isEqualByComparingTo("0");
+        }
     }
 }

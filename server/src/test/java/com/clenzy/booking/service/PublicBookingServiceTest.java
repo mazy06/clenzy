@@ -918,5 +918,192 @@ class PublicBookingServiceTest {
             assertThat(stats.averageRating()).isEqualTo(0.0);
             assertThat(stats.totalCount()).isEqualTo(0L);
         }
+
+        @Test
+        void getReviewStats_byOrg_withRoundedRating() {
+            when(guestReviewRepository.averagePublicRatingByOrgId(ORG_ID)).thenReturn(3.789);
+            when(guestReviewRepository.countPublicByOrgId(ORG_ID)).thenReturn(50L);
+
+            ReviewStatsDto stats = service.getReviewStats(buildCtx(), null);
+
+            assertThat(stats.averageRating()).isEqualTo(3.8);
+            assertThat(stats.totalCount()).isEqualTo(50L);
+        }
+
+        @Test
+        void getReviewStats_byProperty_handlesNullAverage() {
+            when(guestReviewRepository.averagePublicRatingByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(null);
+            when(guestReviewRepository.countPublicByPropertyId(PROPERTY_ID, ORG_ID)).thenReturn(0L);
+
+            ReviewStatsDto stats = service.getReviewStats(buildCtx(), PROPERTY_ID);
+
+            assertThat(stats.averageRating()).isEqualTo(0.0);
+        }
+    }
+
+    // ───────────────────── confirmBookingEngineCheckout — full path ─────────────
+
+    @Nested
+    class ConfirmBookingEngineCheckoutFullPath {
+
+        @Test
+        @DisplayName("creates new reservation when metadata complete + no existing session")
+        void whenCompleteMetadata_thenCreatesReservation() {
+            LocalDate in = LocalDate.now().plusDays(7);
+            LocalDate out = LocalDate.now().plusDays(10);
+            Session s = mock(Session.class);
+            when(s.getId()).thenReturn("cs_new");
+            Map<String, String> metadata = Map.of(
+                    "property_id", PROPERTY_ID.toString(),
+                    "organization_id", ORG_ID.toString(),
+                    "check_in", in.toString(),
+                    "check_out", out.toString(),
+                    "guests", "2"
+            );
+            when(s.getMetadata()).thenReturn(metadata);
+            when(s.getCustomerEmail()).thenReturn("walkin@example.com");
+            com.stripe.model.checkout.Session.CustomerDetails details = mock(com.stripe.model.checkout.Session.CustomerDetails.class);
+            when(details.getName()).thenReturn("Walkin Customer");
+            when(s.getCustomerDetails()).thenReturn(details);
+            when(s.getAmountTotal()).thenReturn(33000L); // 330.00 EUR
+            when(reservationRepository.findByStripeSessionId("cs_new")).thenReturn(Optional.empty());
+            // property + availability dependencies
+            Property p = buildProperty();
+            when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(p));
+            when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(buildOrg()));
+            when(configRepository.findAllByOrganizationId(ORG_ID))
+                    .thenReturn(List.of(buildConfig(true)));
+            when(restrictionEngine.validate(any(), any(), any(), any()))
+                    .thenReturn(RestrictionEngine.ValidationResult.valid());
+            when(calendarDayRepository.countConflicts(any(), any(), any(), any())).thenReturn(0L);
+            Map<LocalDate, BigDecimal> priceMap = Map.of(
+                    in, new BigDecimal("100.00"),
+                    in.plusDays(1), new BigDecimal("100.00"),
+                    in.plusDays(2), new BigDecimal("100.00"));
+            when(priceEngine.resolvePriceRange(any(), any(), any(), any())).thenReturn(priceMap);
+            Guest guest = new Guest();
+            guest.setId(1L);
+            when(guestService.findOrCreate(anyString(), anyString(), anyString(), any(),
+                    eq(GuestChannel.DIRECT), any(), eq(ORG_ID))).thenReturn(guest);
+            when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(777L);
+                return r;
+            });
+
+            service.confirmBookingEngineCheckout(s);
+
+            verify(reservationRepository).save(any(Reservation.class));
+            verify(calendarEngine).book(eq(PROPERTY_ID), eq(in), eq(out),
+                    eq(777L), eq(ORG_ID), eq("direct"), eq("booking-engine-webhook"));
+            verify(stripeService).confirmReservationPayment("cs_new");
+        }
+
+        @Test
+        @DisplayName("logs warn when availability says false but still creates reservation")
+        void whenConflictAfterPayment_thenCreatesReservationAndLogs() {
+            LocalDate in = LocalDate.now().plusDays(5);
+            LocalDate out = LocalDate.now().plusDays(8);
+            Session s = mock(Session.class);
+            when(s.getId()).thenReturn("cs_conflict");
+            when(s.getMetadata()).thenReturn(Map.of(
+                    "property_id", PROPERTY_ID.toString(),
+                    "organization_id", ORG_ID.toString(),
+                    "check_in", in.toString(),
+                    "check_out", out.toString(),
+                    "guests", "2"));
+            when(s.getCustomerEmail()).thenReturn("c@e.com");
+            when(s.getAmountTotal()).thenReturn(33000L);
+            when(reservationRepository.findByStripeSessionId("cs_conflict")).thenReturn(Optional.empty());
+
+            Property p = buildProperty();
+            when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(p));
+            when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(buildOrg()));
+            when(configRepository.findAllByOrganizationId(ORG_ID))
+                    .thenReturn(List.of(buildConfig(true)));
+            when(restrictionEngine.validate(any(), any(), any(), any()))
+                    .thenReturn(RestrictionEngine.ValidationResult.valid());
+            // Simulate conflict
+            when(calendarDayRepository.countConflicts(any(), any(), any(), any())).thenReturn(2L);
+
+            Guest g = new Guest();
+            g.setId(2L);
+            when(guestService.findOrCreate(anyString(), anyString(), anyString(), any(),
+                    eq(GuestChannel.DIRECT), any(), eq(ORG_ID))).thenReturn(g);
+            when(reservationRepository.save(any())).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(888L);
+                return r;
+            });
+
+            service.confirmBookingEngineCheckout(s);
+
+            // Should still save the reservation (in DEGRADED mode)
+            verify(reservationRepository).save(any());
+        }
+
+        @Test
+        @DisplayName("throws when property not found in metadata flow")
+        void whenPropertyMissing_thenThrows() {
+            Session s = mock(Session.class);
+            when(s.getId()).thenReturn("cs_pmiss");
+            when(s.getMetadata()).thenReturn(Map.of(
+                    "property_id", "9999",
+                    "organization_id", ORG_ID.toString(),
+                    "check_in", LocalDate.now().plusDays(5).toString(),
+                    "check_out", LocalDate.now().plusDays(8).toString(),
+                    "guests", "2"));
+            when(reservationRepository.findByStripeSessionId("cs_pmiss")).thenReturn(Optional.empty());
+            when(propertyRepository.findBookingEngineProperty(9999L, ORG_ID)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.confirmBookingEngineCheckout(s))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("introuvable");
+        }
+    }
+
+    // ───────────────────── reserveBatch — multi-currency ────────────────────────
+
+    @Nested
+    class ReserveBatchMultiCurrency {
+
+        @Test
+        @DisplayName("throws when items have different currencies")
+        void whenMultipleCurrencies_thenThrows() {
+            LocalDate in = LocalDate.now().plusDays(7);
+            LocalDate out = LocalDate.now().plusDays(10);
+
+            Property p1 = buildProperty();
+            p1.setDefaultCurrency("EUR");
+            Property p2 = buildProperty();
+            p2.setId(PROPERTY_ID + 1);
+            p2.setDefaultCurrency("USD");
+
+            lenient().when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(p1));
+            lenient().when(propertyRepository.findBookingEngineProperty(PROPERTY_ID + 1, ORG_ID))
+                    .thenReturn(Optional.of(p2));
+            lenient().when(restrictionEngine.validate(any(), any(), any(), any()))
+                    .thenReturn(RestrictionEngine.ValidationResult.valid());
+            lenient().when(calendarDayRepository.countConflicts(any(), any(), any(), any()))
+                    .thenReturn(0L);
+            lenient().when(priceEngine.resolvePriceRange(any(), any(), any(), any()))
+                    .thenReturn(Map.of(in, new BigDecimal("100.00")));
+
+            BookingReserveBatchRequestDto.Item it1 = new BookingReserveBatchRequestDto.Item(
+                    PROPERTY_ID, in, out, 2, null);
+            BookingReserveBatchRequestDto.Item it2 = new BookingReserveBatchRequestDto.Item(
+                    PROPERTY_ID + 1, in, out, 2, null);
+            BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(
+                    List.of(it1, it2),
+                    new BookingReserveRequestDto.GuestInfo("J", "j@x.com", null));
+
+            assertThatThrownBy(() -> service.reserveBatch(buildCtx(), req))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("meme devise");
+        }
     }
 }
