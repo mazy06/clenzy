@@ -908,4 +908,281 @@ class EmailServiceTest {
             verify(mailSender, times(1)).send(any(MimeMessage.class));
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // sendWelcomeEmail tests (catches exception silently)
+    // ═══════════════════════════════════════════════════════════════
+
+    @Nested
+    class SendWelcomeEmailTests {
+
+        @Test
+        void whenValidInput_thenSendsWithBrandedSubject() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendWelcomeEmail("new@example.com", "Alice", "Martin",
+                    "HOST", "https://app.clenzy.fr/login");
+
+            verify(mailSender).send(mimeMessage);
+            assertThat(mimeMessage.getSubject()).contains("Bienvenue sur Clenzy");
+            assertThat(mimeMessage.getAllRecipients()[0].toString()).contains("new@example.com");
+        }
+
+        @Test
+        void whenMailSenderThrows_thenSwallowedSilently() {
+            // sendWelcomeEmail catches and never propagates (user creation should not fail on email)
+            when(mailSender.createMimeMessage()).thenReturn(createRealMimeMessage());
+            doThrow(new RuntimeException("SMTP down")).when(mailSender).send(any(MimeMessage.class));
+
+            assertThatCode(() -> emailService.sendWelcomeEmail(
+                    "x@y.z", "X", "Y", "MEMBER", "http://localhost"))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        void whenNullRoleName_thenStillSends() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendWelcomeEmail("a@b.c", "F", "L", null, "http://x");
+
+            verify(mailSender).send(mimeMessage);
+        }
+
+        @Test
+        void whenMailSenderNull_thenDoesNotThrow() {
+            when(mailSenderProvider.getIfAvailable()).thenReturn(null);
+            EmailService svc = new EmailService(mailSenderProvider, systemEmailTemplateService,
+                    templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
+            ReflectionTestUtils.setField(svc, "fromAddress", "info@clenzy.fr");
+
+            assertThatCode(() -> svc.sendWelcomeEmail("a@b.c", "F", "L", "HOST", "http://x"))
+                    .doesNotThrowAnyException();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // sendInscriptionConfirmationEmail tests
+    // ═══════════════════════════════════════════════════════════════
+
+    @Nested
+    class SendInscriptionConfirmationEmailTests {
+
+        @Test
+        void whenValidInput_thenSendsConfirmationLink() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendInscriptionConfirmationEmail(
+                    "newuser@example.com", "John Doe",
+                    "https://app.clenzy.fr/inscription/confirm?token=abc",
+                    LocalDateTime.of(2026, 6, 1, 18, 0));
+
+            verify(mailSender).send(mimeMessage);
+            assertThat(mimeMessage.getSubject()).contains("Confirmez votre inscription");
+            assertThat(mimeMessage.getAllRecipients()[0].toString()).contains("newuser@example.com");
+        }
+
+        @Test
+        void whenNullExpiresAt_thenUsesDefault() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            assertThatCode(() -> emailService.sendInscriptionConfirmationEmail(
+                    "x@y.z", "Jane", "http://link", null))
+                    .doesNotThrowAnyException();
+
+            verify(mailSender).send(mimeMessage);
+        }
+
+        @Test
+        void whenMailSendThrows_thenWrapsInRuntime() {
+            when(mailSender.createMimeMessage()).thenReturn(createRealMimeMessage());
+            doThrow(new org.springframework.mail.MailSendException("smtp down"))
+                    .when(mailSender).send(any(MimeMessage.class));
+
+            assertThatThrownBy(() -> emailService.sendInscriptionConfirmationEmail(
+                    "x@y.z", "Jane", "http://link", LocalDateTime.now().plusHours(72)))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("Erreur d'envoi de l'email de confirmation");
+        }
+
+        @Test
+        void whenMailSenderNull_thenWrapsInRuntime() {
+            when(mailSenderProvider.getIfAvailable()).thenReturn(null);
+            EmailService svc = new EmailService(mailSenderProvider, systemEmailTemplateService,
+                    templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
+            ReflectionTestUtils.setField(svc, "fromAddress", "info@clenzy.fr");
+
+            assertThatThrownBy(() -> svc.sendInscriptionConfirmationEmail(
+                    "x@y.z", "Jane", "http://link", null))
+                    .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // sendSimpleHtmlEmail tests
+    // ═══════════════════════════════════════════════════════════════
+
+    @Nested
+    class SendSimpleHtmlEmailTests {
+
+        @Test
+        void whenValidInput_thenSendsHtmlEmail() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendSimpleHtmlEmail("dest@example.com", "Reset password",
+                    "<p>Click <a href='http://x'>here</a></p>");
+
+            verify(mailSender).send(mimeMessage);
+            assertThat(mimeMessage.getSubject()).isEqualTo("Reset password");
+        }
+
+        @Test
+        void whenSubjectContainsCrLf_thenSanitized() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendSimpleHtmlEmail("dest@example.com",
+                    "Title\r\nBcc: attacker@evil.com", "<p>body</p>");
+
+            verify(mailSender).send(mimeMessage);
+            assertThat(mimeMessage.getSubject()).doesNotContain("\r").doesNotContain("\n");
+        }
+
+        @Test
+        void whenSendThrowsMailException_thenWrappedInRuntime() {
+            when(mailSender.createMimeMessage()).thenReturn(createRealMimeMessage());
+            doThrow(new org.springframework.mail.MailSendException("SMTP refused"))
+                    .when(mailSender).send(any(MimeMessage.class));
+
+            assertThatThrownBy(() -> emailService.sendSimpleHtmlEmail(
+                    "dest@example.com", "Subject", "<p>body</p>"))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("Erreur d'envoi de l'email");
+        }
+
+        @Test
+        void whenMailSenderNull_thenRuntime() {
+            when(mailSenderProvider.getIfAvailable()).thenReturn(null);
+            EmailService svc = new EmailService(mailSenderProvider, systemEmailTemplateService,
+                    templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
+            ReflectionTestUtils.setField(svc, "fromAddress", "info@clenzy.fr");
+
+            assertThatThrownBy(() -> svc.sendSimpleHtmlEmail("x@y.z", "S", "<p>b</p>"))
+                    .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Maintenance — urgency banner branches (urgent / normal / planifie)
+    // ═══════════════════════════════════════════════════════════════
+
+    @Nested
+    class MaintenanceUrgencyBannerTests {
+
+        @ParameterizedTest
+        @ValueSource(strings = {"urgent", "normal", "planifie"})
+        void whenUrgencyValueProvided_thenEmailSentWithoutError(String urgency) {
+            when(mailSender.createMimeMessage()).thenReturn(createRealMimeMessage());
+
+            assertThatCode(() -> emailService.sendMaintenanceNotification(
+                    buildMaintenanceRequestDto(urgency))).doesNotThrowAnyException();
+
+            verify(mailSender, atLeastOnce()).send(any(MimeMessage.class));
+        }
+
+        @Test
+        void whenWithCustomNeedAndDescription_thenContainsBothInBody() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            MaintenanceRequestDto dto = buildMaintenanceRequestDto("urgent");
+            dto.setCustomNeed("Custom work request");
+            dto.setDescription("Long description here");
+            dto.setPostalCode("75002");
+
+            emailService.sendMaintenanceNotification(dto);
+
+            verify(mailSender).send(mimeMessage);
+        }
+
+        @Test
+        void whenAllOptionalFieldsNull_thenSendsWithoutError() {
+            when(mailSender.createMimeMessage()).thenReturn(createRealMimeMessage());
+
+            MaintenanceRequestDto dto = new MaintenanceRequestDto();
+            dto.setFullName("Min");
+            dto.setEmail("min@example.com");
+            dto.setUrgency("urgent");
+            dto.setSelectedWorks(List.of("fuite-eau"));
+
+            assertThatCode(() -> emailService.sendMaintenanceNotification(dto))
+                    .doesNotThrowAnyException();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // getLabel — null+empty key, escaping
+    // ═══════════════════════════════════════════════════════════════
+
+    @Nested
+    class GetLabelEdgeCases {
+
+        @Test
+        void getLabel_withNullAndEmptyArguments() throws Exception {
+            java.lang.reflect.Method m = EmailService.class.getDeclaredMethod("getLabel",
+                    java.util.Map.class, String.class);
+            m.setAccessible(true);
+            java.util.Map<String, String> labels = java.util.Map.of("k", "<v>");
+            assertThat((String) m.invoke(emailService, labels, "k")).isEqualTo("&lt;v&gt;");
+            assertThat((String) m.invoke(emailService, labels, null)).isEqualTo("Non renseigné");
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // sendContactMessage — sanitizeFileName branches
+    // ═══════════════════════════════════════════════════════════════
+
+    @Nested
+    class SendContactMessageAdvancedTests {
+
+        @Test
+        void whenAttachmentWithoutContentType_thenDefaultsToOctetStream() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            MultipartFile mockFile = mock(MultipartFile.class);
+            when(mockFile.isEmpty()).thenReturn(false);
+            when(mockFile.getOriginalFilename()).thenReturn("file.bin");
+            when(mockFile.getContentType()).thenReturn(null);
+            when(mockFile.getBytes()).thenReturn(new byte[]{1, 2, 3});
+            when(mockFile.getSize()).thenReturn(3L);
+
+            String result = emailService.sendContactMessage(
+                    "dest@x.com", "Dest", "rt@x.com", "Sender",
+                    "S", "Hi", List.of(mockFile));
+
+            assertThat(result).isNotNull();
+            verify(mailSender).send(mimeMessage);
+        }
+
+        @Test
+        void whenAttachmentEmpty_thenSkipped() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            MultipartFile empty = mock(MultipartFile.class);
+            when(empty.isEmpty()).thenReturn(true);
+
+            String result = emailService.sendContactMessage(
+                    "dest@x.com", "Dest", "rt@x.com", "Sender",
+                    "S", "Hi", List.of(empty));
+
+            assertThat(result).isNotNull();
+            verify(mailSender).send(mimeMessage);
+        }
+    }
 }

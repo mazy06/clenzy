@@ -243,4 +243,238 @@ class TenantFilterTest {
         JwtAuthenticationToken auth = new JwtAuthenticationToken(jwt);
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
+
+    // ─── Additional coverage ─────────────────────────────────────────────
+
+    @Test
+    void doFilter_webhookEndpoint_skipsFilter() throws Exception {
+        setupJwtAuth("some-user");
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/webhooks/stripe");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        tenantFilter.doFilter(request, response, filterChain);
+
+        verify(userRepository, never()).findByKeycloakId(anyString());
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    void doFilter_authEndpoint_skipsFilter() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/auth/refresh");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        tenantFilter.doFilter(request, response, filterChain);
+
+        verify(userRepository, never()).findByKeycloakId(anyString());
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    void doFilter_publicEndpoint_skipsFilter() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/public/landing");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        tenantFilter.doFilter(request, response, filterChain);
+
+        verify(userRepository, never()).findByKeycloakId(anyString());
+    }
+
+    @Test
+    void doFilter_swaggerUi_skipsFilter() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/swagger-ui/index.html");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        tenantFilter.doFilter(request, response, filterChain);
+
+        verify(userRepository, never()).findByKeycloakId(anyString());
+    }
+
+    @Test
+    void doFilter_apiDocs_skipsFilter() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/v3/api-docs");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        tenantFilter.doFilter(request, response, filterChain);
+
+        verify(userRepository, never()).findByKeycloakId(anyString());
+    }
+
+    @Test
+    void doFilter_apiHealth_skipsFilter() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/health");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        tenantFilter.doFilter(request, response, filterChain);
+
+        verify(userRepository, never()).findByKeycloakId(anyString());
+    }
+
+    @Test
+    void doFilter_userWithNullOrg_nonStaff_attemptsFallback() throws Exception {
+        String keycloakId = "no-org-user";
+        Long defaultOrgId = 7L;
+        setupJwtAuth(keycloakId);
+
+        User user = new User("No", "Org", "no@org.com", "p");
+        user.setOrganizationId(null);
+        user.setRole(UserRole.HOST); // not staff
+
+        when(valueOperations.get("tenant:" + keycloakId)).thenReturn(null);
+        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(user));
+
+        Organization org = new Organization("Default", OrganizationType.INDIVIDUAL, "default");
+        org.setId(defaultOrgId);
+        when(organizationRepository.findAll()).thenReturn(List.of(org));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setRequestURI("/api/properties");
+
+        Long[] capturedOrgId = {null};
+        doAnswer(inv -> {
+            capturedOrgId[0] = tenantContext.getOrganizationId();
+            return null;
+        }).when(filterChain).doFilter(any(), any());
+
+        tenantFilter.doFilter(request, response, filterChain);
+
+        assertEquals(defaultOrgId, capturedOrgId[0]);
+    }
+
+    @Test
+    void doFilter_userIsSystemOrg_skipsHibernateFilter() throws Exception {
+        String keycloakId = "system-user";
+        Long orgId = 5L;
+        setupJwtAuth(keycloakId);
+
+        User user = new User("Sys", "User", "sys@sys.com", "p");
+        user.setOrganizationId(orgId);
+        user.setRole(UserRole.HOST);
+
+        Organization systemOrg = new Organization("System", OrganizationType.SYSTEM, "system");
+        systemOrg.setId(orgId);
+
+        when(valueOperations.get("tenant:" + keycloakId)).thenReturn(null);
+        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(user));
+        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(systemOrg));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setRequestURI("/api/properties");
+
+        Boolean[] capturedSystem = {null};
+        doAnswer(inv -> {
+            capturedSystem[0] = tenantContext.isSystemOrg();
+            return null;
+        }).when(filterChain).doFilter(any(), any());
+
+        tenantFilter.doFilter(request, response, filterChain);
+
+        assertTrue(capturedSystem[0]);
+        // SYSTEM org: no Hibernate filter
+        verify(session, never()).enableFilter("organizationFilter");
+    }
+
+    @Test
+    void doFilter_orgLookupThrows_doesNotCrash() throws Exception {
+        String keycloakId = "kc-id";
+        setupJwtAuth(keycloakId);
+
+        User user = new User("Test", "User", "t@t.com", "p");
+        user.setOrganizationId(1L);
+        user.setRole(UserRole.HOST);
+
+        when(valueOperations.get("tenant:" + keycloakId)).thenReturn(null);
+        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(user));
+        when(organizationRepository.findById(1L))
+                .thenThrow(new RuntimeException("DB error"));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setRequestURI("/api/properties");
+
+        // Should not throw
+        tenantFilter.doFilter(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    void doFilter_cacheReadThrows_fallsBackToDbLookup() throws Exception {
+        String keycloakId = "kc-cache-err";
+        Long orgId = 3L;
+        setupJwtAuth(keycloakId);
+
+        when(valueOperations.get("tenant:" + keycloakId))
+                .thenThrow(new RuntimeException("Redis down"));
+
+        User user = new User("U", "U", "u@u.com", "p");
+        user.setOrganizationId(orgId);
+        user.setRole(UserRole.HOST);
+        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(user));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setRequestURI("/api/properties");
+
+        Long[] capturedOrgId = {null};
+        doAnswer(inv -> {
+            capturedOrgId[0] = tenantContext.getOrganizationId();
+            return null;
+        }).when(filterChain).doFilter(any(), any());
+
+        tenantFilter.doFilter(request, response, filterChain);
+
+        assertEquals(orgId, capturedOrgId[0]);
+    }
+
+    @Test
+    void doFilter_cachedSuperAdmin_noHibernateFilter() throws Exception {
+        String keycloakId = "kc-admin-cached";
+        setupJwtAuth(keycloakId);
+        // cached as super admin
+        TenantFilter.TenantInfo cached = new TenantFilter.TenantInfo(null, true, false);
+        when(valueOperations.get("tenant:" + keycloakId)).thenReturn(cached);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setRequestURI("/api/properties");
+
+        Boolean[] capturedSuper = {null};
+        doAnswer(inv -> {
+            capturedSuper[0] = tenantContext.isSuperAdmin();
+            return null;
+        }).when(filterChain).doFilter(any(), any());
+
+        tenantFilter.doFilter(request, response, filterChain);
+
+        assertTrue(capturedSuper[0]);
+        verify(userRepository, never()).findByKeycloakId(anyString());
+    }
+
+    @Test
+    void doFilter_userNotInDbNoFallback_skipsResolution() throws Exception {
+        String keycloakId = "no-db-user";
+        setupJwtAuth(keycloakId);
+
+        when(valueOperations.get("tenant:" + keycloakId)).thenReturn(null);
+        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.empty());
+        // 0 or > 1 orgs prevents fallback
+        when(organizationRepository.findAll()).thenReturn(List.of());
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setRequestURI("/api/properties");
+
+        tenantFilter.doFilter(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+    }
 }

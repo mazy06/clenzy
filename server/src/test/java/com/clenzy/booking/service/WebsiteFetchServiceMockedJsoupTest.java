@@ -10,6 +10,7 @@ import org.mockito.MockedStatic;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
@@ -42,8 +43,8 @@ class WebsiteFetchServiceMockedJsoupTest {
         lenient().when(c.userAgent(anyString())).thenReturn(c);
         lenient().when(c.timeout(anyInt())).thenReturn(c);
         lenient().when(c.maxBodySize(anyInt())).thenReturn(c);
-        lenient().when(c.followRedirects(true)).thenReturn(c);
-        lenient().when(c.ignoreContentType(true)).thenReturn(c);
+        lenient().when(c.followRedirects(anyBoolean())).thenReturn(c);
+        lenient().when(c.ignoreContentType(anyBoolean())).thenReturn(c);
         lenient().when(c.get()).thenReturn(doc);
         return c;
     }

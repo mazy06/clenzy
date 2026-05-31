@@ -467,4 +467,52 @@ class AuditLogServiceTest {
             service.logCreate("Test", "1", "details");
         }
     }
+
+    @Nested
+    @DisplayName("logAction(action, ..., source, organizationId) — overload with explicit orgId")
+    class LogActionExplicitOrg {
+
+        @Test
+        @DisplayName("uses explicit organizationId instead of TenantContext")
+        void whenExplicitOrg_thenStoredOnAudit() {
+            // Arrange
+            tenantContext.setOrganizationId(null); // simulate non-HTTP context (scheduler, kafka)
+
+            // Act
+            service.logAction(AuditAction.SYNC, "Booking", "B-1",
+                    null, null, "Synced", AuditSource.AIRBNB_SYNC, 999L);
+
+            // Assert
+            AuditLog saved = captureLog();
+            assertThat(saved.getOrganizationId()).isEqualTo(999L);
+            assertThat(saved.getAction()).isEqualTo(AuditAction.SYNC);
+            assertThat(saved.getSource()).isEqualTo(AuditSource.AIRBNB_SYNC);
+        }
+
+        @Test
+        @DisplayName("accepts null organizationId without throwing")
+        void whenNullOrgId_thenStoresNull() {
+            // Act
+            service.logAction(AuditAction.EXPORT, "X", "1", null, null,
+                    "Background export", AuditSource.ADMIN, null);
+
+            // Assert
+            AuditLog saved = captureLog();
+            assertThat(saved.getOrganizationId()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("logAction tenant enrichment")
+    class TenantEnrichment {
+
+        @Test
+        @DisplayName("set organizationId from TenantContext when standard logAction called")
+        void whenTenantSet_thenOrgIdPropagated() {
+            service.logCreate("Foo", "1", "create");
+
+            AuditLog saved = captureLog();
+            assertThat(saved.getOrganizationId()).isEqualTo(ORG_ID);
+        }
+    }
 }

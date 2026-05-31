@@ -449,4 +449,182 @@ class UserControllerTest {
             verify(userRepository).save(user);
         }
     }
+
+    @Nested
+    @DisplayName("updateMyProfile")
+    class UpdateMyProfile {
+
+        @Test
+        @DisplayName("updates phoneNumber when present")
+        void whenPhoneNumberPresent_thenUpdates() {
+            User user = buildUser(1L, "kc-123", "jean@test.com");
+            when(userRepository.findByKeycloakId("kc-123")).thenReturn(Optional.of(user));
+            Jwt jwt = buildJwt("kc-123", false);
+
+            ResponseEntity<?> response = controller.updateMyProfile(
+                    Map.of("phoneNumber", "+33612345678"), jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(user.getPhoneNumber()).isEqualTo("+33612345678");
+            verify(userRepository).save(user);
+        }
+
+        @Test
+        @DisplayName("when body missing phoneNumber - just saves (no update)")
+        void whenNoPhoneNumber_thenJustSaves() {
+            User user = buildUser(1L, "kc-123", "jean@test.com");
+            when(userRepository.findByKeycloakId("kc-123")).thenReturn(Optional.of(user));
+            Jwt jwt = buildJwt("kc-123", false);
+
+            ResponseEntity<?> response = controller.updateMyProfile(Map.of(), jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(userRepository).save(user);
+        }
+
+        @Test
+        @DisplayName("throws when user not found")
+        void whenUserNotFound_thenThrows() {
+            when(userRepository.findByKeycloakId("kc-bad")).thenReturn(Optional.empty());
+            Jwt jwt = buildJwt("kc-bad", false);
+
+            assertThatThrownBy(() -> controller.updateMyProfile(Map.of(), jwt))
+                    .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("deleteSelf")
+    class DeleteSelf {
+
+        @Test
+        @DisplayName("removes device tokens and deletes user")
+        void whenUserFound_thenDeletesAll() {
+            User user = buildUser(1L, "kc-123", "jean@test.com");
+            when(userRepository.findByKeycloakId("kc-123")).thenReturn(Optional.of(user));
+            Jwt jwt = buildJwt("kc-123", false);
+
+            controller.deleteSelf(jwt);
+
+            verify(deviceTokenService).removeAllForUser("kc-123");
+            verify(userService).delete(1L);
+        }
+
+        @Test
+        @DisplayName("throws IllegalArgumentException when user not found")
+        void whenUserNotFound_thenThrows() {
+            when(userRepository.findByKeycloakId("kc-bad")).thenReturn(Optional.empty());
+            Jwt jwt = buildJwt("kc-bad", false);
+
+            assertThatThrownBy(() -> controller.deleteSelf(jwt))
+                    .isInstanceOf(IllegalArgumentException.class);
+            verify(userService, never()).delete(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("getMyMarketingPreferences error path")
+    class GetMyPrefsErrors {
+        @Test
+        @DisplayName("throws when user not found")
+        void whenUserNotFound_thenThrows() {
+            when(userRepository.findByKeycloakId("kc-bad")).thenReturn(Optional.empty());
+            Jwt jwt = buildJwt("kc-bad", false);
+
+            assertThatThrownBy(() -> controller.getMyMarketingPreferences(jwt))
+                    .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("uploadProfilePicture & deleteProfilePicture & getProfilePicture")
+    class ProfilePictures {
+
+        @Test
+        @DisplayName("upload : owner can upload and returns dto")
+        void uploadProfilePicture_owner_returnsDto() {
+            User user = buildUser(1L, "kc-123", "jean@test.com");
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            Jwt jwt = buildJwt("kc-123", false);
+
+            org.springframework.web.multipart.MultipartFile file =
+                    mock(org.springframework.web.multipart.MultipartFile.class);
+            UserDto dto = new UserDto();
+            dto.id = 1L;
+            when(userService.uploadProfilePicture(1L, file)).thenReturn(dto);
+
+            UserDto result = controller.uploadProfilePicture(1L, file, jwt);
+
+            assertThat(result.id).isEqualTo(1L);
+        }
+
+        @Test
+        @DisplayName("upload : non-owner non-admin throws AccessDeniedException")
+        void uploadProfilePicture_nonOwner_throws() {
+            User user = buildUser(1L, "kc-other", "other@test.com");
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            Jwt jwt = buildJwt("kc-intruder", false);
+            org.springframework.web.multipart.MultipartFile file =
+                    mock(org.springframework.web.multipart.MultipartFile.class);
+
+            assertThatThrownBy(() -> controller.uploadProfilePicture(1L, file, jwt))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        }
+
+        @Test
+        @DisplayName("upload : IllegalArgumentException -> 400")
+        void uploadProfilePicture_invalidFile_returnsBadRequest() {
+            User user = buildUser(1L, "kc-123", "jean@test.com");
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            Jwt jwt = buildJwt("kc-123", false);
+            org.springframework.web.multipart.MultipartFile file =
+                    mock(org.springframework.web.multipart.MultipartFile.class);
+            when(userService.uploadProfilePicture(1L, file))
+                    .thenThrow(new IllegalArgumentException("File too big"));
+
+            assertThatThrownBy(() -> controller.uploadProfilePicture(1L, file, jwt))
+                    .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        }
+
+        @Test
+        @DisplayName("delete : owner can delete and returns dto")
+        void deleteProfilePicture_owner_returnsDto() {
+            User user = buildUser(1L, "kc-123", "jean@test.com");
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            Jwt jwt = buildJwt("kc-123", false);
+            UserDto dto = new UserDto();
+            dto.id = 1L;
+            when(userService.deleteProfilePicture(1L)).thenReturn(dto);
+
+            UserDto result = controller.deleteProfilePicture(1L, jwt);
+
+            assertThat(result.id).isEqualTo(1L);
+        }
+
+        @Test
+        @DisplayName("get : not found -> 404")
+        void getProfilePicture_notFound_returns404() {
+            when(userService.streamProfilePicture(1L)).thenReturn(null);
+
+            ResponseEntity<org.springframework.core.io.Resource> response =
+                    controller.getProfilePicture(1L);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(404);
+        }
+
+        @Test
+        @DisplayName("get : returns resource with content type")
+        void getProfilePicture_found_returnsResource() {
+            org.springframework.core.io.Resource resource =
+                    mock(org.springframework.core.io.Resource.class);
+            when(userService.streamProfilePicture(1L))
+                    .thenReturn(new Object[]{resource, "image/jpeg"});
+
+            ResponseEntity<org.springframework.core.io.Resource> response =
+                    controller.getProfilePicture(1L);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isSameAs(resource);
+        }
+    }
 }
