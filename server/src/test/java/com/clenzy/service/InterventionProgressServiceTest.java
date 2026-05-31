@@ -21,6 +21,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -180,6 +181,172 @@ class InterventionProgressServiceTest {
             assertThatThrownBy(() -> service.updateCompletedSteps(1L, longPayload, jwt))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("10 000");
+        }
+    }
+
+    @Nested
+    @DisplayName("updateProgress - error paths")
+    class UpdateProgressErrors {
+
+        @Test
+        @DisplayName("throws NotFound when intervention missing")
+        void whenInterventionNotFound_throwsNotFound() {
+            Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
+            when(interventionRepository.findById(42L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.updateProgress(42L, 30, jwt))
+                    .isInstanceOf(com.clenzy.exception.NotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("updateNotes - happy path & errors")
+    class UpdateNotes {
+
+        @Test
+        @DisplayName("updates notes when intervention is IN_PROGRESS")
+        void whenInProgress_thenUpdates() throws Exception {
+            Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
+            Intervention iv = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(iv));
+            when(interventionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(interventionMapper.convertToResponse(any()))
+                    .thenReturn(buildResultResponse(1L, "IN_PROGRESS", "Test"));
+
+            service.updateNotes(1L, "Some notes", jwt);
+
+            ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
+            verify(interventionRepository).save(captor.capture());
+            assertThat(captor.getValue().getNotes()).isEqualTo("Some notes");
+        }
+
+        @Test
+        @DisplayName("rejects when intervention is not IN_PROGRESS")
+        void whenNotInProgress_throws() {
+            Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
+            Intervention iv = buildIntervention(1L, InterventionStatus.PENDING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(iv));
+
+            assertThatThrownBy(() -> service.updateNotes(1L, "Test", jwt))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("en cours");
+        }
+
+        @Test
+        @DisplayName("throws NotFound when missing")
+        void whenIvMissing_throws() {
+            Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
+            when(interventionRepository.findById(42L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.updateNotes(42L, "x", jwt))
+                    .isInstanceOf(com.clenzy.exception.NotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("updateValidatedRooms")
+    class UpdateValidatedRooms {
+
+        @Test
+        @DisplayName("rejects invalid JSON before opening DB transaction")
+        void whenInvalidJson_throws() throws Exception {
+            Jwt jwt = mock(Jwt.class);
+            when(objectMapper.readTree(anyString()))
+                    .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("bad") {});
+
+            assertThatThrownBy(() -> service.updateValidatedRooms(1L, "not-json", jwt))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("JSON");
+        }
+
+        @Test
+        @DisplayName("updates when JSON valid and intervention IN_PROGRESS")
+        void happyPath_updates() throws Exception {
+            Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
+            Intervention iv = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(iv));
+            when(interventionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(interventionMapper.convertToResponse(any()))
+                    .thenReturn(buildResultResponse(1L, "IN_PROGRESS", "T"));
+            when(objectMapper.readTree(anyString())).thenReturn(null);
+
+            service.updateValidatedRooms(1L, "{\"room\":\"living\"}", jwt);
+
+            ArgumentCaptor<Intervention> cap = ArgumentCaptor.forClass(Intervention.class);
+            verify(interventionRepository).save(cap.capture());
+            assertThat(cap.getValue().getValidatedRooms()).isEqualTo("{\"room\":\"living\"}");
+        }
+
+        @Test
+        @DisplayName("rejects when intervention status not IN_PROGRESS")
+        void whenStatusInvalid_throws() throws Exception {
+            Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
+            Intervention iv = buildIntervention(1L, InterventionStatus.COMPLETED);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(iv));
+            when(objectMapper.readTree(anyString())).thenReturn(null);
+
+            assertThatThrownBy(() -> service.updateValidatedRooms(1L, "{}", jwt))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("en cours");
+        }
+    }
+
+    @Nested
+    @DisplayName("updateCompletedSteps")
+    class UpdateCompletedSteps {
+
+        @Test
+        @DisplayName("rejects invalid JSON")
+        void whenInvalidJson_throws() throws Exception {
+            Jwt jwt = mock(Jwt.class);
+            when(objectMapper.readTree(anyString()))
+                    .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("bad") {});
+
+            assertThatThrownBy(() -> service.updateCompletedSteps(1L, "not-json", jwt))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("JSON");
+        }
+
+        @Test
+        @DisplayName("updates when JSON valid")
+        void happyPath_updates() throws Exception {
+            Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
+            Intervention iv = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(iv));
+            when(interventionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(interventionMapper.convertToResponse(any()))
+                    .thenReturn(buildResultResponse(1L, "IN_PROGRESS", "T"));
+            when(objectMapper.readTree(anyString())).thenReturn(null);
+
+            service.updateCompletedSteps(1L, "[1,2]", jwt);
+
+            ArgumentCaptor<Intervention> cap = ArgumentCaptor.forClass(Intervention.class);
+            verify(interventionRepository).save(cap.capture());
+            assertThat(cap.getValue().getCompletedSteps()).isEqualTo("[1,2]");
+        }
+
+        @Test
+        @DisplayName("throws NotFound when intervention missing")
+        void whenIvMissing_throws() throws Exception {
+            Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
+            when(objectMapper.readTree(anyString())).thenReturn(null);
+            when(interventionRepository.findById(42L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.updateCompletedSteps(42L, "[]", jwt))
+                    .isInstanceOf(com.clenzy.exception.NotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("rejects when status not IN_PROGRESS")
+        void whenStatusInvalid_throws() throws Exception {
+            Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
+            Intervention iv = buildIntervention(1L, InterventionStatus.CANCELLED);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(iv));
+            when(objectMapper.readTree(anyString())).thenReturn(null);
+
+            assertThatThrownBy(() -> service.updateCompletedSteps(1L, "[]", jwt))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("en cours");
         }
     }
 }

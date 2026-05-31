@@ -15,6 +15,7 @@ import com.clenzy.service.agent.multiagent.OrchestratorAgent;
 import com.clenzy.service.agent.multiagent.SpecialistRegistry;
 import com.clenzy.service.agent.multiagent.ToolInvocationSnapshot;
 import com.clenzy.service.agent.prompt.PromptBuilder;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -116,21 +118,26 @@ class AgentOrchestratorMultiAgentTest {
         } catch (Exception ignored) {
             // Acceptable : pas de stub chatProvider pour le mono-agent
         }
-        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any());
+        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any(), any());
     }
 
     @Test
-    void multi_agent_on_with_specialists_uses_multi_agent_path() {
+    void multi_agent_on_with_specialists_uses_multi_agent_path() throws Exception {
         when(specialistRegistry.size()).thenReturn(3);
-        when(multiAgent.orchestrate(anyList(), any(), any(), any())).thenReturn(
-                OrchestratorAgent.OrchestrationResult.success(
-                        "Tu as 5 proprietes.",
-                        List.of("data_analyst → OK"),
-                        List.of(new ToolInvocationSnapshot("list_properties",
-                                "{\"items\":[...]}", "list", false)),
-                        100, 30, 1
-                )
-        );
+        // Le mock simule le streaming : il pousse le texte final fragment par
+        // fragment dans le sink (5eme arg), puis retourne le resultat agrege.
+        when(multiAgent.orchestrate(anyList(), any(), any(), any(), any())).thenAnswer(inv -> {
+            Consumer<String> textSink = inv.getArgument(4);
+            textSink.accept("Tu as 5 ");
+            textSink.accept("proprietes.");
+            return OrchestratorAgent.OrchestrationResult.success(
+                    "Tu as 5 proprietes.",
+                    List.of("data_analyst → OK"),
+                    List.of(new ToolInvocationSnapshot("list_properties",
+                            "{\"items\":[...]}", "list", false)),
+                    100, 30, 1
+            );
+        });
         AgentOrchestrator agent = build(true);
         List<AgentSseEvent> events = new ArrayList<>();
 
@@ -141,12 +148,45 @@ class AgentOrchestratorMultiAgentTest {
         // Fix #2 : verifier que l'historique (List<ChatMessage>) est bien transmis
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<ChatMessage>> historyCaptor = ArgumentCaptor.forClass(List.class);
-        verify(multiAgent).orchestrate(historyCaptor.capture(), any(), any(), any());
+        verify(multiAgent).orchestrate(historyCaptor.capture(), any(), any(), any(), any());
         assertThat(historyCaptor.getValue()).isNotEmpty();
         // chatProvider doit NE PAS etre appele (mono-agent skip)
         verify(chatProvider, never()).streamChat(any(), any());
-        // Events SSE : conversation_created + tool_call_executed + text_delta + done
+        // Events SSE : conversation_created + tool_call_executed + 2 text_delta + done
         assertThat(events).hasSizeGreaterThanOrEqualTo(3);
+        // Streaming progressif : le texte arrive en plusieurs text_delta (pas un
+        // seul bloc), et leur concatenation reconstitue exactement finalText.
+        List<AgentSseEvent> textDeltas = events.stream()
+                .filter(e -> "text_delta".equals(e.type())).toList();
+        assertThat(textDeltas).hasSizeGreaterThanOrEqualTo(2);
+        String streamed = textDeltas.stream().map(AgentSseEvent::delta).reduce("", String::concat);
+        assertThat(streamed).isEqualTo("Tu as 5 proprietes.");
+
+        // Persistance des widgets : le message assistant doit stocker les widgets
+        // dans tool_calls (JSON) sous la MEME forme que le shape SSE, sinon ils
+        // disparaissent au reload (parseToolCallsJsonSafe ne trouve rien).
+        ArgumentCaptor<com.clenzy.model.AssistantMessage> msgCaptor =
+                ArgumentCaptor.forClass(com.clenzy.model.AssistantMessage.class);
+        verify(msgRepo, atLeastOnce()).save(msgCaptor.capture());
+        List<com.clenzy.model.AssistantMessage> assistantMsgs = msgCaptor.getAllValues().stream()
+                .filter(m -> "assistant".equals(m.getRole())).toList();
+        assertThat(assistantMsgs).hasSize(1);
+        String persistedJson = assistantMsgs.get(0).getToolCalls();
+        assertThat(persistedJson).isNotNull();
+
+        JsonNode widgets = new ObjectMapper().readTree(persistedJson);
+        assertThat(widgets.isArray()).isTrue();
+        assertThat(widgets).hasSize(1);
+        JsonNode widget = widgets.get(0);
+        assertThat(widget.get("toolName").asText()).isEqualTo("list_properties");
+        assertThat(widget.get("displayHint").asText()).isEqualTo("list");
+        assertThat(widget.get("toolError").asBoolean()).isFalse();
+        assertThat(widget.get("toolResult").asText()).isEqualTo("{\"items\":[...]}");
+        // Le toolCallId persiste == celui streame en SSE (meme widget des deux cotes).
+        AgentSseEvent toolEvent = events.stream()
+                .filter(e -> "tool_call_executed".equals(e.type())).findFirst().orElseThrow();
+        assertThat(widget.get("toolCallId").asText()).isEqualTo(toolEvent.toolCallId());
+        assertThat(toolEvent.toolCallId()).startsWith("ma-");
     }
 
     @Test
@@ -161,13 +201,13 @@ class AgentOrchestratorMultiAgentTest {
             // Acceptable
         }
         // Multi-agent SKIP car size==0
-        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any());
+        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any(), any());
     }
 
     @Test
     void multi_agent_throws_falls_back_to_mono_agent() {
         when(specialistRegistry.size()).thenReturn(3);
-        when(multiAgent.orchestrate(anyList(), any(), any(), any())).thenThrow(new RuntimeException("BOOM"));
+        when(multiAgent.orchestrate(anyList(), any(), any(), any(), any())).thenThrow(new RuntimeException("BOOM"));
         AgentOrchestrator agent = build(true);
         List<AgentSseEvent> events = new ArrayList<>();
 
@@ -177,7 +217,7 @@ class AgentOrchestratorMultiAgentTest {
             // Le fallback mono-agent va aussi failler (pas de chatProvider stub),
             // mais l'important : multi-agent a ete appele puis on a fallback
         }
-        verify(multiAgent).orchestrate(anyList(), any(), any(), any());
+        verify(multiAgent).orchestrate(anyList(), any(), any(), any(), any());
         // Le fallback essaie d'appeler chatProvider (mono-agent)
         verify(chatProvider).streamChat(any(), any());
     }
@@ -185,7 +225,7 @@ class AgentOrchestratorMultiAgentTest {
     @Test
     void multi_agent_returns_error_falls_back_to_mono_agent() {
         when(specialistRegistry.size()).thenReturn(3);
-        when(multiAgent.orchestrate(anyList(), any(), any(), any())).thenReturn(
+        when(multiAgent.orchestrate(anyList(), any(), any(), any(), any())).thenReturn(
                 OrchestratorAgent.OrchestrationResult.error("LLM unavailable")
         );
         AgentOrchestrator agent = build(true);
@@ -195,7 +235,7 @@ class AgentOrchestratorMultiAgentTest {
             agent.handleMessage(null, "test", AgentContext.minimal(1L, "user-multi"), events::add);
         } catch (Exception ignored) {
         }
-        verify(multiAgent).orchestrate(anyList(), any(), any(), any());
+        verify(multiAgent).orchestrate(anyList(), any(), any(), any(), any());
         verify(chatProvider).streamChat(any(), any());
     }
 
@@ -214,7 +254,7 @@ class AgentOrchestratorMultiAgentTest {
         } catch (Exception ignored) {
         }
         // Multi-agent skip car vision pas supportee
-        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any());
+        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any(), any());
     }
 
     @Test
@@ -225,7 +265,7 @@ class AgentOrchestratorMultiAgentTest {
         // intercepter specifiquement (log info, pas warn) et basculer mono-agent
         // qui exposera la confirmation au user via SSE.
         when(specialistRegistry.size()).thenReturn(3);
-        when(multiAgent.orchestrate(anyList(), any(), any(), any()))
+        when(multiAgent.orchestrate(anyList(), any(), any(), any(), any()))
                 .thenThrow(new ConfirmationRequiredException("cancel_reservation"));
         AgentOrchestrator agent = build(true);
         List<AgentSseEvent> events = new ArrayList<>();
@@ -237,7 +277,7 @@ class AgentOrchestratorMultiAgentTest {
             // Mono-agent fallback essaie chatProvider sans stub → OK d'ignorer
         }
         // Multi-agent a bien ete invoque (et a throw)
-        verify(multiAgent).orchestrate(anyList(), any(), any(), any());
+        verify(multiAgent).orchestrate(anyList(), any(), any(), any(), any());
         // Mono-agent (chatProvider) prend le relai → preuve du fallback
         verify(chatProvider).streamChat(any(), any());
     }
@@ -261,7 +301,7 @@ class AgentOrchestratorMultiAgentTest {
             // Acceptable : pas de stub chatProvider pour le mono-agent
         }
         // Multi-agent SKIP car modelOverride force le mono-agent (briefings preserves)
-        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any());
+        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any(), any());
         // Le mono-agent est bien sollicite (chatProvider appelle streamChat)
         verify(chatProvider).streamChat(any(), any());
     }

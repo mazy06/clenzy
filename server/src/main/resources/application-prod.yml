@@ -154,6 +154,12 @@ sentry:
   in-app-includes: com.clenzy
 
 clenzy:
+  # Assistant IA — bascule multi-agent (orchestrator + specialists ≤10 tools
+  # chacun) plutot que le mono-agent (27 tools en bloc). Active en prod apres
+  # correction du streaming v1. Kill switch sans redeploy via la variable d'env.
+  assistant:
+    multi-agent:
+      enabled: ${ASSISTANT_MULTI_AGENT_ENABLED:true}
   # Channex — Channel Manager middleware (100+ OTAs)
   channex:
     base-url: ${CHANNEX_BASE_URL:https://app.channex.io/api/v1}

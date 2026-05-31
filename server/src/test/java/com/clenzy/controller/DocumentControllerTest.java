@@ -267,4 +267,207 @@ class DocumentControllerTest {
             assertThat(response.getStatusCode().value()).isEqualTo(500);
         }
     }
+
+    // ============= EXTENDED =============
+
+    @Nested
+    @DisplayName("templates - getTemplate/update/upload/replace")
+    class TemplateOperations {
+        @Test
+        void whenGetTemplate_thenReturnsDto() {
+            com.clenzy.model.DocumentTemplate template = new com.clenzy.model.DocumentTemplate();
+            template.setId(1L);
+            template.setName("Test");
+            template.setDocumentType(DocumentType.DEVIS);
+            when(generatorService.getTemplate(1L)).thenReturn(template);
+
+            ResponseEntity<DocumentTemplateDto> response = controller.getTemplate(1L);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenUploadTemplate_thenReturns201() {
+            Jwt jwt = createJwt();
+            org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
+                    "file", "doc.odt", "application/vnd.oasis.opendocument.text", "fake".getBytes());
+
+            com.clenzy.model.DocumentTemplate template = new com.clenzy.model.DocumentTemplate();
+            template.setId(1L);
+            template.setName("New");
+            template.setDocumentType(DocumentType.DEVIS);
+            when(generatorService.uploadTemplate(any(), eq("New"), any(), eq("DEVIS"), any(), any(), any(), eq(jwt)))
+                .thenReturn(template);
+
+            ResponseEntity<DocumentTemplateDto> response = controller.uploadTemplate(
+                    jwt, file, "New", null, "DEVIS", null, null, null);
+            assertThat(response.getStatusCode().value()).isEqualTo(201);
+        }
+
+        @Test
+        void whenUpdateTemplate_thenDelegates() {
+            com.clenzy.model.DocumentTemplate template = new com.clenzy.model.DocumentTemplate();
+            template.setId(1L);
+            template.setName("Updated");
+            template.setDocumentType(DocumentType.DEVIS);
+            when(generatorService.updateTemplate(eq(1L), eq("Updated"), any(), any(), any(), any()))
+                .thenReturn(template);
+
+            ResponseEntity<DocumentTemplateDto> response = controller.updateTemplate(1L,
+                    new DocumentController.UpdateTemplateRequest("Updated", null, null, null, null));
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenReplaceTemplateFile_thenDelegates() {
+            org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
+                    "file", "doc.odt", "application/vnd.oasis.opendocument.text", "fake".getBytes());
+
+            com.clenzy.model.DocumentTemplate template = new com.clenzy.model.DocumentTemplate();
+            template.setId(1L);
+            template.setName("T");
+            template.setDocumentType(DocumentType.DEVIS);
+            when(generatorService.replaceTemplateFile(eq(1L), any())).thenReturn(template);
+
+            ResponseEntity<DocumentTemplateDto> response = controller.replaceTemplateFile(1L, file);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+    }
+
+    @Nested
+    @DisplayName("download template original / preview")
+    class TemplateDownloads {
+        @Test
+        void whenDownloadOriginal_thenReturnsBytes() {
+            com.clenzy.model.DocumentTemplate template = new com.clenzy.model.DocumentTemplate();
+            template.setId(1L);
+            template.setOriginalFilename("template.odt");
+            when(generatorService.getTemplate(1L)).thenReturn(template);
+            when(generatorService.getTemplateOriginalContent(1L)).thenReturn(new byte[]{1, 2, 3});
+
+            ResponseEntity<byte[]> response = controller.downloadTemplateOriginal(1L);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).hasSize(3);
+        }
+
+        @Test
+        void whenDownloadOriginalNoFilename_thenDefault() {
+            com.clenzy.model.DocumentTemplate template = new com.clenzy.model.DocumentTemplate();
+            template.setId(1L);
+            template.setOriginalFilename(null);
+            when(generatorService.getTemplate(1L)).thenReturn(template);
+            when(generatorService.getTemplateOriginalContent(1L)).thenReturn(new byte[]{1});
+
+            ResponseEntity<byte[]> response = controller.downloadTemplateOriginal(1L);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenPreviewTemplate_thenReturnsPdfBytes() {
+            com.clenzy.model.DocumentTemplate template = new com.clenzy.model.DocumentTemplate();
+            template.setId(1L);
+            template.setName("My Template");
+            when(generatorService.getTemplate(1L)).thenReturn(template);
+            when(generatorService.generateTemplatePreview(1L)).thenReturn(new byte[]{1, 2, 3});
+
+            ResponseEntity<byte[]> response = controller.previewTemplate(1L);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getHeaders().getFirst("Content-Type")).isEqualTo("application/pdf");
+        }
+    }
+
+    @Nested
+    @DisplayName("getGenerationsByReference")
+    class GetGenerationsByReference {
+        @Test
+        void whenInvalidReferenceType_thenThrowsValidation() {
+            Jwt jwt = createJwt();
+            try {
+                controller.getGenerationsByReference(jwt, "INVALID_TYPE", 1L);
+                org.assertj.core.api.Assertions.fail("Should have thrown");
+            } catch (DocumentValidationException e) {
+                assertThat(e.getMessage()).contains("Type de reference inconnu");
+            }
+        }
+
+        @Test
+        void whenValidReferenceType_thenReturnsList() {
+            Jwt jwt = createJwt();
+            jwt = org.springframework.security.oauth2.jwt.Jwt.withTokenValue("token")
+                    .header("alg", "RS256")
+                    .claim("sub", "user-123")
+                    .claim("realm_access", java.util.Map.of("roles", java.util.List.of("SUPER_ADMIN")))
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build();
+            when(generatorService.getGenerationsByReference(any(), eq(1L)))
+                .thenReturn(List.of());
+
+            ResponseEntity<List<DocumentGenerationDto>> response =
+                    controller.getGenerationsByReference(jwt, "INTERVENTION", 1L);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+    }
+
+    @Nested
+    @DisplayName("getGenerationByLegalNumber / createCorrective")
+    class LegalNumberAndCorrective {
+        @Test
+        void whenGetByLegalNumber_thenReturnsDto() {
+            DocumentGeneration gen = new DocumentGeneration();
+            gen.setLegalNumber("INV-2026-001");
+            when(generatorService.getGenerationByLegalNumber("INV-2026-001")).thenReturn(gen);
+
+            ResponseEntity<DocumentGenerationDto> response = controller.getGenerationByLegalNumber("INV-2026-001");
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenCreateCorrective_thenReturns201AndMarks() {
+            Jwt jwt = createJwt();
+            GenerateDocumentRequest request = new GenerateDocumentRequest("AVOIR", 1L, "INTERVENTION", null, false);
+            DocumentGenerationDto result = new DocumentGenerationDto(2L, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null);
+            when(generatorService.generateDocument(request, jwt)).thenReturn(result);
+
+            ResponseEntity<DocumentGenerationDto> response = controller.createCorrectiveDocument(1L, jwt, request);
+            assertThat(response.getStatusCode().value()).isEqualTo(201);
+            verify(complianceService).markAsCorrection(2L, 1L);
+        }
+    }
+
+    @Nested
+    @DisplayName("listGenerations - pagination clamping")
+    class PaginationClamping {
+        @Test
+        void whenPageNegative_thenClampedToZero() {
+            org.springframework.data.domain.Page<DocumentGenerationDto> page =
+                new org.springframework.data.domain.PageImpl<>(List.of());
+            when(generatorService.listGenerations(any())).thenReturn(page);
+
+            ResponseEntity<org.springframework.data.domain.Page<DocumentGenerationDto>> response =
+                controller.listGenerations(-5, 20);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenSizeOver100_thenClampedTo100() {
+            org.springframework.data.domain.Page<DocumentGenerationDto> page =
+                new org.springframework.data.domain.PageImpl<>(List.of());
+            when(generatorService.listGenerations(any())).thenReturn(page);
+
+            ResponseEntity<org.springframework.data.domain.Page<DocumentGenerationDto>> response =
+                controller.listGenerations(0, 9999);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenSizeZero_thenClampedTo1() {
+            org.springframework.data.domain.Page<DocumentGenerationDto> page =
+                new org.springframework.data.domain.PageImpl<>(List.of());
+            when(generatorService.listGenerations(any())).thenReturn(page);
+
+            ResponseEntity<org.springframework.data.domain.Page<DocumentGenerationDto>> response =
+                controller.listGenerations(0, 0);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+    }
 }

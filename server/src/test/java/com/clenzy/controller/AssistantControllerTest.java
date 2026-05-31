@@ -301,6 +301,149 @@ class AssistantControllerTest {
         assertEquals("image/jpeg", ok.getHeaders().getContentType().toString());
     }
 
+    // ============= EXTENDED =============
+
+    @org.junit.jupiter.api.Nested
+    class BriefingPrefsEndpoint {
+
+        @org.junit.jupiter.api.Test
+        void getBriefingPrefs_withExistingPref_returnsPref() {
+            com.clenzy.service.agent.briefing.AssistantBriefingPrefService prefService =
+                mock(com.clenzy.service.agent.briefing.AssistantBriefingPrefService.class);
+            com.clenzy.service.agent.briefing.BriefingComposer composer =
+                mock(com.clenzy.service.agent.briefing.BriefingComposer.class);
+            com.clenzy.service.agent.briefing.BriefingDelivery delivery =
+                mock(com.clenzy.service.agent.briefing.BriefingDelivery.class);
+            controller = new AssistantController(orchestrator, convRepo, msgRepo, tenantContext,
+                new ObjectMapper(), photoStorageService, prefService, composer, delivery);
+
+            com.clenzy.model.AssistantBriefingPref pref = new com.clenzy.model.AssistantBriefingPref(1L, "user-123");
+            pref.setEnabled(true);
+            pref.setFrequencyEnum(com.clenzy.model.AssistantBriefingPref.Frequency.DAILY_MORNING);
+            pref.setTimeLocal(java.time.LocalTime.of(9, 0));
+            pref.setTimezone("Europe/Paris");
+
+            when(prefService.get("user-123")).thenReturn(Optional.of(pref));
+            when(prefService.parseChannels(pref)).thenReturn(List.of("in_app"));
+
+            ResponseEntity<Map<String, Object>> response = controller.getBriefingPrefs(jwt);
+
+            assertEquals(200, response.getStatusCode().value());
+            assertEquals(true, response.getBody().get("enabled"));
+            assertEquals("09:00", response.getBody().get("timeLocal"));
+        }
+
+        @org.junit.jupiter.api.Test
+        void getBriefingPrefs_noPref_returnsDefault() {
+            com.clenzy.service.agent.briefing.AssistantBriefingPrefService prefService =
+                mock(com.clenzy.service.agent.briefing.AssistantBriefingPrefService.class);
+            controller = new AssistantController(orchestrator, convRepo, msgRepo, tenantContext,
+                new ObjectMapper(), photoStorageService, prefService,
+                mock(com.clenzy.service.agent.briefing.BriefingComposer.class),
+                mock(com.clenzy.service.agent.briefing.BriefingDelivery.class));
+
+            com.clenzy.model.AssistantBriefingPref defaultPref =
+                new com.clenzy.model.AssistantBriefingPref(1L, "user-123");
+            defaultPref.setFrequencyEnum(com.clenzy.model.AssistantBriefingPref.Frequency.DAILY_MORNING);
+            defaultPref.setTimezone("Europe/Paris");
+
+            when(prefService.get("user-123")).thenReturn(Optional.empty());
+            when(prefService.getDefaultPrefs(1L, "user-123")).thenReturn(defaultPref);
+            when(prefService.parseChannels(defaultPref)).thenReturn(List.of("in_app"));
+
+            ResponseEntity<Map<String, Object>> response = controller.getBriefingPrefs(jwt);
+
+            assertEquals(200, response.getStatusCode().value());
+            // default time
+            assertEquals("08:00", response.getBody().get("timeLocal"));
+        }
+
+        @org.junit.jupiter.api.Test
+        void updateBriefingPrefs_withValidBody_upsertsAndReturnsDto() {
+            com.clenzy.service.agent.briefing.AssistantBriefingPrefService prefService =
+                mock(com.clenzy.service.agent.briefing.AssistantBriefingPrefService.class);
+            controller = new AssistantController(orchestrator, convRepo, msgRepo, tenantContext,
+                new ObjectMapper(), photoStorageService, prefService,
+                mock(com.clenzy.service.agent.briefing.BriefingComposer.class),
+                mock(com.clenzy.service.agent.briefing.BriefingDelivery.class));
+
+            com.clenzy.model.AssistantBriefingPref pref = new com.clenzy.model.AssistantBriefingPref(1L, "user-123");
+            pref.setEnabled(true);
+            pref.setFrequencyEnum(com.clenzy.model.AssistantBriefingPref.Frequency.DAILY_MORNING);
+            pref.setTimezone("Europe/Paris");
+            when(prefService.upsert(eq(1L), eq("user-123"), anyBoolean(), any(), any(), any(), anyString()))
+                .thenReturn(pref);
+            when(prefService.parseChannels(any())).thenReturn(List.of("in_app"));
+
+            AssistantController.BriefingPrefsBody body = new AssistantController.BriefingPrefsBody(
+                true, "daily_morning", List.of("in_app"), "09:30", "Europe/Paris");
+
+            ResponseEntity<Map<String, Object>> response = controller.updateBriefingPrefs(body, jwt);
+
+            assertEquals(200, response.getStatusCode().value());
+        }
+
+        @org.junit.jupiter.api.Test
+        void updateBriefingPrefs_invalidTimeLocal_throws() {
+            com.clenzy.service.agent.briefing.AssistantBriefingPrefService prefService =
+                mock(com.clenzy.service.agent.briefing.AssistantBriefingPrefService.class);
+            controller = new AssistantController(orchestrator, convRepo, msgRepo, tenantContext,
+                new ObjectMapper(), photoStorageService, prefService,
+                mock(com.clenzy.service.agent.briefing.BriefingComposer.class),
+                mock(com.clenzy.service.agent.briefing.BriefingDelivery.class));
+
+            AssistantController.BriefingPrefsBody body = new AssistantController.BriefingPrefsBody(
+                true, "daily_morning", List.of("in_app"), "not-a-time", "Europe/Paris");
+
+            assertThrows(IllegalArgumentException.class, () -> controller.updateBriefingPrefs(body, jwt));
+        }
+
+        @org.junit.jupiter.api.Test
+        void triggerBriefing_composerReturnsNull_returns503() {
+            com.clenzy.service.agent.briefing.AssistantBriefingPrefService prefService =
+                mock(com.clenzy.service.agent.briefing.AssistantBriefingPrefService.class);
+            com.clenzy.service.agent.briefing.BriefingComposer composer =
+                mock(com.clenzy.service.agent.briefing.BriefingComposer.class);
+            controller = new AssistantController(orchestrator, convRepo, msgRepo, tenantContext,
+                new ObjectMapper(), photoStorageService, prefService, composer,
+                mock(com.clenzy.service.agent.briefing.BriefingDelivery.class));
+
+            com.clenzy.model.AssistantBriefingPref pref = new com.clenzy.model.AssistantBriefingPref(1L, "user-123");
+            when(prefService.get("user-123")).thenReturn(Optional.of(pref));
+            when(composer.compose(pref)).thenReturn(null);
+
+            ResponseEntity<Map<String, Object>> response = controller.triggerBriefing(jwt);
+            assertEquals(503, response.getStatusCode().value());
+        }
+
+        @org.junit.jupiter.api.Test
+        void triggerBriefing_success_dispatchesAndReturnsConvoId() {
+            com.clenzy.service.agent.briefing.AssistantBriefingPrefService prefService =
+                mock(com.clenzy.service.agent.briefing.AssistantBriefingPrefService.class);
+            com.clenzy.service.agent.briefing.BriefingComposer composer =
+                mock(com.clenzy.service.agent.briefing.BriefingComposer.class);
+            com.clenzy.service.agent.briefing.BriefingDelivery delivery =
+                mock(com.clenzy.service.agent.briefing.BriefingDelivery.class);
+            controller = new AssistantController(orchestrator, convRepo, msgRepo, tenantContext,
+                new ObjectMapper(), photoStorageService, prefService, composer, delivery);
+
+            com.clenzy.model.AssistantBriefingPref pref = new com.clenzy.model.AssistantBriefingPref(1L, "user-123");
+            when(prefService.get("user-123")).thenReturn(Optional.of(pref));
+            com.clenzy.service.agent.briefing.BriefingComposer.BriefingResult composeResult =
+                mock(com.clenzy.service.agent.briefing.BriefingComposer.BriefingResult.class);
+            when(composeResult.conversationId()).thenReturn(99L);
+            when(composer.compose(pref)).thenReturn(composeResult);
+            when(prefService.parseChannels(pref)).thenReturn(List.of("in_app", "email"));
+            when(delivery.dispatch(composeResult, "user-123", 1L, List.of("in_app", "email")))
+                .thenReturn(List.of("in_app"));
+
+            ResponseEntity<Map<String, Object>> response = controller.triggerBriefing(jwt);
+            assertEquals(200, response.getStatusCode().value());
+            assertEquals(99L, response.getBody().get("conversationId"));
+            assertEquals(List.of("in_app"), response.getBody().get("delivered"));
+        }
+    }
+
     @SuppressWarnings("unused")
     private static AgentContext unused() {
         return null; // silence l'import non utilise via verifications futures
@@ -308,4 +451,5 @@ class AssistantControllerTest {
 
     private static long anyLong() { return org.mockito.ArgumentMatchers.anyLong(); }
     private static <T> T eq(T value) { return org.mockito.ArgumentMatchers.eq(value); }
+    private static boolean anyBoolean() { return org.mockito.ArgumentMatchers.anyBoolean(); }
 }

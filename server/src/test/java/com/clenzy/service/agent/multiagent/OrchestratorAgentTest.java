@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -83,6 +84,33 @@ class OrchestratorAgentTest {
         assertThat(r.delegationsLog()).isEmpty();
         assertThat(r.totalPromptTokens()).isEqualTo(50);
         assertThat(r.totalCompletionTokens()).isEqualTo(10);
+    }
+
+    @Test
+    void orchestrate_with_sink_forwards_final_turn_text_deltas_live() {
+        // Le tour final emet le texte en 2 fragments : le sink doit les recevoir
+        // au fil de l'eau (streaming progressif), pas en un seul bloc apres coup.
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            consumer.accept(new ChatEvent.TextDelta("Tu as 5 "));
+            consumer.accept(new ChatEvent.TextDelta("proprietes."));
+            consumer.accept(new ChatEvent.Done(50, 10, "claude", "end_turn", "Tu as 5 proprietes."));
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any());
+
+        List<String> received = new ArrayList<>();
+        OrchestratorAgent.OrchestrationResult r = orchestrator.orchestrate(
+                List.of(ChatMessage.user("liste mes biens")),
+                AgentContext.minimal(1L, "kc"),
+                OrchestrationContext.empty(),
+                null,
+                received::add);
+
+        assertThat(r.isSuccess()).isTrue();
+        // Les fragments arrivent en direct, dans l'ordre d'emission.
+        assertThat(received).containsExactly("Tu as 5 ", "proprietes.");
+        // finalText == concatenation des fragments streames (coherence stream/persist).
+        assertThat(r.finalText()).isEqualTo("Tu as 5 proprietes.");
     }
 
     @Test

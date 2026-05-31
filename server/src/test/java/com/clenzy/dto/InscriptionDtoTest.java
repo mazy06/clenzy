@@ -260,4 +260,105 @@ class InscriptionDtoTest {
         dto.setReferralSource(" GOOGLE ");
         assertEquals("google", dto.getReferralSource());
     }
+
+    // --- Additional accessor coverage ---
+
+    @Test
+    void allSettersAndGetters_roundTrip() {
+        InscriptionDto dto = new InscriptionDto();
+        dto.setPhone("+33");
+        dto.setCompanyName("Acme");
+        dto.setOrganizationType("CONCIERGE");
+        dto.setCity("Paris");
+        dto.setPostalCode("75001");
+        dto.setPropertyType("apartment");
+        dto.setPropertyCount(5);
+        dto.setSurface(80);
+        dto.setGuestCapacity(4);
+        dto.setBookingFrequency("often");
+        dto.setCleaningSchedule("weekly");
+        dto.setCalendarSync("ical");
+        dto.setServices(java.util.List.of("cleaning"));
+        dto.setServicesDevis(java.util.List.of("laundry"));
+        dto.setNewsletterOptIn(true);
+
+        assertEquals("+33", dto.getPhone());
+        assertEquals("Acme", dto.getCompanyName());
+        assertEquals("CONCIERGE", dto.getOrganizationType());
+        assertEquals("Paris", dto.getCity());
+        assertEquals("75001", dto.getPostalCode());
+        assertEquals("apartment", dto.getPropertyType());
+        assertEquals(5, dto.getPropertyCount());
+        assertEquals(80, dto.getSurface());
+        assertEquals(4, dto.getGuestCapacity());
+        assertEquals("often", dto.getBookingFrequency());
+        assertEquals("weekly", dto.getCleaningSchedule());
+        assertEquals("ical", dto.getCalendarSync());
+        assertEquals(java.util.List.of("cleaning"), dto.getServices());
+        assertEquals(java.util.List.of("laundry"), dto.getServicesDevis());
+        assertTrue(dto.isNewsletterOptIn());
+    }
+
+    @Test
+    void getOrganizationTypeEnum_validValue() {
+        InscriptionDto dto = new InscriptionDto();
+        dto.setOrganizationType("CONCIERGE");
+        assertEquals(com.clenzy.model.OrganizationType.CONCIERGE, dto.getOrganizationTypeEnum());
+    }
+
+    @Test
+    void getOrganizationTypeEnum_invalidValue_returnsIndividual() {
+        InscriptionDto dto = new InscriptionDto();
+        dto.setOrganizationType("BOGUS");
+        assertEquals(com.clenzy.model.OrganizationType.INDIVIDUAL, dto.getOrganizationTypeEnum());
+    }
+
+    @Test
+    void getOrganizationTypeEnum_null_returnsIndividual() {
+        InscriptionDto dto = new InscriptionDto();
+        dto.setOrganizationType(null);
+        assertEquals(com.clenzy.model.OrganizationType.INDIVIDUAL, dto.getOrganizationTypeEnum());
+    }
+
+    @Test
+    void getOrganizationTypeEnum_blank_returnsIndividual() {
+        InscriptionDto dto = new InscriptionDto();
+        dto.setOrganizationType("");
+        assertEquals(com.clenzy.model.OrganizationType.INDIVIDUAL, dto.getOrganizationTypeEnum());
+    }
+
+    @Test
+    void setPromoCode_null_isNull() {
+        InscriptionDto dto = new InscriptionDto();
+        dto.setPromoCode(null);
+        assertNull(dto.getPromoCode());
+    }
+
+    @Test
+    void setReferralSource_null_isNull() {
+        InscriptionDto dto = new InscriptionDto();
+        dto.setReferralSource(null);
+        assertNull(dto.getReferralSource());
+    }
+
+    @Test
+    void toString_includesKeyFields() {
+        InscriptionDto dto = createValidDto();
+        dto.setCity("Lyon");
+        String s = dto.toString();
+        assertTrue(s.contains("Jean Dupont"));
+        assertTrue(s.contains("jean@example.com"));
+        assertTrue(s.contains("essentiel"));
+        assertTrue(s.contains("Lyon"));
+    }
+
+    @Test
+    void allowedReferralSources_includesAllExpected() {
+        assertTrue(InscriptionDto.ALLOWED_REFERRAL_SOURCES.contains("google"));
+        assertTrue(InscriptionDto.ALLOWED_REFERRAL_SOURCES.contains("social"));
+        assertTrue(InscriptionDto.ALLOWED_REFERRAL_SOURCES.contains("word_of_mouth"));
+        assertTrue(InscriptionDto.ALLOWED_REFERRAL_SOURCES.contains("press"));
+        assertTrue(InscriptionDto.ALLOWED_REFERRAL_SOURCES.contains("partner"));
+        assertTrue(InscriptionDto.ALLOWED_REFERRAL_SOURCES.contains("other"));
+    }
 }

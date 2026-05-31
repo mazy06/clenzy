@@ -253,5 +253,146 @@ class ReservationMapperTest {
             // Original values should be preserved
             assertThat(entity.getGuestName()).isEqualTo("John Doe");
         }
+
+        @Test
+        void whenGuestIdProvidedAndGuestNameMissing_thenUsesGuestFullName() {
+            com.clenzy.model.Guest guest = new com.clenzy.model.Guest();
+            guest.setId(7L);
+            guest.setFirstName("Alice");
+            guest.setLastName("Wonder");
+            when(guestRepository.findById(7L)).thenReturn(Optional.of(guest));
+
+            ReservationDto dto = new ReservationDto(
+                    null, null, null,
+                    null, 7L, null, null,
+                    null, null, null,
+                    null, null, null, null, null,
+                    null, null, null,
+                    null, null, null, null, null, false, null, null, null
+            );
+            Reservation entity = new Reservation();
+            entity.setProperty(createProperty(1L, "Test"));
+
+            mapper.apply(dto, entity);
+
+            assertThat(entity.getGuest()).isEqualTo(guest);
+        }
+
+        @Test
+        void whenGuestIdProvidedAndGuestExists_thenLoadsGuest() {
+            com.clenzy.model.Guest guest = new com.clenzy.model.Guest();
+            guest.setId(7L);
+            when(guestRepository.findById(7L)).thenReturn(Optional.of(guest));
+
+            ReservationDto dto = new ReservationDto(
+                    null, null, null,
+                    "Custom Name", 7L, null, null,
+                    null, null, null, null, null,
+                    null, null, null,
+                    null, null, null,
+                    null, null, null, null, null, false, null, null, null
+            );
+            Reservation entity = new Reservation();
+            entity.setProperty(createProperty(1L, "T"));
+
+            mapper.apply(dto, entity);
+
+            assertThat(entity.getGuest()).isEqualTo(guest);
+            assertThat(entity.getGuestName()).isEqualTo("Custom Name");
+        }
+
+        @Test
+        void whenGuestEmailProvided_thenUpdatesAndSavesGuest() {
+            com.clenzy.model.Guest guest = new com.clenzy.model.Guest();
+            guest.setId(7L);
+            when(guestRepository.findById(7L)).thenReturn(Optional.of(guest));
+
+            ReservationDto dto = new ReservationDto(
+                    null, null, null,
+                    null, 7L, "new@example.com", null,
+                    null, null, null, null, null,
+                    null, null, null,
+                    null, null, null,
+                    null, null, null, null, null, false, null, null, null
+            );
+            Reservation entity = new Reservation();
+            entity.setProperty(createProperty(1L, "T"));
+
+            mapper.apply(dto, entity);
+
+            assertThat(guest.getEmail()).isEqualTo("new@example.com");
+            org.mockito.Mockito.verify(guestRepository).save(guest);
+        }
+
+        @Test
+        void whenGuestPhoneProvided_thenUpdatesAndSavesGuest() {
+            com.clenzy.model.Guest guest = new com.clenzy.model.Guest();
+            guest.setId(7L);
+            when(guestRepository.findById(7L)).thenReturn(Optional.of(guest));
+
+            ReservationDto dto = new ReservationDto(
+                    null, null, null,
+                    null, 7L, null, " +33612345678 ",
+                    null, null, null, null, null,
+                    null, null, null,
+                    null, null, null,
+                    null, null, null, null, null, false, null, null, null
+            );
+            Reservation entity = new Reservation();
+            entity.setProperty(createProperty(1L, "T"));
+
+            mapper.apply(dto, entity);
+
+            assertThat(guest.getPhone()).isEqualTo("+33612345678");
+        }
+    }
+
+    @Nested
+    @DisplayName("toDto - additional fields")
+    class ToDtoAdditional {
+
+        @Test
+        void whenGuestPresent_thenIncludesGuestFields() {
+            com.clenzy.model.Guest guest = new com.clenzy.model.Guest();
+            guest.setId(42L);
+            guest.setEmail("g@example.com");
+            guest.setPhone("+33");
+            Reservation r = createReservation();
+            r.setProperty(createProperty(1L, "T"));
+            r.setGuest(guest);
+
+            ReservationDto dto = mapper.toDto(r);
+
+            assertThat(dto.guestId()).isEqualTo(42L);
+            assertThat(dto.guestEmail()).isEqualTo("g@example.com");
+            assertThat(dto.guestPhone()).isEqualTo("+33");
+        }
+
+        @Test
+        void whenCleaningFeeAndTouristTax_thenIncluded() {
+            Reservation r = createReservation();
+            r.setProperty(createProperty(1L, "T"));
+            r.setCleaningFee(java.math.BigDecimal.valueOf(50));
+            r.setTouristTaxAmount(java.math.BigDecimal.valueOf(10));
+
+            ReservationDto dto = mapper.toDto(r);
+
+            assertThat(dto.cleaningFee()).isEqualTo(50.0);
+            assertThat(dto.touristTaxAmount()).isEqualTo(10.0);
+        }
+
+        @Test
+        void whenPaymentLinkSentAt_thenIncludedAsString() {
+            Reservation r = createReservation();
+            r.setProperty(createProperty(1L, "T"));
+            java.time.LocalDateTime when = java.time.LocalDateTime.of(2026, 1, 1, 0, 0, 0);
+            r.setPaymentLinkSentAt(when);
+            r.setPaymentLinkEmail("p@x.com");
+
+            ReservationDto dto = mapper.toDto(r);
+
+            assertThat(dto.paymentLinkSentAt()).isEqualTo(when.toString());
+            assertThat(dto.paymentLinkEmail()).isEqualTo("p@x.com");
+        }
     }
 }

@@ -136,4 +136,156 @@ class WebhookDispatchServiceTest {
 
         assertEquals(0, count);
     }
+
+    @Test
+    void getAllWebhooks_mapsToDtos() {
+        WebhookConfig w1 = createWebhook("a,b");
+        w1.setId(1L);
+        WebhookConfig w2 = createWebhook("*");
+        w2.setId(2L);
+        when(webhookRepository.findAllByOrgId(ORG_ID)).thenReturn(List.of(w1, w2));
+
+        List<WebhookConfigDto> all = service.getAllWebhooks(ORG_ID);
+
+        assertEquals(2, all.size());
+    }
+
+    @Test
+    void getAllWebhooks_emptyList() {
+        when(webhookRepository.findAllByOrgId(ORG_ID)).thenReturn(List.of());
+
+        assertTrue(service.getAllWebhooks(ORG_ID).isEmpty());
+    }
+
+    @Test
+    void getById_success() {
+        WebhookConfig webhook = createWebhook("a,b");
+        when(webhookRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(webhook));
+
+        WebhookConfigDto dto = service.getById(1L, ORG_ID);
+
+        assertNotNull(dto);
+        assertEquals("https://example.com/webhook", dto.url());
+    }
+
+    @Test
+    void getById_notFound_throws() {
+        when(webhookRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> service.getById(1L, ORG_ID));
+    }
+
+    @Test
+    void pauseWebhook_notFound_throws() {
+        when(webhookRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> service.pauseWebhook(1L, ORG_ID));
+    }
+
+    @Test
+    void resumeWebhook_notFound_throws() {
+        when(webhookRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> service.resumeWebhook(1L, ORG_ID));
+    }
+
+    @Test
+    void dispatchEvent_subscribedButHttpFails_handlesFailure_andSaves() {
+        // URL pointing to unreachable host triggers IOException -> handleFailure
+        WebhookConfig webhook = createWebhook("reservation.created");
+        webhook.setUrl("http://127.0.0.1:1/will-not-connect");
+        when(webhookRepository.findActiveByOrgId(ORG_ID)).thenReturn(List.of(webhook));
+        when(webhookRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        int count = service.dispatchEvent("reservation.created", Map.of("id", 1), ORG_ID);
+
+        // 0 dispatched, but failure tracked
+        assertEquals(0, count);
+        assertNotNull(webhook.getFailureCount());
+        assertTrue(webhook.getFailureCount() >= 1);
+        assertNotNull(webhook.getLastFailureAt());
+        verify(webhookRepository, atLeastOnce()).save(webhook);
+    }
+
+    @Test
+    void dispatchEvent_wildcardSubscription_passesIsSubscribedCheck() {
+        // wildcard "*" matches any event. Sending to unreachable URL still tries to dispatch.
+        WebhookConfig webhook = createWebhook("*");
+        webhook.setUrl("http://127.0.0.1:1/wild");
+        when(webhookRepository.findActiveByOrgId(ORG_ID)).thenReturn(List.of(webhook));
+        when(webhookRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.dispatchEvent("anything.happens", Map.of("x", 1), ORG_ID);
+
+        // Failure path should still call save
+        verify(webhookRepository, atLeastOnce()).save(any());
+    }
+
+    @Test
+    void dispatchEvent_nullEventsField_notSubscribed() {
+        WebhookConfig webhook = createWebhook(null);
+        when(webhookRepository.findActiveByOrgId(ORG_ID)).thenReturn(List.of(webhook));
+
+        int count = service.dispatchEvent("reservation.created", Map.of(), ORG_ID);
+
+        assertEquals(0, count);
+    }
+
+    @Test
+    void dispatchEvent_failureCountIncrementsFromNull() {
+        WebhookConfig webhook = createWebhook("reservation.created");
+        webhook.setUrl("http://127.0.0.1:1/unreachable");
+        webhook.setFailureCount(null);
+        when(webhookRepository.findActiveByOrgId(ORG_ID)).thenReturn(List.of(webhook));
+        when(webhookRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.dispatchEvent("reservation.created", Map.of(), ORG_ID);
+
+        // Null failure count starts at 1
+        assertEquals(1, webhook.getFailureCount());
+    }
+
+    @Test
+    void dispatchEvent_failureCountReachesMax_disablesWebhook() {
+        WebhookConfig webhook = createWebhook("reservation.created");
+        webhook.setUrl("http://127.0.0.1:1/will-fail");
+        // 9 prior failures, this one will be the 10th -> status becomes FAILED
+        webhook.setFailureCount(9);
+        when(webhookRepository.findActiveByOrgId(ORG_ID)).thenReturn(List.of(webhook));
+        when(webhookRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.dispatchEvent("reservation.created", Map.of(), ORG_ID);
+
+        assertEquals(WebhookStatus.FAILED, webhook.getStatus());
+        assertEquals(10, webhook.getFailureCount());
+    }
+
+    @Test
+    void createWebhook_generatesUniqueSecretsAcrossCalls() {
+        CreateWebhookRequest request = new CreateWebhookRequest(
+            "https://example.com/hook", List.of("event"));
+        when(webhookRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        WebhookCreationResult r1 = service.createWebhook(request, ORG_ID);
+        WebhookCreationResult r2 = service.createWebhook(request, ORG_ID);
+
+        assertNotEquals(r1.secret(), r2.secret());
+        assertTrue(r1.secret().startsWith("whsec_"));
+        assertTrue(r2.secret().startsWith("whsec_"));
+    }
+
+    @Test
+    void computeHmac_differentSecretsProduceDifferentOutput() {
+        String hmac1 = service.computeHmac("payload", "secret-A");
+        String hmac2 = service.computeHmac("payload", "secret-B");
+        assertNotEquals(hmac1, hmac2);
+    }
+
+    @Test
+    void computeHmac_returnsHexEncodedDigest() {
+        String hmac = service.computeHmac("abc", "key");
+        // HmacSHA256 hex digest is 64 chars
+        assertEquals(64, hmac.length());
+        assertTrue(hmac.matches("[a-f0-9]+"));
+    }
 }

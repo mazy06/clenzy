@@ -186,5 +186,253 @@ class NewUserServiceTest {
 
             assertThat(service.userExists("kc-1")).isTrue();
         }
+
+        @Test
+        void whenDoesNotExist_returnsFalse() {
+            when(keycloakService.userExists("kc-x")).thenReturn(false);
+
+            assertThat(service.userExists("kc-x")).isFalse();
+        }
+    }
+
+    @Nested
+    class GetAllUserProfiles {
+
+        @Test
+        void whenKeycloakAndDbProvidesUsers_thenMerges() {
+            KeycloakUserDto u1 = buildKeycloakUser("kc-1", "a@test.com", "Alice", "A");
+            KeycloakUserDto u2 = buildKeycloakUser("kc-2", "b@test.com", "Bob", "B");
+            when(keycloakService.getAllUsers()).thenReturn(List.of(u1, u2));
+
+            User bu1 = new User();
+            bu1.setKeycloakId("kc-1");
+            bu1.setRole(UserRole.SUPER_ADMIN);
+            bu1.setStatus(UserStatus.ACTIVE);
+            when(userRepository.findAll()).thenReturn(List.of(bu1));
+
+            List<UserProfileDto> all = service.getAllUserProfiles();
+
+            assertThat(all).hasSize(2);
+            assertThat(all.get(0).getEmail()).isEqualTo("a@test.com");
+            assertThat(all.get(0).getRole()).isEqualTo(UserRole.SUPER_ADMIN);
+            assertThat(all.get(1).getEmail()).isEqualTo("b@test.com");
+            assertThat(all.get(1).getRole()).isNull(); // no DB row
+        }
+
+        @Test
+        void whenKeycloakFails_thenThrowsRuntime() {
+            when(keycloakService.getAllUsers()).thenThrow(new RuntimeException("kc down"));
+
+            assertThatThrownBy(() -> service.getAllUserProfiles())
+                    .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Nested
+    class SearchUsers {
+
+        @Test
+        void whenMatches_thenReturnsMapList() {
+            User u = new User();
+            u.setId(1L);
+            u.setFirstName("John");
+            u.setLastName("Doe");
+            u.setEmail("john@test.com");
+            u.setOrganizationId(42L);
+            when(userRepository.searchByNameOrEmail("john")).thenReturn(List.of(u));
+
+            var result = service.searchUsers("john");
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0)).containsEntry("id", 1L)
+                    .containsEntry("firstName", "John")
+                    .containsEntry("email", "john@test.com")
+                    .containsEntry("organizationId", 42L);
+        }
+
+        @Test
+        void whenNullFields_thenDefaultsToEmpty() {
+            User u = new User();
+            u.setId(1L);
+            // null first/last/email/orgId
+            when(userRepository.searchByNameOrEmail("x")).thenReturn(List.of(u));
+
+            var result = service.searchUsers("x");
+
+            assertThat(result.get(0)).containsEntry("firstName", "")
+                    .containsEntry("lastName", "")
+                    .containsEntry("email", "")
+                    .containsEntry("organizationId", 0L);
+        }
+
+        @Test
+        void whenManyResults_thenLimitsToTwenty() {
+            List<User> many = new java.util.ArrayList<>();
+            for (long i = 0; i < 30; i++) {
+                User u = new User();
+                u.setId(i);
+                many.add(u);
+            }
+            when(userRepository.searchByNameOrEmail("test")).thenReturn(many);
+
+            var result = service.searchUsers("test");
+
+            assertThat(result).hasSize(20);
+        }
+    }
+
+    @Nested
+    class CreateUserAdditional {
+
+        @Test
+        void whenOrganizationIdProvided_addsMember() {
+            CreateUserDto dto = new CreateUserDto();
+            dto.setEmail("new@test.com");
+            dto.setFirstName("Jane");
+            dto.setLastName("Smith");
+            dto.setPassword("pwd");
+            dto.setRole("HOST");
+            dto.setOrganizationId(100L);
+            dto.setOrgRole("OWNER");
+
+            when(keycloakService.createUser(dto)).thenReturn("kc-1");
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+                User u = inv.getArgument(0);
+                u.setId(5L);
+                return u;
+            });
+            KeycloakUserDto kcUser = buildKeycloakUser("kc-1", "new@test.com", "Jane", "Smith");
+            when(keycloakService.getUser("kc-1")).thenReturn(kcUser);
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.empty());
+
+            service.createUser(dto);
+
+            verify(organizationService).addMember(eq(100L), eq(5L), any());
+        }
+
+        @Test
+        void whenOrgRoleNull_defaultsToMember() {
+            CreateUserDto dto = new CreateUserDto();
+            dto.setEmail("x@test.com");
+            dto.setFirstName("X");
+            dto.setLastName("Y");
+            dto.setPassword("pwd");
+            dto.setRole("HOST");
+            dto.setOrganizationId(100L);
+            // orgRole null
+
+            when(keycloakService.createUser(dto)).thenReturn("kc-1");
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+                User u = inv.getArgument(0);
+                u.setId(7L);
+                return u;
+            });
+            KeycloakUserDto kcUser = buildKeycloakUser("kc-1", "x@test.com", "X", "Y");
+            when(keycloakService.getUser("kc-1")).thenReturn(kcUser);
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.empty());
+
+            service.createUser(dto);
+
+            ArgumentCaptor<com.clenzy.model.OrgMemberRole> roleCap =
+                    ArgumentCaptor.forClass(com.clenzy.model.OrgMemberRole.class);
+            verify(organizationService).addMember(eq(100L), eq(7L), roleCap.capture());
+            assertThat(roleCap.getValue()).isEqualTo(com.clenzy.model.OrgMemberRole.MEMBER);
+        }
+
+        @Test
+        void whenKeycloakCreateFails_thenWrapsInRuntime() {
+            CreateUserDto dto = new CreateUserDto();
+            dto.setEmail("x@test.com");
+            dto.setFirstName("X");
+            dto.setLastName("Y");
+            dto.setPassword("pwd");
+            dto.setRole("HOST");
+            when(keycloakService.createUser(dto)).thenThrow(new RuntimeException("kc fail"));
+
+            assertThatThrownBy(() -> service.createUser(dto))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("création");
+        }
+    }
+
+    @Nested
+    class UpdateUserAdditional {
+
+        @Test
+        void whenNoRoleChange_doesNotSaveBusinessUser() {
+            UpdateUserDto dto = new UpdateUserDto();
+            // role null
+
+            User bu = new User();
+            bu.setKeycloakId("kc-1");
+            bu.setRole(UserRole.HOST);
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(bu));
+            KeycloakUserDto kcUser = buildKeycloakUser("kc-1", "t@test.com", "T", "U");
+            when(keycloakService.getUser("kc-1")).thenReturn(kcUser);
+
+            service.updateUser("kc-1", dto);
+
+            verify(keycloakService).updateUser("kc-1", dto);
+            // No save call since role wasn't updated
+            verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        void whenNoBusinessUserExists_thenStillUpdatesKeycloak() {
+            UpdateUserDto dto = new UpdateUserDto();
+            dto.setRole("HOST");
+
+            when(userRepository.findByKeycloakId("kc-99")).thenReturn(Optional.empty());
+            KeycloakUserDto kcUser = buildKeycloakUser("kc-99", "y@test.com", "Y", "Z");
+            when(keycloakService.getUser("kc-99")).thenReturn(kcUser);
+
+            service.updateUser("kc-99", dto);
+
+            verify(keycloakService).updateUser("kc-99", dto);
+            verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        void whenKeycloakFails_thenWrapsRuntime() {
+            UpdateUserDto dto = new UpdateUserDto();
+            doThrow(new RuntimeException("kc")).when(keycloakService).updateUser(any(), any());
+
+            assertThatThrownBy(() -> service.updateUser("kc-1", dto))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("mise");
+        }
+    }
+
+    @Nested
+    class ResetPassword {
+
+        @Test
+        void delegatesToKeycloakService() {
+            service.resetPassword("kc-1", "newPwd");
+
+            verify(keycloakService).resetPassword("kc-1", "newPwd");
+        }
+
+        @Test
+        void whenKeycloakFails_thenWrapsRuntime() {
+            doThrow(new RuntimeException("kc")).when(keycloakService).resetPassword(any(), any());
+
+            assertThatThrownBy(() -> service.resetPassword("kc-1", "p"))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("mot de passe");
+        }
+    }
+
+    @Nested
+    class DeleteUserAdditional {
+
+        @Test
+        void whenKeycloakFails_thenWrapsRuntime() {
+            doThrow(new RuntimeException("kc")).when(keycloakService).deleteUser("kc-1");
+
+            assertThatThrownBy(() -> service.deleteUser("kc-1"))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("suppression");
+        }
     }
 }

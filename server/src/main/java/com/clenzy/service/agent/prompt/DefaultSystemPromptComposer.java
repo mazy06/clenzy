@@ -96,10 +96,18 @@ public class DefaultSystemPromptComposer implements SystemPromptComposer {
 
     @Override
     public String compose(PromptContext context) {
+        return composeSegmented(context).full();
+    }
+
+    @Override
+    public ComposedSystemPrompt composeSegmented(PromptContext context) {
         long startNanos = System.nanoTime();
         try {
             List<PromptSection> sorted = resolveSorted();
-            StringBuilder builder = new StringBuilder(INITIAL_BUILDER_CAPACITY);
+            // Deux groupes : stable (cacheable) puis volatil. Chacun reste trie
+            // par (order, name) grace au tri amont — on ne fait que partitionner.
+            StringBuilder cacheable = new StringBuilder(INITIAL_BUILDER_CAPACITY);
+            StringBuilder volatilePart = new StringBuilder(512);
             int rendered = 0;
             for (PromptSection section : sorted) {
                 if (!section.appliesTo(context)) continue;
@@ -107,13 +115,14 @@ public class DefaultSystemPromptComposer implements SystemPromptComposer {
                 if (content.isEmpty()) continue;
                 String trimmed = content.get().strip();
                 if (trimmed.isEmpty()) continue;
-                if (!builder.isEmpty()) builder.append(SECTION_SEPARATOR);
-                builder.append(trimmed);
+                StringBuilder target = section.cacheable() ? cacheable : volatilePart;
+                if (!target.isEmpty()) target.append(SECTION_SEPARATOR);
+                target.append(trimmed);
                 rendered++;
             }
             // Telemetry : counter pre-build (pas de lookup ConcurrentHashMap a chaque call)
             sectionsRenderedCounter.increment(rendered);
-            return builder.toString();
+            return new ComposedSystemPrompt(cacheable.toString(), volatilePart.toString());
         } finally {
             composeTimer.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
         }

@@ -23,16 +23,16 @@ public class DefaultPromptBuilder implements PromptBuilder {
     }
 
     @Override
-    public String buildChatPrompt(AgentContext agentContext,
-                                    String userMessage,
-                                    List<AssistantMemory> memories,
-                                    List<KbSearchService.KbSearchHit> kbHits) {
+    public ComposedSystemPrompt buildChatPrompt(AgentContext agentContext,
+                                                 String userMessage,
+                                                 List<AssistantMemory> memories,
+                                                 List<KbSearchService.KbSearchHit> kbHits) {
         PromptContext ctx = PromptContext.builder(agentContext, PromptPreset.CHAT)
                 .latestUserMessage(userMessage)
                 .memories(memories)
                 .kbHits(kbHits)
                 .build();
-        return composer.compose(ctx);
+        return composer.composeSegmented(ctx);
     }
 
     @Override

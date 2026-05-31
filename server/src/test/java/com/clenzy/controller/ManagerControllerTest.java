@@ -2,7 +2,9 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.AssignmentRequest;
 import com.clenzy.dto.ManagerAssociationsDto;
+import com.clenzy.dto.ReassignmentRequest;
 import com.clenzy.dto.TeamUserAssignmentRequest;
+import com.clenzy.dto.manager.ReassignmentResultDto;
 import com.clenzy.dto.manager.AssignmentResultDto;
 import com.clenzy.dto.manager.ManagerTeamSummaryDto;
 import com.clenzy.dto.manager.ManagerUserSummaryDto;
@@ -333,5 +335,201 @@ class ManagerControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(100L, response.getBody().propertyId());
         verify(managerService).unassignPropertyFromManager(5L, 100L);
+    }
+
+    // ===================================================================
+    // Extended coverage : reassign + property reassign + unassign edge cases
+    // ===================================================================
+
+    @Test
+    void whenGetManagerProperties_thenReturnsOk() {
+        ManagerAssociationsDto associations = new ManagerAssociationsDto(
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList()
+        );
+        doNothing().when(managerService).validateManagerOwnership(adminJwt, 5L);
+        when(managerService.getManagerAssociations(5L)).thenReturn(associations);
+
+        ResponseEntity<?> response = managerController.getManagerProperties(5L, adminJwt);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(managerService).validateManagerOwnership(adminJwt, 5L);
+    }
+
+    @Test
+    void whenGetManagerTeams_thenReturnsOk() {
+        ManagerAssociationsDto associations = new ManagerAssociationsDto(
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList()
+        );
+        doNothing().when(managerService).validateManagerOwnership(adminJwt, 5L);
+        when(managerService.getManagerAssociations(5L)).thenReturn(associations);
+
+        ResponseEntity<?> response = managerController.getManagerTeams(5L, adminJwt);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    void whenGetManagerUsers_thenReturnsOk() {
+        ManagerAssociationsDto associations = new ManagerAssociationsDto(
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList()
+        );
+        doNothing().when(managerService).validateManagerOwnership(adminJwt, 5L);
+        when(managerService.getManagerAssociations(5L)).thenReturn(associations);
+
+        ResponseEntity<?> response = managerController.getManagerUsers(5L, adminJwt);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    void whenReassignClientNoNewManager_thenBadRequest() {
+        ReassignmentRequest request = new ReassignmentRequest(null, null);
+
+        ResponseEntity<ReassignmentResultDto> response =
+                managerController.reassignClient(10L, request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        verify(managerService, never()).assignClientsAndProperties(anyLong(), any());
+    }
+
+    @Test
+    void whenReassignClientFreshAssignment_thenSucceeds() {
+        ReassignmentRequest request = new ReassignmentRequest(99L, null);
+        AssignmentResultDto result = new AssignmentResultDto("OK", 1, 0, 99L);
+        when(managerService.assignClientsAndProperties(eq(99L), any(AssignmentRequest.class)))
+                .thenReturn(result);
+
+        ResponseEntity<ReassignmentResultDto> response =
+                managerController.reassignClient(10L, request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(99L, response.getBody().newManagerId());
+    }
+
+    @Test
+    void whenReassignClientWithFromNotes_thenUnassignsThenReassigns() {
+        ReassignmentRequest request = new ReassignmentRequest(99L, "from:42");
+        when(managerService.unassignClient(42L, 10L))
+                .thenReturn(new UnassignmentResultDto("OK", 1));
+        AssignmentResultDto result = new AssignmentResultDto("OK", 1, 0, 99L);
+        when(managerService.assignClientsAndProperties(eq(99L), any(AssignmentRequest.class)))
+                .thenReturn(result);
+
+        ResponseEntity<ReassignmentResultDto> response =
+                managerController.reassignClient(10L, request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(managerService).unassignClient(42L, 10L);
+    }
+
+    @Test
+    void whenReassignClientWithBadFromNotes_thenSwallowsError() {
+        ReassignmentRequest request = new ReassignmentRequest(99L, "from:NOT-A-NUMBER");
+        AssignmentResultDto result = new AssignmentResultDto("OK", 1, 0, 99L);
+        when(managerService.assignClientsAndProperties(eq(99L), any(AssignmentRequest.class)))
+                .thenReturn(result);
+
+        ResponseEntity<ReassignmentResultDto> response =
+                managerController.reassignClient(10L, request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    void whenUnassignTeamWithUnknownManager_thenBadRequest() {
+        when(managerService.resolveManagerId("xyz")).thenReturn(Optional.empty());
+
+        ResponseEntity<UnassignmentResultDto> response = managerController.unassignTeam("xyz", 3L);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void whenUnassignUserWithUnknownManager_thenBadRequest() {
+        when(managerService.resolveManagerId("xyz")).thenReturn(Optional.empty());
+
+        ResponseEntity<UnassignmentResultDto> response = managerController.unassignUser("xyz", 20L);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void whenAssignPropertyToUnknownManager_thenBadRequest() {
+        when(managerService.resolveManagerId("xyz")).thenReturn(Optional.empty());
+
+        ResponseEntity<PropertyAssignmentResultDto> response =
+                managerController.assignPropertyToManager("xyz", 100L);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void whenUnassignPropertyFromUnknownManager_thenBadRequest() {
+        when(managerService.resolveManagerId("xyz")).thenReturn(Optional.empty());
+
+        ResponseEntity<PropertyAssignmentResultDto> response =
+                managerController.unassignPropertyFromManager("xyz", 100L);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void whenReassignPropertyNoNewManager_thenBadRequest() {
+        ReassignmentRequest request = new ReassignmentRequest(null, null);
+
+        ResponseEntity<ReassignmentResultDto> response =
+                managerController.reassignPropertyToManager("5", 100L, request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void whenReassignProperty_thenUnassignsAndReassigns() {
+        when(managerService.resolveManagerId("5")).thenReturn(Optional.of(5L));
+        when(managerService.unassignPropertyFromManager(5L, 100L))
+                .thenReturn(new PropertyAssignmentResultDto("OK", 100L));
+        when(managerService.assignPropertyToManager(99L, 100L))
+                .thenReturn(new PropertyAssignmentResultDto("Reassignee", 100L));
+
+        ReassignmentRequest request = new ReassignmentRequest(99L, null);
+        ResponseEntity<ReassignmentResultDto> response =
+                managerController.reassignPropertyToManager("5", 100L, request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(managerService).unassignPropertyFromManager(5L, 100L);
+        verify(managerService).assignPropertyToManager(99L, 100L);
+    }
+
+    @Test
+    void whenReassignProperty_unassignFails_stillReassigns() {
+        when(managerService.resolveManagerId("5")).thenReturn(Optional.of(5L));
+        when(managerService.unassignPropertyFromManager(5L, 100L))
+                .thenThrow(new RuntimeException("not assigned"));
+        when(managerService.assignPropertyToManager(99L, 100L))
+                .thenReturn(new PropertyAssignmentResultDto("OK", 100L));
+
+        ReassignmentRequest request = new ReassignmentRequest(99L, null);
+        ResponseEntity<ReassignmentResultDto> response =
+                managerController.reassignPropertyToManager("5", 100L, request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(managerService).assignPropertyToManager(99L, 100L);
+    }
+
+    @Test
+    void whenReassignProperty_unknownOldManager_skipsUnassign() {
+        when(managerService.resolveManagerId("xxx")).thenReturn(Optional.empty());
+        when(managerService.assignPropertyToManager(99L, 100L))
+                .thenReturn(new PropertyAssignmentResultDto("OK", 100L));
+
+        ReassignmentRequest request = new ReassignmentRequest(99L, null);
+        ResponseEntity<ReassignmentResultDto> response =
+                managerController.reassignPropertyToManager("xxx", 100L, request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(managerService, never()).unassignPropertyFromManager(anyLong(), anyLong());
     }
 }
