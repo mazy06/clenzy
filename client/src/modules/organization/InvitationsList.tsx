@@ -84,6 +84,7 @@ const ACTION_BTN_DANGER_SX = {
   '&.Mui-disabled': { borderColor: 'divider' },
 } as const;
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 interface Props {
   organizationId: number;
@@ -95,6 +96,9 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  // Invitation en attente de confirmation de suppression (modal ouvert si != null).
+  // Remplace l'ancien window.confirm() natif par le composant projet ConfirmationModal.
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
 
   const loadInvitations = async () => {
     setLoading(true);
@@ -129,11 +133,19 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
     }
   };
 
-  const handleDelete = async (invitationId: number) => {
-    if (!window.confirm('Supprimer definitivement cette invitation ?')) return;
-    setActionLoading(invitationId);
+  // Click corbeille -> ouvre le modal de confirmation (sans bloquer le thread comme window.confirm).
+  const handleDelete = (invitationId: number) => {
+    setPendingDeleteId(invitationId);
+  };
+
+  // Confirme la suppression (appelee depuis le ConfirmationModal).
+  const confirmDelete = async () => {
+    if (pendingDeleteId === null) return;
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    setActionLoading(id);
     try {
-      await invitationsApi.cancel(organizationId, invitationId);
+      await invitationsApi.cancel(organizationId, id);
       await loadInvitations();
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
@@ -230,7 +242,12 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
   const CELL_EMAIL_SX = { fontSize: '0.75rem', py: 0.75, px: 1, maxWidth: 0, width: '100%' } as const;
   const CELL_ACTIONS_SX = { ...CELL_SX, fontWeight: 600, pr: 1.25 } as const;
 
+  // Invitation associee au modal pour personnaliser le message (email destinataire).
+  const pendingInvitation =
+    pendingDeleteId !== null ? invitations.find((i) => i.id === pendingDeleteId) ?? null : null;
+
   return (
+    <>
     <TableContainer sx={{ overflowX: 'hidden' }}>
       <Table size="small" sx={{ tableLayout: 'auto', width: '100%' }}>
         <TableHead>
@@ -360,5 +377,22 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
         </TableBody>
       </Table>
     </TableContainer>
+
+    <ConfirmationModal
+      open={pendingDeleteId !== null}
+      onClose={() => setPendingDeleteId(null)}
+      onConfirm={confirmDelete}
+      title="Supprimer cette invitation ?"
+      message={
+        pendingInvitation
+          ? `L'invitation envoyee a ${pendingInvitation.invitedEmail} sera definitivement supprimee. Cette action est irreversible.`
+          : 'Cette invitation sera definitivement supprimee. Cette action est irreversible.'
+      }
+      severity="error"
+      confirmText="Supprimer"
+      cancelText="Annuler"
+      loading={actionLoading !== null && actionLoading === pendingDeleteId}
+    />
+    </>
   );
 }
