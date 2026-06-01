@@ -683,6 +683,12 @@ public class EmailService {
             message.setHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
             message.setHeader("Auto-Submitted", "auto-generated");
             message.setHeader("X-Auto-Response-Suppress", "All");
+            // Brevo SMTP-specifique : desactive le pixel de tracking d'ouverture
+            // injecte automatiquement (image 1x1 sans alt, penalise par SpamAssassin
+            // a -0.5). Si Brevo ne respecte pas ce header, le tracking devra etre
+            // desactive globalement dans le dashboard Brevo (Settings -> Tracking).
+            message.setHeader("X-Mailin-Track-Opens", "0");
+            message.setHeader("X-Mailin-Track-Clicks", "0");
         } catch (MessagingException e) {
             log.warn("Impossible d'ajouter les headers deliverability: {}", e.getMessage());
         }
