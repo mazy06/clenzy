@@ -4,6 +4,7 @@ import com.clenzy.dto.IntegrationPartnerDto;
 import com.clenzy.model.IntegrationPartner.IntegrationCategory;
 import com.clenzy.service.MarketplaceService;
 import com.clenzy.tenant.TenantContext;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/marketplace")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
 public class MarketplaceController {
 
     private final MarketplaceService marketplaceService;

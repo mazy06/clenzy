@@ -8,6 +8,7 @@ import com.clenzy.config.ai.ToolDescriptor;
 import com.clenzy.service.agent.ToolHandler;
 import com.clenzy.service.agent.ToolRegistry;
 import com.clenzy.service.agent.ToolResult;
+import com.clenzy.service.agent.prompt.PromptSecurityGuidance;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -129,6 +130,11 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                 produire la reponse user finale.
                 </output>
                 """.formatted(name(), domain(), domain()));
+
+        // Garde anti-injection : les specialistes executent des tools dont les
+        // resultats (messages/notes de guests, avis...) peuvent contenir des
+        // pseudo-instructions. Rappeler de les traiter comme de la donnee.
+        sb.append('\n').append(PromptSecurityGuidance.block());
 
         return sb.toString();
     }

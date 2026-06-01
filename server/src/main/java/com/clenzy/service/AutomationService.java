@@ -54,6 +54,9 @@ public class AutomationService {
     @Transactional
     public AutomationTriggerDto createTrigger(String name, AutomationPlatform platform,
                                                AutomationEvent event, String callbackUrl, Long orgId) {
+        // Garde SSRF : refuser un callback interne / non-HTTPS avant de le stocker.
+        ICalUrlValidator.validateAndResolve(callbackUrl);
+
         ExternalAutomation trigger = new ExternalAutomation();
         trigger.setOrganizationId(orgId);
         trigger.setTriggerName(name);
@@ -92,6 +95,9 @@ public class AutomationService {
 
         for (ExternalAutomation trigger : triggers) {
             try {
+                // Garde SSRF (defense en profondeur, couvre les callbacks deja stockes).
+                ICalUrlValidator.validateAndResolve(trigger.getCallbackUrl());
+
                 String body = objectMapper.writeValueAsString(Map.of(
                     "trigger", event.name(),
                     "platform", trigger.getPlatform().name(),

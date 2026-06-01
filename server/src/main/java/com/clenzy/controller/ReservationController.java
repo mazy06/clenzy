@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.InterventionResponse;
 import com.clenzy.dto.ReservationDto;
 import com.clenzy.exception.NotFoundException;
+import com.clenzy.util.StringUtils;
 import com.clenzy.model.*;
 import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.InterventionRepository;
@@ -424,7 +425,8 @@ public class ReservationController {
                     Ce lien est securise et vous redirigera vers la plateforme de paiement Stripe.
                 </p>
             </div>
-            """.formatted(guestName, propertyName, checkIn, checkOut, amount, currency, paymentUrl);
+            """.formatted(StringUtils.escapeHtml(guestName), StringUtils.escapeHtml(propertyName),
+                    checkIn, checkOut, amount, StringUtils.escapeHtml(currency), paymentUrl);
     }
 
     // ── POST : vérifier le paiement auprès de Stripe ──────────────────────

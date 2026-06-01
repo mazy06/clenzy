@@ -4,6 +4,7 @@ import com.clenzy.integration.zapier.config.ZapierConfig;
 import com.clenzy.integration.zapier.dto.WebhookEventPayload;
 import com.clenzy.integration.zapier.model.WebhookSubscription;
 import com.clenzy.integration.zapier.repository.WebhookSubscriptionRepository;
+import com.clenzy.service.ICalUrlValidator;
 import com.clenzy.service.TokenEncryptionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -94,6 +95,10 @@ public class WebhookBroadcasterService {
 
     private boolean sendWebhook(WebhookSubscription subscription, WebhookEventPayload payload) {
         try {
+            // Garde SSRF : valide l'URL cible (HTTPS + blocage RFC 1918/metadata)
+            // avant chaque envoi. Une URL invalide compte comme un echec.
+            ICalUrlValidator.validateAndResolve(subscription.getTargetUrl());
+
             String jsonPayload = objectMapper.writeValueAsString(payload);
             String secret = tokenEncryptionService.decrypt(subscription.getSecretEncrypted());
             String signature = generateHmacSignature(jsonPayload, secret);

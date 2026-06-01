@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import com.clenzy.booking.service.SiteSnapshotService;
+import com.clenzy.service.ICalUrlValidator;
 
 import java.io.IOException;
 import java.net.URI;
@@ -330,14 +331,16 @@ public class SitePreviewProxyController {
         return url;
     }
 
+    /**
+     * Garde SSRF. Endpoint expose en permitAll (non authentifie) : cette
+     * validation est la SEULE barriere. Delegue au validateur partage qui
+     * impose HTTPS, bloque localhost/.local/.internal + metadata cloud, resout
+     * le DNS et rejette toute IP RFC 1918 (10/8, 172.16/12, 192.168/16) +
+     * loopback/link-local. L'ancien prefix-match laissait passer 169.254.169.254,
+     * 172.17-31.x et les IP encodees (decimal/hex) ou via DNS rebinding.
+     */
     private void validateUrl(String url) {
-        URI uri = URI.create(url);
-        String host = uri.getHost();
-        if (host == null || host.equals("localhost") || host.startsWith("127.")
-                || host.startsWith("10.") || host.startsWith("192.168.")
-                || host.startsWith("172.16.") || host.endsWith(".local")) {
-            throw new IllegalArgumentException("Private/internal URLs are not allowed");
-        }
+        ICalUrlValidator.validateAndResolve(url);
     }
 
     private String extractOrigin(String url) {

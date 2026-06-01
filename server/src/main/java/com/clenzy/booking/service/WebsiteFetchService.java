@@ -1,5 +1,6 @@
 package com.clenzy.booking.service;
 
+import com.clenzy.service.ICalUrlValidator;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -10,10 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -61,7 +60,7 @@ public class WebsiteFetchService {
                 .userAgent("ClenzyBot/1.0 (design-analysis)")
                 .timeout(timeoutSeconds * 1000)
                 .maxBodySize(maxContentLengthKb * 1024)
-                .followRedirects(true)
+                .followRedirects(false)
                 .get();
 
         // Extract HTML body (without scripts for smaller payload)
@@ -102,11 +101,15 @@ public class WebsiteFetchService {
             if (!isFirstParty && !isCommonCdn) continue;
 
             try {
+                // Garde SSRF sur les feuilles de style (le filtre CDN par contains()
+                // est contournable) : valide la cible + pas de redirection.
+                ICalUrlValidator.validateAndResolve(href);
                 Document cssDoc = Jsoup.connect(href)
                         .userAgent("ClenzyBot/1.0 (design-analysis)")
                         .timeout(5000)
                         .maxBodySize(200 * 1024) // 200KB per sheet
                         .ignoreContentType(true)
+                        .followRedirects(false)
                         .get();
                 cssBuilder.append("/* ").append(href).append(" */\n");
                 cssBuilder.append(cssDoc.body().text()).append("\n\n");
@@ -131,36 +134,10 @@ public class WebsiteFetchService {
         if (url == null || url.isBlank()) {
             throw new IllegalArgumentException("Website URL is required");
         }
-
-        URI uri;
-        try {
-            uri = new URI(url);
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid URL format: " + url);
-        }
-
-        // HTTPS only
-        if (!"https".equalsIgnoreCase(uri.getScheme())) {
-            throw new IllegalArgumentException("Only HTTPS URLs are accepted");
-        }
-
-        String host = uri.getHost();
-        if (host == null || host.isBlank()) {
-            throw new IllegalArgumentException("URL must have a valid host");
-        }
-
-        // SSRF protection: block private/internal IPs
-        try {
-            InetAddress address = InetAddress.getByName(host);
-            if (address.isLoopbackAddress()
-                    || address.isSiteLocalAddress()
-                    || address.isLinkLocalAddress()
-                    || address.isAnyLocalAddress()) {
-                throw new IllegalArgumentException("Internal/private URLs are not allowed");
-            }
-        } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("Cannot resolve host: " + host);
-        }
+        // Garde SSRF : delegue au validateur projet (HTTPS-only, blocage RFC 1918
+        // complet + loopback/link-local/metadata, resolution DNS). Les redirections
+        // sont desactivees au fetch pour empecher un bypass vers une cible interne.
+        ICalUrlValidator.validateAndResolve(url);
     }
 
     private String extractHost(String url) {

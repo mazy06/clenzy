@@ -58,6 +58,9 @@ public class WebhookDispatchService {
 
     @Transactional
     public WebhookCreationResult createWebhook(CreateWebhookRequest request, Long orgId) {
+        // Garde SSRF : refuser une URL interne / non-HTTPS avant de la stocker.
+        ICalUrlValidator.validateAndResolve(request.url());
+
         String secret = generateSecret();
 
         WebhookConfig config = new WebhookConfig();
@@ -112,6 +115,10 @@ public class WebhookDispatchService {
             }
 
             try {
+                // Garde SSRF (defense en profondeur, couvre les URLs deja stockees) :
+                // une URL devenue interne/non-HTTPS est comptee comme un echec.
+                ICalUrlValidator.validateAndResolve(webhook.getUrl());
+
                 String body = objectMapper.writeValueAsString(Map.of(
                     "event", eventType,
                     "timestamp", Instant.now().toString(),

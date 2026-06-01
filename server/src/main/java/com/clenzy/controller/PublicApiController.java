@@ -7,6 +7,7 @@ import com.clenzy.service.WebhookDispatchService;
 import com.clenzy.service.WebhookDispatchService.WebhookCreationResult;
 import com.clenzy.tenant.TenantContext;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/developer")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
 public class PublicApiController {
 
     private final ApiKeyService apiKeyService;
