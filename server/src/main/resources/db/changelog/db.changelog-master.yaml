@@ -1529,3 +1529,15 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0160 : Redesign de l'email d'invitation ---
+  # Subject plus chaud (nom inviteur en premier), body conversationnel qui
+  # explique le nouveau flow self-service (POST /api/invitations/register).
+  - changeSet:
+      id: "0160-redesign-invitation-email"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0160__redesign_invitation_email.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

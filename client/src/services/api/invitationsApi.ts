@@ -25,6 +25,23 @@ export interface AcceptInvitationRequest {
   token: string;
 }
 
+export interface InvitationRegisterRequest {
+  token: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  password: string;
+}
+
+/** Reponse de POST /invitations/register : JWT tokens pour auto-login. */
+export interface InvitationTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  id_token: string;
+  expires_in: number;
+  token_type: string;
+}
+
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const invitationsApi = {
@@ -43,6 +60,20 @@ export const invitationsApi = {
    */
   accept(token: string) {
     return apiClient.post<InvitationDto>('/invitations/accept', { token } as AcceptInvitationRequest);
+  },
+
+  /**
+   * Creer un compte ET accepter l'invitation en un seul appel (public, pas de JWT).
+   * Utilise par le formulaire inline de la page AcceptInvitationPage.
+   *
+   * @returns Les JWT tokens pour auto-login (mettre dans keycloak.token / cookie).
+   */
+  register(payload: InvitationRegisterRequest) {
+    return apiClient.post<InvitationTokenResponse>(
+      '/invitations/register',
+      payload,
+      { skipAuth: true },
+    );
   },
 
   /**
