@@ -15,6 +15,8 @@ public interface OrganizationRepository extends JpaRepository<Organization, Long
 
     Optional<Organization> findBySlug(String slug);
 
+    Optional<Organization> findByName(String name);
+
     Optional<Organization> findByStripeCustomerId(String stripeCustomerId);
 
     Optional<Organization> findByStripeSubscriptionId(String stripeSubscriptionId);
