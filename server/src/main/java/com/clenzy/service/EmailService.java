@@ -156,6 +156,17 @@ public class EmailService {
      * l'interpolation finale, car elles contiennent des boucles non-templating.</p>
      */
     public void sendQuoteRequestNotification(QuoteRequestDto dto, String recommendedPackage, int recommendedRate) {
+        sendQuoteRequestNotification(dto, recommendedPackage, recommendedRate, null);
+    }
+
+    /**
+     * Variante avec piece jointe PDF du devis.
+     *
+     * @param pdfAttachment bytes du PDF devis (nullable). Si non-null et non-vide,
+     *                      le PDF est joint a l'email interne envoye a info@clenzy.fr.
+     */
+    public void sendQuoteRequestNotification(QuoteRequestDto dto, String recommendedPackage,
+                                              int recommendedRate, byte[] pdfAttachment) {
         try {
             JavaMailSender ms = requireMailSender();
 
@@ -189,8 +200,21 @@ public class EmailService {
             helper.setReplyTo(dto.getEmail());
             helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlToPlainText(htmlBody), htmlBody);
+
+            // Joindre le PDF si disponible (genere depuis le template DEVIS).
+            if (pdfAttachment != null && pdfAttachment.length > 0) {
+                String safeName = StringUtils.sanitizeFileName(dto.getFullName());
+                if (safeName == null || safeName.isBlank()) {
+                    safeName = "prospect";
+                }
+                helper.addAttachment("Devis_Baitly_" + safeName + ".pdf",
+                        new ByteArrayResource(pdfAttachment), "application/pdf");
+            }
+
             ms.send(message);
-            log.info("Email de notification devis envoyé pour : {} ({})", dto.getFullName(), dto.getEmail());
+            log.info("Email de notification devis envoyé pour : {} ({}) [PDF={}]",
+                    dto.getFullName(), dto.getEmail(),
+                    pdfAttachment != null && pdfAttachment.length > 0 ? "oui" : "non");
 
         } catch (MessagingException e) {
             log.error("Erreur d'envoi email devis pour {} : {}", dto.getFullName(), e.getMessage(), e);
