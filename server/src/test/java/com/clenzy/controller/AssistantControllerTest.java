@@ -452,4 +452,68 @@ class AssistantControllerTest {
     private static long anyLong() { return org.mockito.ArgumentMatchers.anyLong(); }
     private static <T> T eq(T value) { return org.mockito.ArgumentMatchers.eq(value); }
     private static boolean anyBoolean() { return org.mockito.ArgumentMatchers.anyBoolean(); }
+
+    // ============= EXTENDED COVERAGE =============
+
+    @Test
+    void confirmTool_nullBody_throws() {
+        assertThrows(IllegalArgumentException.class, () -> controller.confirmTool(null, jwt));
+    }
+
+    @Test
+    void confirmTool_blankToolCallId_throws() {
+        AssistantController.ToolConfirmBody body = new AssistantController.ToolConfirmBody("", true);
+        assertThrows(IllegalArgumentException.class, () -> controller.confirmTool(body, jwt));
+    }
+
+    @Test
+    void confirmTool_nullToolCallId_throws() {
+        AssistantController.ToolConfirmBody body = new AssistantController.ToolConfirmBody(null, true);
+        assertThrows(IllegalArgumentException.class, () -> controller.confirmTool(body, jwt));
+    }
+
+    @Test
+    void confirmTool_validBody_returnsSseEmitter() {
+        AssistantController.ToolConfirmBody body = new AssistantController.ToolConfirmBody("toolu_1", true);
+        // Should not throw — returns SseEmitter
+        assertDoesNotThrow(() -> controller.confirmTool(body, jwt));
+    }
+
+    @Test
+    void chat_messageWithOnlyWhitespace_andNoAttachments_throws() {
+        AssistantController.ChatRequestBody body = new AssistantController.ChatRequestBody(
+            null, "   ", null, null, null);
+        assertThrows(IllegalArgumentException.class, () -> controller.chat(body, jwt));
+    }
+
+    @Test
+    void listConversations_smallSize_passesThroughIfPositive() {
+        when(convRepo.findActiveByUser(anyString(), any()))
+            .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(5), 0));
+
+        controller.listConversations(jwt, 0, 5);
+        verify(convRepo).findActiveByUser(eq("user-123"), any());
+    }
+
+    @Test
+    void upload_emptyFilename_storesWithFallback() {
+        MockMultipartFile noName = new MockMultipartFile(
+            "file", "", "image/png", "x".getBytes());
+        when(photoStorageService.store(any(byte[].class), eq("image/png"), anyString()))
+            .thenReturn("key-x");
+        ResponseEntity<Map<String, Object>> response = controller.upload(noName, jwt);
+        assertEquals(201, response.getStatusCode().value());
+    }
+
+    @Test
+    void upload_nullFilename_storesWithFallback() {
+        MockMultipartFile nullName = new MockMultipartFile(
+            "file", null, "image/png", "x".getBytes()) {
+            @Override public String getOriginalFilename() { return null; }
+        };
+        when(photoStorageService.store(any(byte[].class), eq("image/png"), anyString()))
+            .thenReturn("key-y");
+        ResponseEntity<Map<String, Object>> response = controller.upload(nullName, jwt);
+        assertEquals(201, response.getStatusCode().value());
+    }
 }

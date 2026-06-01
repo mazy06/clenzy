@@ -270,4 +270,127 @@ class PermissionControllerTest {
             verify(permissionService).invalidateUserPermissionsCache("user-1");
         }
     }
+
+    @Nested
+    @DisplayName("Error paths")
+    class ErrorPaths {
+        @Test
+        void resetInitial_whenServiceThrows_returns500() {
+            when(permissionService.resetToInitialPermissions("HOST"))
+                .thenThrow(new RuntimeException("err"));
+            ResponseEntity<Map<String, Object>> response =
+                controller.resetToInitialPermissions("HOST");
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void checkUser_whenServiceThrows_returns500() {
+            Map<String, String> request = new HashMap<>();
+            request.put("userId", "user-1");
+            request.put("permission", "properties.read");
+            when(permissionService.checkUserPermission("user-1", "properties.read"))
+                .thenThrow(new RuntimeException("err"));
+            ResponseEntity<Map<String, Object>> response = controller.checkUserPermission(request);
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void invalidateRoleCache_whenServiceThrows_returns500() {
+            doThrow(new RuntimeException("redis down")).when(permissionService)
+                .invalidateCache("HOST");
+            ResponseEntity<Map<String, String>> response =
+                controller.invalidateRoleCache("HOST");
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void invalidateAllCache_whenServiceThrows_returns500() {
+            doThrow(new RuntimeException("err")).when(permissionService).invalidateAllCache();
+            ResponseEntity<Map<String, String>> response = controller.invalidateAllCache();
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void syncUser_whenBlankUserId_thenBadRequest() {
+            Map<String, String> request = new HashMap<>();
+            request.put("userId", "  ");
+            ResponseEntity<Map<String, Object>> response = controller.syncUserPermissions(request);
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+        }
+
+        @Test
+        void syncUser_whenServiceThrows_returns500() {
+            Map<String, String> request = new HashMap<>();
+            request.put("userId", "user-1");
+            when(permissionService.getUserPermissionsForSync("user-1"))
+                .thenThrow(new RuntimeException("err"));
+            ResponseEntity<Map<String, Object>> response = controller.syncUserPermissions(request);
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void getPermsFromRedis_whenServiceThrows_returns500() {
+            when(permissionService.getUserPermissionsFromRedis("u1"))
+                .thenThrow(new RuntimeException("redis down"));
+            ResponseEntity<Map<String, Object>> response =
+                controller.getPermissionsFromRedis("u1");
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void updateRedis_whenServiceThrows_returns500() {
+            Map<String, Object> request = new HashMap<>();
+            request.put("permissions", List.of("p1"));
+            when(permissionService.updateUserPermissionsInRedis("u1", List.of("p1")))
+                .thenThrow(new RuntimeException("err"));
+            ResponseEntity<Map<String, Object>> response =
+                controller.updatePermissionsInRedis("u1", request);
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void invalidateUserCache_whenServiceThrows_returns500() {
+            doThrow(new RuntimeException("err")).when(permissionService)
+                .invalidateUserPermissionsCache("u1");
+            ResponseEntity<Map<String, Object>> response = controller.invalidateUserCache("u1");
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+    }
+
+    @Nested
+    @DisplayName("getUserPermissions")
+    class GetUserPermissions {
+        @Test
+        void whenRoleProvided_returnsPermissions() {
+            when(permissionService.getUserPermissions("HOST"))
+                .thenReturn(List.of("p1", "p2"));
+            ResponseEntity<List<String>> response = controller.getUserPermissions("HOST");
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).containsExactly("p1", "p2");
+        }
+    }
+
+    @Nested
+    @DisplayName("Sync success metadata")
+    class SyncMetadata {
+        @Test
+        void whenSync_thenResponseIncludesLastUpdate() {
+            when(permissionService.getUserPermissionsForSync("u1")).thenReturn(List.of("p1"));
+            Map<String, String> request = new HashMap<>();
+            request.put("userId", "u1");
+
+            ResponseEntity<Map<String, Object>> response = controller.syncUserPermissions(request);
+
+            assertThat(response.getBody()).containsKeys("permissions", "lastUpdate", "success");
+        }
+
+        @Test
+        void whenGetFromRedis_thenResponseIncludesSourceAndTimestamp() {
+            when(permissionService.getUserPermissionsFromRedis("u1")).thenReturn(List.of("p1"));
+            ResponseEntity<Map<String, Object>> response =
+                controller.getPermissionsFromRedis("u1");
+            assertThat(response.getBody()).containsKeys("source", "timestamp", "permissions");
+            assertThat(response.getBody().get("source")).isEqualTo("redis");
+        }
+    }
 }

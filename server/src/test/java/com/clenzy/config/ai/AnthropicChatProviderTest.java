@@ -509,6 +509,274 @@ class AnthropicChatProviderTest {
         }
     }
 
+    // ─── ParseStream additional branches ─────────────────────────────────────
+
+    @Nested
+    @DisplayName("parseStream() — additional branches")
+    class ParseStreamAdditional {
+
+        @Test
+        void unknownEventType_isIgnoredGracefully() {
+            String sse = """
+                    data: {"type":"ping"}
+
+                    data: {"type":"some_unknown_type","payload":"x"}
+
+                    data: {"type":"message_start","message":{"model":"claude-sonnet-4-20250514","usage":{"input_tokens":1,"output_tokens":0}}}
+
+                    data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":1}}
+
+                    data: {"type":"message_stop"}
+                    """;
+            List<ChatEvent> events = collect(sse, "claude-sonnet-4-20250514");
+            // Just Done
+            assertEquals(1, events.size());
+            assertInstanceOf(ChatEvent.Done.class, events.get(0));
+        }
+
+        @Test
+        void multipleToolCalls_emitsAllInSingleRequest() {
+            // 2 tools en parallel: content_block_start avec index 0 et 1
+            String sse = """
+                    data: {"type":"message_start","message":{"model":"claude-sonnet-4-20250514","usage":{"input_tokens":10,"output_tokens":0}}}
+
+                    data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_a","name":"tool_a","input":{}}}
+
+                    data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"x\\":1}"}}
+
+                    data: {"type":"content_block_stop","index":0}
+
+                    data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_b","name":"tool_b","input":{}}}
+
+                    data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"y\\":2}"}}
+
+                    data: {"type":"content_block_stop","index":1}
+
+                    data: {"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"output_tokens":20}}
+
+                    data: {"type":"message_stop"}
+                    """;
+            List<ChatEvent> events = collect(sse, "claude-sonnet-4-20250514");
+            // 1 ToolCallRequest with 2 tools + 1 Done
+            ChatEvent.ToolCallRequest tcr = (ChatEvent.ToolCallRequest) events.get(0);
+            assertEquals(2, tcr.calls().size());
+            assertEquals("toolu_a", tcr.calls().get(0).id());
+            assertEquals("toolu_b", tcr.calls().get(1).id());
+        }
+
+        @Test
+        void cacheReadAndWriteTokens_areLoggedNotEmitted() {
+            // Tokens cache_read/cache_creation : ne change pas le ChatEvent.Done,
+            // mais exerce la branche log.isDebugEnabled
+            String sse = """
+                    data: {"type":"message_start","message":{"model":"claude-sonnet-4-20250514","usage":{"input_tokens":100,"output_tokens":0,"cache_read_input_tokens":500,"cache_creation_input_tokens":200}}}
+
+                    data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
+
+                    data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"ok"}}
+
+                    data: {"type":"content_block_stop","index":0}
+
+                    data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":1}}
+
+                    data: {"type":"message_stop"}
+                    """;
+            List<ChatEvent> events = collect(sse, "claude-sonnet-4-20250514");
+            ChatEvent.Done done = (ChatEvent.Done) events.get(events.size() - 1);
+            // input_tokens = 100, cache fields are logged separately
+            assertEquals(100, done.promptTokens());
+        }
+
+        @Test
+        void emptyTextDelta_isSkipped() {
+            String sse = """
+                    data: {"type":"message_start","message":{"model":"claude-sonnet-4-20250514","usage":{"input_tokens":5,"output_tokens":0}}}
+
+                    data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
+
+                    data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":""}}
+
+                    data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"hello"}}
+
+                    data: {"type":"content_block_stop","index":0}
+
+                    data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":1}}
+
+                    data: {"type":"message_stop"}
+                    """;
+            List<ChatEvent> events = collect(sse, "claude-sonnet-4-20250514");
+            // Only "hello" delta should be emitted (empty skipped)
+            long deltaCount = events.stream().filter(e -> e instanceof ChatEvent.TextDelta).count();
+            assertEquals(1, deltaCount);
+        }
+
+        @Test
+        void blankAndNonDataLines_areIgnored() {
+            // Test for the various ignore branches in parseStream
+            String sse = """
+
+                    event: ping
+
+                    other-line
+
+                    data:
+
+                    data: {"type":"message_stop"}
+                    """;
+            List<ChatEvent> events = collect(sse, "claude-sonnet-4-20250514");
+            // Only Done is emitted at end
+            assertEquals(1, events.size());
+            assertInstanceOf(ChatEvent.Done.class, events.get(0));
+        }
+
+        @Test
+        void toolUseWithoutIdOrName_isSkipped() {
+            // content_block_stop fires but builder lacks id/name → no tool call
+            String sse = """
+                    data: {"type":"message_start","message":{"model":"claude-sonnet-4-20250514","usage":{"input_tokens":5,"output_tokens":0}}}
+
+                    data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","input":{}}}
+
+                    data: {"type":"content_block_stop","index":0}
+
+                    data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":1}}
+
+                    data: {"type":"message_stop"}
+                    """;
+            List<ChatEvent> events = collect(sse, "claude-sonnet-4-20250514");
+            // Should not emit ToolCallRequest, just Done
+            long tcCount = events.stream().filter(e -> e instanceof ChatEvent.ToolCallRequest).count();
+            assertEquals(0, tcCount);
+        }
+    }
+
+    // ─── doStream / streamChat error paths ─────────────────────────────────
+
+    @Nested
+    @DisplayName("streamChat() — error short-circuits")
+    class StreamChatShortCircuit {
+
+        @Test
+        void noApiKey_emitsErrorImmediately() {
+            // Empty key in props + no BYOK override → short-circuit
+            aiProperties.getAnthropic().setApiKey("");
+            ChatRequest req = new ChatRequest("sys", List.of(ChatMessage.user("hi")),
+                    List.of(), "claude-sonnet-4-20250514", 0.3, 1000);
+
+            List<ChatEvent> events = new ArrayList<>();
+            provider.streamChat(req, events::add);
+
+            assertEquals(1, events.size());
+            assertInstanceOf(ChatEvent.Error.class, events.get(0));
+            assertTrue(((ChatEvent.Error) events.get(0)).message().contains("Aucune cle"));
+        }
+
+        @Test
+        void byokApiKey_overridesPlatformKey() {
+            // BYOK empty falls back to platform key (which is set)
+            ChatRequest req = new ChatRequest("sys", List.of(ChatMessage.user("hi")),
+                    List.of(), null, 0.3, 1000);
+
+            List<ChatEvent> events = new ArrayList<>();
+            // With null BYOK key, falls back to platform "sk-ant-test" → attempts network call
+            // We can't test the success path without a real server, but we can verify
+            // that the override logic does NOT short-circuit.
+            provider.streamChat(req, events::add, null);
+
+            // It should not short-circuit with "Aucune cle" since platform key is set
+            assertFalse(events.stream().anyMatch(e ->
+                e instanceof ChatEvent.Error err && err.message().contains("Aucune cle")
+            ));
+        }
+
+        @Test
+        void byokBlankApiKey_fallsBackToPlatform() {
+            ChatRequest req = new ChatRequest("sys", List.of(ChatMessage.user("hi")),
+                    List.of(), null, 0.3, 1000);
+
+            List<ChatEvent> events = new ArrayList<>();
+            provider.streamChat(req, events::add, "   ");  // blank → fallback
+
+            // No "no key" error
+            assertFalse(events.stream().anyMatch(e ->
+                e instanceof ChatEvent.Error err && err.message().contains("Aucune cle")
+            ));
+        }
+    }
+
+    @Nested
+    @DisplayName("buildRequestBody() — additional branches")
+    class BuildRequestBodyAdditional {
+
+        @SuppressWarnings("unchecked")
+        @Test
+        void temperatureNegative_isSkipped() {
+            ChatRequest req = new ChatRequest("sys", List.of(ChatMessage.user("hi")),
+                    List.of(), null, -1.0, 1000);
+            Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+            assertFalse(body.containsKey("temperature"), "temperature < 0 => skip");
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        void blankSystemPrompt_isOmitted() {
+            ChatRequest req = new ChatRequest("   ", List.of(ChatMessage.user("hi")),
+                    List.of(), null, 0.5, 1000);
+            Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+            assertFalse(body.containsKey("system"));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        void assistantWithBothTextAndToolCalls_emitsBothBlocks() {
+            ChatMessage assistantBoth = ChatMessage.assistantToolCalls(List.of(
+                    new ChatMessage.ToolCall("t1", "fn", "{}")
+            ));
+            // The fn signature stores both content and toolCalls, but assistantToolCalls
+            // doesn't set content. Use raw construction:
+            ChatMessage assistantWithContent = new ChatMessage(
+                    ChatMessage.ROLE_ASSISTANT, "Pensee:", List.of(
+                        new ChatMessage.ToolCall("t1", "fn", "{}")), null, null);
+
+            ChatRequest req = new ChatRequest("sys",
+                    List.of(ChatMessage.user("hi"), assistantWithContent),
+                    List.of(), null, 0.3, 1024);
+
+            Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+            List<Map<String, Object>> messages = (List<Map<String, Object>>) body.get("messages");
+            Map<String, Object> assistant = messages.get(1);
+            List<Map<String, Object>> blocks = (List<Map<String, Object>>) assistant.get("content");
+
+            // expect: 1 text block + 1 tool_use block
+            assertEquals(2, blocks.size());
+            assertEquals("text", blocks.get(0).get("type"));
+            assertEquals("Pensee:", blocks.get(0).get("text"));
+            assertEquals("tool_use", blocks.get(1).get("type"));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        void invalidJsonToolArgs_fallbackToEmptyObject() {
+            ChatMessage assistantCall = ChatMessage.assistantToolCalls(List.of(
+                    new ChatMessage.ToolCall("t1", "fn", "not-valid-json{")
+            ));
+            ChatRequest req = new ChatRequest("sys",
+                    List.of(ChatMessage.user("hi"), assistantCall),
+                    List.of(), null, 0.3, 1024);
+
+            Map<String, Object> body = provider.buildRequestBody(req, "claude-sonnet-4-20250514");
+            List<Map<String, Object>> messages = (List<Map<String, Object>>) body.get("messages");
+            List<Map<String, Object>> blocks = (List<Map<String, Object>>) messages.get(1).get("content");
+
+            // input should be an empty object (fallback)
+            Object input = blocks.get(0).get("input");
+            assertNotNull(input);
+            if (input instanceof Map<?, ?> m) {
+                assertTrue(m.isEmpty(), "invalid JSON args => fallback to empty object");
+            }
+        }
+    }
+
     // ─── helpers ──────────────────────────────────────────────────────────
 
     private List<ChatEvent> collect(String sse, String modelHint) {

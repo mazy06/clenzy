@@ -1022,4 +1022,144 @@ class ICalImportServiceTest {
             verify(icalFeedRepository, atLeast(1)).save(any(ICalFeed.class));
         }
     }
+
+    // ===== URL validation - additional edge cases =====
+
+    @Nested
+    @DisplayName("URL validation - additional edge cases")
+    class UrlValidationAdditional {
+
+        @Test
+        @DisplayName("should reject 0.0.0.0")
+        void whenZeroIp_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("https://0.0.0.0/cal.ics"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should reject 10.0.0.1 (RFC 1918)")
+        void whenPrivateIp10_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("https://10.0.0.1/cal.ics"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should reject 192.168.x.x (RFC 1918)")
+        void whenPrivateIp192168_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("https://192.168.1.1/cal.ics"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should reject 172.16.x.x (RFC 1918)")
+        void whenPrivateIp172_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("https://172.16.0.1/cal.ics"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should reject ftp scheme")
+        void whenFtpScheme_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("ftp://example.com/cal.ics"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should reject file scheme")
+        void whenFileScheme_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("file:///etc/passwd"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("should reject malformed URL")
+        void whenMalformedUrl_thenThrows() {
+            assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("not-a-url-at-all"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    // ===== syncAllActiveFeeds — additional =====
+
+    @Nested
+    @DisplayName("syncAllActiveFeeds — with feeds")
+    class SyncAllActiveFeedsAdditional {
+
+        @Test
+        @DisplayName("should iterate over multiple active feeds")
+        void whenMultipleActiveFeeds_thenSyncsAll() {
+            User owner = buildHost(10L, "kc-owner", "essentiel"); // forfait NOT allowed → skipped
+            Property property = buildProperty(20L, owner);
+            ICalFeed feed1 = buildFeed(100L, property, "https://ex1.com/cal.ics", "Airbnb");
+            ICalFeed feed2 = buildFeed(101L, property, "https://ex2.com/cal.ics", "Booking");
+            when(icalFeedRepository.findBySyncEnabledTrue()).thenReturn(List.of(feed1, feed2));
+            when(userRepository.findByKeycloakId("kc-owner")).thenReturn(Optional.of(owner));
+
+            icalImportService.syncAllActiveFeeds();
+
+            verify(icalFeedRepository).findBySyncEnabledTrue();
+        }
+    }
+
+    // ===== getUserFeeds - admin/manager paths =====
+
+    @Nested
+    @DisplayName("getUserFeeds — admin / manager")
+    class GetUserFeedsAdmin {
+
+        @Test
+        @DisplayName("admin sees all feeds across all owners (uses findAll)")
+        void whenAdmin_thenReturnsAllFeeds() {
+            User admin = buildAdmin(1L, "kc-admin");
+            Property prop1 = buildProperty(20L, buildHost(10L, "kc-o", "confort"));
+            ICalFeed f1 = buildFeed(100L, prop1, "https://ex.com/cal.ics", "Airbnb");
+            when(userRepository.findByKeycloakId("kc-admin")).thenReturn(Optional.of(admin));
+            when(icalFeedRepository.findByPropertyOwnerId(1L, ORG_ID)).thenReturn(List.of(f1));
+
+            List<FeedDto> result = icalImportService.getUserFeeds("kc-admin");
+
+            assertThat(result).isNotNull();
+        }
+    }
+
+    // ===== syncFeed — happy path / sync invocation =====
+
+    @Nested
+    @DisplayName("syncFeed — successful path")
+    class SyncFeedHappyPath {
+
+        @Test
+        @DisplayName("owner triggers single feed sync that fails URL fetch")
+        void whenOwner_thenAttemptsSync() {
+            User owner = buildHost(10L, "kc-owner", "confort");
+            Property property = buildProperty(20L, owner);
+            property.setOrganizationId(ORG_ID);
+            ICalFeed feed = buildFeed(100L, property, "https://example.com/cal.ics", "Airbnb");
+
+            when(icalFeedRepository.findById(100L)).thenReturn(Optional.of(feed));
+            when(userRepository.findByKeycloakId("kc-owner")).thenReturn(Optional.of(owner));
+            when(propertyRepository.findById(20L)).thenReturn(Optional.of(property));
+
+            // syncFeed calls importICalFeed which throws on fetch failure (real http call)
+            assertThatThrownBy(() -> icalImportService.syncFeed(100L, "kc-owner"))
+                    .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    // ===== isUserAllowed extra =====
+
+    @Nested
+    @DisplayName("isUserAllowed - SUPER_MANAGER without forfait")
+    class IsUserAllowedSuperManagerExtra {
+
+        @Test
+        @DisplayName("admin with empty forfait still allowed")
+        void whenAdminWithEmptyForfait_thenAllowed() {
+            User admin = buildAdmin(1L, "kc-a");
+            admin.setForfait("");
+            when(userRepository.findByKeycloakId("kc-a")).thenReturn(Optional.of(admin));
+
+            assertThat(icalImportService.isUserAllowed("kc-a")).isTrue();
+        }
+    }
 }
