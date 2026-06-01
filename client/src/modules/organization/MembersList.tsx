@@ -21,6 +21,7 @@ import {
   PersonRemove as PersonRemoveIcon,
 } from '../../icons';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
+import { usersApi } from '../../services/api/usersApi';
 import { getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
 import { useAuth } from '../../hooks/useAuth';
 import ChangeRoleDialog from './ChangeRoleDialog';
@@ -157,6 +158,8 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                   <TableCell sx={CELL_MEMBER_SX}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
                       <Avatar
+                        src={usersApi.profilePictureUrl(member.userId)}
+                        alt={`${member.firstName} ${member.lastName}`.trim() || member.email}
                         sx={{
                           width: 32,
                           height: 32,
