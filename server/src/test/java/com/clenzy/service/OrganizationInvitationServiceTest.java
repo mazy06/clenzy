@@ -43,6 +43,8 @@ class OrganizationInvitationServiceTest {
     @Mock private EmailService emailService;
     @Mock private RedisTemplate<String, Object> redisTemplate;
     @Mock private ValueOperations<String, Object> valueOperations;
+    @Mock private com.clenzy.service.KeycloakService keycloakService;
+    @Mock private org.springframework.web.client.RestTemplate restTemplate;
 
     private TenantContext tenantContext;
     private OrganizationInvitationService invitationService;
@@ -57,7 +59,7 @@ class OrganizationInvitationServiceTest {
         invitationService = new OrganizationInvitationService(
                 invitationRepository, organizationRepository, memberRepository,
                 userRepository, organizationService, emailService,
-                redisTemplate, tenantContext);
+                redisTemplate, tenantContext, keycloakService, restTemplate);
 
         setField(invitationService, "frontendUrl", "http://localhost:3000");
     }

@@ -2,6 +2,7 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.AcceptInvitationRequest;
 import com.clenzy.dto.InvitationDto;
+import com.clenzy.dto.InvitationRegisterRequest;
 import com.clenzy.dto.SendInvitationRequest;
 import com.clenzy.model.OrgMemberRole;
 import com.clenzy.service.OrganizationInvitationService;
@@ -141,6 +142,31 @@ public class OrganizationInvitationController {
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Endpoint public : creer un compte ET accepter l'invitation en un seul appel.
+     *
+     * <p>Permet aux invites de s'inscrire directement depuis la page Clenzy sans
+     * passer par la page Keycloak (qui retourne "Registration not allowed" car
+     * le realm prod a {@code User Registration: OFF}). Retourne les JWT tokens
+     * pour un auto-login immediat.</p>
+     */
+    @PostMapping("/api/invitations/register")
+    @PreAuthorize("permitAll()")
+    @Operation(summary = "Creer un compte + accepter l'invitation (public, pas de JWT)")
+    public ResponseEntity<?> registerAndAccept(@Valid @RequestBody InvitationRegisterRequest request) {
+        try {
+            Map<String, Object> tokens = invitationService.registerAndAcceptInvitation(request);
+            return ResponseEntity.ok(tokens);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            log.warn("Echec inscription via invitation: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Erreur inattendue inscription via invitation", e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Erreur lors de la creation du compte. Reessayez ou contactez le support."));
         }
     }
 }

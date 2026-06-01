@@ -11,6 +11,9 @@ import {
   ThemeProvider,
   CssBaseline,
   TextField,
+  Stack,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
 import {
   Business,
@@ -19,15 +22,26 @@ import {
   ErrorOutline,
   Login as LoginIcon,
   Phone,
+  Lock as LockIcon,
+  Visibility,
+  VisibilityOff,
 } from '../../icons';
 import keycloak from '../../keycloak';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
-import apiClient from '../../services/apiClient';
+import apiClient, { ApiError } from '../../services/apiClient';
 import { createClenzyTheme } from '../../theme/createClenzyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
+import { clearMockFlags, setSessionCookie } from '../../services/storageService';
 import clenzyLogo from '../../assets/Baitly_logo.png';
 
-type PageState = 'loading' | 'info' | 'accepting' | 'complete_profile' | 'accepted' | 'error';
+type PageState =
+  | 'loading'
+  | 'info'
+  | 'register_form'
+  | 'accepting'
+  | 'complete_profile'
+  | 'accepted'
+  | 'error';
 
 export default function AcceptInvitationPage() {
   // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
@@ -42,6 +56,14 @@ export default function AcceptInvitationPage() {
   const [error, setError] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Champs du formulaire d'inscription inline (etat 'register_form')
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [registering, setRegistering] = useState(false);
 
   const isAuthenticated = keycloak.authenticated && keycloak.token;
 
@@ -109,12 +131,66 @@ export default function AcceptInvitationPage() {
     });
   };
 
+  /**
+   * Le realm Keycloak prod a `User Registration: OFF` (auth.clenzy.fr renvoie
+   * "Registration not allowed"). On affiche donc un formulaire inline qui ira
+   * poster POST /api/invitations/register — le backend cree le compte via
+   * Keycloak Admin API et nous renvoie les tokens pour auto-login.
+   */
   const handleRegisterAndAccept = () => {
+    setError(null);
+    setState('register_form');
+  };
+
+  const handleSubmitRegister = async () => {
     if (!token) return;
-    sessionStorage.setItem('pending_invitation_token', token);
-    keycloak.register({
-      redirectUri: `${window.location.origin}/accept-invitation?token=${encodeURIComponent(token)}`,
-    });
+    setError(null);
+
+    // Validation client
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('Renseigne ton prenom et ton nom.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Le mot de passe doit faire au moins 8 caracteres.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Les mots de passe ne correspondent pas.');
+      return;
+    }
+
+    setRegistering(true);
+    try {
+      const tokens = await invitationsApi.register({
+        token,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phoneNumber: phoneNumber.trim() || undefined,
+        password,
+      });
+
+      // Auto-login : meme pattern que InscriptionConfirm.tsx
+      keycloak.token = tokens.access_token;
+      keycloak.refreshToken = tokens.refresh_token;
+      keycloak.idToken = tokens.id_token;
+      keycloak.authenticated = true;
+      keycloak.tokenParsed = JSON.parse(atob(tokens.access_token.split('.')[1]));
+
+      clearMockFlags();
+      setSessionCookie(tokens.access_token);
+
+      window.dispatchEvent(new CustomEvent('keycloak-auth-success'));
+
+      setState('accepted');
+      setTimeout(() => {
+        window.location.href = '/planning';
+      }, 1500);
+    } catch (err) {
+      const apiErr = err as ApiError;
+      setError(apiErr.message || 'Erreur lors de la creation du compte. Reessaye ou contacte le support.');
+      setRegistering(false);
+    }
   };
 
   const handleCompleteProfile = async () => {
@@ -330,6 +406,151 @@ export default function AcceptInvitationPage() {
                 </Box>
               )}
             </>
+          )}
+
+          {/* Register form (inline, plus de redirection Keycloak) */}
+          {state === 'register_form' && invitation && (
+            <Box sx={{ py: 1, textAlign: 'left' }}>
+              <Box sx={{ textAlign: 'center', mb: 3 }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mb: 1 }}>
+                  <PersonAdd size={40} strokeWidth={1.75} />
+                </Box>
+                <Typography variant="h6" fontWeight={700} sx={{ mt: 1 }}>
+                  Cree ton compte Baitly
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Rejoins <strong>{invitation.organizationName}</strong> en tant que{' '}
+                  {getRoleLabel(invitation.roleInvited).toLowerCase()}.
+                </Typography>
+              </Box>
+
+              {error && (
+                <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+                  {error}
+                </Alert>
+              )}
+
+              <Stack spacing={2}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <TextField
+                    label="Prenom"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    fullWidth
+                    size="small"
+                    required
+                    autoComplete="given-name"
+                    autoFocus
+                  />
+                  <TextField
+                    label="Nom"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    fullWidth
+                    size="small"
+                    required
+                    autoComplete="family-name"
+                  />
+                </Stack>
+
+                <TextField
+                  label="Email"
+                  value={invitation.invitedEmail}
+                  disabled
+                  fullWidth
+                  size="small"
+                  helperText="L'email est defini par l'invitation"
+                />
+
+                <TextField
+                  label="Telephone"
+                  placeholder="Ex: +33 6 12 34 56 78"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  fullWidth
+                  size="small"
+                  autoComplete="tel"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Phone size={16} strokeWidth={1.75} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  helperText="Optionnel — utile pour les notifications SMS"
+                />
+
+                <TextField
+                  label="Mot de passe"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  fullWidth
+                  size="small"
+                  required
+                  autoComplete="new-password"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockIcon size={16} strokeWidth={1.75} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => setShowPassword((v) => !v)}
+                          edge="end"
+                          aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                        >
+                          {showPassword ? <VisibilityOff size={16} /> : <Visibility size={16} />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  helperText="8 caracteres minimum"
+                />
+
+                <TextField
+                  label="Confirme le mot de passe"
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  fullWidth
+                  size="small"
+                  required
+                  autoComplete="new-password"
+                  error={confirmPassword.length > 0 && password !== confirmPassword}
+                  helperText={
+                    confirmPassword.length > 0 && password !== confirmPassword
+                      ? 'Les mots de passe ne correspondent pas'
+                      : ' '
+                  }
+                />
+
+                <Button
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                  onClick={handleSubmitRegister}
+                  disabled={registering}
+                  startIcon={registering ? <CircularProgress size={16} color="inherit" /> : <PersonAdd />}
+                  sx={{ py: 1.3, fontWeight: 600, borderRadius: 2 }}
+                >
+                  {registering ? 'Creation en cours...' : 'Creer mon compte et accepter'}
+                </Button>
+
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => setState('info')}
+                  disabled={registering}
+                  sx={{ fontWeight: 500 }}
+                >
+                  Retour
+                </Button>
+              </Stack>
+            </Box>
           )}
 
           {/* Accepting */}

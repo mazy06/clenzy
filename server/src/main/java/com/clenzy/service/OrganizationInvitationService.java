@@ -1,6 +1,8 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.CreateUserDto;
 import com.clenzy.dto.InvitationDto;
+import com.clenzy.dto.InvitationRegisterRequest;
 import com.clenzy.model.*;
 import com.clenzy.repository.OrganizationInvitationRepository;
 import com.clenzy.util.StringUtils;
@@ -12,15 +14,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,9 +53,23 @@ public class OrganizationInvitationService {
     private final EmailService emailService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final TenantContext tenantContext;
+    private final KeycloakService keycloakService;
+    private final RestTemplate restTemplate;
 
     @Value("${FRONTEND_URL:http://localhost:3000}")
     private String frontendUrl;
+
+    @Value("${keycloak.auth-server-url:http://clenzy-keycloak:8080}")
+    private String keycloakUrl;
+
+    @Value("${keycloak.realm:clenzy}")
+    private String realm;
+
+    @Value("${KEYCLOAK_CLIENT_ID:clenzy-web}")
+    private String clientId;
+
+    @Value("${keycloak.credentials.secret:}")
+    private String clientSecret;
 
     public OrganizationInvitationService(
             OrganizationInvitationRepository invitationRepository,
@@ -56,7 +79,9 @@ public class OrganizationInvitationService {
             OrganizationService organizationService,
             EmailService emailService,
             RedisTemplate<String, Object> redisTemplate,
-            TenantContext tenantContext) {
+            TenantContext tenantContext,
+            KeycloakService keycloakService,
+            RestTemplate restTemplate) {
         this.invitationRepository = invitationRepository;
         this.organizationRepository = organizationRepository;
         this.memberRepository = memberRepository;
@@ -65,6 +90,8 @@ public class OrganizationInvitationService {
         this.emailService = emailService;
         this.redisTemplate = redisTemplate;
         this.tenantContext = tenantContext;
+        this.keycloakService = keycloakService;
+        this.restTemplate = restTemplate;
     }
 
     // ─── Envoyer une invitation ──────────────────────────────────────────────
@@ -259,6 +286,141 @@ public class OrganizationInvitationService {
         dto.setStatus(InvitationStatus.ACCEPTED.name());
         dto.setAcceptedAt(invitation.getAcceptedAt());
         return dto;
+    }
+
+    // ─── Self-register depuis le lien d'invitation (pas de JWT requis) ───────
+
+    /**
+     * Cree le compte Keycloak + DB ET accepte l'invitation en un seul appel.
+     *
+     * <p>Permet aux invites de finaliser leur inscription sans passer par la page
+     * d'inscription Keycloak (qui peut etre desactivee — {@code Registration not
+     * allowed}). Le user remplit ses infos sur la page Clenzy, on cree le compte
+     * cote Keycloak via l'API Admin, on l'ajoute a l'organisation et on lui
+     * retourne directement les JWT tokens (auto-login).</p>
+     *
+     * <p>L'email du nouveau compte est <b>impose par l'invitation</b> (pas
+     * fourni par le client) pour empecher un attaquant qui aurait intercepte
+     * le lien de creer un compte sur un autre email.</p>
+     *
+     * @return Map contenant access_token, refresh_token, id_token, expires_in, token_type
+     */
+    public Map<String, Object> registerAndAcceptInvitation(InvitationRegisterRequest dto) {
+        // 1. Charger et valider l'invitation
+        String tokenHash = sha256(dto.getToken());
+        OrganizationInvitation invitation = invitationRepository.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new IllegalArgumentException("Invitation non trouvee"));
+
+        if (invitation.getStatus() != InvitationStatus.PENDING) {
+            throw new IllegalStateException("Cette invitation n'est plus valide");
+        }
+        if (invitation.isExpired()) {
+            invitation.setStatus(InvitationStatus.EXPIRED);
+            invitationRepository.save(invitation);
+            throw new IllegalStateException("Cette invitation a expire");
+        }
+
+        String email = invitation.getInvitedEmail();
+        Long orgId = invitation.getOrganization().getId();
+
+        // 2. Verifier qu'aucun compte n'existe deja avec cet email (sinon il doit
+        //    se connecter d'abord puis utiliser l'endpoint /accept).
+        String emailHash = StringUtils.computeEmailHash(email);
+        if (userRepository.findByEmailHash(emailHash).isPresent()) {
+            throw new IllegalStateException(
+                    "Un compte avec cet email existe deja. Connectez-vous, l'invitation sera acceptee automatiquement.");
+        }
+
+        // 3. Creer l'utilisateur dans Keycloak (avec password fourni)
+        UserRole mappedRole = mapOrgRoleToUserRole(invitation.getRoleInvited());
+        CreateUserDto kcUser = new CreateUserDto();
+        kcUser.setFirstName(dto.getFirstName().trim());
+        kcUser.setLastName(dto.getLastName().trim());
+        kcUser.setEmail(email);
+        kcUser.setPassword(dto.getPassword());
+        kcUser.setRole(mappedRole.name());
+
+        String keycloakId = keycloakService.createUser(kcUser);
+        log.info("Compte Keycloak cree via invitation: keycloakId={}, email={}", keycloakId, email);
+
+        // 4. Creer l'utilisateur en base
+        User user = new User();
+        user.setKeycloakId(keycloakId);
+        user.setEmail(email);
+        user.setFirstName(dto.getFirstName().trim());
+        user.setLastName(dto.getLastName().trim());
+        if (dto.getPhoneNumber() != null && !dto.getPhoneNumber().isBlank()) {
+            user.setPhoneNumber(dto.getPhoneNumber().trim());
+        }
+        user.setRole(mappedRole);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setEmailVerified(true); // verifie via le lien d'invitation
+        // Hash placeholder local — l'auth reelle passe par Keycloak.
+        user.setPassword(UUID.randomUUID().toString().replace("-", "") + "Aa1!");
+        user.setOrganizationId(orgId);
+        user = userRepository.save(user);
+
+        // 5. Rattacher a l'organisation avec le role invite
+        if (!memberRepository.existsByOrganizationIdAndUserId(orgId, user.getId())) {
+            organizationService.addMember(orgId, user.getId(), invitation.getRoleInvited());
+        }
+
+        // 6. Marquer l'invitation acceptee
+        invitation.setStatus(InvitationStatus.ACCEPTED);
+        invitation.setAcceptedByUser(user);
+        invitation.setAcceptedAt(LocalDateTime.now());
+        invitationRepository.save(invitation);
+
+        // 7. Nettoyer le cache Redis
+        try {
+            redisTemplate.delete(REDIS_PREFIX + dto.getToken());
+        } catch (Exception e) {
+            log.debug("Erreur suppression Redis invitation: {}", e.getMessage());
+        }
+
+        log.info("Inscription via invitation OK: orgId={}, userId={}, role={}",
+                orgId, user.getId(), invitation.getRoleInvited());
+
+        // 8. Auto-login Keycloak (grant_type=password) pour ne pas obliger l'user
+        //    a retaper son mot de passe sur la page de login.
+        return authenticateUser(email, dto.getPassword());
+    }
+
+    /**
+     * Echange email + password contre des JWT tokens via {@code /token} de Keycloak.
+     * Meme pattern que {@code AuthController.login()} et {@code InscriptionService}.
+     */
+    private Map<String, Object> authenticateUser(String email, String password) {
+        String tokenUrl = keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/token";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("username", email);
+        params.add("password", password);
+        params.add("grant_type", "password");
+        params.add("client_id", clientId);
+        if (clientSecret != null && !clientSecret.isEmpty()) {
+            params.add("client_secret", clientSecret);
+        }
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> keycloakResponse = restTemplate.postForEntity(tokenUrl, params, Map.class);
+
+        if (keycloakResponse.getStatusCode().is2xxSuccessful() && keycloakResponse.getBody() != null) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> tokenData = keycloakResponse.getBody();
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("access_token", tokenData.get("access_token"));
+            result.put("refresh_token", tokenData.get("refresh_token"));
+            result.put("id_token", tokenData.get("id_token"));
+            result.put("expires_in", tokenData.get("expires_in"));
+            result.put("token_type", tokenData.get("token_type"));
+            return result;
+        }
+
+        throw new RuntimeException("Erreur lors de l'authentification automatique apres invitation.");
     }
 
     // ─── Auto-accepter les invitations pending pour un email (hook /me) ───────
