@@ -849,6 +849,421 @@ class ManagerServiceTest {
     }
 
     @Nested
+    @DisplayName("getAvailablePropertiesForHostWithOwner(hostId) — deprecated map-based")
+    class AvailablePropertiesForHostWithOwner {
+
+        @Test
+        @DisplayName("returns unassigned properties as maps with owner info")
+        void whenSomeUnassigned_thenReturnsMapsWithOwnerInfo() {
+            User host = buildUser(20L, UserRole.HOST);
+            Property assigned = buildProperty(1L, host);
+            Property unassigned = buildProperty(2L, host);
+            unassigned.setType(com.clenzy.model.PropertyType.APARTMENT);
+            unassigned.setStatus(com.clenzy.model.PropertyStatus.ACTIVE);
+
+            when(propertyRepository.findByOwnerId(20L)).thenReturn(List.of(assigned, unassigned));
+            when(managerPropertyRepository.existsByPropertyId(1L, ORG_ID)).thenReturn(true);
+            when(managerPropertyRepository.existsByPropertyId(2L, ORG_ID)).thenReturn(false);
+
+            List<java.util.Map<String, Object>> result =
+                    managerService.getAvailablePropertiesForHostWithOwner(20L);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).get("id")).isEqualTo(2L);
+            assertThat(result.get(0).get("ownerId")).isEqualTo(20L);
+            assertThat(result.get(0).get("isActive")).isEqualTo(true);
+            assertThat(result.get(0).get("type")).isEqualTo("APARTMENT");
+        }
+
+        @Test
+        @DisplayName("handles nulls in property fields without NPE")
+        void whenPropertyHasNullFields_thenUsesEmptyStrings() {
+            User host = buildUser(20L, UserRole.HOST);
+            Property prop = new Property();
+            prop.setId(2L);
+            prop.setOwner(host);
+            // Force null pour les champs avec un default value
+            prop.setType(null);
+            prop.setStatus(null);
+            when(propertyRepository.findByOwnerId(20L)).thenReturn(List.of(prop));
+            when(managerPropertyRepository.existsByPropertyId(2L, ORG_ID)).thenReturn(false);
+
+            List<java.util.Map<String, Object>> result =
+                    managerService.getAvailablePropertiesForHostWithOwner(20L);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).get("name")).isEqualTo("");
+            assertThat(result.get(0).get("address")).isEqualTo("");
+            assertThat(result.get(0).get("type")).isEqualTo("");
+            assertThat(result.get(0).get("status")).isEqualTo("");
+            // null status → isActive=true par default
+            assertThat(result.get(0).get("isActive")).isEqualTo(true);
+        }
+
+        @Test
+        @DisplayName("status INACTIVE -> isActive false")
+        void whenStatusInactive_thenIsActiveFalse() {
+            User host = buildUser(20L, UserRole.HOST);
+            Property prop = buildProperty(2L, host);
+            prop.setStatus(com.clenzy.model.PropertyStatus.INACTIVE);
+
+            when(propertyRepository.findByOwnerId(20L)).thenReturn(List.of(prop));
+            when(managerPropertyRepository.existsByPropertyId(2L, ORG_ID)).thenReturn(false);
+
+            List<java.util.Map<String, Object>> result =
+                    managerService.getAvailablePropertiesForHostWithOwner(20L);
+
+            assertThat(result.get(0).get("isActive")).isEqualTo(false);
+        }
+    }
+
+    @Nested
+    @DisplayName("getAvailableHostSummaries() — additional")
+    class GetAvailableHostSummariesAdditional {
+
+        @Test
+        @DisplayName("returns host with no properties at all")
+        void whenHostHasNoProperties_thenIncluded() {
+            User host = buildUser(20L, UserRole.HOST);
+            when(userRepository.findByRoleIn(any(), eq(ORG_ID))).thenReturn(List.of(host));
+            when(propertyRepository.findByOwnerId(20L)).thenReturn(List.of());
+
+            List<ManagerUserSummaryDto> result = managerService.getAvailableHostSummaries();
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).id()).isEqualTo(20L);
+        }
+    }
+
+    @Nested
+    @DisplayName("assignClientsAndProperties — additional branches")
+    class AssignClientsAndPropertiesAdditional {
+
+        @Test
+        @DisplayName("assigns properties when client is in request")
+        void whenPropertyOwnerInClientList_thenAssigns() {
+            User manager = buildUser(MANAGER_ID, UserRole.SUPER_MANAGER);
+            User client = buildUser(20L, UserRole.HOST);
+            Property property = buildProperty(100L, client);
+
+            when(userRepository.findById(MANAGER_ID)).thenReturn(Optional.of(manager));
+            when(portfolioRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+
+            Portfolio newPortfolio = buildPortfolio(1L, manager);
+            when(portfolioRepository.save(any(Portfolio.class))).thenReturn(newPortfolio);
+            when(portfolioClientRepository.existsByPortfolioIdAndClientId(1L, 20L, ORG_ID)).thenReturn(true);
+
+            when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+            when(managerPropertyRepository.existsByManagerIdAndPropertyId(MANAGER_ID, 100L, ORG_ID))
+                    .thenReturn(false);
+            when(managerPropertyRepository.save(any(ManagerProperty.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            AssignmentRequest req = new AssignmentRequest(List.of(20L), List.of(100L));
+            AssignmentResultDto result = managerService.assignClientsAndProperties(MANAGER_ID, req);
+
+            assertThat(result.propertiesAssigned()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("skips property when owner is not in client list (warn path)")
+        void whenPropertyOwnerNotInClientList_thenSkipsProperty() {
+            User manager = buildUser(MANAGER_ID, UserRole.SUPER_MANAGER);
+            User otherClient = buildUser(30L, UserRole.HOST);
+            Property property = buildProperty(100L, otherClient);
+
+            when(userRepository.findById(MANAGER_ID)).thenReturn(Optional.of(manager));
+            when(portfolioRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+
+            Portfolio newPortfolio = buildPortfolio(1L, manager);
+            when(portfolioRepository.save(any(Portfolio.class))).thenReturn(newPortfolio);
+
+            when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+
+            // clientIds contains only 20L, owner of property is 30L
+            AssignmentRequest req = new AssignmentRequest(List.of(20L), List.of(100L));
+            AssignmentResultDto result = managerService.assignClientsAndProperties(MANAGER_ID, req);
+
+            // Property skipped because owner (30L) not in clientIds (20L)
+            assertThat(result.propertiesAssigned()).isZero();
+            verify(managerPropertyRepository, never()).save(any(ManagerProperty.class));
+        }
+
+        @Test
+        @DisplayName("skips property when not found")
+        void whenPropertyNotFound_thenSkipsAndWarns() {
+            User manager = buildUser(MANAGER_ID, UserRole.SUPER_MANAGER);
+
+            when(userRepository.findById(MANAGER_ID)).thenReturn(Optional.of(manager));
+            when(portfolioRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+
+            Portfolio newPortfolio = buildPortfolio(1L, manager);
+            when(portfolioRepository.save(any(Portfolio.class))).thenReturn(newPortfolio);
+            when(propertyRepository.findById(999L)).thenReturn(Optional.empty());
+
+            AssignmentRequest req = new AssignmentRequest(List.of(20L), List.of(999L));
+            AssignmentResultDto result = managerService.assignClientsAndProperties(MANAGER_ID, req);
+
+            assertThat(result.propertiesAssigned()).isZero();
+        }
+
+        @Test
+        @DisplayName("skips client already assigned to portfolio")
+        void whenClientAlreadyInPortfolio_thenSkips() {
+            User manager = buildUser(MANAGER_ID, UserRole.SUPER_MANAGER);
+            User client = buildUser(20L, UserRole.HOST);
+
+            when(userRepository.findById(MANAGER_ID)).thenReturn(Optional.of(manager));
+            when(portfolioRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+
+            Portfolio newPortfolio = buildPortfolio(1L, manager);
+            when(portfolioRepository.save(any(Portfolio.class))).thenReturn(newPortfolio);
+
+            // existsByPortfolioIdAndClientId returns true => skip
+            when(portfolioClientRepository.existsByPortfolioIdAndClientId(1L, 20L, ORG_ID))
+                    .thenReturn(true);
+
+            AssignmentRequest req = new AssignmentRequest(List.of(20L), List.of());
+            AssignmentResultDto result = managerService.assignClientsAndProperties(MANAGER_ID, req);
+
+            assertThat(result.clientsAssigned()).isZero();
+            verify(portfolioClientRepository, never()).save(any(PortfolioClient.class));
+        }
+
+        @Test
+        @DisplayName("skips client when user not found")
+        void whenClientUserNotFound_thenSkipsAndWarns() {
+            User manager = buildUser(MANAGER_ID, UserRole.SUPER_MANAGER);
+
+            when(userRepository.findById(MANAGER_ID)).thenReturn(Optional.of(manager));
+            when(portfolioRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+
+            Portfolio newPortfolio = buildPortfolio(1L, manager);
+            when(portfolioRepository.save(any(Portfolio.class))).thenReturn(newPortfolio);
+
+            when(portfolioClientRepository.existsByPortfolioIdAndClientId(1L, 20L, ORG_ID)).thenReturn(false);
+            when(userRepository.findById(20L)).thenReturn(Optional.empty());
+
+            AssignmentRequest req = new AssignmentRequest(List.of(20L), List.of());
+            AssignmentResultDto result = managerService.assignClientsAndProperties(MANAGER_ID, req);
+
+            assertThat(result.clientsAssigned()).isZero();
+            verify(portfolioClientRepository, never()).save(any(PortfolioClient.class));
+        }
+
+        @Test
+        @DisplayName("skips property already assigned to manager")
+        void whenPropertyAlreadyAssigned_thenSkips() {
+            User manager = buildUser(MANAGER_ID, UserRole.SUPER_MANAGER);
+            User client = buildUser(20L, UserRole.HOST);
+            Property property = buildProperty(100L, client);
+
+            when(userRepository.findById(MANAGER_ID)).thenReturn(Optional.of(manager));
+            when(portfolioRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+
+            Portfolio newPortfolio = buildPortfolio(1L, manager);
+            when(portfolioRepository.save(any(Portfolio.class))).thenReturn(newPortfolio);
+
+            when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+            when(managerPropertyRepository.existsByManagerIdAndPropertyId(MANAGER_ID, 100L, ORG_ID))
+                    .thenReturn(true);
+
+            AssignmentRequest req = new AssignmentRequest(List.of(20L), List.of(100L));
+            AssignmentResultDto result = managerService.assignClientsAndProperties(MANAGER_ID, req);
+
+            assertThat(result.propertiesAssigned()).isZero();
+        }
+    }
+
+    @Nested
+    @DisplayName("assignTeamsAndUsers — additional branches")
+    class AssignTeamsAndUsersAdditional {
+
+        @Test
+        @DisplayName("skips already-assigned users")
+        void whenUserAlreadyAssigned_thenSkipsIt() {
+            when(managerUserRepository.existsByManagerIdAndUserIdAndIsActiveTrue(
+                    MANAGER_ID, 5L, ORG_ID)).thenReturn(true);
+            when(managerUserRepository.existsByManagerIdAndUserIdAndIsActiveTrue(
+                    MANAGER_ID, 6L, ORG_ID)).thenReturn(false);
+            when(managerUserRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            TeamUserAssignmentRequest req = new TeamUserAssignmentRequest(
+                    MANAGER_ID, List.of(), List.of(5L, 6L));
+            TeamUserAssignmentResultDto result = managerService.assignTeamsAndUsers(MANAGER_ID, req);
+
+            assertThat(result.usersAssigned()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("empty (non-null) team list - assigns nothing")
+        void whenEmptyTeamList_thenAssignsNothing() {
+            TeamUserAssignmentRequest req = new TeamUserAssignmentRequest(
+                    MANAGER_ID, List.of(), List.of());
+            TeamUserAssignmentResultDto result = managerService.assignTeamsAndUsers(MANAGER_ID, req);
+
+            assertThat(result.teamsAssigned()).isZero();
+            assertThat(result.usersAssigned()).isZero();
+        }
+    }
+
+    @Nested
+    @DisplayName("unassignTeam / unassignUser — additional")
+    class UnassignTeamUserAdditional {
+
+        @Test
+        @DisplayName("unassignTeam returns zero when no association")
+        void unassignTeam_whenNoAssoc_thenReturnsZero() {
+            when(managerTeamRepository.findAllByManagerIdAndTeamId(MANAGER_ID, 5L, ORG_ID))
+                    .thenReturn(List.of());
+
+            UnassignmentResultDto result = managerService.unassignTeam(MANAGER_ID, 5L);
+
+            assertThat(result.removedCount()).isZero();
+            verify(managerTeamRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("unassignUser returns zero when no association")
+        void unassignUser_whenNoAssoc_thenReturnsZero() {
+            when(managerUserRepository.findAllByManagerIdAndUserId(MANAGER_ID, 5L, ORG_ID))
+                    .thenReturn(List.of());
+
+            UnassignmentResultDto result = managerService.unassignUser(MANAGER_ID, 5L);
+
+            assertThat(result.removedCount()).isZero();
+            verify(managerUserRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("unassignTeam soft-deletes multiple associations")
+        void unassignTeam_multipleAssocs_thenSoftDeletesAll() {
+            ManagerTeam mt1 = new ManagerTeam(MANAGER_ID, 5L);
+            mt1.setId(1L);
+            ManagerTeam mt2 = new ManagerTeam(MANAGER_ID, 5L);
+            mt2.setId(2L);
+            when(managerTeamRepository.findAllByManagerIdAndTeamId(MANAGER_ID, 5L, ORG_ID))
+                    .thenReturn(List.of(mt1, mt2));
+            when(managerTeamRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            UnassignmentResultDto result = managerService.unassignTeam(MANAGER_ID, 5L);
+
+            assertThat(result.removedCount()).isEqualTo(2);
+            verify(managerTeamRepository, times(2)).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("getManagerAssociations — additional branches")
+    class GetManagerAssociationsAdditional {
+
+        @Test
+        @DisplayName("filters out users with null userId lookup")
+        void whenUserLookupReturnsEmpty_thenFiltersOut() {
+            User manager = buildUser(MANAGER_ID, UserRole.SUPER_MANAGER);
+            Portfolio portfolio = buildPortfolio(1L, manager);
+            when(portfolioRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of(portfolio));
+
+            // 2 manager_user associations, only one user exists
+            ManagerUser mu1 = new ManagerUser(MANAGER_ID, 30L);
+            ManagerUser mu2 = new ManagerUser(MANAGER_ID, 99L);
+            when(managerUserRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID))
+                    .thenReturn(List.of(mu1, mu2));
+            when(userRepository.findById(30L)).thenReturn(Optional.of(buildUser(30L, UserRole.TECHNICIAN)));
+            when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+            when(managerPropertyRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+            when(managerTeamRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+
+            ManagerAssociationsDto result = managerService.getManagerAssociations(MANAGER_ID);
+
+            // Only one user kept (99L filtered out)
+            assertThat(result.getUsers()).hasSize(1);
+            assertThat(result.getUsers().get(0).getId()).isEqualTo(30L);
+        }
+
+        @Test
+        @DisplayName("filters out missing properties in manager-property associations")
+        void whenPropertyLookupReturnsEmpty_thenFiltersOut() {
+            User manager = buildUser(MANAGER_ID, UserRole.SUPER_MANAGER);
+            when(portfolioRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+
+            // 2 manager_property entries, only one property exists
+            ManagerProperty mp1 = new ManagerProperty(MANAGER_ID, 100L, "a");
+            ManagerProperty mp2 = new ManagerProperty(MANAGER_ID, 999L, "b");
+            when(managerPropertyRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of(mp1, mp2));
+            User host = buildUser(20L, UserRole.HOST);
+            when(propertyRepository.findById(100L)).thenReturn(Optional.of(buildProperty(100L, host)));
+            when(propertyRepository.findById(999L)).thenReturn(Optional.empty());
+
+            when(managerUserRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+            when(managerTeamRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+
+            ManagerAssociationsDto result = managerService.getManagerAssociations(MANAGER_ID);
+
+            assertThat(result.getProperties()).hasSize(1);
+            assertThat(result.getProperties().get(0).getId()).isEqualTo(100L);
+        }
+
+        @Test
+        @DisplayName("filters out missing teams in manager-team associations")
+        void whenTeamLookupReturnsEmpty_thenFiltersOut() {
+            User manager = buildUser(MANAGER_ID, UserRole.SUPER_MANAGER);
+            when(portfolioRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+
+            ManagerTeam mt1 = new ManagerTeam(MANAGER_ID, 5L);
+            ManagerTeam mt2 = new ManagerTeam(MANAGER_ID, 999L);
+            when(managerTeamRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID)).thenReturn(List.of(mt1, mt2));
+            Team t = new Team();
+            t.setId(5L);
+            t.setName("Team A");
+            when(teamRepository.findById(5L)).thenReturn(Optional.of(t));
+            when(teamRepository.findById(999L)).thenReturn(Optional.empty());
+
+            when(managerUserRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+            when(managerPropertyRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());
+
+            ManagerAssociationsDto result = managerService.getManagerAssociations(MANAGER_ID);
+
+            assertThat(result.getTeams()).hasSize(1);
+            assertThat(result.getTeams().get(0).getId()).isEqualTo(5L);
+        }
+    }
+
+    @Nested
+    @DisplayName("getAllTeamSummaries — short description path")
+    class GetAllTeamSummariesShort {
+
+        @Test
+        @DisplayName("description <= 50 chars is not truncated")
+        void whenShortDescription_thenNotTruncated() {
+            Team team = new Team();
+            team.setId(1L);
+            team.setName("Team A");
+            team.setDescription("Short desc");
+            when(teamRepository.findAll()).thenReturn(List.of(team));
+
+            List<ManagerTeamSummaryDto> result = managerService.getAllTeamSummaries();
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).description()).isEqualTo("Short desc");
+        }
+
+        @Test
+        @DisplayName("null description maps to empty string")
+        void whenNullDescription_thenEmptyString() {
+            Team team = new Team();
+            team.setId(1L);
+            team.setName("Team A");
+            team.setDescription(null);
+            when(teamRepository.findAll()).thenReturn(List.of(team));
+
+            List<ManagerTeamSummaryDto> result = managerService.getAllTeamSummaries();
+
+            assertThat(result.get(0).description()).isEmpty();
+        }
+    }
+
+    @Nested
     @DisplayName("unassignPropertyFromManager(managerId, propertyId)")
     class UnassignProperty {
 

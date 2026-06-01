@@ -437,4 +437,402 @@ class DirectBookingServiceTest {
                     .hasMessageContaining("non applicable");
         }
     }
+
+    // ================================================================
+    // checkAvailability — additional branches
+    // ================================================================
+
+    @Nested
+    @DisplayName("checkAvailability — additional")
+    class CheckAvailabilityAdditional {
+
+        @Test
+        @DisplayName("invalid dates (checkOut <= checkIn) returns unavailable")
+        void whenInvalidDates_thenReturnsUnavailable() {
+            stubConfigDefaults();
+            LocalDate checkIn = futureCheckIn();
+            var request = new DirectAvailabilityRequest(PROPERTY_ID, checkIn, checkIn, 2);
+
+            DirectAvailabilityResponse response = service.checkAvailability(request, ORG_ID);
+            assertThat(response.available()).isFalse();
+        }
+
+        @Test
+        @DisplayName("too many advance days returns unavailable")
+        void whenTooManyAdvanceDays_thenReturnsUnavailable() {
+            when(config.getDefaultCurrency()).thenReturn(CURRENCY);
+            when(config.getMinAdvanceDays()).thenReturn(1);
+            when(config.getMaxAdvanceDays()).thenReturn(30);
+
+            LocalDate checkIn = LocalDate.now().plusDays(100);
+            LocalDate checkOut = checkIn.plusDays(3);
+            var request = new DirectAvailabilityRequest(PROPERTY_ID, checkIn, checkOut, 2);
+
+            DirectAvailabilityResponse response = service.checkAvailability(request, ORG_ID);
+            assertThat(response.available()).isFalse();
+        }
+
+        @Test
+        @DisplayName("property not found returns unavailable")
+        void whenPropertyNotFound_thenReturnsUnavailable() {
+            stubConfigDefaults();
+            LocalDate checkIn = futureCheckIn();
+            LocalDate checkOut = futureCheckOut();
+            var request = new DirectAvailabilityRequest(PROPERTY_ID, checkIn, checkOut, 2);
+
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.empty());
+
+            DirectAvailabilityResponse response = service.checkAvailability(request, ORG_ID);
+            assertThat(response.available()).isFalse();
+        }
+
+        @Test
+        @DisplayName("inactive property returns unavailable")
+        void whenInactiveProperty_thenReturnsUnavailable() {
+            stubConfigDefaults();
+            LocalDate checkIn = futureCheckIn();
+            LocalDate checkOut = futureCheckOut();
+            var request = new DirectAvailabilityRequest(PROPERTY_ID, checkIn, checkOut, 2);
+
+            Property inactive = activeProperty();
+            inactive.setStatus(com.clenzy.model.PropertyStatus.INACTIVE);
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(inactive));
+
+            DirectAvailabilityResponse response = service.checkAvailability(request, ORG_ID);
+            assertThat(response.available()).isFalse();
+        }
+
+        @Test
+        @DisplayName("too many guests returns unavailable")
+        void whenTooManyGuests_thenReturnsUnavailable() {
+            stubConfigDefaults();
+            LocalDate checkIn = futureCheckIn();
+            LocalDate checkOut = futureCheckOut();
+            var request = new DirectAvailabilityRequest(PROPERTY_ID, checkIn, checkOut, 99);
+
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(activeProperty()));
+
+            DirectAvailabilityResponse response = service.checkAvailability(request, ORG_ID);
+            assertThat(response.available()).isFalse();
+        }
+
+        @Test
+        @DisplayName("config not enabled for property returns unavailable")
+        void whenConfigDisabled_thenReturnsUnavailable() {
+            stubConfigDefaults();
+            LocalDate checkIn = futureCheckIn();
+            LocalDate checkOut = futureCheckOut();
+            var request = new DirectAvailabilityRequest(PROPERTY_ID, checkIn, checkOut, 2);
+
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(activeProperty()));
+            when(configRepository.findEnabledByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.empty());
+
+            DirectAvailabilityResponse response = service.checkAvailability(request, ORG_ID);
+            assertThat(response.available()).isFalse();
+        }
+    }
+
+    // ================================================================
+    // createBooking — additional branches
+    // ================================================================
+
+    @Nested
+    @DisplayName("createBooking — additional")
+    class CreateBookingAdditional {
+
+        @Test
+        @DisplayName("checkOut <= checkIn throws")
+        void whenInvalidDates_thenThrows() {
+            stubConfigDefaults();
+            LocalDate checkIn = futureCheckIn();
+            var request = new DirectBookingRequest(PROPERTY_ID, checkIn, checkIn,
+                    "J", "D", "j@e.com", null, 2, 0, null, null, null, null);
+
+            assertThatThrownBy(() -> service.createBooking(request, ORG_ID))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("check-out");
+        }
+
+        @Test
+        @DisplayName("too few advance days throws")
+        void whenTooFewAdvance_thenThrows() {
+            when(config.getMinAdvanceDays()).thenReturn(10);
+
+            LocalDate checkIn = LocalDate.now().plusDays(1);
+            LocalDate checkOut = checkIn.plusDays(3);
+            var request = new DirectBookingRequest(PROPERTY_ID, checkIn, checkOut,
+                    "J", "D", "j@e.com", null, 2, 0, null, null, null, null);
+
+            assertThatThrownBy(() -> service.createBooking(request, ORG_ID))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("minimum");
+        }
+
+        @Test
+        @DisplayName("too many advance days throws")
+        void whenTooManyAdvance_thenThrows() {
+            when(config.getMinAdvanceDays()).thenReturn(1);
+            when(config.getMaxAdvanceDays()).thenReturn(30);
+
+            LocalDate checkIn = LocalDate.now().plusDays(60);
+            LocalDate checkOut = checkIn.plusDays(3);
+            var request = new DirectBookingRequest(PROPERTY_ID, checkIn, checkOut,
+                    "J", "D", "j@e.com", null, 2, 0, null, null, null, null);
+
+            assertThatThrownBy(() -> service.createBooking(request, ORG_ID))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("maximum");
+        }
+
+        @Test
+        @DisplayName("too many guests throws")
+        void whenTooManyGuests_thenThrows() {
+            stubConfigDefaults();
+            LocalDate checkIn = futureCheckIn();
+            LocalDate checkOut = futureCheckOut();
+            var request = new DirectBookingRequest(PROPERTY_ID, checkIn, checkOut,
+                    "J", "D", "j@e.com", null, 99, 0, null, null, null, null);
+
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(activeProperty()));
+
+            assertThatThrownBy(() -> service.createBooking(request, ORG_ID))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("capacite");
+        }
+
+        @Test
+        @DisplayName("config not enabled throws")
+        void whenConfigDisabled_thenThrows() {
+            stubConfigDefaults();
+            LocalDate checkIn = futureCheckIn();
+            LocalDate checkOut = futureCheckOut();
+            var request = new DirectBookingRequest(PROPERTY_ID, checkIn, checkOut,
+                    "J", "D", "j@e.com", null, 2, 0, null, null, null, null);
+
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(activeProperty()));
+            when(configRepository.findEnabledByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.createBooking(request, ORG_ID))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("non activees");
+        }
+
+        @Test
+        @DisplayName("non-auto-confirm without payment goes to pending")
+        void whenNoAutoConfirmNoPayment_thenPending() {
+            stubConfigDefaults();
+            LocalDate checkIn = futureCheckIn();
+            LocalDate checkOut = futureCheckOut();
+            var request = new DirectBookingRequest(PROPERTY_ID, checkIn, checkOut,
+                    "J", "D", "j@e.com", null, 2, 0, null, null, null, null);
+
+            Property prop = activeProperty();
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(prop));
+
+            DirectBookingConfiguration cfg = new DirectBookingConfiguration(ORG_ID, PROPERTY_ID);
+            cfg.setEnabled(true);
+            cfg.setAutoConfirm(false);
+            cfg.setRequirePayment(false);
+            when(configRepository.findEnabledByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(cfg));
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), eq(checkIn), eq(checkOut), eq(ORG_ID)))
+                    .thenReturn(Map.of(
+                        checkIn, new BigDecimal("100"),
+                        checkIn.plusDays(1), new BigDecimal("100"),
+                        checkIn.plusDays(2), new BigDecimal("100")
+                    ));
+            when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(101L);
+                return r;
+            });
+
+            DirectBookingResponse response = service.createBooking(request, ORG_ID);
+            assertThat(response.status()).isEqualTo(DirectBookingResponse.STATUS_PENDING);
+        }
+
+        @Test
+        @DisplayName("with optional fields (phone, specialRequests, children) -> notes built")
+        void withOptionalFields_buildsNotes() {
+            stubConfigDefaults();
+            LocalDate checkIn = futureCheckIn();
+            LocalDate checkOut = futureCheckOut();
+            var request = new DirectBookingRequest(PROPERTY_ID, checkIn, checkOut,
+                    "J", "D", "j@e.com", "+33612345678", 2, 1,
+                    "Late check-in", null, null, null);
+
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(activeProperty()));
+            when(configRepository.findEnabledByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(enabledConfig()));
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), eq(checkIn), eq(checkOut), eq(ORG_ID)))
+                    .thenReturn(Map.of());
+            when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(102L);
+                return r;
+            });
+
+            DirectBookingResponse response = service.createBooking(request, ORG_ID);
+            assertThat(response).isNotNull();
+            // Verify notes contains optional fields
+            ArgumentCaptor<Reservation> cap = ArgumentCaptor.forClass(Reservation.class);
+            verify(reservationRepository, atLeastOnce()).save(cap.capture());
+            String notes = cap.getValue().getNotes();
+            assertThat(notes).contains("+33612345678");
+            assertThat(notes).contains("Late check-in");
+            assertThat(notes).contains("1 enfant");
+        }
+
+        @Test
+        @DisplayName("with promoCode but invalid -> no discount applied")
+        void withInvalidPromoCode_noDiscount() {
+            stubConfigDefaults();
+            LocalDate checkIn = futureCheckIn();
+            LocalDate checkOut = futureCheckOut();
+            var request = new DirectBookingRequest(PROPERTY_ID, checkIn, checkOut,
+                    "J", "D", "j@e.com", null, 2, 0, null, "INVALID", null, null);
+
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(activeProperty()));
+            when(configRepository.findEnabledByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(enabledConfig()));
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), eq(checkIn), eq(checkOut), eq(ORG_ID)))
+                    .thenReturn(Map.of(
+                        checkIn, new BigDecimal("100"),
+                        checkIn.plusDays(1), new BigDecimal("100"),
+                        checkIn.plusDays(2), new BigDecimal("100")
+                    ));
+            when(promoCodeRepository.findByCodeAndOrganizationId("INVALID", ORG_ID))
+                    .thenReturn(Optional.empty());
+            when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(103L);
+                return r;
+            });
+
+            DirectBookingResponse response = service.createBooking(request, ORG_ID);
+            // No discount applied → totalPrice = 300
+            assertThat(response.totalPrice()).isEqualByComparingTo("300");
+        }
+    }
+
+    // ================================================================
+    // confirmBooking
+    // ================================================================
+
+    @Nested
+    @DisplayName("confirmBooking")
+    class ConfirmBooking {
+
+        @Test
+        @DisplayName("success returns confirmed")
+        void whenValidId_thenConfirms() {
+            stubConfigDefaults();
+            Property prop = activeProperty();
+            Reservation r = new Reservation(prop, "Jean", futureCheckIn(), futureCheckOut(),
+                    "pending", "DIRECT");
+            r.setId(100L);
+            r.setOrganizationId(ORG_ID);
+            r.setConfirmationCode("DB-ABC");
+            r.setTotalPrice(new BigDecimal("300"));
+
+            when(reservationRepository.findAll()).thenReturn(List.of(r));
+            when(reservationRepository.save(any(Reservation.class))).thenReturn(r);
+
+            DirectBookingResponse response = service.confirmBooking("DB-ABC", ORG_ID);
+
+            assertThat(response.status()).isEqualTo(DirectBookingResponse.STATUS_CONFIRMED);
+            ArgumentCaptor<Reservation> cap = ArgumentCaptor.forClass(Reservation.class);
+            verify(reservationRepository).save(cap.capture());
+            assertThat(cap.getValue().getStatus()).isEqualTo("confirmed");
+        }
+
+        @Test
+        @DisplayName("unknown id throws")
+        void whenUnknownId_thenThrows() {
+            when(reservationRepository.findAll()).thenReturn(List.of());
+
+            assertThatThrownBy(() -> service.confirmBooking("DB-UNKNOWN", ORG_ID))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    // ================================================================
+    // applyPromoCode — additional
+    // ================================================================
+
+    @Nested
+    @DisplayName("applyPromoCode — additional")
+    class ApplyPromoCodeAdditional {
+
+        @Test
+        @DisplayName("promo with FIXED_AMOUNT discount type returns DTO")
+        void whenFixedPromo_thenReturnsDto() {
+            PromoCode promo = new PromoCode(ORG_ID, "FIXED10",
+                    PromoCode.DiscountType.FIXED_AMOUNT, new BigDecimal("20"));
+            promo.setActive(true);
+            promo.setValidFrom(LocalDate.now().minusDays(1));
+            promo.setValidUntil(LocalDate.now().plusDays(30));
+
+            when(promoCodeRepository.findByCodeAndOrganizationId("FIXED10", ORG_ID))
+                    .thenReturn(Optional.of(promo));
+
+            DirectPromoCodeDto dto = service.applyPromoCode("FIXED10", PROPERTY_ID, ORG_ID);
+
+            assertThat(dto.discountType()).isEqualTo("FIXED_AMOUNT");
+        }
+    }
+
+    // ================================================================
+    // cancelBooking — additional
+    // ================================================================
+
+    @Nested
+    @DisplayName("cancelBooking — additional")
+    class CancelBookingAdditional {
+
+        @Test
+        @DisplayName("appends reason to existing notes")
+        void appendsToExistingNotes() {
+            Property prop = activeProperty();
+            Reservation r = new Reservation(prop, "Jean", futureCheckIn(), futureCheckOut(),
+                    "confirmed", "DIRECT");
+            r.setId(100L);
+            r.setOrganizationId(ORG_ID);
+            r.setConfirmationCode("DB-X");
+            r.setNotes("Some prior note");
+
+            when(reservationRepository.findAll()).thenReturn(List.of(r));
+            when(reservationRepository.save(any(Reservation.class))).thenReturn(r);
+
+            service.cancelBooking("DB-X", "Test reason", ORG_ID);
+
+            ArgumentCaptor<Reservation> cap = ArgumentCaptor.forClass(Reservation.class);
+            verify(reservationRepository).save(cap.capture());
+            assertThat(cap.getValue().getNotes()).contains("Some prior note");
+            assertThat(cap.getValue().getNotes()).contains("Annulation: Test reason");
+        }
+
+        @Test
+        @DisplayName("with no prior notes - just adds reason")
+        void noPriorNotes_addsReasonOnly() {
+            Property prop = activeProperty();
+            Reservation r = new Reservation(prop, "Jean", futureCheckIn(), futureCheckOut(),
+                    "confirmed", "DIRECT");
+            r.setId(100L);
+            r.setOrganizationId(ORG_ID);
+            r.setConfirmationCode("DB-X");
+            r.setNotes(null);
+
+            when(reservationRepository.findAll()).thenReturn(List.of(r));
+            when(reservationRepository.save(any(Reservation.class))).thenReturn(r);
+
+            service.cancelBooking("DB-X", "Test reason", ORG_ID);
+
+            ArgumentCaptor<Reservation> cap = ArgumentCaptor.forClass(Reservation.class);
+            verify(reservationRepository).save(cap.capture());
+            assertThat(cap.getValue().getNotes()).startsWith("Annulation:");
+        }
+    }
 }

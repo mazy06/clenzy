@@ -543,4 +543,104 @@ class SecurityConfigProdTest {
             assertThat(chain).isSameAs(expected);
         }
     }
+
+    // ─── extractRealmRoles (private) ─────────────────────────────────────
+
+    @Nested
+    @DisplayName("extractRealmRoles (private)")
+    class ExtractRealmRoles {
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("null realm_access returns empty list")
+        void whenNullRealmAccess_thenReturnsEmpty() throws Exception {
+            // Use null claim → realmAccess null path
+            Map<String, Object> claims = new java.util.HashMap<>();
+            claims.put("sub", "user-1");
+            Jwt jwt = jwt(claims);
+            java.util.Collection<?> result = (java.util.Collection<?>) invokeExtractRealmRoles(jwt);
+            assertThat(result).isEmpty();
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("realm_access without roles key returns empty")
+        void whenNoRolesKey_thenReturnsEmpty() throws Exception {
+            Jwt jwt = jwt(Map.of("realm_access", Map.of("foo", "bar")));
+            java.util.Collection<?> result = (java.util.Collection<?>) invokeExtractRealmRoles(jwt);
+            assertThat(result).isEmpty();
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("roles not a list returns empty")
+        void whenRolesNotAList_thenReturnsEmpty() throws Exception {
+            Jwt jwt = jwt(Map.of("realm_access", Map.of("roles", "HOST")));
+            java.util.Collection<?> result = (java.util.Collection<?>) invokeExtractRealmRoles(jwt);
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("lowercase admin role normalized to SUPER_ADMIN")
+        void whenLowercaseAdmin_thenNormalized() throws Exception {
+            Jwt jwt = jwt(Map.of("realm_access", Map.of("roles", List.of("admin"))));
+            @SuppressWarnings("unchecked")
+            java.util.Collection<GrantedAuthority> result = (java.util.Collection<GrantedAuthority>) invokeExtractRealmRoles(jwt);
+            assertThat(result.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet()))
+                    .containsExactly("ROLE_SUPER_ADMIN");
+        }
+
+        @Test
+        @DisplayName("manager role normalized to SUPER_MANAGER")
+        void whenManager_thenNormalized() throws Exception {
+            Jwt jwt = jwt(Map.of("realm_access", Map.of("roles", List.of("MANAGER"))));
+            @SuppressWarnings("unchecked")
+            java.util.Collection<GrantedAuthority> result = (java.util.Collection<GrantedAuthority>) invokeExtractRealmRoles(jwt);
+            assertThat(result.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet()))
+                    .containsExactly("ROLE_SUPER_MANAGER");
+        }
+
+        @Test
+        @DisplayName("plain HOST role retained as-is")
+        void whenHost_thenRetained() throws Exception {
+            Jwt jwt = jwt(Map.of("realm_access", Map.of("roles", List.of("HOST"))));
+            @SuppressWarnings("unchecked")
+            java.util.Collection<GrantedAuthority> result = (java.util.Collection<GrantedAuthority>) invokeExtractRealmRoles(jwt);
+            assertThat(result.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet()))
+                    .containsExactly("ROLE_HOST");
+        }
+
+        private Object invokeExtractRealmRoles(Jwt jwt) throws Exception {
+            Method m = SecurityConfigProd.class.getDeclaredMethod("extractRealmRoles", Jwt.class);
+            m.setAccessible(true);
+            return m.invoke(config, jwt);
+        }
+
+        private Jwt jwt(Map<String, Object> claims) {
+            return new Jwt("token", Instant.now(), Instant.now().plusSeconds(60),
+                    Map.of("alg", "RS256"), claims);
+        }
+    }
+
+    // ─── getAllowedOriginsList (private) ─────────────────────────────────
+
+    @Nested
+    @DisplayName("getAllowedOriginsList (private) - additional coverage")
+    class GetAllowedOriginsList {
+
+        @Test
+        @DisplayName("split by comma and trim")
+        void splitsByComma() throws Exception {
+            ReflectionTestUtils.setField(config, "allowedOrigins",
+                "https://a.com,https://b.com,https://c.com");
+
+            Method m = SecurityConfigProd.class.getDeclaredMethod("getAllowedOriginsList");
+            m.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            List<String> result = (List<String>) m.invoke(config);
+
+            assertThat(result).hasSize(3);
+            assertThat(result).contains("https://a.com", "https://b.com", "https://c.com");
+        }
+    }
 }

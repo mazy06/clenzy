@@ -226,4 +226,197 @@ class NoiseAlertServiceTest {
     void whenAboveCritical_thenSeverityIsCritical() {
         assertEquals(AlertSeverity.CRITICAL, service.determineSeverity(90.0, dayWindow));
     }
+
+    @Test
+    void whenExactlyAtWarning_thenSeverityIsWarning() {
+        assertEquals(AlertSeverity.WARNING, service.determineSeverity(70.0, dayWindow));
+    }
+
+    @Test
+    void whenExactlyAtCritical_thenSeverityIsCritical() {
+        assertEquals(AlertSeverity.CRITICAL, service.determineSeverity(85.0, dayWindow));
+    }
+
+    @Test
+    void whenJustBelowWarning_thenSeverityIsNull() {
+        assertNull(service.determineSeverity(69.9, dayWindow));
+    }
+
+    @Test
+    void findMatchingWindow_outsideAnyWindow_returnsNull() {
+        // Create two narrow windows with a gap
+        NoiseAlertTimeWindow morningOnly = new NoiseAlertTimeWindow();
+        morningOnly.setLabel("Morning");
+        morningOnly.setStartTime(LocalTime.of(8, 0));
+        morningOnly.setEndTime(LocalTime.of(10, 0));
+        morningOnly.setWarningThresholdDb(70);
+        morningOnly.setCriticalThresholdDb(85);
+
+        // 14:00 is outside the 08:00-10:00 window
+        NoiseAlertTimeWindow match = service.findMatchingWindow(List.of(morningOnly), LocalTime.of(14, 0));
+        assertNull(match);
+    }
+
+    @Test
+    void findMatchingWindow_emptyList_returnsNull() {
+        NoiseAlertTimeWindow match = service.findMatchingWindow(List.of(), LocalTime.of(12, 0));
+        assertNull(match);
+    }
+
+    // ─── isCooldownActive ──────────────────────────────────────────────────────
+
+    @Test
+    void isCooldownActive_returnsTrue_whenRecentAlertExists() {
+        when(alertRepository.existsRecentAlert(eq(100L), eq(AlertSeverity.WARNING), any()))
+            .thenReturn(true);
+
+        assertTrue(service.isCooldownActive(100L, AlertSeverity.WARNING, 30));
+    }
+
+    @Test
+    void isCooldownActive_returnsFalse_whenNoRecentAlert() {
+        when(alertRepository.existsRecentAlert(eq(100L), eq(AlertSeverity.CRITICAL), any()))
+            .thenReturn(false);
+
+        assertFalse(service.isCooldownActive(100L, AlertSeverity.CRITICAL, 60));
+    }
+
+    // ─── evaluateNoiseLevel - additional paths ─────────────────────────────────
+
+    @Test
+    void whenNotificationDispatchFails_thenAlertStillReturned() {
+        config.getTimeWindows().clear();
+        NoiseAlertTimeWindow allDay = new NoiseAlertTimeWindow();
+        allDay.setLabel("24h");
+        allDay.setStartTime(LocalTime.of(0, 0));
+        allDay.setEndTime(LocalTime.of(0, 0));
+        allDay.setWarningThresholdDb(70);
+        allDay.setCriticalThresholdDb(85);
+        allDay.setConfig(config);
+        config.getTimeWindows().add(allDay);
+
+        when(configRepository.findByOrgAndPropertyWithTimeWindows(10L, 100L))
+            .thenReturn(Optional.of(config));
+        when(alertRepository.existsRecentAlert(anyLong(), any(AlertSeverity.class), any()))
+            .thenReturn(false);
+        when(alertRepository.save(any(NoiseAlert.class)))
+            .thenAnswer(inv -> {
+                NoiseAlert a = inv.getArgument(0);
+                a.setId(99L);
+                return a;
+            });
+        org.mockito.Mockito.doThrow(new RuntimeException("smtp down"))
+            .when(notificationService).dispatch(any(), any());
+
+        NoiseAlert result = service.evaluateNoiseLevel(10L, 100L, 5L, 88.0, AlertSource.WEBHOOK);
+
+        assertNotNull(result);
+        assertEquals(AlertSeverity.CRITICAL, result.getSeverity());
+    }
+
+    // ─── getAlerts (paged read) ─────────────────────────────────────────────────
+
+    @Test
+    void getAlerts_filterByPropertyAndSeverity() {
+        org.springframework.data.domain.Page<NoiseAlert> pageOfAlerts =
+            new org.springframework.data.domain.PageImpl<>(List.of());
+
+        when(alertRepository.findByOrganizationIdAndPropertyIdAndSeverity(
+            eq(10L), eq(100L), eq(AlertSeverity.WARNING), any()))
+            .thenReturn(pageOfAlerts);
+
+        var result = service.getAlerts(10L, 100L, "WARNING", org.springframework.data.domain.Pageable.unpaged());
+        assertNotNull(result);
+        verify(alertRepository).findByOrganizationIdAndPropertyIdAndSeverity(
+            eq(10L), eq(100L), eq(AlertSeverity.WARNING), any());
+    }
+
+    @Test
+    void getAlerts_filterByPropertyOnly() {
+        org.springframework.data.domain.Page<NoiseAlert> pageOfAlerts =
+            new org.springframework.data.domain.PageImpl<>(List.of());
+        when(alertRepository.findByOrganizationIdAndPropertyId(eq(10L), eq(100L), any()))
+            .thenReturn(pageOfAlerts);
+
+        var result = service.getAlerts(10L, 100L, null, org.springframework.data.domain.Pageable.unpaged());
+        assertNotNull(result);
+        verify(alertRepository).findByOrganizationIdAndPropertyId(eq(10L), eq(100L), any());
+    }
+
+    @Test
+    void getAlerts_filterBySeverityOnly() {
+        org.springframework.data.domain.Page<NoiseAlert> pageOfAlerts =
+            new org.springframework.data.domain.PageImpl<>(List.of());
+        when(alertRepository.findByOrganizationIdAndSeverity(eq(10L), eq(AlertSeverity.CRITICAL), any()))
+            .thenReturn(pageOfAlerts);
+
+        var result = service.getAlerts(10L, null, "CRITICAL", org.springframework.data.domain.Pageable.unpaged());
+        assertNotNull(result);
+        verify(alertRepository).findByOrganizationIdAndSeverity(eq(10L), eq(AlertSeverity.CRITICAL), any());
+    }
+
+    @Test
+    void getAlerts_noFilter_returnsAllForOrg() {
+        org.springframework.data.domain.Page<NoiseAlert> pageOfAlerts =
+            new org.springframework.data.domain.PageImpl<>(List.of());
+        when(alertRepository.findByOrganizationId(eq(10L), any()))
+            .thenReturn(pageOfAlerts);
+
+        var result = service.getAlerts(10L, null, null, org.springframework.data.domain.Pageable.unpaged());
+        assertNotNull(result);
+        verify(alertRepository).findByOrganizationId(eq(10L), any());
+    }
+
+    // ─── getUnacknowledgedCount ────────────────────────────────────────────────
+
+    @Test
+    void getUnacknowledgedCount_delegatesToRepository() {
+        when(alertRepository.countByOrganizationIdAndAcknowledgedFalse(10L)).thenReturn(5L);
+
+        assertEquals(5L, service.getUnacknowledgedCount(10L));
+    }
+
+    // ─── acknowledge ──────────────────────────────────────────────────────────
+
+    @Test
+    void acknowledge_updatesAlertWithAckMetadata() {
+        NoiseAlert alert = new NoiseAlert();
+        alert.setId(1L);
+        alert.setOrganizationId(10L);
+        alert.setSeverity(AlertSeverity.WARNING);
+        alert.setMeasuredDb(75.0);
+        alert.setThresholdDb(70);
+        alert.setSource(AlertSource.WEBHOOK);
+
+        when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
+        when(alertRepository.save(any(NoiseAlert.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var result = service.acknowledge(1L, 10L, "user@test.com", "Resolved manually");
+        assertNotNull(result);
+        assertTrue(alert.isAcknowledged());
+        assertEquals("user@test.com", alert.getAcknowledgedBy());
+        assertNotNull(alert.getAcknowledgedAt());
+        assertEquals("Resolved manually", alert.getNotes());
+    }
+
+    @Test
+    void acknowledge_throwsWhenAlertNotFound() {
+        when(alertRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class,
+            () -> service.acknowledge(99L, 10L, "user", "notes"));
+    }
+
+    @Test
+    void acknowledge_throwsWhenOrgMismatch() {
+        NoiseAlert alert = new NoiseAlert();
+        alert.setId(1L);
+        alert.setOrganizationId(10L);
+
+        when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
+
+        // Org 20 doesn't own this alert (it belongs to 10)
+        assertThrows(IllegalArgumentException.class,
+            () -> service.acknowledge(1L, 20L, "user", "notes"));
+    }
 }

@@ -527,4 +527,109 @@ class SiteSnapshotServiceTest {
             assertThat(host == null || host.isEmpty()).isTrue();
         }
     }
+
+    @Nested
+    @DisplayName("inlineStylesheets - more edge cases")
+    class InlineStylesheetsExt {
+        @Test
+        @DisplayName("removes link[rel=stylesheet] with empty href")
+        void removesEmptyHref() throws Exception {
+            Document doc = Jsoup.parse("<html><head>"
+                    + "<link rel=\"stylesheet\" href=\"\">"
+                    + "</head><body></body></html>");
+            invoke("inlineStylesheets", doc, "https://example.com");
+            // Empty href → link removed (best-effort fail)
+            assertThat(doc.select("link[rel=stylesheet]")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("rewrites url() in pre-existing <style> blocks")
+        void rewritesUrlInStyleBlocks() throws Exception {
+            Document doc = Jsoup.parse("<html><head>"
+                    + "<style>.x { background: url(/img.png); }</style>"
+                    + "</head><body></body></html>");
+            doc.setBaseUri("https://example.com/");
+            invoke("inlineStylesheets", doc, "https://example.com");
+            // The pre-existing <style> got rewritten
+            assertThat(doc.select("style").outerHtml()).contains("https://example.com/img.png");
+        }
+    }
+
+    @Nested
+    @DisplayName("postProcess inlining behavior")
+    class PostProcessInline {
+        @Test
+        @DisplayName("removes stylesheet link with unreachable href (graceful)")
+        void removesUnreachableStylesheet() throws Exception {
+            String html = "<html><head>"
+                    + "<link rel=\"stylesheet\" href=\"https://invalid-host-clenzy-12345.example.invalid/style.css\">"
+                    + "</head><body></body></html>";
+            String result = (String) invoke("postProcess", html, "https://example.com/");
+            // Stylesheet link should be removed (fetch fails)
+            assertThat(result).doesNotContain("invalid-host-clenzy-12345");
+        }
+    }
+
+    @Nested
+    @DisplayName("rewriteCssUrls - additional patterns")
+    class RewriteCssUrls2 {
+        @Test
+        @DisplayName("preserves data: URLs in CSS")
+        void preservesDataUrls() throws Exception {
+            String css = ".x { background: url(data:image/png;base64,iVBOR); }";
+            String result = (String) invoke("rewriteCssUrls", css, "https://example.com/page");
+            assertThat(result).contains("data:image/png;base64,iVBOR");
+        }
+
+        @Test
+        @DisplayName("preserves protocol-relative URLs //")
+        void preservesProtocolRelative() throws Exception {
+            String css = ".x { background: url(//cdn.example.com/img.png); }";
+            String result = (String) invoke("rewriteCssUrls", css, "https://example.com/page");
+            assertThat(result).contains("//cdn.example.com/img.png");
+        }
+
+        @Test
+        @DisplayName("preserves fragment URLs #gradient")
+        void preservesFragmentUrls() throws Exception {
+            String css = ".x { fill: url(#gradient1); }";
+            String result = (String) invoke("rewriteCssUrls", css, "https://example.com/page");
+            assertThat(result).contains("#gradient1");
+        }
+    }
+
+    @Nested
+    @DisplayName("rewriteSrcset - additional patterns")
+    class RewriteSrcset2 {
+        @Test
+        @DisplayName("handles empty srcset value")
+        void handlesEmptySrcset() throws Exception {
+            String result = (String) invoke("rewriteSrcset", "", "https://example.com/page");
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("handles single entry with descriptor")
+        void singleEntryWithDescriptor() throws Exception {
+            String result = (String) invoke("rewriteSrcset",
+                    "/img.png 2x", "https://example.com/page");
+            assertThat(result).contains("https://example.com/img.png 2x");
+        }
+    }
+
+    @Nested
+    @DisplayName("postProcess - inline style rewriting")
+    class PostProcessInlineStyle {
+        @Test
+        @DisplayName("absolutizes all CSS url() in inline style attributes")
+        void rewritesMultipleInlineStyles() throws Exception {
+            String html = "<html><body>"
+                    + "<div style=\"background-image: url(/a.png);\">a</div>"
+                    + "<div style=\"background-image: url(/b.png);\">b</div>"
+                    + "</body></html>";
+            String result = (String) invoke("postProcess", html, "https://example.com/x");
+            assertThat(result).contains("https://example.com/a.png");
+            assertThat(result).contains("https://example.com/b.png");
+        }
+    }
 }
