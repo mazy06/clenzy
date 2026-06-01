@@ -12,6 +12,7 @@ import {
   LinearProgress,
   Skeleton,
   CircularProgress,
+  Avatar,
 } from '@mui/material';
 import {
   Refresh,
@@ -37,6 +38,8 @@ import {
 } from 'recharts';
 import TokenService, { TokenStats, TokenMetrics } from '../services/TokenService';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
+import { useAuth } from '../hooks/useAuth';
+import { userAvatarSrc } from '../services/api/usersApi';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -146,6 +149,9 @@ const TokenMonitoring: React.FC = () => {
 
   const tokenService = TokenService.getInstance();
   const { setHeaderActions } = useMonitoringHeader();
+  // Recupere le user complet (avec profilePictureUrl + databaseId) pour afficher
+  // l'avatar — le JWT seul ne le contient pas, contrairement a la sidebar.
+  const { user } = useAuth();
 
   const loadTokenStats = useCallback(async () => {
     try {
@@ -312,14 +318,14 @@ const TokenMonitoring: React.FC = () => {
                   transition: 'color 300ms',
                 }}
               />
-              <Box
+              <Avatar
+                src={userAvatarSrc(user)}
+                alt={currentToken.username || currentToken.email || 'avatar'}
                 sx={{
                   position: 'absolute',
                   inset: 8,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  width: 'auto',
+                  height: 'auto',
                   bgcolor: 'primary.main',
                   color: 'primary.contrastText',
                   fontWeight: 700,
@@ -328,7 +334,7 @@ const TokenMonitoring: React.FC = () => {
                 }}
               >
                 {getInitials(currentToken.username || currentToken.email)}
-              </Box>
+              </Avatar>
             </Box>
 
             {/* User info */}
