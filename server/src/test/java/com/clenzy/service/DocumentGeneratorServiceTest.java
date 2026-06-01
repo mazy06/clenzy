@@ -71,6 +71,7 @@ class DocumentGeneratorServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private ProviderExpenseRepository providerExpenseRepository;
     @Mock private EntityManager entityManager;
+    @Mock private DocumentGenerationFailureRecorder failureRecorder;
 
     private DocumentGeneratorService service;
     private Jwt jwt;
@@ -87,7 +88,7 @@ class DocumentGeneratorServiceTest {
                 invoiceGeneratorService, taxRulePreValidator, tenantContext, fiscalProfileRepository,
                 interventionRepository, receivedFormRepository, serviceRequestRepository,
                 reservationRepository, propertyRepository, providerExpenseRepository,
-                entityManager, meterRegistry
+                entityManager, failureRecorder, meterRegistry
         );
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
@@ -736,10 +737,10 @@ class DocumentGeneratorServiceTest {
             assertThatThrownBy(() -> service.generateDocument(req, jwt))
                     .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
 
-            // Verify the failure handler ran (status FAILED + notification)
-            verify(notificationService).notifyAdminsAndManagers(
-                    eq(NotificationKey.DOCUMENT_GENERATION_FAILED),
-                    anyString(), anyString(), anyString(), any());
+            // Verify the failure was delegated to the REQUIRES_NEW recorder (durable FAILED row + notif)
+            verify(failureRecorder).recordFailure(
+                    eq(DocumentType.BON_INTERVENTION), eq(1L), eq(ReferenceType.INTERVENTION),
+                    eq(7L), eq(1L), any(), anyString(), anyInt());
         }
 
         @Test
@@ -879,6 +880,68 @@ class DocumentGeneratorServiceTest {
             assertThat(captor.getAllValues())
                     .isNotEmpty()
                     .allSatisfy(g -> assertThat(g.getOrganizationId()).isEqualTo(42L));
+        }
+    }
+
+    @Nested
+    @DisplayName("Persistance des echecs (lignes FAILED visibles)")
+    class FailureRecording {
+
+        @Test
+        void whenNoActiveTemplate_thenRecordsExplicitFailureAndReturnsNull() {
+            // Mode A : aucun template actif pour le type demande. Au lieu de retourner null
+            // en silence (bug historique : le devis n'apparaissait jamais en bas de l'ecran
+            // "Messagerie OTA"), on persiste une ligne FAILED explicite via le recorder
+            // REQUIRES_NEW, sans jamais creer de ligne GENERATING.
+            when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.DEVIS))
+                    .thenReturn(Optional.empty());
+
+            DocumentGenerationDto result = service.generateFromEvent(
+                    DocumentType.DEVIS, 100L, ReferenceType.RECEIVED_FORM, "guest@test.com", null);
+
+            assertThat(result).isNull();
+            verify(failureRecorder).recordFailure(
+                    eq(DocumentType.DEVIS), eq(100L), eq(ReferenceType.RECEIVED_FORM),
+                    isNull(), isNull(), eq("guest@test.com"), anyString(), eq(0));
+            // Aucune ligne GENERATING ne doit etre creee quand il n'y a pas de template.
+            verify(generationRepository, never()).save(any(DocumentGeneration.class));
+        }
+
+        @Test
+        void whenPipelineThrows_thenRecordsFailureWithTemplateIdAndRethrows() {
+            // Mode B : un template existe mais le pipeline echoue (ici XDocReport sur des
+            // bytes invalides). L'echec DOIT etre persiste via le recorder (ligne FAILED
+            // committee independamment du rollback) ET l'exception DOIT continuer de se
+            // propager pour piloter le retry Kafka.
+            DocumentTemplate template = new DocumentTemplate();
+            template.setId(7L);
+            template.setName("Devis Clenzy");
+            template.setDocumentType(DocumentType.DEVIS);
+            template.setOrganizationId(42L);                 // org proprietaire du template
+            template.setFileContent(new byte[]{1, 2, 3});    // bytes invalides → fillTemplate echoue
+            template.setOriginalFilename("devis.odt");
+
+            when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.DEVIS))
+                    .thenReturn(Optional.of(template));
+            when(tenantContext.getOrganizationId()).thenReturn(null);
+            when(numberingService.requiresLegalNumber(DocumentType.DEVIS, "FR")).thenReturn(false);
+            when(tagResolverService.resolveTagsForDocument(any(), any(), any()))
+                    .thenReturn(new java.util.HashMap<>());
+            when(generationRepository.save(any(DocumentGeneration.class)))
+                    .thenAnswer(inv -> {
+                        DocumentGeneration g = inv.getArgument(0);
+                        if (g.getId() == null) g.setId(100L);
+                        return g;
+                    });
+
+            assertThatThrownBy(() -> service.generateFromEvent(
+                    DocumentType.DEVIS, 100L, ReferenceType.RECEIVED_FORM, null, null))
+                    .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
+
+            // L'echec est persiste avec l'org du template (42L) et l'id du template (7L).
+            verify(failureRecorder).recordFailure(
+                    eq(DocumentType.DEVIS), eq(100L), eq(ReferenceType.RECEIVED_FORM),
+                    eq(42L), eq(7L), isNull(), anyString(), anyInt());
         }
     }
 
