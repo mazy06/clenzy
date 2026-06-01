@@ -454,13 +454,23 @@ export default function AcceptInvitationPage() {
                         variant="contained"
                         size="large"
                         fullWidth
-                        onClick={() => {
+                        onClick={async () => {
                           sessionStorage.setItem('pending_invitation_token', token!);
-                          // Navigation directe vers l'URL Keycloak logout au lieu de
-                          // `keycloak.logout()` : cette derniere peut freeze a cause
-                          // de la machinerie interne (silent-check-sso iframe,
-                          // service worker interceptor). Approche `window.location` =
-                          // un round-trip serveur propre sans dependre du SPA state.
+                          // ⚠️ Le logout Keycloak seul ne suffit PAS : keycloak.ts
+                          // restaure la session au boot via le cookie HttpOnly
+                          // `clenzy_auth` (bootstrap via GET /api/auth/session).
+                          // On doit donc invalider ce cookie cote backend AVANT le
+                          // logout Keycloak.
+                          try {
+                            await apiClient.delete('/auth/session');
+                          } catch {
+                            // Silent : meme si le DELETE echoue (cookie deja invalide),
+                            // on continue le logout Keycloak.
+                          }
+                          // Navigation directe vers l'URL Keycloak logout (evite
+                          // le freeze potentiel de keycloak.logout() sur cette page
+                          // publique : silent-check-sso iframe + service worker
+                          // peuvent provoquer un deadlock).
                           const redirectUri = `${window.location.origin}/accept-invitation?token=${encodeURIComponent(token!)}`;
                           window.location.href = keycloak.createLogoutUrl({ redirectUri });
                         }}
