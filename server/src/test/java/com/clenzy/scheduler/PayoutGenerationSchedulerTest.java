@@ -124,7 +124,10 @@ class PayoutGenerationSchedulerTest {
         contract.setStatus(ManagementContract.ContractStatus.ACTIVE);
         when(contractRepository.findByStatus(ManagementContract.ContractStatus.ACTIVE, 1L))
                 .thenReturn(List.of(contract));
-        when(payoutRepository.findByOwnerId(10L, 1L)).thenReturn(List.of());
+        // Force periodStart < today even if today is the 1st of the month
+        OwnerPayout prev = new OwnerPayout();
+        prev.setPeriodEnd(LocalDate.now().minusDays(30));
+        when(payoutRepository.findByOwnerId(10L, 1L)).thenReturn(List.of(prev));
 
         OwnerPayout payout = new OwnerPayout();
         when(accountingService.generatePayout(eq(10L), eq(1L), any(), any())).thenReturn(payout);
@@ -151,7 +154,9 @@ class PayoutGenerationSchedulerTest {
         c2.setOwnerId(20L);
         when(contractRepository.findByStatus(ManagementContract.ContractStatus.ACTIVE, 1L))
                 .thenReturn(List.of(c1, c2));
-        lenient().when(payoutRepository.findByOwnerId(anyLong(), anyLong())).thenReturn(List.of());
+        OwnerPayout prev = new OwnerPayout();
+        prev.setPeriodEnd(LocalDate.now().minusDays(30));
+        lenient().when(payoutRepository.findByOwnerId(anyLong(), anyLong())).thenReturn(List.of(prev));
         when(accountingService.generatePayout(anyLong(), eq(1L), any(), any())).thenReturn(new OwnerPayout());
 
         scheduler.generateScheduledPayouts();
@@ -199,7 +204,9 @@ class PayoutGenerationSchedulerTest {
         c2.setOwnerId(20L);
         when(contractRepository.findByStatus(ManagementContract.ContractStatus.ACTIVE, 1L))
                 .thenReturn(List.of(c1, c2));
-        lenient().when(payoutRepository.findByOwnerId(anyLong(), anyLong())).thenReturn(List.of());
+        OwnerPayout prev = new OwnerPayout();
+        prev.setPeriodEnd(LocalDate.now().minusDays(30));
+        lenient().when(payoutRepository.findByOwnerId(anyLong(), anyLong())).thenReturn(List.of(prev));
 
         when(accountingService.generatePayout(eq(10L), eq(1L), any(), any()))
                 .thenThrow(new RuntimeException("boom"));
@@ -227,7 +234,9 @@ class PayoutGenerationSchedulerTest {
         c.setOwnerId(30L);
         when(contractRepository.findByStatus(ManagementContract.ContractStatus.ACTIVE, 2L))
                 .thenReturn(List.of(c));
-        lenient().when(payoutRepository.findByOwnerId(anyLong(), anyLong())).thenReturn(List.of());
+        OwnerPayout prev = new OwnerPayout();
+        prev.setPeriodEnd(LocalDate.now().minusDays(30));
+        lenient().when(payoutRepository.findByOwnerId(anyLong(), anyLong())).thenReturn(List.of(prev));
         when(accountingService.generatePayout(eq(30L), eq(2L), any(), any())).thenReturn(new OwnerPayout());
 
         scheduler.generateScheduledPayouts();
@@ -247,10 +256,12 @@ class PayoutGenerationSchedulerTest {
         ManagementContract c = new ManagementContract();
         c.setOwnerId(10L);
         when(contractRepository.findByStatus(ManagementContract.ContractStatus.ACTIVE, 1L)).thenReturn(List.of(c));
-        when(payoutRepository.findByOwnerId(10L, 1L)).thenReturn(List.of());
+        OwnerPayout prev = new OwnerPayout();
+        prev.setPeriodEnd(LocalDate.now().minusDays(30));
+        when(payoutRepository.findByOwnerId(10L, 1L)).thenReturn(List.of(prev));
         when(accountingService.generatePayout(eq(10L), eq(1L), any(), any())).thenReturn(new OwnerPayout());
 
-        org.mockito.Mockito.doThrow(new RuntimeException("notify fail"))
+        lenient().doThrow(new RuntimeException("notify fail"))
                 .when(notificationService).notifyAdminsAndManagersByOrgId(anyLong(), any(), anyString(), anyString(), anyString());
 
         // Should not throw

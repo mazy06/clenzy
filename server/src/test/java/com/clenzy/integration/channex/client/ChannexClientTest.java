@@ -358,4 +358,264 @@ class ChannexClientTest {
             mockServer.verify();
         }
     }
+
+    // ─── Additional tests ──────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("deleteProperty envoie DELETE /properties/{id}")
+    void deleteProperty_sendsDelete() {
+        mockServer.expect(requestTo(BASE + "/properties/prop-xx"))
+            .andExpect(method(HttpMethod.DELETE))
+            .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+        client.deleteProperty("prop-xx");
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("updatePropertyTitle envoie PUT avec nouveau titre")
+    void updatePropertyTitle_sendsPut() {
+        mockServer.expect(requestTo(BASE + "/properties/prop-1"))
+            .andExpect(method(HttpMethod.PUT))
+            .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+        client.updatePropertyTitle("prop-1", "Nouveau titre");
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("deleteChannel envoie DELETE /channels/{id}")
+    void deleteChannel_sendsDelete() {
+        mockServer.expect(requestTo(BASE + "/channels/ch-1"))
+            .andExpect(method(HttpMethod.DELETE))
+            .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+        client.deleteChannel("ch-1");
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("deactivateChannel envoie PUT avec is_active=false")
+    void deactivateChannel_sendsPut() {
+        mockServer.expect(requestTo(BASE + "/channels/ch-x"))
+            .andExpect(method(HttpMethod.PUT))
+            .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+        client.deactivateChannel("ch-x");
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("pushRates no-op si liste vide ou null")
+    void pushRates_noopOnEmpty() {
+        client.pushRates(java.util.List.of());
+        client.pushRates(null);
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("pushRates chunke en batches de 500")
+    void pushRates_chunksBatches() {
+        java.util.List<ChannexRateUpdate> updates = java.util.stream.IntStream.range(0, 750)
+            .mapToObj(i -> ChannexRateUpdate.rateOnly("p", "r",
+                LocalDate.of(2026, 1, 1).plusDays(i), new BigDecimal("100")))
+            .toList();
+
+        // 750 → 2 chunks (500 + 250)
+        for (int i = 0; i < 2; i++) {
+            mockServer.expect(requestTo(BASE + "/restrictions"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+        }
+
+        client.pushRates(updates);
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("getProperty retourne le DTO sur 200")
+    void getProperty_returnsDto() {
+        String body = """
+            {
+              "data": {
+                "id": "prop-yyy",
+                "type": "property",
+                "attributes": {
+                  "title": "Loft Parisien",
+                  "currency": "EUR",
+                  "timezone": "Europe/Paris"
+                }
+              }
+            }
+            """;
+        mockServer.expect(requestTo(BASE + "/properties/prop-yyy"))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+
+        ChannexPropertyDto result = client.getProperty("prop-yyy");
+        assertThat(result.id()).isEqualTo("prop-yyy");
+        assertThat(result.title()).isEqualTo("Loft Parisien");
+    }
+
+    @Test
+    @DisplayName("acknowledgeBooking envoie POST /bookings/{id}/ack")
+    void acknowledgeBooking_sendsPost() {
+        mockServer.expect(requestTo(BASE + "/bookings/bk-1/ack"))
+            .andExpect(method(HttpMethod.POST))
+            .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+        client.acknowledgeBooking("bk-1");
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("getBooking retourne le JsonNode")
+    void getBooking_returnsNode() {
+        mockServer.expect(requestTo(BASE + "/bookings/bk-1"))
+            .andRespond(withSuccess("{\"data\":{\"id\":\"bk-1\"}}", MediaType.APPLICATION_JSON));
+
+        var node = client.getBooking("bk-1");
+        assertThat(node).isNotNull();
+        assertThat(node.path("data").path("id").asText()).isEqualTo("bk-1");
+    }
+
+    @Test
+    @DisplayName("fetchAllPropertiesRaw retourne le payload brut")
+    void fetchAllProperties_returnsRaw() {
+        mockServer.expect(requestTo(BASE + "/properties"))
+            .andRespond(withSuccess("{\"data\":[],\"meta\":{\"total\":0}}",
+                MediaType.APPLICATION_JSON));
+
+        var raw = client.fetchAllPropertiesRaw();
+        assertThat(raw).isNotNull();
+        assertThat(raw.path("meta").path("total").asInt()).isZero();
+    }
+
+    @Test
+    @DisplayName("fetchAllChannelsRaw retourne le payload brut")
+    void fetchAllChannels_returnsRaw() {
+        mockServer.expect(requestTo(BASE + "/channels"))
+            .andRespond(withSuccess("{\"data\":[]}", MediaType.APPLICATION_JSON));
+
+        var raw = client.fetchAllChannelsRaw();
+        assertThat(raw).isNotNull();
+        assertThat(raw.path("data").isArray()).isTrue();
+    }
+
+    @Test
+    @DisplayName("hasActiveOtaChannel retourne true si channel actif avec property liee")
+    void hasActiveOtaChannel_truthy() {
+        String body = """
+            {
+              "data": [
+                {
+                  "id": "ch-1",
+                  "type": "channel",
+                  "attributes": {
+                    "is_active": true,
+                    "properties": ["prop-1"]
+                  }
+                }
+              ]
+            }
+            """;
+        mockServer.expect(requestTo(BASE + "/channels"))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+
+        assertThat(client.hasActiveOtaChannel("prop-1")).isTrue();
+    }
+
+    @Test
+    @DisplayName("hasActiveOtaChannel retourne false si aucun channel actif")
+    void hasActiveOtaChannel_falsy() {
+        String body = """
+            {
+              "data": [
+                {
+                  "id": "ch-1",
+                  "type": "channel",
+                  "attributes": {
+                    "is_active": false,
+                    "properties": ["prop-1"]
+                  }
+                }
+              ]
+            }
+            """;
+        mockServer.expect(requestTo(BASE + "/channels"))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+
+        assertThat(client.hasActiveOtaChannel("prop-1")).isFalse();
+    }
+
+    @Test
+    @DisplayName("hasActiveOtaChannel false si response vide ou non-array data")
+    void hasActiveOtaChannel_emptyResponse() {
+        mockServer.expect(requestTo(BASE + "/channels"))
+            .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+        assertThat(client.hasActiveOtaChannel("prop-1")).isFalse();
+    }
+
+    @Test
+    @DisplayName("fetchPropertyGroupId retourne le group_id depuis relationships")
+    void fetchPropertyGroupId_returnsGroupId() {
+        String body = """
+            {
+              "data": {
+                "id": "prop-1",
+                "type": "property",
+                "attributes": {"title":"t"},
+                "relationships": {
+                  "groups": {
+                    "data": [
+                      {"id":"grp-99", "type":"group"}
+                    ]
+                  }
+                }
+              }
+            }
+            """;
+        mockServer.expect(requestTo(BASE + "/properties/prop-1"))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+
+        assertThat(client.fetchPropertyGroupId("prop-1")).isEqualTo("grp-99");
+    }
+
+    @Test
+    @DisplayName("fetchPropertyGroupId leve NOT_FOUND si pas de group")
+    void fetchPropertyGroupId_throwsWhenMissing() {
+        String body = """
+            {
+              "data": {
+                "id": "prop-1",
+                "attributes": {},
+                "relationships": {}
+              }
+            }
+            """;
+        mockServer.expect(requestTo(BASE + "/properties/prop-1"))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+
+        assertThatThrownBy(() -> client.fetchPropertyGroupId("prop-1"))
+            .isInstanceOf(ChannexException.class)
+            .satisfies(e -> assertThat(((ChannexException) e).getKind())
+                .isEqualTo(ChannexException.Kind.NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("updateRatePlanSettings rejette un payload vide")
+    void updateRatePlanSettings_rejectsEmpty() {
+        com.clenzy.integration.channex.dto.ChannexRatePlanSettingsUpdate empty =
+            new com.clenzy.integration.channex.dto.ChannexRatePlanSettingsUpdate(
+                null, null, null, null, null, null, null, null);
+        assertThatThrownBy(() -> client.updateRatePlanSettings("rp-1", empty))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("updateRatePlanSettings rejette payload null")
+    void updateRatePlanSettings_rejectsNull() {
+        assertThatThrownBy(() -> client.updateRatePlanSettings("rp-1", null))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
 }

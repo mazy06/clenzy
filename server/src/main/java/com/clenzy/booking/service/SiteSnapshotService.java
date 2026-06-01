@@ -12,10 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
+import com.clenzy.service.ICalUrlValidator;
+
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
@@ -412,37 +410,11 @@ public class SiteSnapshotService {
     // ─── Validation ──────────────────────────────────────────────────────
 
     private void validateUrl(String url) {
-        if (url == null || url.isBlank()) {
-            throw new IllegalArgumentException("Website URL is required");
-        }
-
-        URI uri;
-        try {
-            uri = new URI(url);
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid URL format: " + url);
-        }
-
-        if (!"https".equalsIgnoreCase(uri.getScheme())) {
-            throw new IllegalArgumentException("Only HTTPS URLs are accepted");
-        }
-
-        String host = uri.getHost();
-        if (host == null || host.isBlank()) {
-            throw new IllegalArgumentException("URL must have a valid host");
-        }
-
-        try {
-            InetAddress address = InetAddress.getByName(host);
-            if (address.isLoopbackAddress()
-                    || address.isSiteLocalAddress()
-                    || address.isLinkLocalAddress()
-                    || address.isAnyLocalAddress()) {
-                throw new IllegalArgumentException("Internal/private URLs are not allowed");
-            }
-        } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("Cannot resolve host: " + host);
-        }
+        // Garde SSRF : delegue au validateur partage (HTTPS + resolution DNS +
+        // blocage RFC 1918 COMPLET). L'ancienne version ratait 10.x et 172.16-31.x
+        // car isSiteLocalAddress() ne couvre que 192.168.x, et ne bloquait pas la
+        // metadata cloud (169.254.169.254 / metadata.google.internal).
+        ICalUrlValidator.validateAndResolve(url);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────

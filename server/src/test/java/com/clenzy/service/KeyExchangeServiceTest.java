@@ -5,6 +5,7 @@ import com.clenzy.dto.keyexchange.CreateKeyExchangePointDto;
 import com.clenzy.dto.keyexchange.KeyExchangeCodeDto;
 import com.clenzy.dto.keyexchange.KeyExchangeEventDto;
 import com.clenzy.dto.keyexchange.KeyExchangePointDto;
+import com.clenzy.exception.TooManyVerificationAttemptsException;
 import com.clenzy.model.KeyExchangeCode;
 import com.clenzy.model.KeyExchangeCode.CodeStatus;
 import com.clenzy.model.KeyExchangeCode.CodeType;
@@ -43,6 +44,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,6 +56,7 @@ class KeyExchangeServiceTest {
     @Mock private KeyExchangeCodeRepository codeRepository;
     @Mock private KeyExchangeEventRepository eventRepository;
     @Mock private PropertyRepository propertyRepository;
+    @Mock private KeyVerificationThrottle verificationThrottle;
 
     private TenantContext tenantContext;
     private KeyExchangeService service;
@@ -67,7 +70,7 @@ class KeyExchangeServiceTest {
         tenantContext.setOrganizationId(ORG_ID);
         service = new KeyExchangeService(
                 pointRepository, codeRepository, eventRepository,
-                propertyRepository, tenantContext);
+                propertyRepository, tenantContext, verificationThrottle);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -589,7 +592,7 @@ class KeyExchangeServiceTest {
 
             assertThatThrownBy(() -> service.verifyCodePublic("token-xyz", "123456"))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Code invalide pour ce point");
+                    .hasMessageContaining("Code invalide");
         }
 
         @Test
@@ -758,7 +761,109 @@ class KeyExchangeServiceTest {
 
             assertThatThrownBy(() -> service.confirmKeyMovement("token-xyz", "123456", "collected"))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Code invalide pour ce point");
+                    .hasMessageContaining("Code invalide");
+        }
+
+        @Test
+        @DisplayName("when action 'collected' on CANCELLED code - refuses (IllegalStateException), no save")
+        void whenCollectedOnCancelled_thenRefuses() {
+            KeyExchangePoint p = point(50L, Provider.CLENZY_KEYVAULT);
+            KeyExchangeCode c = code(1L, 50L, "123456", CodeStatus.CANCELLED);
+
+            when(pointRepository.findByVerificationToken("token-xyz")).thenReturn(Optional.of(p));
+            when(codeRepository.findByCode("123456")).thenReturn(Optional.of(c));
+
+            assertThatThrownBy(() -> service.confirmKeyMovement("token-xyz", "123456", "collected"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Code inactif ou expire");
+            verify(codeRepository, never()).save(any());
+            verify(eventRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("when action 'collected' on expired code - refuses (IllegalStateException)")
+        void whenCollectedOnExpired_thenRefuses() {
+            KeyExchangePoint p = point(50L, Provider.CLENZY_KEYVAULT);
+            KeyExchangeCode c = code(1L, 50L, "123456", CodeStatus.ACTIVE);
+            c.setValidUntil(LocalDateTime.now().minusDays(1));
+
+            when(pointRepository.findByVerificationToken("token-xyz")).thenReturn(Optional.of(p));
+            when(codeRepository.findByCode("123456")).thenReturn(Optional.of(c));
+
+            assertThatThrownBy(() -> service.confirmKeyMovement("token-xyz", "123456", "collected"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Code inactif ou expire");
+            verify(codeRepository, never()).save(any());
+        }
+    }
+
+    // ── brute-force throttle integration ─────────────────────────────────────
+
+    @Nested
+    @DisplayName("KeyVerificationThrottle integration (anti brute-force)")
+    class Throttling {
+
+        @Test
+        @DisplayName("verifyCodePublic - locked token short-circuits before any lookup")
+        void whenLocked_verify_thenPropagatesAndSkipsLookup() {
+            doThrow(new TooManyVerificationAttemptsException(120))
+                    .when(verificationThrottle).assertNotLocked("token-xyz");
+
+            assertThatThrownBy(() -> service.verifyCodePublic("token-xyz", "123456"))
+                    .isInstanceOf(TooManyVerificationAttemptsException.class);
+            verify(pointRepository, never()).findByVerificationToken(any());
+            verify(codeRepository, never()).findByCode(any());
+        }
+
+        @Test
+        @DisplayName("verifyCodePublic - wrong code records a failed attempt, no reset")
+        void whenWrongCode_thenRecordsFailure() {
+            KeyExchangePoint p = point(50L, Provider.CLENZY_KEYVAULT);
+            when(pointRepository.findByVerificationToken("token-xyz")).thenReturn(Optional.of(p));
+            when(codeRepository.findByCode("000000")).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.verifyCodePublic("token-xyz", "000000"))
+                    .isInstanceOf(IllegalArgumentException.class);
+            verify(verificationThrottle).recordFailure("token-xyz");
+            verify(verificationThrottle, never()).reset(any());
+        }
+
+        @Test
+        @DisplayName("verifyCodePublic - code of another point also records a failed attempt")
+        void whenWrongPointCode_thenRecordsFailure() {
+            KeyExchangePoint p = point(50L, Provider.CLENZY_KEYVAULT);
+            KeyExchangeCode c = code(1L, 999L, "123456", CodeStatus.ACTIVE);
+            when(pointRepository.findByVerificationToken("token-xyz")).thenReturn(Optional.of(p));
+            when(codeRepository.findByCode("123456")).thenReturn(Optional.of(c));
+
+            assertThatThrownBy(() -> service.verifyCodePublic("token-xyz", "123456"))
+                    .isInstanceOf(IllegalArgumentException.class);
+            verify(verificationThrottle).recordFailure("token-xyz");
+        }
+
+        @Test
+        @DisplayName("verifyCodePublic - correct code resets the counter")
+        void whenValidCode_thenResets() {
+            KeyExchangePoint p = point(50L, Provider.CLENZY_KEYVAULT);
+            KeyExchangeCode c = code(1L, 50L, "123456", CodeStatus.ACTIVE);
+            when(pointRepository.findByVerificationToken("token-xyz")).thenReturn(Optional.of(p));
+            when(codeRepository.findByCode("123456")).thenReturn(Optional.of(c));
+
+            service.verifyCodePublic("token-xyz", "123456");
+
+            verify(verificationThrottle).reset("token-xyz");
+            verify(verificationThrottle, never()).recordFailure(any());
+        }
+
+        @Test
+        @DisplayName("confirmKeyMovement - locked token short-circuits before any lookup")
+        void whenLocked_confirm_thenPropagatesAndSkipsLookup() {
+            doThrow(new TooManyVerificationAttemptsException(120))
+                    .when(verificationThrottle).assertNotLocked("token-xyz");
+
+            assertThatThrownBy(() -> service.confirmKeyMovement("token-xyz", "123456", "collected"))
+                    .isInstanceOf(TooManyVerificationAttemptsException.class);
+            verify(pointRepository, never()).findByVerificationToken(any());
         }
     }
 

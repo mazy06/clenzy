@@ -209,5 +209,149 @@ class CalendarControllerTest {
                     1L, LocalDate.now(), LocalDate.now().plusDays(1), jwt))
                     .isInstanceOf(AccessDeniedException.class);
         }
+
+        @Test
+        void whenUserIsOwner_thenAllows() {
+            Property property = mock(Property.class);
+            when(property.getOrganizationId()).thenReturn(1L);
+            User owner = mock(User.class);
+            when(owner.getId()).thenReturn(50L);
+            when(property.getOwner()).thenReturn(owner);
+
+            User requester = mock(User.class);
+            when(requester.getId()).thenReturn(50L); // same as owner
+            UserRole hostRole = UserRole.HOST;
+            when(requester.getRole()).thenReturn(hostRole);
+
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(requester));
+
+            when(calendarDayRepository.findByPropertyAndDateRange(1L, LocalDate.of(2026, 3, 1),
+                    LocalDate.of(2026, 3, 5), 1L)).thenReturn(List.of());
+
+            ResponseEntity<List<Map<String, Object>>> response = controller.getAvailability(
+                    1L, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 5), jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenUserIsHostNotOwner_thenAccessDenied() {
+            Property property = mock(Property.class);
+            when(property.getOrganizationId()).thenReturn(1L);
+            User owner = mock(User.class);
+            when(owner.getId()).thenReturn(50L);
+            when(property.getOwner()).thenReturn(owner);
+
+            User requester = mock(User.class);
+            when(requester.getId()).thenReturn(99L); // different from owner
+            when(requester.getRole()).thenReturn(UserRole.HOST);
+
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(requester));
+
+            assertThatThrownBy(() -> controller.getAvailability(
+                    1L, LocalDate.now(), LocalDate.now().plusDays(1), jwt))
+                    .isInstanceOf(AccessDeniedException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("getBlockedDays - batch")
+    class GetBlockedDays {
+        @Test
+        void whenCalled_thenReturnsBlockedDays() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            Property prop = mock(Property.class);
+            when(prop.getId()).thenReturn(10L);
+
+            CalendarDay day = mock(CalendarDay.class);
+            when(day.getDate()).thenReturn(LocalDate.of(2026, 3, 1));
+            when(day.getStatus()).thenReturn(CalendarDayStatus.BLOCKED);
+            when(day.getSource()).thenReturn("MANUAL");
+            when(day.getNotes()).thenReturn("test");
+            when(day.getProperty()).thenReturn(prop);
+
+            when(calendarDayRepository.findBlockedOrMaintenanceForProperties(
+                anyList(), any(LocalDate.class), any(LocalDate.class), eq(1L)))
+                .thenReturn(List.of(day));
+
+            ResponseEntity<List<Map<String, Object>>> response = controller.getBlockedDays(
+                List.of(10L, 11L), LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31));
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).hasSize(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("blockDates with source override")
+    class BlockDatesWithSource {
+        @Test
+        void whenSourceProvided_thenUsesIt() {
+            setupSuperAdminAccess(1L);
+            when(calendarEngine.block(eq(1L), any(LocalDate.class), any(LocalDate.class),
+                    eq(1L), eq("AIRBNB"), eq("Booked"), eq("user-123")))
+                    .thenReturn(List.of(mock(CalendarDay.class)));
+
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("from", "2026-04-01");
+            body.put("to", "2026-04-05");
+            body.put("notes", "Booked");
+            body.put("source", "AIRBNB");
+
+            ResponseEntity<Map<String, Object>> response = controller.blockDates(1L, body, jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).containsEntry("daysBlocked", 1);
+        }
+    }
+
+    @Nested
+    @DisplayName("getPricing with overrides and plans")
+    class GetPricingExt {
+        @Test
+        void whenOverrideExists_thenSourceIsOverride() {
+            setupSuperAdminAccess(1L);
+            LocalDate from = LocalDate.of(2026, 5, 1);
+            LocalDate to = LocalDate.of(2026, 5, 3);
+
+            when(calendarDayRepository.findByPropertyAndDateRange(1L, from, to, 1L)).thenReturn(List.of());
+            Map<LocalDate, BigDecimal> prices = new LinkedHashMap<>();
+            prices.put(from, BigDecimal.valueOf(150));
+            prices.put(from.plusDays(1), BigDecimal.valueOf(150));
+            when(priceEngine.resolvePriceRange(1L, from, to, 1L)).thenReturn(prices);
+
+            RateOverride ovr = mock(RateOverride.class);
+            when(ovr.getDate()).thenReturn(from);
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(1L, from, to, 1L))
+                .thenReturn(List.of(ovr));
+            when(ratePlanRepository.findActiveByPropertyId(1L, 1L)).thenReturn(List.of());
+
+            ResponseEntity<List<Map<String, Object>>> response = controller.getPricing(1L, from, to, jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).hasSize(2);
+            assertThat(response.getBody().get(0)).containsEntry("priceSource", "OVERRIDE");
+            assertThat(response.getBody().get(1)).containsEntry("priceSource", "PROPERTY_DEFAULT");
+        }
+    }
+
+    @Nested
+    @DisplayName("getAvailability edge cases")
+    class GetAvailabilityEdges {
+        @Test
+        void whenEmptyDays_thenReturnsEmptyList() {
+            setupSuperAdminAccess(1L);
+            when(calendarDayRepository.findByPropertyAndDateRange(eq(1L), any(LocalDate.class),
+                any(LocalDate.class), eq(1L))).thenReturn(List.of());
+
+            ResponseEntity<List<Map<String, Object>>> response = controller.getAvailability(
+                    1L, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 5), jwt);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isEmpty();
+        }
     }
 }

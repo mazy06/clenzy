@@ -266,4 +266,138 @@ class ExpediaChannelAdapterTest {
             // No exception should be thrown; delegates to Kafka consumers
         }
     }
+
+    @Nested
+    @DisplayName("pushHostProfile")
+    class PushHostProfileTests {
+
+        @Test
+        @DisplayName("delegates to HostProfileSyncSupport with EXPEDIA channel")
+        void pushHostProfile_delegates() {
+            HostProfileUpdate profile = mock(HostProfileUpdate.class);
+            SyncResult expected = SyncResult.skipped("pending wire-up");
+            when(hostProfileSyncSupport.recordPendingWireUp(eq(ChannelName.EXPEDIA), eq(profile), eq(1L)))
+                    .thenReturn(expected);
+
+            SyncResult result = adapter.pushHostProfile(profile, 1L);
+
+            assertThat(result.getStatus()).isEqualTo(SyncResult.Status.SKIPPED);
+            verify(hostProfileSyncSupport).recordPendingWireUp(ChannelName.EXPEDIA, profile, 1L);
+        }
+    }
+
+    @Nested
+    @DisplayName("pushRestrictions")
+    class PushRestrictionsTests {
+
+        private final Long propertyId = 42L;
+        private final Long orgId = 1L;
+        private final LocalDate from = LocalDate.of(2026, 3, 1);
+        private final LocalDate to = LocalDate.of(2026, 3, 5);
+
+        @Test
+        @DisplayName("returns SKIPPED when no mapping exists")
+        void pushRestrictions_noMapping() {
+            when(channelMappingRepository.findByPropertyIdAndChannel(propertyId, ChannelName.VRBO, orgId))
+                    .thenReturn(Optional.empty());
+
+            SyncResult result = adapter.pushRestrictions(propertyId, from, to, orgId);
+
+            assertThat(result.getStatus()).isEqualTo(SyncResult.Status.SKIPPED);
+            assertThat(result.getMessage()).contains("Aucun mapping");
+        }
+
+        @Test
+        @DisplayName("returns SKIPPED when expedia not configured")
+        void pushRestrictions_notConfigured() {
+            ChannelMapping mapping = mock(ChannelMapping.class);
+            when(channelMappingRepository.findByPropertyIdAndChannel(propertyId, ChannelName.VRBO, orgId))
+                    .thenReturn(Optional.of(mapping));
+            when(expediaConfig.isConfigured()).thenReturn(false);
+
+            SyncResult result = adapter.pushRestrictions(propertyId, from, to, orgId);
+
+            assertThat(result.getStatus()).isEqualTo(SyncResult.Status.SKIPPED);
+        }
+
+        @Test
+        @DisplayName("returns SUCCESS when API call succeeds")
+        void pushRestrictions_success() {
+            ChannelMapping mapping = mock(ChannelMapping.class);
+            when(mapping.getExternalId()).thenReturn("exp-prop-789");
+            when(channelMappingRepository.findByPropertyIdAndChannel(propertyId, ChannelName.VRBO, orgId))
+                    .thenReturn(Optional.of(mapping));
+            when(expediaConfig.isConfigured()).thenReturn(true);
+            when(bookingRestrictionRepository.findApplicable(propertyId, from, to, orgId))
+                    .thenReturn(java.util.List.of());
+            when(expediaApiClient.updateAvailability(eq("exp-prop-789"), anyList())).thenReturn(true);
+
+            SyncResult result = adapter.pushRestrictions(propertyId, from, to, orgId);
+
+            assertThat(result.getStatus()).isEqualTo(SyncResult.Status.SUCCESS);
+            assertThat(result.getItemsProcessed()).isGreaterThan(0);
+        }
+
+        @Test
+        @DisplayName("returns FAILED when API call returns false")
+        void pushRestrictions_apiFailure() {
+            ChannelMapping mapping = mock(ChannelMapping.class);
+            when(mapping.getExternalId()).thenReturn("exp-prop-789");
+            when(channelMappingRepository.findByPropertyIdAndChannel(propertyId, ChannelName.VRBO, orgId))
+                    .thenReturn(Optional.of(mapping));
+            when(expediaConfig.isConfigured()).thenReturn(true);
+            when(bookingRestrictionRepository.findApplicable(propertyId, from, to, orgId))
+                    .thenReturn(java.util.List.of());
+            when(expediaApiClient.updateAvailability(eq("exp-prop-789"), anyList())).thenReturn(false);
+
+            SyncResult result = adapter.pushRestrictions(propertyId, from, to, orgId);
+
+            assertThat(result.getStatus()).isEqualTo(SyncResult.Status.FAILED);
+        }
+
+        @Test
+        @DisplayName("returns FAILED when API throws")
+        void pushRestrictions_exception() {
+            ChannelMapping mapping = mock(ChannelMapping.class);
+            when(mapping.getExternalId()).thenReturn("exp-prop-789");
+            when(channelMappingRepository.findByPropertyIdAndChannel(propertyId, ChannelName.VRBO, orgId))
+                    .thenReturn(Optional.of(mapping));
+            when(expediaConfig.isConfigured()).thenReturn(true);
+            when(bookingRestrictionRepository.findApplicable(propertyId, from, to, orgId))
+                    .thenReturn(java.util.List.of());
+            when(expediaApiClient.updateAvailability(eq("exp-prop-789"), anyList()))
+                    .thenThrow(new RuntimeException("API err"));
+
+            SyncResult result = adapter.pushRestrictions(propertyId, from, to, orgId);
+
+            assertThat(result.getStatus()).isEqualTo(SyncResult.Status.FAILED);
+            assertThat(result.getMessage()).contains("Erreur API");
+        }
+
+        @Test
+        @DisplayName("with restrictions in DB, builds availability with min/max LOS + CTA/CTD")
+        void pushRestrictions_withRestrictions_buildsCorrect() {
+            ChannelMapping mapping = mock(ChannelMapping.class);
+            when(mapping.getExternalId()).thenReturn("exp-prop-789");
+            when(channelMappingRepository.findByPropertyIdAndChannel(propertyId, ChannelName.VRBO, orgId))
+                    .thenReturn(Optional.of(mapping));
+            when(expediaConfig.isConfigured()).thenReturn(true);
+
+            com.clenzy.model.BookingRestriction restriction =
+                    mock(com.clenzy.model.BookingRestriction.class);
+            when(restriction.getMinStay()).thenReturn(3);
+            when(restriction.getMaxStay()).thenReturn(30);
+            when(restriction.getClosedToArrival()).thenReturn(Boolean.TRUE);
+            when(restriction.getClosedToDeparture()).thenReturn(Boolean.FALSE);
+            when(restriction.appliesTo(any(LocalDate.class))).thenReturn(true);
+
+            when(bookingRestrictionRepository.findApplicable(propertyId, from, to, orgId))
+                    .thenReturn(java.util.List.of(restriction));
+            when(expediaApiClient.updateAvailability(eq("exp-prop-789"), anyList())).thenReturn(true);
+
+            SyncResult result = adapter.pushRestrictions(propertyId, from, to, orgId);
+
+            assertThat(result.getStatus()).isEqualTo(SyncResult.Status.SUCCESS);
+        }
+    }
 }

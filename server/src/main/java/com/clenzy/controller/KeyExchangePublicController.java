@@ -1,10 +1,12 @@
 package com.clenzy.controller;
 
+import com.clenzy.exception.TooManyVerificationAttemptsException;
 import com.clenzy.service.KeyExchangeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,6 +41,8 @@ public class KeyExchangePublicController {
         try {
             Map<String, Object> result = keyExchangeService.verifyCodePublic(token, code);
             return ResponseEntity.ok(result);
+        } catch (TooManyVerificationAttemptsException e) {
+            return tooManyAttempts(e);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "invalid",
@@ -74,6 +78,8 @@ public class KeyExchangePublicController {
                     "status", "confirmed",
                     "message", "Mouvement confirme"
             ));
+        } catch (TooManyVerificationAttemptsException e) {
+            return tooManyAttempts(e);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "invalid",
@@ -86,5 +92,14 @@ public class KeyExchangePublicController {
                     "message", "Erreur lors de la confirmation"
             ));
         }
+    }
+
+    private ResponseEntity<?> tooManyAttempts(TooManyVerificationAttemptsException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(e.getRetryAfterSeconds()))
+                .body(Map.of(
+                        "error", "too_many_attempts",
+                        "message", "Trop de tentatives. Reessayez plus tard."
+                ));
     }
 }

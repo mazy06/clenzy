@@ -290,4 +290,254 @@ class ChannexSyncServiceTest {
         service.onCalendarUpdate(Map.of("action", "WHATEVER"));
         verify(mappingRepository, never()).findByClenzyPropertyId(anyLong(), anyLong());
     }
+
+    @Test
+    @DisplayName("Event avec from/to manquants -> skip propre")
+    void skipsOnIncompleteEventMissingDates() {
+        service.onCalendarUpdate(Map.of(
+            "propertyId", 100, "orgId", 42, "action", "BOOKING_CREATED"
+        ));
+        verify(mappingRepository, never()).findByClenzyPropertyId(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("Event avec from string ISO -> parse correctement")
+    void parsesIsoDateStrings() {
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.empty());
+
+        service.onCalendarUpdate(Map.of(
+            "propertyId", "100", "orgId", "42", "action", "BOOKING_CREATED",
+            "from", "2026-06-01", "to", "2026-06-07"
+        ));
+
+        verify(mappingRepository).findByClenzyPropertyId(eq(100L), eq(42L));
+    }
+
+    @Test
+    @DisplayName("Event avec date invalide -> skip")
+    void skipsOnInvalidDate() {
+        service.onCalendarUpdate(Map.of(
+            "propertyId", 100, "orgId", 42, "action", "X",
+            "from", "not-a-date", "to", "also-bad"
+        ));
+        verify(mappingRepository, never()).findByClenzyPropertyId(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("Event avec propertyId String non-numeric -> skip")
+    void skipsOnNonNumericPropertyId() {
+        service.onCalendarUpdate(Map.of(
+            "propertyId", "abc", "orgId", 42, "action", "X",
+            "from", "2026-06-01", "to", "2026-06-03"
+        ));
+        verify(mappingRepository, never()).findByClenzyPropertyId(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("pushProperty avec mapping ERROR initial + push reussi -> repasse en ACTIVE")
+    void pushPropertyRecoversFromError() {
+        mapping.setSyncStatus(ChannexSyncStatus.ERROR);
+        mapping.setLastSyncError("previous error");
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.of(mapping));
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(true);
+        when(calendarDayRepository.findByPropertyAndDateRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(List.of());
+        when(priceEngine.resolvePriceRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(Map.of());
+
+        ChannexSyncService.ChannexSyncResult result = service.pushProperty(
+            100L, 42L, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 7)
+        );
+
+        assertThat(result.success()).isTrue();
+        ArgumentCaptor<ChannexPropertyMapping> savedCap = ArgumentCaptor.forClass(ChannexPropertyMapping.class);
+        verify(mappingRepository, org.mockito.Mockito.atLeastOnce()).save(savedCap.capture());
+        assertThat(savedCap.getValue().getSyncStatus()).isEqualTo(ChannexSyncStatus.ACTIVE);
+        assertThat(savedCap.getValue().getLastSyncError()).isNull();
+    }
+
+    @Test
+    @DisplayName("Push rates avec restrictions applicables -> enrichit chaque update")
+    void pushRatesWithRestrictions() {
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.of(mapping));
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(true);
+        when(calendarDayRepository.findByPropertyAndDateRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(List.of());
+        when(priceEngine.resolvePriceRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(Map.of(
+                LocalDate.of(2026, 6, 1), new BigDecimal("100.00"),
+                LocalDate.of(2026, 6, 2), new BigDecimal("100.00")
+            ));
+
+        service.onCalendarUpdate(Map.of(
+            "propertyId", 100, "orgId", 42, "action", "PRICE_UPDATED",
+            "from", "2026-06-01", "to", "2026-06-02"
+        ));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ChannexRateUpdate>> cap = ArgumentCaptor.forClass(List.class);
+        verify(channexClient).pushRates(cap.capture());
+        assertThat(cap.getValue()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("Erreur Channex sur push rates -> mapping passe en ERROR")
+    void marksErrorOnRatesFailure() {
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.of(mapping));
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(true);
+        when(calendarDayRepository.findByPropertyAndDateRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(List.of());
+        when(priceEngine.resolvePriceRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(Map.of(
+                LocalDate.of(2026, 6, 1), new BigDecimal("100.00")
+            ));
+
+        doThrow(new ChannexException(ChannexException.Kind.RATE_LIMITED, "Channex 429"))
+            .when(channexClient).pushRates(anyList());
+
+        service.onCalendarUpdate(Map.of(
+            "propertyId", 100, "orgId", 42, "action", "PRICE_UPDATED",
+            "from", "2026-06-01", "to", "2026-06-01"
+        ));
+
+        verify(mappingRepository, org.mockito.Mockito.atLeastOnce()).save(any());
+    }
+
+    @Test
+    @DisplayName("OTA check throws exception -> tente le push quand meme")
+    void pushPropertyWhenOtaCheckThrows() {
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.of(mapping));
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc")))
+            .thenThrow(new RuntimeException("Channex unreachable"));
+        when(calendarDayRepository.findByPropertyAndDateRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(List.of());
+        when(priceEngine.resolvePriceRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(Map.of());
+
+        // Should tenter le push malgre l'erreur sur le check OTA
+        ChannexSyncService.ChannexSyncResult result = service.pushProperty(
+            100L, 42L, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 7)
+        );
+
+        // Push tente (status final depend de pushAvailability/pushRates)
+        assertThat(result).isNotNull();
+        verify(channexClient).pushAvailability(anyList());
+    }
+
+    @Test
+    @DisplayName("retryFailedMappings sans mapping en erreur -> no-op")
+    void retryFailedMappings_empty_noOp() {
+        when(mappingRepository.findAllInError()).thenReturn(List.of());
+
+        service.retryFailedMappings();
+
+        verify(channexClient, never()).pushAvailability(anyList());
+        verify(channexClient, never()).pushRates(anyList());
+    }
+
+    @Test
+    @DisplayName("retryFailedMappings avec 1 mapping en error et recovery OK")
+    void retryFailedMappings_recovers() {
+        mapping.setSyncStatus(ChannexSyncStatus.ERROR);
+        when(mappingRepository.findAllInError()).thenReturn(List.of(mapping));
+        when(calendarDayRepository.findByPropertyAndDateRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(List.of());
+        when(priceEngine.resolvePriceRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(Map.of());
+
+        service.retryFailedMappings();
+
+        verify(channexClient).pushAvailability(anyList());
+        verify(channexClient).pushRates(anyList());
+        // updateMappingStatus to ACTIVE called at least once
+        verify(mappingRepository, org.mockito.Mockito.atLeastOnce()).save(any());
+    }
+
+    @Test
+    @DisplayName("retryFailedMappings catche les exceptions et continue")
+    void retryFailedMappings_handlesException() {
+        ChannexPropertyMapping m2 = new ChannexPropertyMapping();
+        m2.setId(UUID.randomUUID());
+        m2.setOrganizationId(42L);
+        m2.setClenzyPropertyId(200L);
+        m2.setChannexPropertyId("ch-prop-2");
+        m2.setChannexRoomTypeId("ch-room-2");
+        m2.setSyncStatus(ChannexSyncStatus.ERROR);
+
+        mapping.setSyncStatus(ChannexSyncStatus.ERROR);
+        when(mappingRepository.findAllInError()).thenReturn(List.of(mapping, m2));
+        when(calendarDayRepository.findByPropertyAndDateRange(eq(100L), any(), any(), eq(42L)))
+            .thenThrow(new RuntimeException("DB error on mapping 1"));
+        when(calendarDayRepository.findByPropertyAndDateRange(eq(200L), any(), any(), eq(42L)))
+            .thenReturn(List.of());
+        when(priceEngine.resolvePriceRange(eq(200L), any(), any(), eq(42L)))
+            .thenReturn(Map.of());
+
+        // Should not throw — first mapping failure doesn't stop second
+        service.retryFailedMappings();
+
+        // Second mapping should have been processed
+        verify(channexClient, org.mockito.Mockito.atLeastOnce()).pushAvailability(anyList());
+    }
+
+    @Test
+    @DisplayName("Event payload = Map direct -> traite normalement")
+    void unwrapDirectMap() {
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.empty());
+
+        // Direct Map (no ConsumerRecord wrapper)
+        service.onCalendarUpdate(Map.of(
+            "propertyId", 100, "orgId", 42, "action", "X",
+            "from", "2026-06-01", "to", "2026-06-03"
+        ));
+
+        verify(mappingRepository).findByClenzyPropertyId(eq(100L), eq(42L));
+    }
+
+    @Test
+    @DisplayName("Event payload type inattendu -> skip silencieux")
+    void unwrapUnknownType_skips() {
+        // Pass an unexpected Object — not Map, not String, not ConsumerRecord
+        service.onCalendarUpdate(Integer.valueOf(42));
+        verify(mappingRepository, never()).findByClenzyPropertyId(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("Event payload = String JSON -> deserialise et traite")
+    void unwrapJsonString() {
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.empty());
+
+        // Json string
+        service.onCalendarUpdate("{\"propertyId\":100,\"orgId\":42,\"action\":\"X\",\"from\":\"2026-06-01\",\"to\":\"2026-06-03\"}");
+
+        verify(mappingRepository).findByClenzyPropertyId(eq(100L), eq(42L));
+    }
+
+    @Test
+    @DisplayName("Mapping ERROR statut + Kafka event -> traite quand meme")
+    void mappingInErrorStatus_stillProcessed() {
+        mapping.setSyncStatus(ChannexSyncStatus.ERROR);
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.of(mapping));
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(true);
+        when(calendarDayRepository.findByPropertyAndDateRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(List.of());
+        when(priceEngine.resolvePriceRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(Map.of());
+
+        service.onCalendarUpdate(Map.of(
+            "propertyId", 100, "orgId", 42, "action", "BOOKING_CREATED",
+            "from", "2026-06-01", "to", "2026-06-03"
+        ));
+
+        // Should still process and call push (status ERROR ne bloque pas, seul DISABLED)
+        verify(channexClient).pushAvailability(anyList());
+    }
 }

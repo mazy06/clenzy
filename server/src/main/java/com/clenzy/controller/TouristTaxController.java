@@ -4,6 +4,7 @@ import com.clenzy.dto.TouristTaxCalculationDto;
 import com.clenzy.model.TouristTaxConfig;
 import com.clenzy.service.TouristTaxService;
 import com.clenzy.tenant.TenantContext;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -11,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tourist-tax")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
 public class TouristTaxController {
 
     private final TouristTaxService taxService;

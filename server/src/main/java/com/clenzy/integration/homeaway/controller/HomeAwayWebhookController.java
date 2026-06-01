@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Optional;
@@ -141,7 +142,10 @@ public class HomeAwayWebhookController {
             mac.init(secretKey);
             byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
             String expectedSignature = HexFormat.of().formatHex(hash);
-            return expectedSignature.equalsIgnoreCase(signature);
+            // Comparaison constant-time pour eviter une timing attack sur la signature.
+            return MessageDigest.isEqual(
+                    expectedSignature.getBytes(StandardCharsets.UTF_8),
+                    signature.toLowerCase().getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             log.error("Erreur verification signature webhook HomeAway: {}", e.getMessage());
             return false;

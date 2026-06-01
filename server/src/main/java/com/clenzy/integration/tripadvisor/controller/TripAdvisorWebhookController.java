@@ -15,6 +15,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Map;
@@ -155,7 +156,10 @@ public class TripAdvisorWebhookController {
             mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM));
             byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
             String expectedSignature = HexFormat.of().formatHex(hash);
-            return expectedSignature.equalsIgnoreCase(signature);
+            // Comparaison constant-time pour eviter une timing attack sur la signature.
+            return MessageDigest.isEqual(
+                    expectedSignature.getBytes(StandardCharsets.UTF_8),
+                    signature.toLowerCase().getBytes(StandardCharsets.UTF_8));
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             log.error("Erreur verification signature TripAdvisor: {}", e.getMessage());
             return false;

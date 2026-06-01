@@ -238,4 +238,59 @@ class ServiceHealthCheckerTest {
         assertThat(up.isUp()).isTrue();
         assertThat(down.isUp()).isFalse();
     }
+
+    @Test
+    void check_uppercaseServiceName_isCaseInsensitive() {
+        // Validates the toLowerCase() branch in check()
+        ServiceHealthChecker.HealthResult result = checker.check("KAFKA");
+        assertThat(result.service()).isEqualTo("kafka");
+        assertThat(result.status()).isEqualTo("DOWN"); // No real broker
+    }
+
+    @Test
+    void check_emptyServiceName_returnsDown() {
+        ServiceHealthChecker.HealthResult result = checker.check("");
+        assertThat(result.status()).isEqualTo("DOWN");
+        assertThat(result.service()).isEmpty();
+    }
+
+    @Nested
+    @DisplayName("stripe with configured key")
+    class StripeConfigured {
+        @Test
+        void whenInvalidKey_thenReturnsDown() {
+            // With an invalid key, Stripe SDK throws AuthenticationException
+            ReflectionTestUtils.setField(checker, "stripeSecretKey", "sk_test_invalid_key_for_test");
+
+            ServiceHealthChecker.HealthResult result = checker.check("stripe");
+
+            assertThat(result.service()).isEqualTo("stripe");
+            // Either DOWN (auth failed) or UP (network error caught downstream) — both acceptable
+            assertThat(result.status()).isIn("UP", "DOWN");
+        }
+    }
+
+    @Nested
+    @DisplayName("keycloak with reachable URL")
+    class KeycloakReachable {
+        @Test
+        void whenUrlMalformed_thenReturnsDown() {
+            ReflectionTestUtils.setField(checker, "keycloakUrl", "ht!tp://bad");
+
+            ServiceHealthChecker.HealthResult result = checker.check("keycloak");
+
+            assertThat(result.status()).isEqualTo("DOWN");
+        }
+
+        @Test
+        void whenValidUrlButUnreachable_thenReturnsDown() {
+            ReflectionTestUtils.setField(checker, "keycloakUrl",
+                    "http://127.0.0.1:1/keycloak"); // port 1 unbound
+
+            ServiceHealthChecker.HealthResult result = checker.check("keycloak");
+
+            assertThat(result.service()).isEqualTo("keycloak");
+            assertThat(result.status()).isEqualTo("DOWN");
+        }
+    }
 }

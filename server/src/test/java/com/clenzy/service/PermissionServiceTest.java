@@ -740,4 +740,255 @@ class PermissionServiceTest {
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
+
+    // ═════════════════════════════════════════════════════════════════════════════
+    // Extra: getUserPermissions(role) — public proxy to getRolePermissions
+    // ═════════════════════════════════════════════════════════════════════════════
+
+    @Test
+    void getUserPermissions_returnsRolePermissionsList() {
+        List<String> permissions = List.of("contact:view", "property:edit");
+        when(rolePermissionRepository.findActivePermissionsByRoleName("HOST")).thenReturn(permissions);
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        List<String> result = service.getUserPermissions("HOST");
+
+        assertEquals(2, result.size());
+        assertTrue(result.contains("contact:view"));
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════════
+    // Extra: getDefaultPermissions returns empty map (TODO impl)
+    // ═════════════════════════════════════════════════════════════════════════════
+
+    @Test
+    void getDefaultPermissions_returnsEmptyMap() {
+        var result = service.getDefaultPermissions();
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════════
+    // Extra: getAllAvailablePermissions returns sorted permission names
+    // ═════════════════════════════════════════════════════════════════════════════
+
+    @Test
+    void getAllAvailablePermissions_returnsSortedList() {
+        List<Permission> all = List.of(
+                createPermission("zebra:view", "zebra"),
+                createPermission("apple:edit", "apple"),
+                createPermission("mango:read", "mango")
+        );
+        when(permissionRepository.findAll()).thenReturn(all);
+
+        List<String> result = service.getAllAvailablePermissions();
+
+        assertEquals(3, result.size());
+        // Sorted alphabetically
+        assertEquals("apple:edit", result.get(0));
+        assertEquals("mango:read", result.get(1));
+        assertEquals("zebra:view", result.get(2));
+    }
+
+    @Test
+    void getAllAvailablePermissions_onException_returnsEmptyList() {
+        when(permissionRepository.findAll()).thenThrow(new RuntimeException("DB down"));
+
+        List<String> result = service.getAllAvailablePermissions();
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════════
+    // Extra: saveRolePermissions
+    // ═════════════════════════════════════════════════════════════════════════════
+
+    @Test
+    void saveRolePermissions_invalidatesCacheAndReloads() {
+        when(redisTemplate.delete(anyString())).thenReturn(true);
+        when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+        User user = createUser("kc-1", UserRole.HOST, "user@test.com");
+        when(userRepository.findByRoleIn(eq(Arrays.asList(UserRole.HOST)), eq(1L)))
+                .thenReturn(List.of(user));
+        when(rolePermissionRepository.findActivePermissionsByRoleName("HOST"))
+                .thenReturn(List.of("contact:view"));
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        boolean result = service.saveRolePermissions("HOST");
+
+        assertTrue(result);
+        verify(redisTemplate).delete("role:permissions:HOST");
+        // user:permissions:kc-1 est invalidate plusieurs fois (invalidateCache + getRolePermissions branch)
+        verify(redisTemplate, atLeastOnce()).delete("user:permissions:kc-1");
+    }
+
+    @Test
+    void saveRolePermissions_invalidRole_handlesException() {
+        // UserRole.valueOf will throw for "BAD_ROLE" → caught in try/catch
+        // No invalidate user cache, no recharge — just early return after Redis delete
+        when(redisTemplate.delete(anyString())).thenReturn(true);
+        lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+        lenient().when(rolePermissionRepository.findActivePermissionsByRoleName("BAD_ROLE"))
+                .thenReturn(List.of());
+
+        boolean result = service.saveRolePermissions("BAD_ROLE");
+
+        assertTrue(result); // returns true even when role lookup fails
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════════
+    // Extra: resetToInitialPermissions delegates to resetToDefaultPermissions
+    // ═════════════════════════════════════════════════════════════════════════════
+
+    @Test
+    void resetToInitialPermissions_delegatesToReset() {
+        when(redisTemplate.delete(anyString())).thenReturn(true);
+
+        RolePermissionsDto result = service.resetToInitialPermissions("HOST");
+
+        assertNotNull(result);
+        assertEquals("HOST", result.getRole());
+        assertTrue(result.getPermissions().isEmpty());
+        assertTrue(result.isDefault());
+        verify(redisTemplate).delete("role:permissions:HOST");
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════════
+    // Extra: invalidateCache with valid role triggers user cache invalidation
+    // ═════════════════════════════════════════════════════════════════════════════
+
+    @Test
+    void invalidateCache_invalidRoleString_doesNotThrow() {
+        when(redisTemplate.delete(anyString())).thenReturn(true);
+        // UserRole.valueOf("INVALID_ROLE") throws IllegalArgumentException → caught
+        assertDoesNotThrow(() -> service.invalidateCache("INVALID_ROLE"));
+        verify(redisTemplate).delete("role:permissions:INVALID_ROLE");
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════════
+    // Extra: updateRolePermissions with invalid permission format throws
+    // ═════════════════════════════════════════════════════════════════════════════
+
+    @Test
+    void updateRolePermissions_invalidFormat_throws() {
+        // Format violation : missing ':' separator
+        List<String> badPermissions = List.of("invalidformat");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.updateRolePermissions("HOST", badPermissions));
+    }
+
+    @Test
+    void updateRolePermissions_blankPermissionName_throws() {
+        List<String> badPermissions = new ArrayList<>();
+        badPermissions.add("");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.updateRolePermissions("HOST", badPermissions));
+    }
+
+    @Test
+    void updateRolePermissions_nullPermissionName_throws() {
+        List<String> badPermissions = new ArrayList<>();
+        badPermissions.add(null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.updateRolePermissions("HOST", badPermissions));
+    }
+
+    @Test
+    void updateRolePermissions_emptyList_doesNotThrow() {
+        when(redisTemplate.delete(anyString())).thenReturn(true);
+        when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+        when(userRepository.findByRoleIn(any(), eq(1L))).thenReturn(List.of());
+        Role roleObj = createRole("HOST");
+        when(roleRepository.findByName("HOST")).thenReturn(Optional.of(roleObj));
+        when(permissionRepository.findByNameIn(anyList())).thenReturn(new ArrayList<>());
+        when(rolePermissionRepository.findActivePermissionsByRoleName("HOST"))
+                .thenReturn(List.of());
+
+        // Empty list bypasses validation early
+        RolePermissionsDto result = service.updateRolePermissions("HOST", List.of());
+        assertNotNull(result);
+    }
+
+    @Test
+    void updateRolePermissions_nullList_doesNotThrow() {
+        when(redisTemplate.delete(anyString())).thenReturn(true);
+        when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+        when(userRepository.findByRoleIn(any(), eq(1L))).thenReturn(List.of());
+        Role roleObj = createRole("HOST");
+        when(roleRepository.findByName("HOST")).thenReturn(Optional.of(roleObj));
+        when(permissionRepository.findByNameIn(any())).thenReturn(new ArrayList<>());
+        when(rolePermissionRepository.findActivePermissionsByRoleName("HOST"))
+                .thenReturn(List.of());
+
+        // Null list bypasses validation early
+        assertDoesNotThrow(() -> service.updateRolePermissions("HOST", null));
+    }
+
+    @Test
+    void updateRolePermissions_whenRoleNotFound_returnsEmptyDto() {
+        // Role not found triggers early return inside savePermissionsToDatabase.
+        // The catch block handles exception in tenant lookup as well.
+        lenient().when(roleRepository.findByName("MISSING_ROLE")).thenReturn(Optional.empty());
+        lenient().when(redisTemplate.delete(anyString())).thenReturn(true);
+        lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+        lenient().when(userRepository.findByRoleIn(any(), eq(1L))).thenReturn(List.of());
+        lenient().when(rolePermissionRepository.findActivePermissionsByRoleName("MISSING_ROLE"))
+                .thenReturn(List.of());
+
+        List<String> validPerms = List.of("contact:view");
+
+        RolePermissionsDto result = service.updateRolePermissions("MISSING_ROLE", validPerms);
+
+        assertNotNull(result);
+        // Role not found → no save happened
+        verify(rolePermissionRepository, never()).save(any(RolePermission.class));
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════════
+    // Extra: updateRolePermissions notification failure does NOT abort
+    // ═════════════════════════════════════════════════════════════════════════════
+
+    @Test
+    void updateRolePermissions_notificationFailure_doesNotAbort() {
+        String roleName = "HOST";
+        List<String> newPermissions = List.of("contact:view");
+
+        Role roleObj = createRole(roleName);
+        when(roleRepository.findByName(roleName)).thenReturn(Optional.of(roleObj));
+        Permission p = createPermission("contact:view", "contact");
+        when(permissionRepository.findByNameIn(newPermissions))
+                .thenReturn(new ArrayList<>(List.of(p)));
+        when(rolePermissionRepository.save(any(RolePermission.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+        when(redisTemplate.delete(anyString())).thenReturn(true);
+        when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+        when(userRepository.findByRoleIn(any(), eq(1L))).thenReturn(List.of());
+        when(rolePermissionRepository.findActivePermissionsByRoleName(roleName))
+                .thenReturn(newPermissions);
+
+        // Notification service throws but the update should still succeed
+        doThrow(new RuntimeException("Notif down"))
+                .when(notificationService).notifyAdminsAndManagers(any(), anyString(), anyString(), anyString());
+
+        assertDoesNotThrow(() -> service.updateRolePermissions(roleName, newPermissions));
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════════
+    // Extra: invalidateUserPermissionsCache happy path verified again
+    // ═════════════════════════════════════════════════════════════════════════════
+
+    @Test
+    void invalidateAllCache_partialError_doesNotPropagate() {
+        // CacheManager throws but Redis cleanup still happens
+        when(cacheManager.getCache("permissions")).thenThrow(new RuntimeException("Cache down"));
+
+        assertDoesNotThrow(() -> service.invalidateAllCache());
+
+        // Still attempts to delete the roles:all key
+        verify(redisTemplate).delete("roles:all");
+    }
 }

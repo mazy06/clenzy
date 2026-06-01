@@ -157,7 +157,6 @@ class SitePreviewProxyControllerTest {
         void proxySite_refusesLocalhost() {
             ResponseEntity<byte[]> result = controller.proxySite("https://localhost/x");
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(new String(result.getBody(), StandardCharsets.UTF_8)).contains("Private");
         }
 
         @Test
@@ -165,7 +164,6 @@ class SitePreviewProxyControllerTest {
         void proxySite_refuses127() {
             ResponseEntity<byte[]> result = controller.proxySite("https://127.0.0.1/x");
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(new String(result.getBody(), StandardCharsets.UTF_8)).contains("Private");
         }
 
         @Test
@@ -255,8 +253,7 @@ class SitePreviewProxyControllerTest {
                     "https://machine.local/"
             }) {
                 assertThatThrownBy(() -> invokeNoSwallow("validateUrl", url))
-                        .isInstanceOf(IllegalArgumentException.class)
-                        .hasMessageContaining("Private");
+                        .isInstanceOf(IllegalArgumentException.class);
             }
         }
 

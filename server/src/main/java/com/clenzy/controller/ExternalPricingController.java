@@ -9,12 +9,14 @@ import com.clenzy.service.ExternalPricingSyncService;
 import com.clenzy.tenant.TenantContext;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/external-pricing")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
 public class ExternalPricingController {
 
     private final ExternalPricingSyncService syncService;

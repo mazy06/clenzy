@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -90,7 +91,10 @@ public class KeyNestWebhookHandler {
             hmac.init(keySpec);
             byte[] hash = hmac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
             String computed = bytesToHex(hash);
-            return computed.equalsIgnoreCase(signature);
+            // Comparaison constant-time pour eviter une timing attack sur la signature.
+            return MessageDigest.isEqual(
+                    computed.getBytes(StandardCharsets.UTF_8),
+                    signature.toLowerCase().getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             log.error("Erreur verification signature webhook KeyNest: {}", e.getMessage());
             return false;

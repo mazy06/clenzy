@@ -28,6 +28,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -46,17 +47,20 @@ public class KeyExchangeService {
     private final KeyExchangeEventRepository eventRepository;
     private final PropertyRepository propertyRepository;
     private final TenantContext tenantContext;
+    private final KeyVerificationThrottle verificationThrottle;
 
     public KeyExchangeService(KeyExchangePointRepository pointRepository,
                               KeyExchangeCodeRepository codeRepository,
                               KeyExchangeEventRepository eventRepository,
                               PropertyRepository propertyRepository,
-                              TenantContext tenantContext) {
+                              TenantContext tenantContext,
+                              KeyVerificationThrottle verificationThrottle) {
         this.pointRepository = pointRepository;
         this.codeRepository = codeRepository;
         this.eventRepository = eventRepository;
         this.propertyRepository = propertyRepository;
         this.tenantContext = tenantContext;
+        this.verificationThrottle = verificationThrottle;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -264,22 +268,38 @@ public class KeyExchangeService {
      * Retourne les infos necessaires a l'affichage.
      */
     public Map<String, Object> verifyCodePublic(String verificationToken, String code) {
+        verificationThrottle.assertNotLocked(verificationToken);
+
         KeyExchangePoint point = pointRepository.findByVerificationToken(verificationToken)
                 .orElseThrow(() -> new IllegalArgumentException("Lien de verification invalide"));
 
-        KeyExchangeCode exchangeCode = codeRepository.findByCode(code)
-                .orElseThrow(() -> new IllegalArgumentException("Code invalide"));
-
-        if (!exchangeCode.getPointId().equals(point.getId())) {
-            throw new IllegalArgumentException("Code invalide pour ce point d'echange");
+        // Message d'erreur unifie (code inexistant ET code d'un autre point) pour
+        // ne pas offrir d'oracle d'enumeration. Tout code errone compte comme une
+        // tentative de brute-force sur ce token.
+        Optional<KeyExchangeCode> codeOpt = codeRepository.findByCode(code);
+        if (codeOpt.isEmpty() || !codeOpt.get().getPointId().equals(point.getId())) {
+            verificationThrottle.recordFailure(verificationToken);
+            throw new IllegalArgumentException("Code invalide");
         }
+        KeyExchangeCode exchangeCode = codeOpt.get();
+        verificationThrottle.reset(verificationToken);
 
-        boolean isValid = exchangeCode.getStatus() == CodeStatus.ACTIVE;
         boolean isExpired = exchangeCode.getValidUntil() != null
                 && exchangeCode.getValidUntil().isBefore(LocalDateTime.now());
+        boolean isValid = exchangeCode.getStatus() == CodeStatus.ACTIVE && !isExpired;
+
+        // Ne reveler les infos voyageur (guestName = PII) que si le code est
+        // reellement valide.
+        if (!isValid) {
+            return Map.of(
+                    "valid", false,
+                    "status", exchangeCode.getStatus().name(),
+                    "storeName", point.getStoreName()
+            );
+        }
 
         return Map.of(
-                "valid", isValid && !isExpired,
+                "valid", true,
                 "guestName", exchangeCode.getGuestName() != null ? exchangeCode.getGuestName() : "",
                 "codeType", exchangeCode.getCodeType().name(),
                 "status", exchangeCode.getStatus().name(),
@@ -293,19 +313,30 @@ public class KeyExchangeService {
      */
     @Transactional
     public void confirmKeyMovement(String verificationToken, String code, String action) {
+        verificationThrottle.assertNotLocked(verificationToken);
+
         KeyExchangePoint point = pointRepository.findByVerificationToken(verificationToken)
                 .orElseThrow(() -> new IllegalArgumentException("Lien de verification invalide"));
 
-        KeyExchangeCode exchangeCode = codeRepository.findByCode(code)
-                .orElseThrow(() -> new IllegalArgumentException("Code invalide"));
-
-        if (!exchangeCode.getPointId().equals(point.getId())) {
-            throw new IllegalArgumentException("Code invalide pour ce point d'echange");
+        Optional<KeyExchangeCode> codeOpt = codeRepository.findByCode(code);
+        if (codeOpt.isEmpty() || !codeOpt.get().getPointId().equals(point.getId())) {
+            verificationThrottle.recordFailure(verificationToken);
+            throw new IllegalArgumentException("Code invalide");
         }
+        KeyExchangeCode exchangeCode = codeOpt.get();
+        verificationThrottle.reset(verificationToken);
+
+        boolean isExpired = exchangeCode.getValidUntil() != null
+                && exchangeCode.getValidUntil().isBefore(LocalDateTime.now());
 
         EventType eventType;
         switch (action) {
             case "collected" -> {
+                // Collecter une cle exige un code actif et non expire : un code
+                // annule (resa annulee) ou expire ne doit jamais ouvrir l'acces.
+                if (exchangeCode.getStatus() != CodeStatus.ACTIVE || isExpired) {
+                    throw new IllegalStateException("Code inactif ou expire : collecte refusee");
+                }
                 eventType = EventType.KEY_COLLECTED;
                 exchangeCode.setCollectedAt(LocalDateTime.now());
                 exchangeCode.setStatus(CodeStatus.USED);

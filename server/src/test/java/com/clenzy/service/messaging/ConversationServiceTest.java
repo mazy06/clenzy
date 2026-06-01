@@ -221,4 +221,192 @@ class ConversationServiceTest {
         Page<Conversation> result = service.getInbox(1L, null, PageRequest.of(0, 20));
         assertThat(result.getTotalElements()).isEqualTo(2);
     }
+
+    // ─── Additional coverage ────────────────────────────────────────────
+
+    @Test
+    void getOrCreateForReservation_existing_returnsExisting() {
+        Conversation existing = new Conversation();
+        existing.setId(50L);
+        when(conversationRepository.findByOrganizationIdAndReservationIdAndChannel(
+                1L, 99L, ConversationChannel.EMAIL))
+                .thenReturn(Optional.of(existing));
+
+        Conversation result = service.getOrCreateForReservation(
+                1L, 99L, ConversationChannel.EMAIL, null, null, null);
+
+        assertThat(result.getId()).isEqualTo(50L);
+        verify(conversationRepository, never()).save(any());
+    }
+
+    @Test
+    void getOrCreateForReservation_new_createsWithPropertyAsSubject() {
+        when(conversationRepository.findByOrganizationIdAndReservationIdAndChannel(
+                1L, 99L, ConversationChannel.AIRBNB))
+                .thenReturn(Optional.empty());
+        Property property = new Property();
+        property.setName("My Studio");
+
+        Conversation created = new Conversation();
+        created.setId(60L);
+        when(conversationRepository.save(any())).thenReturn(created);
+
+        service.getOrCreateForReservation(1L, 99L, ConversationChannel.AIRBNB,
+                null, property, null);
+
+        org.mockito.ArgumentCaptor<Conversation> captor = org.mockito.ArgumentCaptor.forClass(Conversation.class);
+        verify(conversationRepository).save(captor.capture());
+        assertThat(captor.getValue().getSubject()).isEqualTo("My Studio");
+        assertThat(captor.getValue().getStatus()).isEqualTo(ConversationStatus.OPEN);
+        assertThat(captor.getValue().isUnread()).isTrue();
+    }
+
+    @Test
+    void getOrCreateForReservation_newWithNoProperty_subjectIsConversation() {
+        when(conversationRepository.findByOrganizationIdAndReservationIdAndChannel(
+                1L, 99L, ConversationChannel.WHATSAPP))
+                .thenReturn(Optional.empty());
+        when(conversationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Conversation result = service.getOrCreateForReservation(1L, 99L, ConversationChannel.WHATSAPP,
+                null, null, null);
+
+        assertThat(result.getSubject()).isEqualTo("Conversation");
+    }
+
+    @Test
+    void addInboundMessage_assignedConversation_notifiesAssignee() {
+        Conversation conv = new Conversation();
+        conv.setId(1L);
+        conv.setOrganizationId(1L);
+        conv.setChannel(ConversationChannel.AIRBNB);
+        conv.setMessageCount(0);
+        conv.setStatus(ConversationStatus.OPEN);
+        conv.setAssignedToKeycloakId("assignee-kc-id");
+
+        ConversationMessage saved = new ConversationMessage();
+        saved.setId(99L);
+        when(messageRepository.save(any())).thenReturn(saved);
+        when(conversationRepository.save(any())).thenReturn(conv);
+
+        service.addInboundMessage(conv, "Guest", "guest@a.com", "Hi", null, null);
+
+        verify(notificationService).send(eq("assignee-kc-id"),
+                eq(NotificationKey.CONVERSATION_NEW_MESSAGE),
+                anyString(), anyString(), org.mockito.ArgumentMatchers.isNull());
+    }
+
+    @Test
+    void addInboundMessage_longContent_truncatesPreview() {
+        Conversation conv = new Conversation();
+        conv.setId(1L);
+        conv.setOrganizationId(1L);
+        conv.setChannel(ConversationChannel.EMAIL);
+        conv.setMessageCount(0);
+        conv.setStatus(ConversationStatus.OPEN);
+
+        when(messageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(conversationRepository.save(any())).thenReturn(conv);
+
+        String longContent = "x".repeat(300);
+        service.addInboundMessage(conv, "G", "g@a.com", longContent, null, null);
+
+        // truncate to 200 + "..."
+        assertThat(conv.getLastMessagePreview()).hasSize(203);
+    }
+
+    @Test
+    void getInboxByChannels_withStatus_filtersBoth() {
+        List<ConversationChannel> channels = List.of(ConversationChannel.AIRBNB, ConversationChannel.BOOKING);
+        Page<Conversation> page = new PageImpl<>(List.of(new Conversation()));
+        when(conversationRepository.findByOrganizationIdAndChannelInAndStatusOrderByLastMessageAtDesc(
+                eq(1L), eq(channels), eq(ConversationStatus.OPEN), any()))
+                .thenReturn(page);
+
+        Page<Conversation> result = service.getInboxByChannels(1L, channels,
+                ConversationStatus.OPEN, PageRequest.of(0, 20));
+
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void getInboxByChannels_noStatus_returnsAllChannels() {
+        List<ConversationChannel> channels = List.of(ConversationChannel.AIRBNB);
+        Page<Conversation> page = new PageImpl<>(List.of(new Conversation(), new Conversation()));
+        when(conversationRepository.findByOrganizationIdAndChannelInOrderByLastMessageAtDesc(
+                eq(1L), eq(channels), any())).thenReturn(page);
+
+        Page<Conversation> result = service.getInboxByChannels(1L, channels,
+                null, PageRequest.of(0, 20));
+
+        assertThat(result.getTotalElements()).isEqualTo(2);
+    }
+
+    @Test
+    void getMyConversations_delegatesWithKeycloakId() {
+        Page<Conversation> page = new PageImpl<>(List.of(new Conversation()));
+        when(conversationRepository.findByOrganizationIdAndAssignedToKeycloakIdOrderByLastMessageAtDesc(
+                eq(1L), eq("kc-1"), any())).thenReturn(page);
+
+        Page<Conversation> result = service.getMyConversations(1L, "kc-1", PageRequest.of(0, 20));
+
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void getById_delegatesToRepository() {
+        Conversation c = new Conversation();
+        c.setId(1L);
+        when(conversationRepository.findByIdAndOrganizationId(1L, 5L)).thenReturn(Optional.of(c));
+
+        Optional<Conversation> result = service.getById(1L, 5L);
+
+        assertThat(result).isPresent();
+    }
+
+    @Test
+    void getMessages_delegatesToRepository() {
+        Page<ConversationMessage> page = new PageImpl<>(List.of(new ConversationMessage()));
+        when(messageRepository.findByConversationIdAndOrganizationIdOrderBySentAtAsc(
+                eq(1L), eq(5L), any())).thenReturn(page);
+
+        Page<ConversationMessage> result = service.getMessages(1L, 5L, PageRequest.of(0, 20));
+
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void updateStatus_notFound_throws() {
+        when(conversationRepository.findByIdAndOrganizationId(1L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updateStatus(1L, 1L, ConversationStatus.ARCHIVED))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void assignConversation_notFound_throws() {
+        when(conversationRepository.findByIdAndOrganizationId(1L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.assignConversation(1L, 1L, "kc-1"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void sendOutboundMessage_closedConv_reopens() {
+        Conversation conv = new Conversation();
+        conv.setId(1L);
+        conv.setOrganizationId(1L);
+        conv.setChannel(ConversationChannel.AIRBNB);
+        conv.setStatus(ConversationStatus.CLOSED);
+        conv.setMessageCount(2);
+
+        ConversationMessage saved = new ConversationMessage();
+        saved.setId(33L);
+        when(messageRepository.save(any())).thenReturn(saved);
+        when(conversationRepository.save(any())).thenReturn(conv);
+
+        service.sendOutboundMessage(conv, "Admin", "admin-1", "Reply", "<p>reply</p>");
+
+        assertThat(conv.getStatus()).isEqualTo(ConversationStatus.OPEN);
+    }
 }

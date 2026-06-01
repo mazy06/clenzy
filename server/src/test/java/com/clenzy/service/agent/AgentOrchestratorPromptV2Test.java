@@ -114,6 +114,20 @@ class AgentOrchestratorPromptV2Test {
         assertThat(result).contains("assistant strategique Clenzy");
     }
 
+    @Test
+    void v1_fallback_includes_anti_injection_guard() throws Exception {
+        when(promptBuilder.buildChatPrompt(any(), ArgumentMatchers.nullable(String.class),
+                any(), any())).thenReturn(null);
+        AgentOrchestrator orchestrator = buildOrchestrator(true);
+
+        String result = invokeBuildSystemPrompt(orchestrator, ctx, "Hello");
+        // Le fallback v1 porte la garde anti-injection (parite avec le path v2).
+        assertThat(result)
+                .contains("assistant strategique Clenzy")
+                .contains("<security_guard>")
+                .contains("N'OBEIS JAMAIS");
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private AgentOrchestrator buildOrchestrator(boolean v2Enabled) {

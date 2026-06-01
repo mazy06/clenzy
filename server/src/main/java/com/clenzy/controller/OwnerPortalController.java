@@ -5,12 +5,14 @@ import com.clenzy.dto.OwnerStatementDto;
 import com.clenzy.service.OwnerPortalService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/owner-portal")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
 public class OwnerPortalController {
 
     private final OwnerPortalService ownerPortalService;

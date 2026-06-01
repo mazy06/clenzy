@@ -1,9 +1,14 @@
 package com.clenzy.service;
 
 import com.clenzy.model.DeviceToken;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.MessagingErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.MockedStatic;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -12,7 +17,10 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -130,5 +138,134 @@ class FcmServiceTest {
 
     private static Throwable catchAny(Runnable r) {
         try { r.run(); return null; } catch (Throwable t) { return t; }
+    }
+
+    // ─── Full sendToToken via MockedStatic on FirebaseMessaging ──────────────
+
+    @Test
+    void sendToUser_androidToken_successfullySends() {
+        FirebaseMessaging fakeFcm = mock(FirebaseMessaging.class);
+        try (MockedStatic<FirebaseMessaging> mocked = mockStatic(FirebaseMessaging.class)) {
+            mocked.when(FirebaseMessaging::getInstance).thenReturn(fakeFcm);
+            try {
+                when(fakeFcm.send(any(Message.class))).thenReturn("projects/abc/messages/1");
+            } catch (FirebaseMessagingException e) {
+                throw new RuntimeException(e);
+            }
+            when(deviceTokenService.getTokensForUser("u-a"))
+                    .thenReturn(List.of(token("tok-1234567890ABCDEFGH", "android")));
+
+            fcmService.sendToUser("u-a", "title", "body", Map.of("type", "INTERVENTION_NEW"));
+
+            verify(deviceTokenService).getTokensForUser("u-a");
+            verify(deviceTokenService, never()).unregister(anyString());
+        }
+    }
+
+    @Test
+    void sendToUser_iosToken_successfullySends() {
+        FirebaseMessaging fakeFcm = mock(FirebaseMessaging.class);
+        try (MockedStatic<FirebaseMessaging> mocked = mockStatic(FirebaseMessaging.class)) {
+            mocked.when(FirebaseMessaging::getInstance).thenReturn(fakeFcm);
+            try {
+                when(fakeFcm.send(any(Message.class))).thenReturn("projects/abc/messages/2");
+            } catch (FirebaseMessagingException e) {
+                throw new RuntimeException(e);
+            }
+            when(deviceTokenService.getTokensForUser("u-b"))
+                    .thenReturn(List.of(token("apns-tok", "ios")));
+
+            fcmService.sendToUser("u-b", "t", "b", null);
+
+            verify(deviceTokenService).getTokensForUser("u-b");
+        }
+    }
+
+    @Test
+    void sendToUser_unregisteredToken_unregistersIt() throws Exception {
+        FirebaseMessaging fakeFcm = mock(FirebaseMessaging.class);
+        FirebaseMessagingException ex = mock(FirebaseMessagingException.class);
+        when(ex.getMessagingErrorCode()).thenReturn(MessagingErrorCode.UNREGISTERED);
+
+        try (MockedStatic<FirebaseMessaging> mocked = mockStatic(FirebaseMessaging.class)) {
+            mocked.when(FirebaseMessaging::getInstance).thenReturn(fakeFcm);
+            when(fakeFcm.send(any(Message.class))).thenThrow(ex);
+            when(deviceTokenService.getTokensForUser("u-c"))
+                    .thenReturn(List.of(token("dead-tok-1234567890ABC", "android")));
+
+            fcmService.sendToUser("u-c", "t", "b", null);
+
+            verify(deviceTokenService).unregister("dead-tok-1234567890ABC");
+        }
+    }
+
+    @Test
+    void sendToUser_invalidArgument_unregistersToken() throws Exception {
+        FirebaseMessaging fakeFcm = mock(FirebaseMessaging.class);
+        FirebaseMessagingException ex = mock(FirebaseMessagingException.class);
+        when(ex.getMessagingErrorCode()).thenReturn(MessagingErrorCode.INVALID_ARGUMENT);
+
+        try (MockedStatic<FirebaseMessaging> mocked = mockStatic(FirebaseMessaging.class)) {
+            mocked.when(FirebaseMessaging::getInstance).thenReturn(fakeFcm);
+            when(fakeFcm.send(any(Message.class))).thenThrow(ex);
+            when(deviceTokenService.getTokensForUser("u-d"))
+                    .thenReturn(List.of(token("bad-tok-1234567890ABC", "ios")));
+
+            fcmService.sendToUser("u-d", "t", "b", null);
+
+            verify(deviceTokenService).unregister("bad-tok-1234567890ABC");
+        }
+    }
+
+    @Test
+    void sendToUser_genericFirebaseError_doesNotUnregister() throws Exception {
+        FirebaseMessaging fakeFcm = mock(FirebaseMessaging.class);
+        FirebaseMessagingException ex = mock(FirebaseMessagingException.class);
+        when(ex.getMessagingErrorCode()).thenReturn(MessagingErrorCode.INTERNAL);
+        when(ex.getMessage()).thenReturn("Server boom");
+
+        try (MockedStatic<FirebaseMessaging> mocked = mockStatic(FirebaseMessaging.class)) {
+            mocked.when(FirebaseMessaging::getInstance).thenReturn(fakeFcm);
+            when(fakeFcm.send(any(Message.class))).thenThrow(ex);
+            when(deviceTokenService.getTokensForUser("u-e"))
+                    .thenReturn(List.of(token("good-tok-1234567890ABC", "android")));
+
+            fcmService.sendToUser("u-e", "t", "b", null);
+
+            verify(deviceTokenService, never()).unregister(anyString());
+        }
+    }
+
+    @Test
+    void sendToUser_otherPlatform_stillSends() throws Exception {
+        FirebaseMessaging fakeFcm = mock(FirebaseMessaging.class);
+        try (MockedStatic<FirebaseMessaging> mocked = mockStatic(FirebaseMessaging.class)) {
+            mocked.when(FirebaseMessaging::getInstance).thenReturn(fakeFcm);
+            when(fakeFcm.send(any(Message.class))).thenReturn("ok");
+            when(deviceTokenService.getTokensForUser("u-f"))
+                    .thenReturn(List.of(token("web-tok-1234567890ABC", "web")));
+
+            fcmService.sendToUser("u-f", "t", "b", Map.of("foo", "bar"));
+
+            verify(deviceTokenService).getTokensForUser("u-f");
+        }
+    }
+
+    @Test
+    void sendToUser_multipleTokens_sendsToEach() throws Exception {
+        FirebaseMessaging fakeFcm = mock(FirebaseMessaging.class);
+        try (MockedStatic<FirebaseMessaging> mocked = mockStatic(FirebaseMessaging.class)) {
+            mocked.when(FirebaseMessaging::getInstance).thenReturn(fakeFcm);
+            when(fakeFcm.send(any(Message.class))).thenReturn("ok");
+            when(deviceTokenService.getTokensForUser("u-g"))
+                    .thenReturn(List.of(
+                            token("tok-and-1234567890ABCDEFGH", "android"),
+                            token("tok-ios-1234567890ABCDEFGH", "ios")
+                    ));
+
+            fcmService.sendToUser("u-g", "t", "b", null);
+
+            verify(fakeFcm, org.mockito.Mockito.times(2)).send(any(Message.class));
+        }
     }
 }
