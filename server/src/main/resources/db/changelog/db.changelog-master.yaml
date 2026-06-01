@@ -1541,3 +1541,19 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0161 : Seed config Clenzy (tax_rules + templates customs) ---
+  # Source : Postgres dev (org Sinatech). Remap a l'org 'Clenzy' en prod via
+  # lookup. Strategy UPSERT (DELETE matching keys + INSERT) = ecrase les
+  # conflits. Contient les .odt BYTEA en base64 inline (~55 KB).
+  #
+  # IMPORTANT : splitStatements=false car le bloc DO $do$...$do$ pour le seed
+  # templates contient des `;` qui ne sont pas des separateurs de statements.
+  - changeSet:
+      id: "0161-seed-clenzy-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0161__seed_clenzy_config.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
