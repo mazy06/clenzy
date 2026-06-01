@@ -617,8 +617,21 @@ public class DocumentGeneratorService {
                                                      String explicitCountryCode) {
         long startTime = System.currentTimeMillis();
 
-        // Resoudre l'organizationId : explicite (Kafka) ou via TenantContext (HTTP)
-        final Long orgId = explicitOrgId != null ? explicitOrgId : tenantContext.getOrganizationId();
+        // Resoudre l'organizationId : explicite (Kafka) > TenantContext (HTTP authentifie)
+        // > organisation du template (contexte public/systeme sans tenant, ex: devis
+        // genere depuis la landing page via /api/public/quote-request).
+        //
+        // Sans ce dernier fallback, une generation declenchee hors contexte tenant
+        // serait persistee avec organization_id = NULL : elle resterait invisible pour
+        // les utilisateurs filtres par organisation (organizationFilter Hibernate) — donc
+        // absente du bas de l'ecran "Messagerie OTA" — et la numerotation legale NF serait
+        // rattachee a une org nulle. On la rattache a l'org du template (= l'org Clenzy
+        // qui possede le template DEVIS seede), garantissant coherence et visibilite.
+        Long resolvedOrgId = explicitOrgId != null ? explicitOrgId : tenantContext.getOrganizationId();
+        if (resolvedOrgId == null) {
+            resolvedOrgId = template.getOrganizationId();
+        }
+        final Long orgId = resolvedOrgId;
         final String countryCode = explicitCountryCode != null ? explicitCountryCode : tenantContext.getCountryCode();
 
         // 1. Creer l'enregistrement via Builder

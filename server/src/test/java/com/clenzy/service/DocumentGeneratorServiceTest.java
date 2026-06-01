@@ -830,6 +830,59 @@ class DocumentGeneratorServiceTest {
     }
 
     @Nested
+    @DisplayName("executeGeneration - resolution organizationId")
+    class ExecuteGenerationOrgResolution {
+
+        @Test
+        void whenNoTenantAndNoExplicitOrg_thenGenerationInheritsTemplateOrg() {
+            // Contexte public (devis genere depuis la landing page via
+            // /api/public/quote-request) : pas de TenantContext, pas d'orgId
+            // explicite Kafka. La generation DOIT heriter de l'organisation du
+            // template (org Clenzy proprietaire du template DEVIS seede) pour
+            // rester visible cote PMS — l'organizationFilter Hibernate exclut les
+            // lignes organization_id IS NULL — et rattacher la numerotation NF a
+            // une org reelle. Non-regression du bug "devis PDF absent en bas de
+            // l'ecran Messagerie OTA".
+            DocumentTemplate template = new DocumentTemplate();
+            template.setId(1L);
+            template.setName("Devis Clenzy");
+            template.setDocumentType(DocumentType.DEVIS);
+            template.setOrganizationId(42L);                 // org proprietaire du template
+            template.setFileContent(new byte[]{1, 2, 3});
+            template.setOriginalFilename("devis.odt");
+
+            when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.DEVIS))
+                    .thenReturn(Optional.of(template));
+            // Contexte public : aucune org dans le TenantContext
+            when(tenantContext.getOrganizationId()).thenReturn(null);
+            when(numberingService.requiresLegalNumber(DocumentType.DEVIS, "FR")).thenReturn(false);
+            when(tagResolverService.resolveTagsForDocument(any(), any(), any()))
+                    .thenReturn(new java.util.HashMap<>());
+
+            org.mockito.ArgumentCaptor<DocumentGeneration> captor =
+                    org.mockito.ArgumentCaptor.forClass(DocumentGeneration.class);
+            when(generationRepository.save(captor.capture()))
+                    .thenAnswer(inv -> {
+                        DocumentGeneration g = inv.getArgument(0);
+                        if (g.getId() == null) g.setId(100L);
+                        return g;
+                    });
+
+            // explicitOrgId = null (5e parametre) → resolution via fallback template.
+            // XDocReport echoue sur les bytes aleatoires mais la 1ere sauvegarde
+            // (statut GENERATING) a deja persiste l'orgId resolu.
+            assertThatThrownBy(() -> service.generateFromEvent(
+                    DocumentType.DEVIS, 100L, ReferenceType.RECEIVED_FORM, null, null))
+                    .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
+
+            // Toutes les versions persistees portent l'org du template (42L), jamais null.
+            assertThat(captor.getAllValues())
+                    .isNotEmpty()
+                    .allSatisfy(g -> assertThat(g.getOrganizationId()).isEqualTo(42L));
+        }
+    }
+
+    @Nested
     @DisplayName("generateTemplatePreview")
     class GenerateTemplatePreview {
 
