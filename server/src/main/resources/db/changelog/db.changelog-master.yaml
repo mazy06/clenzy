@@ -1541,3 +1541,20 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0162 : Seed config Clenzy (tax_rules + message + document templates) ---
+  # Importe depuis dev (org Sinatech) : 15 tax_rules globales, 4 message_templates
+  # custom, 8 document_templates (BYTEA inline en base64) avec 253 tags associes.
+  # Strategy UPSERT (DELETE matching keys + INSERT) ecrase les conflits par
+  # decision user. Bloc DO $do$ avec lookup org 'Clenzy' (skip propre si absent).
+  # Note : remplace l'ancienne 0161 retiree apres crash-loop prod (base64
+  # mal-encode avec \n litteraux rejetes par decode()). Cette version strippe
+  # tous les whitespaces/backslashes du base64 avant injection.
+  - changeSet:
+      id: "0162-seed-clenzy-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0162__seed_clenzy_config.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
