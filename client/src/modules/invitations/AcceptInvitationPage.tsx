@@ -16,7 +16,6 @@ import {
   IconButton,
 } from '@mui/material';
 import {
-  Business,
   PersonAdd,
   CheckCircle,
   ErrorOutline,
@@ -32,7 +31,48 @@ import apiClient, { ApiError } from '../../services/apiClient';
 import { createClenzyTheme } from '../../theme/createClenzyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import { clearMockFlags, setSessionCookie } from '../../services/storageService';
-import clenzyLogo from '../../assets/Baitly_logo.png';
+
+// Brand color Baitly — aligne avec EmailWrapperService.BRAND_PRIMARY.
+const BRAND_PRIMARY = '#6B8A9A';
+
+/**
+ * Wordmark Baitly minimaliste : meme typo + point colore que l'email.
+ * Reutilise dans l'en-tete de la page pour coherence brand cross-channel.
+ */
+function BaitlyWordmark({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
+  const fontSize = size === 'lg' ? 26 : 18;
+  return (
+    <Box
+      sx={{
+        fontSize,
+        fontWeight: 700,
+        letterSpacing: '-0.02em',
+        color: '#0f172a',
+        lineHeight: 1,
+        userSelect: 'none',
+      }}
+    >
+      Baitly<Box component="span" sx={{ color: BRAND_PRIMARY }}>.</Box>
+    </Box>
+  );
+}
+
+/** Petit chip "INVITATION" uppercase letter-spacing — meme style que le sous-titre email. */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Typography
+      sx={{
+        fontSize: 11,
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.12em',
+        color: '#94a3b8',
+      }}
+    >
+      {children}
+    </Typography>
+  );
+}
 
 type PageState =
   | 'loading'
@@ -262,23 +302,25 @@ export default function AcceptInvitationPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+          background: '#f8fafc',
           p: 2,
         }}
       >
         <Paper
-          elevation={3}
+          elevation={0}
           sx={{
             maxWidth: 480,
             width: '100%',
-            p: 4,
-            borderRadius: 3,
-            textAlign: 'center',
+            p: { xs: 3, sm: 4.5 },
+            borderRadius: 2,
+            border: '1px solid #e2e8f0',
+            backgroundColor: '#ffffff',
+            textAlign: 'left',
           }}
         >
-          {/* Logo */}
-          <Box sx={{ mb: 3 }}>
-            <img src={clenzyLogo} alt="Baitly" style={{ height: 48 }} />
+          {/* Wordmark Baitly minimaliste (coherent avec l'email d'invitation) */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3.5 }}>
+            <BaitlyWordmark size="lg" />
           </Box>
 
           {/* Loading */}
@@ -294,49 +336,104 @@ export default function AcceptInvitationPage() {
           {/* Invitation Info */}
           {state === 'info' && invitation && (
             <>
-              <Box
-                sx={{
-                  mb: 3,
-                  p: 2,
-                  borderRadius: 2,
-                  bgcolor: 'primary.50',
-                  background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)',
-                }}
-              >
-                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mb: 1 }}><Business size={48} strokeWidth={1.75} /></Box>
-                <Typography variant="h5" fontWeight={700} gutterBottom>
-                  Invitation
+              {/* Hero : "INVITATION" label + nom de l'organisation. Pas de gradient
+                  satureee — typographie pure, comme l'email. */}
+              <Box sx={{ mb: 3.5, textAlign: 'center' }}>
+                <SectionLabel>Invitation</SectionLabel>
+                <Typography
+                  sx={{
+                    mt: 1,
+                    fontSize: 14,
+                    color: '#64748b',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Tu es invite a rejoindre l'organisation
                 </Typography>
-                <Typography variant="body1" color="text.secondary">
-                  Vous avez ete invite a rejoindre
-                </Typography>
-                <Typography variant="h6" fontWeight={600} sx={{ mt: 1 }}>
+                <Typography
+                  sx={{
+                    mt: 0.75,
+                    fontSize: 22,
+                    fontWeight: 700,
+                    letterSpacing: '-0.01em',
+                    color: '#0f172a',
+                    lineHeight: 1.2,
+                  }}
+                >
                   {invitation.organizationName}
                 </Typography>
               </Box>
 
-              <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 1.5, alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Role propose :
-                  </Typography>
+              {/* Bloc info : Role + email + expiration, layout aere */}
+              <Box
+                sx={{
+                  mb: 3,
+                  borderTop: '1px solid #f1f5f9',
+                  borderBottom: '1px solid #f1f5f9',
+                  py: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1.5,
+                }}
+              >
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1,
+                  }}
+                >
+                  <Typography sx={{ fontSize: 13, color: '#64748b' }}>Role</Typography>
                   <Chip
                     label={getRoleLabel(invitation.roleInvited)}
                     color={getRoleColor(invitation.roleInvited)}
                     size="small"
+                    sx={{ height: 22, fontSize: 11, fontWeight: 600, borderRadius: 1 }}
                   />
                 </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Envoye a : <strong>{invitation.invitedEmail}</strong>
-                </Typography>
-                {invitation.expiresAt && (
-                  <Typography variant="caption" color="text.secondary">
-                    Expire le {new Date(invitation.expiresAt).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1,
+                  }}
+                >
+                  <Typography sx={{ fontSize: 13, color: '#64748b' }}>Email</Typography>
+                  <Typography
+                    sx={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      maxWidth: '60%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={invitation.invitedEmail}
+                  >
+                    {invitation.invitedEmail}
                   </Typography>
+                </Box>
+                {invitation.expiresAt && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1,
+                    }}
+                  >
+                    <Typography sx={{ fontSize: 13, color: '#64748b' }}>Expire</Typography>
+                    <Typography sx={{ fontSize: 13, color: '#475569' }}>
+                      {new Date(invitation.expiresAt).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </Typography>
+                  </Box>
                 )}
               </Box>
 
@@ -359,11 +456,15 @@ export default function AcceptInvitationPage() {
                         fullWidth
                         onClick={() => {
                           sessionStorage.setItem('pending_invitation_token', token!);
-                          keycloak.logout({
-                            redirectUri: `${window.location.origin}/accept-invitation?token=${encodeURIComponent(token!)}`,
-                          });
+                          // Navigation directe vers l'URL Keycloak logout au lieu de
+                          // `keycloak.logout()` : cette derniere peut freeze a cause
+                          // de la machinerie interne (silent-check-sso iframe,
+                          // service worker interceptor). Approche `window.location` =
+                          // un round-trip serveur propre sans dependre du SPA state.
+                          const redirectUri = `${window.location.origin}/accept-invitation?token=${encodeURIComponent(token!)}`;
+                          window.location.href = keycloak.createLogoutUrl({ redirectUri });
                         }}
-                        sx={{ py: 1.5, fontWeight: 600, borderRadius: 2 }}
+                        sx={{ py: 1.25, fontWeight: 600, borderRadius: 1.5, textTransform: 'none', fontSize: 14 }}
                       >
                         Se deconnecter et creer un compte
                       </Button>
@@ -375,7 +476,7 @@ export default function AcceptInvitationPage() {
                       fullWidth
                       startIcon={<PersonAdd />}
                       onClick={handleAccept}
-                      sx={{ py: 1.5, fontWeight: 600, borderRadius: 2 }}
+                      sx={{ py: 1.25, fontWeight: 600, borderRadius: 1.5, textTransform: 'none', fontSize: 14 }}
                     >
                       Accepter l'invitation
                     </Button>
@@ -389,7 +490,7 @@ export default function AcceptInvitationPage() {
                     fullWidth
                     startIcon={<PersonAdd />}
                     onClick={handleRegisterAndAccept}
-                    sx={{ py: 1.5, fontWeight: 600, borderRadius: 2 }}
+                    sx={{ py: 1.25, fontWeight: 600, borderRadius: 1.5, textTransform: 'none', fontSize: 14 }}
                   >
                     Creer un compte et accepter
                   </Button>
@@ -412,15 +513,17 @@ export default function AcceptInvitationPage() {
           {state === 'register_form' && invitation && (
             <Box sx={{ py: 1, textAlign: 'left' }}>
               <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mb: 1 }}>
-                  <PersonAdd size={40} strokeWidth={1.75} />
-                </Box>
-                <Typography variant="h6" fontWeight={700} sx={{ mt: 1 }}>
-                  Cree ton compte Baitly
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Rejoins <strong>{invitation.organizationName}</strong> en tant que{' '}
-                  {getRoleLabel(invitation.roleInvited).toLowerCase()}.
+                <SectionLabel>Creation de compte</SectionLabel>
+                <Typography
+                  sx={{
+                    mt: 1.25,
+                    fontSize: 14,
+                    color: '#475569',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Rejoins <strong style={{ color: '#0f172a' }}>{invitation.organizationName}</strong>{' '}
+                  en tant que {getRoleLabel(invitation.roleInvited).toLowerCase()}.
                 </Typography>
               </Box>
 
