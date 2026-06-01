@@ -40,6 +40,22 @@ public class EmailService {
     @Value("${clenzy.mail.from:info@clenzy.fr}")
     private String fromAddress;
 
+    /**
+     * Display name affiche dans le From ({@code Clenzy <info@clenzy.fr>}).
+     * Reduit le score spam : un nom humain inspire confiance, et l'alignement
+     * DKIM + From-domain reste vrai puisque l'adresse ne change pas.
+     */
+    @Value("${clenzy.mail.from-name:Clenzy}")
+    private String fromName;
+
+    /** Mailto fallback pour List-Unsubscribe (legacy clients non one-click). */
+    @Value("${clenzy.mail.unsubscribe-mailto:unsubscribe@clenzy.fr}")
+    private String unsubscribeMailto;
+
+    /** URL one-click pour List-Unsubscribe (RFC 8058 + Gmail/Outlook 2024). */
+    @Value("${clenzy.mail.unsubscribe-url:https://app.clenzy.fr/unsubscribe}")
+    private String unsubscribeUrl;
+
     @Value("${clenzy.mail.notification-to:info@clenzy.fr}")
     private String notificationTo;
 
@@ -168,7 +184,7 @@ public class EmailService {
             MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromAddress);
+            applyDeliverabilityHeaders(message, helper);
             helper.setTo(notificationTo);
             helper.setReplyTo(dto.getEmail());
             helper.setSubject(sanitizeHeaderValue(subject));
@@ -363,7 +379,7 @@ public class EmailService {
             MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromAddress);
+            applyDeliverabilityHeaders(message, helper);
             helper.setTo(notificationTo);
             helper.setReplyTo(dto.getEmail());
             helper.setSubject(sanitizeHeaderValue(subject));
@@ -474,7 +490,7 @@ public class EmailService {
                 throw new IllegalArgumentException("Le message est vide");
             }
 
-            helper.setFrom(fromAddress);
+            applyDeliverabilityHeaders(mimeMessage, helper);
             helper.setTo(toEmail);
             if (replyToEmail != null && !replyToEmail.isBlank()) {
                 helper.setReplyTo(replyToEmail);
@@ -527,7 +543,7 @@ public class EmailService {
             MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromAddress);
+            applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlBody, true);
@@ -556,7 +572,7 @@ public class EmailService {
             MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromAddress);
+            applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlBody, true);
@@ -579,6 +595,53 @@ public class EmailService {
     private String sanitizeHeaderValue(String value) {
         if (value == null) return "";
         return value.replaceAll("[\\r\\n]+", " ").trim();
+    }
+
+    /**
+     * Applique les headers + From recommandes pour maximiser le scoring deliverability
+     * (Gmail/Outlook 2024) :
+     *
+     * <ul>
+     *   <li><b>From "Clenzy &lt;info@clenzy.fr&gt;"</b> : display name + adresse alignee
+     *       avec le domaine DKIM. Un nom humain reduit le score spam.</li>
+     *   <li><b>List-Unsubscribe</b> (RFC 8058) : URL one-click + mailto fallback. Gmail
+     *       et Outlook penalisent les emails qui n'en ont pas — meme transactionnels —
+     *       depuis fevrier 2024.</li>
+     *   <li><b>List-Unsubscribe-Post: List-Unsubscribe=One-Click</b> : permet au client
+     *       de desabonner sans confirmation manuelle.</li>
+     *   <li><b>Auto-Submitted: auto-generated</b> (RFC 3834) : indique que c'est un
+     *       email automatique pour distinguer des envois personnels et eviter les
+     *       boucles d'auto-reply.</li>
+     *   <li><b>X-Auto-Response-Suppress: All</b> : demande aux MTA Microsoft de ne pas
+     *       generer d'auto-reply (out-of-office) — inutile cote nous.</li>
+     * </ul>
+     *
+     * <p>A appeler dans chaque methode d'envoi a la place de
+     * {@code helper.setFrom(fromAddress)}.</p>
+     */
+    private void applyDeliverabilityHeaders(MimeMessage message, MimeMessageHelper helper) {
+        try {
+            // From avec display name : "Clenzy <info@clenzy.fr>"
+            helper.setFrom(fromAddress, fromName);
+        } catch (java.io.UnsupportedEncodingException e) {
+            // Fallback : juste l'adresse, sans display name
+            try {
+                helper.setFrom(fromAddress);
+            } catch (MessagingException me) {
+                log.warn("Impossible de setter From {}: {}", fromAddress, me.getMessage());
+            }
+        } catch (MessagingException e) {
+            log.warn("Impossible de setter From {}: {}", fromAddress, e.getMessage());
+        }
+        try {
+            String listUnsubscribe = "<mailto:" + unsubscribeMailto + ">, <" + unsubscribeUrl + ">";
+            message.setHeader("List-Unsubscribe", listUnsubscribe);
+            message.setHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
+            message.setHeader("Auto-Submitted", "auto-generated");
+            message.setHeader("X-Auto-Response-Suppress", "All");
+        } catch (MessagingException e) {
+            log.warn("Impossible d'ajouter les headers deliverability: {}", e.getMessage());
+        }
     }
 
     /**
@@ -620,7 +683,7 @@ public class EmailService {
             MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromAddress);
+            applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlBody, true);
@@ -662,7 +725,7 @@ public class EmailService {
             MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromAddress);
+            applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue("Bienvenue sur Clenzy — Votre compte a ete cree"));
             helper.setText(buildWelcomeHtml(firstName, lastName, toEmail, roleName, loginUrl), true);
@@ -731,7 +794,7 @@ public class EmailService {
             MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromAddress);
+            applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue("Confirmez votre inscription Clenzy"));
             helper.setText(buildInscriptionConfirmationHtml(fullName, confirmationLink, expiresAt), true);
