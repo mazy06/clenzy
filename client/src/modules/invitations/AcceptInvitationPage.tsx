@@ -456,9 +456,13 @@ export default function AcceptInvitationPage() {
                         fullWidth
                         onClick={() => {
                           sessionStorage.setItem('pending_invitation_token', token!);
-                          keycloak.logout({
-                            redirectUri: `${window.location.origin}/accept-invitation?token=${encodeURIComponent(token!)}`,
-                          });
+                          // Navigation directe vers l'URL Keycloak logout au lieu de
+                          // `keycloak.logout()` : cette derniere peut freeze a cause
+                          // de la machinerie interne (silent-check-sso iframe,
+                          // service worker interceptor). Approche `window.location` =
+                          // un round-trip serveur propre sans dependre du SPA state.
+                          const redirectUri = `${window.location.origin}/accept-invitation?token=${encodeURIComponent(token!)}`;
+                          window.location.href = keycloak.createLogoutUrl({ redirectUri });
                         }}
                         sx={{ py: 1.25, fontWeight: 600, borderRadius: 1.5, textTransform: 'none', fontSize: 14 }}
                       >
