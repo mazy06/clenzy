@@ -97,6 +97,37 @@ export default function AcceptInvitationPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
 
+  // Kill-switch Service Worker pour cette page publique.
+  //
+  // ⚠️ Un ancien SW workbox (avec `navigateFallback: '/index.html'` + html
+  // exclu du precache) plante avec `non-precached-url :: [{url:/index.html}]`
+  // et bloque toutes les navigations -> logout freeze, requetes annulees.
+  // Le bug est fixe dans vite.config.ts mais les users avec un ancien SW en
+  // cache ne le verront qu'apres skipWaiting (jamais sur cette page car
+  // AppUpdateBanner est dans les routes authentifiees).
+  //
+  // Solution : sur la page d'invitation (publique, pas besoin d'offline cache),
+  // on desinscrit tout SW au mount. Au prochain navigation vers une route
+  // authentifiee, vite-plugin-pwa reenregistrera un SW frais avec la bonne config.
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      void (async () => {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          if (regs.length > 0) {
+            await Promise.all(regs.map((reg) => reg.unregister()));
+            if ('caches' in window) {
+              const cacheKeys = await caches.keys();
+              await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+            }
+          }
+        } catch {
+          // Silent : si le kill-switch echoue, la page peut encore fonctionner
+        }
+      })();
+    }
+  }, []);
+
   // Champs du formulaire d'inscription inline (etat 'register_form')
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
