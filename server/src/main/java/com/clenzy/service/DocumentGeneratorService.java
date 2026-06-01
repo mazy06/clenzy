@@ -101,6 +101,7 @@ public class DocumentGeneratorService {
     private final PropertyRepository propertyRepository;
     private final ProviderExpenseRepository providerExpenseRepository;
     private final EntityManager entityManager;
+    private final DocumentGenerationFailureRecorder failureRecorder;
 
     private final Counter generationSuccessCounter;
     private final Counter generationFailureCounter;
@@ -132,6 +133,7 @@ public class DocumentGeneratorService {
             PropertyRepository propertyRepository,
             ProviderExpenseRepository providerExpenseRepository,
             EntityManager entityManager,
+            DocumentGenerationFailureRecorder failureRecorder,
             MeterRegistry meterRegistry
     ) {
         this.templateRepository = templateRepository;
@@ -159,6 +161,7 @@ public class DocumentGeneratorService {
         this.propertyRepository = propertyRepository;
         this.providerExpenseRepository = providerExpenseRepository;
         this.entityManager = entityManager;
+        this.failureRecorder = failureRecorder;
 
         this.generationSuccessCounter = Counter.builder("clenzy.documents.generation.success")
                 .description("Nombre de documents generes avec succes")
@@ -596,7 +599,19 @@ public class DocumentGeneratorService {
                 .orElse(null);
 
         if (template == null) {
-            log.warn("No active template for type {}, skipping generation", documentType);
+            // Mode A : aucun template actif pour ce type de document. Historiquement on
+            // retournait null en silence -> le devis attendu n'apparaissait jamais en bas de
+            // l'ecran "Messagerie OTA". On persiste desormais une ligne FAILED explicite
+            // (visible cote UI + notification admin) pour diagnostiquer la cause reelle
+            // (ex: template DEVIS non seede/actif en production) au lieu d'echouer en silence.
+            log.warn("No active template for type {}, recording explicit failure", documentType);
+            failureRecorder.recordFailure(
+                    documentType, referenceId, referenceType, organizationId, null, emailTo,
+                    "Aucun template actif pour le type " + documentType.getLabel()
+                            + " (" + documentType.name() + "). Verifier qu'un template "
+                            + documentType.name() + " est seede et actif.",
+                    0);
+            generationFailureCounter.increment();
             return null;
         }
 
@@ -617,8 +632,21 @@ public class DocumentGeneratorService {
                                                      String explicitCountryCode) {
         long startTime = System.currentTimeMillis();
 
-        // Resoudre l'organizationId : explicite (Kafka) ou via TenantContext (HTTP)
-        final Long orgId = explicitOrgId != null ? explicitOrgId : tenantContext.getOrganizationId();
+        // Resoudre l'organizationId : explicite (Kafka) > TenantContext (HTTP authentifie)
+        // > organisation du template (contexte public/systeme sans tenant, ex: devis
+        // genere depuis la landing page via /api/public/quote-request).
+        //
+        // Sans ce dernier fallback, une generation declenchee hors contexte tenant
+        // serait persistee avec organization_id = NULL : elle resterait invisible pour
+        // les utilisateurs filtres par organisation (organizationFilter Hibernate) — donc
+        // absente du bas de l'ecran "Messagerie OTA" — et la numerotation legale NF serait
+        // rattachee a une org nulle. On la rattache a l'org du template (= l'org Clenzy
+        // qui possede le template DEVIS seede), garantissant coherence et visibilite.
+        Long resolvedOrgId = explicitOrgId != null ? explicitOrgId : tenantContext.getOrganizationId();
+        if (resolvedOrgId == null) {
+            resolvedOrgId = template.getOrganizationId();
+        }
+        final Long orgId = resolvedOrgId;
         final String countryCode = explicitCountryCode != null ? explicitCountryCode : tenantContext.getCountryCode();
 
         // 1. Creer l'enregistrement via Builder
@@ -763,18 +791,25 @@ public class DocumentGeneratorService {
 
     private void handleGenerationFailure(DocumentGeneration generation, DocumentTemplate template,
                                            long startTime, Exception e, Long orgId) {
-        generation.setStatus(DocumentGenerationStatus.FAILED);
-        generation.setErrorMessage(e.getMessage());
-        generation.setGenerationTimeMs((int) (System.currentTimeMillis() - startTime));
-        generationRepository.save(generation);
-
-        notificationService.notifyAdminsAndManagers(
-                NotificationKey.DOCUMENT_GENERATION_FAILED,
-                "Echec generation document",
-                template.getDocumentType().getLabel() + " : " + e.getMessage(),
-                "/documents",
-                orgId
-        );
+        // IMPORTANT : la ligne GENERATING (generation) a ete sauvee dans la transaction du
+        // caller (generateFromEvent / generateDocument, tous deux @Transactional). Or cette
+        // transaction sera ROLLBACK par la re-jet de l'exception ci-dessous (necessaire au
+        // retry Kafka pilote par DocumentEventService). Persister l'echec sur cette meme ligne
+        // ici serait donc annule -> echec silencieux (symptome historique : aucune ligne FAILED
+        // ne remontait jamais en bas de "Messagerie OTA").
+        //
+        // On delegue l'ecriture a un bean REQUIRES_NEW qui INSERE une nouvelle ligne FAILED
+        // committee independamment du rollback du caller (voir DocumentGenerationFailureRecorder).
+        int generationTimeMs = (int) (System.currentTimeMillis() - startTime);
+        failureRecorder.recordFailure(
+                generation.getDocumentType(),
+                generation.getReferenceId(),
+                generation.getReferenceType(),
+                orgId,
+                template != null ? template.getId() : null,
+                generation.getEmailTo(),
+                e.getMessage(),
+                generationTimeMs);
 
         generationFailureCounter.increment();
     }

@@ -51,6 +51,7 @@ import {
   OpenInNew as OpenInNewIcon,
   Download as DownloadIcon,
   History as HistoryIcon,
+  Warning as AlertTriangleIcon,
 } from '../../icons';
 import { Dialog, DialogTitle, DialogContent } from '@mui/material';
 import { useNotification } from '../../hooks/useNotification';
@@ -1064,33 +1065,61 @@ const ReceivedFormsTab: React.FC = () => {
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      {priorGenerations.slice(0, 5).map((gen) => (
-                        <Box
-                          key={gen.id}
-                          onClick={() => openPreview(gen)}
-                          sx={{
-                            display: 'flex', alignItems: 'center', gap: 1, py: 0.75, px: 1,
-                            borderRadius: '8px', border: '1px solid', borderColor: 'divider',
-                            cursor: 'pointer', transition: 'all 150ms',
-                            '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
-                          }}
-                        >
-                          <Box component="span" sx={{ display: 'inline-flex', color: '#d32f2f' }}>
-                            <PdfIcon size={16} strokeWidth={1.75} />
+                      {priorGenerations.slice(0, 5).map((gen) => {
+                        // Une generation peut etre en echec (FAILED) : la ligne devient un
+                        // diagnostic (icone alerte + message d'erreur), sans lien de preview
+                        // trompeur — il n'existe aucun PDF a previsualiser.
+                        const isFailed = gen.status === 'FAILED';
+                        return (
+                          <Box
+                            key={gen.id}
+                            onClick={isFailed ? undefined : () => openPreview(gen)}
+                            sx={{
+                              display: 'flex', alignItems: 'flex-start', gap: 1, py: 0.75, px: 1,
+                              borderRadius: '8px', border: '1px solid',
+                              borderColor: isFailed ? (t) => alpha(t.palette.error.main, 0.35) : 'divider',
+                              bgcolor: isFailed
+                                ? (t) => alpha(t.palette.error.main, t.palette.mode === 'dark' ? 0.12 : 0.05)
+                                : 'transparent',
+                              cursor: isFailed ? 'default' : 'pointer',
+                              transition: 'all 150ms',
+                              ...(isFailed ? {} : { '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' } }),
+                            }}
+                          >
+                            <Box component="span" sx={{ display: 'inline-flex', mt: '1px', color: isFailed ? 'error.main' : '#d32f2f' }}>
+                              {isFailed
+                                ? <AlertTriangleIcon size={16} strokeWidth={1.75} />
+                                : <PdfIcon size={16} strokeWidth={1.75} />}
+                            </Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography sx={{
+                                fontSize: '0.8125rem', fontWeight: 600,
+                                color: isFailed ? 'error.main' : 'text.primary',
+                                overflow: 'hidden',
+                                textOverflow: isFailed ? 'clip' : 'ellipsis',
+                                whiteSpace: isFailed ? 'normal' : 'nowrap',
+                              }}>
+                                {isFailed ? 'Échec de génération' : (gen.fileName || `document-${gen.id}.pdf`)}
+                              </Typography>
+                              <Typography sx={{
+                                fontSize: '0.6875rem', color: 'text.disabled',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: isFailed ? 'normal' : 'nowrap',
+                              }}>
+                                {isFailed
+                                  ? `${gen.errorMessage || 'Cause inconnue'}${gen.createdAt ? ` · ${formatDate(gen.createdAt)}` : ''}`
+                                  : `${gen.legalNumber ? `${gen.legalNumber} · ` : ''}${gen.createdAt ? formatDate(gen.createdAt) : ''}`}
+                              </Typography>
+                            </Box>
+                            {!isFailed && (
+                              <Typography sx={{ fontSize: '0.6875rem', color: 'primary.main', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                Aperçu →
+                              </Typography>
+                            )}
                           </Box>
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {gen.fileName || `document-${gen.id}.pdf`}
-                            </Typography>
-                            <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
-                              {gen.legalNumber ? `${gen.legalNumber} · ` : ''}{gen.createdAt ? formatDate(gen.createdAt) : ''}
-                            </Typography>
-                          </Box>
-                          <Typography sx={{ fontSize: '0.6875rem', color: 'primary.main', fontWeight: 600 }}>
-                            Aperçu →
-                          </Typography>
-                        </Box>
-                      ))}
+                        );
+                      })}
                     </Box>
                   </Box>
                 )}
