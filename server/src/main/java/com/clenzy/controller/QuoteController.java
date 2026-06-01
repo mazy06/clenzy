@@ -1,13 +1,19 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.DocumentGenerationDto;
 import com.clenzy.dto.QuoteRequestDto;
 import com.clenzy.dto.QuoteResponseDto;
+import com.clenzy.model.DocumentType;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.model.ReceivedForm;
+import com.clenzy.model.ReferenceType;
+import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.repository.ReceivedFormRepository;
+import com.clenzy.service.DocumentGeneratorService;
+import com.clenzy.service.DocumentStorageService;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.PricingConfigService;
-import com.clenzy.model.NotificationKey;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -44,6 +50,9 @@ public class QuoteController {
     private final ReceivedFormRepository receivedFormRepository;
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
+    private final DocumentGeneratorService documentGeneratorService;
+    private final DocumentGenerationRepository documentGenerationRepository;
+    private final DocumentStorageService documentStorageService;
 
     // Rate limiter simple en mémoire : IP -> liste de timestamps
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
@@ -51,12 +60,18 @@ public class QuoteController {
 
     public QuoteController(EmailService emailService, PricingConfigService pricingConfigService,
                            ReceivedFormRepository receivedFormRepository, ObjectMapper objectMapper,
-                           NotificationService notificationService) {
+                           NotificationService notificationService,
+                           DocumentGeneratorService documentGeneratorService,
+                           DocumentGenerationRepository documentGenerationRepository,
+                           DocumentStorageService documentStorageService) {
         this.emailService = emailService;
         this.pricingConfigService = pricingConfigService;
         this.receivedFormRepository = receivedFormRepository;
         this.objectMapper = objectMapper;
         this.notificationService = notificationService;
+        this.documentGeneratorService = documentGeneratorService;
+        this.documentGenerationRepository = documentGenerationRepository;
+        this.documentStorageService = documentStorageService;
     }
 
     /**
@@ -142,9 +157,42 @@ public class QuoteController {
                     ));
         }
 
-        // 5. Envoi de l'email de notification (non-bloquant : la demande est deja en BDD)
+        // 5. Génération PDF devis + envoi au prospect (non-bloquant)
+        //    generateFromEvent envoie automatiquement le PDF au prospect via dto.getEmail().
+        //    On récupère ensuite les bytes du fichier généré pour les joindre à l'email interne.
+        //    Si aucun template DEVIS n'est en BDD (cas prod tant que la 0163 n'est pas mergée),
+        //    generateFromEvent retourne null → pdfBytes reste null → email interne envoyé sans PDF
+        //    (= comportement actuel pré-fix). Aucune régression possible.
+        byte[] pdfBytes = null;
         try {
-            emailService.sendQuoteRequestNotification(dto, recommendedPackage, recommendedRate);
+            if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+                DocumentGenerationDto gen = documentGeneratorService.generateFromEvent(
+                        DocumentType.DEVIS,
+                        savedForm.getId(),
+                        ReferenceType.RECEIVED_FORM,
+                        dto.getEmail(),
+                        null   // organizationId null → template GLOBAL (si configuré en BDD)
+                );
+                if (gen != null && gen.id() != null) {
+                    try {
+                        var entity = documentGenerationRepository.findById(gen.id()).orElse(null);
+                        if (entity != null && entity.getFilePath() != null) {
+                            pdfBytes = documentStorageService.loadAsBytes(entity.getFilePath());
+                        }
+                    } catch (Exception e) {
+                        log.warn("PDF généré mais récupération bytes KO pour gen {} : {}",
+                                gen.id(), e.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Génération PDF skippée pour devis #{} ({}) : {}",
+                    savedForm.getId(), dto.getFullName(), e.getMessage());
+        }
+
+        // 6. Envoi de l'email de notification interne avec PDF en PJ si généré (non-bloquant)
+        try {
+            emailService.sendQuoteRequestNotification(dto, recommendedPackage, recommendedRate, pdfBytes);
         } catch (Exception e) {
             // On ne bloque pas la reponse au prospect : la demande est sauvee en BDD,
             // les admins la verront via le PMS. L'email est un nice-to-have.
@@ -152,7 +200,7 @@ public class QuoteController {
                     savedForm.getId(), dto.getFullName(), e.getMessage());
         }
 
-        // 6. Notification a tous les SUPER_ADMIN et SUPER_MANAGER de la plateforme
+        // 7. Notification a tous les SUPER_ADMIN et SUPER_MANAGER de la plateforme
         //    (non-bloquant). On utilise notifyAllPlatformStaff car cet endpoint est
         //    public (pas de JWT, pas de TenantContext) — notifyAdminsAndManagers
         //    qui lit le TenantContext planterait silencieusement.
