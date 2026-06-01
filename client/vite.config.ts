@@ -50,7 +50,15 @@ export default defineConfig({
         // Strategie reseau-d'abord pour index.html : le SW tente le reseau
         // (3s timeout) avant de tomber sur son cache. Garantit qu'un user
         // online recoit toujours la derniere version.
-        navigateFallback: '/index.html',
+        //
+        // ⚠️ Pas de `navigateFallback: '/index.html'` ici — combine avec
+        // `globPatterns` qui exclut html, ça faisait planter Workbox au runtime :
+        //   Uncaught (in promise) non-precached-url :: [{"url":"/index.html"}]
+        // Workbox cherchait /index.html dans son precache (vide pour html), plantait
+        // sur toutes les navigations -> SW casse -> logout freeze + warnings preload.
+        //
+        // Sans navigateFallback, c'est le runtimeCaching `mode === 'navigate'`
+        // ci-dessous qui gere les navigations (NetworkFirst, fallback cache offline).
         navigationPreload: true,
         // index.html EXCLUS du precache (pas de `html` dans globPatterns) — sinon
         // le SW pre-cache l'ancien index.html au build, et meme NetworkFirst
