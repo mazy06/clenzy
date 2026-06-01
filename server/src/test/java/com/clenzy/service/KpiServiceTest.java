@@ -579,7 +579,7 @@ class KpiServiceTest {
         }
 
         @Test
-        void whenAbove90_thenOk() {
+        void whenAbove75_thenOk() {
             stubAllKpisOk();
             ReflectionTestUtils.setField(kpiService, "testCoveragePct", 92.0);
 
@@ -590,9 +590,10 @@ class KpiServiceTest {
         }
 
         @Test
-        void whenBetween80And90_thenWarning() {
+        void whenBetween65And75_thenWarning() {
+            // Nouveaux seuils : OK > 75, WARNING > 65, CRITICAL <= 65.
             stubAllKpisOk();
-            ReflectionTestUtils.setField(kpiService, "testCoveragePct", 85.0);
+            ReflectionTestUtils.setField(kpiService, "testCoveragePct", 70.0);
 
             KpiSnapshotDto snapshot = kpiService.computeCurrentSnapshot();
             KpiItemDto tc = findKpi(snapshot.kpis(), "TEST_COVERAGE");
@@ -601,9 +602,9 @@ class KpiServiceTest {
         }
 
         @Test
-        void whenBelow80_thenCritical() {
+        void whenBelow65_thenCritical() {
             stubAllKpisOk();
-            ReflectionTestUtils.setField(kpiService, "testCoveragePct", 70.0);
+            ReflectionTestUtils.setField(kpiService, "testCoveragePct", 60.0);
 
             KpiSnapshotDto snapshot = kpiService.computeCurrentSnapshot();
             KpiItemDto tc = findKpi(snapshot.kpis(), "TEST_COVERAGE");
@@ -752,8 +753,8 @@ class KpiServiceTest {
 
             // P1 resolution WARNING (weight 5): 90 min, between 60 and 120
             when(incidentService.getAverageP1ResolutionMinutes(30)).thenReturn(90.0);
-            // Test coverage WARNING (weight 4): 85%, between 80 and 90
-            ReflectionTestUtils.setField(kpiService, "testCoveragePct", 85.0);
+            // Test coverage WARNING (weight 4): 70%, between 65 and 75 (nouveaux seuils)
+            ReflectionTestUtils.setField(kpiService, "testCoveragePct", 70.0);
 
             KpiSnapshotDto snapshot = kpiService.computeCurrentSnapshot();
 
