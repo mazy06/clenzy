@@ -1541,3 +1541,19 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0163 : Seed config Clenzy v3 (align schema + tax + templates) ---
+  # 3e tentative apres rollback 0161 (base64 broken) + 0162 (file_path NOT NULL).
+  # Cette version aligne d'abord le schema prod sur dev (DROP NOT NULL sur
+  # document_templates.file_path - idempotent en PG), puis injecte le seed.
+  # La divergence vient de la migration 0074 appliquee partiellement en prod
+  # (seul le ADD COLUMN file_content BYTEA est passe, pas le DROP NOT NULL).
+  # Volumetrie : 15 tax_rules + 4 message_templates + 8 document_templates + 253 tags
+  - changeSet:
+      id: "0163-seed-clenzy-config-v3"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0163__seed_clenzy_config_v3.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
