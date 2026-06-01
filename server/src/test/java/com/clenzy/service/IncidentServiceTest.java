@@ -180,5 +180,176 @@ class IncidentServiceTest {
             verify(incidentRepository, never()).save(any());
             verify(notificationService, never()).notifyAllPlatformStaff(any(), any(), any(), any());
         }
+
+        @Test
+        void whenNotificationServiceThrowsOnResolve_thenIncidentStillSaved() {
+            Incident existing = new Incident();
+            existing.setType(IncidentType.SERVICE_DOWN);
+            existing.setServiceName("stripe");
+            existing.setTitle("STRIPE down");
+            existing.setStatus(IncidentStatus.OPEN);
+            existing.setOpenedAt(LocalDateTime.now().minusMinutes(10));
+            when(incidentRepository.findByTypeAndServiceNameAndStatus(any(), any(), any()))
+                    .thenReturn(Optional.of(existing));
+            doThrow(new RuntimeException("notif boom"))
+                    .when(notificationService).notifyAllPlatformStaff(any(), any(), any(), any());
+
+            service.resolveIncident(IncidentType.SERVICE_DOWN, "stripe");
+
+            verify(incidentRepository).save(any(Incident.class));
+            assertThat(existing.getStatus()).isEqualTo(IncidentStatus.RESOLVED);
+        }
+
+        @Test
+        void whenIncidentHasNullTitle_thenResolveStillNotifies() {
+            Incident existing = new Incident();
+            existing.setType(IncidentType.SERVICE_DOWN);
+            existing.setServiceName("redis");
+            existing.setTitle(null); // covers null-title branch
+            existing.setStatus(IncidentStatus.OPEN);
+            existing.setOpenedAt(LocalDateTime.now().minusSeconds(30));
+            when(incidentRepository.findByTypeAndServiceNameAndStatus(any(), any(), any()))
+                    .thenReturn(Optional.of(existing));
+
+            service.resolveIncident(IncidentType.SERVICE_DOWN, "redis");
+
+            ArgumentCaptor<String> titleCaptor = ArgumentCaptor.forClass(String.class);
+            verify(notificationService).notifyAllPlatformStaff(
+                    eq(NotificationKey.INCIDENT_RESOLVED), titleCaptor.capture(),
+                    any(), any());
+            assertThat(titleCaptor.getValue()).contains("redis");
+        }
+    }
+
+    @Nested
+    @DisplayName("resolveIncidentById")
+    class ResolveIncidentById {
+
+        @Test
+        void whenIncidentFoundAndOpen_thenResolves() {
+            Incident incident = new Incident();
+            incident.setStatus(IncidentStatus.OPEN);
+            incident.setOpenedAt(LocalDateTime.now().minusMinutes(5));
+            incident.setServiceName("smtp");
+            when(incidentRepository.findById(1L)).thenReturn(Optional.of(incident));
+
+            service.resolveIncidentById(1L);
+
+            assertThat(incident.getStatus()).isEqualTo(IncidentStatus.RESOLVED);
+            assertThat(incident.isAutoResolved()).isFalse();
+            assertThat(incident.getResolvedAt()).isNotNull();
+            assertThat(incident.getResolutionMinutes()).isNotNull();
+            verify(incidentRepository).save(incident);
+        }
+
+        @Test
+        void whenIncidentNotFound_thenNoOp() {
+            when(incidentRepository.findById(999L)).thenReturn(Optional.empty());
+
+            service.resolveIncidentById(999L);
+
+            verify(incidentRepository, never()).save(any());
+        }
+
+        @Test
+        void whenIncidentAlreadyResolved_thenNoOp() {
+            Incident incident = new Incident();
+            incident.setStatus(IncidentStatus.RESOLVED);
+            when(incidentRepository.findById(2L)).thenReturn(Optional.of(incident));
+
+            service.resolveIncidentById(2L);
+
+            verify(incidentRepository, never()).save(any());
+        }
+
+        @Test
+        void whenIncidentAcknowledged_thenSkipsResolve() {
+            Incident incident = new Incident();
+            incident.setStatus(IncidentStatus.ACKNOWLEDGED);
+            when(incidentRepository.findById(3L)).thenReturn(Optional.of(incident));
+
+            service.resolveIncidentById(3L);
+
+            verify(incidentRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("getOpenIncidents")
+    class GetOpenIncidents {
+
+        @Test
+        void delegatesToRepositoryWithOpenStatus() {
+            Incident i1 = new Incident();
+            i1.setStatus(IncidentStatus.OPEN);
+            when(incidentRepository.findByStatus(IncidentStatus.OPEN))
+                    .thenReturn(java.util.List.of(i1));
+
+            var result = service.getOpenIncidents();
+
+            assertThat(result).hasSize(1);
+            verify(incidentRepository).findByStatus(IncidentStatus.OPEN);
+        }
+
+        @Test
+        void whenNoOpenIncidents_thenReturnsEmpty() {
+            when(incidentRepository.findByStatus(IncidentStatus.OPEN))
+                    .thenReturn(java.util.List.of());
+
+            assertThat(service.getOpenIncidents()).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("getAverageP1ResolutionMinutes")
+    class AvgP1 {
+
+        @Test
+        void returnsValueFromRepository() {
+            when(incidentRepository.avgP1ResolutionMinutesSince(any(LocalDateTime.class)))
+                    .thenReturn(Optional.of(12.5));
+
+            double avg = service.getAverageP1ResolutionMinutes(30);
+
+            assertThat(avg).isEqualTo(12.5);
+        }
+
+        @Test
+        void returnsZeroWhenEmpty() {
+            when(incidentRepository.avgP1ResolutionMinutesSince(any(LocalDateTime.class)))
+                    .thenReturn(Optional.empty());
+
+            assertThat(service.getAverageP1ResolutionMinutes(7)).isZero();
+        }
+    }
+
+    @Nested
+    @DisplayName("deleteIncident")
+    class DeleteIncident {
+
+        @Test
+        void whenFound_thenDeletesAndReturnsTrue() {
+            Incident incident = new Incident();
+            incident.setId(42L);
+            incident.setType(IncidentType.SERVICE_DOWN);
+            incident.setServiceName("stripe");
+            incident.setStatus(IncidentStatus.OPEN);
+            when(incidentRepository.findById(42L)).thenReturn(Optional.of(incident));
+
+            boolean result = service.deleteIncident(42L);
+
+            assertThat(result).isTrue();
+            verify(incidentRepository).deleteById(42L);
+        }
+
+        @Test
+        void whenNotFound_thenReturnsFalse() {
+            when(incidentRepository.findById(99L)).thenReturn(Optional.empty());
+
+            boolean result = service.deleteIncident(99L);
+
+            assertThat(result).isFalse();
+            verify(incidentRepository, never()).deleteById(any());
+        }
     }
 }

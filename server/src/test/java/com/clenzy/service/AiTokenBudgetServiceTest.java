@@ -302,4 +302,120 @@ class AiTokenBudgetServiceTest {
             assertEquals("unknown", pricing.get(0).model());
         }
     }
+
+    // ─── feature toggles ───────────────────────────────────────────────
+
+    @org.junit.jupiter.api.Nested
+    @org.junit.jupiter.api.DisplayName("isFeatureEnabled / requireFeatureEnabled")
+    class FeatureEnabled {
+        @Test
+        void whenNoBudgetEntry_thenEnabledByDefault() {
+            when(budgetRepository.findByOrganizationIdAndFeature(1L, AiFeature.PRICING))
+                    .thenReturn(Optional.empty());
+
+            assertTrue(service.isFeatureEnabled(1L, AiFeature.PRICING));
+            assertDoesNotThrow(() -> service.requireFeatureEnabled(1L, AiFeature.PRICING));
+        }
+
+        @Test
+        void whenBudgetEnabled_thenReturnsTrue() {
+            AiTokenBudget b = new AiTokenBudget(1L, AiFeature.PRICING, 100_000);
+            b.setEnabled(true);
+            when(budgetRepository.findByOrganizationIdAndFeature(1L, AiFeature.PRICING))
+                    .thenReturn(Optional.of(b));
+
+            assertTrue(service.isFeatureEnabled(1L, AiFeature.PRICING));
+        }
+
+        @Test
+        void whenBudgetDisabled_thenReturnsFalseAndRequireThrows() {
+            AiTokenBudget b = new AiTokenBudget(1L, AiFeature.PRICING, 100_000);
+            b.setEnabled(false);
+            when(budgetRepository.findByOrganizationIdAndFeature(1L, AiFeature.PRICING))
+                    .thenReturn(Optional.of(b));
+
+            assertFalse(service.isFeatureEnabled(1L, AiFeature.PRICING));
+
+            com.clenzy.exception.AiNotConfiguredException ex = assertThrows(
+                    com.clenzy.exception.AiNotConfiguredException.class,
+                    () -> service.requireFeatureEnabled(1L, AiFeature.PRICING));
+            assertEquals("AI_FEATURE_DISABLED", ex.getErrorCode());
+        }
+    }
+
+    @org.junit.jupiter.api.Nested
+    @org.junit.jupiter.api.DisplayName("getFeatureToggles")
+    class GetFeatureToggles {
+        @Test
+        void returnsAllFeaturesWithDbStateOrTrue() {
+            AiTokenBudget pricing = new AiTokenBudget(1L, AiFeature.PRICING, 100_000);
+            pricing.setEnabled(false);
+            AiTokenBudget msg = new AiTokenBudget(1L, AiFeature.MESSAGING, 100_000);
+            msg.setEnabled(true);
+
+            when(budgetRepository.findByOrganizationId(1L))
+                    .thenReturn(List.of(pricing, msg));
+
+            java.util.Map<AiFeature, Boolean> toggles = service.getFeatureToggles(1L);
+
+            assertEquals(AiFeature.values().length, toggles.size());
+            assertFalse(toggles.get(AiFeature.PRICING));
+            assertTrue(toggles.get(AiFeature.MESSAGING));
+            assertTrue(toggles.get(AiFeature.SENTIMENT)); // default true
+        }
+    }
+
+    @org.junit.jupiter.api.Nested
+    @org.junit.jupiter.api.DisplayName("setFeatureEnabled")
+    class SetFeatureEnabled {
+        @Test
+        void whenExistingBudget_thenUpdates() {
+            AiTokenBudget existing = new AiTokenBudget(1L, AiFeature.PRICING, 100_000);
+            existing.setEnabled(true);
+            when(budgetRepository.findByOrganizationIdAndFeature(1L, AiFeature.PRICING))
+                    .thenReturn(Optional.of(existing));
+
+            service.setFeatureEnabled(1L, AiFeature.PRICING, false);
+
+            assertFalse(existing.isEnabled());
+            verify(budgetRepository).save(existing);
+        }
+
+        @Test
+        void whenNoBudget_thenCreatesNew() {
+            when(budgetRepository.findByOrganizationIdAndFeature(1L, AiFeature.SENTIMENT))
+                    .thenReturn(Optional.empty());
+
+            service.setFeatureEnabled(1L, AiFeature.SENTIMENT, false);
+
+            org.mockito.ArgumentCaptor<AiTokenBudget> captor =
+                    org.mockito.ArgumentCaptor.forClass(AiTokenBudget.class);
+            verify(budgetRepository).save(captor.capture());
+            assertFalse(captor.getValue().isEnabled());
+            assertEquals(AiFeature.SENTIMENT, captor.getValue().getFeature());
+        }
+    }
+
+    @org.junit.jupiter.api.Nested
+    @org.junit.jupiter.api.DisplayName("requireBudget(orgId, feature, keySource)")
+    class RequireBudgetWithKeySource {
+        @Test
+        void whenOrganizationKey_thenSkipsEnforcement() {
+            // No stubbing needed — should short-circuit
+            assertDoesNotThrow(() -> service.requireBudget(1L, AiFeature.PRICING,
+                    com.clenzy.service.AiKeyResolver.KeySource.ORGANIZATION));
+        }
+
+        @Test
+        void whenPlatformKey_thenChecksBudget() {
+            when(budgetRepository.findByOrganizationIdAndFeature(1L, AiFeature.PRICING))
+                    .thenReturn(Optional.empty());
+            when(usageRepository.sumTokensByOrgAndFeatureAndMonth(1L, AiFeature.PRICING, "2026-03"))
+                    .thenReturn(200_000L);
+
+            assertThrows(com.clenzy.exception.AiBudgetExceededException.class,
+                    () -> service.requireBudget(1L, AiFeature.PRICING,
+                            com.clenzy.service.AiKeyResolver.KeySource.PLATFORM));
+        }
+    }
 }

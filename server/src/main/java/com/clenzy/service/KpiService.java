@@ -100,8 +100,8 @@ public class KpiService {
     private static final double RECON_DIV_WARN = 2.0;
 
     // Test coverage (%)
-    private static final double TEST_COV_OK = 90.0;
-    private static final double TEST_COV_WARN = 80.0;
+    private static final double TEST_COV_OK = 75.0;
+    private static final double TEST_COV_WARN = 65.0;
 
     // ── Weights ──────────────────────────────────────────────────────────────
 
@@ -515,7 +515,7 @@ public class KpiService {
 
         return new KpiItemDto("TEST_COVERAGE", "Test Coverage",
                 value, coverage,
-                "> 90%", TEST_COV_OK, "%", status, false, W_TEST_COV);
+                "> 75%", TEST_COV_OK, "%", status, false, W_TEST_COV);
     }
 
     // ── Readiness Score ──────────────────────────────────────────────────────

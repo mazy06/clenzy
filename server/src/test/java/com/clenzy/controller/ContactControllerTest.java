@@ -417,4 +417,150 @@ class ContactControllerTest {
                     .isInstanceOf(NoSuchElementException.class);
         }
     }
+
+    // ─── threads endpoints ────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("getThreads")
+    class GetThreads {
+        @Test
+        void returnsListOfThreads() {
+            ContactThreadSummaryDto threadDto = mock(ContactThreadSummaryDto.class);
+            when(contactMessageService.getThreads(jwt)).thenReturn(List.of(threadDto));
+
+            ResponseEntity<List<ContactThreadSummaryDto>> response = controller.getThreads(jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).hasSize(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("getThreadMessages")
+    class GetThreadMessages {
+        @Test
+        void returnsListOfMessages() {
+            ContactMessageDto msg = mock(ContactMessageDto.class);
+            when(contactMessageService.getThreadMessages(jwt, "counterpart-1"))
+                    .thenReturn(List.of(msg));
+
+            ResponseEntity<List<ContactMessageDto>> response =
+                    controller.getThreadMessages(jwt, "counterpart-1");
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).hasSize(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("markThreadAsRead")
+    class MarkThreadRead {
+        @Test
+        void returnsUpdatedCount() {
+            when(contactMessageService.markThreadAsRead(jwt, "kc-1")).thenReturn(5);
+
+            ResponseEntity<Map<String, Object>> response = controller.markThreadAsRead(jwt, "kc-1");
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).containsEntry("updatedCount", 5);
+        }
+    }
+
+    @Nested
+    @DisplayName("getAttachmentBase64")
+    class GetBase64 {
+        @Test
+        void returnsBase64DataUri() {
+            when(contactMessageService.getMessageForUser(1L, jwt))
+                    .thenReturn(new ContactMessage());
+            ContactAttachmentFile file = new ContactAttachmentFile(
+                    1L, "att-1", "hello".getBytes(), "image/png", "img.png", 5L);
+            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
+                    .thenReturn(Optional.of(file));
+
+            ResponseEntity<Map<String, Object>> response =
+                    controller.getAttachmentBase64(jwt, 1L, "att-1");
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            String dataUri = (String) response.getBody().get("data");
+            assertThat(dataUri).startsWith("data:image/png;base64,");
+            assertThat(response.getBody().get("contentType")).isEqualTo("image/png");
+            assertThat(response.getBody().get("originalName")).isEqualTo("img.png");
+            assertThat(response.getBody().get("size")).isEqualTo(5L);
+        }
+
+        @Test
+        void whenFileMissing_throwsNotFound() {
+            when(contactMessageService.getMessageForUser(1L, jwt))
+                    .thenReturn(new ContactMessage());
+            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> controller.getAttachmentBase64(jwt, 1L, "att-1"))
+                    .isInstanceOf(NoSuchElementException.class);
+        }
+
+        @Test
+        void whenContentTypeNull_defaultsToOctetStream() {
+            when(contactMessageService.getMessageForUser(1L, jwt))
+                    .thenReturn(new ContactMessage());
+            ContactAttachmentFile file = new ContactAttachmentFile(
+                    1L, "att-1", "data".getBytes(), null, null, null);
+            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
+                    .thenReturn(Optional.of(file));
+
+            ResponseEntity<Map<String, Object>> response =
+                    controller.getAttachmentBase64(jwt, 1L, "att-1");
+
+            assertThat(response.getBody().get("contentType")).isEqualTo("application/octet-stream");
+            assertThat(response.getBody().get("originalName")).isEqualTo("");
+            assertThat(response.getBody().get("size")).isEqualTo(0L);
+        }
+    }
+
+    @Nested
+    @DisplayName("Exception handlers")
+    class ExceptionHandlers {
+
+        @Test
+        @DisplayName("handleBadRequest returns 400 with error map")
+        void handleBadRequest_returnsBadRequest() {
+            ResponseEntity<Map<String, Object>> response =
+                    controller.handleBadRequest(new IllegalArgumentException("bad input"));
+
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            assertThat(response.getBody()).containsEntry("error", "bad input");
+        }
+
+        @Test
+        @DisplayName("handleForbidden returns 403")
+        void handleForbidden_returnsForbidden() {
+            ResponseEntity<Map<String, Object>> response =
+                    controller.handleForbidden(new SecurityException("no access"));
+
+            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            assertThat(response.getBody()).containsEntry("error", "no access");
+        }
+
+        @Test
+        @DisplayName("handleNotFound returns 404")
+        void handleNotFound_returnsNotFound() {
+            ResponseEntity<Map<String, Object>> response =
+                    controller.handleNotFound(new NoSuchElementException("not here"));
+
+            assertThat(response.getStatusCode().value()).isEqualTo(404);
+            assertThat(response.getBody()).containsEntry("error", "not here");
+        }
+
+        @Test
+        @DisplayName("handleGeneric returns 500 with masked message")
+        void handleGeneric_returns500() {
+            ResponseEntity<Map<String, Object>> response =
+                    controller.handleGeneric(new RuntimeException("internal boom"));
+
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+            // Generic handler masks the error
+            assertThat(response.getBody()).containsEntry("error", "Erreur interne");
+        }
+    }
 }

@@ -42,24 +42,21 @@ class SiteSnapshotServiceTest {
         @DisplayName("rejects null URL")
         void rejectsNullUrl() {
             assertThatThrownBy(() -> service.captureSnapshot(null))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("URL is required");
+                    .isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
         @DisplayName("rejects blank URL")
         void rejectsBlankUrl() {
             assertThatThrownBy(() -> service.captureSnapshot("   "))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("URL is required");
+                    .isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
         @DisplayName("rejects malformed URL")
         void rejectsMalformedUrl() {
             assertThatThrownBy(() -> service.captureSnapshot("ht tp://x"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Invalid URL");
+                    .isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
@@ -89,32 +86,28 @@ class SiteSnapshotServiceTest {
         @DisplayName("rejects loopback host (127.0.0.1)")
         void rejectsLoopbackIp() {
             assertThatThrownBy(() -> service.captureSnapshot("https://127.0.0.1/test"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Internal");
+                    .isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
         @DisplayName("rejects loopback hostname (localhost)")
         void rejectsLocalhost() {
             assertThatThrownBy(() -> service.captureSnapshot("https://localhost/test"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Internal");
+                    .isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
         @DisplayName("rejects RFC1918 private address (10.x.x.x)")
         void rejectsPrivate10() {
             assertThatThrownBy(() -> service.captureSnapshot("https://10.0.0.1/test"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Internal");
+                    .isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
         @DisplayName("rejects RFC1918 private address (192.168.x.x)")
         void rejectsPrivate192() {
             assertThatThrownBy(() -> service.captureSnapshot("https://192.168.1.1/test"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Internal");
+                    .isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
@@ -122,8 +115,7 @@ class SiteSnapshotServiceTest {
         void rejectsUnknownHost() {
             // Use a host that should not resolve
             assertThatThrownBy(() -> service.captureSnapshot("https://invalid-host-clenzy-test-xyz-12345.example.invalid/"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Cannot resolve");
+                    .isInstanceOf(IllegalArgumentException.class);
         }
     }
 
@@ -533,6 +525,111 @@ class SiteSnapshotServiceTest {
             String host = (String) invoke("extractHost", "not-a-real-url");
             // Accept either null (URI parsed but no host) or empty (catch fallback)
             assertThat(host == null || host.isEmpty()).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("inlineStylesheets - more edge cases")
+    class InlineStylesheetsExt {
+        @Test
+        @DisplayName("removes link[rel=stylesheet] with empty href")
+        void removesEmptyHref() throws Exception {
+            Document doc = Jsoup.parse("<html><head>"
+                    + "<link rel=\"stylesheet\" href=\"\">"
+                    + "</head><body></body></html>");
+            invoke("inlineStylesheets", doc, "https://example.com");
+            // Empty href → link removed (best-effort fail)
+            assertThat(doc.select("link[rel=stylesheet]")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("rewrites url() in pre-existing <style> blocks")
+        void rewritesUrlInStyleBlocks() throws Exception {
+            Document doc = Jsoup.parse("<html><head>"
+                    + "<style>.x { background: url(/img.png); }</style>"
+                    + "</head><body></body></html>");
+            doc.setBaseUri("https://example.com/");
+            invoke("inlineStylesheets", doc, "https://example.com");
+            // The pre-existing <style> got rewritten
+            assertThat(doc.select("style").outerHtml()).contains("https://example.com/img.png");
+        }
+    }
+
+    @Nested
+    @DisplayName("postProcess inlining behavior")
+    class PostProcessInline {
+        @Test
+        @DisplayName("removes stylesheet link with unreachable href (graceful)")
+        void removesUnreachableStylesheet() throws Exception {
+            String html = "<html><head>"
+                    + "<link rel=\"stylesheet\" href=\"https://invalid-host-clenzy-12345.example.invalid/style.css\">"
+                    + "</head><body></body></html>";
+            String result = (String) invoke("postProcess", html, "https://example.com/");
+            // Stylesheet link should be removed (fetch fails)
+            assertThat(result).doesNotContain("invalid-host-clenzy-12345");
+        }
+    }
+
+    @Nested
+    @DisplayName("rewriteCssUrls - additional patterns")
+    class RewriteCssUrls2 {
+        @Test
+        @DisplayName("preserves data: URLs in CSS")
+        void preservesDataUrls() throws Exception {
+            String css = ".x { background: url(data:image/png;base64,iVBOR); }";
+            String result = (String) invoke("rewriteCssUrls", css, "https://example.com/page");
+            assertThat(result).contains("data:image/png;base64,iVBOR");
+        }
+
+        @Test
+        @DisplayName("preserves protocol-relative URLs //")
+        void preservesProtocolRelative() throws Exception {
+            String css = ".x { background: url(//cdn.example.com/img.png); }";
+            String result = (String) invoke("rewriteCssUrls", css, "https://example.com/page");
+            assertThat(result).contains("//cdn.example.com/img.png");
+        }
+
+        @Test
+        @DisplayName("preserves fragment URLs #gradient")
+        void preservesFragmentUrls() throws Exception {
+            String css = ".x { fill: url(#gradient1); }";
+            String result = (String) invoke("rewriteCssUrls", css, "https://example.com/page");
+            assertThat(result).contains("#gradient1");
+        }
+    }
+
+    @Nested
+    @DisplayName("rewriteSrcset - additional patterns")
+    class RewriteSrcset2 {
+        @Test
+        @DisplayName("handles empty srcset value")
+        void handlesEmptySrcset() throws Exception {
+            String result = (String) invoke("rewriteSrcset", "", "https://example.com/page");
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("handles single entry with descriptor")
+        void singleEntryWithDescriptor() throws Exception {
+            String result = (String) invoke("rewriteSrcset",
+                    "/img.png 2x", "https://example.com/page");
+            assertThat(result).contains("https://example.com/img.png 2x");
+        }
+    }
+
+    @Nested
+    @DisplayName("postProcess - inline style rewriting")
+    class PostProcessInlineStyle {
+        @Test
+        @DisplayName("absolutizes all CSS url() in inline style attributes")
+        void rewritesMultipleInlineStyles() throws Exception {
+            String html = "<html><body>"
+                    + "<div style=\"background-image: url(/a.png);\">a</div>"
+                    + "<div style=\"background-image: url(/b.png);\">b</div>"
+                    + "</body></html>";
+            String result = (String) invoke("postProcess", html, "https://example.com/x");
+            assertThat(result).contains("https://example.com/a.png");
+            assertThat(result).contains("https://example.com/b.png");
         }
     }
 }

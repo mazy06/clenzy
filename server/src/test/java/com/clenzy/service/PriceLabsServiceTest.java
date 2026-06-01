@@ -110,4 +110,133 @@ class PriceLabsServiceTest {
 
         assertTrue(result.isEmpty());
     }
+
+    // ── Response parsing tests (use real ObjectMapper for accurate parsing) ──
+
+    @SuppressWarnings("unchecked")
+    @org.junit.jupiter.api.Test
+    void fetchRecommendations_validResponseWithPrices_parsedCorrectly() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper realMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        ExternalPricingConfig config = createConfig(Map.of("100", "pl-1"));
+        PriceLabsService realParserService = new PriceLabsService(restTemplate, realMapper);
+
+        String body = "{\"status\":\"success\",\"data\":{\"prices\":["
+                + "{\"date\":\"2026-07-15\",\"price\":150.00,\"currency\":\"EUR\",\"confidence\":0.85},"
+                + "{\"date\":\"2026-07-16\",\"price\":160.00}"
+                + "]}}";
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(ResponseEntity.ok(body));
+
+        List<ExternalPriceRecommendation> result = realParserService.fetchRecommendations(
+                config, 100L, LocalDate.of(2026, 7, 15), LocalDate.of(2026, 7, 31));
+
+        assertEquals(2, result.size());
+        assertEquals(LocalDate.of(2026, 7, 15), result.get(0).date());
+        assertEquals(0, new java.math.BigDecimal("150.0").compareTo(result.get(0).recommendedPrice()));
+        assertEquals("EUR", result.get(0).currency());
+        assertEquals(0.85, result.get(0).confidence());
+    }
+
+    @org.junit.jupiter.api.Test
+    void fetchRecommendations_responseWithMalformedDateEntry_skipped() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper realMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        ExternalPricingConfig config = createConfig(Map.of("100", "pl-1"));
+        PriceLabsService realParserService = new PriceLabsService(restTemplate, realMapper);
+
+        String body = "{\"status\":\"success\",\"data\":{\"prices\":["
+                + "{\"date\":\"not-a-date\",\"price\":100.00},"
+                + "{\"date\":\"2026-08-01\",\"price\":120.00}"
+                + "]}}";
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(ResponseEntity.ok(body));
+
+        List<ExternalPriceRecommendation> result = realParserService.fetchRecommendations(
+                config, 100L, LocalDate.now(), LocalDate.now().plusDays(10));
+
+        // Bad date skipped, good one kept
+        assertEquals(1, result.size());
+    }
+
+    @org.junit.jupiter.api.Test
+    void fetchRecommendations_responseEmptyData_returnsEmpty() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper realMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        ExternalPricingConfig config = createConfig(Map.of("100", "pl-1"));
+        PriceLabsService realParserService = new PriceLabsService(restTemplate, realMapper);
+
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(ResponseEntity.ok("{\"status\":\"success\"}"));
+
+        List<ExternalPriceRecommendation> result = realParserService.fetchRecommendations(
+                config, 100L, LocalDate.now(), LocalDate.now().plusDays(10));
+
+        assertTrue(result.isEmpty());
+    }
+
+    @org.junit.jupiter.api.Test
+    void fetchRecommendations_nonSuccessfulHttp_returnsEmpty() {
+        ExternalPricingConfig config = createConfig(Map.of("100", "pl-1"));
+
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(ResponseEntity.status(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE).body("error"));
+
+        List<ExternalPriceRecommendation> result = service.fetchRecommendations(
+                config, 100L, LocalDate.now(), LocalDate.now().plusDays(10));
+
+        assertTrue(result.isEmpty());
+    }
+
+    @org.junit.jupiter.api.Test
+    void fetchRecommendations_restClientException_throwsForCircuitBreaker() {
+        ExternalPricingConfig config = createConfig(Map.of("100", "pl-1"));
+
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class)))
+                .thenThrow(new org.springframework.web.client.RestClientException("Connection refused"));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.web.client.RestClientException.class,
+                () -> service.fetchRecommendations(config, 100L,
+                        LocalDate.now(), LocalDate.now().plusDays(10)));
+    }
+
+    @org.junit.jupiter.api.Test
+    void pushListingData_restClientException_throwsForCircuitBreaker() {
+        ExternalPricingConfig config = createConfig(Map.of("100", "pl-1"));
+
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class)))
+                .thenThrow(new org.springframework.web.client.RestClientException("Connection refused"));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.web.client.RestClientException.class,
+                () -> service.pushListingData(config, 100L));
+    }
+
+    @org.junit.jupiter.api.Test
+    void pushListingData_nonSuccessfulHttp_doesNotThrow() {
+        ExternalPricingConfig config = createConfig(Map.of("100", "pl-1"));
+
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(ResponseEntity.status(org.springframework.http.HttpStatus.BAD_GATEWAY).body("err"));
+
+        // Push should not throw — only logs
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                () -> service.pushListingData(config, 100L));
+    }
+
+    @org.junit.jupiter.api.Test
+    void fetchRecommendations_customApiUrl_isUsed() {
+        ExternalPricingConfig config = createConfig(Map.of("100", "pl-1"));
+        config.setApiUrl("https://custom.pricelabs.example");
+
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(ResponseEntity.ok("{}"));
+
+        service.fetchRecommendations(config, 100L,
+                LocalDate.now(), LocalDate.now().plusDays(7));
+
+        org.mockito.ArgumentCaptor<String> urlCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(restTemplate)
+                .exchange(urlCaptor.capture(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class));
+        org.assertj.core.api.Assertions.assertThat(urlCaptor.getValue())
+                .startsWith("https://custom.pricelabs.example");
+    }
 }

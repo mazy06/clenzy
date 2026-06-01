@@ -18,6 +18,7 @@ import com.clenzy.service.AssistantMemoryService;
 import com.clenzy.service.PhotoStorageService;
 import com.clenzy.service.agent.kb.KbSearchService;
 import com.clenzy.service.agent.prompt.ComposedSystemPrompt;
+import com.clenzy.service.agent.prompt.PromptSecurityGuidance;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -975,8 +976,10 @@ public class AgentOrchestrator {
                 prefix.append(ragSection).append("\n\n");
             }
         }
-        if (prefix.length() == 0) return ComposedSystemPrompt.of(DEFAULT_SYSTEM_PROMPT);
-        return ComposedSystemPrompt.of(prefix.append(DEFAULT_SYSTEM_PROMPT).toString());
+        // Garde anti-injection (parite avec le path v2 PromptInjectionGuardSection).
+        String base = DEFAULT_SYSTEM_PROMPT + "\n\n" + PromptSecurityGuidance.block();
+        if (prefix.length() == 0) return ComposedSystemPrompt.of(base);
+        return ComposedSystemPrompt.of(prefix.append(base).toString());
     }
 
     /** Render legacy markdown des hits RAG (utilise par v1 uniquement). */

@@ -279,4 +279,295 @@ class PayPalPaymentProviderTest {
             "https://app.clenzy.fr/success", "https://app.clenzy.fr/cancel",
             txRef, metadata);
     }
+
+    // ─── Additional coverage ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("createPayment uses transactionRef from metadata when idempotencyKey is null")
+    void createPayment_metadataTransactionRef_isUsedWhenIdempotencyKeyNull() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "secret", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+
+        when(client.createOrder(any(PayPalClient.PayPalCreateOrderParams.class)))
+            .thenReturn(new PayPalClient.PayPalOrderResponse("ORDER-1", "https://pp/checkout"));
+
+        Map<String, String> meta = new HashMap<>();
+        meta.put("orgId", "42");
+        meta.put("transactionRef", "META-REF-001");
+        PaymentRequest req = new PaymentRequest(
+            BigDecimal.valueOf(50), "EUR", "desc", "g@e.com", "Guest",
+            null, null, null, meta);
+
+        PaymentResult result = provider.createPayment(req);
+
+        assertThat(result.success()).isTrue();
+    }
+
+    @Test
+    @DisplayName("createPayment defaults success/cancel URLs to clenzyBaseUrl when blank")
+    void createPayment_defaultUrls_areApplied() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "secret", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+        when(client.createOrder(any())).thenReturn(
+            new PayPalClient.PayPalOrderResponse("ORDER-1", "https://pp/checkout"));
+
+        Map<String, String> meta = new HashMap<>();
+        meta.put("orgId", "42");
+        meta.put("transactionRef", "REF-1");
+        PaymentRequest req = new PaymentRequest(BigDecimal.TEN, "EUR", "desc",
+            "g@e.com", "G", "", "", null, meta);
+
+        PaymentResult result = provider.createPayment(req);
+
+        assertThat(result.success()).isTrue();
+    }
+
+    @Test
+    @DisplayName("createPayment fails when transactionRef metadata is missing")
+    void createPayment_missingTransactionRef_fails() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "secret", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+
+        Map<String, String> meta = new HashMap<>();
+        meta.put("orgId", "42");
+        // no transactionRef + no idempotencyKey
+        PaymentRequest req = new PaymentRequest(BigDecimal.TEN, "EUR", "desc",
+            "g@e.com", "G", null, null, null, meta);
+
+        PaymentResult result = provider.createPayment(req);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.errorMessage()).contains("transactionRef");
+    }
+
+    @Test
+    @DisplayName("createPayment fails (catches) when orgId metadata is missing")
+    void createPayment_missingOrgId_fails() {
+        PaymentRequest req = new PaymentRequest(BigDecimal.TEN, "EUR", "desc",
+            "g@e.com", "G", null, null, "REF-1", null);
+
+        PaymentResult result = provider.createPayment(req);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.errorMessage()).contains("PayPal error");
+    }
+
+    @Test
+    @DisplayName("createPayment fails when PayPalApiException is thrown")
+    void createPayment_apiException_fails() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "secret", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+
+        when(client.createOrder(any()))
+            .thenThrow(new PayPalClient.PayPalApiException("Bad request from PayPal"));
+
+        PaymentResult result = provider.createPayment(buildRequest(42L, "TX-API-EX", "EUR"));
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.errorMessage()).contains("Bad request");
+    }
+
+    @Test
+    @DisplayName("captureOrder fails when loadCredentials throws (disabled config)")
+    void captureOrder_disabledConfig_fails() {
+        PaymentMethodConfig config = new PaymentMethodConfig();
+        config.setEnabled(false);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+
+        PaymentResult result = provider.captureOrder(42L, "ORDER-DISABLED");
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.errorMessage()).contains("not enabled");
+    }
+
+    @Test
+    @DisplayName("refundPayment with RefundContext but null amount uses originalAmount")
+    void refundPayment_nullAmount_usesOriginal() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "secret", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+
+        when(client.refundCapture(eq("CAP-N"), any()))
+            .thenReturn(new PayPalClient.PayPalRefundResponse("RFND-N", true, "COMPLETED"));
+
+        var ctx = new com.clenzy.payment.RefundContext(
+            42L, "CAP-N", "TX-N", "EUR", new BigDecimal("100"));
+
+        PaymentResult result = provider.refundPayment(ctx, null, "test");
+
+        assertThat(result.success()).isTrue();
+    }
+
+    @Test
+    @DisplayName("refundPayment with null amount AND null originalAmount fails")
+    void refundPayment_nullAmounts_fails() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "secret", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+
+        var ctx = new com.clenzy.payment.RefundContext(
+            42L, "CAP-X", "TX-X", "EUR", null);
+
+        PaymentResult result = provider.refundPayment(ctx, null, "test");
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.errorMessage()).contains("amount obligatoire");
+    }
+
+    @Test
+    @DisplayName("refundPayment when refund not completed fails")
+    void refundPayment_notCompleted_fails() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "secret", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+
+        when(client.refundCapture(eq("CAP-F"), any()))
+            .thenReturn(new PayPalClient.PayPalRefundResponse("RFND-F", false, "DECLINED"));
+
+        var ctx = new com.clenzy.payment.RefundContext(
+            42L, "CAP-F", "TX-F", "EUR", new BigDecimal("100"));
+
+        PaymentResult result = provider.refundPayment(ctx, new BigDecimal("50"), "test");
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.errorMessage()).contains("DECLINED");
+    }
+
+    @Test
+    @DisplayName("refundPayment with PayPalApiException fails")
+    void refundPayment_apiException_fails() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "secret", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+
+        when(client.refundCapture(any(), any()))
+            .thenThrow(new PayPalClient.PayPalApiException("Network error"));
+
+        var ctx = new com.clenzy.payment.RefundContext(
+            42L, "CAP-E", "TX-E", "EUR", new BigDecimal("100"));
+
+        PaymentResult result = provider.refundPayment(ctx, null, "test");
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.errorMessage()).contains("Network error");
+    }
+
+    @Test
+    @DisplayName("loadCredentials throws when client_id missing")
+    void loadCredentials_missingClientId_throws() {
+        PaymentMethodConfig config = buildEnabledConfig(null, "secret", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn(null);
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+
+        org.assertj.core.api.Assertions
+            .assertThatThrownBy(() -> provider.loadCredentials(42L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("client_id");
+    }
+
+    @Test
+    @DisplayName("loadCredentials throws when client_secret blank")
+    void loadCredentials_blankSecret_throws() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("");
+
+        org.assertj.core.api.Assertions
+            .assertThatThrownBy(() -> provider.loadCredentials(42L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("client_secret");
+    }
+
+    @Test
+    @DisplayName("loadCredentials returns sandbox cache key for sandbox config")
+    void loadCredentials_sandbox_cacheKeyContainsSandbox() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "secret", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+
+        PayPalPaymentProvider.PayPalConfig cfg = provider.loadCredentials(42L);
+
+        assertThat(cfg.cacheKey()).contains("sandbox").contains("org-42");
+        assertThat(cfg.sandbox()).isTrue();
+    }
+
+    @Test
+    @DisplayName("loadCredentials returns prod cache key for prod config")
+    void loadCredentials_prod_cacheKeyContainsProd() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "secret", false);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+
+        PayPalPaymentProvider.PayPalConfig cfg = provider.loadCredentials(42L);
+
+        assertThat(cfg.cacheKey()).contains("prod");
+        assertThat(cfg.sandbox()).isFalse();
+    }
+
+    @Test
+    @DisplayName("createCustomer returns null (no PayPal Vault in MVP)")
+    void createCustomer_returnsNull() {
+        assertThat(provider.createCustomer(null)).isNull();
+    }
+
+    @Test
+    @DisplayName("verifyWebhookStrict returns false when webhook_id missing")
+    void verifyWebhookStrict_missingWebhookId_returnsFalse() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "secret", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+        when(configService.decryptWebhookSecret(any())).thenReturn(null);
+
+        boolean result = provider.verifyWebhookStrict(
+            mock(PayPalClient.PayPalWebhookHeaders.class), "payload", 42L);
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("verifyWebhookStrict delegates to client when webhook_id present")
+    void verifyWebhookStrict_delegatesToClient() {
+        PaymentMethodConfig config = buildEnabledConfig("cid", "secret", true);
+        when(configService.getOrCreateConfig(any(), any())).thenReturn(config);
+        when(configService.decryptApiKey(config)).thenReturn("cid");
+        when(configService.decryptApiSecret(config)).thenReturn("secret");
+        when(configService.decryptWebhookSecret(any())).thenReturn("wh-id-12345");
+
+        PayPalClient.PayPalWebhookHeaders headers = mock(PayPalClient.PayPalWebhookHeaders.class);
+        when(client.verifyWebhookSignature(eq(headers), eq("wh-id-12345"), eq("payload"), any()))
+            .thenReturn(true);
+
+        boolean result = provider.verifyWebhookStrict(headers, "payload", 42L);
+
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("verifyWebhookStrict returns false on exception")
+    void verifyWebhookStrict_exception_returnsFalse() {
+        when(configService.getOrCreateConfig(any(), any()))
+            .thenThrow(new RuntimeException("DB error"));
+
+        boolean result = provider.verifyWebhookStrict(
+            mock(PayPalClient.PayPalWebhookHeaders.class), "payload", 42L);
+
+        assertThat(result).isFalse();
+    }
 }

@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Map;
 
 /**
@@ -50,8 +52,15 @@ public class WhatsAppWebhookService {
     public boolean verifyWebhook(String mode, String token, String challenge, Long orgId) {
         if (!"subscribe".equals(mode)) return false;
         return configRepository.findByOrganizationId(orgId)
-            .map(config -> token != null && token.equals(config.getWebhookVerifyToken()))
+            .map(config -> constantTimeEquals(token, config.getWebhookVerifyToken()))
             .orElse(false);
+    }
+
+    private static boolean constantTimeEquals(String a, String b) {
+        if (a == null || b == null) return false;
+        return MessageDigest.isEqual(
+            a.getBytes(StandardCharsets.UTF_8),
+            b.getBytes(StandardCharsets.UTF_8));
     }
 
     public void processWebhook(Map<String, Object> payload) {

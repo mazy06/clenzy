@@ -8,6 +8,7 @@ import com.clenzy.config.ai.ToolDescriptor;
 import com.clenzy.model.AssistantMemory;
 import com.clenzy.service.agent.AgentContext;
 import com.clenzy.service.agent.kb.KbSearchService.KbSearchHit;
+import com.clenzy.service.agent.prompt.PromptSecurityGuidance;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -375,6 +376,10 @@ public class OrchestratorAgent {
                 .append("Tu ne reponds JAMAIS directement aux questions metier — tu delegues ")
                 .append("a un specialiste via le tool delegate_to.\n")
                 .append("</role>\n\n");
+
+        // Garde anti-injection : memoire + RAG (donnees non fiables) sont injectees
+        // ci-dessus ; rappeler que seules les instructions du user/system comptent.
+        sb.append(PromptSecurityGuidance.block()).append("\n\n");
 
         sb.append("<specialists>\n");
         for (Map.Entry<String, AgentSpecialist> entry : registry.all().entrySet()) {

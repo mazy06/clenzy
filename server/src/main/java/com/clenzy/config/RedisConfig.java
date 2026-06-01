@@ -1,7 +1,8 @@
 package com.clenzy.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -52,10 +53,19 @@ public class RedisConfig {
         mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         
         // Activer le typage pour préserver les types lors de la désérialisation depuis Redis
-        // Cela évite les ClassCastException (LinkedHashMap au lieu de PropertyDto)
-        // Utilisation de LaissezFaireSubTypeValidator pour permettre tous les types
+        // (évite les ClassCastException LinkedHashMap au lieu de PropertyDto).
+        // Whitelist stricte (BasicPolymorphicTypeValidator) au lieu de LaissezFaire :
+        // seuls les types Clenzy + JDK usuels sont désérialisables, ce qui bloque les
+        // gadgets de désérialisation polymorphe si une valeur Redis était empoisonnée.
+        PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+            .allowIfSubType("com.clenzy.")
+            .allowIfSubType("java.lang.")
+            .allowIfSubType("java.util.")
+            .allowIfSubType("java.time.")
+            .allowIfSubType("java.math.")
+            .build();
         mapper.activateDefaultTyping(
-            LaissezFaireSubTypeValidator.instance,
+            ptv,
             com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping.NON_FINAL,
             com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY
         );

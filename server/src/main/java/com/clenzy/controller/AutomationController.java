@@ -5,6 +5,7 @@ import com.clenzy.model.ExternalAutomation.AutomationEvent;
 import com.clenzy.model.ExternalAutomation.AutomationPlatform;
 import com.clenzy.service.AutomationService;
 import com.clenzy.tenant.TenantContext;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/automations")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
 public class AutomationController {
 
     private final AutomationService automationService;
