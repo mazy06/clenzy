@@ -52,6 +52,11 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI}
+          # Validation de l'emetteur (iss) : rejette un token signe par le meme
+          # Keycloak mais emis pour un autre realm/client (ex. clenzy-guests).
+          # Spring Boot ajoute automatiquement JwtIssuerValidator des que issuer-uri
+          # est present, tout en gardant la cle via jwk-set-uri ci-dessus.
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI}
   data:
     redis:
       password: ${SPRING_REDIS_PASSWORD}
@@ -160,6 +165,13 @@ clenzy:
   assistant:
     multi-agent:
       enabled: ${ASSISTANT_MULTI_AGENT_ENABLED:true}
+  # Securite JWT — validation d'audience (defense-in-depth, cross-client intra-realm).
+  # Le bean ProdJwtDecoderConfig est ACTIF des qu'on est en @Profile("prod") et exige
+  # que les tokens portent l'audience clenzy-api. Prerequis : avoir configure le mapper
+  # Audience dans Keycloak (cf. docs/runbooks/jwt-audience-rollout.md).
+  security:
+    jwt:
+      expected-audience: ${CLENZY_JWT_EXPECTED_AUDIENCE:clenzy-api}
   # Channex — Channel Manager middleware (100+ OTAs)
   channex:
     base-url: ${CHANNEX_BASE_URL:https://app.channex.io/api/v1}
