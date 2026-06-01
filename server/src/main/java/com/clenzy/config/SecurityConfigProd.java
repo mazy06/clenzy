@@ -145,8 +145,9 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/booking-engine/auth/**").permitAll()
                         .requestMatchers("/api/booking-engine/checkout/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
-                        // Invitations : info publique (sans JWT), accept authentifie
+                        // Invitations : info publique + register self-service (sans JWT), accept authentifie
                         .requestMatchers(HttpMethod.GET, "/api/invitations/info").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/invitations/register").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/invitations/accept").authenticated()
                         // OAuth callbacks (appeles par les providers externes sans JWT)
                         .requestMatchers("/api/airbnb/callback").permitAll()
