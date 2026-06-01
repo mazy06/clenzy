@@ -79,6 +79,7 @@ class DocumentGeneratorServiceExtraTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private ProviderExpenseRepository providerExpenseRepository;
     @Mock private EntityManager entityManager;
+    @Mock private DocumentGenerationFailureRecorder failureRecorder;
 
     private DocumentGeneratorService service;
 
@@ -94,7 +95,7 @@ class DocumentGeneratorServiceExtraTest {
                 invoiceGeneratorService, taxRulePreValidator, tenantContext, fiscalProfileRepository,
                 interventionRepository, receivedFormRepository, serviceRequestRepository,
                 reservationRepository, propertyRepository, providerExpenseRepository,
-                entityManager, meterRegistry
+                entityManager, failureRecorder, meterRegistry
         );
     }
 
