@@ -38,7 +38,12 @@ import apiClient, { ApiError } from '../../services/apiClient';
 import AuthLayout from './AuthLayout';
 import OptionCard from './OptionCard';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+// Ne PAS appeler loadStripe('') si la clef n'est pas configuree : ça log un
+// `IntegrationError: empty string` au boot de l'app sur toutes les pages
+// publiques. Meme pattern que BookingPaymentPage / PaymentCheckoutModal.
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 // Resolveurs i18n pour les labels (gardent les cles centralisees mais traduisibles)
 const getPropertyTypeLabel = (t: TFunction, key: string): string => {

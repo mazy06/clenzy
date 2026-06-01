@@ -22,7 +22,12 @@ import { useCurrency } from '../hooks/useCurrency';
 import { paymentsApi } from '../services/api/paymentsApi';
 import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+// Ne PAS appeler loadStripe('') si la clef n'est pas configuree : ça log un
+// `IntegrationError: empty string` sur les pages publiques (accept-invitation,
+// landing) qui n'utilisent jamais Stripe. Meme pattern que BookingPaymentPage.
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 export interface PaymentCheckoutModalProps {
   open: boolean;
