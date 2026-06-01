@@ -188,7 +188,7 @@ public class EmailService {
             helper.setTo(notificationTo);
             helper.setReplyTo(dto.getEmail());
             helper.setSubject(sanitizeHeaderValue(subject));
-            helper.setText(htmlBody, true);
+            helper.setText(htmlToPlainText(htmlBody), htmlBody);
             ms.send(message);
             log.info("Email de notification devis envoyé pour : {} ({})", dto.getFullName(), dto.getEmail());
 
@@ -383,7 +383,7 @@ public class EmailService {
             helper.setTo(notificationTo);
             helper.setReplyTo(dto.getEmail());
             helper.setSubject(sanitizeHeaderValue(subject));
-            helper.setText(htmlBody, true);
+            helper.setText(htmlToPlainText(htmlBody), htmlBody);
             ms.send(message);
             log.info("Email de notification maintenance envoyé pour : {} ({})", dto.getFullName(), dto.getEmail());
 
@@ -546,7 +546,7 @@ public class EmailService {
             applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue(subject));
-            helper.setText(htmlBody, true);
+            helper.setText(htmlToPlainText(htmlBody), htmlBody);
 
             // Ajouter le PDF en piece jointe
             helper.addAttachment(pdfFilename, new ByteArrayResource(pdfBytes), "application/pdf");
@@ -575,7 +575,7 @@ public class EmailService {
             applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue(subject));
-            helper.setText(htmlBody, true);
+            helper.setText(htmlToPlainText(htmlBody), htmlBody);
 
             ms.send(message);
             log.info("Simple HTML email sent to {} (subject: {})", toEmail, subject);
@@ -595,6 +595,50 @@ public class EmailService {
     private String sanitizeHeaderValue(String value) {
         if (value == null) return "";
         return value.replaceAll("[\\r\\n]+", " ").trim();
+    }
+
+    /**
+     * Convertit un HTML email en plain text minimal pour le multipart/alternative.
+     *
+     * <p>Bookmarklets / clients basiques : le plain text version est crucial. SpamAssassin
+     * penalise les emails {@code MIME_HTML_ONLY} (-0.1) car le pattern "HTML pur sans
+     * fallback" est typique des emails de masse mal construits.</p>
+     *
+     * <p>Implementation deliberement simple : on extrait le texte des balises block,
+     * on remplace les separateurs HTML par des newlines, on decode les entites les
+     * plus courantes. Pas de parser HTML complet — pour les emails Clenzy,
+     * c'est suffisant car les templates sont controles (pas d'input user brut).</p>
+     */
+    String htmlToPlainText(String html) {
+        if (html == null || html.isBlank()) return "";
+        String text = html;
+        // Newline avant chaque balise block (paragraphes, divs, etc.)
+        text = text.replaceAll("(?i)<\\s*(br|p|div|tr|li|h[1-6])\\s*[^>]*>", "\n");
+        // Newline apres les balises fermantes de block
+        text = text.replaceAll("(?i)</(p|div|tr|li|h[1-6])\\s*>", "\n");
+        // Liens : on garde le texte + l'URL entre parentheses
+        text = text.replaceAll("(?i)<a\\s+[^>]*href\\s*=\\s*\"([^\"]+)\"[^>]*>([^<]+)</a>", "$2 ($1)");
+        // Supprime toutes les autres balises
+        text = text.replaceAll("<[^>]+>", "");
+        // Decode les entites HTML les plus courantes
+        text = text.replace("&nbsp;", " ")
+                   .replace("&amp;", "&")
+                   .replace("&lt;", "<")
+                   .replace("&gt;", ">")
+                   .replace("&quot;", "\"")
+                   .replace("&#39;", "'")
+                   .replace("&apos;", "'")
+                   .replace("&eacute;", "e")
+                   .replace("&egrave;", "e")
+                   .replace("&agrave;", "a")
+                   .replace("&ecirc;", "e")
+                   .replace("&ccedil;", "c");
+        // Nettoyer : ecraser les newlines multiples, trim chaque ligne
+        text = text.replaceAll("[ \\t]+", " ")
+                   .replaceAll("\\n[ \\t]+", "\n")
+                   .replaceAll("\\n{3,}", "\n\n")
+                   .trim();
+        return text;
     }
 
     /**
@@ -686,7 +730,7 @@ public class EmailService {
             applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue(subject));
-            helper.setText(htmlBody, true);
+            helper.setText(htmlToPlainText(htmlBody), htmlBody);
             ms.send(message);
             log.info("Email d'invitation envoye a {} pour l'organisation {}", toEmail, orgName);
         } catch (MessagingException e) {
@@ -728,7 +772,8 @@ public class EmailService {
             applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue("Bienvenue sur Clenzy — Votre compte a ete cree"));
-            helper.setText(buildWelcomeHtml(firstName, lastName, toEmail, roleName, loginUrl), true);
+            String welcomeHtml = buildWelcomeHtml(firstName, lastName, toEmail, roleName, loginUrl);
+            helper.setText(htmlToPlainText(welcomeHtml), welcomeHtml);
             ms.send(message);
             log.info("Email de bienvenue envoye a {}", toEmail);
         } catch (Exception e) {
@@ -797,7 +842,8 @@ public class EmailService {
             applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue("Confirmez votre inscription Clenzy"));
-            helper.setText(buildInscriptionConfirmationHtml(fullName, confirmationLink, expiresAt), true);
+            String confirmationHtml = buildInscriptionConfirmationHtml(fullName, confirmationLink, expiresAt);
+            helper.setText(htmlToPlainText(confirmationHtml), confirmationHtml);
             ms.send(message);
             log.info("Email de confirmation d'inscription envoye a {}", toEmail);
         } catch (MessagingException e) {
