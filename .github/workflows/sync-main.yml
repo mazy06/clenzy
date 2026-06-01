@@ -1,0 +1,60 @@
+name: Sync main with production
+
+# Pourquoi ce workflow ?
+# Chaque PR main -> production est mergee via un merge-commit. Ce merge-commit
+# atterrit UNIQUEMENT sur `production`, ce qui laisse `main` en retard d'un commit
+# de bookkeeping (sans difference de contenu). Regle imposee : `main` ne doit JAMAIS
+# etre en retard sur `production`.
+#
+# A chaque push sur `production` (donc apres chaque deploiement), ce job fast-forward
+# `main` sur `production` pour les garder strictement alignes.
+#
+# Securite : on ne pousse QUE si `main` est un ancetre de `production` (vrai
+# fast-forward, aucune perte de commit possible). En cas de divergence reelle,
+# le job echoue bruyamment pour signaler qu'une reconciliation manuelle est requise.
+# Aucune entree non fiable (github.event.*) n'est utilisee dans les commandes run.
+
+on:
+  push:
+    branches:
+      - production
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-main-with-production
+  cancel-in-progress: false
+
+jobs:
+  fast-forward-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (historique complet)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fast-forward main sur production
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin main production
+          PROD_SHA="$(git rev-parse origin/production)"
+          MAIN_SHA="$(git rev-parse origin/main)"
+          echo "production = $PROD_SHA"
+          echo "main       = $MAIN_SHA"
+
+          if [ "$PROD_SHA" = "$MAIN_SHA" ]; then
+            echo "main est deja aligne sur production — rien a faire."
+            exit 0
+          fi
+
+          if git merge-base --is-ancestor "$MAIN_SHA" "$PROD_SHA"; then
+            echo "main est ancetre de production -> fast-forward."
+            git push origin "$PROD_SHA:refs/heads/main"
+            echo "main fast-forwarde sur production ($PROD_SHA)."
+          else
+            echo "::error::main n'est PAS un ancetre de production : divergence reelle, fast-forward impossible. Reconciliation manuelle requise."
+            exit 1
+          fi
