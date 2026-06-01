@@ -5,6 +5,7 @@ import com.clenzy.model.MigrationJob.MigrationDataType;
 import com.clenzy.model.MigrationJob.MigrationSource;
 import com.clenzy.service.PmsMigrationService;
 import com.clenzy.tenant.TenantContext;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/migration")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
 public class MigrationController {
 
     private final PmsMigrationService migrationService;

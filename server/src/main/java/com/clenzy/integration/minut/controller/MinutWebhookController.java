@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Map;
 
 /**
@@ -106,7 +107,10 @@ public class MinutWebhookController {
             }
             String computedSignature = sb.toString();
 
-            return computedSignature.equalsIgnoreCase(expectedSignature);
+            // Comparaison constant-time pour eviter une timing attack sur la signature.
+            return MessageDigest.isEqual(
+                    computedSignature.getBytes(StandardCharsets.UTF_8),
+                    expectedSignature.toLowerCase().getBytes(StandardCharsets.UTF_8));
 
         } catch (Exception e) {
             log.error("Erreur validation signature webhook Minut: {}", e.getMessage());

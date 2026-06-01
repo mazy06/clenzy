@@ -45,6 +45,11 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     // 20 essais/min/IP suffit largement pour un guest qui tape son code,
     // bloque l'enumeration auto.
     private static final int VOUCHER_VALIDATE_RATE_LIMIT = 20;
+    // Protection brute-force de la verification publique des codes d'echange de
+    // cles (codes 6 chiffres). Plus strict que voucher car le code est court et
+    // l'enjeu physique (acces logement). Complete par le lockout par token cote
+    // KeyVerificationThrottle.
+    private static final int KEY_VERIFY_RATE_LIMIT = 10;
     private static final long WINDOW_MS = 60_000;
     private static final String REDIS_PREFIX = "ratelimit:";
 
@@ -82,6 +87,11 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             // (protection brute-force).
             key = "voucher-validate:" + getClientIp(request);
             limit = VOUCHER_VALIDATE_RATE_LIMIT;
+        } else if (path.startsWith("/api/public/key-verify/")) {
+            // Limite stricte par IP sur la verification publique des codes
+            // d'echange de cles (protection brute-force des codes 6 chiffres).
+            key = "key-verify:" + getClientIp(request);
+            limit = KEY_VERIFY_RATE_LIMIT;
         } else {
             String userId = getCurrentUserId();
             if (userId != null) {

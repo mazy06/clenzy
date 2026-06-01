@@ -4,6 +4,7 @@ import com.clenzy.dto.RegulatoryComplianceDto;
 import com.clenzy.model.RegulatoryConfig;
 import com.clenzy.service.RegulatoryComplianceService;
 import com.clenzy.tenant.TenantContext;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -13,6 +14,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/regulatory")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
 public class RegulatoryController {
 
     private final RegulatoryComplianceService complianceService;
