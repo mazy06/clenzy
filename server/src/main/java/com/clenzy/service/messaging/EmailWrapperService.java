@@ -144,11 +144,16 @@ public class EmailWrapperService {
     }
 
     private String buildCtaButton(String label, String url) {
-        return "<div style=\"text-align:center;margin:24px 0;\">"
+        // CTA minimaliste : padding compact, font-size reduit, border-radius leger.
+        // Vise un look "premium SaaS" plutot que "marketing oversized".
+        return "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\""
+            + " style=\"margin:28px auto;\"><tr><td style=\"border-radius:6px;background:"
+            + BRAND_PRIMARY + ";\">"
             + "<a href=\"" + StringUtils.escapeHtml(url) + "\""
-            + " style=\"display:inline-block;padding:14px 32px;background:" + BRAND_PRIMARY
-            + ";color:white;text-decoration:none;border-radius:8px;font-size:16px;font-weight:600;\">"
-            + StringUtils.escapeHtml(label) + "</a></div>";
+            + " style=\"display:inline-block;padding:11px 22px;background:" + BRAND_PRIMARY
+            + ";color:#ffffff;text-decoration:none;border-radius:6px;font-size:14px;"
+            + "font-weight:600;letter-spacing:0.01em;\">"
+            + StringUtils.escapeHtml(label) + "</a></td></tr></table>";
     }
 
     // ─── Wrappers HTML ───────────────────────────────────────────────────────
@@ -158,69 +163,87 @@ public class EmailWrapperService {
      */
     private String wrapNotificationOwner(String bodyHtml) {
         return baseShell(
-            BRAND_PRIMARY,
-            "Notification " + BRAND_NAME,
+            "Notification",
             bodyHtml,
-            "Cet email a été envoyé automatiquement par " + BRAND_NAME
-                + ". Vous pouvez gérer vos préférences depuis votre tableau de bord."
+            "Email automatique de " + BRAND_NAME + ". Tu peux gerer tes preferences depuis ton tableau de bord."
         );
     }
 
     private String wrapNotificationGuest(String bodyHtml) {
         return baseShell(
-            BRAND_PRIMARY,
-            BRAND_NAME,
+            "Message",
             bodyHtml,
-            "Message envoyé depuis " + BRAND_NAME + " pour le compte de votre hébergeur."
+            "Envoye depuis " + BRAND_NAME + " pour le compte de votre hebergeur."
         );
     }
 
     private String wrapInvitation(String bodyHtml) {
         return baseShell(
-            BRAND_PRIMARY,
-            "Invitation " + BRAND_NAME,
+            "Invitation",
             bodyHtml,
-            "Si vous n'avez pas demandé cette invitation, vous pouvez ignorer ce message."
+            "Si tu n'attendais pas cette invitation, ignore simplement ce message."
         );
     }
 
     private String wrapInternalForm(String bodyHtml, boolean urgent) {
-        String headerColor = urgent ? "#f97316" : BRAND_PRIMARY;
-        String title = urgent ? "🔧 Notification interne — Maintenance" : "📋 Notification interne — Devis";
+        String subtitle = urgent ? "Maintenance urgente" : "Demande de devis";
         return baseShell(
-            headerColor,
-            title,
+            subtitle,
             bodyHtml,
-            "Email interne généré par le formulaire de la landing page " + BRAND_NAME + "."
+            "Email interne genere par le formulaire de la landing page " + BRAND_NAME + "."
         );
     }
 
     /**
-     * Shell HTML commun : header colore + body + footer. Inline-styles only
-     * (les clients email type Outlook/Gmail strippent les CSS classes externes).
+     * Shell HTML minimaliste : wordmark Baitly + sous-titre fin + body + footer.
+     *
+     * <p>Design editorial sobre — pas d'image, pas de bandeau colore. Le brand
+     * se manifeste uniquement par le wordmark typo et l'accent couleur sur le
+     * CTA. Optimise pour la lisibilite (16px) sur mobile + desktop.</p>
+     *
+     * <p>Inline-styles only (Outlook/Gmail strippent les CSS classes externes).</p>
      */
-    private String baseShell(String headerColor, String headerTitle, String bodyHtml, String footerText) {
-        return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head>"
-            + "<body style=\"margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;\">"
-            + "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" style=\"background:#f1f5f9;padding:32px 16px;\">"
+    private String baseShell(String subtitle, String bodyHtml, String footerText) {
+        return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">"
+            + "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+            + "<meta name=\"color-scheme\" content=\"light\">"
+            + "<meta name=\"supported-color-schemes\" content=\"light\">"
+            + "</head>"
+            + "<body style=\"margin:0;padding:0;background:#f8fafc;"
+            + "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;"
+            + "color:#0f172a;-webkit-font-smoothing:antialiased;\">"
+            + "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\""
+            + " width=\"100%\" style=\"background:#f8fafc;padding:48px 16px;\">"
             + "<tr><td align=\"center\">"
-            + "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"600\" style=\"max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);\">"
-            // Header
-            + "<tr><td style=\"background:" + StringUtils.escapeHtml(headerColor) + ";padding:24px 32px;\">"
-            + "<h1 style=\"margin:0;color:#ffffff;font-size:18px;font-weight:600;letter-spacing:-0.01em;\">"
-            + StringUtils.escapeHtml(headerTitle)
-            + "</h1>"
+            + "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\""
+            + " width=\"560\" style=\"max-width:560px;background:#ffffff;border-radius:8px;"
+            + "border:1px solid #e2e8f0;\">"
+
+            // Header : wordmark Baitly + sous-titre
+            + "<tr><td style=\"padding:36px 40px 24px 40px;border-bottom:1px solid #f1f5f9;\">"
+            + "<div style=\"font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#0f172a;"
+            + "line-height:1;\">"
+            + BRAND_NAME
+            + "<span style=\"color:" + BRAND_PRIMARY + ";\">.</span>"
+            + "</div>"
+            + "<div style=\"margin-top:6px;font-size:11px;font-weight:500;text-transform:uppercase;"
+            + "letter-spacing:0.12em;color:#94a3b8;\">"
+            + StringUtils.escapeHtml(subtitle)
+            + "</div>"
             + "</td></tr>"
-            // Body
-            + "<tr><td style=\"padding:32px;\">"
+
+            // Body : padding genereux, font-size 15px, line-height 1.6
+            + "<tr><td style=\"padding:32px 40px 12px 40px;font-size:15px;line-height:1.6;color:#334155;\">"
             + bodyHtml
             + "</td></tr>"
-            // Footer
-            + "<tr><td style=\"padding:16px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;\">"
-            + "<p style=\"margin:0;font-size:12px;color:#94a3b8;line-height:1.5;\">"
+
+            // Footer : ultra-discret, font-size 11px, gris pale
+            + "<tr><td style=\"padding:20px 40px 28px 40px;border-top:1px solid #f1f5f9;\">"
+            + "<p style=\"margin:0;font-size:11px;color:#94a3b8;line-height:1.6;\">"
             + StringUtils.escapeHtml(footerText)
             + "</p>"
             + "</td></tr>"
+
             + "</table>"
             + "</td></tr>"
             + "</table></body></html>";
