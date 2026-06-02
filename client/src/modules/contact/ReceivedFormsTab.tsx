@@ -699,6 +699,7 @@ const ReceivedFormsTab: React.FC = () => {
                   >
                     {/* Row 1: Type chip + status badge + new dot */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                      <Box sx={{ flex: 1 }} />
                       <Chip
                         icon={typeConf.icon as React.ReactElement}
                         label={typeConf.label}
@@ -723,7 +724,6 @@ const ReceivedFormsTab: React.FC = () => {
                           }}
                         />
                       )}
-                      <Box sx={{ flex: 1 }} />
                       {isNew && (
                         <Box sx={{
                           width: 8, height: 8, borderRadius: '50%',
@@ -813,6 +813,7 @@ const ReceivedFormsTab: React.FC = () => {
                     <Box sx={{ mb: 3, pb: 2.75, borderBottom: '1px solid', borderColor: 'divider' }}>
                       {/* Top row : type chip à gauche + date + statut à droite */}
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                        <Box sx={{ flex: 1 }} />
                         <Chip
                           icon={tc.icon as React.ReactElement}
                           label={tc.label}
@@ -839,7 +840,6 @@ const ReceivedFormsTab: React.FC = () => {
                             color: sc.color,
                           }}
                         />
-                        <Box sx={{ flex: 1 }} />
                         <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500 }}>
                           {formatDate(selectedForm.createdAt)}
                         </Typography>
