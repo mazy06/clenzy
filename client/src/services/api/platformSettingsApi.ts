@@ -3,6 +3,11 @@ import apiClient from '../apiClient';
 export interface PlatformSettings {
   sendProspectDevisEmails: boolean;
   addDevisLeadsToWaitlist: boolean;
+  /** Destinataires des notifications internes (lead devis, copie devis, waitlist, maintenance). */
+  internalNotificationEmails: string[];
+  /** Adresse d'expédition (From) de la plateforme + nom d'affichage. */
+  senderEmail: string;
+  senderName: string;
   updatedAt: string | null;
   updatedBy: string | null;
 }
@@ -21,5 +26,11 @@ export const platformSettingsApi = {
     return apiClient.put('/admin/platform-settings/devis-leads-to-waitlist', undefined, {
       params: { enabled },
     });
+  },
+  setInternalNotificationEmails(emails: string[]): Promise<{ internalNotificationEmails: string[] }> {
+    return apiClient.put('/admin/platform-settings/internal-notification-emails', emails);
+  },
+  setSender(email: string, name: string): Promise<{ senderEmail: string; senderName: string }> {
+    return apiClient.put('/admin/platform-settings/sender', { email, name });
   },
 };

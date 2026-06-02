@@ -30,6 +30,27 @@ public class PlatformSettings {
     @Column(name = "add_devis_leads_to_waitlist", nullable = false)
     private boolean addDevisLeadsToWaitlist = true;
 
+    /**
+     * Destinataires des notifications internes equipe (lead devis, copie devis,
+     * waitlist, maintenance), au format CSV. L'expediteur reste TOUJOURS
+     * info@clenzy.fr ; seul le(s) destinataire(s) est/sont configurable(s) ici
+     * pour eviter le self-send info@->info@ qui soft-bounce.
+     */
+    @Column(name = "internal_notification_emails", nullable = false, columnDefinition = "TEXT")
+    private String internalNotificationEmails = "info@clenzy.fr";
+
+    /**
+     * Adresse d'expedition (From) de la plateforme. Niveau plateforme (pas
+     * multi-tenant). Defaut info@clenzy.fr. Changer de domaine impose d'authentifier
+     * ce domaine dans Brevo (SPF/DKIM) sous peine de spam/bounce.
+     */
+    @Column(name = "sender_email", nullable = false, columnDefinition = "TEXT")
+    private String senderEmail = "info@clenzy.fr";
+
+    /** Nom d'affichage du From ({@code Baitly <info@clenzy.fr>}). */
+    @Column(name = "sender_name", nullable = false, columnDefinition = "TEXT")
+    private String senderName = "Baitly";
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -44,6 +65,15 @@ public class PlatformSettings {
 
     public boolean isAddDevisLeadsToWaitlist() { return addDevisLeadsToWaitlist; }
     public void setAddDevisLeadsToWaitlist(boolean addDevisLeadsToWaitlist) { this.addDevisLeadsToWaitlist = addDevisLeadsToWaitlist; }
+
+    public String getInternalNotificationEmails() { return internalNotificationEmails; }
+    public void setInternalNotificationEmails(String internalNotificationEmails) { this.internalNotificationEmails = internalNotificationEmails; }
+
+    public String getSenderEmail() { return senderEmail; }
+    public void setSenderEmail(String senderEmail) { this.senderEmail = senderEmail; }
+
+    public String getSenderName() { return senderName; }
+    public void setSenderName(String senderName) { this.senderName = senderName; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }

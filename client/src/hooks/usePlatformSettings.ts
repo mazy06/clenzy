@@ -31,3 +31,24 @@ export function useSetDevisLeadsToWaitlist() {
     },
   });
 }
+
+export function useSetInternalNotificationEmails() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (emails: string[]) => platformSettingsApi.setInternalNotificationEmails(emails),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PLATFORM_SETTINGS_KEY });
+    },
+  });
+}
+
+export function useSetSender() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ email, name }: { email: string; name: string }) =>
+      platformSettingsApi.setSender(email, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PLATFORM_SETTINGS_KEY });
+    },
+  });
+}

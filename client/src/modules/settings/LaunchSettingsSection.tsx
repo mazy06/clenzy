@@ -3,8 +3,10 @@ import { Box, Typography, CircularProgress, Button, Collapse, Divider } from '@m
 import { Mail, Rocket, Users, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
-import { usePlatformSettings, useSetProspectDevisEmails, useSetDevisLeadsToWaitlist } from '../../hooks/usePlatformSettings';
+import { usePlatformSettings, useSetProspectDevisEmails, useSetDevisLeadsToWaitlist, useSetInternalNotificationEmails, useSetSender } from '../../hooks/usePlatformSettings';
 import { useWaitlistStats, useWaitlistList } from '../../hooks/useWaitlist';
+import InternalNotificationEmailsRow from './components/InternalNotificationEmailsRow';
+import SenderEmailRow from './components/SenderEmailRow';
 
 /**
  * Réglages de pré-lancement (SUPER_ADMIN / SUPER_MANAGER) :
@@ -15,6 +17,8 @@ const LaunchSettingsSection: React.FC = () => {
   const { data: settings, isLoading } = usePlatformSettings();
   const setProspectEmails = useSetProspectDevisEmails();
   const setDevisToWaitlist = useSetDevisLeadsToWaitlist();
+  const setInternalEmails = useSetInternalNotificationEmails();
+  const setSender = useSetSender();
   const { data: stats } = useWaitlistStats();
   const [showList, setShowList] = useState(false);
   const { data: list } = useWaitlistList(showList);
@@ -52,6 +56,17 @@ const LaunchSettingsSection: React.FC = () => {
             checked={settings?.addDevisLeadsToWaitlist ?? true}
             onChange={(c) => setDevisToWaitlist.mutate(c)}
             disabled={setDevisToWaitlist.isPending}
+          />
+          <InternalNotificationEmailsRow
+            value={settings?.internalNotificationEmails ?? ['info@clenzy.fr']}
+            onSave={(emails) => setInternalEmails.mutate(emails)}
+            saving={setInternalEmails.isPending}
+          />
+          <SenderEmailRow
+            email={settings?.senderEmail ?? 'info@clenzy.fr'}
+            name={settings?.senderName ?? 'Baitly'}
+            onSave={(email, name) => setSender.mutate({ email, name })}
+            saving={setSender.isPending}
           />
         </>
       )}
