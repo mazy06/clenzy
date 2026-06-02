@@ -407,7 +407,7 @@ const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly =
   const [filterType, setFilterType] = useState<string>('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  // Éditeur de validation d'envoi du devis (objet + corps modifiables avant envoi).
+  // Éditeur de renvoi du devis (objet + corps modifiables avant renvoi).
   const [resend, setResend] = useState<{
     open: boolean;
     form: ReceivedForm | null;
@@ -489,8 +489,8 @@ const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly =
 
   // ─── Génération du PDF (+ envoi email UNIQUEMENT sur validation explicite) ─
   // « Générer PDF » (send=false) génère et prévisualise le document SANS envoyer
-  // le moindre email. L'envoi au prospect ne part QUE via « Envoyer au client »
-  // (send=true), qui passe par un éditeur de validation (objet + corps). forceResend
+  // le moindre email. L'envoi au prospect ne part QUE via « Renvoyer » (send=true),
+  // qui passe par un éditeur de validation (objet + corps). forceResend
   // court-circuite la dédup serveur — on veut toujours partir d'une validation.
   const handleGeneratePdf = async (
     form: ReceivedForm,
@@ -520,7 +520,7 @@ const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly =
       });
       if (generation?.id) {
         if (!send) {
-          notify.success("PDF généré — non envoyé. Cliquez « Envoyer au client » pour l'adresser au prospect.");
+          notify.success("PDF généré — non envoyé. Utilisez « Renvoyer » pour l'adresser au client.");
         } else if (!hasValidEmail) {
           notify.warning('PDF généré, mais email non envoyé : adresse manquante ou invalide.');
         } else if (generation.emailStatus === 'SENT') {
@@ -913,13 +913,13 @@ const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly =
                       {/* Generate PDF (only if a matching template exists) */}
                       {tpl && (
                         <Tooltip
-                          title={`Génère le PDF du devis sans l'envoyer (template « ${tpl.name} »)`}
+                          title={`Génère un PDF à partir du template « ${tpl.name} »`}
                           placement="top"
                           arrow
                         >
                           <Button
                             size="small"
-                            variant="outlined"
+                            variant="contained"
                             startIcon={
                               generateDocumentMutation.isPending ? (
                                 <CircularProgress size={14} color="inherit" />
@@ -941,31 +941,32 @@ const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly =
                         </Tooltip>
                       )}
 
-                      {/* Envoyer au client : SEUL chemin d'envoi du devis. Ouvre un
-                          éditeur de validation (objet + corps) — rien ne part sans cette
-                          confirmation explicite. Visible dès qu'un email valide existe,
-                          même avant toute génération (l'envoi génère le PDF à la volée). */}
+                      {/* Renvoyer : valide et envoie le devis (le backend déduplique
+                          sinon). Visible si un devis a déjà été généré pour ce
+                          formulaire et que l'email est valide. C'est le chemin d'envoi
+                          — « Générer PDF » seul n'envoie rien. */}
                       {tpl
+                        && (priorGenerations?.length ?? 0) > 0
                         && /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/.test(selectedForm.email?.trim() || '') && (
                         <Tooltip
-                          title={`Valider et envoyer le devis par email à ${selectedForm.email}`}
+                          title={`Renvoyer le devis à ${selectedForm.email}`}
                           placement="top"
                           arrow
                         >
                           <Button
                             size="small"
-                            variant="contained"
-                            startIcon={<EmailIcon size={16} strokeWidth={1.75} />}
+                            variant="outlined"
+                            startIcon={<PdfIcon size={16} strokeWidth={1.75} />}
                             onClick={() => openResendModal(selectedForm)}
                             disabled={generateDocumentMutation.isPending}
                             sx={{
                               textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
-                              borderRadius: '10px', px: 2.5, py: 0.75, boxShadow: 'none',
-                              bgcolor: '#4A9B8E', color: '#fff',
-                              '&:hover': { bgcolor: '#3F8579', boxShadow: 'none' },
+                              borderRadius: '10px', px: 2.5, py: 0.75,
+                              color: 'text.secondary', borderColor: 'divider',
+                              '&:hover': { borderColor: 'text.disabled', bgcolor: 'action.hover' },
                             }}
                           >
-                            Envoyer au client
+                            Renvoyer
                           </Button>
                         </Tooltip>
                       )}
@@ -1208,8 +1209,8 @@ const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly =
         </DialogContent>
       </Dialog>
 
-      {/* Éditeur de validation d'envoi du devis : objet + corps modifiables (conserver /
-          modifier / vider). Rien ne part sans cette confirmation. info@clenzy.fr est en CC. */}
+      {/* Éditeur de renvoi du devis : objet + corps modifiables (conserver /
+          modifier / vider). info@clenzy.fr est ajouté en CC côté serveur. */}
       <Dialog
         open={resend.open}
         onClose={() => setResend((r) => ({ ...r, open: false }))}
@@ -1217,7 +1218,7 @@ const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly =
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem' }}>
-          Envoyer le devis
+          Renvoyer le devis
           {resend.form?.email ? (
             <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
               À {resend.form.email} — info@clenzy.fr en copie
@@ -1270,7 +1271,7 @@ const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly =
             disabled={resend.loading || generateDocumentMutation.isPending || !resend.subject.trim()}
             sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px', boxShadow: 'none' }}
           >
-            Envoyer
+            Renvoyer
           </Button>
         </DialogActions>
       </Dialog>
