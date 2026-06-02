@@ -1587,3 +1587,16 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0166 : Reglages plateforme Baitly (singleton) ---
+  # Table platform_settings (1 ligne, id=1) pour les toggles operationnels geres
+  # par les SUPER_ADMIN / SUPER_MANAGER. 1er flag : envoi des emails de devis aux
+  # prospects depuis la landing (desactivable en pre-lancement). Idempotent.
+  - changeSet:
+      id: "0166-add-platform-settings"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0166__add_platform_settings.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

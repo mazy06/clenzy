@@ -6,6 +6,7 @@ import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.DocumentGeneratorService;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
+import com.clenzy.service.PlatformSettingsService;
 import com.clenzy.service.PricingConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,6 +30,7 @@ class QuoteControllerTest {
     @Mock private ReceivedFormRepository receivedFormRepository;
     @Mock private NotificationService notificationService;
     @Mock private DocumentGeneratorService documentGeneratorService;
+    @Mock private PlatformSettingsService platformSettingsService;
     @Mock private HttpServletRequest httpRequest;
 
     private QuoteController controller;
@@ -36,7 +38,9 @@ class QuoteControllerTest {
     @BeforeEach
     void setUp() {
         controller = new QuoteController(emailService, pricingConfigService, receivedFormRepository,
-                new ObjectMapper(), notificationService, documentGeneratorService);
+                new ObjectMapper(), notificationService, documentGeneratorService, platformSettingsService);
+        // Par défaut, emails prospect activés (comportement nominal pré-toggle).
+        lenient().when(platformSettingsService.isSendProspectDevisEmails()).thenReturn(true);
         lenient().when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
         lenient().when(httpRequest.getHeader(anyString())).thenReturn(null);
     }
@@ -104,6 +108,45 @@ class QuoteControllerTest {
             ResponseEntity<?> response = controller.submitQuoteRequest(dto, httpRequest);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenProspectEmailsDisabled_thenNoProspectEmail_butInfoNotified() {
+            // Toggle plateforme OFF : aucun email/PDF envoyé au prospect, mais info@ notifié.
+            when(platformSettingsService.isSendProspectDevisEmails()).thenReturn(false);
+
+            QuoteRequestDto dto = mock(QuoteRequestDto.class);
+            when(dto.getFullName()).thenReturn("Jean Dupont");
+            when(dto.getEmail()).thenReturn("jean@test.com");
+            when(dto.getCity()).thenReturn("Paris");
+            when(dto.getPostalCode()).thenReturn("75001");
+            when(dto.getPropertyType()).thenReturn("apartment");
+            when(dto.getCalendarSync()).thenReturn("manual");
+            when(dto.getSurface()).thenReturn(50);
+            when(dto.getGuestCapacity()).thenReturn("3-4");
+            when(dto.getPropertyCount()).thenReturn("1");
+            when(dto.getBookingFrequency()).thenReturn("weekly");
+
+            when(pricingConfigService.getBasePrices()).thenReturn(Map.of("essentiel", 30));
+            when(pricingConfigService.getPropertyTypeCoeffs()).thenReturn(Map.of("apartment", 1.0));
+            when(pricingConfigService.getPropertyCountCoeffs()).thenReturn(Map.of("1", 1.0));
+            when(pricingConfigService.getGuestCapacityCoeffs()).thenReturn(Map.of("3-4", 1.0));
+            when(pricingConfigService.getSurfaceCoeff(50)).thenReturn(1.0);
+            when(pricingConfigService.getFrequencyCoeffs()).thenReturn(Map.of("weekly", 1.0));
+            when(pricingConfigService.getMinPrice()).thenReturn(25);
+            when(receivedFormRepository.save(any(ReceivedForm.class))).thenAnswer(invocation -> {
+                ReceivedForm form = invocation.getArgument(0);
+                form.setId(42L);
+                return form;
+            });
+
+            ResponseEntity<?> response = controller.submitQuoteRequest(dto, httpRequest);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            // Pas de génération/envoi de devis au prospect...
+            verifyNoInteractions(documentGeneratorService);
+            // ...mais info@clenzy.fr est notifié via le fallback interne.
+            verify(emailService).sendQuoteRequestNotification(eq(dto), anyString(), anyInt(), isNull());
         }
 
         @Test
