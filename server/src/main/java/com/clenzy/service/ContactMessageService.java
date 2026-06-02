@@ -412,6 +412,24 @@ public class ContactMessageService {
         return msgs.size();
     }
 
+    /** Restaure (désarchive) toute une conversation archivée → elle revient dans la messagerie active. */
+    @Transactional
+    public int unarchiveThread(Jwt jwt, String counterpartKeycloakId) {
+        String userId = requireUserId(jwt);
+        Long orgId = tenantContext.getOrganizationId();
+
+        List<ContactMessage> msgs = contactMessageRepository
+                .findArchivedThreadMessages(userId, counterpartKeycloakId, orgId);
+        if (msgs.isEmpty()) return 0;
+
+        for (ContactMessage m : msgs) {
+            m.setArchived(false);
+            m.setArchivedAt(null);
+        }
+        contactMessageRepository.saveAll(msgs);
+        return msgs.size();
+    }
+
     @Transactional
     public ContactMessageDto archiveMessage(Jwt jwt, Long id) {
         String userId = requireUserId(jwt);
@@ -484,12 +502,28 @@ public class ContactMessageService {
     public List<ContactThreadSummaryDto> getThreads(Jwt jwt) {
         String userId = requireUserId(jwt);
         Long orgId = tenantContext.getOrganizationId();
+        // findAllForUser exclut déjà les messages archivés (archived = false dans la requête) :
+        // une conversation entièrement archivée disparaît de la messagerie active.
+        return buildThreadSummaries(contactMessageRepository.findAllForUser(userId, orgId), userId);
+    }
 
-        // Exclut les messages archivés : une conversation entièrement archivée
-        // disparaît de la messagerie active (et se retrouve dans "Messages archivés").
-        List<ContactMessage> allMessages = contactMessageRepository.findAllForUser(userId, orgId).stream()
-                .filter(m -> !m.isArchived())
-                .toList();
+    /**
+     * Conversations entièrement archivées, groupées par interlocuteur.
+     * Alimente l'onglet "Messages archivés" → sous-onglet Conversations
+     * (1 ligne = 1 conversation, comme la messagerie active).
+     */
+    @Transactional(readOnly = true)
+    public List<ContactThreadSummaryDto> getArchivedThreads(Jwt jwt) {
+        String userId = requireUserId(jwt);
+        Long orgId = tenantContext.getOrganizationId();
+        return buildThreadSummaries(contactMessageRepository.findAllArchivedForUser(userId, orgId), userId);
+    }
+
+    /**
+     * Groupe une liste de messages par interlocuteur en résumés de conversation.
+     * Partagé entre la messagerie active (getThreads) et les archives (getArchivedThreads).
+     */
+    private List<ContactThreadSummaryDto> buildThreadSummaries(List<ContactMessage> allMessages, String userId) {
         if (allMessages.isEmpty()) return List.of();
 
         // Grouper par interlocuteur (keycloakId de l'autre personne)
@@ -584,14 +618,17 @@ public class ContactMessageService {
 
     /**
      * Messages d'une conversation avec un interlocuteur, tries par date croissante (chat).
+     * archived=true → messages archivés (consultation lecture seule d'une conversation archivée) ;
+     * la requête active filtre archived=false, d'où une vue vide si on ne bascule pas.
      */
     @Transactional(readOnly = true)
-    public List<ContactMessageDto> getThreadMessages(Jwt jwt, String counterpartKeycloakId) {
+    public List<ContactMessageDto> getThreadMessages(Jwt jwt, String counterpartKeycloakId, boolean archived) {
         String userId = requireUserId(jwt);
         Long orgId = tenantContext.getOrganizationId();
 
-        List<ContactMessage> messages = contactMessageRepository
-                .findThreadMessages(userId, counterpartKeycloakId, orgId);
+        List<ContactMessage> messages = archived
+                ? contactMessageRepository.findArchivedThreadMessages(userId, counterpartKeycloakId, orgId)
+                : contactMessageRepository.findThreadMessages(userId, counterpartKeycloakId, orgId);
 
         return messages.stream()
                 .map(ContactMessageDto::fromEntity)

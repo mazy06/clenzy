@@ -13,7 +13,6 @@ import {
 } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import InternalChatTab from './InternalChatTab';
-import ContactMessages from './ContactMessages';
 import ReceivedFormsTab from './ReceivedFormsTab';
 import ChannelInboxTab from '../channels/ChannelInboxTab';
 import PageHeader from '../../components/PageHeader';
@@ -27,7 +26,7 @@ import {
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { useFormsStats } from '../../hooks/useReceivedForms';
-import { useContactThreads, useContactMessages } from '../../hooks/useContactMessages';
+import { useContactThreads } from '../../hooks/useContactMessages';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -84,9 +83,10 @@ const ContactPage: React.FC = () => {
   const internalUnread = threads?.reduce((sum, th) => sum + th.unreadCount, 0) ?? 0;
 
   // Compteurs de l'onglet "Messages archivés" → orientent vers le bon sous-onglet.
+  // Conversations archivées = nombre de threads (1 ligne = 1 conversation), pas de messages.
   const archivedFormsCount = formsStats?.totalArchived ?? 0;
-  const { data: archivedMsgsPage } = useContactMessages('archived', 0, 1);
-  const archivedConversationsCount = archivedMsgsPage?.totalElements ?? 0;
+  const { data: archivedThreads } = useContactThreads(true);
+  const archivedConversationsCount = archivedThreads?.length ?? 0;
 
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
@@ -198,7 +198,7 @@ const ContactPage: React.FC = () => {
               <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 {isAdminOrManager && archivedView === 'formulaires'
                   ? <ReceivedFormsTab archivedOnly />
-                  : <ContactMessages type="archived" />}
+                  : <InternalChatTab archived />}
               </Box>
             </TabPanel>
 

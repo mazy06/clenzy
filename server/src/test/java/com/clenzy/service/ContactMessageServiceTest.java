@@ -1125,6 +1125,30 @@ class ContactMessageServiceTest {
         }
 
         @Test
+        void getArchivedThreads_groupsArchivedMessagesByCounterpart() {
+            // Bug fix : archiver une conversation = 1 thread archivé (et non 1 ligne par message).
+            ContactMessage m1 = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
+            m1.setId(1L);
+            m1.setCreatedAt(LocalDateTime.now());
+            m1.setArchived(true);
+
+            ContactMessage m2 = buildMessage(RECIPIENT_KC_ID, SENDER_KC_ID);
+            m2.setId(2L);
+            m2.setCreatedAt(LocalDateTime.now().minusMinutes(5));
+            m2.setArchived(true);
+
+            when(tenantContext.getOrganizationId()).thenReturn(ORG_ID);
+            when(contactMessageRepository.findAllArchivedForUser(eq(SENDER_KC_ID), eq(ORG_ID)))
+                    .thenReturn(List.of(m1, m2));
+            when(userRepository.findByKeycloakIdIn(any())).thenReturn(List.of(recipientUser));
+
+            var threads = service.getArchivedThreads(senderJwt);
+            assertThat(threads).hasSize(1);
+            assertThat(threads.get(0).counterpartKeycloakId()).isEqualTo(RECIPIENT_KC_ID);
+            assertThat(threads.get(0).totalMessages()).isEqualTo(2);
+        }
+
+        @Test
         void getThreads_longMessage_truncatedPreview() {
             ContactMessage m = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
             m.setId(1L);
@@ -1201,8 +1225,40 @@ class ContactMessageServiceTest {
             when(contactMessageRepository.findThreadMessages(SENDER_KC_ID, RECIPIENT_KC_ID, ORG_ID))
                     .thenReturn(List.of(m));
 
-            var dtos = service.getThreadMessages(senderJwt, RECIPIENT_KC_ID);
+            var dtos = service.getThreadMessages(senderJwt, RECIPIENT_KC_ID, false);
             assertThat(dtos).hasSize(1);
+        }
+
+        @Test
+        void getThreadMessages_archived_usesArchivedQuery() {
+            ContactMessage m = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
+            m.setId(1L);
+            m.setArchived(true);
+            when(tenantContext.getOrganizationId()).thenReturn(ORG_ID);
+            when(contactMessageRepository.findArchivedThreadMessages(SENDER_KC_ID, RECIPIENT_KC_ID, ORG_ID))
+                    .thenReturn(List.of(m));
+
+            var dtos = service.getThreadMessages(senderJwt, RECIPIENT_KC_ID, true);
+            assertThat(dtos).hasSize(1);
+            verify(contactMessageRepository).findArchivedThreadMessages(SENDER_KC_ID, RECIPIENT_KC_ID, ORG_ID);
+            verify(contactMessageRepository, never()).findThreadMessages(any(), any(), any());
+        }
+
+        @Test
+        void unarchiveThread_restoresArchivedMessages() {
+            ContactMessage m = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
+            m.setId(1L);
+            m.setArchived(true);
+            m.setArchivedAt(LocalDateTime.now());
+            when(tenantContext.getOrganizationId()).thenReturn(ORG_ID);
+            when(contactMessageRepository.findArchivedThreadMessages(SENDER_KC_ID, RECIPIENT_KC_ID, ORG_ID))
+                    .thenReturn(List.of(m));
+
+            int count = service.unarchiveThread(senderJwt, RECIPIENT_KC_ID);
+            assertThat(count).isEqualTo(1);
+            assertThat(m.isArchived()).isFalse();
+            assertThat(m.getArchivedAt()).isNull();
+            verify(contactMessageRepository).saveAll(anyList());
         }
     }
 

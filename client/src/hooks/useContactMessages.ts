@@ -9,9 +9,9 @@ export const contactKeys = {
   all: ['contact'] as const,
   messages: (type: string, page: number, size: number) =>
     [...contactKeys.all, 'messages', type, { page, size }] as const,
-  threads: () => [...contactKeys.all, 'threads'] as const,
-  threadMessages: (counterpartKeycloakId: string) =>
-    [...contactKeys.all, 'thread-messages', counterpartKeycloakId] as const,
+  threads: (archived = false) => [...contactKeys.all, 'threads', archived] as const,
+  threadMessages: (counterpartKeycloakId: string, archived = false) =>
+    [...contactKeys.all, 'thread-messages', counterpartKeycloakId, archived] as const,
 };
 
 // ─── Queries ────────────────────────────────────────────────────────────────
@@ -30,23 +30,27 @@ export function useContactMessages(
 
 // ─── Thread Queries (messagerie instantanee) ────────────────────────────────
 
-/** Liste des conversations groupees par interlocuteur */
-export function useContactThreads() {
+/**
+ * Liste des conversations groupees par interlocuteur.
+ * archived=true → conversations archivées (onglet "Messages archivés" → Conversations).
+ */
+export function useContactThreads(archived = false) {
   return useQuery({
-    queryKey: contactKeys.threads(),
-    queryFn: () => contactApi.getThreads(),
+    queryKey: contactKeys.threads(archived),
+    queryFn: () => (archived ? contactApi.getArchivedThreads() : contactApi.getThreads()),
     staleTime: 30_000,
-    refetchInterval: 60_000,      // fallback polling 60s (WebSocket gere le temps reel)
+    // Pas de polling sur les archives : elles n'évoluent pas en temps réel.
+    refetchInterval: archived ? false : 60_000,
   });
 }
 
-/** Messages d'une conversation avec un interlocuteur */
-export function useThreadMessages(counterpartKeycloakId: string | null) {
+/** Messages d'une conversation avec un interlocuteur (archived=true → messages archivés) */
+export function useThreadMessages(counterpartKeycloakId: string | null, archived = false) {
   return useQuery({
-    queryKey: contactKeys.threadMessages(counterpartKeycloakId!),
-    queryFn: () => contactApi.getThreadMessages(counterpartKeycloakId!),
+    queryKey: contactKeys.threadMessages(counterpartKeycloakId!, archived),
+    queryFn: () => contactApi.getThreadMessages(counterpartKeycloakId!, archived),
     staleTime: 15_000,
-    refetchInterval: 30_000,      // fallback polling 30s (WebSocket gere le temps reel)
+    refetchInterval: archived ? false : 30_000,
     enabled: counterpartKeycloakId != null,
   });
 }
@@ -87,7 +91,26 @@ export function useArchiveThread() {
     onMutate: (counterpartKeycloakId) => {
       // Optimiste : retire le thread de la liste active immédiatement.
       queryClient.setQueryData<ContactThreadSummary[]>(
-        contactKeys.threads(),
+        contactKeys.threads(false),
+        (old) => old?.filter((th) => th.counterpartKeycloakId !== counterpartKeycloakId),
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: contactKeys.all });
+    },
+  });
+}
+
+/** Restaure (désarchive) toute une conversation archivée → elle revient dans la messagerie active. */
+export function useUnarchiveThread() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (counterpartKeycloakId: string) =>
+      contactApi.unarchiveThread(counterpartKeycloakId),
+    onMutate: (counterpartKeycloakId) => {
+      // Optimiste : retire le thread de la liste archivée immédiatement.
+      queryClient.setQueryData<ContactThreadSummary[]>(
+        contactKeys.threads(true),
         (old) => old?.filter((th) => th.counterpartKeycloakId !== counterpartKeycloakId),
       );
     },
