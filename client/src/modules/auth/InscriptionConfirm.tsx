@@ -21,9 +21,9 @@ import {
   LockOutlined as LockIcon,
   Login as LoginIcon,
 } from '../../icons';
-import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
+import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
 import keycloak from '../../keycloak';
 import { clearMockFlags, setSessionCookie } from '../../services/storageService';
@@ -58,7 +58,7 @@ export default function InscriptionConfirm() {
   const { t } = useTranslation();
   // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
   const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createClenzyTheme({ isRtl }), [isRtl]);
+  const theme = useMemo(() => createBaitlyTheme({ isRtl }), [isRtl]);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token') || '';
@@ -188,7 +188,7 @@ export default function InscriptionConfirm() {
         >
           {/* Logo */}
           <Box sx={{ mb: 2 }}>
-            <ClenzyMarkLogo scale={1.1} />
+            <BaitlyMarkLogo scale={1.1} />
           </Box>
 
           {/* Loading */}

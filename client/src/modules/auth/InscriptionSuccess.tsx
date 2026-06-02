@@ -12,16 +12,16 @@ import {
   CssBaseline,
 } from '@mui/material';
 import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '../../icons';
-import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
+import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import apiClient from '../../services/apiClient';
 
 export default function InscriptionSuccess() {
   const { t } = useTranslation();
   // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
   const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createClenzyTheme({ isRtl }), [isRtl]);
+  const theme = useMemo(() => createBaitlyTheme({ isRtl }), [isRtl]);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const sessionId = searchParams.get('session_id');
@@ -89,7 +89,7 @@ export default function InscriptionSuccess() {
         }}>
           {/* Logo */}
           <Box sx={{ mb: 2 }}>
-            <ClenzyMarkLogo scale={1.1} />
+            <BaitlyMarkLogo scale={1.1} />
           </Box>
 
           {status === 'loading' && (

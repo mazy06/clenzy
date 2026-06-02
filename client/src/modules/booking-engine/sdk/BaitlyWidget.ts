@@ -1,4 +1,4 @@
-import type { ClenzyBookingConfig, WidgetState, DayAvailability } from './types';
+import type { BaitlyBookingConfig, WidgetState, DayAvailability } from './types';
 import { StateManager, createInitialState } from './state';
 import { generateThemeCSS } from './theme';
 import { BookingApi } from './api';
@@ -20,8 +20,8 @@ import resetCSS from './styles/reset.css?raw';
 import baseCSS from './styles/base.css?raw';
 import componentsCSS from './styles/components.css?raw';
 
-export class ClenzyWidget {
-  private config: ClenzyBookingConfig;
+export class BaitlyWidget {
+  private config: BaitlyBookingConfig;
   private state: StateManager;
   private api: BookingApi;
   private i18n: ReturnType<typeof createBookingI18n>;
@@ -29,7 +29,7 @@ export class ClenzyWidget {
   private host: HTMLElement | null = null;
   private unsubscribers: (() => void)[] = [];
 
-  constructor(config: ClenzyBookingConfig) {
+  constructor(config: BaitlyBookingConfig) {
     this.config = config;
     this.i18n = createBookingI18n(config.language || 'fr');
     this.api = new BookingApi(
@@ -387,7 +387,7 @@ export class ClenzyWidget {
   }
 
   /** Update theme at runtime */
-  updateTheme(theme: Partial<ClenzyBookingConfig['theme']>): void {
+  updateTheme(theme: Partial<BaitlyBookingConfig['theme']>): void {
     if (!this.shadowRoot) return;
     this.config.theme = { ...this.config.theme, ...theme };
     const themeStyle = this.shadowRoot.querySelector('style');

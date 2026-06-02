@@ -37,7 +37,7 @@ import { SIDEBAR_WIDTH_EXPANDED, SIDEBAR_WIDTH_COLLAPSED } from '../hooks/useSid
 import { groupMenuItems, NAV_GROUP_TRANSLATION_KEYS } from '../hooks/useNavigationMenu';
 import type { MenuItem, NavGroup } from '../hooks/useNavigationMenu';
 import SidebarNavItem from './SidebarNavItem';
-import ClenzyMarkLogo from './ClenzyMarkLogo';
+import BaitlyMarkLogo from './BaitlyMarkLogo';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -98,7 +98,7 @@ export default function Sidebar({
   const collapsed = isCollapsed && !isMobile;
 
   // Responsive sizes — comfortable on xl+, compact on lg
-  // logoHeight + logoMaxWidth ne sont plus utilisees : le ClenzyMarkLogo
+  // logoHeight + logoMaxWidth ne sont plus utilisees : le BaitlyMarkLogo
   // gere son propre dimensionnement via la prop size (cf. plus bas).
   const headerHeight = isXl ? 48 : 40;
   const avatarSize = collapsed ? 26 : isXl ? 30 : 26;
@@ -182,9 +182,9 @@ export default function Sidebar({
               d'autres elements UI visibles = inutile d'ajouter du mouvement.
               size=28 = mark 28px + wordmark fontSize 16px proportionnel. */}
         {collapsed ? (
-          <ClenzyMarkLogo variant="mark" size={36} />
+          <BaitlyMarkLogo variant="mark" size={36} />
         ) : (
-          <ClenzyMarkLogo variant="full" size={28} idleAnimation={false} />
+          <BaitlyMarkLogo variant="full" size={28} idleAnimation={false} />
         )}
       </Box>
 

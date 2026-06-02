@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography, useTheme, alpha, useMediaQuery, CssBaseline, ThemeProvider } from '@mui/material';
-import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
+import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 
 /**
  * Layout partage par les pages d'auth (Login, Inscription, mot de passe oublie).
@@ -220,7 +220,7 @@ export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutP
   // Logique business : pays arabes -> ar, France/Maghreb -> fr, autres -> en.
   // Hook override l'i18n au mount + restore au unmount.
   const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createClenzyTheme({ isDark: false, isRtl }), [isRtl]);
+  const theme = useMemo(() => createBaitlyTheme({ isDark: false, isRtl }), [isRtl]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -404,7 +404,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
 
           {/* Header : logo. tone="dark" en photo mode (nodes blancs sur bg fonce). */}
           <Box sx={{ position: 'relative', zIndex: 1 }}>
-            <ClenzyMarkLogo scale={0.95} tone={ENABLE_PHOTO_HERO ? 'dark' : 'auto'} />
+            <BaitlyMarkLogo scale={0.95} tone={ENABLE_PHOTO_HERO ? 'dark' : 'auto'} />
           </Box>
 
           {/* Centre : carrousel slide actuel + dots verticaux a droite.
@@ -627,7 +627,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
           {/* Logo compact en haut sur mobile (le panneau brand est cache) */}
           {!isMdUp && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-              <ClenzyMarkLogo scale={0.85} />
+              <BaitlyMarkLogo scale={0.85} />
             </Box>
           )}
 

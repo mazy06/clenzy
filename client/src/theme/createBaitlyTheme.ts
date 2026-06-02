@@ -12,7 +12,7 @@ import darkTheme from './darkTheme';
 const ARABIC_FONT_STACK =
   '"Tajawal", "Tahoma", "Geeza Pro", "Arabic Typesetting", "Traditional Arabic", sans-serif';
 
-export interface CreateClenzyThemeOpts {
+export interface CreateBaitlyThemeOpts {
   isDark?: boolean;
   isRtl?: boolean;
 }
@@ -35,7 +35,7 @@ export interface CreateClenzyThemeOpts {
  * AuthLayout ignorait l'isRtl -> les pages de login/inscription restaient en
  * Plus Jakarta Sans meme avec langue UI = arabe (bug user 2026-05-28).</p>
  */
-export function createClenzyTheme(opts: CreateClenzyThemeOpts = {}): Theme {
+export function createBaitlyTheme(opts: CreateBaitlyThemeOpts = {}): Theme {
   const { isDark = false, isRtl = false } = opts;
   const baseTheme = isDark ? darkTheme : lightTheme;
 
