@@ -67,6 +67,8 @@ function TabPanel(props: TabPanelProps) {
 
 const ContactPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
+  // Sous-vue de l'onglet "Messages archivés" : conversations (défaut) ou formulaires archivés.
+  const [archivedView, setArchivedView] = useState<'conversations' | 'formulaires'>('conversations');
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -161,7 +163,32 @@ const ContactPage: React.FC = () => {
             </TabPanel>
 
             <TabPanel value={tabValue} index={1}>
-              <ContactMessages type="archived" />
+              {/* Bascule conversations / formulaires archivés (formulaires : admin/manager) */}
+              {isAdminOrManager && (
+                <Box sx={{ display: 'flex', gap: 1, px: 2, pt: 1.5, pb: 1, flexShrink: 0 }}>
+                  <Button
+                    size="small"
+                    variant={archivedView === 'conversations' ? 'contained' : 'text'}
+                    onClick={() => setArchivedView('conversations')}
+                    sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
+                  >
+                    Conversations
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={archivedView === 'formulaires' ? 'contained' : 'text'}
+                    onClick={() => setArchivedView('formulaires')}
+                    sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
+                  >
+                    Formulaires
+                  </Button>
+                </Box>
+              )}
+              <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                {isAdminOrManager && archivedView === 'formulaires'
+                  ? <ReceivedFormsTab archivedOnly />
+                  : <ContactMessages type="archived" />}
+              </Box>
             </TabPanel>
 
             {isAdminOrManager && (

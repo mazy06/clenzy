@@ -401,11 +401,10 @@ function SupportDetails({ data }: { data: Record<string, unknown> }) {
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
-const ReceivedFormsTab: React.FC = () => {
+const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly = false }) => {
   const theme = useTheme();
   const [selectedForm, setSelectedForm] = useState<ReceivedForm | null>(null);
   const [filterType, setFilterType] = useState<string>('');
-  const [showArchived, setShowArchived] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   // Éditeur de renvoi du devis (objet + corps modifiables avant renvoi).
@@ -423,8 +422,8 @@ const ReceivedFormsTab: React.FC = () => {
     page,
     size: rowsPerPage,
     type: filterType || undefined,
-    status: showArchived ? 'ARCHIVED' : undefined,
-  }), [page, filterType, showArchived]);
+    status: archivedOnly ? 'ARCHIVED' : undefined,
+  }), [page, filterType, archivedOnly]);
 
   const { data: formsPage, isLoading } = useReceivedForms(queryParams);
   const updateStatusMutation = useUpdateFormStatus();
@@ -671,24 +670,6 @@ const ReceivedFormsTab: React.FC = () => {
             />
           );
         })}
-        {/* Toggle vue Archivés (exclus de la liste active) */}
-        <Chip
-          label="Archivés"
-          size="small"
-          icon={<Box component="span" sx={{ display: 'inline-flex', ml: 0.5 }}><ArchiveIcon size={13} strokeWidth={1.75} /></Box>}
-          onClick={() => { setShowArchived(v => !v); setPage(0); }}
-          sx={{
-            fontSize: '0.6875rem', height: 26, borderRadius: '6px', cursor: 'pointer',
-            fontWeight: 600,
-            '& .MuiChip-label': { px: 1 },
-            backgroundColor: showArchived ? '#757575' : '#75757518',
-            color: showArchived ? '#fff' : '#757575',
-            border: '1px solid #75757540',
-            '& .MuiChip-icon': { color: showArchived ? '#fff' : '#757575' },
-            transition: 'all 0.15s ease',
-            '&:hover': { backgroundColor: showArchived ? '#757575' : '#75757528' },
-          }}
-        />
         <Tooltip title="Rafraichir">
           <IconButton size="small" onClick={() => resetAvailabilityMutation.mutate()}>
             <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><RefreshIcon size={18} strokeWidth={1.75} /></Box>
