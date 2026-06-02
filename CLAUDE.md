@@ -10,6 +10,15 @@
 - Chaque changeset dans le YAML utilise : `id: "NNNN-description-avec-tirets"`, `author: clenzy-team`
 - Pour les blocs PL/pgSQL (`DO $$`), ajouter `splitStatements: false` et `stripComments: false`
 
+### Production : Liquibase = source de vérité du schéma (INVARIANT, ne pas modifier)
+
+- En prod, `clenzy-infra/docker-compose.prod.yml` fixe sur le service `pms-server` :
+  - `SPRING_LIQUIBASE_ENABLED: "true"` — **DOIT rester à `true`**. C'est ce qui permet à Liquibase de tourner. Le repasser à `false` casse l'application des migrations.
+  - `SPRING_JPA_HIBERNATE_DDL_AUTO: validate` — Hibernate ne modifie plus le schéma, il le valide seulement. Ne pas remettre `update`/`create`.
+- Ces deux variables sont un **invariant depuis la Phase 5b-bis (2026-05-21)**. Liquibase est l'**unique source de vérité** du schéma prod. **Ne JAMAIS les modifier.**
+- **Conséquence (flux normal)** : un nouveau changeset s'applique **automatiquement au boot** du `pms-server-prod` après un CD Deploy. Le flux complet : commit changeset + entrée dans `db.changelog-master.yaml` → PR `main → production` → merge → CD Deploy → le nouveau container exécute le changeset au démarrage Spring Boot. **Aucun `workflow_dispatch` ni Liquibase Bootstrap requis** (`liquibase-bootstrap.yml` est recovery-only : baseline reset / force-sync après incident).
+- Si `SPRING_LIQUIBASE_ENABLED` repassait à `false`, les migrations cesseraient de s'appliquer → dérive de schéma vs entités JPA → bugs **prod-only** (ex : changeset 0164, contrainte CHECK `document_generations_reference_type_check` héritée de Hibernate qui rejetait `RECEIVED_FORM` et faisait planter la génération de PDF).
+
 ## Docker Rules
 
 - Ne JAMAIS relancer, redémarrer ou stopper les containers Docker. Si un redémarrage est nécessaire (migration, changement de config, etc.), indiquer clairement à l'utilisateur quel(s) container(s) relancer (ou si tout doit être relancé).

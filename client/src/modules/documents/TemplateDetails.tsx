@@ -58,6 +58,8 @@ const TemplateDetails: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   // Modal de confirmation pour le remplacement du fichier (remplace window.confirm)
   const [pendingReplaceFile, setPendingReplaceFile] = useState<File | null>(null);
+  // Modal de confirmation pour la suppression du template (remplace window.confirm)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   // Kebab menu (regroupe les actions secondaires du header pour reduire l'encombrement)
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
@@ -158,14 +160,19 @@ const TemplateDetails: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Supprimer ce template ?')) return;
+  const handleDelete = () => {
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
     setActionError(null);
     try {
       await deleteMutation.mutateAsync(templateId);
+      setDeleteConfirmOpen(false);
       navigate('/documents');
     } catch {
       setActionError('Erreur lors de la suppression');
+      setDeleteConfirmOpen(false);
     }
   };
 
@@ -566,6 +573,21 @@ const TemplateDetails: React.FC = () => {
         icon={<Upload size={22} strokeWidth={1.75} />}
         confirmIcon={<Upload size={18} strokeWidth={1.75} />}
         confirmColor="primary"
+      />
+
+      {/* ── Modal de confirmation de suppression du template ─────────── */}
+      <ConfirmationModal
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Supprimer le template ?"
+        message={`Le template « ${template.name} » sera définitivement supprimé. Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        severity="error"
+        loading={deleteMutation.isPending}
+        icon={<Delete size={22} strokeWidth={1.75} />}
+        confirmIcon={<Delete size={18} strokeWidth={1.75} />}
       />
     </Box>
   );
