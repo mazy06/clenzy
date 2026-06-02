@@ -58,9 +58,9 @@ class ReceivedFormControllerTest {
         void whenAdmin_thenReturnsOk() {
             ReceivedForm form = new ReceivedForm();
             Page<ReceivedForm> page = new PageImpl<>(List.of(form));
-            when(receivedFormRepository.findAllByOrderByCreatedAtDesc(any(PageRequest.class))).thenReturn(page);
+            when(receivedFormRepository.findByStatusNotOrderByCreatedAtDesc(eq("ARCHIVED"), any(PageRequest.class))).thenReturn(page);
 
-            ResponseEntity<?> response = controller.listForms(createJwt("SUPER_ADMIN"), 0, 20, null);
+            ResponseEntity<?> response = controller.listForms(createJwt("SUPER_ADMIN"), 0, 20, null, null);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
@@ -68,23 +68,23 @@ class ReceivedFormControllerTest {
         @Test
         void whenAdminWithType_thenFiltersResult() {
             Page<ReceivedForm> page = new PageImpl<>(List.of());
-            when(receivedFormRepository.findByFormTypeOrderByCreatedAtDesc(eq("DEVIS"), any(PageRequest.class))).thenReturn(page);
+            when(receivedFormRepository.findByFormTypeAndStatusNotOrderByCreatedAtDesc(eq("DEVIS"), eq("ARCHIVED"), any(PageRequest.class))).thenReturn(page);
 
-            ResponseEntity<?> response = controller.listForms(createJwt("SUPER_ADMIN"), 0, 20, "devis");
+            ResponseEntity<?> response = controller.listForms(createJwt("SUPER_ADMIN"), 0, 20, "devis", null);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(receivedFormRepository).findByFormTypeOrderByCreatedAtDesc(eq("DEVIS"), any(PageRequest.class));
+            verify(receivedFormRepository).findByFormTypeAndStatusNotOrderByCreatedAtDesc(eq("DEVIS"), eq("ARCHIVED"), any(PageRequest.class));
         }
 
         @Test
         void whenNullJwt_thenUnauthorized() {
-            ResponseEntity<?> response = controller.listForms(null, 0, 20, null);
+            ResponseEntity<?> response = controller.listForms(null, 0, 20, null, null);
             assertThat(response.getStatusCode().value()).isEqualTo(401);
         }
 
         @Test
         void whenHost_thenForbidden() {
-            ResponseEntity<?> response = controller.listForms(createJwt("HOST"), 0, 20, null);
+            ResponseEntity<?> response = controller.listForms(createJwt("HOST"), 0, 20, null, null);
             assertThat(response.getStatusCode().value()).isEqualTo(403);
         }
     }
