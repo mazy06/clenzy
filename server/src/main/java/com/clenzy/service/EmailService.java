@@ -41,11 +41,12 @@ public class EmailService {
     private String fromAddress;
 
     /**
-     * Display name affiche dans le From ({@code Clenzy <info@clenzy.fr>}).
+     * Display name affiche dans le From ({@code Baitly <info@clenzy.fr>}).
      * Reduit le score spam : un nom humain inspire confiance, et l'alignement
      * DKIM + From-domain reste vrai puisque l'adresse ne change pas.
+     * Surchargeable via {@code clenzy.mail.from-name} (env CLENZY_MAIL_FROM_NAME).
      */
-    @Value("${clenzy.mail.from-name:Clenzy}")
+    @Value("${clenzy.mail.from-name:Baitly}")
     private String fromName;
 
     /** Mailto fallback pour List-Unsubscribe (legacy clients non one-click). */
