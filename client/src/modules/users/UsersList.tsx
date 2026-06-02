@@ -68,6 +68,10 @@ interface User {
   email: string;
   phoneNumber?: string;
   role: string;
+  // Rôle du membre dans son organisation (OrgMemberRole, ex: MANAGER). Affiché en
+  // priorité dans l'Annuaire pour les membres d'org (le rôle plateforme d'un
+  // Manager/Admin d'org est HOST = "Propriétaire", ce qui prêtait à confusion).
+  organizationRole?: string;
   status: string;
   createdAt: string;
 }
@@ -82,6 +86,22 @@ const userRoles: Array<{ value: string; label: string; Icon: LucideIcon; color: 
   { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', Icon: Build, color: 'primary', hex: '#6B8A9A' },
   { value: 'HOST', label: 'Propriétaire', Icon: Home, color: 'success', hex: '#4A9B8E' },
 ];
+
+// Libellés/visuels des rôles d'ORGANISATION (OrgMemberRole), affichés dans
+// l'Annuaire pour les membres d'org. Distinct de userRoles (rôles plateforme) :
+// un Manager/Admin d'org a le rôle plateforme HOST, mais on veut afficher son rôle réel.
+const orgRoleDisplay: Record<string, { label: string; Icon: LucideIcon; color: ChipColor; hex: string }> = {
+  OWNER: { label: 'Propriétaire', Icon: Home, color: 'success', hex: '#4A9B8E' },
+  ADMIN: { label: 'Administrateur', Icon: AdminPanelSettings, color: 'error', hex: '#C97A7A' },
+  MANAGER: { label: 'Manager', Icon: SupervisorAccount, color: 'warning', hex: '#D4A574' },
+  SUPERVISOR: { label: 'Superviseur', Icon: SupervisorAccount, color: 'info', hex: '#7BA3C2' },
+  HOUSEKEEPER: { label: 'Agent de ménage', Icon: CleaningServices, color: 'default', hex: '#8A8378' },
+  TECHNICIAN: { label: 'Technicien', Icon: Build, color: 'primary', hex: '#6B8A9A' },
+  LAUNDRY: { label: 'Blanchisserie', Icon: CleaningServices, color: 'default', hex: '#8A8378' },
+  EXTERIOR_TECH: { label: 'Tech. Extérieur', Icon: Build, color: 'primary', hex: '#6B8A9A' },
+  HOST: { label: 'Hôte', Icon: Home, color: 'success', hex: '#4A9B8E' },
+  MEMBER: { label: 'Membre', Icon: Home, color: 'default', hex: '#8A8378' },
+};
 
 const USER_STATUS_HEX: Record<string, string> = {
   ACTIVE: '#4A9B8E',
@@ -252,6 +272,17 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
 
   const getRoleInfo = (role: string) => {
     return userRoles.find(r => r.value === role) || userRoles[0];
+  };
+
+  // Rôle à afficher dans l'Annuaire : pour un membre d'organisation, on montre son
+  // rôle d'org réel (Manager, Administrateur…) ; pour le staff plateforme
+  // (Super Admin/Manager), on garde le rôle plateforme.
+  const getEffectiveRoleInfo = (user: User) => {
+    const isPlatformStaff = user.role === 'SUPER_ADMIN' || user.role === 'SUPER_MANAGER';
+    if (!isPlatformStaff && user.organizationRole && orgRoleDisplay[user.organizationRole]) {
+      return orgRoleDisplay[user.organizationRole];
+    }
+    return getRoleInfo(user.role);
   };
 
   const getStatusInfo = (status: string) => {
@@ -464,7 +495,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
           </Grid>
         ) : (
           filteredUsers.map((user) => {
-            const r = getRoleInfo(user.role);
+            const r = getEffectiveRoleInfo(user);
             const s = getStatusInfo(user.status);
             const roleColor = r.hex;
             const statusColor = USER_STATUS_HEX[user.status] || '#8A8378';

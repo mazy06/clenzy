@@ -2847,6 +2847,7 @@
       "noise_alert_guest": "Noise alert — Guest",
       "invitation_organization": "Invitation to join an organization",
       "quote_request_internal": "Internal notification — Quote request",
+      "quote_to_prospect": "Quote — Prospect",
       "maintenance_request_internal": "Internal notification — Maintenance request"
     },
     "dialog": {
