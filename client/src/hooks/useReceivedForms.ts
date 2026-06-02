@@ -5,14 +5,14 @@ import { receivedFormsApi } from '../services/api/receivedFormsApi';
 
 export const receivedFormsKeys = {
   all: ['received-forms'] as const,
-  list: (params: { page?: number; size?: number; type?: string }) =>
+  list: (params: { page?: number; size?: number; type?: string; status?: string }) =>
     [...receivedFormsKeys.all, 'list', params] as const,
   stats: () => [...receivedFormsKeys.all, 'stats'] as const,
 };
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
-export function useReceivedForms(params: { page?: number; size?: number; type?: string } = {}) {
+export function useReceivedForms(params: { page?: number; size?: number; type?: string; status?: string } = {}) {
   return useQuery({
     queryKey: receivedFormsKeys.list(params),
     queryFn: () => receivedFormsApi.list(params),
