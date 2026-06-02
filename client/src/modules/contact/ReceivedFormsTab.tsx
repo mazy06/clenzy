@@ -168,7 +168,7 @@ const SUPPORT_GROUPS: FieldGroup[] = [
 function SectionHeader({ title }: { icon?: React.ReactNode; title: string; accentColor?: string }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-      <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'text.secondary' }}>
+      <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'text.secondary' }}>
         {title}
       </Typography>
       <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
@@ -176,71 +176,43 @@ function SectionHeader({ title }: { icon?: React.ReactNode; title: string; accen
   );
 }
 
-// Tuile KPI neutre — surface unie, libellé + icône discrète en tête,
-// valeur en tabular-nums. `color` conservé dans la signature (ignoré).
+// Tuile KPI à plat — libellé + icône discrète en tête, valeur en
+// tabular-nums, sans cadre ni gras. `color` conservé (ignoré).
 function KpiTile({
   icon, label, value, span = 1,
 }: { icon: React.ReactNode; label: string; value: string; color?: string; span?: number }) {
   return (
-    <Box
-      sx={{
-        gridColumn: `span ${span}`,
-        p: 1.75,
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        bgcolor: 'background.paper',
-        transition: 'border-color 200ms ease',
-        '&:hover': { borderColor: 'text.disabled' },
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+    <Box sx={{ gridColumn: `span ${span}`, minWidth: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mb: 0.5 }}>
         <Box sx={{ display: 'inline-flex', color: 'text.disabled' }}>
           {icon}
         </Box>
-        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+        <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
           {label}
         </Typography>
       </Box>
-      <Typography sx={{ fontSize: '1.375rem', fontWeight: 700, color: 'text.primary', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <Typography sx={{ fontSize: '1.375rem', fontWeight: 400, color: 'text.primary', lineHeight: 1.15, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {value}
       </Typography>
     </Box>
   );
 }
 
-// Ligne d'info neutre — icône discrète, valeur lisible, check à l'accent
-// de marque. `color` conservé dans la signature (ignoré).
+// Ligne d'info à plat — icône discrète, check à l'accent de marque,
+// sans cadre ni gras. `color` conservé (ignoré).
 function FeatureRow({
   icon, label, value, checked = true,
 }: { icon: React.ReactNode; label: string; value: string; color?: string; checked?: boolean }) {
   return (
-    <Box
-      sx={{
-        display: 'flex', alignItems: 'center', gap: 1.5,
-        p: 1.5, borderRadius: 1.5,
-        border: '1px solid', borderColor: 'divider',
-        bgcolor: 'background.paper',
-        transition: 'border-color 200ms ease',
-        '&:hover': { borderColor: 'text.disabled' },
-      }}
-    >
-      <Box
-        sx={{
-          width: 30, height: 30, borderRadius: 1.5,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          bgcolor: 'action.hover',
-          color: 'text.secondary',
-          flexShrink: 0,
-        }}
-      >
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, py: 1 }}>
+      <Box sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0 }}>
         {icon}
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.2 }}>
+        <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.2 }}>
           {label}
         </Typography>
-        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.35, mt: 0.25 }}>
+        <Typography sx={{ fontSize: '0.875rem', fontWeight: 400, color: 'text.primary', lineHeight: 1.35, mt: 0.125 }}>
           {value}
         </Typography>
       </Box>
@@ -1028,7 +1000,7 @@ const ReceivedFormsTab: React.FC = () => {
                             disabled={generateDocumentMutation.isPending}
                             color="primary"
                             sx={{
-                              textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
+                              textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
                               borderRadius: '10px', px: 2.5, py: 0.75,
                               boxShadow: 'none', '&:hover': { boxShadow: 'none' },
                             }}
@@ -1056,7 +1028,7 @@ const ReceivedFormsTab: React.FC = () => {
                             onClick={() => openResendModal(selectedForm)}
                             disabled={generateDocumentMutation.isPending}
                             sx={{
-                              textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
+                              textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
                               borderRadius: '10px', px: 2.5, py: 0.75,
                               color: 'text.secondary', borderColor: 'divider',
                               '&:hover': { borderColor: 'text.disabled', bgcolor: 'action.hover' },
@@ -1076,7 +1048,7 @@ const ReceivedFormsTab: React.FC = () => {
                           onClick={() => handleUpdateStatus('PROCESSED')}
                           disabled={updateStatusMutation.isPending}
                           sx={{
-                            textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
+                            textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
                             borderRadius: '10px', px: 2.5, py: 0.75,
                           }}
                         >
