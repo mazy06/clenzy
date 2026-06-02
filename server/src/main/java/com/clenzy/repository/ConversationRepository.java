@@ -31,7 +31,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     Optional<Conversation> findByOrganizationIdAndReservationIdAndChannel(
         Long organizationId, Long reservationId, ConversationChannel channel);
 
-    @Query("SELECT COUNT(c) FROM Conversation c WHERE c.organizationId = :orgId AND c.unread = true")
+    @Query("SELECT COUNT(c) FROM Conversation c WHERE c.organizationId = :orgId AND c.unread = true AND c.status <> com.clenzy.model.ConversationStatus.ARCHIVED")
     long countUnreadByOrganizationId(@Param("orgId") Long organizationId);
 
     Optional<Conversation> findByIdAndOrganizationId(Long id, Long organizationId);
@@ -40,6 +40,14 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
         Long organizationId, List<ConversationChannel> channels, Pageable pageable);
 
     Page<Conversation> findByOrganizationIdAndChannelInAndStatusOrderByLastMessageAtDesc(
+        Long organizationId, List<ConversationChannel> channels,
+        ConversationStatus status, Pageable pageable);
+
+    // Inbox active : exclut les conversations archivées (status != ARCHIVED).
+    Page<Conversation> findByOrganizationIdAndStatusNotOrderByLastMessageAtDesc(
+        Long organizationId, ConversationStatus status, Pageable pageable);
+
+    Page<Conversation> findByOrganizationIdAndChannelInAndStatusNotOrderByLastMessageAtDesc(
         Long organizationId, List<ConversationChannel> channels,
         ConversationStatus status, Pageable pageable);
 }
