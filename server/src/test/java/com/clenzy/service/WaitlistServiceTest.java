@@ -9,6 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,5 +72,40 @@ class WaitlistServiceTest {
         assertThatThrownBy(() -> service.register(
                 new WaitlistSignupDto("not-an-email", null, null, null, null, null), "1.2.3.4"))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void markUnsubscribed_existingEmail_setsTimestampAndSaves() {
+        WaitlistSignup s = new WaitlistSignup();
+        s.setId(7L);
+        s.setEmail("x@y.com");
+        when(repository.findByEmailIgnoreCase("x@y.com")).thenReturn(Optional.of(s));
+
+        boolean found = service.markUnsubscribed("x@y.com");
+
+        assertThat(found).isTrue();
+        assertThat(s.getUnsubscribedAt()).isNotNull();
+        verify(repository).save(s);
+    }
+
+    @Test
+    void markUnsubscribed_alreadyUnsubscribed_isIdempotent_noSave() {
+        WaitlistSignup s = new WaitlistSignup();
+        s.setId(8L);
+        s.setEmail("x@y.com");
+        s.setUnsubscribedAt(LocalDateTime.now().minusDays(1));
+        when(repository.findByEmailIgnoreCase("x@y.com")).thenReturn(Optional.of(s));
+
+        boolean found = service.markUnsubscribed("x@y.com");
+
+        assertThat(found).isTrue();
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void markUnsubscribed_unknownEmail_returnsFalse() {
+        when(repository.findByEmailIgnoreCase("none@x.com")).thenReturn(Optional.empty());
+        assertThat(service.markUnsubscribed("none@x.com")).isFalse();
+        verify(repository, never()).save(any());
     }
 }
