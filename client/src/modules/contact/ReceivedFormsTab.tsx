@@ -706,9 +706,8 @@ const ReceivedFormsTab: React.FC = () => {
                         sx={{
                           fontSize: '0.625rem', height: 22, borderRadius: '6px',
                           fontWeight: 600, '& .MuiChip-label': { px: 0.75 },
-                          backgroundColor: `${typeConf.color}18`,
+                          backgroundColor: `${typeConf.color}14`,
                           color: typeConf.color,
-                          border: `1px solid ${typeConf.color}40`,
                           '& .MuiChip-icon': { color: typeConf.color, ml: 0.5 },
                         }}
                       />
@@ -719,9 +718,8 @@ const ReceivedFormsTab: React.FC = () => {
                           sx={{
                             fontSize: '0.5625rem', height: 18, borderRadius: '4px',
                             fontWeight: 600, '& .MuiChip-label': { px: 0.5 },
-                            backgroundColor: `${statusConf.color}18`,
+                            backgroundColor: `${statusConf.color}14`,
                             color: statusConf.color,
-                            border: `1px solid ${statusConf.color}30`,
                           }}
                         />
                       )}
@@ -738,7 +736,7 @@ const ReceivedFormsTab: React.FC = () => {
                     {/* Row 2: Name */}
                     <Typography sx={{
                       fontSize: '0.8125rem',
-                      fontWeight: isNew ? 700 : 600,
+                      fontWeight: 600,
                       color: 'text.primary',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       lineHeight: 1.3,
@@ -812,18 +810,7 @@ const ReceivedFormsTab: React.FC = () => {
                     .slice(0, 2)
                     .join('') || '?';
                   return (
-                    <Box
-                      sx={{
-                        mb: 3, p: 2.5, borderRadius: 2,
-                        position: 'relative', overflow: 'hidden',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        background: (t) =>
-                          t.palette.mode === 'dark'
-                            ? `linear-gradient(135deg, ${t.palette.background.paper} 0%, ${alpha(tc.color, 0.1)} 100%)`
-                            : `linear-gradient(135deg, #fff 0%, ${alpha(tc.color, 0.06)} 100%)`,
-                      }}
-                    >
+                    <Box sx={{ mb: 3, pb: 2.75, borderBottom: '1px solid', borderColor: 'divider' }}>
                       {/* Top row : type chip à gauche + date + statut à droite */}
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
                         <Chip
@@ -832,10 +819,11 @@ const ReceivedFormsTab: React.FC = () => {
                           size="small"
                           sx={{
                             fontSize: '0.6875rem', height: 24, borderRadius: '6px',
-                            fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4,
+                            fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4,
                             '& .MuiChip-label': { px: 0.75 },
-                            backgroundColor: tc.color, color: '#fff',
-                            '& .MuiChip-icon': { color: '#fff !important', ml: 0.5 },
+                            backgroundColor: (t) => alpha(tc.color, t.palette.mode === 'dark' ? 0.22 : 0.12),
+                            color: tc.color,
+                            '& .MuiChip-icon': { color: `${tc.color} !important`, ml: 0.5 },
                           }}
                         />
                         <Chip
@@ -847,8 +835,8 @@ const ReceivedFormsTab: React.FC = () => {
                           sx={{
                             fontSize: '0.6875rem', height: 24, borderRadius: '6px',
                             fontWeight: 600, '& .MuiChip-label': { px: 0.75 },
-                            backgroundColor: `${sc.color}18`, color: sc.color,
-                            border: `1px solid ${sc.color}40`,
+                            backgroundColor: (t) => alpha(sc.color, t.palette.mode === 'dark' ? 0.22 : 0.12),
+                            color: sc.color,
                           }}
                         />
                         <Box sx={{ flex: 1 }} />
@@ -861,18 +849,17 @@ const ReceivedFormsTab: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                         <Box
                           sx={{
-                            width: 52, height: 52, borderRadius: '50%',
+                            width: 48, height: 48, borderRadius: '14px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             bgcolor: tc.color, color: '#fff',
-                            fontSize: '1.125rem', fontWeight: 700, letterSpacing: '0.05em',
+                            fontSize: '1.0625rem', fontWeight: 600, letterSpacing: '0.04em',
                             flexShrink: 0,
-                            boxShadow: `0 2px 6px ${tc.color}40`,
                           }}
                         >
                           {initials}
                         </Box>
                         <Box sx={{ minWidth: 0, flex: 1 }}>
-                          <Typography sx={{ fontSize: '1.125rem', fontWeight: 700, lineHeight: 1.2, color: 'text.primary' }}>
+                          <Typography sx={{ fontSize: '1.125rem', fontWeight: 600, lineHeight: 1.2, color: 'text.primary' }}>
                             {name}
                           </Typography>
                           <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mt: 0.25 }}>
