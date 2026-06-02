@@ -149,6 +149,15 @@ const DEVIS_VALUE_LABELS: Record<string, Record<string, string>> = {
 function formatFieldValue(key: string, value: unknown): string {
   if (Array.isArray(value)) return value.map(v => formatFieldValue(key, v)).join(', ');
   const str = String(value);
+  // Capacité voyageurs : c'est un intervalle (ex. "1-2"). Le remplacement
+  // tiret→espace ci-dessous le rendrait "1 2" (lu comme "12"). On formate
+  // explicitement l'intervalle en "X à Y" pour lever l'ambiguïté.
+  if (key === 'guestCapacity') {
+    const labeled = DEVIS_VALUE_LABELS[key]?.[str];
+    if (labeled) return labeled;
+    const range = str.match(/^\s*(\d+)\s*[-–\s]\s*(\d+)\s*$/);
+    return range ? `${range[1]} à ${range[2]}` : str;
+  }
   return DEVIS_VALUE_LABELS[key]?.[str] || str.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
