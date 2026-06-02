@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.dto.MaintenanceRequestDto;
 import com.clenzy.dto.QuoteRequestDto;
+import com.clenzy.model.WaitlistSignup;
 import com.clenzy.service.messaging.EmailWrapperService;
 import com.clenzy.service.messaging.SystemEmailTemplateService;
 import com.clenzy.service.messaging.TemplateInterpolationService;
@@ -223,6 +224,50 @@ public class EmailService {
         } catch (Exception e) {
             log.error("Erreur d'envoi email devis pour {} : {}", dto.getFullName(), e.getMessage(), e);
             throw new RuntimeException("Erreur d'envoi de l'email de notification", e);
+        }
+    }
+
+    /**
+     * Notifie l'équipe (info@clenzy.fr) d'une nouvelle inscription à la waitlist de
+     * lancement. Non bloquant : toute erreur est journalisée sans empêcher l'inscription.
+     */
+    public void sendWaitlistNotification(WaitlistSignup s, long position) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(fromAddress, fromName);
+            helper.setTo(notificationTo);
+            if (s.getEmail() != null && !s.getEmail().isBlank()) {
+                helper.setReplyTo(s.getEmail());
+            }
+            helper.setSubject("Nouvelle inscription waitlist — #" + position
+                    + (s.getFullName() != null ? " — " + s.getFullName() : ""));
+
+            String name = s.getFullName() != null ? StringUtils.escapeHtml(s.getFullName()) : "—";
+            String email = s.getEmail() != null ? StringUtils.escapeHtml(s.getEmail()) : "—";
+            String phone = s.getPhone() != null ? StringUtils.escapeHtml(s.getPhone()) : "—";
+            String city = s.getCity() != null ? StringUtils.escapeHtml(s.getCity()) : "—";
+            String props = s.getPropertyCount() != null ? StringUtils.escapeHtml(s.getPropertyCount()) : "—";
+            String source = s.getSource() != null ? StringUtils.escapeHtml(s.getSource()) : "—";
+
+            String html = """
+                    <h2 style="font-family:Arial,sans-serif;color:#2b2b2b;">Nouvelle inscription waitlist</h2>
+                    <p style="font-family:Arial,sans-serif;color:#444;">Position d'arrivée : <strong>#%d</strong></p>
+                    <table style="font-family:Arial,sans-serif;color:#444;border-collapse:collapse;">
+                      <tr><td style="padding:4px 16px 4px 0;"><strong>Nom</strong></td><td>%s</td></tr>
+                      <tr><td style="padding:4px 16px 4px 0;"><strong>Email</strong></td><td>%s</td></tr>
+                      <tr><td style="padding:4px 16px 4px 0;"><strong>Téléphone</strong></td><td>%s</td></tr>
+                      <tr><td style="padding:4px 16px 4px 0;"><strong>Ville</strong></td><td>%s</td></tr>
+                      <tr><td style="padding:4px 16px 4px 0;"><strong>Nb de biens</strong></td><td>%s</td></tr>
+                      <tr><td style="padding:4px 16px 4px 0;"><strong>Source</strong></td><td>%s</td></tr>
+                    </table>
+                    """.formatted(position, name, email, phone, city, props, source);
+
+            helper.setText(html, true);
+            mailSender.send(message);
+            log.info("Notif waitlist envoyée à {} (inscrit #{} : {})", notificationTo, position, s.getEmail());
+        } catch (Exception e) {
+            log.warn("Notif waitlist KO pour {} : {}", s.getEmail(), e.getMessage());
         }
     }
 
