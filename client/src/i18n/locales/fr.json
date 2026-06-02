@@ -2871,6 +2871,7 @@
       "noise_alert_guest": "Alerte bruit — Voyageur",
       "invitation_organization": "Invitation à rejoindre une organisation",
       "quote_request_internal": "Notification interne — Demande de devis",
+      "quote_to_prospect": "Devis — Prospect",
       "maintenance_request_internal": "Notification interne — Demande de maintenance"
     },
     "dialog": {
