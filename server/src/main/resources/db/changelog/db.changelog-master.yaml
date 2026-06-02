@@ -1625,3 +1625,16 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0169 : Integration marketing Brevo (config en BDD chiffree) ---
+  # Table marketing_integration : cle API chiffree AES-256 + mapping des listes
+  # (waitlist / newsletter / prospects) + toggles de sync. Geree via la tab
+  # Settings « Marketing & Newsletter », remplace la config .env / secret.
+  - changeSet:
+      id: "0169-create-marketing-integration"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0169__create_marketing_integration.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
