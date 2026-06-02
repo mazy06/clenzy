@@ -1,16 +1,13 @@
 package com.clenzy.controller;
 
-import com.clenzy.dto.DocumentGenerationDto;
 import com.clenzy.dto.QuoteRequestDto;
 import com.clenzy.dto.QuoteResponseDto;
 import com.clenzy.model.DocumentType;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.ReceivedForm;
 import com.clenzy.model.ReferenceType;
-import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.DocumentGeneratorService;
-import com.clenzy.service.DocumentStorageService;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.PricingConfigService;
@@ -36,7 +33,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * - Calcule le forfait recommandé (Essentiel / Confort / Premium)
  * - Calcule le tarif par intervention via un moteur de pondération
  *   (type logement × nbre logements × voyageurs × surface × fréquence)
- * - Envoie un email de notification à info@clenzy.fr
+ * - Génère le devis PDF et l'envoie au prospect (info@clenzy.fr en copie CC)
  * - Retourne le forfait recommandé au frontend
  */
 @RestController
@@ -51,8 +48,6 @@ public class QuoteController {
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
     private final DocumentGeneratorService documentGeneratorService;
-    private final DocumentGenerationRepository documentGenerationRepository;
-    private final DocumentStorageService documentStorageService;
 
     // Rate limiter simple en mémoire : IP -> liste de timestamps
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
@@ -61,17 +56,13 @@ public class QuoteController {
     public QuoteController(EmailService emailService, PricingConfigService pricingConfigService,
                            ReceivedFormRepository receivedFormRepository, ObjectMapper objectMapper,
                            NotificationService notificationService,
-                           DocumentGeneratorService documentGeneratorService,
-                           DocumentGenerationRepository documentGenerationRepository,
-                           DocumentStorageService documentStorageService) {
+                           DocumentGeneratorService documentGeneratorService) {
         this.emailService = emailService;
         this.pricingConfigService = pricingConfigService;
         this.receivedFormRepository = receivedFormRepository;
         this.objectMapper = objectMapper;
         this.notificationService = notificationService;
         this.documentGeneratorService = documentGeneratorService;
-        this.documentGenerationRepository = documentGenerationRepository;
-        this.documentStorageService = documentStorageService;
     }
 
     /**
@@ -157,47 +148,37 @@ public class QuoteController {
                     ));
         }
 
-        // 5. Génération PDF devis + envoi au prospect (non-bloquant)
-        //    generateFromEvent envoie automatiquement le PDF au prospect via dto.getEmail().
-        //    On récupère ensuite les bytes du fichier généré pour les joindre à l'email interne.
-        //    Si aucun template DEVIS n'est en BDD (cas prod tant que la 0163 n'est pas mergée),
-        //    generateFromEvent retourne null → pdfBytes reste null → email interne envoyé sans PDF
-        //    (= comportement actuel pré-fix). Aucune régression possible.
-        byte[] pdfBytes = null;
-        try {
-            if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
-                DocumentGenerationDto gen = documentGeneratorService.generateFromEvent(
+        // 5. Génération PDF devis + envoi au prospect, avec info@clenzy.fr en COPIE (CC)
+        //    via EmailService.sendQuoteToProspect. PAS d'email interne séparé dans le
+        //    cas nominal. Le devis ne part qu'une fois (dédup) ; un clic "Générer PDF"
+        //    ultérieur dans le PMS ne renverra pas.
+        //    Non-bloquant : la demande reste en BDD/PMS même si l'envoi échoue.
+        boolean prospectNotified = false;
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+            try {
+                documentGeneratorService.generateFromEvent(
                         DocumentType.DEVIS,
                         savedForm.getId(),
                         ReferenceType.RECEIVED_FORM,
                         dto.getEmail(),
                         null   // organizationId null → template GLOBAL (si configuré en BDD)
                 );
-                if (gen != null && gen.id() != null) {
-                    try {
-                        var entity = documentGenerationRepository.findById(gen.id()).orElse(null);
-                        if (entity != null && entity.getFilePath() != null) {
-                            pdfBytes = documentStorageService.loadAsBytes(entity.getFilePath());
-                        }
-                    } catch (Exception e) {
-                        log.warn("PDF généré mais récupération bytes KO pour gen {} : {}",
-                                gen.id(), e.getMessage());
-                    }
-                }
+                prospectNotified = true;
+            } catch (Exception e) {
+                log.warn("Envoi devis prospect KO pour #{} ({}) : {}",
+                        savedForm.getId(), dto.getFullName(), e.getMessage());
             }
-        } catch (Exception e) {
-            log.warn("Génération PDF skippée pour devis #{} ({}) : {}",
-                    savedForm.getId(), dto.getFullName(), e.getMessage());
         }
-
-        // 6. Envoi de l'email de notification interne avec PDF en PJ si généré (non-bloquant)
-        try {
-            emailService.sendQuoteRequestNotification(dto, recommendedPackage, recommendedRate, pdfBytes);
-        } catch (Exception e) {
-            // On ne bloque pas la reponse au prospect : la demande est sauvee en BDD,
-            // les admins la verront via le PMS. L'email est un nice-to-have.
-            log.error("Email envoi KO mais demande #{} sauvegardee en BDD pour {} — {}",
-                    savedForm.getId(), dto.getFullName(), e.getMessage());
+        // FILET : le prospect n'a pas pu être notifié (pas d'email — cas théorique car
+        // validateRequest l'exige — OU échec d'envoi/génération) → on prévient quand
+        // même l'équipe par un email interne à info@clenzy.fr, pour ne jamais rester
+        // aveugle sur une demande de devis.
+        if (!prospectNotified) {
+            try {
+                emailService.sendQuoteRequestNotification(dto, recommendedPackage, recommendedRate, null);
+            } catch (Exception e) {
+                log.warn("Notification interne devis #{} KO : {}", savedForm.getId(), e.getMessage());
+            }
         }
 
         // 7. Notification a tous les SUPER_ADMIN et SUPER_MANAGER de la plateforme

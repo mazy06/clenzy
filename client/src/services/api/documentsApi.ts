@@ -105,6 +105,13 @@ export interface GenerateDocumentRequest {
   referenceType: string;
   emailTo?: string;
   sendEmail: boolean;
+  // Force le renvoi de l'email même si le document a déjà été envoyé à ce
+  // destinataire (bouton « Renvoyer »). Par défaut le backend déduplique.
+  forceResend?: boolean;
+  // Overrides de l'éditeur « Renvoyer » : objet + corps plain text personnalisés.
+  // Vides/absents → contenu par défaut du template ; emailBody '' = corps vide volontaire.
+  emailSubject?: string;
+  emailBody?: string;
 }
 
 export interface DocumentTypeOption {
@@ -231,6 +238,11 @@ export const documentsApi = {
 
   generateDocument(request: GenerateDocumentRequest) {
     return apiClient.post<DocumentGeneration>('/documents/generate', request);
+  },
+
+  /** Contenu par défaut (objet + corps) du mail devis prospect, pour l'éditeur « Renvoyer ». */
+  getQuoteEmailTemplate() {
+    return apiClient.get<{ subject: string; body: string }>('/documents/quote-email-template');
   },
 
   // ─── Historique ─────────────────────────────────────────────────────────

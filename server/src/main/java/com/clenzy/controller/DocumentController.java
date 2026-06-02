@@ -230,6 +230,13 @@ public class DocumentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
+    @GetMapping("/quote-email-template")
+    @Operation(summary = "Contenu par defaut du mail devis prospect (objet + corps) pour l'editeur de renvoi")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','ADMIN','HOST')")
+    public ResponseEntity<Map<String, String>> getQuoteEmailTemplate() {
+        return ResponseEntity.ok(generatorService.getQuoteEmailDefaults());
+    }
+
     // ─── Historique ─────────────────────────────────────────────────────────
 
     @GetMapping("/generations")

@@ -575,7 +575,8 @@ public class DocumentGeneratorService {
                         "Aucun template actif pour le type: " + documentType.getLabel()));
 
         return executeGeneration(template, request.referenceId(), referenceType,
-                request.emailTo(), request.sendEmail(), jwt, null, null);
+                request.emailTo(), request.sendEmail(), jwt, null, null, request.forceResend(),
+                request.emailSubject(), request.emailBody());
     }
 
     /**
@@ -615,8 +616,12 @@ public class DocumentGeneratorService {
             return null;
         }
 
+        // forceResend=false : la dedup s'applique (un devis envoye auto a la
+        // soumission ne doit pas etre renvoye par un clic "Generer PDF" ulterieur).
+        // Pas d'override d'email a la soumission (contenu = template par defaut).
         return executeGeneration(template, referenceId, referenceType,
-                emailTo, emailTo != null && !emailTo.isBlank(), null, organizationId, countryCode);
+                emailTo, emailTo != null && !emailTo.isBlank(), null, organizationId, countryCode,
+                false, null, null);
     }
 
     /**
@@ -629,7 +634,8 @@ public class DocumentGeneratorService {
     private DocumentGenerationDto executeGeneration(DocumentTemplate template, Long referenceId,
                                                      ReferenceType referenceType, String emailTo,
                                                      boolean sendEmail, Jwt jwt, Long explicitOrgId,
-                                                     String explicitCountryCode) {
+                                                     String explicitCountryCode, boolean forceResend,
+                                                     String emailSubject, String emailBody) {
         long startTime = System.currentTimeMillis();
 
         // Resoudre l'organizationId : explicite (Kafka) > TenantContext (HTTP authentifie)
@@ -724,24 +730,36 @@ public class DocumentGeneratorService {
                 createInvoiceForFacture(referenceType, referenceId, legalNumber, generation.getId(), orgId);
             }
 
-            // 9. Envoyer par email si demande
+            // 9. Envoyer par email si demande — avec dedup (1 envoi par destinataire/document).
             if (sendEmail && emailTo != null && !emailTo.isBlank()) {
-                try {
-                    sendDocumentByEmail(template, emailTo, pdfFilename, pdfBytes);
-                    generation.setEmailStatus("SENT");
-                    generation.setEmailSentAt(LocalDateTime.now());
-                    generation.setStatus(DocumentGenerationStatus.SENT);
+                // Garde d'idempotence : si ce document a deja ete envoye a ce destinataire
+                // pour cette reference (ex: envoi auto a la soumission du formulaire +
+                // clic manuel "Generer PDF"), on ne renvoie pas. Un "Renvoyer" explicite
+                // (forceResend=true) court-circuite cette garde.
+                boolean alreadySent = isEmailAlreadySent(forceResend, referenceType,
+                        referenceId, template.getDocumentType(), emailTo);
+                if (alreadySent) {
+                    log.info("Email {} deja envoye a {} pour {}#{} — non renvoye (dedup)",
+                            template.getDocumentType().name(), emailTo, referenceType.name(), referenceId);
+                    generation.setEmailStatus("SKIPPED");
+                } else {
+                    try {
+                        sendDocumentByEmail(template, emailTo, pdfFilename, pdfBytes, emailSubject, emailBody);
+                        generation.setEmailStatus("SENT");
+                        generation.setEmailSentAt(LocalDateTime.now());
+                        generation.setStatus(DocumentGenerationStatus.SENT);
 
-                    notificationService.notifyAdminsAndManagers(
-                            NotificationKey.DOCUMENT_SENT_BY_EMAIL,
-                            "Document envoye par email",
-                            template.getDocumentType().getLabel() + " envoye a " + emailTo,
-                            "/documents",
-                            orgId
-                    );
-                } catch (Exception emailEx) {
-                    log.error("Failed to send document email: {}", emailEx.getMessage());
-                    generation.setEmailStatus("FAILED");
+                        notificationService.notifyAdminsAndManagers(
+                                NotificationKey.DOCUMENT_SENT_BY_EMAIL,
+                                "Document envoye par email",
+                                template.getDocumentType().getLabel() + " envoye a " + emailTo,
+                                "/documents",
+                                orgId
+                        );
+                    } catch (Exception emailEx) {
+                        log.error("Failed to send document email: {}", emailEx.getMessage());
+                        generation.setEmailStatus("FAILED");
+                    }
                 }
             }
 
@@ -898,8 +916,43 @@ public class DocumentGeneratorService {
         }
     }
 
+    /**
+     * Garde d'idempotence : ce document a-t-il deja ete envoye par email a ce
+     * destinataire pour cette reference ? {@code forceResend=true} court-circuite
+     * (bouton "Renvoyer" → toujours false). Extrait en methode package-private
+     * pour etre testee unitairement : la branche email complete dans
+     * {@code executeGeneration} n'est atteignable qu'apres tout le pipeline
+     * XDocReport/LibreOffice, difficile a mocker.
+     */
+    boolean isEmailAlreadySent(boolean forceResend, ReferenceType referenceType,
+                               Long referenceId, DocumentType documentType, String emailTo) {
+        if (forceResend || referenceId == null || referenceType == null
+                || emailTo == null || emailTo.isBlank()) {
+            return false;
+        }
+        return generationRepository.existsSentEmailForReference(
+                documentType.name(), referenceType.name(), referenceId, emailTo);
+    }
+
+    /**
+     * Contenu par defaut (objet + corps plain text) du mail devis prospect, pour
+     * preremplir l'editeur "Renvoyer" cote frontend.
+     */
+    public Map<String, String> getQuoteEmailDefaults() {
+        return emailService.resolveQuoteEmailContent();
+    }
+
     private void sendDocumentByEmail(DocumentTemplate template, String toEmail,
-                                      String pdfFilename, byte[] pdfBytes) {
+                                      String pdfFilename, byte[] pdfBytes,
+                                      String emailSubject, String emailBody) {
+        // Cas DEVIS envoye a un prospect : template email dedie "quote_to_prospect"
+        // (wrapper Baitly + info@clenzy.fr en CC). emailSubject/emailBody surchargent
+        // le contenu (editeur "Renvoyer").
+        if (template.getDocumentType() == DocumentType.DEVIS) {
+            emailService.sendQuoteToProspect(toEmail, pdfBytes, pdfFilename, emailSubject, emailBody);
+            return;
+        }
+
         String subject = template.getEmailSubject() != null && !template.getEmailSubject().isBlank()
                 ? template.getEmailSubject()
                 : "Votre document Clenzy — " + template.getDocumentType().getLabel();
