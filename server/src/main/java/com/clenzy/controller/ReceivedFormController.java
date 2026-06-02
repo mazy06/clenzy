@@ -64,7 +64,8 @@ public class ReceivedFormController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String type) {
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String status) {
 
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
@@ -75,10 +76,20 @@ public class ReceivedFormController {
         PageRequest pageable = PageRequest.of(page, size);
         Page<ReceivedForm> result;
 
-        if (type != null && !type.isBlank()) {
-            result = receivedFormRepository.findByFormTypeOrderByCreatedAtDesc(type.toUpperCase(), pageable);
+        // Vue "Archivés" si status=ARCHIVED ; sinon liste active (exclut les archivés).
+        final String ARCHIVED = "ARCHIVED";
+        boolean archivedView = ARCHIVED.equalsIgnoreCase(status);
+        boolean hasType = type != null && !type.isBlank();
+        String typeUpper = hasType ? type.toUpperCase() : null;
+
+        if (archivedView) {
+            result = hasType
+                    ? receivedFormRepository.findByFormTypeAndStatusOrderByCreatedAtDesc(typeUpper, ARCHIVED, pageable)
+                    : receivedFormRepository.findByStatusOrderByCreatedAtDesc(ARCHIVED, pageable);
         } else {
-            result = receivedFormRepository.findAllByOrderByCreatedAtDesc(pageable);
+            result = hasType
+                    ? receivedFormRepository.findByFormTypeAndStatusNotOrderByCreatedAtDesc(typeUpper, ARCHIVED, pageable)
+                    : receivedFormRepository.findByStatusNotOrderByCreatedAtDesc(ARCHIVED, pageable);
         }
 
         return ResponseEntity.ok(Map.of(

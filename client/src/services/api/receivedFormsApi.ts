@@ -44,7 +44,7 @@ export interface ReceivedFormsStats {
  * approprie au lieu d'un tableau vide trompeur.
  */
 export const receivedFormsApi = {
-  async list(params: { page?: number; size?: number; type?: string } = {}): Promise<ReceivedFormsPage> {
+  async list(params: { page?: number; size?: number; type?: string; status?: string } = {}): Promise<ReceivedFormsPage> {
     return apiClient.get<ReceivedFormsPage>('/admin/received-forms', { params });
   },
 
