@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -88,6 +88,9 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
   const [language, setLanguage] = useState(() => defaultLanguageFor(currentLanguage));
   const [body, setBody] = useState('');
   const [touched, setTouched] = useState(false);
+  // Ref vers le <textarea> sous-jacent pour insérer une variable à la position
+  // du curseur (et non en fin de champ).
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const currentTemplate: WhatsAppTemplateContent | undefined = group?.languages[language];
   const isOverride = currentTemplate && !currentTemplate.isSystem;
@@ -114,7 +117,20 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
   }, [body]);
 
   const handleInsertVariable = (key: string) => {
-    setBody((prev) => prev + `{${key}}`);
+    const variable = `{${key}}`;
+    const el = bodyRef.current;
+    if (!el) {
+      setBody((prev) => prev + variable);
+    } else {
+      const start = el.selectionStart ?? body.length;
+      const end = el.selectionEnd ?? body.length;
+      setBody(body.slice(0, start) + variable + body.slice(end));
+      const caret = start + variable.length;
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(caret, caret);
+      });
+    }
     setTouched(true);
   };
 
@@ -237,6 +253,7 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
                     label={t('messaging.templates.editor.body')}
                     value={body}
                     onChange={(e) => { setBody(e.target.value); setTouched(true); }}
+                    inputRef={bodyRef}
                     multiline
                     rows={12}
                     required
