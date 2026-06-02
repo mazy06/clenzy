@@ -19,6 +19,9 @@ import {
   Build as BuildIcon,
   SupportAgent as SupportIcon,
   CheckCircle as CheckCircleIcon,
+  Check as CheckIcon,
+  DoneAll as CheckCheckIcon,
+  Circle as CircleIcon,
   Archive as ArchiveIcon,
   Refresh as RefreshIcon,
   Inbox as InboxIcon,
@@ -70,6 +73,17 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   PROCESSED: { label: 'Traite', color: '#4A9B8E' },
   ARCHIVED: { label: 'Archive', color: '#757575' },
 };
+
+// Icône de statut — progression lisible : non lu (cercle) → lu (check) →
+// traité (double-check) → archivé (archive). Couleur appliquée par le parent.
+function renderStatusIcon(status: string, size = 15): React.ReactNode {
+  switch (status) {
+    case 'READ': return <CheckIcon size={size} strokeWidth={2.25} />;
+    case 'PROCESSED': return <CheckCheckIcon size={size} strokeWidth={2.25} />;
+    case 'ARCHIVED': return <ArchiveIcon size={size} strokeWidth={1.75} />;
+    default: return <CircleIcon size={size} strokeWidth={2} />; // NEW
+  }
+}
 
 // ─── Labels devis ────────────────────────────────────────────────────────────
 
@@ -676,7 +690,6 @@ const ReceivedFormsTab: React.FC = () => {
                 const typeConf = FORM_TYPE_CONFIG[form.formType] || FORM_TYPE_CONFIG.DEVIS;
                 const statusConf = STATUS_CONFIG[form.status] || STATUS_CONFIG.NEW;
                 const isSelected = selectedForm?.id === form.id;
-                const isNew = form.status === 'NEW';
 
                 return (
                   <Box
@@ -709,37 +722,12 @@ const ReceivedFormsTab: React.FC = () => {
                       }}>
                         {form.fullName}
                       </Typography>
-                      <Chip
-                        icon={typeConf.icon as React.ReactElement}
-                        label={typeConf.label}
-                        size="small"
-                        sx={{
-                          fontSize: '0.625rem', height: 22, borderRadius: '6px',
-                          fontWeight: 600, '& .MuiChip-label': { px: 0.75 }, flexShrink: 0,
-                          backgroundColor: `${typeConf.color}14`,
-                          color: typeConf.color,
-                          '& .MuiChip-icon': { color: typeConf.color, ml: 0.5 },
-                        }}
-                      />
-                      {form.status !== 'NEW' && (
-                        <Chip
-                          label={statusConf.label}
-                          size="small"
-                          sx={{
-                            fontSize: '0.5625rem', height: 18, borderRadius: '4px',
-                            fontWeight: 600, '& .MuiChip-label': { px: 0.5 }, flexShrink: 0,
-                            backgroundColor: `${statusConf.color}14`,
-                            color: statusConf.color,
-                          }}
-                        />
-                      )}
-                      {isNew && (
-                        <Box sx={{
-                          width: 8, height: 8, borderRadius: '50%',
-                          bgcolor: '#ED6C02', flexShrink: 0,
-                          boxShadow: '0 0 0 2px rgba(237,108,2,0.2)',
-                        }} />
-                      )}
+                      <Box component="span" title={typeConf.label} sx={{ display: 'inline-flex', color: typeConf.color, flexShrink: 0 }}>
+                        {React.cloneElement(typeConf.icon as React.ReactElement, { size: 15 })}
+                      </Box>
+                      <Box component="span" title={statusConf.label} sx={{ display: 'inline-flex', color: statusConf.color, flexShrink: 0 }}>
+                        {renderStatusIcon(form.status)}
+                      </Box>
                     </Box>
 
                     {/* Row 3: Subject */}
@@ -917,13 +905,12 @@ const ReceivedFormsTab: React.FC = () => {
                             </Box>
                           </>
                         )}
+                        {selectedForm.ipAddress && (
+                          <Typography sx={{ ml: 'auto', fontSize: '0.625rem', color: 'text.disabled', fontFamily: 'monospace' }}>
+                            IP : {selectedForm.ipAddress}
+                          </Typography>
+                        )}
                       </Box>
-
-                      {selectedForm.ipAddress && (
-                        <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', mt: 1.5, fontFamily: 'monospace' }}>
-                          IP : {selectedForm.ipAddress}
-                        </Typography>
-                      )}
                     </Box>
                   );
                 })()}
