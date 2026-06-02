@@ -575,7 +575,8 @@ public class DocumentGeneratorService {
                         "Aucun template actif pour le type: " + documentType.getLabel()));
 
         return executeGeneration(template, request.referenceId(), referenceType,
-                request.emailTo(), request.sendEmail(), jwt, null, null, request.forceResend());
+                request.emailTo(), request.sendEmail(), jwt, null, null, request.forceResend(),
+                request.emailSubject(), request.emailBody());
     }
 
     /**
@@ -617,8 +618,10 @@ public class DocumentGeneratorService {
 
         // forceResend=false : la dedup s'applique (un devis envoye auto a la
         // soumission ne doit pas etre renvoye par un clic "Generer PDF" ulterieur).
+        // Pas d'override d'email a la soumission (contenu = template par defaut).
         return executeGeneration(template, referenceId, referenceType,
-                emailTo, emailTo != null && !emailTo.isBlank(), null, organizationId, countryCode, false);
+                emailTo, emailTo != null && !emailTo.isBlank(), null, organizationId, countryCode,
+                false, null, null);
     }
 
     /**
@@ -631,7 +634,8 @@ public class DocumentGeneratorService {
     private DocumentGenerationDto executeGeneration(DocumentTemplate template, Long referenceId,
                                                      ReferenceType referenceType, String emailTo,
                                                      boolean sendEmail, Jwt jwt, Long explicitOrgId,
-                                                     String explicitCountryCode, boolean forceResend) {
+                                                     String explicitCountryCode, boolean forceResend,
+                                                     String emailSubject, String emailBody) {
         long startTime = System.currentTimeMillis();
 
         // Resoudre l'organizationId : explicite (Kafka) > TenantContext (HTTP authentifie)
@@ -740,7 +744,7 @@ public class DocumentGeneratorService {
                     generation.setEmailStatus("SKIPPED");
                 } else {
                     try {
-                        sendDocumentByEmail(template, emailTo, pdfFilename, pdfBytes);
+                        sendDocumentByEmail(template, emailTo, pdfFilename, pdfBytes, emailSubject, emailBody);
                         generation.setEmailStatus("SENT");
                         generation.setEmailSentAt(LocalDateTime.now());
                         generation.setStatus(DocumentGenerationStatus.SENT);
@@ -930,13 +934,22 @@ public class DocumentGeneratorService {
                 documentType.name(), referenceType.name(), referenceId, emailTo);
     }
 
+    /**
+     * Contenu par defaut (objet + corps plain text) du mail devis prospect, pour
+     * preremplir l'editeur "Renvoyer" cote frontend.
+     */
+    public Map<String, String> getQuoteEmailDefaults() {
+        return emailService.resolveQuoteEmailContent();
+    }
+
     private void sendDocumentByEmail(DocumentTemplate template, String toEmail,
-                                      String pdfFilename, byte[] pdfBytes) {
-        // Cas DEVIS envoye a un prospect : on utilise le template email dedie
-        // (system_email_template "quote_to_prospect") avec le wrapper Baitly, au
-        // lieu du mail generique "Votre document". Email client-facing soigne.
+                                      String pdfFilename, byte[] pdfBytes,
+                                      String emailSubject, String emailBody) {
+        // Cas DEVIS envoye a un prospect : template email dedie "quote_to_prospect"
+        // (wrapper Baitly + info@clenzy.fr en CC). emailSubject/emailBody surchargent
+        // le contenu (editeur "Renvoyer").
         if (template.getDocumentType() == DocumentType.DEVIS) {
-            emailService.sendQuoteToProspect(toEmail, pdfBytes, pdfFilename);
+            emailService.sendQuoteToProspect(toEmail, pdfBytes, pdfFilename, emailSubject, emailBody);
             return;
         }
 
