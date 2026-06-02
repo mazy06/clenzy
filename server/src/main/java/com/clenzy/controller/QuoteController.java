@@ -2,6 +2,7 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.QuoteRequestDto;
 import com.clenzy.dto.QuoteResponseDto;
+import com.clenzy.dto.WaitlistSignupDto;
 import com.clenzy.model.DocumentType;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.ReceivedForm;
@@ -12,6 +13,7 @@ import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.PlatformSettingsService;
 import com.clenzy.service.PricingConfigService;
+import com.clenzy.service.WaitlistService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -50,6 +52,7 @@ public class QuoteController {
     private final NotificationService notificationService;
     private final DocumentGeneratorService documentGeneratorService;
     private final PlatformSettingsService platformSettingsService;
+    private final WaitlistService waitlistService;
 
     // Rate limiter simple en mémoire : IP -> liste de timestamps
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
@@ -59,7 +62,8 @@ public class QuoteController {
                            ReceivedFormRepository receivedFormRepository, ObjectMapper objectMapper,
                            NotificationService notificationService,
                            DocumentGeneratorService documentGeneratorService,
-                           PlatformSettingsService platformSettingsService) {
+                           PlatformSettingsService platformSettingsService,
+                           WaitlistService waitlistService) {
         this.emailService = emailService;
         this.pricingConfigService = pricingConfigService;
         this.receivedFormRepository = receivedFormRepository;
@@ -67,6 +71,7 @@ public class QuoteController {
         this.notificationService = notificationService;
         this.documentGeneratorService = documentGeneratorService;
         this.platformSettingsService = platformSettingsService;
+        this.waitlistService = waitlistService;
     }
 
     /**
@@ -157,6 +162,19 @@ public class QuoteController {
         //    cas nominal. Le devis ne part qu'une fois (dédup) ; un clic "Générer PDF"
         //    ultérieur dans le PMS ne renverra pas.
         //    Non-bloquant : la demande reste en BDD/PMS même si l'envoi échoue.
+        // 4b. Pré-lancement : verser le lead devis dans la waitlist de lancement
+        //     (toggle plateforme add_devis_leads_to_waitlist, activé par défaut).
+        //     Best-effort : ne jamais faire échouer la demande de devis. Idempotent par email.
+        if (platformSettingsService.isAddDevisLeadsToWaitlist()) {
+            try {
+                waitlistService.register(new WaitlistSignupDto(
+                        dto.getEmail(), dto.getFullName(), dto.getPhone(),
+                        dto.getPropertyCount(), dto.getCity(), "devis"), clientIp);
+            } catch (Exception e) {
+                log.warn("Ajout du devis #{} à la waitlist KO : {}", savedForm.getId(), e.getMessage());
+            }
+        }
+
         // Toggle plateforme : en pré-lancement, les SUPER_ADMIN / SUPER_MANAGER peuvent
         // couper l'envoi des emails de devis aux prospects. info@clenzy.fr reste notifié
         // via le fallback ci-dessous (sendQuoteRequestNotification), pour ne jamais rester

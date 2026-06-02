@@ -35,15 +35,30 @@ public class PlatformSettingsService {
         return getOrDefault().isSendProspectDevisEmails();
     }
 
+    /** Les demandes de devis sont-elles versées dans la waitlist ? (défaut : true). */
+    @Transactional(readOnly = true)
+    public boolean isAddDevisLeadsToWaitlist() {
+        return getOrDefault().isAddDevisLeadsToWaitlist();
+    }
+
     @Transactional
     public PlatformSettings updateSendProspectDevisEmails(boolean enabled, String updatedBy) {
+        return update(s -> s.setSendProspectDevisEmails(enabled), updatedBy);
+    }
+
+    @Transactional
+    public PlatformSettings updateAddDevisLeadsToWaitlist(boolean enabled, String updatedBy) {
+        return update(s -> s.setAddDevisLeadsToWaitlist(enabled), updatedBy);
+    }
+
+    private PlatformSettings update(java.util.function.Consumer<PlatformSettings> mutation, String updatedBy) {
         PlatformSettings settings = repository.findById(PlatformSettings.SINGLETON_ID)
                 .orElseGet(() -> {
                     PlatformSettings fresh = new PlatformSettings();
                     fresh.setId(PlatformSettings.SINGLETON_ID);
                     return fresh;
                 });
-        settings.setSendProspectDevisEmails(enabled);
+        mutation.accept(settings);
         settings.setUpdatedAt(LocalDateTime.now());
         settings.setUpdatedBy(updatedBy);
         return repository.save(settings);

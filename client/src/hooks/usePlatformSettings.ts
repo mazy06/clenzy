@@ -21,3 +21,13 @@ export function useSetProspectDevisEmails() {
     },
   });
 }
+
+export function useSetDevisLeadsToWaitlist() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (enabled: boolean) => platformSettingsApi.setDevisLeadsToWaitlist(enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PLATFORM_SETTINGS_KEY });
+    },
+  });
+}

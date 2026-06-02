@@ -2,6 +2,7 @@ import apiClient from '../apiClient';
 
 export interface PlatformSettings {
   sendProspectDevisEmails: boolean;
+  addDevisLeadsToWaitlist: boolean;
   updatedAt: string | null;
   updatedBy: string | null;
 }
@@ -13,6 +14,11 @@ export const platformSettingsApi = {
   },
   setProspectDevisEmails(enabled: boolean): Promise<{ sendProspectDevisEmails: boolean }> {
     return apiClient.put('/admin/platform-settings/prospect-devis-emails', undefined, {
+      params: { enabled },
+    });
+  },
+  setDevisLeadsToWaitlist(enabled: boolean): Promise<{ addDevisLeadsToWaitlist: boolean }> {
+    return apiClient.put('/admin/platform-settings/devis-leads-to-waitlist', undefined, {
       params: { enabled },
     });
   },
