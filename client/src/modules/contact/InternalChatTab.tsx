@@ -9,6 +9,7 @@ import {
   CircularProgress,
   Alert,
   Chip,
+  Tooltip,
   Skeleton,
   InputAdornment,
   alpha,
@@ -26,6 +27,7 @@ import {
   Check as CheckIcon,
   DoneAll as DoneAllIcon,
   Archive as ArchiveIcon,
+  Unarchive as UnarchiveIcon,
   MarkAsUnread as MarkUnreadIcon,
   Info as InfoIcon,
 } from '../../icons';
@@ -36,6 +38,8 @@ import {
   useThreadMessages,
   useReplyMessage,
   useMarkThreadAsRead,
+  useArchiveThread,
+  useUnarchiveThread,
 } from '../../hooks/useContactMessages';
 import { useContactWebSocket } from '../../hooks/useContactWebSocket';
 import { usePresence } from '../../hooks/usePresence';
@@ -141,7 +145,7 @@ function formatDateSeparator(dateStr: string): string {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const InternalChatTab: React.FC = () => {
+const InternalChatTab: React.FC<{ archived?: boolean }> = ({ archived = false }) => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const theme = useTheme();
@@ -161,20 +165,24 @@ const InternalChatTab: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Queries ──────────────────────────────────────────────────────────────
-  const { data: threads, isLoading: threadsLoading, error: threadsError } = useContactThreads();
+  const { data: threads, isLoading: threadsLoading, error: threadsError } = useContactThreads(archived);
   const { data: messages, isLoading: messagesLoading } = useThreadMessages(
     selectedThread?.counterpartKeycloakId ?? null,
+    archived,
   );
   const replyMutation = useReplyMessage();
   const markThreadAsReadMutation = useMarkThreadAsRead();
+  const archiveThreadMutation = useArchiveThread();
+  const unarchiveThreadMutation = useUnarchiveThread();
 
   // ── Mark unread messages as read when opening a thread ───────────────────
+  // Inapplicable en mode archivé (lecture seule, messages déjà archivés).
   useEffect(() => {
-    if (!selectedThread || !user?.id) return;
+    if (archived || !selectedThread || !user?.id) return;
     if (selectedThread.unreadCount === 0) return;
     markThreadAsReadMutation.mutate(selectedThread.counterpartKeycloakId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedThread?.counterpartKeycloakId]);
+  }, [selectedThread?.counterpartKeycloakId, archived]);
 
   // ── Filtered threads ─────────────────────────────────────────────────────
   const filteredThreads = useMemo(() => {
@@ -650,16 +658,52 @@ const InternalChatTab: React.FC = () => {
                   size="small"
                   sx={softChipSx(semanticToHex('primary'))}
                 />
-                {/* D10 — quick actions: info, mark unread, archive. Not yet wired to handlers. */}
-                <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Infos contact">
-                  <InfoIcon size={'1.125rem'} strokeWidth={1.75} />
-                </IconButton>
-                <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Marquer non lu">
-                  <MarkUnreadIcon size={'1.125rem'} strokeWidth={1.75} />
-                </IconButton>
-                <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Archiver">
-                  <ArchiveIcon size={'1.125rem'} strokeWidth={1.75} />
-                </IconButton>
+                {/* Actions rapides — messagerie active */}
+                {!archived && (
+                  <>
+                    <Tooltip title="Infos du contact" arrow>
+                      <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Infos contact">
+                        <InfoIcon size={'1.125rem'} strokeWidth={1.75} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Marquer comme non lu" arrow>
+                      <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Marquer non lu">
+                        <MarkUnreadIcon size={'1.125rem'} strokeWidth={1.75} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Archiver la conversation" arrow>
+                      <IconButton
+                        size="small"
+                        sx={{ color: 'text.secondary' }}
+                        aria-label="Archiver"
+                        disabled={archiveThreadMutation.isPending}
+                        onClick={() => {
+                          archiveThreadMutation.mutate(selectedThread.counterpartKeycloakId);
+                          setSelectedThread(null);
+                        }}
+                      >
+                        <ArchiveIcon size={'1.125rem'} strokeWidth={1.75} />
+                      </IconButton>
+                    </Tooltip>
+                  </>
+                )}
+                {/* Conversation archivée — restauration (lecture seule) */}
+                {archived && (
+                  <Tooltip title="Restaurer la conversation" arrow>
+                    <IconButton
+                      size="small"
+                      sx={{ color: 'text.secondary' }}
+                      aria-label="Restaurer"
+                      disabled={unarchiveThreadMutation.isPending}
+                      onClick={() => {
+                        unarchiveThreadMutation.mutate(selectedThread.counterpartKeycloakId);
+                        setSelectedThread(null);
+                      }}
+                    >
+                      <UnarchiveIcon size={'1.125rem'} strokeWidth={1.75} />
+                    </IconButton>
+                  </Tooltip>
+                )}
               </Box>
 
               {/* Messages area */}
@@ -964,6 +1008,7 @@ const InternalChatTab: React.FC = () => {
               </Box>
 
               {/* Reply input area */}
+              {!archived && (
               <Box
                 sx={{
                   borderTop: 1,
@@ -1066,6 +1111,7 @@ const InternalChatTab: React.FC = () => {
                   </IconButton>
                 </Box>
               </Box>
+              )}
 
               {/* Lightbox */}
               <PhotoLightbox

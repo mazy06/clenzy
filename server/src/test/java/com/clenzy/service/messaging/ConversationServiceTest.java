@@ -213,9 +213,10 @@ class ConversationServiceTest {
     }
 
     @Test
-    void getInbox_noStatus_returnsAll() {
+    void getInbox_noStatus_excludesArchived() {
         Page<Conversation> page = new PageImpl<>(List.of(new Conversation(), new Conversation()));
-        when(conversationRepository.findByOrganizationIdOrderByLastMessageAtDesc(eq(1L), any()))
+        when(conversationRepository.findByOrganizationIdAndStatusNotOrderByLastMessageAtDesc(
+                eq(1L), eq(ConversationStatus.ARCHIVED), any()))
             .thenReturn(page);
 
         Page<Conversation> result = service.getInbox(1L, null, PageRequest.of(0, 20));
@@ -330,11 +331,11 @@ class ConversationServiceTest {
     }
 
     @Test
-    void getInboxByChannels_noStatus_returnsAllChannels() {
+    void getInboxByChannels_noStatus_excludesArchived() {
         List<ConversationChannel> channels = List.of(ConversationChannel.AIRBNB);
         Page<Conversation> page = new PageImpl<>(List.of(new Conversation(), new Conversation()));
-        when(conversationRepository.findByOrganizationIdAndChannelInOrderByLastMessageAtDesc(
-                eq(1L), eq(channels), any())).thenReturn(page);
+        when(conversationRepository.findByOrganizationIdAndChannelInAndStatusNotOrderByLastMessageAtDesc(
+                eq(1L), eq(channels), eq(ConversationStatus.ARCHIVED), any())).thenReturn(page);
 
         Page<Conversation> result = service.getInboxByChannels(1L, channels,
                 null, PageRequest.of(0, 20));
