@@ -23,6 +23,7 @@ import InvitationsList from './InvitationsList';
 import MembersList from './MembersList';
 import BillingSummaryCard from './BillingSummaryCard';
 import SettingsSection from '../settings/components/SettingsSection';
+import LaunchSettingsSection from '../settings/LaunchSettingsSection';
 
 const ORG_TYPE_LABELS: Record<string, string> = {
   INDIVIDUAL: 'Particulier',
@@ -294,6 +295,11 @@ export default function OrganizationSection({ organizationId }: Props) {
           </Box>
         </Grid>
       </Grid>
+
+      {/* ─── Pré-lancement plateforme (toggle emails prospects + waitlist) ─── */}
+      <Box sx={{ mt: 2 }}>
+        <LaunchSettingsSection />
+      </Box>
 
       {effectiveOrgId && (
         <SendInvitationDialog
