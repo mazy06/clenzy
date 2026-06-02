@@ -55,6 +55,8 @@ import ChannexMappingDialog from './components/ChannexMappingDialog';
 import OtaShowcaseSection from './components/OtaShowcaseSection';
 import ServiceCatalogSection from './components/ServiceCatalogSection';
 import ServiceTooltip from './components/ServiceTooltip';
+import BrevoConfigCard from './components/BrevoConfigCard';
+import { useMarketingIntegration } from '../../hooks/useMarketingIntegration';
 
 // ─── Style helpers (Baitly palette) ─────────────────────────────────────────
 
@@ -157,6 +159,14 @@ export default function IntegrationsSection({
   selectedServiceId = null,
 }: IntegrationsSectionProps = {}) {
   const { t } = useTranslation();
+
+  // ─── Marketing & Newsletter (Brevo — section ACTIVE) ──────────────────────
+  // La tab Intégrations est déjà gatée SUPER_ADMIN / SUPER_MANAGER (Settings.tsx),
+  // donc pas de check de rôle supplémentaire ici. Le badge "Configuré" et le
+  // panneau de config partagent la même requête React Query (cache).
+  const [openMarketing, setOpenMarketing] = useState(false);
+  const { data: marketingData } = useMarketingIntegration();
+  const marketingConfigured = !!marketingData?.configured;
 
   const [status, setStatus] = useState<PennylaneStatus | null>(null);
   const [syncStatus, setSyncStatus] = useState<PennylaneSyncStatus | null>(null);
@@ -493,6 +503,112 @@ export default function IntegrationsSection({
 
   return (
     <Box>
+      {/* ─── Section : Marketing & Newsletter (Brevo — ACTIVE) ─────────── */}
+      {showSection('marketing') && (
+      <Paper
+        id="section-marketing"
+        elevation={0}
+        sx={{
+          borderRadius: '12px',
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: 'none',
+          mb: 2,
+          px: 2,
+          py: 1.75,
+          scrollMarginTop: 80,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>Marketing &amp; Newsletter</Typography>
+          <Chip
+            icon={<CheckCircleIcon size={11} strokeWidth={2} />}
+            label="Disponible"
+            size="small"
+            sx={buildStatusChipSx(ACCENT)}
+          />
+        </Box>
+        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          Synchronisez vos contacts (waitlist, newsletter, leads devis) vers votre plateforme d&apos;emailing pour vos campagnes.
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 1,
+            mt: 1,
+          }}
+        >
+          <Box
+            role="button"
+            tabIndex={0}
+            aria-label="Configurer Brevo"
+            onClick={() => setOpenMarketing(true)}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                setOpenMarketing(true);
+              }
+            }}
+            sx={{
+              position: 'relative',
+              cursor: 'pointer',
+              p: 1,
+              borderRadius: '10px',
+              border: '1px solid',
+              borderColor: marketingConfigured ? `${ACCENT}55` : 'divider',
+              backgroundColor: marketingConfigured ? `${ACCENT}05` : 'background.paper',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              minHeight: 56,
+              outline: 'none',
+              transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+              '&:hover': {
+                borderColor: ACCENT,
+                backgroundColor: `${ACCENT}08`,
+                boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
+              },
+              '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
+            }}
+          >
+            <Box
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: '#0B996E',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                flexShrink: 0,
+              }}
+              aria-hidden="true"
+            >
+              B
+            </Box>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>Brevo</Typography>
+              <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
+                Emailing · Waitlist &amp; Newsletter · API key
+              </Typography>
+            </Box>
+            {marketingConfigured && (
+              <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
+                <CheckCircleIcon size={14} strokeWidth={2.5} />
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </Paper>
+      )}
+      <IntegrationConfigDialog open={openMarketing} onClose={() => setOpenMarketing(false)}>
+        <BrevoConfigCard />
+      </IntegrationConfigDialog>
+
       {/* ─── Choix du provider signature (radio) ──────────────────────── */}
       {showSection('signature') && (
       <Paper
