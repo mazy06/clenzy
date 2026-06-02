@@ -61,6 +61,7 @@ public class EmailService {
     @Value("${clenzy.mail.notification-to:info@clenzy.fr}")
     private String notificationTo;
 
+
     @Value("${clenzy.mail.contact.max-attachments:10}")
     private int maxAttachments;
 
@@ -127,18 +128,61 @@ public class EmailService {
     private final SystemEmailTemplateService systemEmailTemplateService;
     private final TemplateInterpolationService templateInterpolationService;
     private final EmailWrapperService emailWrapperService;
+    private final PlatformSettingsService platformSettingsService;
 
     public EmailService(ObjectProvider<JavaMailSender> mailSenderProvider,
                         SystemEmailTemplateService systemEmailTemplateService,
                         TemplateInterpolationService templateInterpolationService,
-                        EmailWrapperService emailWrapperService) {
+                        EmailWrapperService emailWrapperService,
+                        PlatformSettingsService platformSettingsService) {
         this.mailSender = mailSenderProvider.getIfAvailable();
         this.systemEmailTemplateService = systemEmailTemplateService;
         this.templateInterpolationService = templateInterpolationService;
         this.emailWrapperService = emailWrapperService;
+        this.platformSettingsService = platformSettingsService;
         if (this.mailSender == null) {
             log.warn("JavaMailSender non configure: l'envoi d'emails est desactive. Configurez spring.mail.host (ou spring.mail.jndi-name) pour l'activer.");
         }
+    }
+
+    /**
+     * Destinataires des notifications internes equipe (lead devis, copie devis,
+     * waitlist, maintenance), configures depuis les Settings du PMS
+     * ({@code platform_settings.internal_notification_emails}). L'expediteur reste
+     * TOUJOURS {@code info@clenzy.fr} : seul le(s) destinataire(s) change(nt).
+     *
+     * <p>Fallback sur {@code notificationTo} (env, defaut info@clenzy.fr) si la liste
+     * configuree est vide, pour ne jamais perdre une alerte. Si un destinataire egale
+     * l'expediteur, on logge un avertissement (self-send expose aux soft bounces).</p>
+     */
+    private String[] internalRecipients() {
+        java.util.List<String> configured = platformSettingsService.getInternalNotificationEmails();
+        java.util.List<String> recipients = (configured != null && !configured.isEmpty())
+                ? configured
+                : (notificationTo != null && !notificationTo.isBlank()
+                    ? java.util.List.of(notificationTo) : java.util.List.<String>of());
+        String sender = resolveFromAddress();
+        if (sender != null && recipients.stream().anyMatch(r -> r.equalsIgnoreCase(sender))) {
+            log.warn("Notification interne adressee a l'expediteur lui-meme ({}) : self-send "
+                    + "expose aux soft bounces. Configurez d'autres destinataires dans les Settings du PMS.", sender);
+        }
+        return recipients.toArray(new String[0]);
+    }
+
+    /**
+     * Adresse d'expedition (From) : valeur configuree dans les Settings du PMS
+     * (platform_settings.sender_email), sinon fallback sur l'env clenzy.mail.from
+     * (defaut info@clenzy.fr). Niveau plateforme uniquement.
+     */
+    private String resolveFromAddress() {
+        String s = platformSettingsService.getSenderEmail();
+        return (s != null && !s.isBlank()) ? s : fromAddress;
+    }
+
+    /** Nom d'affichage du From, configurable (platform_settings.sender_name), fallback env. */
+    private String resolveFromName() {
+        String s = platformSettingsService.getSenderName();
+        return (s != null && !s.isBlank()) ? s : fromName;
     }
 
     private JavaMailSender requireMailSender() {
@@ -198,7 +242,7 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             applyDeliverabilityHeaders(message, helper);
-            helper.setTo(notificationTo);
+            helper.setTo(internalRecipients());
             helper.setReplyTo(dto.getEmail());
             helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlToPlainText(htmlBody), htmlBody);
@@ -235,8 +279,8 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
-            helper.setFrom(fromAddress, fromName);
-            helper.setTo(notificationTo);
+            helper.setFrom(resolveFromAddress(), resolveFromName());
+            helper.setTo(internalRecipients());
             if (s.getEmail() != null && !s.getEmail().isBlank()) {
                 helper.setReplyTo(s.getEmail());
             }
@@ -265,7 +309,7 @@ public class EmailService {
 
             helper.setText(html, true);
             mailSender.send(message);
-            log.info("Notif waitlist envoyée à {} (inscrit #{} : {})", notificationTo, position, s.getEmail());
+            log.info("Notif waitlist envoyée (inscrit position {} : {})", position, s.getEmail());
         } catch (Exception e) {
             log.warn("Notif waitlist KO pour {} : {}", s.getEmail(), e.getMessage());
         }
@@ -450,7 +494,7 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             applyDeliverabilityHeaders(message, helper);
-            helper.setTo(notificationTo);
+            helper.setTo(internalRecipients());
             helper.setReplyTo(dto.getEmail());
             helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlToPlainText(htmlBody), htmlBody);
@@ -635,8 +679,9 @@ public class EmailService {
     /**
      * Envoie le devis PDF au prospect avec un template email dedie et soigne
      * (system_email_template {@code quote_to_prospect}) enveloppe dans le wrapper
-     * Baitly. {@code info@clenzy.fr} (notificationTo) est mis en COPIE (CC) — pas
-     * d'email interne separe.
+     * Baitly. La copie interne pour l'equipe part SEPAREMENT via
+     * {@link #sendQuoteInternalCopy} (email dedie a {@code notificationTo}, fiable
+     * et trace dans les logs d'envoi) — plus de CC-a-soi-meme sur ce message.
      *
      * <p>{@code customSubject}/{@code customBody} permettent a l'editeur "Renvoyer"
      * de surcharger le contenu. {@code customBody} vide ("") est respecte (corps
@@ -668,23 +713,84 @@ public class EmailService {
 
             applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
-            // info@clenzy.fr en copie (CC), sauf si c'est deja le destinataire.
-            if (notificationTo != null && !notificationTo.isBlank()
-                    && !notificationTo.equalsIgnoreCase(toEmail)) {
-                helper.setCc(notificationTo);
-            }
+            // Pas de CC info@ ici : la copie interne part dans un email DEDIE et
+            // fiable (sendQuoteInternalCopy). Un CC-a-soi-meme (From == Cc ==
+            // info@clenzy.fr) etait souvent non delivre par le relais / filtre par
+            // le serveur de reception, et exposait l'adresse interne au prospect.
             helper.setSubject(sanitizeHeaderValue(subjectPlain));
             helper.setText(htmlToPlainText(htmlBody), htmlBody);
             helper.addAttachment(pdfFilename, new ByteArrayResource(pdfBytes), "application/pdf");
 
             ms.send(message);
-            log.info("Email devis (prospect) envoyé à {} (CC: {}, PJ: {})", toEmail, notificationTo, pdfFilename);
+            log.info("Email devis (prospect) envoyé à {} (PJ: {})", toEmail, pdfFilename);
         } catch (MessagingException e) {
             log.error("Échec envoi email devis prospect à {} : {}", toEmail, e.getMessage(), e);
             throw new RuntimeException("Erreur d'envoi du devis au prospect", e);
         } catch (Exception e) {
             log.error("Échec envoi email devis prospect à {} : {}", toEmail, e.getMessage(), e);
             throw new RuntimeException("Erreur d'envoi du devis au prospect", e);
+        }
+    }
+
+    /**
+     * Envoie a l'equipe (destinataires configures dans les Settings du PMS, defaut
+     * {@code info@clenzy.fr}) une COPIE INTERNE du devis transmis au prospect, PDF joint.
+     *
+     * <p>Email DEDIE avec destinataire principal ({@code To:}) : il est trace comme
+     * une transaction a part entiere dans le relais (Brevo) et a bien plus de chances
+     * d'etre delivre qu'un {@code Cc} (souvent non delivre/affiche). Remplace l'ancien
+     * CC-a-soi-meme qui etait pose sur le mail prospect.</p>
+     *
+     * <p>{@code Reply-To} = email du prospect : repondre a cette copie ecrit
+     * directement au prospect. Best-effort : toute erreur est journalisee sans etre
+     * propagee (ne doit jamais annuler l'envoi deja effectue au prospect).</p>
+     *
+     * @param prospectEmail email du prospect destinataire du devis (pour le sujet + Reply-To)
+     * @param pdfBytes      bytes du PDF devis a joindre (nullable → email sans PJ)
+     * @param pdfFilename   nom du fichier joint (nullable → "devis.pdf")
+     */
+    public void sendQuoteInternalCopy(String prospectEmail, byte[] pdfBytes, String pdfFilename) {
+        // Destinataires configurés depuis les Settings du PMS (fallback notificationTo).
+        // L'expéditeur reste info@clenzy.fr ; on évite le self-send en pointant vers
+        // d'autres adresses.
+        String[] recipients = internalRecipients();
+        if (recipients.length == 0) {
+            log.warn("Copie interne devis ignorée : aucun destinataire de notification configuré.");
+            return;
+        }
+        try {
+            JavaMailSender ms = requireMailSender();
+            MimeMessage message = ms.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            applyDeliverabilityHeaders(message, helper);
+            helper.setTo(recipients);
+            if (prospectEmail != null && !prospectEmail.isBlank()) {
+                helper.setReplyTo(prospectEmail);
+            }
+
+            String prospectLabel = (prospectEmail != null && !prospectEmail.isBlank())
+                    ? prospectEmail : "un prospect";
+            String subjectPlain = "Copie interne — devis envoyé à " + prospectLabel;
+            String bodyPlain = "Un devis vient d'être transmis à *" + prospectLabel + "*.\n\n"
+                    + "Le PDF du devis envoyé est joint à cet email. "
+                    + "Répondez directement à ce message pour écrire au prospect.";
+            String htmlBody = emailWrapperService.wrap("INTERNAL_FORM", bodyPlain);
+
+            helper.setSubject(sanitizeHeaderValue(subjectPlain));
+            helper.setText(htmlToPlainText(htmlBody), htmlBody);
+
+            if (pdfBytes != null && pdfBytes.length > 0) {
+                String name = (pdfFilename != null && !pdfFilename.isBlank()) ? pdfFilename : "devis.pdf";
+                helper.addAttachment(name, new ByteArrayResource(pdfBytes), "application/pdf");
+            }
+
+            ms.send(message);
+            log.info("Copie interne devis envoyée à {} (prospect: {}, PJ: {})",
+                    String.join(",", recipients), prospectEmail, pdfFilename);
+        } catch (Exception e) {
+            // Best-effort : ne JAMAIS faire echouer/annuler l'envoi deja fait au prospect.
+            log.warn("Copie interne devis KO (prospect {}) : {}", prospectEmail, e.getMessage());
         }
     }
 
@@ -830,18 +936,20 @@ public class EmailService {
      * {@code helper.setFrom(fromAddress)}.</p>
      */
     private void applyDeliverabilityHeaders(MimeMessage message, MimeMessageHelper helper) {
+        String from = resolveFromAddress();
+        String name = resolveFromName();
         try {
-            // From avec display name : "Clenzy <info@clenzy.fr>"
-            helper.setFrom(fromAddress, fromName);
+            // From avec display name : "Baitly <info@clenzy.fr>"
+            helper.setFrom(from, name);
         } catch (java.io.UnsupportedEncodingException e) {
             // Fallback : juste l'adresse, sans display name
             try {
-                helper.setFrom(fromAddress);
+                helper.setFrom(from);
             } catch (MessagingException me) {
-                log.warn("Impossible de setter From {}: {}", fromAddress, me.getMessage());
+                log.warn("Impossible de setter From {}: {}", from, me.getMessage());
             }
         } catch (MessagingException e) {
-            log.warn("Impossible de setter From {}: {}", fromAddress, e.getMessage());
+            log.warn("Impossible de setter From {}: {}", from, e.getMessage());
         }
         try {
             String listUnsubscribe = "<mailto:" + unsubscribeMailto + ">, <" + unsubscribeUrl + ">";
