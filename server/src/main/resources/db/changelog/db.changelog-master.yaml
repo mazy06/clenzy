@@ -1557,3 +1557,20 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # --- 0164 : Fix document_generations.reference_type CHECK constraint ---
+  # La contrainte document_generations_reference_type_check, creee jadis par
+  # Hibernate ddl-auto=update en prod, ne liste pas RECEIVED_FORM (ajoute plus
+  # tard a l'enum ReferenceType). Toute generation de PDF depuis un formulaire
+  # recu (Contact > Formulaires recus > "Generer PDF") explose au commit avec
+  # une DataIntegrityViolationException -> HTTP 500 {"error":"Erreur interne"}.
+  # Ce changeset DROP+ADD la contrainte avec la liste complete de l'enum
+  # (idempotent, meme pattern que 0113). Bug prod-only (dev = ddl-auto=none).
+  - changeSet:
+      id: "0164-fix-document-generations-reference-type-constraint"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0164__fix_document_generations_reference_type_constraint.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
