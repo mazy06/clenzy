@@ -2,11 +2,8 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.QuoteRequestDto;
 import com.clenzy.model.ReceivedForm;
-import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.DocumentGeneratorService;
-import com.clenzy.service.DocumentStorageService;
-import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.PricingConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,22 +23,18 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class QuoteControllerTest {
 
-    @Mock private EmailService emailService;
     @Mock private PricingConfigService pricingConfigService;
     @Mock private ReceivedFormRepository receivedFormRepository;
     @Mock private NotificationService notificationService;
     @Mock private DocumentGeneratorService documentGeneratorService;
-    @Mock private DocumentGenerationRepository documentGenerationRepository;
-    @Mock private DocumentStorageService documentStorageService;
     @Mock private HttpServletRequest httpRequest;
 
     private QuoteController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new QuoteController(emailService, pricingConfigService, receivedFormRepository,
-                new ObjectMapper(), notificationService, documentGeneratorService,
-                documentGenerationRepository, documentStorageService);
+        controller = new QuoteController(pricingConfigService, receivedFormRepository,
+                new ObjectMapper(), notificationService, documentGeneratorService);
         lenient().when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
         lenient().when(httpRequest.getHeader(anyString())).thenReturn(null);
     }
@@ -243,8 +236,10 @@ class QuoteControllerTest {
                 f.setId(7L);
                 return f;
             });
-            doThrow(new RuntimeException("SMTP down")).when(emailService)
-                .sendQuoteRequestNotification(any(), anyString(), anyInt(), any());
+            // La génération/envoi du devis (avec info@ en CC) ne doit pas bloquer
+            // la réponse au prospect si elle échoue.
+            doThrow(new RuntimeException("PDF/email KO")).when(documentGeneratorService)
+                .generateFromEvent(any(), anyLong(), any(), anyString(), any());
 
             ResponseEntity<?> response = controller.submitQuoteRequest(dto, httpRequest);
             // Email failure does not block: 200 OK still returned.

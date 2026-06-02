@@ -19,15 +19,19 @@ public record GenerateDocumentRequest(
         // Force l'envoi de l'email meme si un document a deja ete envoye a ce
         // destinataire pour cette reference (bouton "Renvoyer"). Par defaut false :
         // le service deduplique (1 email par destinataire/document).
-        boolean forceResend
+        boolean forceResend,
+        // Overrides de l'editeur "Renvoyer" : objet + corps plain text personnalises.
+        // Nullable → contenu par defaut du template. emailBody "" = corps vide volontaire.
+        String emailSubject,
+        String emailBody
 ) {
     /**
-     * Constructeur retro-compatible (sans forceResend, defaut false).
-     * Conserve pour les appelants Java existants ; la deserialisation JSON
-     * utilise le constructeur canonique (forceResend absent du payload → false).
+     * Constructeur retro-compatible (sans forceResend/overrides email, defauts).
+     * Conserve pour les appelants Java existants ; la deserialisation JSON utilise
+     * le constructeur canonique (champs absents du payload → false/null).
      */
     public GenerateDocumentRequest(String documentType, Long referenceId,
                                    String referenceType, String emailTo, boolean sendEmail) {
-        this(documentType, referenceId, referenceType, emailTo, sendEmail, false);
+        this(documentType, referenceId, referenceType, emailTo, sendEmail, false, null, null);
     }
 }
