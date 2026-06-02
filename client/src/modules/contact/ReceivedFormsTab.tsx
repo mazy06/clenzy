@@ -693,8 +693,8 @@ const ReceivedFormsTab: React.FC = () => {
       ) : (
         <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
-          {/* ─── Liste gauche (35%) ─── */}
-          <Box sx={{ width: '35%', borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* ─── Liste gauche (largeur fixe, adaptée au texte) ─── */}
+          <Box sx={{ width: { xs: 300, md: 340, xl: 360 }, flexShrink: 0, borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <Box sx={{ flex: 1, overflowY: 'auto' }}>
               {filteredForms.map(form => {
                 const typeConf = FORM_TYPE_CONFIG[form.formType] || FORM_TYPE_CONFIG.DEVIS;
@@ -819,8 +819,8 @@ const ReceivedFormsTab: React.FC = () => {
             />
           </Box>
 
-          {/* ─── Detail droite (65%) ─── */}
-          <Box sx={{ width: '65%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* ─── Detail droite (remplit l'espace restant) ─── */}
+          <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {selectedForm ? (
               <Box sx={{ flex: 1, overflowY: 'auto', p: 2.5 }}>
 
