@@ -441,11 +441,11 @@ class ContactControllerTest {
         @Test
         void returnsListOfMessages() {
             ContactMessageDto msg = mock(ContactMessageDto.class);
-            when(contactMessageService.getThreadMessages(jwt, "counterpart-1"))
+            when(contactMessageService.getThreadMessages(jwt, "counterpart-1", false))
                     .thenReturn(List.of(msg));
 
             ResponseEntity<List<ContactMessageDto>> response =
-                    controller.getThreadMessages(jwt, "counterpart-1");
+                    controller.getThreadMessages(jwt, "counterpart-1", false);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).hasSize(1);

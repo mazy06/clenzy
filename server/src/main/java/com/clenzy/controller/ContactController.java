@@ -147,14 +147,22 @@ public class ContactController {
         return ResponseEntity.ok(contactMessageService.getThreads(jwt));
     }
 
+    @GetMapping("/threads/archived")
+    @Operation(summary = "Liste des conversations archivees, groupees par interlocuteur")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
+    public ResponseEntity<List<ContactThreadSummaryDto>> getArchivedThreads(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(contactMessageService.getArchivedThreads(jwt));
+    }
+
     @GetMapping("/threads/{counterpartKeycloakId}/messages")
     @Operation(summary = "Messages d'une conversation avec un interlocuteur")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<List<ContactMessageDto>> getThreadMessages(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String counterpartKeycloakId
+            @PathVariable String counterpartKeycloakId,
+            @RequestParam(defaultValue = "false") boolean archived
     ) {
-        return ResponseEntity.ok(contactMessageService.getThreadMessages(jwt, counterpartKeycloakId));
+        return ResponseEntity.ok(contactMessageService.getThreadMessages(jwt, counterpartKeycloakId, archived));
     }
 
     @PutMapping("/threads/{counterpartKeycloakId}/mark-read")
@@ -177,6 +185,17 @@ public class ContactController {
     ) {
         int count = contactMessageService.archiveThread(jwt, counterpartKeycloakId);
         return ResponseEntity.ok(Map.of("archivedCount", count));
+    }
+
+    @PutMapping("/threads/{counterpartKeycloakId}/unarchive")
+    @Operation(summary = "Restaurer (desarchiver) toute une conversation archivee")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
+    public ResponseEntity<Map<String, Object>> unarchiveThread(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String counterpartKeycloakId
+    ) {
+        int count = contactMessageService.unarchiveThread(jwt, counterpartKeycloakId);
+        return ResponseEntity.ok(Map.of("unarchivedCount", count));
     }
 
     // ─── Telechargement pieces jointes ─────────────────────────────────────

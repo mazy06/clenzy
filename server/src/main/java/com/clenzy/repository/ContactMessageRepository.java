@@ -100,4 +100,37 @@ public interface ContactMessageRepository extends JpaRepository<ContactMessage, 
     List<ContactMessage> findAllForUser(
             @Param("userId") String userId,
             @Param("orgId") Long orgId);
+
+    /**
+     * Tous les messages ARCHIVÉS de l'utilisateur (envoyés et reçus),
+     * triés par date décroissante. Utilisé pour grouper les conversations
+     * archivées par interlocuteur (onglet "Messages archivés" → Conversations).
+     */
+    @Query("""
+            SELECT m FROM ContactMessage m
+            WHERE m.organizationId = :orgId
+              AND m.archived = true
+              AND (m.senderKeycloakId = :userId OR m.recipientKeycloakId = :userId)
+            ORDER BY m.createdAt DESC
+            """)
+    List<ContactMessage> findAllArchivedForUser(
+            @Param("userId") String userId,
+            @Param("orgId") Long orgId);
+
+    /**
+     * Messages ARCHIVÉS d'une conversation avec un interlocuteur,
+     * triés par date croissante (détail lecture seule d'une conversation archivée).
+     */
+    @Query("""
+            SELECT m FROM ContactMessage m
+            WHERE m.organizationId = :orgId
+              AND m.archived = true
+              AND ((m.senderKeycloakId = :userId AND m.recipientKeycloakId = :otherUserId)
+                OR (m.senderKeycloakId = :otherUserId AND m.recipientKeycloakId = :userId))
+            ORDER BY m.createdAt ASC
+            """)
+    List<ContactMessage> findArchivedThreadMessages(
+            @Param("userId") String userId,
+            @Param("otherUserId") String otherUserId,
+            @Param("orgId") Long orgId);
 }
