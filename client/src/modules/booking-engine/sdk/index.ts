@@ -1,13 +1,13 @@
-import type { ClenzyBookingConfig } from './types';
-import { ClenzyWidget } from './ClenzyWidget';
+import type { BaitlyBookingConfig } from './types';
+import { BaitlyWidget } from './BaitlyWidget';
 
-export type { ClenzyBookingConfig, BaitlyTheme } from './types';
+export type { BaitlyBookingConfig, BaitlyTheme } from './types';
 
 /** Global SDK namespace */
 const BaitlyBooking = {
   /** Initialize and mount the booking widget */
-  init(config: ClenzyBookingConfig): ClenzyWidget {
-    const widget = new ClenzyWidget(config);
+  init(config: BaitlyBookingConfig): BaitlyWidget {
+    const widget = new BaitlyWidget(config);
     widget.mount();
     return widget;
   },
@@ -22,4 +22,4 @@ if (typeof window !== 'undefined') {
 }
 
 export default BaitlyBooking;
-export { ClenzyWidget };
+export { BaitlyWidget };

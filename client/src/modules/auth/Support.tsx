@@ -15,7 +15,7 @@ import {
   CssBaseline,
 } from '@mui/material';
 import { ArrowBack, CheckCircle } from '../../icons';
-import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import clenzyLogo from '../../assets/Baitly_logo.png';
 import apiClient from '../../services/apiClient';
@@ -32,7 +32,7 @@ export default function Support() {
   const { t } = useTranslation();
   // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
   const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createClenzyTheme({ isRtl }), [isRtl]);
+  const theme = useMemo(() => createBaitlyTheme({ isRtl }), [isRtl]);
   const navigate = useNavigate();
 
   const [name, setName] = useState('');

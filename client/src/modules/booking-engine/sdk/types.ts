@@ -1,6 +1,6 @@
 // ─── SDK Public API Types ────────────────────────────────────────────────────
 
-export interface ClenzyBookingConfig {
+export interface BaitlyBookingConfig {
   container: string | HTMLElement;
   apiKey: string;
   baseUrl?: string;

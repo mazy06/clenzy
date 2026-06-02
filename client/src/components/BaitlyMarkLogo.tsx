@@ -57,7 +57,7 @@ import { Box, useTheme } from '@mui/material';
  * sur le meme element (sinon le hover-out ferait potentiellement rejouer
  * le boot draw — bug visible).</p>
  */
-export interface ClenzyMarkLogoProps {
+export interface BaitlyMarkLogoProps {
   /** Facteur d'echelle multiplicatif. {@code 1} = icone 56px + wordmark 32px. */
   scale?: number;
   /**
@@ -121,7 +121,7 @@ function radialTranslate(node: { x: number; y: number }, delta: number): { tx: s
   };
 }
 
-export default function ClenzyMarkLogo({
+export default function BaitlyMarkLogo({
   scale = 1,
   size,
   variant = 'full',
@@ -129,7 +129,7 @@ export default function ClenzyMarkLogo({
   active = false,
   idleAnimation = true,
   disableAnimation = false,
-}: ClenzyMarkLogoProps) {
+}: BaitlyMarkLogoProps) {
   const theme = useTheme();
   const uid = useId().replace(/:/g, '-');
 

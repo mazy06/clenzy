@@ -11,7 +11,7 @@ import * as Sentry from '@sentry/react'
 import posthog from 'posthog-js'
 import App from './modules/App'
 import AppUpdateBanner from './components/AppUpdateBanner'
-import { createClenzyTheme } from './theme/createClenzyTheme'
+import { createBaitlyTheme } from './theme/createBaitlyTheme'
 import ThemeSafetyWrapper from './components/ThemeSafetyWrapper'
 import { NotificationProvider } from './hooks/useNotification'
 import { ThemeModeProvider, useThemeMode } from './hooks/useThemeMode'
@@ -140,12 +140,12 @@ function AppWithTheme() {
     document.documentElement.lang = i18n.language || 'fr';
   }, [isRtl, i18n.language]);
 
-  // Theme principal : factory single source of truth (cf. createClenzyTheme).
+  // Theme principal : factory single source of truth (cf. createBaitlyTheme).
   // Tous les ThemeProvider de l'app (AppWithTheme + AuthLayout +
   // InscriptionSuccess/Confirm + Support) DOIVENT passer par cette factory
   // sinon les overrides langue (Tajawal en arabe) + direction RTL sont KO.
   const currentTheme = useMemo(
-    () => createClenzyTheme({ isDark, isRtl }),
+    () => createBaitlyTheme({ isDark, isRtl }),
     [isDark, isRtl]
   );
 
