@@ -237,6 +237,10 @@ public class QuoteController {
                 recommendedPackage,
                 recommendedRate
         );
+        // Pré-lancement : signale au front si l'email de devis est réellement parti.
+        // Si non (toggle plateforme OFF), le front affiche « notre équipe vous
+        // recontactera pour votre devis » au lieu de « devis envoyé par email ».
+        response.setProspectEmailSent(prospectNotified);
 
         return ResponseEntity.ok(response);
     }
