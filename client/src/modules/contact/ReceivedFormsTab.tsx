@@ -162,13 +162,18 @@ const SUPPORT_GROUPS: FieldGroup[] = [
 
 // ─── Sous-composants de rendu (par type de formulaire) ─────────────────────
 
-// Eyebrow typographique épuré — pas d'icône sur les titres de section
-// (les icônes sont réservées aux infos elles-mêmes). `icon`/`accentColor`
-// restent dans la signature pour compat des appelants mais ne sont plus rendus.
+// ─── Échelle typo unifiée (skill ui-ux-pro-max, modular scale 12/16) ───
+// Tous les blocs d'info partagent la même échelle : libellé 12px uppercase,
+// valeur 16px regular. Une seule icône par info, jamais de check redondant.
+const LABEL_SX = { fontSize: '0.75rem', fontWeight: 500, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.3 } as const;
+const VALUE_SX = { fontSize: '1rem', fontWeight: 400, color: 'text.primary', lineHeight: 1.4 } as const;
+
+// Eyebrow de section — 12px uppercase + filet. Pas d'icône (réservée aux
+// infos). `icon`/`accentColor` gardés pour compat appelants (ignorés).
 function SectionHeader({ title }: { icon?: React.ReactNode; title: string; accentColor?: string }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-      <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'text.secondary' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.75 }}>
+      <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.secondary' }}>
         {title}
       </Typography>
       <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
@@ -176,51 +181,46 @@ function SectionHeader({ title }: { icon?: React.ReactNode; title: string; accen
   );
 }
 
-// Tuile KPI à plat — libellé + icône discrète en tête, valeur en
-// tabular-nums, sans cadre ni gras. `color` conservé (ignoré).
+// Tuile KPI à plat — libellé 12px + icône 16px en tête, valeur 16px en
+// tabular-nums. Même échelle que FeatureRow. `color` conservé (ignoré).
 function KpiTile({
   icon, label, value, span = 1,
 }: { icon: React.ReactNode; label: string; value: string; color?: string; span?: number }) {
   return (
     <Box sx={{ gridColumn: `span ${span}`, minWidth: 0 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mb: 0.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
         <Box sx={{ display: 'inline-flex', color: 'text.disabled' }}>
           {icon}
         </Box>
-        <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+        <Typography sx={{ ...LABEL_SX }}>
           {label}
         </Typography>
       </Box>
-      <Typography sx={{ fontSize: '1.375rem', fontWeight: 400, color: 'text.primary', lineHeight: 1.15, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <Typography sx={{ ...VALUE_SX, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {value}
       </Typography>
     </Box>
   );
 }
 
-// Ligne d'info à plat — icône discrète, check à l'accent de marque,
-// sans cadre ni gras. `color` conservé (ignoré).
+// Ligne d'info à plat — icône 16px + libellé 12px + valeur 16px. Une seule
+// icône par info (pas de check redondant). `color` conservé (ignoré).
 function FeatureRow({
-  icon, label, value, checked = true,
-}: { icon: React.ReactNode; label: string; value: string; color?: string; checked?: boolean }) {
+  icon, label, value,
+}: { icon: React.ReactNode; label: string; value: string; color?: string }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, py: 1 }}>
-      <Box sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0 }}>
+    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, py: 0.75 }}>
+      <Box sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0, mt: '2px' }}>
         {icon}
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.2 }}>
+        <Typography sx={{ ...LABEL_SX }}>
           {label}
         </Typography>
-        <Typography sx={{ fontSize: '0.875rem', fontWeight: 400, color: 'text.primary', lineHeight: 1.35, mt: 0.125 }}>
+        <Typography sx={{ ...VALUE_SX, mt: 0.25 }}>
           {value}
         </Typography>
       </Box>
-      {checked && (
-        <Box sx={{ display: 'inline-flex', color: 'primary.main', flexShrink: 0 }}>
-          <CheckCircleIcon size={16} strokeWidth={2} />
-        </Box>
-      )}
     </Box>
   );
 }
@@ -237,18 +237,18 @@ function DevisDetails({ data }: { data: Record<string, unknown> }) {
   if (has('propertyType')) bienTiles.push({ key: 'propertyType', icon: <HomeIcon size={16} strokeWidth={1.75} />, label: 'Type de bien', value: formatFieldValue('propertyType', get('propertyType')), color: '#0288d1' });
   if (has('surface')) bienTiles.push({ key: 'surface', icon: <SquareFootIcon size={16} strokeWidth={1.75} />, label: 'Surface', value: `${get('surface')} m²`, color: '#00897B' });
   if (has('guestCapacity')) bienTiles.push({ key: 'guestCapacity', icon: <PeopleIcon size={16} strokeWidth={1.75} />, label: 'Voyageurs', value: formatFieldValue('guestCapacity', get('guestCapacity')), color: '#AB47BC' });
-  if (has('propertyCount')) bienTiles.push({ key: 'propertyCount', icon: <ApartmentIcon size={16} strokeWidth={1.75} />, label: 'Nombre de logements', value: String(get('propertyCount')), color: '#5C6BC0' });
+  if (has('propertyCount')) bienTiles.push({ key: 'propertyCount', icon: <ApartmentIcon size={16} strokeWidth={1.75} />, label: 'Logements', value: String(get('propertyCount')), color: '#5C6BC0' });
 
   // SERVICES
   const serviceRows: { icon: React.ReactNode; label: string; value: string; color: string }[] = [];
-  if (has('services')) serviceRows.push({ icon: <CleaningIcon size={14} strokeWidth={1.75} />, label: 'Services forfait', value: formatFieldValue('services', get('services')), color: '#4A9B8E' });
-  if (has('servicesDevis')) serviceRows.push({ icon: <QuoteIcon size={14} strokeWidth={1.75} />, label: 'Services sur devis', value: formatFieldValue('servicesDevis', get('servicesDevis')), color: '#E65100' });
-  if (has('calendarSync')) serviceRows.push({ icon: <SyncIcon size={14} strokeWidth={1.75} />, label: 'Synchro calendrier', value: formatFieldValue('calendarSync', get('calendarSync')), color: '#1565C0' });
+  if (has('services')) serviceRows.push({ icon: <CleaningIcon size={16} strokeWidth={1.75} />, label: 'Services forfait', value: formatFieldValue('services', get('services')), color: '#4A9B8E' });
+  if (has('servicesDevis')) serviceRows.push({ icon: <QuoteIcon size={16} strokeWidth={1.75} />, label: 'Services sur devis', value: formatFieldValue('servicesDevis', get('servicesDevis')), color: '#E65100' });
+  if (has('calendarSync')) serviceRows.push({ icon: <SyncIcon size={16} strokeWidth={1.75} />, label: 'Synchro calendrier', value: formatFieldValue('calendarSync', get('calendarSync')), color: '#1565C0' });
 
   // PLANNING
   const planningRows: { icon: React.ReactNode; label: string; value: string; color: string }[] = [];
-  if (has('bookingFrequency')) planningRows.push({ icon: <EventRepeatIcon size={14} strokeWidth={1.75} />, label: 'Fréquence des réservations', value: formatFieldValue('bookingFrequency', get('bookingFrequency')), color: '#F4511E' });
-  if (has('cleaningSchedule')) planningRows.push({ icon: <ScheduleIcon size={14} strokeWidth={1.75} />, label: 'Planning ménage', value: formatFieldValue('cleaningSchedule', get('cleaningSchedule')), color: '#8E24AA' });
+  if (has('bookingFrequency')) planningRows.push({ icon: <EventRepeatIcon size={16} strokeWidth={1.75} />, label: 'Fréquence des réservations', value: formatFieldValue('bookingFrequency', get('bookingFrequency')), color: '#F4511E' });
+  if (has('cleaningSchedule')) planningRows.push({ icon: <ScheduleIcon size={16} strokeWidth={1.75} />, label: 'Planning ménage', value: formatFieldValue('cleaningSchedule', get('cleaningSchedule')), color: '#8E24AA' });
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -305,45 +305,35 @@ function MaintenanceDetails({ data }: { data: Record<string, unknown> }) {
     urgencyValue === 'medium' ? '#f59e0b' :
     '#10b981';
 
+  const works = has('selectedWorks')
+    ? (Array.isArray(get('selectedWorks')) ? get('selectedWorks') as unknown[] : [get('selectedWorks')])
+        .map((w) => formatFieldValue('selectedWorks', w)).join(' · ')
+    : '';
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {has('urgency') && (
         <Box>
           <SectionHeader icon={<UrgencyIcon size={14} strokeWidth={2} />} title="Niveau d'urgence" accentColor={urgencyColor} />
-          <Box
-            sx={{
-              p: 1.5, borderRadius: 2,
-              bgcolor: (t) => alpha(urgencyColor, t.palette.mode === 'dark' ? 0.12 : 0.08),
-              border: '1px solid', borderColor: alpha(urgencyColor, 0.4),
-              display: 'flex', alignItems: 'center', gap: 1.5,
-            }}
-          >
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: urgencyColor, flexShrink: 0 }} />
-            <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: urgencyColor }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.75 }}>
+            <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: urgencyColor, flexShrink: 0 }} />
+            <Typography sx={{ ...VALUE_SX, color: urgencyColor }}>
               {formatFieldValue('urgency', urgencyValue)}
             </Typography>
           </Box>
         </Box>
       )}
 
-      {has('selectedWorks') && (
+      {works && (
         <Box>
           <SectionHeader icon={<HandymanIcon size={14} strokeWidth={2} />} title="Travaux demandés" accentColor="#EF6C00" />
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-            {(Array.isArray(get('selectedWorks')) ? get('selectedWorks') as unknown[] : [get('selectedWorks')]).map((w, i) => (
-              <Chip
-                key={i}
-                label={formatFieldValue('selectedWorks', w)}
-                size="small"
-                icon={<HandymanIcon size={12} strokeWidth={1.75} />}
-                sx={{
-                  fontSize: '0.75rem', fontWeight: 600, height: 26, borderRadius: '6px',
-                  bgcolor: '#EF6C0018', color: '#EF6C00',
-                  border: '1px solid #EF6C0040',
-                  '& .MuiChip-icon': { color: '#EF6C00', ml: 0.5 },
-                }}
-              />
-            ))}
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, py: 0.75 }}>
+            <Box sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0, mt: '2px' }}>
+              <HandymanIcon size={16} strokeWidth={1.75} />
+            </Box>
+            <Typography sx={{ ...VALUE_SX, flex: 1, minWidth: 0 }}>
+              {works}
+            </Typography>
           </Box>
         </Box>
       )}
@@ -351,16 +341,9 @@ function MaintenanceDetails({ data }: { data: Record<string, unknown> }) {
       {(has('customNeed') || has('description')) && (
         <Box>
           <SectionHeader icon={<MessageIcon size={14} strokeWidth={2} />} title="Description" accentColor="#546E7A" />
-          <Box
-            sx={{
-              p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider',
-              bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
-            }}
-          >
-            <Typography sx={{ fontSize: '0.875rem', color: 'text.primary', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-              {(get('customNeed') as string) || (get('description') as string) || ''}
-            </Typography>
-          </Box>
+          <Typography sx={{ ...VALUE_SX, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+            {(get('customNeed') as string) || (get('description') as string) || ''}
+          </Typography>
         </Box>
       )}
     </Box>
@@ -376,7 +359,7 @@ function SupportDetails({ data }: { data: Record<string, unknown> }) {
       {subject && (
         <Box>
           <SectionHeader icon={<SubjectIcon size={14} strokeWidth={2} />} title="Sujet" accentColor="#1565C0" />
-          <Typography sx={{ fontSize: '1rem', fontWeight: 600, color: 'text.primary', pl: 0.5 }}>
+          <Typography sx={{ ...VALUE_SX }}>
             {subject}
           </Typography>
         </Box>
@@ -384,16 +367,9 @@ function SupportDetails({ data }: { data: Record<string, unknown> }) {
       {message && (
         <Box>
           <SectionHeader icon={<MessageIcon size={14} strokeWidth={2} />} title="Message" accentColor="#546E7A" />
-          <Box
-            sx={{
-              p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider',
-              bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
-            }}
-          >
-            <Typography sx={{ fontSize: '0.875rem', color: 'text.primary', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-              {message}
-            </Typography>
-          </Box>
+          <Typography sx={{ ...VALUE_SX, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+            {message}
+          </Typography>
         </Box>
       )}
     </Box>
