@@ -1,77 +1,98 @@
 package com.clenzy.service;
 
+import com.clenzy.integration.brevo.BrevoApiClient;
 import com.clenzy.model.WaitlistSignup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Synchronisation des contacts vers Brevo (API v3, list management).
+ * Synchronisation des contacts vers Brevo (API v3).
  *
- * Best-effort et optionnel : si {@code brevo.api-key} ou {@code brevo.waitlist-list-id}
- * ne sont pas configurés (env BREVO_API_KEY / BREVO_WAITLIST_LIST_ID), la synchro est
- * simplement ignorée — l'inscription waitlist reste enregistrée en BDD.
+ * La configuration (cle API, ids de listes, toggles) est resolue par
+ * {@link MarketingIntegrationService} — BDD chiffree, avec fallback env le temps
+ * de la transition. Best-effort : si Brevo n'est pas configure ou que la sync
+ * concernee est desactivee, l'operation est simplement ignoree ; la donnee
+ * metier (inscription waitlist, opt-in newsletter) reste enregistree cote Clenzy.
  */
 @Service
 public class BrevoContactService {
 
     private static final Logger log = LoggerFactory.getLogger(BrevoContactService.class);
 
-    private final RestClient restClient = RestClient.create();
+    private final MarketingIntegrationService marketing;
+    private final BrevoApiClient brevo;
 
-    @Value("${brevo.api-key:}")
-    private String apiKey;
-
-    @Value("${brevo.base-url:https://api.brevo.com/v3}")
-    private String baseUrl;
-
-    @Value("${brevo.waitlist-list-id:0}")
-    private long waitlistListId;
-
-    public boolean isConfigured() {
-        return apiKey != null && !apiKey.isBlank() && waitlistListId > 0;
+    public BrevoContactService(MarketingIntegrationService marketing, BrevoApiClient brevo) {
+        this.marketing = marketing;
+        this.brevo = brevo;
     }
 
-    /**
-     * Ajoute (ou met à jour) un contact dans la liste Brevo de la waitlist.
-     * @return true si l'appel a réussi ; false si Brevo n'est pas configuré ou en cas d'erreur.
-     */
+    /** Config minimale presente (cle API + liste waitlist resolues). */
+    public boolean isConfigured() {
+        return marketing.resolveApiKey() != null && marketing.resolveWaitlistListId() != null;
+    }
+
+    /** Ajoute (ou met a jour) un inscrit waitlist dans la liste Brevo dediee. */
     public boolean addToWaitlist(WaitlistSignup s) {
-        if (!isConfigured()) {
-            log.info("Brevo non configuré (brevo.api-key / brevo.waitlist-list-id) — sync waitlist ignorée pour {}", s.getEmail());
+        if (!marketing.isWaitlistSyncEnabled()) {
+            log.info("Sync waitlist Brevo desactivee/non configuree — ignoree pour {}", s.getEmail());
             return false;
         }
+        Map<String, Object> attrs = new HashMap<>();
+        if (marketing.isAttributesSyncEnabled()) {
+            putIfPresent(attrs, "FULLNAME", s.getFullName());
+            putIfPresent(attrs, "VILLE", s.getCity());
+            putIfPresent(attrs, "SOURCE", s.getSource());
+        }
+        return upsert(s.getEmail(), attrs, marketing.resolveWaitlistListId(), "waitlist");
+    }
+
+    /** Ajoute (ou met a jour) un opt-in newsletter dans la liste Brevo dediee. */
+    public boolean addToNewsletter(String email, String fullName, String city) {
+        if (!marketing.isNewsletterSyncEnabled()) {
+            log.debug("Sync newsletter Brevo desactivee/non configuree — ignoree pour {}", email);
+            return false;
+        }
+        Map<String, Object> attrs = new HashMap<>();
+        if (marketing.isAttributesSyncEnabled()) {
+            putIfPresent(attrs, "FULLNAME", fullName);
+            putIfPresent(attrs, "VILLE", city);
+        }
+        return upsert(email, attrs, marketing.resolveNewsletterListId(), "newsletter");
+    }
+
+    /** Retire un contact d'une liste (desinscription via webhook Brevo). */
+    public boolean removeFromList(long listId, String email) {
+        String key = marketing.resolveApiKey();
+        if (key == null || email == null || email.isBlank()) return false;
         try {
-            Map<String, Object> attributes = new HashMap<>();
-            if (s.getFullName() != null && !s.getFullName().isBlank()) attributes.put("FULLNAME", s.getFullName());
-            if (s.getCity() != null && !s.getCity().isBlank()) attributes.put("VILLE", s.getCity());
-
-            Map<String, Object> body = new HashMap<>();
-            body.put("email", s.getEmail());
-            body.put("attributes", attributes);
-            body.put("listIds", List.of(waitlistListId));
-            body.put("updateEnabled", true);
-
-            restClient.post()
-                    .uri(baseUrl + "/contacts")
-                    .header("api-key", apiKey)
-                    .header("accept", "application/json")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .toBodilessEntity();
-            log.info("Contact waitlist synchronisé Brevo (liste {}) : {}", waitlistListId, s.getEmail());
+            brevo.removeContactFromList(key, marketing.resolveBaseUrl(), listId, email);
             return true;
         } catch (Exception e) {
-            log.warn("Sync Brevo waitlist KO pour {} : {}", s.getEmail(), e.getMessage());
+            log.warn("Retrait Brevo liste {} KO pour {} : {}", listId, email, e.getMessage());
             return false;
         }
+    }
+
+    private boolean upsert(String email, Map<String, Object> attrs, Long listId, String label) {
+        if (email == null || email.isBlank() || listId == null) return false;
+        try {
+            brevo.upsertContact(marketing.resolveApiKey(), marketing.resolveBaseUrl(),
+                    email, attrs, List.of(listId), true);
+            log.info("Contact {} synchronise Brevo (liste {}) : {}", label, listId, email);
+            return true;
+        } catch (Exception e) {
+            log.warn("Sync Brevo {} KO pour {} : {}", label, email, e.getMessage());
+            return false;
+        }
+    }
+
+    private static void putIfPresent(Map<String, Object> map, String key, String value) {
+        if (value != null && !value.isBlank()) map.put(key, value);
     }
 }
