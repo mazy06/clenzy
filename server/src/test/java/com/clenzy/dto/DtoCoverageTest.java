@@ -295,9 +295,11 @@ class DtoCoverageTest {
             dto.setMessage("Quote generated");
             dto.setRecommendedPackage("CONFORT");
             dto.setRecommendedRate(45);
+            dto.setProspectEmailSent(false);
             assertThat(dto.getStatus()).isEqualTo("OK");
             assertThat(dto.getRecommendedPackage()).isEqualTo("CONFORT");
             assertThat(dto.getRecommendedRate()).isEqualTo(45);
+            assertThat(dto.isProspectEmailSent()).isFalse();
         }
         @Test void notificationPreferenceDto() {
             NotificationPreferenceDto dto = new NotificationPreferenceDto();
