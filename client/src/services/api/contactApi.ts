@@ -193,6 +193,11 @@ export const contactApi = {
     return apiClient.put<{ updatedCount: number }>(`/contact/threads/${counterpartKeycloakId}/mark-read`);
   },
 
+  /** Archiver toute une conversation (thread) */
+  archiveThread(counterpartKeycloakId: string): Promise<{ archivedCount: number }> {
+    return apiClient.put<{ archivedCount: number }>(`/contact/threads/${counterpartKeycloakId}/archive`);
+  },
+
   /** Statut de presence d'un utilisateur (en ligne / dernière connexion). */
   getPresence(userId: string): Promise<UserPresence> {
     return apiClient.get<UserPresence>(`/presence/${userId}`);

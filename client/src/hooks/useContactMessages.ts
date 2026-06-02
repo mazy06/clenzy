@@ -79,6 +79,24 @@ export function useMarkThreadAsRead() {
   });
 }
 
+export function useArchiveThread() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (counterpartKeycloakId: string) =>
+      contactApi.archiveThread(counterpartKeycloakId),
+    onMutate: (counterpartKeycloakId) => {
+      // Optimiste : retire le thread de la liste active immédiatement.
+      queryClient.setQueryData<ContactThreadSummary[]>(
+        contactKeys.threads(),
+        (old) => old?.filter((th) => th.counterpartKeycloakId !== counterpartKeycloakId),
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: contactKeys.all });
+    },
+  });
+}
+
 export function useUpdateMessageStatus() {
   const queryClient = useQueryClient();
   return useMutation({
