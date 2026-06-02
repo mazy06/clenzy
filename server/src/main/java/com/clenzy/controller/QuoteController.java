@@ -10,6 +10,7 @@ import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.DocumentGeneratorService;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
+import com.clenzy.service.PlatformSettingsService;
 import com.clenzy.service.PricingConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,6 +49,7 @@ public class QuoteController {
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
     private final DocumentGeneratorService documentGeneratorService;
+    private final PlatformSettingsService platformSettingsService;
 
     // Rate limiter simple en mémoire : IP -> liste de timestamps
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
@@ -56,13 +58,15 @@ public class QuoteController {
     public QuoteController(EmailService emailService, PricingConfigService pricingConfigService,
                            ReceivedFormRepository receivedFormRepository, ObjectMapper objectMapper,
                            NotificationService notificationService,
-                           DocumentGeneratorService documentGeneratorService) {
+                           DocumentGeneratorService documentGeneratorService,
+                           PlatformSettingsService platformSettingsService) {
         this.emailService = emailService;
         this.pricingConfigService = pricingConfigService;
         this.receivedFormRepository = receivedFormRepository;
         this.objectMapper = objectMapper;
         this.notificationService = notificationService;
         this.documentGeneratorService = documentGeneratorService;
+        this.platformSettingsService = platformSettingsService;
     }
 
     /**
@@ -153,8 +157,13 @@ public class QuoteController {
         //    cas nominal. Le devis ne part qu'une fois (dédup) ; un clic "Générer PDF"
         //    ultérieur dans le PMS ne renverra pas.
         //    Non-bloquant : la demande reste en BDD/PMS même si l'envoi échoue.
+        // Toggle plateforme : en pré-lancement, les SUPER_ADMIN / SUPER_MANAGER peuvent
+        // couper l'envoi des emails de devis aux prospects. info@clenzy.fr reste notifié
+        // via le fallback ci-dessous (sendQuoteRequestNotification), pour ne jamais rester
+        // aveugle sur une demande entrante.
+        boolean prospectEmailsEnabled = platformSettingsService.isSendProspectDevisEmails();
         boolean prospectNotified = false;
-        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+        if (prospectEmailsEnabled && dto.getEmail() != null && !dto.getEmail().isBlank()) {
             try {
                 documentGeneratorService.generateFromEvent(
                         DocumentType.DEVIS,
@@ -168,6 +177,9 @@ public class QuoteController {
                 log.warn("Envoi devis prospect KO pour #{} ({}) : {}",
                         savedForm.getId(), dto.getFullName(), e.getMessage());
             }
+        } else if (!prospectEmailsEnabled) {
+            log.info("Emails devis prospect DÉSACTIVÉS (réglage plateforme) — devis #{} non envoyé au prospect ; info@ sera notifié.",
+                    savedForm.getId());
         }
         // FILET : le prospect n'a pas pu être notifié (pas d'email — cas théorique car
         // validateRequest l'exige — OU échec d'envoi/génération) → on prévient quand
