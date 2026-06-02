@@ -1574,3 +1574,16 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0165 : Template email "quote_to_prospect" (devis envoye au prospect) ---
+  # Remplace le mail generique "Votre document" par un template systeme dedie et
+  # editable, wrappe Baitly (NOTIFICATION_GUEST). Utilise par
+  # DocumentGeneratorService.sendDocumentByEmail pour les DEVIS. Idempotent.
+  - changeSet:
+      id: "0165-add-quote-to-prospect-email-template"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0165__add_quote_to_prospect_email_template.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

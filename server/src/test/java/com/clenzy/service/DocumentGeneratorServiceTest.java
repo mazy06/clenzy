@@ -1294,4 +1294,61 @@ class DocumentGeneratorServiceTest {
                     .isInstanceOf(com.clenzy.exception.DocumentGenerationException.class);
         }
     }
+
+    @Nested
+    @DisplayName("isEmailAlreadySent - dedup de l'envoi du devis au prospect")
+    class EmailDedup {
+
+        @Test
+        void whenForceResend_thenNotDedup_andRepoNotQueried() {
+            boolean result = service.isEmailAlreadySent(
+                    true, ReferenceType.RECEIVED_FORM, 12L, DocumentType.DEVIS, "prospect@example.com");
+
+            assertThat(result).isFalse();
+            verify(generationRepository, never())
+                    .existsSentEmailForReference(anyString(), anyString(), anyLong(), anyString());
+        }
+
+        @Test
+        void whenReferenceIdNull_thenNotDedup_andRepoNotQueried() {
+            boolean result = service.isEmailAlreadySent(
+                    false, ReferenceType.RECEIVED_FORM, null, DocumentType.DEVIS, "prospect@example.com");
+
+            assertThat(result).isFalse();
+            verify(generationRepository, never())
+                    .existsSentEmailForReference(anyString(), anyString(), anyLong(), anyString());
+        }
+
+        @Test
+        void whenBlankEmail_thenNotDedup_andRepoNotQueried() {
+            boolean result = service.isEmailAlreadySent(
+                    false, ReferenceType.RECEIVED_FORM, 12L, DocumentType.DEVIS, "   ");
+
+            assertThat(result).isFalse();
+            verify(generationRepository, never())
+                    .existsSentEmailForReference(anyString(), anyString(), anyLong(), anyString());
+        }
+
+        @Test
+        void whenAlreadySentForReference_thenDedupTrue() {
+            when(generationRepository.existsSentEmailForReference(
+                    "DEVIS", "RECEIVED_FORM", 12L, "prospect@example.com")).thenReturn(true);
+
+            boolean result = service.isEmailAlreadySent(
+                    false, ReferenceType.RECEIVED_FORM, 12L, DocumentType.DEVIS, "prospect@example.com");
+
+            assertThat(result).isTrue();
+        }
+
+        @Test
+        void whenNotYetSent_thenDedupFalse() {
+            when(generationRepository.existsSentEmailForReference(
+                    "DEVIS", "RECEIVED_FORM", 12L, "prospect@example.com")).thenReturn(false);
+
+            boolean result = service.isEmailAlreadySent(
+                    false, ReferenceType.RECEIVED_FORM, 12L, DocumentType.DEVIS, "prospect@example.com");
+
+            assertThat(result).isFalse();
+        }
+    }
 }

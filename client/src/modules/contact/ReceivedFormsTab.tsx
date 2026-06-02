@@ -518,12 +518,12 @@ const ReceivedFormsTab: React.FC = () => {
     return templates.find((tpl) => tpl.documentType === docType && tpl.active) ?? null;
   };
 
-  // ─── Generate PDF using a document template + auto-send email ─
-  // L'email est TOUJOURS envoye (premiere generation ou regeneration). Le
-  // backend (DocumentGeneratorService.sendDocumentByEmail) utilise le subject
-  // et body du template ; le PDF est attache automatiquement. Si l'email du
-  // formulaire est manquant ou invalide, on saute l'envoi et on notifie.
-  const handleGeneratePdf = async (form: ReceivedForm) => {
+  // ─── Generate PDF using a document template + send email (dedup) ─
+  // Le backend déduplique l'envoi : un même document n'est envoyé qu'UNE fois
+  // par destinataire (le devis part déjà automatiquement à la soumission du
+  // formulaire). On reflète le statut réel renvoyé (SENT / SKIPPED / FAILED).
+  // `forceResend=true` (bouton « Renvoyer ») court-circuite la dédup.
+  const handleGeneratePdf = async (form: ReceivedForm, forceResend = false) => {
     const tpl = findActiveTemplate(form.formType);
     if (!tpl) {
       notify.error('Aucun template actif trouvé pour ce type de formulaire');
@@ -538,12 +538,20 @@ const ReceivedFormsTab: React.FC = () => {
         referenceType: 'RECEIVED_FORM',
         sendEmail: hasValidEmail,
         emailTo: hasValidEmail ? emailTo : undefined,
+        forceResend,
       });
       if (generation?.id) {
-        if (hasValidEmail) {
-          notify.success(`PDF généré et envoyé à ${emailTo}`);
-        } else {
+        // Le backend renvoie le vrai statut d'envoi de l'email.
+        if (!hasValidEmail) {
           notify.success('PDF généré (email non envoyé : adresse manquante ou invalide)');
+        } else if (generation.emailStatus === 'SENT') {
+          notify.success(forceResend ? `Devis renvoyé à ${emailTo}` : `PDF généré et envoyé à ${emailTo}`);
+        } else if (generation.emailStatus === 'SKIPPED') {
+          notify.info(`PDF généré — le devis avait déjà été envoyé à ${emailTo}. Utilisez « Renvoyer » pour forcer l'envoi.`);
+        } else if (generation.emailStatus === 'FAILED') {
+          notify.warning("PDF généré mais l'envoi de l'email a échoué — réessayez via « Renvoyer ».");
+        } else {
+          notify.success('PDF généré');
         }
         // Affiche l'apercu inline au lieu de tenter un window.open
         // (souvent bloque par le popup blocker des navigateurs).
@@ -1005,6 +1013,35 @@ const ReceivedFormsTab: React.FC = () => {
                             }}
                           >
                             {generateDocumentMutation.isPending ? 'Génération…' : 'Générer PDF'}
+                          </Button>
+                        </Tooltip>
+                      )}
+
+                      {/* Renvoyer : force l'envoi du devis (le backend déduplique
+                          sinon). Visible si un devis a déjà été généré pour ce
+                          formulaire et que l'email est valide. */}
+                      {tpl
+                        && (priorGenerations?.length ?? 0) > 0
+                        && /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/.test(selectedForm.email?.trim() || '') && (
+                        <Tooltip
+                          title={`Renvoyer le devis à ${selectedForm.email}`}
+                          placement="top"
+                          arrow
+                        >
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<PdfIcon size={16} strokeWidth={1.75} />}
+                            onClick={() => handleGeneratePdf(selectedForm, true)}
+                            disabled={generateDocumentMutation.isPending}
+                            sx={{
+                              textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
+                              borderRadius: '10px', px: 2.5, py: 0.75,
+                              color: '#475569', borderColor: '#cbd5e1',
+                              '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc' },
+                            }}
+                          >
+                            Renvoyer
                           </Button>
                         </Tooltip>
                       )}
