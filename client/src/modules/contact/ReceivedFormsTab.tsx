@@ -791,7 +791,6 @@ const ReceivedFormsTab: React.FC = () => {
                 {/* ── Hero header (avatar + identité + contacts) ─────────── */}
                 {(() => {
                   const tc = FORM_TYPE_CONFIG[selectedForm.formType] || FORM_TYPE_CONFIG.DEVIS;
-                  const sc = STATUS_CONFIG[selectedForm.status] || STATUS_CONFIG.NEW;
                   const name = selectedForm.fullName || 'Anonyme';
                   const initials = name
                     .split(/[\s.-]+/)
@@ -819,32 +818,6 @@ const ReceivedFormsTab: React.FC = () => {
                             <Typography sx={{ flex: 1, minWidth: 0, fontSize: '1.125rem', fontWeight: 600, lineHeight: 1.2, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {name}
                             </Typography>
-                            <Chip
-                              icon={tc.icon as React.ReactElement}
-                              label={tc.label}
-                              size="small"
-                              sx={{
-                                fontSize: '0.6875rem', height: 24, borderRadius: '6px',
-                                fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4,
-                                '& .MuiChip-label': { px: 0.75 }, flexShrink: 0,
-                                backgroundColor: (t) => alpha(tc.color, t.palette.mode === 'dark' ? 0.22 : 0.12),
-                                color: tc.color,
-                                '& .MuiChip-icon': { color: `${tc.color} !important`, ml: 0.5 },
-                              }}
-                            />
-                            <Chip
-                              label={sc.label}
-                              size="small"
-                              icon={
-                                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: sc.color, ml: 0.5 }} />
-                              }
-                              sx={{
-                                fontSize: '0.6875rem', height: 24, borderRadius: '6px',
-                                fontWeight: 600, '& .MuiChip-label': { px: 0.75 }, flexShrink: 0,
-                                backgroundColor: (t) => alpha(sc.color, t.palette.mode === 'dark' ? 0.22 : 0.12),
-                                color: sc.color,
-                              }}
-                            />
                             <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500, flexShrink: 0, ml: 'auto' }}>
                               {formatDate(selectedForm.createdAt)}
                             </Typography>
