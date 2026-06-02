@@ -46,6 +46,10 @@ public class WaitlistSignup {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    /** Horodatage de la desinscription Brevo (webhook). Null = abonne. */
+    @Column(name = "unsubscribed_at")
+    private LocalDateTime unsubscribedAt;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -75,4 +79,7 @@ public class WaitlistSignup {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUnsubscribedAt() { return unsubscribedAt; }
+    public void setUnsubscribedAt(LocalDateTime unsubscribedAt) { this.unsubscribedAt = unsubscribedAt; }
 }
