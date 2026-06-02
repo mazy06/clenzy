@@ -27,7 +27,7 @@ import {
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { useFormsStats } from '../../hooks/useReceivedForms';
-import { useContactThreads } from '../../hooks/useContactMessages';
+import { useContactThreads, useContactMessages } from '../../hooks/useContactMessages';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -82,6 +82,11 @@ const ContactPage: React.FC = () => {
   // Compteur de messages non-lus pour la messagerie interne
   const { data: threads } = useContactThreads();
   const internalUnread = threads?.reduce((sum, th) => sum + th.unreadCount, 0) ?? 0;
+
+  // Compteurs de l'onglet "Messages archivés" → orientent vers le bon sous-onglet.
+  const archivedFormsCount = formsStats?.totalArchived ?? 0;
+  const { data: archivedMsgsPage } = useContactMessages('archived', 0, 1);
+  const archivedConversationsCount = archivedMsgsPage?.totalElements ?? 0;
 
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
@@ -173,6 +178,9 @@ const ContactPage: React.FC = () => {
                     sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                   >
                     Conversations
+                    <Box component="span" sx={{ ml: 0.75, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
+                      {archivedConversationsCount}
+                    </Box>
                   </Button>
                   <Button
                     size="small"
@@ -181,6 +189,9 @@ const ContactPage: React.FC = () => {
                     sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                   >
                     Formulaires
+                    <Box component="span" sx={{ ml: 0.75, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
+                      {archivedFormsCount}
+                    </Box>
                   </Button>
                 </Box>
               )}
