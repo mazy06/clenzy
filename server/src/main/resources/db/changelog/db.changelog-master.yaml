@@ -1600,3 +1600,16 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0167 : Waitlist de lancement Baitly ---
+  # Table waitlist_signups : inscrits depuis la landing « Bientot disponible ».
+  # Classement des 20 premiers (ordre d'arrivee) + tirage au sort + sync Brevo.
+  # Index unique LOWER(email) pour une re-inscription idempotente.
+  - changeSet:
+      id: "0167-create-waitlist-signups"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0167__create_waitlist_signups.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
