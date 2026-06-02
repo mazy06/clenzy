@@ -26,6 +26,10 @@ public class PlatformSettings {
     @Column(name = "send_prospect_devis_emails", nullable = false)
     private boolean sendProspectDevisEmails = true;
 
+    /** Verser les demandes de devis (landing) dans la waitlist tant que le PMS n'est pas public. */
+    @Column(name = "add_devis_leads_to_waitlist", nullable = false)
+    private boolean addDevisLeadsToWaitlist = true;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -37,6 +41,9 @@ public class PlatformSettings {
 
     public boolean isSendProspectDevisEmails() { return sendProspectDevisEmails; }
     public void setSendProspectDevisEmails(boolean sendProspectDevisEmails) { this.sendProspectDevisEmails = sendProspectDevisEmails; }
+
+    public boolean isAddDevisLeadsToWaitlist() { return addDevisLeadsToWaitlist; }
+    public void setAddDevisLeadsToWaitlist(boolean addDevisLeadsToWaitlist) { this.addDevisLeadsToWaitlist = addDevisLeadsToWaitlist; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }

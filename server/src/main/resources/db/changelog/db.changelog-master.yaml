@@ -1613,3 +1613,15 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0168 : Toggle "demandes de devis -> waitlist" (pre-lancement) ---
+  # Colonne add_devis_leads_to_waitlist sur platform_settings : verse les leads
+  # devis de la landing dans la waitlist tant que le PMS n'est pas public.
+  - changeSet:
+      id: "0168-add-devis-leads-to-waitlist"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0168__add_devis_leads_to_waitlist.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

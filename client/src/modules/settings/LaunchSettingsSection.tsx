@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Box, Typography, CircularProgress, Button, Collapse, Divider } from '@mui/material';
-import { Mail, Rocket, Users, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mail, Rocket, Users, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
-import { usePlatformSettings, useSetProspectDevisEmails } from '../../hooks/usePlatformSettings';
+import { usePlatformSettings, useSetProspectDevisEmails, useSetDevisLeadsToWaitlist } from '../../hooks/usePlatformSettings';
 import { useWaitlistStats, useWaitlistList } from '../../hooks/useWaitlist';
 
 /**
@@ -14,6 +14,7 @@ import { useWaitlistStats, useWaitlistList } from '../../hooks/useWaitlist';
 const LaunchSettingsSection: React.FC = () => {
   const { data: settings, isLoading } = usePlatformSettings();
   const setProspectEmails = useSetProspectDevisEmails();
+  const setDevisToWaitlist = useSetDevisLeadsToWaitlist();
   const { data: stats } = useWaitlistStats();
   const [showList, setShowList] = useState(false);
   const { data: list } = useWaitlistList(showList);
@@ -35,14 +36,24 @@ const LaunchSettingsSection: React.FC = () => {
           <CircularProgress size={20} />
         </Box>
       ) : (
-        <SettingsToggleRow
-          icon={Mail}
-          title="Emails de devis aux prospects"
-          description="Quand c'est désactivé, aucun email ni devis n'est envoyé aux prospects depuis la landing (utile tant que le PMS n'est pas public). info@ reste notifié dans tous les cas."
-          checked={settings?.sendProspectDevisEmails ?? true}
-          onChange={(c) => setProspectEmails.mutate(c)}
-          disabled={setProspectEmails.isPending}
-        />
+        <>
+          <SettingsToggleRow
+            icon={Mail}
+            title="Emails de devis aux prospects"
+            description="Quand c'est désactivé, aucun email ni devis n'est envoyé aux prospects depuis la landing (utile tant que le PMS n'est pas public). info@ reste notifié dans tous les cas."
+            checked={settings?.sendProspectDevisEmails ?? true}
+            onChange={(c) => setProspectEmails.mutate(c)}
+            disabled={setProspectEmails.isPending}
+          />
+          <SettingsToggleRow
+            icon={UserPlus}
+            title="Ajouter les demandes de devis à la waitlist"
+            description="Pendant le pré-lancement, chaque demande de devis depuis la landing inscrit aussi l'email à la liste d'attente de lancement."
+            checked={settings?.addDevisLeadsToWaitlist ?? true}
+            onChange={(c) => setDevisToWaitlist.mutate(c)}
+            disabled={setDevisToWaitlist.isPending}
+          />
+        </>
       )}
 
       {/* Liste d'attente de lancement */}
