@@ -48,6 +48,9 @@ class EmailServiceTest {
     @Mock
     private SystemEmailTemplateService systemEmailTemplateService;
 
+    @Mock
+    private PlatformSettingsService platformSettingsService;
+
     // Pas de mock : l'interpolation est une operation pure, on utilise le vrai
     // service pour valider que les variables sont correctement substituees.
     private TemplateInterpolationService templateInterpolationService;
@@ -62,7 +65,7 @@ class EmailServiceTest {
         // translationService uniquement via interpolateAndTranslate qu'on n'invoque pas.
         templateInterpolationService = new TemplateInterpolationService(
             org.mockito.Mockito.mock(com.clenzy.service.messaging.TranslationService.class));
-        emailService = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
+        emailService = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService(), platformSettingsService);
         ReflectionTestUtils.setField(emailService, "fromAddress", "info@clenzy.fr");
         ReflectionTestUtils.setField(emailService, "notificationTo", "info@clenzy.fr");
         ReflectionTestUtils.setField(emailService, "maxAttachments", 10);
@@ -75,6 +78,14 @@ class EmailServiceTest {
         // faire echouer Mockito sur "unused stubbing".
         org.mockito.Mockito.lenient().when(systemEmailTemplateService.resolve(any(), any(), any()))
             .thenAnswer(inv -> java.util.Optional.of(buildStubTemplate(inv.getArgument(1))));
+
+        // Destinataires des notifications internes : par defaut info@clenzy.fr (comportement
+        // actuel). Les tests qui veulent un autre comportement override avec when().thenReturn().
+        org.mockito.Mockito.lenient().when(platformSettingsService.getInternalNotificationEmails())
+            .thenReturn(List.of("info@clenzy.fr"));
+        // Adresse d'expédition (From) par defaut : info@clenzy.fr / Baitly.
+        org.mockito.Mockito.lenient().when(platformSettingsService.getSenderEmail()).thenReturn("info@clenzy.fr");
+        org.mockito.Mockito.lenient().when(platformSettingsService.getSenderName()).thenReturn("Baitly");
     }
 
     /**
@@ -158,7 +169,7 @@ class EmailServiceTest {
         void whenMailSenderAvailable_thenNoException() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(mailSender);
 
-            assertThatCode(() -> new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService()))
+            assertThatCode(() -> new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService(), platformSettingsService))
                     .doesNotThrowAnyException();
         }
 
@@ -166,7 +177,7 @@ class EmailServiceTest {
         void whenMailSenderNull_thenNoExceptionButWarningLogged() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
 
-            assertThatCode(() -> new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService()))
+            assertThatCode(() -> new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService(), platformSettingsService))
                     .doesNotThrowAnyException();
         }
     }
@@ -181,7 +192,7 @@ class EmailServiceTest {
         @Test
         void whenMailSenderNull_thenThrowsIllegalStateException() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
-            EmailService serviceWithoutMail = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
+            EmailService serviceWithoutMail = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService(), platformSettingsService);
             ReflectionTestUtils.setField(serviceWithoutMail, "fromAddress", "info@clenzy.fr");
             ReflectionTestUtils.setField(serviceWithoutMail, "notificationTo", "info@clenzy.fr");
 
@@ -516,7 +527,7 @@ class EmailServiceTest {
         @Test
         void whenMailSenderNull_thenThrowsIllegalStateException() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
-            EmailService serviceWithoutMail = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
+            EmailService serviceWithoutMail = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService(), platformSettingsService);
             ReflectionTestUtils.setField(serviceWithoutMail, "fromAddress", "info@clenzy.fr");
             ReflectionTestUtils.setField(serviceWithoutMail, "notificationTo", "info@clenzy.fr");
             ReflectionTestUtils.setField(serviceWithoutMail, "maxAttachments", 10);
@@ -592,7 +603,7 @@ class EmailServiceTest {
         @Test
         void whenMailSenderNull_thenThrowsRuntimeException() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
-            EmailService serviceWithoutMail = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
+            EmailService serviceWithoutMail = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService(), platformSettingsService);
             ReflectionTestUtils.setField(serviceWithoutMail, "fromAddress", "info@clenzy.fr");
 
             assertThatThrownBy(() -> serviceWithoutMail.sendDocumentEmail(
@@ -674,7 +685,7 @@ class EmailServiceTest {
         @Test
         void whenMailSenderNull_thenThrowsRuntimeException() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
-            EmailService serviceWithoutMail = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
+            EmailService serviceWithoutMail = new EmailService(mailSenderProvider, systemEmailTemplateService, templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService(), platformSettingsService);
             ReflectionTestUtils.setField(serviceWithoutMail, "fromAddress", "info@clenzy.fr");
 
             // sendInvitationEmail now catches Exception and wraps in RuntimeException
@@ -954,7 +965,7 @@ class EmailServiceTest {
         void whenMailSenderNull_thenDoesNotThrow() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
             EmailService svc = new EmailService(mailSenderProvider, systemEmailTemplateService,
-                    templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
+                    templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService(), platformSettingsService);
             ReflectionTestUtils.setField(svc, "fromAddress", "info@clenzy.fr");
 
             assertThatCode(() -> svc.sendWelcomeEmail("a@b.c", "F", "L", "HOST", "http://x"))
@@ -1012,7 +1023,7 @@ class EmailServiceTest {
         void whenMailSenderNull_thenWrapsInRuntime() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
             EmailService svc = new EmailService(mailSenderProvider, systemEmailTemplateService,
-                    templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
+                    templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService(), platformSettingsService);
             ReflectionTestUtils.setField(svc, "fromAddress", "info@clenzy.fr");
 
             assertThatThrownBy(() -> svc.sendInscriptionConfirmationEmail(
@@ -1068,7 +1079,7 @@ class EmailServiceTest {
         void whenMailSenderNull_thenRuntime() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
             EmailService svc = new EmailService(mailSenderProvider, systemEmailTemplateService,
-                    templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService());
+                    templateInterpolationService, new com.clenzy.service.messaging.EmailWrapperService(), platformSettingsService);
             ReflectionTestUtils.setField(svc, "fromAddress", "info@clenzy.fr");
 
             assertThatThrownBy(() -> svc.sendSimpleHtmlEmail("x@y.z", "S", "<p>b</p>"))
@@ -1183,6 +1194,115 @@ class EmailServiceTest {
 
             assertThat(result).isNotNull();
             verify(mailSender).send(mimeMessage);
+        }
+    }
+
+    /**
+     * Copie interne du devis envoyée à l'équipe (info@) — remplace l'ancien
+     * CC-a-soi-meme peu fiable par un email dédié (destinataire principal To:).
+     */
+    @Nested
+    class QuoteInternalCopyTests {
+
+        @Test
+        void sendQuoteInternalCopy_sendsToInternalAddressAsPrimaryRecipient_notCc() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendQuoteInternalCopy("nicolas@hotmail.fr", "PDFDATA".getBytes(), "Devis.pdf");
+
+            ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+            verify(mailSender).send(captor.capture());
+            MimeMessage sent = captor.getValue();
+
+            // Destinataire principal (To:) = adresse interne → fiable. Surtout PAS un CC.
+            assertThat(sent.getRecipients(jakarta.mail.Message.RecipientType.TO))
+                    .extracting(Object::toString).containsExactly("info@clenzy.fr");
+            assertThat(sent.getRecipients(jakarta.mail.Message.RecipientType.CC)).isNull();
+            assertThat(sent.getSubject()).contains("nicolas@hotmail.fr");
+        }
+
+        @Test
+        void sendQuoteInternalCopy_attachesThePdf() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendQuoteInternalCopy("nicolas@hotmail.fr", "PDFDATA".getBytes(), "Devis_Nicolas.pdf");
+
+            ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+            verify(mailSender).send(captor.capture());
+
+            jakarta.mail.Multipart mp = (jakarta.mail.Multipart) captor.getValue().getContent();
+            boolean hasPdf = false;
+            for (int i = 0; i < mp.getCount(); i++) {
+                if ("Devis_Nicolas.pdf".equals(mp.getBodyPart(i).getFileName())) {
+                    hasPdf = true;
+                }
+            }
+            assertThat(hasPdf).as("le PDF du devis doit être joint à la copie interne").isTrue();
+        }
+
+        @Test
+        void sendQuoteInternalCopy_noRecipientsConfigured_isNoOp() {
+            // Aucun destinataire configuré (liste vide) ET fallback env vide → no-op.
+            when(platformSettingsService.getInternalNotificationEmails()).thenReturn(List.of());
+            ReflectionTestUtils.setField(emailService, "notificationTo", "");
+
+            emailService.sendQuoteInternalCopy("nicolas@hotmail.fr", "PDF".getBytes(), "Devis.pdf");
+
+            verify(mailSender, never()).send(any(MimeMessage.class));
+        }
+
+        @Test
+        void sendQuoteInternalCopy_usesConfiguredRecipients_supportsMultiple() throws Exception {
+            // Destinataires pilotés par les Settings du PMS (≠ From info@) → plus de self-send,
+            // et plusieurs adresses possibles.
+            when(platformSettingsService.getInternalNotificationEmails())
+                    .thenReturn(List.of("perso@outlook.fr", "associe@gmail.com"));
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendQuoteInternalCopy("nicolas@hotmail.fr", "PDF".getBytes(), "Devis.pdf");
+
+            ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+            verify(mailSender).send(captor.capture());
+            assertThat(captor.getValue().getRecipients(jakarta.mail.Message.RecipientType.TO))
+                    .extracting(Object::toString)
+                    .containsExactlyInAnyOrder("perso@outlook.fr", "associe@gmail.com");
+        }
+
+        @Test
+        void emails_useConfiguredSenderFrom() throws Exception {
+            // From piloté par les Settings (platform_settings.sender_email/name).
+            when(platformSettingsService.getSenderEmail()).thenReturn("hello@baitly.fr");
+            when(platformSettingsService.getSenderName()).thenReturn("Baitly Pro");
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendQuoteInternalCopy("nicolas@hotmail.fr", "PDF".getBytes(), "Devis.pdf");
+
+            ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+            verify(mailSender).send(captor.capture());
+            assertThat(captor.getValue().getFrom())
+                    .extracting(Object::toString)
+                    .anyMatch(s -> s.contains("hello@baitly.fr"));
+        }
+
+        @Test
+        void sendQuoteToProspect_noLongerCcsInternalAddress() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendQuoteToProspect("nicolas@hotmail.fr", "PDF".getBytes(), "Devis.pdf", null, null);
+
+            ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+            verify(mailSender).send(captor.capture());
+            MimeMessage sent = captor.getValue();
+
+            assertThat(sent.getRecipients(jakarta.mail.Message.RecipientType.TO))
+                    .extracting(Object::toString).containsExactly("nicolas@hotmail.fr");
+            // Plus aucun CC interne sur le mail prospect (remplacé par sendQuoteInternalCopy).
+            assertThat(sent.getRecipients(jakarta.mail.Message.RecipientType.CC)).isNull();
         }
     }
 }

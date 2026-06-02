@@ -946,10 +946,14 @@ public class DocumentGeneratorService {
                                       String pdfFilename, byte[] pdfBytes,
                                       String emailSubject, String emailBody) {
         // Cas DEVIS envoye a un prospect : template email dedie "quote_to_prospect"
-        // (wrapper Baitly + info@clenzy.fr en CC). emailSubject/emailBody surchargent
-        // le contenu (editeur "Renvoyer").
+        // (wrapper Baitly). emailSubject/emailBody surchargent le contenu (editeur
+        // "Renvoyer"). La copie interne pour l'equipe (info@) part dans un email
+        // DEDIE et fiable, avec le PDF joint — remplace l'ancien CC-a-soi-meme
+        // (souvent non delivre). Best-effort cote EmailService (ne fait pas echouer
+        // l'envoi prospect deja realise).
         if (template.getDocumentType() == DocumentType.DEVIS) {
             emailService.sendQuoteToProspect(toEmail, pdfBytes, pdfFilename, emailSubject, emailBody);
+            emailService.sendQuoteInternalCopy(toEmail, pdfBytes, pdfFilename);
             return;
         }
 

@@ -1650,3 +1650,28 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0171 : Destinataires des notifications internes (configurables Settings) ---
+  # Liste CSV (platform_settings.internal_notification_emails) vers laquelle partent
+  # les notifs internes (lead devis, copie devis, waitlist, maintenance). From reste
+  # info@clenzy.fr ; evite le self-send info@->info@ qui soft-bounce.
+  - changeSet:
+      id: "0171-add-internal-notification-emails"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0171__add_internal_notification_emails.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # --- 0172 : Adresse d'expedition (From) plateforme configurable (Settings) ---
+  # platform_settings.sender_email + sender_name : remplace le clenzy.mail.from fige.
+  # Niveau plateforme uniquement. Defaut info@clenzy.fr / Baitly.
+  - changeSet:
+      id: "0172-add-platform-sender-email"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0172__add_platform_sender_email.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
