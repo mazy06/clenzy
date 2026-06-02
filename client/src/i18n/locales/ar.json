@@ -2801,6 +2801,7 @@
       "noise_alert_guest": "تنبيه الضوضاء — الضيف",
       "invitation_organization": "دعوة للانضمام إلى منظمة",
       "quote_request_internal": "إشعار داخلي — طلب عرض سعر",
+      "quote_to_prospect": "عرض السعر — العميل المحتمل",
       "maintenance_request_internal": "إشعار داخلي — طلب صيانة"
     },
     "dialog": {
