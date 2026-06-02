@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -86,13 +86,29 @@ export default function MessageTemplateEditor({
   // Champ actif (subject ou body) pour decider ou inserer la variable au click.
   // Default: body — c'est la zone la plus large/utilisee.
   const [activeField, setActiveField] = useState<'subject' | 'body'>('body');
+  // Refs vers les <input>/<textarea> sous-jacents pour insérer une variable
+  // à la position du curseur (et non en fin de champ).
+  const subjectRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const handleInsertVariable = (key: string) => {
     const variable = `{${key}}`;
-    if (activeField === 'subject') {
-      setSubject((prev) => prev + variable);
+    const isSubject = activeField === 'subject';
+    const el = isSubject ? subjectRef.current : bodyRef.current;
+    const value = isSubject ? subject : body;
+    const setValue = isSubject ? setSubject : setBody;
+
+    if (!el) {
+      setValue(value + variable);
     } else {
-      setBody((prev) => prev + variable);
+      const start = el.selectionStart ?? value.length;
+      const end = el.selectionEnd ?? value.length;
+      setValue(value.slice(0, start) + variable + value.slice(end));
+      const caret = start + variable.length;
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(caret, caret);
+      });
     }
   };
 
@@ -213,6 +229,7 @@ export default function MessageTemplateEditor({
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   onFocus={() => setActiveField('subject')}
+                  inputRef={subjectRef}
                   size="small"
                   required
                   helperText={t('messaging.templates.editor.subjectHelper')}
@@ -225,6 +242,7 @@ export default function MessageTemplateEditor({
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   onFocus={() => setActiveField('body')}
+                  inputRef={bodyRef}
                   multiline
                   rows={12}
                   required

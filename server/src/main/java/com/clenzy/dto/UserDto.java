@@ -38,6 +38,11 @@ public class UserDto {
 
     public String phoneNumber;
     public UserRole role;
+    // Role du membre dans son organisation (OrgMemberRole, ex: MANAGER). Pour
+    // l'affichage Annuaire : un Manager d'org ne doit pas apparaitre "Proprietaire"
+    // (les roles de direction d'org sont mappes sur UserRole.HOST cote plateforme).
+    // Null si l'utilisateur n'appartient a aucune organisation.
+    public String organizationRole;
     public UserStatus status;
     public String profilePictureUrl;
     public Boolean emailVerified;

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +15,9 @@ import java.util.Optional;
 public interface OrganizationMemberRepository extends JpaRepository<OrganizationMember, Long> {
 
     Optional<OrganizationMember> findByUserId(Long userId);
+
+    /** Memberships pour un lot d'utilisateurs (batch, evite le N+1 dans la liste Annuaire). */
+    List<OrganizationMember> findByUserIdIn(Collection<Long> userIds);
 
     @Query("SELECT om FROM OrganizationMember om JOIN om.user u WHERE u.keycloakId = :keycloakId")
     Optional<OrganizationMember> findByUserKeycloakId(@Param("keycloakId") String keycloakId);

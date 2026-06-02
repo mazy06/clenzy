@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -86,6 +86,10 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
   const [body, setBody] = useState('');
   const [touched, setTouched] = useState(false);
   const [activeField, setActiveField] = useState<'subject' | 'body'>('body');
+  // Refs vers les <input>/<textarea> sous-jacents pour insérer une variable
+  // à la position du curseur (et non en fin de champ).
+  const subjectRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const currentTemplate = group?.languages[language];
   const isOverride = currentTemplate && !currentTemplate.isSystem;
@@ -126,10 +130,26 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
 
   const handleInsertVariable = (key: string) => {
     const placeholder = `{${key}}`;
-    if (activeField === 'subject') {
-      setSubject((prev) => prev + placeholder);
+    const isSubject = activeField === 'subject';
+    const el = isSubject ? subjectRef.current : bodyRef.current;
+    const value = isSubject ? subject : body;
+    const setValue = isSubject ? setSubject : setBody;
+
+    if (!el) {
+      // Fallback : pas de ref (champ jamais monté) → on append en fin.
+      setValue(value + placeholder);
     } else {
-      setBody((prev) => prev + placeholder);
+      // Insère à la position du curseur (ou remplace la sélection courante).
+      const start = el.selectionStart ?? value.length;
+      const end = el.selectionEnd ?? value.length;
+      const next = value.slice(0, start) + placeholder + value.slice(end);
+      setValue(next);
+      // Repositionne le curseur juste après la variable insérée, après le re-render.
+      const caret = start + placeholder.length;
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(caret, caret);
+      });
     }
     setTouched(true);
   };
@@ -265,6 +285,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                     value={subject}
                     onChange={(e) => { setSubject(e.target.value); setTouched(true); }}
                     onFocus={() => setActiveField('subject')}
+                    inputRef={subjectRef}
                     size="small"
                     required
                     helperText={t('messaging.templates.editor.subjectHelper')}
@@ -278,6 +299,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                     value={body}
                     onChange={(e) => { setBody(e.target.value); setTouched(true); }}
                     onFocus={() => setActiveField('body')}
+                    inputRef={bodyRef}
                     multiline
                     rows={12}
                     required
