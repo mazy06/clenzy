@@ -4,6 +4,7 @@ import com.clenzy.dto.QuoteRequestDto;
 import com.clenzy.model.ReceivedForm;
 import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.DocumentGeneratorService;
+import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.PricingConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +24,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class QuoteControllerTest {
 
+    @Mock private EmailService emailService;
     @Mock private PricingConfigService pricingConfigService;
     @Mock private ReceivedFormRepository receivedFormRepository;
     @Mock private NotificationService notificationService;
@@ -33,7 +35,7 @@ class QuoteControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new QuoteController(pricingConfigService, receivedFormRepository,
+        controller = new QuoteController(emailService, pricingConfigService, receivedFormRepository,
                 new ObjectMapper(), notificationService, documentGeneratorService);
         lenient().when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
         lenient().when(httpRequest.getHeader(anyString())).thenReturn(null);
@@ -244,6 +246,8 @@ class QuoteControllerTest {
             ResponseEntity<?> response = controller.submitQuoteRequest(dto, httpRequest);
             // Email failure does not block: 200 OK still returned.
             assertThat(response.getStatusCode().value()).isEqualTo(200);
+            // Filet : l'échec d'envoi au prospect déclenche la notification interne à info@.
+            verify(emailService).sendQuoteRequestNotification(any(), anyString(), anyInt(), any());
         }
 
         @Test
