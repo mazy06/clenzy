@@ -11,7 +11,7 @@ import {
   Divider,
 } from '@mui/material';
 import { ArrowBack } from '../../icons';
-import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import clenzyLogo from '../../assets/Baitly_logo.png';
 
@@ -36,7 +36,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
   const { t } = useTranslation();
   // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
   const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createClenzyTheme({ isRtl }), [isRtl]);
+  const theme = useMemo(() => createBaitlyTheme({ isRtl }), [isRtl]);
 
   return (
     <ThemeProvider theme={theme}>

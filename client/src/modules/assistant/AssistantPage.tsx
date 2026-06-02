@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { Box, Typography, Paper, useTheme, alpha } from '@mui/material';
-import ClenzyMarkLogo from '../../components/ClenzyMarkLogo';
+import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import PageHeader from '../../components/PageHeader';
 import { useAgent } from '../../hooks/useAgent';
 import { MessageList } from './components/MessageList';
@@ -52,7 +52,7 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
           color: theme.palette.primary.main,
         }}
       >
-        <ClenzyMarkLogo variant="mark" size={52} />
+        <BaitlyMarkLogo variant="mark" size={52} />
       </Box>
 
       <Box>
@@ -176,7 +176,7 @@ const AssistantPage: React.FC = () => {
       <PageHeader
         title="Assistant"
         subtitle="Pose tes questions, obtiens des reponses en temps reel a partir de tes donnees."
-        iconBadge={<ClenzyMarkLogo variant="mark" size={22} />}
+        iconBadge={<BaitlyMarkLogo variant="mark" size={22} />}
         actions={
           <AssistantUsageBadge
             usage={usage}

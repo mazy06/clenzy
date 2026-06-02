@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Box, IconButton, Drawer, Typography, useTheme, alpha, Tooltip } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Close as CloseIcon, OpenInNew as OpenInNewIcon } from '../icons';
-import ClenzyMarkLogo from './ClenzyMarkLogo';
+import BaitlyMarkLogo from './BaitlyMarkLogo';
 import { useAgent } from '../hooks/useAgent';
 import { MessageList } from '../modules/assistant/components/MessageList';
 import { ChatInput } from '../modules/assistant/components/ChatInput';
@@ -334,7 +334,7 @@ const AssistantWidget: React.FC = () => {
               etat hover-equivalent (lines absorbees, centre pulsant avec
               glow, nodes orbitant) — c'est la "signature vivante" du
               widget assistant, comme l'orb de Siri/Copilot. */}
-          <ClenzyMarkLogo
+          <BaitlyMarkLogo
             variant="mark"
             size={72}
             idleAnimation={false}
@@ -382,7 +382,7 @@ const AssistantWidget: React.FC = () => {
             {/* Header du drawer : pas de bg circulaire (le mark se suffit
                 a lui-meme). active={isWorking} declenche l'animation
                 hover-equivalent quand l'IA travaille. */}
-            <ClenzyMarkLogo
+            <BaitlyMarkLogo
               variant="mark"
               size={18}
               idleAnimation={false}
@@ -446,7 +446,7 @@ const AssistantWidget: React.FC = () => {
               }}>
                 {/* Empty state du drawer : pas d'active (pas de conversation
                     en cours), mais animation idle gardee pour le wow d'arrivee. */}
-                <ClenzyMarkLogo variant="mark" size={26} />
+                <BaitlyMarkLogo variant="mark" size={26} />
               </Box>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 Pose ta question
