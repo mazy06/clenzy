@@ -841,9 +841,7 @@ const ReceivedFormsTab: React.FC = () => {
                           href={`mailto:${selectedForm.email}`}
                           sx={{
                             display: 'flex', alignItems: 'center', gap: 0.75,
-                            textDecoration: 'none',
-                            '&:hover': { color: tc.color },
-                            transition: 'color 150ms',
+                            color: 'text.primary', textDecoration: 'none',
                           }}
                         >
                           <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
@@ -861,9 +859,7 @@ const ReceivedFormsTab: React.FC = () => {
                               href={`tel:${selectedForm.phone.replace(/\s/g, '')}`}
                               sx={{
                                 display: 'flex', alignItems: 'center', gap: 0.75,
-                                textDecoration: 'none',
-                                '&:hover': { color: tc.color },
-                                transition: 'color 150ms',
+                                color: 'text.primary', textDecoration: 'none',
                               }}
                             >
                               <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
