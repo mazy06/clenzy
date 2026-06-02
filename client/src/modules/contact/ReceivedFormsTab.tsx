@@ -162,102 +162,91 @@ const SUPPORT_GROUPS: FieldGroup[] = [
 
 // ─── Sous-composants de rendu (par type de formulaire) ─────────────────────
 
-function SectionHeader({ icon, title, accentColor }: { icon: React.ReactNode; title: string; accentColor: string }) {
+// Eyebrow typographique épuré — pas d'icône sur les titres de section
+// (les icônes sont réservées aux infos elles-mêmes). `icon`/`accentColor`
+// restent dans la signature pour compat des appelants mais ne sont plus rendus.
+function SectionHeader({ title }: { icon?: React.ReactNode; title: string; accentColor?: string }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-      <Box
-        sx={{
-          width: 24, height: 24, borderRadius: 1,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: accentColor,
-          bgcolor: (t) => alpha(accentColor, t.palette.mode === 'dark' ? 0.18 : 0.12),
-        }}
-      >
-        {icon}
-      </Box>
-      <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'text.secondary' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+      <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'text.secondary' }}>
         {title}
       </Typography>
-      <Box sx={{ flex: 1, height: 1, bgcolor: 'divider', ml: 1 }} />
+      <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
     </Box>
   );
 }
 
+// Tuile KPI neutre — surface unie, libellé + icône discrète en tête,
+// valeur en tabular-nums. `color` conservé dans la signature (ignoré).
 function KpiTile({
-  icon, label, value, color, span = 1,
-}: { icon: React.ReactNode; label: string; value: string; color: string; span?: number }) {
+  icon, label, value, span = 1,
+}: { icon: React.ReactNode; label: string; value: string; color?: string; span?: number }) {
   return (
     <Box
       sx={{
         gridColumn: `span ${span}`,
-        p: 1.5,
+        p: 1.75,
         borderRadius: 2,
         border: '1px solid',
         borderColor: 'divider',
-        bgcolor: (t) => alpha(color, t.palette.mode === 'dark' ? 0.06 : 0.03),
-        position: 'relative',
-        overflow: 'hidden',
-        transition: 'border-color 200ms, transform 200ms',
-        '&:hover': {
-          borderColor: color,
-          transform: 'translateY(-1px)',
-        },
-        '&::before': {
-          content: '""', position: 'absolute', top: 0, left: 0, bottom: 0,
-          width: 3, bgcolor: color, opacity: 0.7,
-        },
+        bgcolor: 'background.paper',
+        transition: 'border-color 200ms ease',
+        '&:hover': { borderColor: 'text.disabled' },
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
-        <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          {label}
-        </Typography>
-        <Box sx={{ display: 'inline-flex', color, opacity: 0.8 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+        <Box sx={{ display: 'inline-flex', color: 'text.disabled' }}>
           {icon}
         </Box>
+        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          {label}
+        </Typography>
       </Box>
-      <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: 'text.primary', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <Typography sx={{ fontSize: '1.375rem', fontWeight: 700, color: 'text.primary', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {value}
       </Typography>
     </Box>
   );
 }
 
+// Ligne d'info neutre — icône discrète, valeur lisible, check à l'accent
+// de marque. `color` conservé dans la signature (ignoré).
 function FeatureRow({
-  icon, label, value, color, checked = true,
-}: { icon: React.ReactNode; label: string; value: string; color: string; checked?: boolean }) {
+  icon, label, value, checked = true,
+}: { icon: React.ReactNode; label: string; value: string; color?: string; checked?: boolean }) {
   return (
     <Box
       sx={{
         display: 'flex', alignItems: 'center', gap: 1.5,
-        p: 1.25, borderRadius: 1.5,
-        bgcolor: (t) => alpha(color, t.palette.mode === 'dark' ? 0.05 : 0.025),
-        border: '1px solid',
-        borderColor: (t) => alpha(color, t.palette.mode === 'dark' ? 0.15 : 0.1),
+        p: 1.5, borderRadius: 1.5,
+        border: '1px solid', borderColor: 'divider',
+        bgcolor: 'background.paper',
+        transition: 'border-color 200ms ease',
+        '&:hover': { borderColor: 'text.disabled' },
       }}
     >
       <Box
         sx={{
-          width: 28, height: 28, borderRadius: '50%',
+          width: 30, height: 30, borderRadius: 1.5,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          bgcolor: (t) => alpha(color, t.palette.mode === 'dark' ? 0.2 : 0.12),
-          color,
+          bgcolor: 'action.hover',
+          color: 'text.secondary',
           flexShrink: 0,
         }}
       >
         {icon}
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.4px', lineHeight: 1.2 }}>
+        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.2 }}>
           {label}
         </Typography>
-        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.3, mt: 0.25 }}>
+        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.35, mt: 0.25 }}>
           {value}
         </Typography>
       </Box>
       {checked && (
-        <Box sx={{ display: 'inline-flex', color }}>
-          <CheckCircleIcon size={18} strokeWidth={2} />
+        <Box sx={{ display: 'inline-flex', color: 'primary.main', flexShrink: 0 }}>
+          <CheckCircleIcon size={16} strokeWidth={2} />
         </Box>
       )}
     </Box>
@@ -1037,12 +1026,11 @@ const ReceivedFormsTab: React.FC = () => {
                             }
                             onClick={() => handleGeneratePdf(selectedForm)}
                             disabled={generateDocumentMutation.isPending}
+                            color="primary"
                             sx={{
                               textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
                               borderRadius: '10px', px: 2.5, py: 0.75,
-                              bgcolor: '#d32f2f',
-                              '&:hover': { bgcolor: '#b71c1c' },
-                              boxShadow: 'none',
+                              boxShadow: 'none', '&:hover': { boxShadow: 'none' },
                             }}
                           >
                             {generateDocumentMutation.isPending ? 'Génération…' : 'Générer PDF'}
@@ -1070,8 +1058,8 @@ const ReceivedFormsTab: React.FC = () => {
                             sx={{
                               textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
                               borderRadius: '10px', px: 2.5, py: 0.75,
-                              color: '#475569', borderColor: '#cbd5e1',
-                              '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc' },
+                              color: 'text.secondary', borderColor: 'divider',
+                              '&:hover': { borderColor: 'text.disabled', bgcolor: 'action.hover' },
                             }}
                           >
                             Renvoyer
@@ -1082,15 +1070,14 @@ const ReceivedFormsTab: React.FC = () => {
                       {selectedForm.status !== 'PROCESSED' && (
                         <Button
                           size="small"
-                          variant="contained"
-                          color="success"
+                          variant="outlined"
+                          color="primary"
                           startIcon={<CheckCircleIcon size={16} strokeWidth={1.75} />}
                           onClick={() => handleUpdateStatus('PROCESSED')}
                           disabled={updateStatusMutation.isPending}
                           sx={{
                             textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
                             borderRadius: '10px', px: 2.5, py: 0.75,
-                            boxShadow: 'none', '&:hover': { boxShadow: 'none' },
                           }}
                         >
                           Marquer traite
@@ -1099,13 +1086,15 @@ const ReceivedFormsTab: React.FC = () => {
                       {selectedForm.status !== 'ARCHIVED' && (
                         <Button
                           size="small"
-                          variant="outlined"
+                          variant="text"
                           startIcon={<ArchiveIcon size={16} strokeWidth={1.75} />}
                           onClick={() => handleUpdateStatus('ARCHIVED')}
                           disabled={updateStatusMutation.isPending}
                           sx={{
                             textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
-                            borderRadius: '10px', px: 2.5, py: 0.75,
+                            borderRadius: '10px', px: 2, py: 0.75,
+                            color: 'text.secondary',
+                            '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
                           }}
                         >
                           Archiver
