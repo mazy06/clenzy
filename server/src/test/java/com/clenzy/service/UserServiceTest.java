@@ -312,6 +312,26 @@ class UserServiceTest {
             assertThat(result.getContent()).hasSize(1);
             assertThat(result.getTotalElements()).isEqualTo(1);
         }
+
+        @Test
+        void whenUserIsOrgMember_thenDtoCarriesOrganizationRole() {
+            // Un Manager d'org a le role plateforme HOST (mappe par defaut), mais
+            // l'Annuaire ne doit pas l'afficher "Proprietaire" : le DTO doit porter
+            // son role d'organisation reel (MANAGER) pour l'affichage.
+            User u1 = buildUser(1L, "manager@test.com", UserRole.HOST);
+            Page<User> page = new PageImpl<>(List.of(u1), PageRequest.of(0, 10), 1);
+            when(userRepository.findAll(any(PageRequest.class))).thenReturn(page);
+
+            OrganizationMember m = mock(OrganizationMember.class);
+            when(m.getUserId()).thenReturn(1L);
+            when(m.getRoleInOrg()).thenReturn(OrgMemberRole.MANAGER);
+            when(memberRepository.findByUserIdIn(any())).thenReturn(List.of(m));
+
+            Page<UserDto> result = userService.list(PageRequest.of(0, 10));
+
+            assertThat(result.getContent().get(0).role).isEqualTo(UserRole.HOST);
+            assertThat(result.getContent().get(0).organizationRole).isEqualTo("MANAGER");
+        }
     }
 
     // ===== FIND BY KEYCLOAK ID / EMAIL =====

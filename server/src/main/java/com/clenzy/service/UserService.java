@@ -9,6 +9,7 @@ import com.clenzy.exception.NotFoundException;
 import com.clenzy.exception.KeycloakOperationException;
 import com.clenzy.integration.channel.HostProfileUpdate;
 import com.clenzy.model.OrgMemberRole;
+import com.clenzy.model.OrganizationMember;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.UserStatus;
@@ -29,7 +30,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -254,7 +257,24 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public Page<UserDto> list(Pageable pageable) {
-        return userRepository.findAll(pageable).map(this::toDto);
+        Page<User> page = userRepository.findAll(pageable);
+        Page<UserDto> dtos = page.map(this::toDto);
+        // Enrichir avec le role d'organisation : un Manager d'org ne doit pas
+        // apparaitre "Proprietaire" dans l'Annuaire (les roles de direction d'org
+        // OWNER/ADMIN/MANAGER/MEMBER sont mappes sur UserRole.HOST cote plateforme).
+        // Batch findByUserIdIn → pas de N+1.
+        List<Long> userIds = page.getContent().stream().map(User::getId).toList();
+        if (!userIds.isEmpty()) {
+            Map<Long, OrgMemberRole> orgRoleByUser = new HashMap<>();
+            for (OrganizationMember m : memberRepository.findByUserIdIn(userIds)) {
+                orgRoleByUser.putIfAbsent(m.getUserId(), m.getRoleInOrg());
+            }
+            dtos.getContent().forEach(dto -> {
+                OrgMemberRole r = orgRoleByUser.get(dto.id);
+                if (r != null) dto.organizationRole = r.name();
+            });
+        }
+        return dtos;
     }
 
     @Transactional(readOnly = true)
