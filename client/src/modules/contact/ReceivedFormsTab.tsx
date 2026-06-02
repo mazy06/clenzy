@@ -722,12 +722,16 @@ const ReceivedFormsTab: React.FC = () => {
                       }}>
                         {form.fullName}
                       </Typography>
-                      <Box component="span" title={typeConf.label} sx={{ display: 'inline-flex', color: typeConf.color, flexShrink: 0 }}>
-                        {React.cloneElement(typeConf.icon as React.ReactElement, { size: 15 })}
-                      </Box>
-                      <Box component="span" title={statusConf.label} sx={{ display: 'inline-flex', color: statusConf.color, flexShrink: 0 }}>
-                        {renderStatusIcon(form.status)}
-                      </Box>
+                      <Tooltip title={typeConf.label} arrow placement="top">
+                        <Box component="span" sx={{ display: 'inline-flex', color: typeConf.color, flexShrink: 0 }}>
+                          {React.cloneElement(typeConf.icon as React.ReactElement, { size: 15 })}
+                        </Box>
+                      </Tooltip>
+                      <Tooltip title={statusConf.label} arrow placement="top">
+                        <Box component="span" sx={{ display: 'inline-flex', color: statusConf.color, flexShrink: 0 }}>
+                          {renderStatusIcon(form.status)}
+                        </Box>
+                      </Tooltip>
                     </Box>
 
                     {/* Row 3: Subject */}
@@ -797,14 +801,14 @@ const ReceivedFormsTab: React.FC = () => {
                     .join('') || '?';
                   return (
                     <Box sx={{ mb: 3, pb: 2.75, borderBottom: '1px solid', borderColor: 'divider' }}>
-                      {/* Identité : avatar + (nom + chips + date sur une ligne) + sujet */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      {/* Identité : avatar + colonne (nom + chips + date / sujet / contact) */}
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
                         <Box
                           sx={{
-                            width: 48, height: 48, borderRadius: '14px',
+                            width: 60, height: 60, borderRadius: '18px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             bgcolor: tc.color, color: '#fff',
-                            fontSize: '1.0625rem', fontWeight: 600, letterSpacing: '0.04em',
+                            fontSize: '1.375rem', fontWeight: 600, letterSpacing: '0.04em',
                             flexShrink: 0,
                           }}
                         >
@@ -848,11 +852,8 @@ const ReceivedFormsTab: React.FC = () => {
                           <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mt: 0.25 }}>
                             {selectedForm.subject || `Formulaire #${selectedForm.id}`}
                           </Typography>
-                        </Box>
-                      </Box>
-
-                      {/* Contact info — clean list horizontal */}
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+                          {/* Contact info — aligné avec le nom et le sujet */}
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', mt: 1 }}>
                         <Box
                           component="a"
                           href={`mailto:${selectedForm.email}`}
@@ -910,6 +911,8 @@ const ReceivedFormsTab: React.FC = () => {
                             IP : {selectedForm.ipAddress}
                           </Typography>
                         )}
+                          </Box>
+                        </Box>
                       </Box>
                     </Box>
                   );
