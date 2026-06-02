@@ -11,6 +11,7 @@ import {
   TextField,
   Button,
   Badge,
+  Tooltip,
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -24,6 +25,8 @@ import {
   Forum as ForumIcon,
   MarkEmailRead as ReadIcon,
   Refresh as RefreshIcon,
+  Archive as ArchiveIcon,
+  Unarchive as UnarchiveIcon,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -31,6 +34,7 @@ import {
   useConversationMessages,
   useMarkAsRead,
   useSendMessage,
+  useUpdateConversationStatus,
 } from '../../hooks/useConversations';
 import type { ConversationDto } from '../../services/api/conversationApi';
 
@@ -47,7 +51,7 @@ const CHANNEL_CONFIG: Record<
 };
 
 /** Channels OTA a afficher dans l'onglet Contact */
-const OTA_CHANNELS = ['AIRBNB', 'BOOKING'];
+export const OTA_CHANNELS = ['AIRBNB', 'BOOKING'];
 
 function getChannelConfig(channel: string) {
   return CHANNEL_CONFIG[channel] ?? {
@@ -59,19 +63,19 @@ function getChannelConfig(channel: string) {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const ChannelInboxTab: React.FC = () => {
+const ChannelInboxTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly = false }) => {
   const { t } = useTranslation();
   const [selectedConversation, setSelectedConversation] =
     useState<ConversationDto | null>(null);
   const [replyText, setReplyText] = useState('');
 
-  // Fetch conversations for OTA channels
+  // Fetch conversations for OTA channels — archived view → status=ARCHIVED.
   const {
     data: inboxData,
     isLoading,
     error,
     refetch,
-  } = useChannelInbox(OTA_CHANNELS);
+  } = useChannelInbox(OTA_CHANNELS, 0, 20, archivedOnly ? 'ARCHIVED' : undefined);
 
   const conversations = useMemo(
     () => inboxData?.content ?? [],
@@ -94,11 +98,12 @@ const ChannelInboxTab: React.FC = () => {
   // Mutations
   const markAsReadMutation = useMarkAsRead();
   const sendMessageMutation = useSendMessage();
+  const updateStatusMutation = useUpdateConversationStatus();
 
   const handleOpenConversation = (conv: ConversationDto) => {
     setSelectedConversation(conv);
     setReplyText('');
-    if (conv.unread) {
+    if (conv.unread && !archivedOnly) {
       markAsReadMutation.mutate(conv.id);
     }
   };
@@ -106,6 +111,22 @@ const ChannelInboxTab: React.FC = () => {
   const handleCloseDrawer = () => {
     setSelectedConversation(null);
     setReplyText('');
+  };
+
+  const handleArchive = () => {
+    if (!selectedConversation) return;
+    updateStatusMutation.mutate(
+      { conversationId: selectedConversation.id, status: 'ARCHIVED' },
+      { onSuccess: handleCloseDrawer },
+    );
+  };
+
+  const handleRestore = () => {
+    if (!selectedConversation) return;
+    updateStatusMutation.mutate(
+      { conversationId: selectedConversation.id, status: 'OPEN' },
+      { onSuccess: handleCloseDrawer },
+    );
   };
 
   const handleSendReply = () => {
@@ -141,13 +162,15 @@ const ChannelInboxTab: React.FC = () => {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
         <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-          {t('channelInbox.noConversations')}
+          {archivedOnly ? 'Aucune conversation OTA archivée' : t('channelInbox.noConversations')}
         </Typography>
-        <Typography
-          sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.5 }}
-        >
-          {t('channelInbox.noConversationsHint')}
-        </Typography>
+        {!archivedOnly && (
+          <Typography
+            sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.5 }}
+          >
+            {t('channelInbox.noConversationsHint')}
+          </Typography>
+        )}
       </Box>
     );
   }
@@ -395,9 +418,36 @@ const ChannelInboxTab: React.FC = () => {
                   </Typography>
                 )}
               </Box>
-              <IconButton onClick={handleCloseDrawer} size="small">
-                <CloseIcon />
-              </IconButton>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                {!archivedOnly ? (
+                  <Tooltip title="Archiver la conversation" arrow>
+                    <IconButton
+                      onClick={handleArchive}
+                      size="small"
+                      disabled={updateStatusMutation.isPending}
+                      sx={{ color: 'text.secondary' }}
+                      aria-label="Archiver"
+                    >
+                      <ArchiveIcon size={'1.125rem'} strokeWidth={1.75} />
+                    </IconButton>
+                  </Tooltip>
+                ) : (
+                  <Tooltip title="Restaurer la conversation" arrow>
+                    <IconButton
+                      onClick={handleRestore}
+                      size="small"
+                      disabled={updateStatusMutation.isPending}
+                      sx={{ color: 'text.secondary' }}
+                      aria-label="Restaurer"
+                    >
+                      <UnarchiveIcon size={'1.125rem'} strokeWidth={1.75} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                <IconButton onClick={handleCloseDrawer} size="small" aria-label="Fermer">
+                  <CloseIcon />
+                </IconButton>
+              </Box>
             </Box>
 
             {/* Messages list */}
@@ -494,7 +544,9 @@ const ChannelInboxTab: React.FC = () => {
               )}
             </Box>
 
-            {/* Reply input */}
+            {/* Reply input — masqué en lecture seule (conversation archivée) */}
+            {!archivedOnly && (
+            <>
             <Divider />
             <Box sx={{ display: 'flex', gap: 1, p: 1.5 }}>
               <TextField
@@ -524,6 +576,8 @@ const ChannelInboxTab: React.FC = () => {
                 <SendIcon />
               </IconButton>
             </Box>
+            </>
+            )}
           </Box>
         )}
       </Drawer>

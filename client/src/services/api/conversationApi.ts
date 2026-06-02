@@ -80,6 +80,10 @@ export const conversationApi = {
   markAsRead: (conversationId: number): Promise<void> =>
     apiClient.put(`${BASE}/${conversationId}/read`),
 
+  /** Changer le statut (OPEN / CLOSED / ARCHIVED) — archive/restaure une conversation OTA */
+  updateStatus: (conversationId: number, status: string): Promise<ConversationDto> =>
+    apiClient.put(`${BASE}/${conversationId}/status`, { status }),
+
   /** Compteur de conversations non-lues */
   getUnreadCount: (): Promise<{ count: number }> =>
     apiClient.get(`${BASE}/unread-count`),

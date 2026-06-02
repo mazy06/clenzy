@@ -14,7 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import InternalChatTab from './InternalChatTab';
 import ReceivedFormsTab from './ReceivedFormsTab';
-import ChannelInboxTab from '../channels/ChannelInboxTab';
+import ChannelInboxTab, { OTA_CHANNELS } from '../channels/ChannelInboxTab';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import {
@@ -27,6 +27,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { useFormsStats } from '../../hooks/useReceivedForms';
 import { useContactThreads } from '../../hooks/useContactMessages';
+import { useChannelInbox } from '../../hooks/useConversations';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -66,8 +67,8 @@ function TabPanel(props: TabPanelProps) {
 
 const ContactPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
-  // Sous-vue de l'onglet "Messages archivés" : conversations (défaut) ou formulaires archivés.
-  const [archivedView, setArchivedView] = useState<'conversations' | 'formulaires'>('conversations');
+  // Sous-vue de l'onglet "Messages archivés" : conversations (défaut), formulaires ou messagerie OTA.
+  const [archivedView, setArchivedView] = useState<'conversations' | 'formulaires' | 'ota'>('conversations');
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -87,6 +88,11 @@ const ContactPage: React.FC = () => {
   const archivedFormsCount = formsStats?.totalArchived ?? 0;
   const { data: archivedThreads } = useContactThreads(true);
   const archivedConversationsCount = archivedThreads?.length ?? 0;
+  // Conversations OTA archivées (gated : seulement si l'utilisateur a accès aux canaux OTA).
+  // Taille 20 (= celle de ChannelInboxTab) : la clé de cache inbox n'inclut pas `size`,
+  // donc on partage exactement la même requête que la liste pour éviter une collision de cache.
+  const { data: archivedOtaPage } = useChannelInbox(OTA_CHANNELS, 0, 20, 'ARCHIVED', canAccessOta);
+  const archivedOtaCount = archivedOtaPage?.totalElements ?? 0;
 
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
@@ -168,8 +174,8 @@ const ContactPage: React.FC = () => {
             </TabPanel>
 
             <TabPanel value={tabValue} index={1}>
-              {/* Bascule conversations / formulaires archivés (formulaires : admin/manager) */}
-              {isAdminOrManager && (
+              {/* Bascule conversations / formulaires / messagerie OTA archivés (selon les droits) */}
+              {(isAdminOrManager || canAccessOta) && (
                 <Box sx={{ display: 'flex', gap: 1, px: 2, pt: 1.5, pb: 1, flexShrink: 0 }}>
                   <Button
                     size="small"
@@ -182,23 +188,44 @@ const ContactPage: React.FC = () => {
                       {archivedConversationsCount}
                     </Box>
                   </Button>
-                  <Button
-                    size="small"
-                    variant={archivedView === 'formulaires' ? 'contained' : 'text'}
-                    onClick={() => setArchivedView('formulaires')}
-                    sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
-                  >
-                    Formulaires
-                    <Box component="span" sx={{ ml: 0.75, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
-                      {archivedFormsCount}
-                    </Box>
-                  </Button>
+                  {isAdminOrManager && (
+                    <Button
+                      size="small"
+                      variant={archivedView === 'formulaires' ? 'contained' : 'text'}
+                      onClick={() => setArchivedView('formulaires')}
+                      sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
+                    >
+                      Formulaires
+                      <Box component="span" sx={{ ml: 0.75, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
+                        {archivedFormsCount}
+                      </Box>
+                    </Button>
+                  )}
+                  {canAccessOta && (
+                    <Button
+                      size="small"
+                      variant={archivedView === 'ota' ? 'contained' : 'text'}
+                      onClick={() => setArchivedView('ota')}
+                      sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
+                    >
+                      Messagerie OTA
+                      <Box component="span" sx={{ ml: 0.75, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
+                        {archivedOtaCount}
+                      </Box>
+                    </Button>
+                  )}
                 </Box>
               )}
               <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                {isAdminOrManager && archivedView === 'formulaires'
-                  ? <ReceivedFormsTab archivedOnly />
-                  : <InternalChatTab archived />}
+                {isAdminOrManager && archivedView === 'formulaires' ? (
+                  <ReceivedFormsTab archivedOnly />
+                ) : canAccessOta && archivedView === 'ota' ? (
+                  <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+                    <ChannelInboxTab archivedOnly />
+                  </Box>
+                ) : (
+                  <InternalChatTab archived />
+                )}
               </Box>
             </TabPanel>
 
