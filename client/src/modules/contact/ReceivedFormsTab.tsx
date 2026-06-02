@@ -697,16 +697,25 @@ const ReceivedFormsTab: React.FC = () => {
                       },
                     }}
                   >
-                    {/* Row 1: Type chip + status badge + new dot */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-                      <Box sx={{ flex: 1 }} />
+                    {/* Row 1: Nom + chips type/statut (même ligne) */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
+                      <Typography sx={{
+                        flex: 1, minWidth: 0,
+                        fontSize: '0.8125rem',
+                        fontWeight: 600,
+                        color: 'text.primary',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        lineHeight: 1.3,
+                      }}>
+                        {form.fullName}
+                      </Typography>
                       <Chip
                         icon={typeConf.icon as React.ReactElement}
                         label={typeConf.label}
                         size="small"
                         sx={{
                           fontSize: '0.625rem', height: 22, borderRadius: '6px',
-                          fontWeight: 600, '& .MuiChip-label': { px: 0.75 },
+                          fontWeight: 600, '& .MuiChip-label': { px: 0.75 }, flexShrink: 0,
                           backgroundColor: `${typeConf.color}14`,
                           color: typeConf.color,
                           '& .MuiChip-icon': { color: typeConf.color, ml: 0.5 },
@@ -718,7 +727,7 @@ const ReceivedFormsTab: React.FC = () => {
                           size="small"
                           sx={{
                             fontSize: '0.5625rem', height: 18, borderRadius: '4px',
-                            fontWeight: 600, '& .MuiChip-label': { px: 0.5 },
+                            fontWeight: 600, '& .MuiChip-label': { px: 0.5 }, flexShrink: 0,
                             backgroundColor: `${statusConf.color}14`,
                             color: statusConf.color,
                           }}
@@ -732,17 +741,6 @@ const ReceivedFormsTab: React.FC = () => {
                         }} />
                       )}
                     </Box>
-
-                    {/* Row 2: Name */}
-                    <Typography sx={{
-                      fontSize: '0.8125rem',
-                      fontWeight: 600,
-                      color: 'text.primary',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      lineHeight: 1.3,
-                    }}>
-                      {form.fullName}
-                    </Typography>
 
                     {/* Row 3: Subject */}
                     <Typography sx={{
@@ -811,41 +809,7 @@ const ReceivedFormsTab: React.FC = () => {
                     .join('') || '?';
                   return (
                     <Box sx={{ mb: 3, pb: 2.75, borderBottom: '1px solid', borderColor: 'divider' }}>
-                      {/* Top row : type chip à gauche + date + statut à droite */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                        <Box sx={{ flex: 1 }} />
-                        <Chip
-                          icon={tc.icon as React.ReactElement}
-                          label={tc.label}
-                          size="small"
-                          sx={{
-                            fontSize: '0.6875rem', height: 24, borderRadius: '6px',
-                            fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4,
-                            '& .MuiChip-label': { px: 0.75 },
-                            backgroundColor: (t) => alpha(tc.color, t.palette.mode === 'dark' ? 0.22 : 0.12),
-                            color: tc.color,
-                            '& .MuiChip-icon': { color: `${tc.color} !important`, ml: 0.5 },
-                          }}
-                        />
-                        <Chip
-                          label={sc.label}
-                          size="small"
-                          icon={
-                            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: sc.color, ml: 0.5 }} />
-                          }
-                          sx={{
-                            fontSize: '0.6875rem', height: 24, borderRadius: '6px',
-                            fontWeight: 600, '& .MuiChip-label': { px: 0.75 },
-                            backgroundColor: (t) => alpha(sc.color, t.palette.mode === 'dark' ? 0.22 : 0.12),
-                            color: sc.color,
-                          }}
-                        />
-                        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500 }}>
-                          {formatDate(selectedForm.createdAt)}
-                        </Typography>
-                      </Box>
-
-                      {/* Identité : avatar + nom + sujet */}
+                      {/* Identité : avatar + (nom + chips + date sur une ligne) + sujet */}
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                         <Box
                           sx={{
@@ -859,9 +823,40 @@ const ReceivedFormsTab: React.FC = () => {
                           {initials}
                         </Box>
                         <Box sx={{ minWidth: 0, flex: 1 }}>
-                          <Typography sx={{ fontSize: '1.125rem', fontWeight: 600, lineHeight: 1.2, color: 'text.primary' }}>
-                            {name}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <Typography sx={{ flex: 1, minWidth: 0, fontSize: '1.125rem', fontWeight: 600, lineHeight: 1.2, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {name}
+                            </Typography>
+                            <Chip
+                              icon={tc.icon as React.ReactElement}
+                              label={tc.label}
+                              size="small"
+                              sx={{
+                                fontSize: '0.6875rem', height: 24, borderRadius: '6px',
+                                fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4,
+                                '& .MuiChip-label': { px: 0.75 }, flexShrink: 0,
+                                backgroundColor: (t) => alpha(tc.color, t.palette.mode === 'dark' ? 0.22 : 0.12),
+                                color: tc.color,
+                                '& .MuiChip-icon': { color: `${tc.color} !important`, ml: 0.5 },
+                              }}
+                            />
+                            <Chip
+                              label={sc.label}
+                              size="small"
+                              icon={
+                                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: sc.color, ml: 0.5 }} />
+                              }
+                              sx={{
+                                fontSize: '0.6875rem', height: 24, borderRadius: '6px',
+                                fontWeight: 600, '& .MuiChip-label': { px: 0.75 }, flexShrink: 0,
+                                backgroundColor: (t) => alpha(sc.color, t.palette.mode === 'dark' ? 0.22 : 0.12),
+                                color: sc.color,
+                              }}
+                            />
+                            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500, flexShrink: 0, ml: 'auto' }}>
+                              {formatDate(selectedForm.createdAt)}
+                            </Typography>
+                          </Box>
                           <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mt: 0.25 }}>
                             {selectedForm.subject || `Formulaire #${selectedForm.id}`}
                           </Typography>
