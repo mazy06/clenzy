@@ -53,7 +53,7 @@ import {
   History as HistoryIcon,
   Warning as AlertTriangleIcon,
 } from '../../icons';
-import { Dialog, DialogTitle, DialogContent } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { useNotification } from '../../hooks/useNotification';
 
 // ─── Config types & statuts (PMS soft-filled design system) ─────────────────
@@ -447,6 +447,14 @@ const ReceivedFormsTab: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
+  // Éditeur de renvoi du devis (objet + corps modifiables avant renvoi).
+  const [resend, setResend] = useState<{
+    open: boolean;
+    form: ReceivedForm | null;
+    subject: string;
+    body: string;
+    loading: boolean;
+  }>({ open: false, form: null, subject: '', body: '', loading: false });
   const rowsPerPage = 20;
 
   // ─── React Query hooks ─────────────────────────────────────
@@ -518,12 +526,16 @@ const ReceivedFormsTab: React.FC = () => {
     return templates.find((tpl) => tpl.documentType === docType && tpl.active) ?? null;
   };
 
-  // ─── Generate PDF using a document template + auto-send email ─
-  // L'email est TOUJOURS envoye (premiere generation ou regeneration). Le
-  // backend (DocumentGeneratorService.sendDocumentByEmail) utilise le subject
-  // et body du template ; le PDF est attache automatiquement. Si l'email du
-  // formulaire est manquant ou invalide, on saute l'envoi et on notifie.
-  const handleGeneratePdf = async (form: ReceivedForm) => {
+  // ─── Generate PDF using a document template + send email (dedup) ─
+  // Le backend déduplique l'envoi : un même document n'est envoyé qu'UNE fois
+  // par destinataire (le devis part déjà automatiquement à la soumission du
+  // formulaire). On reflète le statut réel renvoyé (SENT / SKIPPED / FAILED).
+  // `forceResend=true` (bouton « Renvoyer ») court-circuite la dédup.
+  const handleGeneratePdf = async (
+    form: ReceivedForm,
+    forceResend = false,
+    overrides?: { subject?: string; body?: string },
+  ) => {
     const tpl = findActiveTemplate(form.formType);
     if (!tpl) {
       notify.error('Aucun template actif trouvé pour ce type de formulaire');
@@ -538,12 +550,22 @@ const ReceivedFormsTab: React.FC = () => {
         referenceType: 'RECEIVED_FORM',
         sendEmail: hasValidEmail,
         emailTo: hasValidEmail ? emailTo : undefined,
+        forceResend,
+        emailSubject: overrides?.subject,
+        emailBody: overrides?.body,
       });
       if (generation?.id) {
-        if (hasValidEmail) {
-          notify.success(`PDF généré et envoyé à ${emailTo}`);
-        } else {
+        // Le backend renvoie le vrai statut d'envoi de l'email.
+        if (!hasValidEmail) {
           notify.success('PDF généré (email non envoyé : adresse manquante ou invalide)');
+        } else if (generation.emailStatus === 'SENT') {
+          notify.success(forceResend ? `Devis renvoyé à ${emailTo}` : `PDF généré et envoyé à ${emailTo}`);
+        } else if (generation.emailStatus === 'SKIPPED') {
+          notify.info(`PDF généré — le devis avait déjà été envoyé à ${emailTo}. Utilisez « Renvoyer » pour forcer l'envoi.`);
+        } else if (generation.emailStatus === 'FAILED') {
+          notify.warning("PDF généré mais l'envoi de l'email a échoué — réessayez via « Renvoyer ».");
+        } else {
+          notify.success('PDF généré');
         }
         // Affiche l'apercu inline au lieu de tenter un window.open
         // (souvent bloque par le popup blocker des navigateurs).
@@ -559,6 +581,25 @@ const ReceivedFormsTab: React.FC = () => {
       const message = err instanceof Error ? err.message : 'Erreur lors de la génération du PDF';
       notify.error(message);
     }
+  };
+
+  // Ouvre l'éditeur de renvoi : précharge l'objet + le corps du mail devis.
+  const openResendModal = async (form: ReceivedForm) => {
+    setResend({ open: true, form, subject: '', body: '', loading: true });
+    try {
+      const tpl = await documentsApi.getQuoteEmailTemplate();
+      setResend((r) => ({ ...r, subject: tpl.subject ?? '', body: tpl.body ?? '', loading: false }));
+    } catch {
+      setResend((r) => ({ ...r, loading: false }));
+    }
+  };
+
+  // Renvoie le devis avec l'objet + le corps (conservés, modifiés ou vidés).
+  const confirmResend = async () => {
+    const { form, subject, body } = resend;
+    if (!form) return;
+    setResend((r) => ({ ...r, open: false }));
+    await handleGeneratePdf(form, true, { subject, body });
   };
 
   const forms = formsPage?.content ?? [];
@@ -1009,6 +1050,35 @@ const ReceivedFormsTab: React.FC = () => {
                         </Tooltip>
                       )}
 
+                      {/* Renvoyer : force l'envoi du devis (le backend déduplique
+                          sinon). Visible si un devis a déjà été généré pour ce
+                          formulaire et que l'email est valide. */}
+                      {tpl
+                        && (priorGenerations?.length ?? 0) > 0
+                        && /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/.test(selectedForm.email?.trim() || '') && (
+                        <Tooltip
+                          title={`Renvoyer le devis à ${selectedForm.email}`}
+                          placement="top"
+                          arrow
+                        >
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<PdfIcon size={16} strokeWidth={1.75} />}
+                            onClick={() => openResendModal(selectedForm)}
+                            disabled={generateDocumentMutation.isPending}
+                            sx={{
+                              textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
+                              borderRadius: '10px', px: 2.5, py: 0.75,
+                              color: '#475569', borderColor: '#cbd5e1',
+                              '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc' },
+                            }}
+                          >
+                            Renvoyer
+                          </Button>
+                        </Tooltip>
+                      )}
+
                       {selectedForm.status !== 'PROCESSED' && (
                         <Button
                           size="small"
@@ -1228,6 +1298,73 @@ const ReceivedFormsTab: React.FC = () => {
             />
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Éditeur de renvoi du devis : objet + corps modifiables (conserver /
+          modifier / vider). info@clenzy.fr est ajouté en CC côté serveur. */}
+      <Dialog
+        open={resend.open}
+        onClose={() => setResend((r) => ({ ...r, open: false }))}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem' }}>
+          Renvoyer le devis
+          {resend.form?.email ? (
+            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+              À {resend.form.email} — info@clenzy.fr en copie
+            </Typography>
+          ) : null}
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+          {resend.loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={22} />
+            </Box>
+          ) : (
+            <>
+              <TextField
+                label="Objet"
+                value={resend.subject}
+                onChange={(e) => setResend((r) => ({ ...r, subject: e.target.value }))}
+                fullWidth
+                size="small"
+              />
+              <TextField
+                label="Corps du message"
+                value={resend.body}
+                onChange={(e) => setResend((r) => ({ ...r, body: e.target.value }))}
+                fullWidth
+                multiline
+                minRows={6}
+                helperText="Conservez, modifiez ou videz le contenu. Le PDF du devis est joint automatiquement."
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setResend((r) => ({ ...r, body: '' }))}
+            disabled={resend.loading}
+            sx={{ textTransform: 'none', color: 'text.secondary', mr: 'auto' }}
+          >
+            Vider le contenu
+          </Button>
+          <Button
+            onClick={() => setResend((r) => ({ ...r, open: false }))}
+            sx={{ textTransform: 'none', color: 'text.secondary' }}
+          >
+            Annuler
+          </Button>
+          <Button
+            variant="contained"
+            onClick={confirmResend}
+            disabled={resend.loading || generateDocumentMutation.isPending || !resend.subject.trim()}
+            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px', boxShadow: 'none' }}
+          >
+            Renvoyer
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

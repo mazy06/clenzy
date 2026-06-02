@@ -587,6 +587,102 @@ public class EmailService {
     }
 
     /**
+     * Envoie le devis PDF au prospect avec un template email dedie et soigne
+     * (system_email_template {@code quote_to_prospect}) enveloppe dans le wrapper
+     * Baitly. {@code info@clenzy.fr} (notificationTo) est mis en COPIE (CC) — pas
+     * d'email interne separe.
+     *
+     * <p>{@code customSubject}/{@code customBody} permettent a l'editeur "Renvoyer"
+     * de surcharger le contenu. {@code customBody} vide ("") est respecte (corps
+     * volontairement vide). Si le template n'est pas en BDD, fallback sur un corps
+     * par defaut propre — jamais d'echec lie au template manquant.</p>
+     *
+     * @param toEmail       adresse du prospect
+     * @param pdfBytes      bytes du PDF devis
+     * @param pdfFilename   nom du fichier joint
+     * @param customSubject objet personnalise (nullable → template/defaut)
+     * @param customBody    corps plain text personnalise (nullable → template/defaut ;
+     *                      "" → corps vide volontaire)
+     */
+    public void sendQuoteToProspect(String toEmail, byte[] pdfBytes, String pdfFilename,
+                                    String customSubject, String customBody) {
+        try {
+            JavaMailSender ms = requireMailSender();
+
+            // Resoudre subject + body + wrapper (template ou defaut), puis appliquer
+            // les overrides eventuels de l'editeur de renvoi.
+            String[] defaults = resolveQuoteDefaults();
+            String subjectPlain = (customSubject != null && !customSubject.isBlank())
+                    ? customSubject : defaults[0];
+            String bodyPlain = (customBody != null) ? customBody : defaults[1];
+            String htmlBody = emailWrapperService.wrap(defaults[2], bodyPlain);
+
+            MimeMessage message = ms.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            applyDeliverabilityHeaders(message, helper);
+            helper.setTo(toEmail);
+            // info@clenzy.fr en copie (CC), sauf si c'est deja le destinataire.
+            if (notificationTo != null && !notificationTo.isBlank()
+                    && !notificationTo.equalsIgnoreCase(toEmail)) {
+                helper.setCc(notificationTo);
+            }
+            helper.setSubject(sanitizeHeaderValue(subjectPlain));
+            helper.setText(htmlToPlainText(htmlBody), htmlBody);
+            helper.addAttachment(pdfFilename, new ByteArrayResource(pdfBytes), "application/pdf");
+
+            ms.send(message);
+            log.info("Email devis (prospect) envoyé à {} (CC: {}, PJ: {})", toEmail, notificationTo, pdfFilename);
+        } catch (MessagingException e) {
+            log.error("Échec envoi email devis prospect à {} : {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi du devis au prospect", e);
+        } catch (Exception e) {
+            log.error("Échec envoi email devis prospect à {} : {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi du devis au prospect", e);
+        }
+    }
+
+    /**
+     * Resout le contenu par defaut du mail devis prospect (template
+     * {@code quote_to_prospect} ou fallback). Renvoie {@code [subjectPlain,
+     * bodyPlain, wrapperStyle]} en texte brut (le wrapper HTML est applique a l'envoi).
+     * Utilise par {@link #sendQuoteToProspect} et l'endpoint de preload de l'editeur.
+     */
+    private String[] resolveQuoteDefaults() {
+        var tpl = systemEmailTemplateService.resolve(null, "quote_to_prospect", "fr");
+        if (tpl.isPresent()) {
+            var t = tpl.get();
+            Map<String, String> vars = new HashMap<>();
+            return new String[]{
+                templateInterpolationService.interpolate(t.getSubject(), vars, false),
+                templateInterpolationService.interpolate(t.getBody(), vars, true),
+                t.getWrapperStyle() != null ? t.getWrapperStyle() : "NOTIFICATION_GUEST"
+            };
+        }
+        return new String[]{
+            "Votre devis Baitly",
+            "Bonjour,\n\nNous avons le plaisir de vous transmettre votre devis "
+            + "personnalisé, que vous trouverez en pièce jointe au format PDF.\n\n"
+            + "Ce devis est sans engagement. Notre équipe reste à votre disposition "
+            + "pour toute question ou pour planifier une intervention.\n\n"
+            + "Au plaisir de collaborer avec vous,\nL'équipe Baitly",
+            "NOTIFICATION_GUEST"
+        };
+    }
+
+    /**
+     * Contenu plain text par defaut du mail devis prospect (objet + corps), pour
+     * preremplir l'editeur "Renvoyer" cote frontend.
+     */
+    public Map<String, String> resolveQuoteEmailContent() {
+        String[] d = resolveQuoteDefaults();
+        Map<String, String> out = new HashMap<>();
+        out.put("subject", d[0]);
+        out.put("body", d[1]);
+        return out;
+    }
+
+    /**
      * Envoie un email HTML simple (sans piece jointe).
      * Utilise pour les liens de paiement, confirmations, etc.
      */
