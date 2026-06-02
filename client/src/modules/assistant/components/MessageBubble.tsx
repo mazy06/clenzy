@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, useTheme, alpha, CircularProgress, Dialog, DialogContent } from '@mui/material';
-import ClenzyMarkLogo from '../../../components/ClenzyMarkLogo';
+import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
 import type { DisplayMessage } from '../../../hooks/useAgent';
 import { ToolCallCard } from './ToolCallCard';
 import { ToolResultWidget } from '../widgets/ToolResultWidget';
@@ -193,7 +193,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             pulse + nodes orbit) UNIQUEMENT pendant que l'IA est en train de
             generer cette reponse. Effet visuel "le mark s'illumine pendant
             que l'IA travaille, puis se calme une fois la reponse terminee". */}
-        <ClenzyMarkLogo
+        <BaitlyMarkLogo
           variant="mark"
           size={18}
           idleAnimation={false}

@@ -28,7 +28,7 @@ import {
 import keycloak from '../../keycloak';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 import apiClient, { ApiError } from '../../services/apiClient';
-import { createClenzyTheme } from '../../theme/createClenzyTheme';
+import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import { clearMockFlags, setSessionCookie } from '../../services/storageService';
 
@@ -86,7 +86,7 @@ type PageState =
 export default function AcceptInvitationPage() {
   // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
   const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createClenzyTheme({ isRtl }), [isRtl]);
+  const theme = useMemo(() => createBaitlyTheme({ isRtl }), [isRtl]);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
