@@ -23,6 +23,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTemplates, useActivateTemplate, useDeleteTemplate } from './hooks/useDocuments';
 import TemplateUpload from './TemplateUpload';
+import ConfirmationModal from '../../components/ConfirmationModal';
 import { softChipSx } from '../../utils/statusUtils';
 
 // Palette Baitly (accents valides)
@@ -41,6 +42,8 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
   const navigate = useNavigate();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Modal de confirmation pour la suppression (remplace window.confirm)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
 
   const { data: templates = [], isLoading, error, refetch } = useTemplates();
   const activateMutation = useActivateTemplate();
@@ -55,13 +58,15 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Supprimer ce template ?')) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     setActionError(null);
     try {
-      await deleteMutation.mutateAsync(id);
+      await deleteMutation.mutateAsync(deleteTarget.id);
+      setDeleteTarget(null);
     } catch {
       setActionError('Erreur lors de la suppression');
+      setDeleteTarget(null);
     }
   };
 
@@ -179,7 +184,7 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                     <Tooltip title="Supprimer" arrow>
                       <IconButton
                         size="small"
-                        onClick={() => handleDelete(t.id)}
+                        onClick={() => setDeleteTarget({ id: t.id, name: t.name })}
                         aria-label="Supprimer"
                         sx={{
                           cursor: 'pointer',
@@ -199,6 +204,20 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
       </TableContainer>
 
       <TemplateUpload open={uploadOpen} onClose={() => setUploadOpen(false)} onSuccess={handleUploadSuccess} />
+
+      <ConfirmationModal
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Supprimer le template ?"
+        message={deleteTarget ? `Le template « ${deleteTarget.name} » sera définitivement supprimé. Cette action est irréversible.` : ''}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        severity="error"
+        loading={deleteMutation.isPending}
+        icon={<Delete size={22} strokeWidth={1.75} />}
+        confirmIcon={<Delete size={18} strokeWidth={1.75} />}
+      />
     </Box>
   );
 });
