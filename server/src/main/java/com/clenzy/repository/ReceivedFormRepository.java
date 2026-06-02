@@ -15,6 +15,16 @@ public interface ReceivedFormRepository extends JpaRepository<ReceivedForm, Long
 
     Page<ReceivedForm> findByFormTypeOrderByCreatedAtDesc(String formType, Pageable pageable);
 
+    // Liste active (exclut les archivés) — avec ou sans filtre de type.
+    Page<ReceivedForm> findByStatusNotOrderByCreatedAtDesc(String status, Pageable pageable);
+
+    Page<ReceivedForm> findByFormTypeAndStatusNotOrderByCreatedAtDesc(String formType, String status, Pageable pageable);
+
+    // Liste d'un statut précis (ex. archivés) — avec ou sans filtre de type.
+    Page<ReceivedForm> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
+
+    Page<ReceivedForm> findByFormTypeAndStatusOrderByCreatedAtDesc(String formType, String status, Pageable pageable);
+
     long countByStatus(String status);
 
     long countByFormType(String formType);

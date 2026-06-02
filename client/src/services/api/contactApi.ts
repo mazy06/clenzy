@@ -183,14 +183,31 @@ export const contactApi = {
     return apiClient.get<ContactThreadSummary[]>('/contact/threads');
   },
 
-  /** Messages d'une conversation avec un interlocuteur */
-  getThreadMessages(counterpartKeycloakId: string): Promise<ContactMessage[]> {
-    return apiClient.get<ContactMessage[]>(`/contact/threads/${counterpartKeycloakId}/messages`);
+  /** Liste des conversations ARCHIVÉES groupees par interlocuteur (1 ligne = 1 conversation) */
+  getArchivedThreads(): Promise<ContactThreadSummary[]> {
+    return apiClient.get<ContactThreadSummary[]>('/contact/threads/archived');
+  },
+
+  /** Messages d'une conversation avec un interlocuteur (archived=true → messages archivés) */
+  getThreadMessages(counterpartKeycloakId: string, archived = false): Promise<ContactMessage[]> {
+    return apiClient.get<ContactMessage[]>(`/contact/threads/${counterpartKeycloakId}/messages`, {
+      params: { archived },
+    });
   },
 
   /** Marquer tous les messages non-lus d'un thread comme lus */
   markThreadAsRead(counterpartKeycloakId: string): Promise<{ updatedCount: number }> {
     return apiClient.put<{ updatedCount: number }>(`/contact/threads/${counterpartKeycloakId}/mark-read`);
+  },
+
+  /** Archiver toute une conversation (thread) */
+  archiveThread(counterpartKeycloakId: string): Promise<{ archivedCount: number }> {
+    return apiClient.put<{ archivedCount: number }>(`/contact/threads/${counterpartKeycloakId}/archive`);
+  },
+
+  /** Restaurer (désarchiver) toute une conversation archivée */
+  unarchiveThread(counterpartKeycloakId: string): Promise<{ unarchivedCount: number }> {
+    return apiClient.put<{ unarchivedCount: number }>(`/contact/threads/${counterpartKeycloakId}/unarchive`);
   },
 
   /** Statut de presence d'un utilisateur (en ligne / dernière connexion). */

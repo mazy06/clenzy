@@ -208,7 +208,9 @@ public class ConversationService {
         if (status != null) {
             return conversationRepository.findByOrganizationIdAndStatusOrderByLastMessageAtDesc(orgId, status, pageable);
         }
-        return conversationRepository.findByOrganizationIdOrderByLastMessageAtDesc(orgId, pageable);
+        // Inbox active : exclut les conversations archivées (elles vivent dans "Messages archivés").
+        return conversationRepository.findByOrganizationIdAndStatusNotOrderByLastMessageAtDesc(
+            orgId, ConversationStatus.ARCHIVED, pageable);
     }
 
     /**
@@ -220,8 +222,9 @@ public class ConversationService {
             return conversationRepository.findByOrganizationIdAndChannelInAndStatusOrderByLastMessageAtDesc(
                 orgId, channels, status, pageable);
         }
-        return conversationRepository.findByOrganizationIdAndChannelInOrderByLastMessageAtDesc(
-            orgId, channels, pageable);
+        // Inbox active : exclut les conversations archivées.
+        return conversationRepository.findByOrganizationIdAndChannelInAndStatusNotOrderByLastMessageAtDesc(
+            orgId, channels, ConversationStatus.ARCHIVED, pageable);
     }
 
     public Page<Conversation> getMyConversations(Long orgId, String keycloakId, Pageable pageable) {

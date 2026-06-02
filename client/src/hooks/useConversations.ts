@@ -14,17 +14,19 @@ export const conversationKeys = {
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
-/** Inbox des conversations filtre par channels OTA */
+/** Inbox des conversations filtre par channels OTA (status=ARCHIVED → conversations archivées) */
 export function useChannelInbox(
   channels: string[],
   page = 0,
   size = 20,
   status?: string,
+  enabled = true,
 ) {
   return useQuery({
     queryKey: conversationKeys.inbox(channels, status, page),
     queryFn: () => conversationApi.getInbox({ channels, status, page, size }),
     staleTime: 30_000,
+    enabled,
   });
 }
 
@@ -78,6 +80,18 @@ export function useSendMessage() {
       content: string;
       contentHtml?: string;
     }) => conversationApi.sendMessage(conversationId, { content, contentHtml }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.all });
+    },
+  });
+}
+
+/** Archiver / restaurer une conversation OTA (status ARCHIVED ↔ OPEN) */
+export function useUpdateConversationStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, status }: { conversationId: number; status: string }) =>
+      conversationApi.updateStatus(conversationId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: conversationKeys.all });
     },

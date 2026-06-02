@@ -19,6 +19,9 @@ import {
   Build as BuildIcon,
   SupportAgent as SupportIcon,
   CheckCircle as CheckCircleIcon,
+  Check as CheckIcon,
+  DoneAll as CheckCheckIcon,
+  Circle as CircleIcon,
   Archive as ArchiveIcon,
   Refresh as RefreshIcon,
   Inbox as InboxIcon,
@@ -70,6 +73,17 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   PROCESSED: { label: 'Traite', color: '#4A9B8E' },
   ARCHIVED: { label: 'Archive', color: '#757575' },
 };
+
+// Icône de statut — progression lisible : non lu (cercle) → lu (check) →
+// traité (double-check) → archivé (archive). Couleur appliquée par le parent.
+function renderStatusIcon(status: string, size = 15): React.ReactNode {
+  switch (status) {
+    case 'READ': return <CheckIcon size={size} strokeWidth={2.25} />;
+    case 'PROCESSED': return <CheckCheckIcon size={size} strokeWidth={2.25} />;
+    case 'ARCHIVED': return <ArchiveIcon size={size} strokeWidth={1.75} />;
+    default: return <CircleIcon size={size} strokeWidth={2} />; // NEW
+  }
+}
 
 // ─── Labels devis ────────────────────────────────────────────────────────────
 
@@ -135,6 +149,15 @@ const DEVIS_VALUE_LABELS: Record<string, Record<string, string>> = {
 function formatFieldValue(key: string, value: unknown): string {
   if (Array.isArray(value)) return value.map(v => formatFieldValue(key, v)).join(', ');
   const str = String(value);
+  // Capacité voyageurs : c'est un intervalle (ex. "1-2"). Le remplacement
+  // tiret→espace ci-dessous le rendrait "1 2" (lu comme "12"). On formate
+  // explicitement l'intervalle en "X à Y" pour lever l'ambiguïté.
+  if (key === 'guestCapacity') {
+    const labeled = DEVIS_VALUE_LABELS[key]?.[str];
+    if (labeled) return labeled;
+    const range = str.match(/^\s*(\d+)\s*[-–\s]\s*(\d+)\s*$/);
+    return range ? `${range[1]} à ${range[2]}` : str;
+  }
   return DEVIS_VALUE_LABELS[key]?.[str] || str.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
@@ -162,104 +185,65 @@ const SUPPORT_GROUPS: FieldGroup[] = [
 
 // ─── Sous-composants de rendu (par type de formulaire) ─────────────────────
 
-function SectionHeader({ icon, title, accentColor }: { icon: React.ReactNode; title: string; accentColor: string }) {
+// ─── Échelle typo unifiée (skill ui-ux-pro-max, modular scale 12/16) ───
+// Tous les blocs d'info partagent la même échelle : libellé 12px uppercase,
+// valeur 16px regular. Une seule icône par info, jamais de check redondant.
+const LABEL_SX = { fontSize: '0.75rem', fontWeight: 500, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.3 } as const;
+const VALUE_SX = { fontSize: '1rem', fontWeight: 400, color: 'text.primary', lineHeight: 1.4 } as const;
+
+// Eyebrow de section — 12px uppercase + filet. Pas d'icône (réservée aux
+// infos). `icon`/`accentColor` gardés pour compat appelants (ignorés).
+function SectionHeader({ title }: { icon?: React.ReactNode; title: string; accentColor?: string }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-      <Box
-        sx={{
-          width: 24, height: 24, borderRadius: 1,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: accentColor,
-          bgcolor: (t) => alpha(accentColor, t.palette.mode === 'dark' ? 0.18 : 0.12),
-        }}
-      >
-        {icon}
-      </Box>
-      <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'text.secondary' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.75 }}>
+      <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.secondary' }}>
         {title}
       </Typography>
-      <Box sx={{ flex: 1, height: 1, bgcolor: 'divider', ml: 1 }} />
+      <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
     </Box>
   );
 }
 
+// Tuile KPI à plat — libellé 12px + icône 16px en tête, valeur 16px en
+// tabular-nums. Même échelle que FeatureRow. `color` conservé (ignoré).
 function KpiTile({
-  icon, label, value, color, span = 1,
-}: { icon: React.ReactNode; label: string; value: string; color: string; span?: number }) {
+  icon, label, value, span = 1,
+}: { icon: React.ReactNode; label: string; value: string; color?: string; span?: number }) {
   return (
-    <Box
-      sx={{
-        gridColumn: `span ${span}`,
-        p: 1.5,
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        bgcolor: (t) => alpha(color, t.palette.mode === 'dark' ? 0.06 : 0.03),
-        position: 'relative',
-        overflow: 'hidden',
-        transition: 'border-color 200ms, transform 200ms',
-        '&:hover': {
-          borderColor: color,
-          transform: 'translateY(-1px)',
-        },
-        '&::before': {
-          content: '""', position: 'absolute', top: 0, left: 0, bottom: 0,
-          width: 3, bgcolor: color, opacity: 0.7,
-        },
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
-        <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          {label}
-        </Typography>
-        <Box sx={{ display: 'inline-flex', color, opacity: 0.8 }}>
+    <Box sx={{ gridColumn: `span ${span}`, minWidth: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
+        <Box sx={{ display: 'inline-flex', color: 'text.disabled' }}>
           {icon}
         </Box>
+        <Typography sx={{ ...LABEL_SX }}>
+          {label}
+        </Typography>
       </Box>
-      <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: 'text.primary', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <Typography sx={{ ...VALUE_SX, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {value}
       </Typography>
     </Box>
   );
 }
 
+// Ligne d'info à plat — icône 16px + libellé 12px + valeur 16px. Une seule
+// icône par info (pas de check redondant). `color` conservé (ignoré).
 function FeatureRow({
-  icon, label, value, color, checked = true,
-}: { icon: React.ReactNode; label: string; value: string; color: string; checked?: boolean }) {
+  icon, label, value,
+}: { icon: React.ReactNode; label: string; value: string; color?: string }) {
   return (
-    <Box
-      sx={{
-        display: 'flex', alignItems: 'center', gap: 1.5,
-        p: 1.25, borderRadius: 1.5,
-        bgcolor: (t) => alpha(color, t.palette.mode === 'dark' ? 0.05 : 0.025),
-        border: '1px solid',
-        borderColor: (t) => alpha(color, t.palette.mode === 'dark' ? 0.15 : 0.1),
-      }}
-    >
-      <Box
-        sx={{
-          width: 28, height: 28, borderRadius: '50%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          bgcolor: (t) => alpha(color, t.palette.mode === 'dark' ? 0.2 : 0.12),
-          color,
-          flexShrink: 0,
-        }}
-      >
+    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, py: 0.75 }}>
+      <Box sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0, mt: '2px' }}>
         {icon}
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.4px', lineHeight: 1.2 }}>
+        <Typography sx={{ ...LABEL_SX }}>
           {label}
         </Typography>
-        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.3, mt: 0.25 }}>
+        <Typography sx={{ ...VALUE_SX, mt: 0.25 }}>
           {value}
         </Typography>
       </Box>
-      {checked && (
-        <Box sx={{ display: 'inline-flex', color }}>
-          <CheckCircleIcon size={18} strokeWidth={2} />
-        </Box>
-      )}
     </Box>
   );
 }
@@ -276,18 +260,18 @@ function DevisDetails({ data }: { data: Record<string, unknown> }) {
   if (has('propertyType')) bienTiles.push({ key: 'propertyType', icon: <HomeIcon size={16} strokeWidth={1.75} />, label: 'Type de bien', value: formatFieldValue('propertyType', get('propertyType')), color: '#0288d1' });
   if (has('surface')) bienTiles.push({ key: 'surface', icon: <SquareFootIcon size={16} strokeWidth={1.75} />, label: 'Surface', value: `${get('surface')} m²`, color: '#00897B' });
   if (has('guestCapacity')) bienTiles.push({ key: 'guestCapacity', icon: <PeopleIcon size={16} strokeWidth={1.75} />, label: 'Voyageurs', value: formatFieldValue('guestCapacity', get('guestCapacity')), color: '#AB47BC' });
-  if (has('propertyCount')) bienTiles.push({ key: 'propertyCount', icon: <ApartmentIcon size={16} strokeWidth={1.75} />, label: 'Nombre de logements', value: String(get('propertyCount')), color: '#5C6BC0' });
+  if (has('propertyCount')) bienTiles.push({ key: 'propertyCount', icon: <ApartmentIcon size={16} strokeWidth={1.75} />, label: 'Logements', value: String(get('propertyCount')), color: '#5C6BC0' });
 
   // SERVICES
   const serviceRows: { icon: React.ReactNode; label: string; value: string; color: string }[] = [];
-  if (has('services')) serviceRows.push({ icon: <CleaningIcon size={14} strokeWidth={1.75} />, label: 'Services forfait', value: formatFieldValue('services', get('services')), color: '#4A9B8E' });
-  if (has('servicesDevis')) serviceRows.push({ icon: <QuoteIcon size={14} strokeWidth={1.75} />, label: 'Services sur devis', value: formatFieldValue('servicesDevis', get('servicesDevis')), color: '#E65100' });
-  if (has('calendarSync')) serviceRows.push({ icon: <SyncIcon size={14} strokeWidth={1.75} />, label: 'Synchro calendrier', value: formatFieldValue('calendarSync', get('calendarSync')), color: '#1565C0' });
+  if (has('services')) serviceRows.push({ icon: <CleaningIcon size={16} strokeWidth={1.75} />, label: 'Services forfait', value: formatFieldValue('services', get('services')), color: '#4A9B8E' });
+  if (has('servicesDevis')) serviceRows.push({ icon: <QuoteIcon size={16} strokeWidth={1.75} />, label: 'Services sur devis', value: formatFieldValue('servicesDevis', get('servicesDevis')), color: '#E65100' });
+  if (has('calendarSync')) serviceRows.push({ icon: <SyncIcon size={16} strokeWidth={1.75} />, label: 'Synchro calendrier', value: formatFieldValue('calendarSync', get('calendarSync')), color: '#1565C0' });
 
   // PLANNING
   const planningRows: { icon: React.ReactNode; label: string; value: string; color: string }[] = [];
-  if (has('bookingFrequency')) planningRows.push({ icon: <EventRepeatIcon size={14} strokeWidth={1.75} />, label: 'Fréquence des réservations', value: formatFieldValue('bookingFrequency', get('bookingFrequency')), color: '#F4511E' });
-  if (has('cleaningSchedule')) planningRows.push({ icon: <ScheduleIcon size={14} strokeWidth={1.75} />, label: 'Planning ménage', value: formatFieldValue('cleaningSchedule', get('cleaningSchedule')), color: '#8E24AA' });
+  if (has('bookingFrequency')) planningRows.push({ icon: <EventRepeatIcon size={16} strokeWidth={1.75} />, label: 'Fréquence des réservations', value: formatFieldValue('bookingFrequency', get('bookingFrequency')), color: '#F4511E' });
+  if (has('cleaningSchedule')) planningRows.push({ icon: <ScheduleIcon size={16} strokeWidth={1.75} />, label: 'Planning ménage', value: formatFieldValue('cleaningSchedule', get('cleaningSchedule')), color: '#8E24AA' });
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -344,45 +328,35 @@ function MaintenanceDetails({ data }: { data: Record<string, unknown> }) {
     urgencyValue === 'medium' ? '#f59e0b' :
     '#10b981';
 
+  const works = has('selectedWorks')
+    ? (Array.isArray(get('selectedWorks')) ? get('selectedWorks') as unknown[] : [get('selectedWorks')])
+        .map((w) => formatFieldValue('selectedWorks', w)).join(' · ')
+    : '';
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {has('urgency') && (
         <Box>
           <SectionHeader icon={<UrgencyIcon size={14} strokeWidth={2} />} title="Niveau d'urgence" accentColor={urgencyColor} />
-          <Box
-            sx={{
-              p: 1.5, borderRadius: 2,
-              bgcolor: (t) => alpha(urgencyColor, t.palette.mode === 'dark' ? 0.12 : 0.08),
-              border: '1px solid', borderColor: alpha(urgencyColor, 0.4),
-              display: 'flex', alignItems: 'center', gap: 1.5,
-            }}
-          >
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: urgencyColor, flexShrink: 0 }} />
-            <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: urgencyColor }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.75 }}>
+            <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: urgencyColor, flexShrink: 0 }} />
+            <Typography sx={{ ...VALUE_SX, color: urgencyColor }}>
               {formatFieldValue('urgency', urgencyValue)}
             </Typography>
           </Box>
         </Box>
       )}
 
-      {has('selectedWorks') && (
+      {works && (
         <Box>
           <SectionHeader icon={<HandymanIcon size={14} strokeWidth={2} />} title="Travaux demandés" accentColor="#EF6C00" />
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-            {(Array.isArray(get('selectedWorks')) ? get('selectedWorks') as unknown[] : [get('selectedWorks')]).map((w, i) => (
-              <Chip
-                key={i}
-                label={formatFieldValue('selectedWorks', w)}
-                size="small"
-                icon={<HandymanIcon size={12} strokeWidth={1.75} />}
-                sx={{
-                  fontSize: '0.75rem', fontWeight: 600, height: 26, borderRadius: '6px',
-                  bgcolor: '#EF6C0018', color: '#EF6C00',
-                  border: '1px solid #EF6C0040',
-                  '& .MuiChip-icon': { color: '#EF6C00', ml: 0.5 },
-                }}
-              />
-            ))}
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, py: 0.75 }}>
+            <Box sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0, mt: '2px' }}>
+              <HandymanIcon size={16} strokeWidth={1.75} />
+            </Box>
+            <Typography sx={{ ...VALUE_SX, flex: 1, minWidth: 0 }}>
+              {works}
+            </Typography>
           </Box>
         </Box>
       )}
@@ -390,16 +364,9 @@ function MaintenanceDetails({ data }: { data: Record<string, unknown> }) {
       {(has('customNeed') || has('description')) && (
         <Box>
           <SectionHeader icon={<MessageIcon size={14} strokeWidth={2} />} title="Description" accentColor="#546E7A" />
-          <Box
-            sx={{
-              p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider',
-              bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
-            }}
-          >
-            <Typography sx={{ fontSize: '0.875rem', color: 'text.primary', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-              {(get('customNeed') as string) || (get('description') as string) || ''}
-            </Typography>
-          </Box>
+          <Typography sx={{ ...VALUE_SX, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+            {(get('customNeed') as string) || (get('description') as string) || ''}
+          </Typography>
         </Box>
       )}
     </Box>
@@ -415,7 +382,7 @@ function SupportDetails({ data }: { data: Record<string, unknown> }) {
       {subject && (
         <Box>
           <SectionHeader icon={<SubjectIcon size={14} strokeWidth={2} />} title="Sujet" accentColor="#1565C0" />
-          <Typography sx={{ fontSize: '1rem', fontWeight: 600, color: 'text.primary', pl: 0.5 }}>
+          <Typography sx={{ ...VALUE_SX }}>
             {subject}
           </Typography>
         </Box>
@@ -423,16 +390,9 @@ function SupportDetails({ data }: { data: Record<string, unknown> }) {
       {message && (
         <Box>
           <SectionHeader icon={<MessageIcon size={14} strokeWidth={2} />} title="Message" accentColor="#546E7A" />
-          <Box
-            sx={{
-              p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider',
-              bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
-            }}
-          >
-            <Typography sx={{ fontSize: '0.875rem', color: 'text.primary', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-              {message}
-            </Typography>
-          </Box>
+          <Typography sx={{ ...VALUE_SX, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+            {message}
+          </Typography>
         </Box>
       )}
     </Box>
@@ -441,7 +401,7 @@ function SupportDetails({ data }: { data: Record<string, unknown> }) {
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
-const ReceivedFormsTab: React.FC = () => {
+const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly = false }) => {
   const theme = useTheme();
   const [selectedForm, setSelectedForm] = useState<ReceivedForm | null>(null);
   const [filterType, setFilterType] = useState<string>('');
@@ -462,7 +422,8 @@ const ReceivedFormsTab: React.FC = () => {
     page,
     size: rowsPerPage,
     type: filterType || undefined,
-  }), [page, filterType]);
+    status: archivedOnly ? 'ARCHIVED' : undefined,
+  }), [page, filterType, archivedOnly]);
 
   const { data: formsPage, isLoading } = useReceivedForms(queryParams);
   const updateStatusMutation = useUpdateFormStatus();
@@ -732,14 +693,13 @@ const ReceivedFormsTab: React.FC = () => {
       ) : (
         <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
-          {/* ─── Liste gauche (35%) ─── */}
-          <Box sx={{ width: '35%', borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* ─── Liste gauche (largeur fixe, adaptée au texte) ─── */}
+          <Box sx={{ width: { xs: 300, md: 340, xl: 360 }, flexShrink: 0, borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <Box sx={{ flex: 1, overflowY: 'auto' }}>
               {filteredForms.map(form => {
                 const typeConf = FORM_TYPE_CONFIG[form.formType] || FORM_TYPE_CONFIG.DEVIS;
                 const statusConf = STATUS_CONFIG[form.status] || STATUS_CONFIG.NEW;
                 const isSelected = selectedForm?.id === form.id;
-                const isNew = form.status === 'NEW';
 
                 return (
                   <Box
@@ -760,54 +720,29 @@ const ReceivedFormsTab: React.FC = () => {
                       },
                     }}
                   >
-                    {/* Row 1: Type chip + status badge + new dot */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-                      <Chip
-                        icon={typeConf.icon as React.ReactElement}
-                        label={typeConf.label}
-                        size="small"
-                        sx={{
-                          fontSize: '0.625rem', height: 22, borderRadius: '6px',
-                          fontWeight: 600, '& .MuiChip-label': { px: 0.75 },
-                          backgroundColor: `${typeConf.color}18`,
-                          color: typeConf.color,
-                          border: `1px solid ${typeConf.color}40`,
-                          '& .MuiChip-icon': { color: typeConf.color, ml: 0.5 },
-                        }}
-                      />
-                      {form.status !== 'NEW' && (
-                        <Chip
-                          label={statusConf.label}
-                          size="small"
-                          sx={{
-                            fontSize: '0.5625rem', height: 18, borderRadius: '4px',
-                            fontWeight: 600, '& .MuiChip-label': { px: 0.5 },
-                            backgroundColor: `${statusConf.color}18`,
-                            color: statusConf.color,
-                            border: `1px solid ${statusConf.color}30`,
-                          }}
-                        />
-                      )}
-                      <Box sx={{ flex: 1 }} />
-                      {isNew && (
-                        <Box sx={{
-                          width: 8, height: 8, borderRadius: '50%',
-                          bgcolor: '#ED6C02', flexShrink: 0,
-                          boxShadow: '0 0 0 2px rgba(237,108,2,0.2)',
-                        }} />
-                      )}
+                    {/* Row 1: Nom + chips type/statut (même ligne) */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
+                      <Typography sx={{
+                        flex: 1, minWidth: 0,
+                        fontSize: '0.8125rem',
+                        fontWeight: 600,
+                        color: 'text.primary',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        lineHeight: 1.3,
+                      }}>
+                        {form.fullName}
+                      </Typography>
+                      <Tooltip title={typeConf.label} arrow placement="top">
+                        <Box component="span" sx={{ display: 'inline-flex', color: typeConf.color, flexShrink: 0 }}>
+                          {React.cloneElement(typeConf.icon as React.ReactElement, { size: 15 })}
+                        </Box>
+                      </Tooltip>
+                      <Tooltip title={statusConf.label} arrow placement="top">
+                        <Box component="span" sx={{ display: 'inline-flex', color: statusConf.color, flexShrink: 0 }}>
+                          {renderStatusIcon(form.status)}
+                        </Box>
+                      </Tooltip>
                     </Box>
-
-                    {/* Row 2: Name */}
-                    <Typography sx={{
-                      fontSize: '0.8125rem',
-                      fontWeight: isNew ? 700 : 600,
-                      color: 'text.primary',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      lineHeight: 1.3,
-                    }}>
-                      {form.fullName}
-                    </Typography>
 
                     {/* Row 3: Subject */}
                     <Typography sx={{
@@ -858,15 +793,14 @@ const ReceivedFormsTab: React.FC = () => {
             />
           </Box>
 
-          {/* ─── Detail droite (65%) ─── */}
-          <Box sx={{ width: '65%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* ─── Detail droite (remplit l'espace restant) ─── */}
+          <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {selectedForm ? (
               <Box sx={{ flex: 1, overflowY: 'auto', p: 2.5 }}>
 
                 {/* ── Hero header (avatar + identité + contacts) ─────────── */}
                 {(() => {
                   const tc = FORM_TYPE_CONFIG[selectedForm.formType] || FORM_TYPE_CONFIG.DEVIS;
-                  const sc = STATUS_CONFIG[selectedForm.status] || STATUS_CONFIG.NEW;
                   const name = selectedForm.fullName || 'Anonyme';
                   const initials = name
                     .split(/[\s.-]+/)
@@ -875,85 +809,40 @@ const ReceivedFormsTab: React.FC = () => {
                     .slice(0, 2)
                     .join('') || '?';
                   return (
-                    <Box
-                      sx={{
-                        mb: 3, p: 2.5, borderRadius: 2,
-                        position: 'relative', overflow: 'hidden',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        background: (t) =>
-                          t.palette.mode === 'dark'
-                            ? `linear-gradient(135deg, ${t.palette.background.paper} 0%, ${alpha(tc.color, 0.1)} 100%)`
-                            : `linear-gradient(135deg, #fff 0%, ${alpha(tc.color, 0.06)} 100%)`,
-                      }}
-                    >
-                      {/* Top row : type chip à gauche + date + statut à droite */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                        <Chip
-                          icon={tc.icon as React.ReactElement}
-                          label={tc.label}
-                          size="small"
-                          sx={{
-                            fontSize: '0.6875rem', height: 24, borderRadius: '6px',
-                            fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4,
-                            '& .MuiChip-label': { px: 0.75 },
-                            backgroundColor: tc.color, color: '#fff',
-                            '& .MuiChip-icon': { color: '#fff !important', ml: 0.5 },
-                          }}
-                        />
-                        <Chip
-                          label={sc.label}
-                          size="small"
-                          icon={
-                            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: sc.color, ml: 0.5 }} />
-                          }
-                          sx={{
-                            fontSize: '0.6875rem', height: 24, borderRadius: '6px',
-                            fontWeight: 600, '& .MuiChip-label': { px: 0.75 },
-                            backgroundColor: `${sc.color}18`, color: sc.color,
-                            border: `1px solid ${sc.color}40`,
-                          }}
-                        />
-                        <Box sx={{ flex: 1 }} />
-                        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500 }}>
-                          {formatDate(selectedForm.createdAt)}
-                        </Typography>
-                      </Box>
-
-                      {/* Identité : avatar + nom + sujet */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                    <Box sx={{ mb: 3, pb: 2.75, borderBottom: '1px solid', borderColor: 'divider' }}>
+                      {/* Identité : avatar + colonne (nom + chips + date / sujet / contact) */}
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
                         <Box
                           sx={{
-                            width: 52, height: 52, borderRadius: '50%',
+                            width: 60, height: 60, borderRadius: '18px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             bgcolor: tc.color, color: '#fff',
-                            fontSize: '1.125rem', fontWeight: 700, letterSpacing: '0.05em',
+                            fontSize: '1.375rem', fontWeight: 600, letterSpacing: '0.04em',
                             flexShrink: 0,
-                            boxShadow: `0 2px 6px ${tc.color}40`,
                           }}
                         >
                           {initials}
                         </Box>
                         <Box sx={{ minWidth: 0, flex: 1 }}>
-                          <Typography sx={{ fontSize: '1.125rem', fontWeight: 700, lineHeight: 1.2, color: 'text.primary' }}>
-                            {name}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <Typography sx={{ flex: 1, minWidth: 0, fontSize: '1.125rem', fontWeight: 600, lineHeight: 1.2, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {name}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500, flexShrink: 0, ml: 'auto' }}>
+                              {formatDate(selectedForm.createdAt)}
+                            </Typography>
+                          </Box>
                           <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mt: 0.25 }}>
                             {selectedForm.subject || `Formulaire #${selectedForm.id}`}
                           </Typography>
-                        </Box>
-                      </Box>
-
-                      {/* Contact info — clean list horizontal */}
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+                          {/* Contact info — aligné avec le nom et le sujet */}
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', mt: 1 }}>
                         <Box
                           component="a"
                           href={`mailto:${selectedForm.email}`}
                           sx={{
                             display: 'flex', alignItems: 'center', gap: 0.75,
-                            textDecoration: 'none',
-                            '&:hover': { color: tc.color },
-                            transition: 'color 150ms',
+                            color: 'text.primary', textDecoration: 'none',
                           }}
                         >
                           <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
@@ -971,9 +860,7 @@ const ReceivedFormsTab: React.FC = () => {
                               href={`tel:${selectedForm.phone.replace(/\s/g, '')}`}
                               sx={{
                                 display: 'flex', alignItems: 'center', gap: 0.75,
-                                textDecoration: 'none',
-                                '&:hover': { color: tc.color },
-                                transition: 'color 150ms',
+                                color: 'text.primary', textDecoration: 'none',
                               }}
                             >
                               <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
@@ -998,13 +885,14 @@ const ReceivedFormsTab: React.FC = () => {
                             </Box>
                           </>
                         )}
+                        {selectedForm.ipAddress && (
+                          <Typography sx={{ ml: 'auto', fontSize: '0.625rem', color: 'text.disabled', fontFamily: 'monospace' }}>
+                            IP : {selectedForm.ipAddress}
+                          </Typography>
+                        )}
+                          </Box>
+                        </Box>
                       </Box>
-
-                      {selectedForm.ipAddress && (
-                        <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', mt: 1.5, fontFamily: 'monospace' }}>
-                          IP : {selectedForm.ipAddress}
-                        </Typography>
-                      )}
                     </Box>
                   );
                 })()}
@@ -1037,12 +925,11 @@ const ReceivedFormsTab: React.FC = () => {
                             }
                             onClick={() => handleGeneratePdf(selectedForm)}
                             disabled={generateDocumentMutation.isPending}
+                            color="primary"
                             sx={{
-                              textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
+                              textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
                               borderRadius: '10px', px: 2.5, py: 0.75,
-                              bgcolor: '#d32f2f',
-                              '&:hover': { bgcolor: '#b71c1c' },
-                              boxShadow: 'none',
+                              boxShadow: 'none', '&:hover': { boxShadow: 'none' },
                             }}
                           >
                             {generateDocumentMutation.isPending ? 'Génération…' : 'Générer PDF'}
@@ -1068,10 +955,10 @@ const ReceivedFormsTab: React.FC = () => {
                             onClick={() => openResendModal(selectedForm)}
                             disabled={generateDocumentMutation.isPending}
                             sx={{
-                              textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
+                              textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
                               borderRadius: '10px', px: 2.5, py: 0.75,
-                              color: '#475569', borderColor: '#cbd5e1',
-                              '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc' },
+                              color: 'text.secondary', borderColor: 'divider',
+                              '&:hover': { borderColor: 'text.disabled', bgcolor: 'action.hover' },
                             }}
                           >
                             Renvoyer
@@ -1079,18 +966,17 @@ const ReceivedFormsTab: React.FC = () => {
                         </Tooltip>
                       )}
 
-                      {selectedForm.status !== 'PROCESSED' && (
+                      {selectedForm.status !== 'PROCESSED' && selectedForm.status !== 'ARCHIVED' && (
                         <Button
                           size="small"
-                          variant="contained"
-                          color="success"
+                          variant="outlined"
+                          color="primary"
                           startIcon={<CheckCircleIcon size={16} strokeWidth={1.75} />}
                           onClick={() => handleUpdateStatus('PROCESSED')}
                           disabled={updateStatusMutation.isPending}
                           sx={{
-                            textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
+                            textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
                             borderRadius: '10px', px: 2.5, py: 0.75,
-                            boxShadow: 'none', '&:hover': { boxShadow: 'none' },
                           }}
                         >
                           Marquer traite
@@ -1099,16 +985,34 @@ const ReceivedFormsTab: React.FC = () => {
                       {selectedForm.status !== 'ARCHIVED' && (
                         <Button
                           size="small"
-                          variant="outlined"
+                          variant="text"
                           startIcon={<ArchiveIcon size={16} strokeWidth={1.75} />}
                           onClick={() => handleUpdateStatus('ARCHIVED')}
+                          disabled={updateStatusMutation.isPending}
+                          sx={{
+                            textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
+                            borderRadius: '10px', px: 2, py: 0.75,
+                            color: 'text.secondary',
+                            '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+                          }}
+                        >
+                          Archiver
+                        </Button>
+                      )}
+                      {selectedForm.status === 'ARCHIVED' && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          startIcon={<RefreshIcon size={16} strokeWidth={1.75} />}
+                          onClick={() => handleUpdateStatus('READ')}
                           disabled={updateStatusMutation.isPending}
                           sx={{
                             textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
                             borderRadius: '10px', px: 2.5, py: 0.75,
                           }}
                         >
-                          Archiver
+                          Restaurer
                         </Button>
                       )}
 
