@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -96,6 +97,25 @@ public class WaitlistService {
     @Transactional(readOnly = true)
     public List<WaitlistSignup> listAll() {
         return repository.findAllByOrderByCreatedAtAsc();
+    }
+
+    /**
+     * Enregistre une desinscription Brevo (webhook) — respect de l'opt-out RGPD.
+     * Brevo a deja desinscrit le contact de son cote ; on horodate l'etat chez nous.
+     * @return true si un inscrit correspondant a ete trouve.
+     */
+    @Transactional
+    public boolean markUnsubscribed(String email) {
+        if (email == null || email.isBlank()) return false;
+        var existing = repository.findByEmailIgnoreCase(email.trim());
+        if (existing.isEmpty()) return false;
+        WaitlistSignup s = existing.get();
+        if (s.getUnsubscribedAt() == null) {
+            s.setUnsubscribedAt(LocalDateTime.now());
+            repository.save(s);
+            log.info("Waitlist : desinscription enregistree #{} ({})", s.getId(), email);
+        }
+        return true;
     }
 
     private long founderSpotsLeft() {

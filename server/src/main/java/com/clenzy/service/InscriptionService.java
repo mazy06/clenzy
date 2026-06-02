@@ -52,6 +52,7 @@ public class InscriptionService {
     private final EmailService emailService;
     private final RestTemplate restTemplate;
     private final PlatformPromoCodeService promoCodeService;
+    private final BrevoContactService brevoContactService;
 
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
@@ -85,7 +86,8 @@ public class InscriptionService {
             PricingConfigService pricingConfigService,
             EmailService emailService,
             RestTemplate restTemplate,
-            PlatformPromoCodeService promoCodeService) {
+            PlatformPromoCodeService promoCodeService,
+            BrevoContactService brevoContactService) {
         this.pendingInscriptionRepository = pendingInscriptionRepository;
         this.userRepository = userRepository;
         this.keycloakService = keycloakService;
@@ -94,6 +96,7 @@ public class InscriptionService {
         this.emailService = emailService;
         this.restTemplate = restTemplate;
         this.promoCodeService = promoCodeService;
+        this.brevoContactService = brevoContactService;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -439,6 +442,17 @@ public class InscriptionService {
 
             userRepository.save(user);
             logger.info("Utilisateur DB cree avec ID: {} pour email: {}", user.getId(), user.getEmail());
+
+            // Opt-in newsletter -> Brevo (best-effort, ne bloque jamais l'inscription).
+            // La sync est gatee par MarketingIntegrationService (liste + toggle).
+            if (pending.isNewsletterOptIn()) {
+                try {
+                    brevoContactService.addToNewsletter(
+                            pending.getEmail(), pending.getFullName(), pending.getCity());
+                } catch (Exception e) {
+                    logger.warn("Sync newsletter Brevo KO pour {} : {}", pending.getEmail(), e.getMessage());
+                }
+            }
 
             // 3. Creer l'organisation selon le type choisi + membership OWNER
             OrganizationType completionOrgType = OrganizationType.INDIVIDUAL;
