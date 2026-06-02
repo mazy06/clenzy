@@ -8,6 +8,7 @@ import com.clenzy.model.ReceivedForm;
 import com.clenzy.model.ReferenceType;
 import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.DocumentGeneratorService;
+import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.PricingConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,6 +42,7 @@ public class QuoteController {
 
     private static final Logger log = LoggerFactory.getLogger(QuoteController.class);
 
+    private final EmailService emailService;
     private final PricingConfigService pricingConfigService;
     private final ReceivedFormRepository receivedFormRepository;
     private final ObjectMapper objectMapper;
@@ -51,10 +53,11 @@ public class QuoteController {
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
     private static final int MAX_REQUESTS_PER_HOUR = 5;
 
-    public QuoteController(PricingConfigService pricingConfigService,
+    public QuoteController(EmailService emailService, PricingConfigService pricingConfigService,
                            ReceivedFormRepository receivedFormRepository, ObjectMapper objectMapper,
                            NotificationService notificationService,
                            DocumentGeneratorService documentGeneratorService) {
+        this.emailService = emailService;
         this.pricingConfigService = pricingConfigService;
         this.receivedFormRepository = receivedFormRepository;
         this.objectMapper = objectMapper;
@@ -146,13 +149,13 @@ public class QuoteController {
         }
 
         // 5. Génération PDF devis + envoi au prospect, avec info@clenzy.fr en COPIE (CC)
-        //    via EmailService.sendQuoteToProspect. PAS d'email interne séparé.
-        //    Non-bloquant : si la génération/envoi échoue, la demande reste en BDD et
-        //    visible dans le PMS (les admins sont aussi notifiés in-app à l'étape 7).
-        //    Le devis ne part qu'une fois (dédup) ; un éventuel clic "Générer PDF"
+        //    via EmailService.sendQuoteToProspect. PAS d'email interne séparé dans le
+        //    cas nominal. Le devis ne part qu'une fois (dédup) ; un clic "Générer PDF"
         //    ultérieur dans le PMS ne renverra pas.
-        try {
-            if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+        //    Non-bloquant : la demande reste en BDD/PMS même si l'envoi échoue.
+        boolean prospectNotified = false;
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+            try {
                 documentGeneratorService.generateFromEvent(
                         DocumentType.DEVIS,
                         savedForm.getId(),
@@ -160,10 +163,22 @@ public class QuoteController {
                         dto.getEmail(),
                         null   // organizationId null → template GLOBAL (si configuré en BDD)
                 );
+                prospectNotified = true;
+            } catch (Exception e) {
+                log.warn("Envoi devis prospect KO pour #{} ({}) : {}",
+                        savedForm.getId(), dto.getFullName(), e.getMessage());
             }
-        } catch (Exception e) {
-            log.warn("Génération/envoi PDF devis skippé pour #{} ({}) : {}",
-                    savedForm.getId(), dto.getFullName(), e.getMessage());
+        }
+        // FILET : le prospect n'a pas pu être notifié (pas d'email — cas théorique car
+        // validateRequest l'exige — OU échec d'envoi/génération) → on prévient quand
+        // même l'équipe par un email interne à info@clenzy.fr, pour ne jamais rester
+        // aveugle sur une demande de devis.
+        if (!prospectNotified) {
+            try {
+                emailService.sendQuoteRequestNotification(dto, recommendedPackage, recommendedRate, null);
+            } catch (Exception e) {
+                log.warn("Notification interne devis #{} KO : {}", savedForm.getId(), e.getMessage());
+            }
         }
 
         // 7. Notification a tous les SUPER_ADMIN et SUPER_MANAGER de la plateforme
