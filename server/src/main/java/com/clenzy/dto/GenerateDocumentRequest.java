@@ -15,5 +15,19 @@ public record GenerateDocumentRequest(
         String referenceType,
         @Email(message = "L'adresse email n'est pas valide")
         String emailTo,
-        boolean sendEmail
-) {}
+        boolean sendEmail,
+        // Force l'envoi de l'email meme si un document a deja ete envoye a ce
+        // destinataire pour cette reference (bouton "Renvoyer"). Par defaut false :
+        // le service deduplique (1 email par destinataire/document).
+        boolean forceResend
+) {
+    /**
+     * Constructeur retro-compatible (sans forceResend, defaut false).
+     * Conserve pour les appelants Java existants ; la deserialisation JSON
+     * utilise le constructeur canonique (forceResend absent du payload → false).
+     */
+    public GenerateDocumentRequest(String documentType, Long referenceId,
+                                   String referenceType, String emailTo, boolean sendEmail) {
+        this(documentType, referenceId, referenceType, emailTo, sendEmail, false);
+    }
+}

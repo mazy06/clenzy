@@ -105,6 +105,9 @@ export interface GenerateDocumentRequest {
   referenceType: string;
   emailTo?: string;
   sendEmail: boolean;
+  // Force le renvoi de l'email même si le document a déjà été envoyé à ce
+  // destinataire (bouton « Renvoyer »). Par défaut le backend déduplique.
+  forceResend?: boolean;
 }
 
 export interface DocumentTypeOption {

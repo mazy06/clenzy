@@ -587,6 +587,62 @@ public class EmailService {
     }
 
     /**
+     * Envoie le devis PDF au prospect avec un template email dedie et soigne
+     * (system_email_template {@code quote_to_prospect}) enveloppe dans le wrapper
+     * Baitly, plutot que le mail generique "Votre document".
+     *
+     * <p>Si le template n'est pas en BDD (cas d'un environnement ou la migration
+     * 0165 n'a pas tourne), on retombe sur un corps par defaut propre wrappe en
+     * NOTIFICATION_GUEST — jamais d'echec lie au template manquant.</p>
+     *
+     * @param toEmail     adresse du prospect
+     * @param pdfBytes    bytes du PDF devis
+     * @param pdfFilename nom du fichier joint
+     */
+    public void sendQuoteToProspect(String toEmail, byte[] pdfBytes, String pdfFilename) {
+        try {
+            JavaMailSender ms = requireMailSender();
+
+            String subject;
+            String htmlBody;
+            var tpl = systemEmailTemplateService.resolve(null, "quote_to_prospect", "fr");
+            if (tpl.isPresent()) {
+                var t = tpl.get();
+                Map<String, String> vars = new HashMap<>();
+                subject = templateInterpolationService.interpolate(t.getSubject(), vars, false);
+                String interpolatedBody = templateInterpolationService.interpolate(t.getBody(), vars, true);
+                htmlBody = emailWrapperService.wrap(t.getWrapperStyle(), interpolatedBody);
+            } else {
+                subject = "Votre devis Baitly";
+                htmlBody = emailWrapperService.wrap("NOTIFICATION_GUEST",
+                        "Bonjour,\n\nNous avons le plaisir de vous transmettre votre devis "
+                        + "personnalisé, que vous trouverez en pièce jointe au format PDF.\n\n"
+                        + "Ce devis est sans engagement. Notre équipe reste à votre disposition "
+                        + "pour toute question ou pour planifier une intervention.\n\n"
+                        + "Au plaisir de collaborer avec vous,\nL'équipe Baitly");
+            }
+
+            MimeMessage message = ms.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            applyDeliverabilityHeaders(message, helper);
+            helper.setTo(toEmail);
+            helper.setSubject(sanitizeHeaderValue(subject));
+            helper.setText(htmlToPlainText(htmlBody), htmlBody);
+            helper.addAttachment(pdfFilename, new ByteArrayResource(pdfBytes), "application/pdf");
+
+            ms.send(message);
+            log.info("Email devis (prospect) envoyé à {} (PJ: {})", toEmail, pdfFilename);
+        } catch (MessagingException e) {
+            log.error("Échec envoi email devis prospect à {} : {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi du devis au prospect", e);
+        } catch (Exception e) {
+            log.error("Échec envoi email devis prospect à {} : {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi du devis au prospect", e);
+        }
+    }
+
+    /**
      * Envoie un email HTML simple (sans piece jointe).
      * Utilise pour les liens de paiement, confirmations, etc.
      */
