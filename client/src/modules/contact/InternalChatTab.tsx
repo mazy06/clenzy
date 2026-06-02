@@ -9,6 +9,7 @@ import {
   CircularProgress,
   Alert,
   Chip,
+  Tooltip,
   Skeleton,
   InputAdornment,
   alpha,
@@ -36,6 +37,7 @@ import {
   useThreadMessages,
   useReplyMessage,
   useMarkThreadAsRead,
+  useArchiveThread,
 } from '../../hooks/useContactMessages';
 import { useContactWebSocket } from '../../hooks/useContactWebSocket';
 import { usePresence } from '../../hooks/usePresence';
@@ -167,6 +169,7 @@ const InternalChatTab: React.FC = () => {
   );
   const replyMutation = useReplyMessage();
   const markThreadAsReadMutation = useMarkThreadAsRead();
+  const archiveThreadMutation = useArchiveThread();
 
   // ── Mark unread messages as read when opening a thread ───────────────────
   useEffect(() => {
@@ -650,16 +653,31 @@ const InternalChatTab: React.FC = () => {
                   size="small"
                   sx={softChipSx(semanticToHex('primary'))}
                 />
-                {/* D10 — quick actions: info, mark unread, archive. Not yet wired to handlers. */}
-                <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Infos contact">
-                  <InfoIcon size={'1.125rem'} strokeWidth={1.75} />
-                </IconButton>
-                <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Marquer non lu">
-                  <MarkUnreadIcon size={'1.125rem'} strokeWidth={1.75} />
-                </IconButton>
-                <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Archiver">
-                  <ArchiveIcon size={'1.125rem'} strokeWidth={1.75} />
-                </IconButton>
+                {/* Actions rapides */}
+                <Tooltip title="Infos du contact" arrow>
+                  <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Infos contact">
+                    <InfoIcon size={'1.125rem'} strokeWidth={1.75} />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Marquer comme non lu" arrow>
+                  <IconButton size="small" sx={{ color: 'text.secondary' }} aria-label="Marquer non lu">
+                    <MarkUnreadIcon size={'1.125rem'} strokeWidth={1.75} />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Archiver la conversation" arrow>
+                  <IconButton
+                    size="small"
+                    sx={{ color: 'text.secondary' }}
+                    aria-label="Archiver"
+                    disabled={archiveThreadMutation.isPending}
+                    onClick={() => {
+                      archiveThreadMutation.mutate(selectedThread.counterpartKeycloakId);
+                      setSelectedThread(null);
+                    }}
+                  >
+                    <ArchiveIcon size={'1.125rem'} strokeWidth={1.75} />
+                  </IconButton>
+                </Tooltip>
               </Box>
 
               {/* Messages area */}

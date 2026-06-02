@@ -393,6 +393,25 @@ public class ContactMessageService {
         return unread.size();
     }
 
+    /** Archive toute une conversation (tous les messages échangés avec l'interlocuteur). */
+    @Transactional
+    public int archiveThread(Jwt jwt, String counterpartKeycloakId) {
+        String userId = requireUserId(jwt);
+        Long orgId = tenantContext.getOrganizationId();
+
+        List<ContactMessage> msgs = contactMessageRepository
+                .findThreadMessages(userId, counterpartKeycloakId, orgId);
+        if (msgs.isEmpty()) return 0;
+
+        LocalDateTime now = LocalDateTime.now();
+        for (ContactMessage m : msgs) {
+            m.setArchived(true);
+            m.setArchivedAt(now);
+        }
+        contactMessageRepository.saveAll(msgs);
+        return msgs.size();
+    }
+
     @Transactional
     public ContactMessageDto archiveMessage(Jwt jwt, Long id) {
         String userId = requireUserId(jwt);
@@ -466,7 +485,11 @@ public class ContactMessageService {
         String userId = requireUserId(jwt);
         Long orgId = tenantContext.getOrganizationId();
 
-        List<ContactMessage> allMessages = contactMessageRepository.findAllForUser(userId, orgId);
+        // Exclut les messages archivés : une conversation entièrement archivée
+        // disparaît de la messagerie active (et se retrouve dans "Messages archivés").
+        List<ContactMessage> allMessages = contactMessageRepository.findAllForUser(userId, orgId).stream()
+                .filter(m -> !m.isArchived())
+                .toList();
         if (allMessages.isEmpty()) return List.of();
 
         // Grouper par interlocuteur (keycloakId de l'autre personne)

@@ -168,6 +168,17 @@ public class ContactController {
         return ResponseEntity.ok(Map.of("updatedCount", count));
     }
 
+    @PutMapping("/threads/{counterpartKeycloakId}/archive")
+    @Operation(summary = "Archiver toute une conversation (thread)")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
+    public ResponseEntity<Map<String, Object>> archiveThread(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String counterpartKeycloakId
+    ) {
+        int count = contactMessageService.archiveThread(jwt, counterpartKeycloakId);
+        return ResponseEntity.ok(Map.of("archivedCount", count));
+    }
+
     // ─── Telechargement pieces jointes ─────────────────────────────────────
 
     @GetMapping("/messages/{messageId}/attachments/{attachmentId}")
