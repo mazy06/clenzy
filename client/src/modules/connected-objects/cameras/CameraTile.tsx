@@ -66,12 +66,19 @@ export default function CameraTile({ camera, onDelete, acting = false }: CameraT
         {/* Centre : play à la demande / état flux / injoignable */}
         {online ? (
           streaming ? (
-            <Box sx={{ position: 'relative', zIndex: 2, textAlign: 'center', px: 2 }}>
-              <Typography sx={{ color: alpha('#fff', 0.9), fontSize: '0.72rem', fontWeight: 600 }}>Flux en direct</Typography>
-              <Typography sx={{ color: alpha('#fff', 0.55), fontSize: '0.62rem', mt: 0.25, lineHeight: 1.3 }}>
-                Le streaming réel arrivera avec la passerelle média (go2rtc).
-              </Typography>
-            </Box>
+            camera.webrtcUrl ? (
+              <Box
+                component="iframe"
+                title={name}
+                src={camera.webrtcUrl}
+                allow="autoplay; fullscreen; picture-in-picture"
+                sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, zIndex: 2, bgcolor: '#000' }}
+              />
+            ) : (
+              <Box sx={{ position: 'relative', zIndex: 2, textAlign: 'center', px: 2 }}>
+                <Typography sx={{ color: alpha('#fff', 0.7), fontSize: '0.66rem' }}>Flux indisponible — passerelle média non configurée.</Typography>
+              </Box>
+            )
           ) : (
             <Box className="co-cam-play"
               sx={{ position: 'relative', zIndex: 2, width: 46, height: 46, borderRadius: '50%', bgcolor: alpha('#fff', 0.14), color: '#fff',
