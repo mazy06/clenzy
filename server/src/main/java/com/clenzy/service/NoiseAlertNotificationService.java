@@ -1,15 +1,16 @@
 package com.clenzy.service;
 
-import com.clenzy.integration.twilio.service.TwilioApiService;
 import com.clenzy.model.*;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.WhatsAppConfigRepository;
 import com.clenzy.service.messaging.EmailWrapperService;
 import com.clenzy.service.messaging.SystemEmailTemplateService;
 import com.clenzy.service.messaging.TemplateInterpolationService;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProvider;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProviderResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -35,9 +36,11 @@ public class NoiseAlertNotificationService {
     private final SystemEmailTemplateService systemEmailTemplateService;
     private final TemplateInterpolationService templateInterpolationService;
     private final EmailWrapperService emailWrapperService;
-    // Optionnel : le bean TwilioApiService est @ConditionalOnProperty(clenzy.twilio.account-sid).
-    // Sans config Twilio, le bean n'existe pas — on doit quand meme demarrer (WhatsApp ignore).
-    private final ObjectProvider<TwilioApiService> twilioApiServiceProvider;
+    // WhatsApp via l'abstraction provider (Meta Cloud API / OpenWA selon la config
+    // de l'org). Beans non-conditionnels => demarrage toujours OK ; si l'org n'a pas
+    // de config WhatsApp active, l'envoi est simplement ignore (best-effort).
+    private final WhatsAppProviderResolver whatsAppProviderResolver;
+    private final WhatsAppConfigRepository whatsAppConfigRepository;
 
     public NoiseAlertNotificationService(NotificationService notificationService,
                                           EmailService emailService,
@@ -46,8 +49,10 @@ public class NoiseAlertNotificationService {
                                           SystemEmailTemplateService systemEmailTemplateService,
                                           TemplateInterpolationService templateInterpolationService,
                                           EmailWrapperService emailWrapperService,
-                                          ObjectProvider<TwilioApiService> twilioApiServiceProvider) {
-        this.twilioApiServiceProvider = twilioApiServiceProvider;
+                                          WhatsAppProviderResolver whatsAppProviderResolver,
+                                          WhatsAppConfigRepository whatsAppConfigRepository) {
+        this.whatsAppProviderResolver = whatsAppProviderResolver;
+        this.whatsAppConfigRepository = whatsAppConfigRepository;
         this.notificationService = notificationService;
         this.emailService = emailService;
         this.propertyRepository = propertyRepository;
@@ -241,10 +246,13 @@ public class NoiseAlertNotificationService {
     private void dispatchWhatsAppGuest(NoiseAlert alert, NoiseAlertConfig config,
                                        Property property, String propertyName) {
         try {
-            // Twilio est optionnel (config conditionnelle) — sans bean, on ignore WhatsApp.
-            TwilioApiService twilioApiService = twilioApiServiceProvider.getIfAvailable();
-            if (twilioApiService == null) {
-                log.debug("Twilio non configure — WhatsApp ignore pour alerte {}", alert.getId());
+            // WhatsApp via Meta Cloud API (ou OpenWA) selon la config de l'org.
+            // Resolution par orgId explicite : le scheduler bruit n'a pas de TenantContext.
+            WhatsAppConfig waConfig = whatsAppConfigRepository
+                .findByOrganizationId(alert.getOrganizationId()).orElse(null);
+            if (waConfig == null || !waConfig.isEnabled()) {
+                log.debug("WhatsApp non configure/desactive pour org {} — alerte {} ignoree",
+                    alert.getOrganizationId(), alert.getId());
                 return;
             }
 
@@ -269,9 +277,10 @@ public class NoiseAlertNotificationService {
                 + "\"%s\". Merci de veiller a preserver le calme afin de ne pas gener le voisinage.",
                 guestName, alert.getMeasuredDb(), alert.getThresholdDb(), propertyName);
 
-            twilioApiService.sendWhatsApp(guest.getPhone(), body);
+            WhatsAppProvider provider = whatsAppProviderResolver.resolve(waConfig);
+            provider.sendTextMessage(waConfig, guest.getPhone(), body);
             alert.setNotifiedWhatsapp(true);
-            log.info("WhatsApp voyageur envoye pour alerte {} (reservation {})",
+            log.info("WhatsApp voyageur envoye (Meta) pour alerte {} (reservation {})",
                 alert.getId(), reservation.getId());
         } catch (Exception e) {
             log.error("Erreur WhatsApp voyageur pour alerte {}: {}", alert.getId(), e.getMessage());
