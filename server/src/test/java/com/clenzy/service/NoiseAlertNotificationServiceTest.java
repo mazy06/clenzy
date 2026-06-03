@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.model.*;
 import com.clenzy.model.NoiseAlert.AlertSeverity;
 import com.clenzy.model.NoiseAlert.AlertSource;
+import com.clenzy.integration.twilio.service.TwilioApiService;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.service.messaging.SystemEmailTemplateService;
@@ -30,6 +31,7 @@ class NoiseAlertNotificationServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private ReservationRepository reservationRepository;
     @Mock private SystemEmailTemplateService systemEmailTemplateService;
+    @Mock private TwilioApiService twilioApiService;
 
     // Pas un mock — service pur sans IO, on l'instancie avec un TranslationService
     // mock car on n'invoque pas interpolateAndTranslate dans NoiseAlert flow.
@@ -52,7 +54,7 @@ class NoiseAlertNotificationServiceTest {
         service = new NoiseAlertNotificationService(
             notificationService, emailService, propertyRepository, reservationRepository,
             systemEmailTemplateService, templateInterpolationService,
-            new com.clenzy.service.messaging.EmailWrapperService());
+            new com.clenzy.service.messaging.EmailWrapperService(), twilioApiService);
 
         // Stub default : retourne un template systeme minimal avec le subject+body
         // necessaires pour interpoler. Tests sont lenient car certains n'appellent
