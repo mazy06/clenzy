@@ -30,8 +30,8 @@ export default function CamerasScreen() {
   return (
     <Box>
       <PageHeader
-        title="Caméras"
-        subtitle="Supervision vidéo des logements — aperçu de l'expérience à venir."
+        title={t('connectedObjects.cameras.title', 'Caméras')}
+        subtitle={t('connectedObjects.cameras.subtitle', "Supervision vidéo des logements — aperçu de l'expérience à venir.")}
         iconBadge={<PhotoCamera />}
         backPath="/connected-objects"
         backLabel={t('navigation.connectedObjects', 'Objets connectés')}
@@ -47,7 +47,7 @@ export default function CamerasScreen() {
           display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap',
         }}
       >
-        <Chip size="small" label="Aperçu" sx={{ height: 22, bgcolor: ACCENT, color: '#fff', fontWeight: 700, fontSize: '0.65rem' }} />
+        <Chip size="small" label={t('connectedObjects.previewBadge', 'Aperçu')} sx={{ height: 22, bgcolor: ACCENT, color: '#fff', fontWeight: 700, fontSize: '0.65rem' }} />
         <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1, minWidth: 220 }}>
           Données simulées — le streaming en direct, les instantanés et l'enregistrement arriveront en <strong>Phase&nbsp;2</strong> via une passerelle média (RTSP/ONVIF → WebRTC).
         </Typography>

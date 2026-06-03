@@ -156,16 +156,6 @@ const Dashboard: React.FC = () => {
     );
   }, [showDateFilter, period]);
 
-  // Navigate to tab by key (used by overview for "Voir tout" links)
-  const handleNavigateTab = (targetTabIndex: number) => {
-    // targetTabIndex is the OLD absolute index. Map to key then find new index.
-    const keyMap: Record<number, string> = { 0: 'overview', 1: 'noise', 2: 'smartlock', 3: 'keyexchange', 4: 'simulator' };
-    const targetKey = keyMap[targetTabIndex];
-    if (!targetKey) return;
-    const newIdx = visibleTabs.findIndex((t) => t.key === targetKey);
-    if (newIdx >= 0) setTabValue(newIdx);
-  };
-
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
       <Box
@@ -270,7 +260,7 @@ const Dashboard: React.FC = () => {
             {isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
               <UpgradeBanner currentForfait={user.forfait} />
             )}
-            <DashboardOverview period={period} onNavigateTab={handleNavigateTab} />
+            <DashboardOverview period={period} />
           </Box>
         )}
 

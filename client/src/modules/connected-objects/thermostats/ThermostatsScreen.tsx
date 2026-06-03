@@ -30,8 +30,8 @@ export default function ThermostatsScreen() {
   return (
     <Box>
       <PageHeader
-        title="Thermostats"
-        subtitle="Confort thermique des logements — aperçu de l'expérience à venir."
+        title={t('connectedObjects.thermostats.title', 'Thermostats')}
+        subtitle={t('connectedObjects.thermostats.subtitle', "Confort thermique des logements — aperçu de l'expérience à venir.")}
         iconBadge={<Thermostat />}
         backPath="/connected-objects"
         backLabel={t('navigation.connectedObjects', 'Objets connectés')}
@@ -47,7 +47,7 @@ export default function ThermostatsScreen() {
           display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap',
         }}
       >
-        <Chip size="small" label="Aperçu" sx={{ height: 22, bgcolor: ACCENT, color: '#fff', fontWeight: 700, fontSize: '0.65rem' }} />
+        <Chip size="small" label={t('connectedObjects.previewBadge', 'Aperçu')} sx={{ height: 22, bgcolor: ACCENT, color: '#fff', fontWeight: 700, fontSize: '0.65rem' }} />
         <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1, minWidth: 220 }}>
           Données simulées — le pilotage de consigne, les modes et les scénarios arriveront en <strong>Phase&nbsp;2</strong> via un provider climat (Netatmo, Tado, Ecobee, Tuya).
         </Typography>

@@ -38,6 +38,17 @@
     "collapseMenu": "طي القائمة",
     "ratesAt": "الأسعار في"
   },
+  "connectedObjects": {
+    "previewBadge": "معاينة",
+    "cameras": {
+      "title": "الكاميرات",
+      "subtitle": "مراقبة بالفيديو لعقاراتك — معاينة لما هو قادم."
+    },
+    "thermostats": {
+      "title": "منظمات الحرارة",
+      "subtitle": "الراحة الحرارية لعقاراتك — معاينة لما هو قادم."
+    }
+  },
   "navigation": {
     "dashboard": "لوحة التحكم",
     "assistant": "المساعد",
