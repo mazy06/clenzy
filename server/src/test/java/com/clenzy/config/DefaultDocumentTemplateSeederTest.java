@@ -143,7 +143,7 @@ class DefaultDocumentTemplateSeederTest {
     }
 
     @Test
-    @DisplayName("run: templates seed actifs au contenu different -> mis a jour (re-seed checksum)")
+    @DisplayName("run: contenu different -> rendu MAJ + tags re-parses (DEVIS + FACTURE)")
     void run_seededTemplatesChanged_updateBoth() {
         DocumentTemplate devis = active(DocumentType.DEVIS, "system-seed", "ancien-devis");
         DocumentTemplate facture = active(DocumentType.FACTURE, "system-seed", "ancienne-facture");
@@ -151,20 +151,60 @@ class DefaultDocumentTemplateSeederTest {
         when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.DEVIS)).thenReturn(Optional.of(devis));
         when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.FACTURE)).thenReturn(Optional.of(facture));
         when(templateRepository.save(any(DocumentTemplate.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(templateParserService.parseTemplate(any(byte[].class))).thenAnswer(inv -> {
+            DocumentTemplateTag t = new DocumentTemplateTag();
+            t.setTagName("intervention.lignes");
+            return List.of(t);
+        });
 
         seeder.run(null);
 
-        ArgumentCaptor<DocumentTemplate> captor = ArgumentCaptor.forClass(DocumentTemplate.class);
-        verify(templateRepository, times(2)).save(captor.capture());
-        assertThat(captor.getAllValues()).allSatisfy(t -> {
-            assertThat(t.getFileContent()).isNotEmpty();
-            assertThat(t.getVersion()).isEqualTo(2);
-        });
+        // Contenu remplace + version bumpee.
         assertThat(new String(devis.getFileContent())).isNotEqualTo("ancien-devis");
+        assertThat(devis.getVersion()).isEqualTo(2);
         assertThat(new String(facture.getFileContent())).isNotEqualTo("ancienne-facture");
+        assertThat(facture.getVersion()).isEqualTo(2);
+        // Tags re-parses sur les 2 templates (corrige les tags incomplets du seed 0163).
+        verify(templateParserService, times(2)).parseTemplate(any(byte[].class));
+        assertThat(devis.getTags()).extracting(DocumentTemplateTag::getTagName).containsExactly("intervention.lignes");
+        assertThat(facture.getTags()).extracting(DocumentTemplateTag::getTagName).containsExactly("intervention.lignes");
         // Les autres types n'ont pas de template actif stubbe -> Optional.empty -> aucun insert.
         verify(organizationRepository, never()).findByName(any());
-        verify(tagRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    @DisplayName("run: meme contenu mais tags obsoletes -> re-parse quand meme (auto-reparation)")
+    void run_sameContentStaleTags_reparses() throws Exception {
+        byte[] bundled;
+        try (java.io.InputStream is = new org.springframework.core.io.ClassPathResource(
+                "seed/document-templates/facture-clenzy.odt").getInputStream()) {
+            bundled = is.readAllBytes();
+        }
+        DocumentTemplate facture = new DocumentTemplate();
+        facture.setDocumentType(DocumentType.FACTURE);
+        facture.setActive(true);
+        facture.setCreatedBy("system-seed");
+        facture.setFileContent(bundled); // MEME contenu -> checksum identique
+        facture.setVersion(1);
+        DocumentTemplateTag stale = new DocumentTemplateTag();
+        stale.setTagName("client.email"); // tags d'origine incomplets : manque intervention.lignes
+        facture.setTags(new java.util.ArrayList<>(List.of(stale)));
+
+        when(templateRepository.existsByDocumentTypeAndActiveTrue(any())).thenReturn(true);
+        when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.FACTURE)).thenReturn(Optional.of(facture));
+        when(templateRepository.save(any(DocumentTemplate.class))).thenAnswer(inv -> inv.getArgument(0));
+        DocumentTemplateTag t1 = new DocumentTemplateTag();
+        t1.setTagName("client.email");
+        DocumentTemplateTag t2 = new DocumentTemplateTag();
+        t2.setTagName("intervention.lignes");
+        when(templateParserService.parseTemplate(any(byte[].class))).thenReturn(List.of(t1, t2));
+
+        seeder.run(null);
+
+        // Contenu inchange -> pas de bump version, mais tags re-synchronises (intervention.lignes ajoute).
+        assertThat(facture.getVersion()).isEqualTo(1);
+        assertThat(facture.getTags()).extracting(DocumentTemplateTag::getTagName)
+                .containsExactlyInAnyOrder("client.email", "intervention.lignes");
     }
 
     @Test
