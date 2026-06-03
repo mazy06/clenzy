@@ -3,19 +3,20 @@ package com.clenzy.service;
 import com.clenzy.model.*;
 import com.clenzy.model.NoiseAlert.AlertSeverity;
 import com.clenzy.model.NoiseAlert.AlertSource;
-import com.clenzy.integration.twilio.service.TwilioApiService;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.WhatsAppConfigRepository;
 import com.clenzy.service.messaging.SystemEmailTemplateService;
 import com.clenzy.service.messaging.TemplateInterpolationService;
 import com.clenzy.service.messaging.TranslationService;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProvider;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProviderResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.ObjectProvider;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -32,15 +33,13 @@ class NoiseAlertNotificationServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private ReservationRepository reservationRepository;
     @Mock private SystemEmailTemplateService systemEmailTemplateService;
-    @Mock private TwilioApiService twilioApiService;
+    @Mock private WhatsAppProviderResolver whatsAppProviderResolver;
+    @Mock private WhatsAppConfigRepository whatsAppConfigRepository;
+    @Mock private WhatsAppProvider whatsAppProvider;
 
     // Pas un mock — service pur sans IO, on l'instancie avec un TranslationService
     // mock car on n'invoque pas interpolateAndTranslate dans NoiseAlert flow.
     private TemplateInterpolationService templateInterpolationService;
-
-    // Provider optionnel pour TwilioApiService (bean conditionnel). Re-stubbable
-    // par test (ex: getIfAvailable() == null quand Twilio n'est pas configure).
-    private ObjectProvider<TwilioApiService> twilioProvider;
 
     @InjectMocks
     private NoiseAlertNotificationService service;
@@ -49,6 +48,7 @@ class NoiseAlertNotificationServiceTest {
     private NoiseAlertConfig config;
     private Property property;
     private User owner;
+    private WhatsAppConfig whatsAppConfig;
 
     @BeforeEach
     void setUp() {
@@ -56,14 +56,20 @@ class NoiseAlertNotificationServiceTest {
         // TemplateInterpolationService (pas mockable proprement) en plus des mocks.
         // On contourne @InjectMocks pour ce service.
         templateInterpolationService = new TemplateInterpolationService(org.mockito.Mockito.mock(TranslationService.class));
-        @SuppressWarnings("unchecked")
-        ObjectProvider<TwilioApiService> provider = org.mockito.Mockito.mock(ObjectProvider.class);
-        twilioProvider = provider;
-        org.mockito.Mockito.lenient().when(twilioProvider.getIfAvailable()).thenReturn(twilioApiService);
         service = new NoiseAlertNotificationService(
             notificationService, emailService, propertyRepository, reservationRepository,
             systemEmailTemplateService, templateInterpolationService,
-            new com.clenzy.service.messaging.EmailWrapperService(), twilioProvider);
+            new com.clenzy.service.messaging.EmailWrapperService(),
+            whatsAppProviderResolver, whatsAppConfigRepository);
+
+        // Config WhatsApp active par defaut (lenient — seuls les tests guest-message
+        // l'utilisent). Re-stubbable a Optional.empty() pour le cas "non configure".
+        whatsAppConfig = new WhatsAppConfig();
+        whatsAppConfig.setEnabled(true);
+        org.mockito.Mockito.lenient().when(whatsAppConfigRepository.findByOrganizationId(10L))
+            .thenReturn(Optional.of(whatsAppConfig));
+        org.mockito.Mockito.lenient().when(whatsAppProviderResolver.resolve(any()))
+            .thenReturn(whatsAppProvider);
 
         // Stub default : retourne un template systeme minimal avec le subject+body
         // necessaires pour interpoler. Tests sont lenient car certains n'appellent
@@ -244,7 +250,7 @@ class NoiseAlertNotificationServiceTest {
 
         service.dispatch(alert, config);
 
-        verify(twilioApiService).sendWhatsApp(eq("+33612345678"), anyString());
+        verify(whatsAppProvider).sendTextMessage(any(WhatsAppConfig.class), eq("+33612345678"), anyString());
         assertTrue(alert.isNotifiedWhatsapp());
     }
 
@@ -266,17 +272,17 @@ class NoiseAlertNotificationServiceTest {
 
         service.dispatch(alert, config);
 
-        verify(twilioApiService, never()).sendWhatsApp(anyString(), anyString());
+        verify(whatsAppProvider, never()).sendTextMessage(any(), anyString(), anyString());
     }
 
     @Test
-    void whenTwilioUnavailable_thenWhatsAppSkippedGracefully() {
-        // Twilio non configure : le bean conditionnel est absent (provider vide).
+    void whenWhatsAppNotConfigured_thenSkippedGracefully() {
+        // Aucune config WhatsApp pour l'org : l'envoi est ignore sans bloquer.
         config.setNotifyInApp(false);
         config.setNotifyEmail(false);
         config.setNotifyGuestMessage(true);
         when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
-        when(twilioProvider.getIfAvailable()).thenReturn(null);
+        when(whatsAppConfigRepository.findByOrganizationId(10L)).thenReturn(Optional.empty());
 
         Guest guest = new Guest();
         guest.setFirstName("Marie");
@@ -292,7 +298,7 @@ class NoiseAlertNotificationServiceTest {
         // Ne doit pas lever : WhatsApp est simplement ignore.
         service.dispatch(alert, config);
 
-        verify(twilioApiService, never()).sendWhatsApp(anyString(), anyString());
+        verify(whatsAppProvider, never()).sendTextMessage(any(), anyString(), anyString());
         assertFalse(alert.isNotifiedWhatsapp());
     }
 }
