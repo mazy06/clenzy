@@ -66,6 +66,7 @@ import {
   KeyExchangeManagementScreen,
 } from './connected-objects/screens/IotManagementScreens';
 import CamerasScreen from './connected-objects/cameras/CamerasScreen';
+import ThermostatsScreen from './connected-objects/thermostats/ThermostatsScreen';
 import TemplateDetails from './documents/TemplateDetails';
 
 // Notifications
@@ -167,10 +168,15 @@ const AuthenticatedApp: React.FC = () => {
             <KeyExchangeManagementScreen />
           </ErrorBoundary>
         } />
-        {/* Aperçu caméras (Phase 2, UI-first — données simulées) */}
+        {/* Aperçus Phase 2 (UI-first — données simulées) */}
         <Route path="/connected-objects/cameras" element={
           <ErrorBoundary>
             <CamerasScreen />
+          </ErrorBoundary>
+        } />
+        <Route path="/connected-objects/thermostats" element={
+          <ErrorBoundary>
+            <ThermostatsScreen />
           </ErrorBoundary>
         } />
 
