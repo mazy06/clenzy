@@ -59,6 +59,7 @@ import ContactCreatePage from './contact/ContactCreatePage';
 // Documents
 import DocumentsPage from './documents/DocumentsPage';
 import ConnectedObjectsHub from './connected-objects/ConnectedObjectsHub';
+import PropertyDevicesView from './connected-objects/PropertyDevicesView';
 import TemplateDetails from './documents/TemplateDetails';
 
 // Notifications
@@ -137,6 +138,11 @@ const AuthenticatedApp: React.FC = () => {
         <Route path="/connected-objects" element={
           <ErrorBoundary>
             <ConnectedObjectsHub />
+          </ErrorBoundary>
+        } />
+        <Route path="/connected-objects/property/:id" element={
+          <ErrorBoundary>
+            <PropertyDevicesView />
           </ErrorBoundary>
         } />
 
