@@ -150,19 +150,48 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
                     seed.type(), active.getCreatedBy());
             return;
         }
-        String current = sha256(active.getFileContent());
-        String fresh = sha256(freshContent);
-        if (fresh.equals(current)) {
-            log.debug("Template {} (seed) deja a jour (checksum identique).", seed.type());
+        boolean contentChanged = !sha256(freshContent).equals(sha256(active.getFileContent()));
+        // Les tags DOIVENT refleter le contenu : le seed initial (changeset 0163) a
+        // insere des tags incomplets pour certains types (ex: intervention.lignes
+        // manquant) -> l'apercu plante sur [#list <undefined>]. On re-parse donc des
+        // que les tags divergent du parse du contenu, meme si le rendu est inchange
+        // (auto-reparation des templates seedes avant ce correctif).
+        List<DocumentTemplateTag> freshTags = templateParserService.parseTemplate(freshContent);
+        boolean tagsStale = tagsOutOfSync(active.getTags(), freshTags);
+        if (!contentChanged && !tagsStale) {
+            log.debug("Template {} (seed) deja a jour (checksum + tags identiques).", seed.type());
             return;
         }
-        active.setFileContent(freshContent);
-        active.setOriginalFilename(seed.originalFilename());
-        Integer v = active.getVersion();
-        active.setVersion(v == null ? 2 : v + 1);
+        if (contentChanged) {
+            active.setFileContent(freshContent);
+            active.setOriginalFilename(seed.originalFilename());
+            Integer v = active.getVersion();
+            active.setVersion(v == null ? 2 : v + 1);
+        }
+        // Remplace les tags : delete-then-insert (flush intermediaire) pour respecter
+        // la contrainte unique uq_template_tag(template_id, tag_name).
+        active.getTags().clear();
+        templateRepository.saveAndFlush(active);
+        freshTags.forEach(tag -> tag.setTemplate(active));
+        active.getTags().addAll(freshTags);
         templateRepository.save(active);
-        log.info("Template {} (seed) mis a jour vers le nouveau rendu (checksum {} -> {}, version {}).",
-                seed.type(), shortHash(current), shortHash(fresh), active.getVersion());
+        log.info("Template {} (seed) re-synchronise (contenu modifie={}, tags re-parses={}, {} tags, version {}).",
+                seed.type(), contentChanged, tagsStale, freshTags.size(), active.getVersion());
+    }
+
+    /** Les noms de tags en base correspondent-ils au parse du contenu courant ? */
+    private boolean tagsOutOfSync(List<DocumentTemplateTag> current, List<DocumentTemplateTag> fresh) {
+        java.util.Set<String> currentNames = new java.util.HashSet<>();
+        if (current != null) {
+            for (DocumentTemplateTag t : current) {
+                currentNames.add(t.getTagName());
+            }
+        }
+        java.util.Set<String> freshNames = new java.util.HashSet<>();
+        for (DocumentTemplateTag t : fresh) {
+            freshNames.add(t.getTagName());
+        }
+        return !currentNames.equals(freshNames);
     }
 
     private DocumentTemplate persistTemplate(TemplateSeed seed, Long organizationId, byte[] content) {
@@ -201,10 +230,6 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
         } catch (java.security.NoSuchAlgorithmException e) {
             return Integer.toHexString(java.util.Arrays.hashCode(data));
         }
-    }
-
-    private static String shortHash(String hash) {
-        return hash.length() >= 8 ? hash.substring(0, 8) : hash;
     }
 
     private byte[] loadOdtBytes(String resourcePath) {
