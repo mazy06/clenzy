@@ -1686,3 +1686,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Phase 2 : table cameras (supervision video via passerelle media go2rtc).
+  - changeSet:
+      id: "0174-create-cameras"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0174__create_cameras.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

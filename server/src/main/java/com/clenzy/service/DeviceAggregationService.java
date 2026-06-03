@@ -1,5 +1,6 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.camera.CameraDto;
 import com.clenzy.dto.device.DeviceSummaryDto;
 import com.clenzy.dto.device.ProviderStatusDto;
 import com.clenzy.dto.keyexchange.KeyExchangePointDto;
@@ -33,6 +34,7 @@ public class DeviceAggregationService {
     private final SmartLockService smartLockService;
     private final NoiseDeviceService noiseDeviceService;
     private final KeyExchangeService keyExchangeService;
+    private final CameraService cameraService;
     private final MinutConnectionRepository minutConnectionRepository;
     private final TuyaConnectionRepository tuyaConnectionRepository;
     private final NukiConnectionRepository nukiConnectionRepository;
@@ -41,6 +43,7 @@ public class DeviceAggregationService {
     public DeviceAggregationService(SmartLockService smartLockService,
                                     NoiseDeviceService noiseDeviceService,
                                     KeyExchangeService keyExchangeService,
+                                    CameraService cameraService,
                                     MinutConnectionRepository minutConnectionRepository,
                                     TuyaConnectionRepository tuyaConnectionRepository,
                                     NukiConnectionRepository nukiConnectionRepository,
@@ -48,6 +51,7 @@ public class DeviceAggregationService {
         this.smartLockService = smartLockService;
         this.noiseDeviceService = noiseDeviceService;
         this.keyExchangeService = keyExchangeService;
+        this.cameraService = cameraService;
         this.minutConnectionRepository = minutConnectionRepository;
         this.tuyaConnectionRepository = tuyaConnectionRepository;
         this.nukiConnectionRepository = nukiConnectionRepository;
@@ -72,6 +76,11 @@ public class DeviceAggregationService {
             devices.add(new DeviceSummaryDto(
                     "keybox", d.getId(), d.getStoreName(), d.getPropertyId(), d.getPropertyName(), null,
                     orUnknown(d.getProvider()), d.getStatus(), null, null, (int) d.getActiveCodesCount(), d.getCreatedAt()));
+        }
+        for (CameraDto c : cameraService.getUserCameras(userId)) {
+            devices.add(new DeviceSummaryDto(
+                    "camera", c.id(), c.name(), c.propertyId(), c.propertyName(), c.roomName(),
+                    orUnknown(c.brand()), c.status(), null, null, null, c.createdAt()));
         }
         return devices;
     }

@@ -38,6 +38,7 @@ class DeviceAggregationServiceTest {
     @Mock private SmartLockService smartLockService;
     @Mock private NoiseDeviceService noiseDeviceService;
     @Mock private KeyExchangeService keyExchangeService;
+    @Mock private CameraService cameraService;
     @Mock private MinutConnectionRepository minutConnectionRepository;
     @Mock private TuyaConnectionRepository tuyaConnectionRepository;
     @Mock private NukiConnectionRepository nukiConnectionRepository;
@@ -48,7 +49,7 @@ class DeviceAggregationServiceTest {
     @BeforeEach
     void setUp() {
         service = new DeviceAggregationService(smartLockService, noiseDeviceService, keyExchangeService,
-                minutConnectionRepository, tuyaConnectionRepository, nukiConnectionRepository, tenantContext);
+                cameraService, minutConnectionRepository, tuyaConnectionRepository, nukiConnectionRepository, tenantContext);
     }
 
     private SmartLockDeviceDto lock() {
@@ -92,6 +93,7 @@ class DeviceAggregationServiceTest {
         when(smartLockService.getUserDevices(USER)).thenReturn(List.of(lock()));
         when(noiseDeviceService.getUserDevices(USER)).thenReturn(List.of(noise()));
         when(keyExchangeService.getPoints(USER)).thenReturn(List.of(keybox()));
+        when(cameraService.getUserCameras(USER)).thenReturn(List.of());
     }
 
     @Test
@@ -123,6 +125,7 @@ class DeviceAggregationServiceTest {
         when(smartLockService.getUserDevices(USER)).thenReturn(List.of(noBrand));
         when(noiseDeviceService.getUserDevices(USER)).thenReturn(List.of());
         when(keyExchangeService.getPoints(USER)).thenReturn(List.of());
+        when(cameraService.getUserCameras(USER)).thenReturn(List.of());
 
         assertThat(service.getDevices(USER)).singleElement()
                 .extracting(DeviceSummaryDto::provider).isEqualTo("UNKNOWN");
@@ -163,6 +166,7 @@ class DeviceAggregationServiceTest {
         when(smartLockService.getUserDevices(USER)).thenReturn(List.of());
         when(noiseDeviceService.getUserDevices(USER)).thenReturn(List.of());
         when(keyExchangeService.getPoints(USER)).thenReturn(List.of());
+        when(cameraService.getUserCameras(USER)).thenReturn(List.of());
         when(minutConnectionRepository.findByUserId(USER)).thenReturn(Optional.empty());
         when(tuyaConnectionRepository.findByUserId(USER)).thenReturn(Optional.empty());
         lenient().when(tenantContext.getOrganizationId()).thenReturn(99L);
