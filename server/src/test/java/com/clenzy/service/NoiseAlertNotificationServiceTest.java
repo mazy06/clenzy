@@ -213,4 +213,50 @@ class NoiseAlertNotificationServiceTest {
         verifyNoInteractions(notificationService);
         assertFalse(alert.isNotifiedInApp());
     }
+
+    @Test
+    void whenGuestMessageEnabled_andGuestHasPhone_thenSendsWhatsApp() {
+        config.setNotifyInApp(false);
+        config.setNotifyEmail(false);
+        config.setNotifyGuestMessage(true);
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+
+        Guest guest = new Guest();
+        guest.setFirstName("Marie");
+        guest.setLastName("Martin");
+        guest.setPhone("+33612345678");
+
+        Reservation reservation = new Reservation();
+        reservation.setId(50L);
+        reservation.setGuest(guest);
+
+        when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
+            .thenReturn(Optional.of(reservation));
+
+        service.dispatch(alert, config);
+
+        verify(twilioApiService).sendWhatsApp(eq("+33612345678"), anyString());
+        assertTrue(alert.isNotifiedWhatsapp());
+    }
+
+    @Test
+    void whenGuestHasNoPhone_thenNoWhatsApp() {
+        config.setNotifyInApp(false);
+        config.setNotifyEmail(false);
+        config.setNotifyGuestMessage(true);
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+
+        Guest guest = new Guest();
+        guest.setFirstName("Marie");
+
+        Reservation reservation = new Reservation();
+        reservation.setGuest(guest);
+
+        when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
+            .thenReturn(Optional.of(reservation));
+
+        service.dispatch(alert, config);
+
+        verify(twilioApiService, never()).sendWhatsApp(anyString(), anyString());
+    }
 }
