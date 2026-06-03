@@ -9,6 +9,8 @@ import { propertiesApi, type Property } from '../../../services/api/propertiesAp
 import { smartLockApi, type SmartLockBrand } from '../../../services/api/smartLockApi';
 import { noiseDevicesApi } from '../../../services/api/noiseApi';
 import { keyExchangeApi } from '../../../services/api/keyExchangeApi';
+import { camerasApi } from '../../../services/api/camerasApi';
+import { thermostatsApi } from '../../../services/api/thermostatsApi';
 import { DEVICE_KINDS } from '../deviceRegistry';
 import type { DeviceKind } from '../types';
 
@@ -18,10 +20,12 @@ interface AddDeviceWizardProps {
   onAdded: () => void;
   /** Pré-sélectionne un logement (ajout depuis la vue d'un logement). */
   defaultPropertyId?: number | null;
+  /** Pré-sélectionne un type (ajout depuis un écran dédié) et saute l'étape 1. */
+  defaultKind?: DeviceKind;
 }
 
 /** Types ajoutables + providers proposés (un seul flux pour tous). */
-const ADDABLE: DeviceKind[] = ['lock', 'noise', 'keybox'];
+const ADDABLE: DeviceKind[] = ['lock', 'noise', 'keybox', 'camera', 'thermostat'];
 
 const PROVIDERS: Record<DeviceKind, { value: string; label: string }[]> = {
   lock: [
@@ -30,19 +34,23 @@ const PROVIDERS: Record<DeviceKind, { value: string; label: string }[]> = {
   ],
   noise: [{ value: 'MINUT', label: 'Minut' }, { value: 'TUYA', label: 'Tuya' }],
   keybox: [{ value: 'CLENZY_KEYVAULT', label: 'Baitly KeyVault' }, { value: 'KEYNEST', label: 'KeyNest' }],
-  camera: [],
-  thermostat: [],
+  camera: [
+    { value: 'GENERIC', label: 'Caméra IP (RTSP)' }, { value: 'REOLINK', label: 'Reolink' },
+    { value: 'TAPO', label: 'Tapo' }, { value: 'HIKVISION', label: 'Hikvision' }, { value: 'DAHUA', label: 'Dahua' },
+  ],
+  thermostat: [{ value: 'TUYA', label: 'Tuya' }],
 };
 
-export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropertyId }: AddDeviceWizardProps) {
+export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropertyId, defaultKind }: AddDeviceWizardProps) {
   const theme = useTheme();
-  const [step, setStep] = useState(0);
-  const [kind, setKind] = useState<DeviceKind | null>(null);
+  const [step, setStep] = useState(defaultKind ? 1 : 0);
+  const [kind, setKind] = useState<DeviceKind | null>(defaultKind ?? null);
   const [provider, setProvider] = useState('');
   const [propertyId, setPropertyId] = useState<number | ''>(defaultPropertyId ?? '');
   const [name, setName] = useState('');
   const [roomName, setRoomName] = useState('');
   const [externalDeviceId, setExternalDeviceId] = useState('');
+  const [rtspUrl, setRtspUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,12 +61,13 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
   });
 
   const reset = () => {
-    setStep(0); setKind(null); setProvider(''); setPropertyId(defaultPropertyId ?? '');
-    setName(''); setRoomName(''); setExternalDeviceId(''); setError(null); setSubmitting(false);
+    setStep(defaultKind ? 1 : 0); setKind(defaultKind ?? null); setProvider(''); setPropertyId(defaultPropertyId ?? '');
+    setName(''); setRoomName(''); setExternalDeviceId(''); setRtspUrl(''); setError(null); setSubmitting(false);
   };
   const handleClose = () => { reset(); onClose(); };
 
-  const canNext = (step === 0 && kind) || (step === 1 && provider) || (step === 2 && propertyId && name.trim());
+  const canNext = (step === 0 && kind) || (step === 1 && provider)
+    || (step === 2 && propertyId && name.trim() && (kind !== 'camera' || rtspUrl.trim()));
 
   const submit = async () => {
     if (!kind || !provider || !propertyId || !name.trim()) return;
@@ -70,6 +79,10 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
         await noiseDevicesApi.create({ deviceType: provider, name: name.trim(), propertyId, roomName: roomName || undefined, externalDeviceId: externalDeviceId || undefined });
       } else if (kind === 'keybox') {
         await keyExchangeApi.createPoint({ propertyId, provider: provider as 'KEYNEST' | 'CLENZY_KEYVAULT', storeName: name.trim(), guardianType: 'INDIVIDUAL' });
+      } else if (kind === 'camera') {
+        await camerasApi.create({ name: name.trim(), propertyId, roomName: roomName || undefined, brand: provider, rtspUrl: rtspUrl.trim() });
+      } else if (kind === 'thermostat') {
+        await thermostatsApi.create({ name: name.trim(), propertyId, roomName: roomName || undefined, brand: provider, externalDeviceId: externalDeviceId || undefined });
       }
       onAdded();
       handleClose();
@@ -141,10 +154,22 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             </TextField>
             <TextField fullWidth size="small" label={kind === 'keybox' ? 'Nom du point' : "Nom de l'objet"} value={name} onChange={(e) => setName(e.target.value)} />
             {kind !== 'keybox' && (
-              <>
-                <TextField fullWidth size="small" label="Pièce (optionnel)" value={roomName} onChange={(e) => setRoomName(e.target.value)} />
-                <TextField fullWidth size="small" label="Identifiant externe (optionnel)" helperText="ID du device chez le fournisseur" value={externalDeviceId} onChange={(e) => setExternalDeviceId(e.target.value)} />
-              </>
+              <TextField fullWidth size="small" label="Pièce (optionnel)" value={roomName} onChange={(e) => setRoomName(e.target.value)} />
+            )}
+            {kind === 'camera' && (
+              <TextField
+                fullWidth size="small" required label="URL RTSP"
+                placeholder="rtsp://user:pass@192.168.1.50:554/stream"
+                helperText="Flux RTSP de la caméra — chiffré côté serveur, jamais ré-exposé."
+                value={rtspUrl} onChange={(e) => setRtspUrl(e.target.value)}
+              />
+            )}
+            {(kind === 'lock' || kind === 'noise' || kind === 'thermostat') && (
+              <TextField
+                fullWidth size="small" label="Identifiant externe (optionnel)"
+                helperText={kind === 'thermostat' ? 'ID du device Tuya' : 'ID du device chez le fournisseur'}
+                value={externalDeviceId} onChange={(e) => setExternalDeviceId(e.target.value)}
+              />
             )}
             {error && <Alert severity="error">{error}</Alert>}
           </Box>

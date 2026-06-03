@@ -56,6 +56,8 @@ export default function ConnectedObjectsHub() {
     noise: '/connected-objects/noise',
     lock: '/connected-objects/locks',
     keybox: '/connected-objects/keys',
+    camera: '/connected-objects/cameras',
+    thermostat: '/connected-objects/thermostats',
   };
 
   const handleAction = (uid: string, action: DeviceAction) => {

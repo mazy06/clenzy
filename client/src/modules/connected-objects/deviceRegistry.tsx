@@ -52,7 +52,7 @@ export const DEVICE_KINDS: Record<DeviceKind, DeviceKindMeta> = {
     label: 'Caméras',
     singular: 'Caméra',
     color: '#C97A7A', // argile Baitly
-    available: false, // Phase 2 (streaming greenfield)
+    available: true, // CRUD dispo ; flux live via go2rtc (a venir)
     icon: (s = 16) => <PhotoCamera size={s} strokeWidth={1.75} />,
   },
   thermostat: {
@@ -60,7 +60,7 @@ export const DEVICE_KINDS: Record<DeviceKind, DeviceKindMeta> = {
     label: 'Thermostats',
     singular: 'Thermostat',
     color: '#6B8A9A', // primary Baitly
-    available: false, // Phase 2
+    available: true, // CRUD + pilotage Tuya
     icon: (s = 16) => <Thermostat size={s} strokeWidth={1.75} />,
   },
 };
