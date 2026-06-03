@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Skeleton, Paper, Chip, Tooltip, alpha, useTheme } from '@mui/material';
-import { Boxes, Plus, Activity, WifiOff, BatteryWarning, AlertTriangle, Home, ChevronRight } from '../../icons';
+import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
 import EmptyState from '../../components/EmptyState';
@@ -53,11 +53,11 @@ export default function ConnectedObjectsHub() {
       <PageHeader
         title="Objets connectés"
         subtitle="Supervisez et pilotez vos serrures, capteurs et clés, logement par logement."
-        iconBadge={<Boxes />}
+        iconBadge={<Inventory2 />}
         backPath="/dashboard"
         backLabel="Tableau de bord"
         actions={
-          <Button variant="contained" size="small" startIcon={<Plus size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
+          <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
             Ajouter un objet
           </Button>
         }
@@ -87,11 +87,11 @@ export default function ConnectedObjectsHub() {
 
       {/* KPIs */}
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1, mb: 1.5 }}>
-        <StatTile icon={<Boxes />} label="Objets" value={kpis.total} color="#6B8A9A" loading={loading} />
-        <StatTile icon={<Activity />} label="En ligne" value={kpis.online} color="#4A9B8E" loading={loading} hint={kpis.total ? `${Math.round((kpis.online / kpis.total) * 100)}%` : undefined} />
+        <StatTile icon={<Inventory2 />} label="Objets" value={kpis.total} color="#6B8A9A" loading={loading} />
+        <StatTile icon={<MonitorHeart />} label="En ligne" value={kpis.online} color="#4A9B8E" loading={loading} hint={kpis.total ? `${Math.round((kpis.online / kpis.total) * 100)}%` : undefined} />
         <StatTile icon={<WifiOff />} label="Hors ligne" value={kpis.offline} color="#9CA3AF" loading={loading} />
-        <StatTile icon={<AlertTriangle />} label="Alertes" value={kpis.alerts} color="#C97A7A" loading={loading} />
-        <StatTile icon={<BatteryWarning />} label="Batterie faible" value={kpis.lowBattery} color="#D4A574" loading={loading} />
+        <StatTile icon={<Warning />} label="Alertes" value={kpis.alerts} color="#C97A7A" loading={loading} />
+        <StatTile icon={<BatteryAlert />} label="Batterie faible" value={kpis.lowBattery} color="#D4A574" loading={loading} />
       </Box>
 
       {/* Filtre par type */}
@@ -122,10 +122,10 @@ export default function ConnectedObjectsHub() {
         </Box>
       ) : filteredGroups.length === 0 ? (
         <EmptyState
-          icon={<Boxes />}
+          icon={<Inventory2 />}
           title="Aucun objet connecté pour l'instant"
           description="Reliez un service (Nuki, Minut, Tuya, KeyNest…) puis ajoutez vos serrures, capteurs et points de remise — ils apparaîtront ici, regroupés par logement."
-          action={<Button variant="outlined" startIcon={<Plus size={16} strokeWidth={2} />} onClick={() => navigate('/settings')}>Connecter un service</Button>}
+          action={<Button variant="outlined" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => navigate('/settings')}>Connecter un service</Button>}
           tip="Un seul écran pour tout superviser : verrouillage à distance, niveau sonore, batteries et codes de clés."
         />
       ) : (

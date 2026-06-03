@@ -29,7 +29,7 @@ import {
   Contacts,
   Public,
   StorefrontOutlined,
-  Boxes,
+  Inventory2,
 } from '../icons';
 import BaitlyMarkLogo from '../components/BaitlyMarkLogo';
 
@@ -106,7 +106,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     group: 'main',
   },
   {
-    icon: <Boxes />,
+    icon: <Inventory2 />,
     path: '/connected-objects',
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
     permission: 'properties:view',

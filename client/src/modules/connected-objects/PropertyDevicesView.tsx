@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Skeleton } from '@mui/material';
-import { Boxes, Plus, Activity, WifiOff, BatteryWarning, LayoutGrid } from '../../icons';
+import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, GridView } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
 import EmptyState from '../../components/EmptyState';
@@ -49,21 +49,21 @@ export default function PropertyDevicesView() {
       <PageHeader
         title={propertyName}
         subtitle="Objets connectés de ce logement"
-        iconBadge={<Boxes />}
+        iconBadge={<Inventory2 />}
         backPath="/connected-objects"
         backLabel="Objets connectés"
         actions={
-          <Button variant="contained" size="small" startIcon={<Plus size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
+          <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
             Ajouter un objet
           </Button>
         }
       />
 
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1, mb: 1.5 }}>
-        <StatTile icon={<Boxes />} label="Objets" value={kpis.total} color="#6B8A9A" loading={loading} />
-        <StatTile icon={<Activity />} label="En ligne" value={kpis.online} color="#4A9B8E" loading={loading} />
+        <StatTile icon={<Inventory2 />} label="Objets" value={kpis.total} color="#6B8A9A" loading={loading} />
+        <StatTile icon={<MonitorHeart />} label="En ligne" value={kpis.online} color="#4A9B8E" loading={loading} />
         <StatTile icon={<WifiOff />} label="Hors ligne" value={kpis.offline} color="#9CA3AF" loading={loading} />
-        <StatTile icon={<BatteryWarning />} label="Batterie faible" value={kpis.lowBattery} color="#D4A574" loading={loading} />
+        <StatTile icon={<BatteryAlert />} label="Batterie faible" value={kpis.lowBattery} color="#D4A574" loading={loading} />
       </Box>
 
       {loading ? (
@@ -72,17 +72,17 @@ export default function PropertyDevicesView() {
         </Box>
       ) : propertyDevices.length === 0 ? (
         <EmptyState
-          icon={<Boxes />}
+          icon={<Inventory2 />}
           title="Aucun objet dans ce logement"
           description="Ajoutez une serrure, un capteur sonore ou un point de remise des clés pour ce logement."
-          action={<Button variant="outlined" startIcon={<Plus size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>Ajouter un objet</Button>}
+          action={<Button variant="outlined" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>Ajouter un objet</Button>}
         />
       ) : (
         rooms.map(([room, list]) => (
           <Box key={room} sx={{ mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.875 }}>
               <Box component="span" sx={{ color: 'text.secondary', display: 'inline-flex' }}>
-                <LayoutGrid size={15} strokeWidth={1.75} />
+                <GridView size={15} strokeWidth={1.75} />
               </Box>
               <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary' }}>
                 {room === '__none__' ? 'Sans pièce attribuée' : room}

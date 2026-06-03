@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, Volume2, Key, Camera, Thermometer } from '../../icons';
+import { Lock, VolumeUp, VpnKey, PhotoCamera, Thermostat } from '../../icons';
 import type { DeviceKind, DeviceStatusLevel } from './types';
 
 /**
@@ -37,7 +37,7 @@ export const DEVICE_KINDS: Record<DeviceKind, DeviceKindMeta> = {
     singular: 'Capteur de bruit',
     color: '#4A9B8E', // vert Baitly
     available: true,
-    icon: (s = 16) => <Volume2 size={s} strokeWidth={1.75} />,
+    icon: (s = 16) => <VolumeUp size={s} strokeWidth={1.75} />,
   },
   keybox: {
     kind: 'keybox',
@@ -45,7 +45,7 @@ export const DEVICE_KINDS: Record<DeviceKind, DeviceKindMeta> = {
     singular: 'Point de remise',
     color: '#D4A574', // doré Baitly
     available: true,
-    icon: (s = 16) => <Key size={s} strokeWidth={1.75} />,
+    icon: (s = 16) => <VpnKey size={s} strokeWidth={1.75} />,
   },
   camera: {
     kind: 'camera',
@@ -53,7 +53,7 @@ export const DEVICE_KINDS: Record<DeviceKind, DeviceKindMeta> = {
     singular: 'Caméra',
     color: '#C97A7A', // argile Baitly
     available: false, // Phase 2 (streaming greenfield)
-    icon: (s = 16) => <Camera size={s} strokeWidth={1.75} />,
+    icon: (s = 16) => <PhotoCamera size={s} strokeWidth={1.75} />,
   },
   thermostat: {
     kind: 'thermostat',
@@ -61,7 +61,7 @@ export const DEVICE_KINDS: Record<DeviceKind, DeviceKindMeta> = {
     singular: 'Thermostat',
     color: '#6B8A9A', // primary Baitly
     available: false, // Phase 2
-    icon: (s = 16) => <Thermometer size={s} strokeWidth={1.75} />,
+    icon: (s = 16) => <Thermostat size={s} strokeWidth={1.75} />,
   },
 };
 
