@@ -4,6 +4,7 @@ import com.clenzy.dto.camera.CameraDto;
 import com.clenzy.dto.device.DeviceSummaryDto;
 import com.clenzy.dto.device.ProviderStatusDto;
 import com.clenzy.dto.keyexchange.KeyExchangePointDto;
+import com.clenzy.dto.thermostat.ThermostatDto;
 import com.clenzy.dto.noise.NoiseDeviceDto;
 import com.clenzy.dto.smartlock.SmartLockDeviceDto;
 import com.clenzy.integration.minut.model.MinutConnection;
@@ -35,6 +36,7 @@ public class DeviceAggregationService {
     private final NoiseDeviceService noiseDeviceService;
     private final KeyExchangeService keyExchangeService;
     private final CameraService cameraService;
+    private final ThermostatService thermostatService;
     private final MinutConnectionRepository minutConnectionRepository;
     private final TuyaConnectionRepository tuyaConnectionRepository;
     private final NukiConnectionRepository nukiConnectionRepository;
@@ -44,6 +46,7 @@ public class DeviceAggregationService {
                                     NoiseDeviceService noiseDeviceService,
                                     KeyExchangeService keyExchangeService,
                                     CameraService cameraService,
+                                    ThermostatService thermostatService,
                                     MinutConnectionRepository minutConnectionRepository,
                                     TuyaConnectionRepository tuyaConnectionRepository,
                                     NukiConnectionRepository nukiConnectionRepository,
@@ -52,6 +55,7 @@ public class DeviceAggregationService {
         this.noiseDeviceService = noiseDeviceService;
         this.keyExchangeService = keyExchangeService;
         this.cameraService = cameraService;
+        this.thermostatService = thermostatService;
         this.minutConnectionRepository = minutConnectionRepository;
         this.tuyaConnectionRepository = tuyaConnectionRepository;
         this.nukiConnectionRepository = nukiConnectionRepository;
@@ -81,6 +85,11 @@ public class DeviceAggregationService {
             devices.add(new DeviceSummaryDto(
                     "camera", c.id(), c.name(), c.propertyId(), c.propertyName(), c.roomName(),
                     orUnknown(c.brand()), c.status(), null, null, null, c.createdAt()));
+        }
+        for (ThermostatDto th : thermostatService.getUserThermostats(userId)) {
+            devices.add(new DeviceSummaryDto(
+                    "thermostat", th.id(), th.name(), th.propertyId(), th.propertyName(), th.roomName(),
+                    orUnknown(th.brand()), th.status(), null, null, null, th.createdAt()));
         }
         return devices;
     }

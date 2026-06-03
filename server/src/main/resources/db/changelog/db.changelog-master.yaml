@@ -1696,3 +1696,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Phase 2 : table thermostats (confort thermique, provider Tuya).
+  - changeSet:
+      id: "0175-create-thermostats"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0175__create_thermostats.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
