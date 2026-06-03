@@ -58,6 +58,7 @@ import ContactCreatePage from './contact/ContactCreatePage';
 
 // Documents
 import DocumentsPage from './documents/DocumentsPage';
+import ConnectedObjectsHub from './connected-objects/ConnectedObjectsHub';
 import TemplateDetails from './documents/TemplateDetails';
 
 // Notifications
@@ -131,6 +132,13 @@ const AuthenticatedApp: React.FC = () => {
       <Route path="/dashboard" element={
         <Dashboard />
       } />
+
+        {/* Hub des objets connectés (serrures, capteurs, clés — Phase 0) */}
+        <Route path="/connected-objects" element={
+          <ErrorBoundary>
+            <ConnectedObjectsHub />
+          </ErrorBoundary>
+        } />
 
         {/* Assistant conversationnel + redirect pour la typo courante */}
         <Route path="/assistant" element={
