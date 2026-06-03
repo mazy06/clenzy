@@ -187,12 +187,31 @@ export default function ConnectedObjectsHub() {
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             {comingSoon.map((k) => {
               const meta = DEVICE_KINDS[k];
+              const isCameraPreview = k === 'camera';
               return (
-                <Tooltip key={k} title={k === 'camera' ? 'Streaming vidéo en direct — Phase 2' : 'À venir'} arrow>
-                  <Paper variant="outlined" sx={{ px: 1.25, py: 0.875, borderRadius: 1.5, borderStyle: 'dashed', display: 'inline-flex', alignItems: 'center', gap: 0.875, opacity: 0.7 }}>
+                <Tooltip key={k} title={isCameraPreview ? "Aperçu de l'expérience caméras (Phase 2)" : 'À venir'} arrow>
+                  <Paper
+                    variant="outlined"
+                    onClick={isCameraPreview ? () => navigate('/connected-objects/cameras') : undefined}
+                    sx={{
+                      px: 1.25, py: 0.875, borderRadius: 1.5, borderStyle: 'dashed',
+                      display: 'inline-flex', alignItems: 'center', gap: 0.875,
+                      opacity: isCameraPreview ? 1 : 0.7,
+                      cursor: isCameraPreview ? 'pointer' : 'default',
+                      transition: 'border-color 200ms, background-color 200ms',
+                      ...(isCameraPreview && { '&:hover': { borderColor: meta.color, bgcolor: alpha(meta.color, 0.05) } }),
+                    }}
+                  >
                     <Box component="span" sx={{ color: meta.color, display: 'inline-flex' }}>{meta.icon(16)}</Box>
                     <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{meta.label}</Typography>
-                    <Chip size="small" label="Bientôt" sx={{ height: 18, fontSize: '0.65rem' }} />
+                    {isCameraPreview ? (
+                      <>
+                        <Chip size="small" label="Aperçu" sx={{ height: 18, fontSize: '0.65rem', bgcolor: alpha(meta.color, 0.15), color: meta.color, fontWeight: 700 }} />
+                        <Box component="span" sx={{ color: 'text.disabled', display: 'inline-flex' }}><ChevronRight size={14} strokeWidth={1.75} /></Box>
+                      </>
+                    ) : (
+                      <Chip size="small" label="Bientôt" sx={{ height: 18, fontSize: '0.65rem' }} />
+                    )}
                   </Paper>
                 </Tooltip>
               );
