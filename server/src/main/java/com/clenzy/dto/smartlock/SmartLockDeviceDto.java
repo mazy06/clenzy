@@ -10,6 +10,7 @@ public class SmartLockDeviceDto {
     private String propertyName;
     private String roomName;
     private String externalDeviceId;
+    private String brand;
     private String status;
     private String lockState;
     private Integer batteryLevel;
@@ -34,6 +35,9 @@ public class SmartLockDeviceDto {
 
     public String getExternalDeviceId() { return externalDeviceId; }
     public void setExternalDeviceId(String externalDeviceId) { this.externalDeviceId = externalDeviceId; }
+
+    public String getBrand() { return brand; }
+    public void setBrand(String brand) { this.brand = brand; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
