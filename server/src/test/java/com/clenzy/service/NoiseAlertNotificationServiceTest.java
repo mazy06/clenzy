@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -37,6 +38,10 @@ class NoiseAlertNotificationServiceTest {
     // mock car on n'invoque pas interpolateAndTranslate dans NoiseAlert flow.
     private TemplateInterpolationService templateInterpolationService;
 
+    // Provider optionnel pour TwilioApiService (bean conditionnel). Re-stubbable
+    // par test (ex: getIfAvailable() == null quand Twilio n'est pas configure).
+    private ObjectProvider<TwilioApiService> twilioProvider;
+
     @InjectMocks
     private NoiseAlertNotificationService service;
 
@@ -51,10 +56,14 @@ class NoiseAlertNotificationServiceTest {
         // TemplateInterpolationService (pas mockable proprement) en plus des mocks.
         // On contourne @InjectMocks pour ce service.
         templateInterpolationService = new TemplateInterpolationService(org.mockito.Mockito.mock(TranslationService.class));
+        @SuppressWarnings("unchecked")
+        ObjectProvider<TwilioApiService> provider = org.mockito.Mockito.mock(ObjectProvider.class);
+        twilioProvider = provider;
+        org.mockito.Mockito.lenient().when(twilioProvider.getIfAvailable()).thenReturn(twilioApiService);
         service = new NoiseAlertNotificationService(
             notificationService, emailService, propertyRepository, reservationRepository,
             systemEmailTemplateService, templateInterpolationService,
-            new com.clenzy.service.messaging.EmailWrapperService(), twilioApiService);
+            new com.clenzy.service.messaging.EmailWrapperService(), twilioProvider);
 
         // Stub default : retourne un template systeme minimal avec le subject+body
         // necessaires pour interpoler. Tests sont lenient car certains n'appellent
@@ -258,5 +267,32 @@ class NoiseAlertNotificationServiceTest {
         service.dispatch(alert, config);
 
         verify(twilioApiService, never()).sendWhatsApp(anyString(), anyString());
+    }
+
+    @Test
+    void whenTwilioUnavailable_thenWhatsAppSkippedGracefully() {
+        // Twilio non configure : le bean conditionnel est absent (provider vide).
+        config.setNotifyInApp(false);
+        config.setNotifyEmail(false);
+        config.setNotifyGuestMessage(true);
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+        when(twilioProvider.getIfAvailable()).thenReturn(null);
+
+        Guest guest = new Guest();
+        guest.setFirstName("Marie");
+        guest.setPhone("+33612345678");
+
+        Reservation reservation = new Reservation();
+        reservation.setId(50L);
+        reservation.setGuest(guest);
+
+        when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
+            .thenReturn(Optional.of(reservation));
+
+        // Ne doit pas lever : WhatsApp est simplement ignore.
+        service.dispatch(alert, config);
+
+        verify(twilioApiService, never()).sendWhatsApp(anyString(), anyString());
+        assertFalse(alert.isNotifiedWhatsapp());
     }
 }

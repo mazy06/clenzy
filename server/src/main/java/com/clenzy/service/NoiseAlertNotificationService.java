@@ -9,6 +9,7 @@ import com.clenzy.service.messaging.SystemEmailTemplateService;
 import com.clenzy.service.messaging.TemplateInterpolationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -34,7 +35,9 @@ public class NoiseAlertNotificationService {
     private final SystemEmailTemplateService systemEmailTemplateService;
     private final TemplateInterpolationService templateInterpolationService;
     private final EmailWrapperService emailWrapperService;
-    private final TwilioApiService twilioApiService;
+    // Optionnel : le bean TwilioApiService est @ConditionalOnProperty(clenzy.twilio.account-sid).
+    // Sans config Twilio, le bean n'existe pas — on doit quand meme demarrer (WhatsApp ignore).
+    private final ObjectProvider<TwilioApiService> twilioApiServiceProvider;
 
     public NoiseAlertNotificationService(NotificationService notificationService,
                                           EmailService emailService,
@@ -43,8 +46,8 @@ public class NoiseAlertNotificationService {
                                           SystemEmailTemplateService systemEmailTemplateService,
                                           TemplateInterpolationService templateInterpolationService,
                                           EmailWrapperService emailWrapperService,
-                                          TwilioApiService twilioApiService) {
-        this.twilioApiService = twilioApiService;
+                                          ObjectProvider<TwilioApiService> twilioApiServiceProvider) {
+        this.twilioApiServiceProvider = twilioApiServiceProvider;
         this.notificationService = notificationService;
         this.emailService = emailService;
         this.propertyRepository = propertyRepository;
@@ -238,6 +241,13 @@ public class NoiseAlertNotificationService {
     private void dispatchWhatsAppGuest(NoiseAlert alert, NoiseAlertConfig config,
                                        Property property, String propertyName) {
         try {
+            // Twilio est optionnel (config conditionnelle) — sans bean, on ignore WhatsApp.
+            TwilioApiService twilioApiService = twilioApiServiceProvider.getIfAvailable();
+            if (twilioApiService == null) {
+                log.debug("Twilio non configure — WhatsApp ignore pour alerte {}", alert.getId());
+                return;
+            }
+
             Reservation reservation = reservationRepository
                 .findActiveByPropertyIdAndDate(
                     alert.getPropertyId(), LocalDate.now(), alert.getOrganizationId())
