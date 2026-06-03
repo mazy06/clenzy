@@ -67,7 +67,22 @@ export default function PageHeader({
   const handleBack = () => {
     if (onBack) {
       onBack();
-    } else if (backPath) {
+      return;
+    }
+    if (!backPath) {
+      return;
+    }
+    // Retour contextuel : si on vient d'une autre page de l'app, on revient sur
+    // l'entree d'historique precedente (qui porte deja l'onglet actif via ?tab=N
+    // et la position de scroll) plutot que sur un chemin parent fige qui reset
+    // l'onglet. React Router stocke l'index de l'entree courante dans
+    // window.history.state.idx : > 0 => il existe une entree precedente DANS
+    // l'app, donc navigate(-1) est sur. Sinon (acces direct, refresh, nouvel
+    // onglet) on retombe sur le chemin parent.
+    const historyIdx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (historyIdx > 0) {
+      navigate(-1);
+    } else {
       navigate(backPath);
     }
   };
