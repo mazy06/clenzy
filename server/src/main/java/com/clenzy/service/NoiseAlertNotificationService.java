@@ -1,5 +1,6 @@
 package com.clenzy.service;
 
+import com.clenzy.integration.twilio.service.TwilioApiService;
 import com.clenzy.model.*;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
@@ -33,6 +34,7 @@ public class NoiseAlertNotificationService {
     private final SystemEmailTemplateService systemEmailTemplateService;
     private final TemplateInterpolationService templateInterpolationService;
     private final EmailWrapperService emailWrapperService;
+    private final TwilioApiService twilioApiService;
 
     public NoiseAlertNotificationService(NotificationService notificationService,
                                           EmailService emailService,
@@ -40,7 +42,9 @@ public class NoiseAlertNotificationService {
                                           ReservationRepository reservationRepository,
                                           SystemEmailTemplateService systemEmailTemplateService,
                                           TemplateInterpolationService templateInterpolationService,
-                                          EmailWrapperService emailWrapperService) {
+                                          EmailWrapperService emailWrapperService,
+                                          TwilioApiService twilioApiService) {
+        this.twilioApiService = twilioApiService;
         this.notificationService = notificationService;
         this.emailService = emailService;
         this.propertyRepository = propertyRepository;
@@ -67,9 +71,10 @@ public class NoiseAlertNotificationService {
             dispatchEmail(alert, config, property, propertyName);
         }
 
-        // 3. Message au voyageur (si reservation active)
+        // 3. Message au voyageur (si reservation active) — email + WhatsApp.
         if (config.isNotifyGuestMessage()) {
             dispatchGuestMessage(alert, config, property, propertyName);
+            dispatchWhatsAppGuest(alert, config, property, propertyName);
         }
     }
 
@@ -217,6 +222,49 @@ public class NoiseAlertNotificationService {
                 guest.getEmail(), alert.getId(), reservation.getId());
         } catch (Exception e) {
             log.error("Erreur message voyageur pour alerte {}: {}", alert.getId(), e.getMessage());
+        }
+    }
+
+    // ─── Guest WhatsApp ──────────────────────────────────────────────────────
+
+    /**
+     * Envoie une alerte bruit au voyageur via WhatsApp (best-effort).
+     *
+     * NB : hors fenetre de session WhatsApp 24h, Meta exige un template approuve.
+     * On envoie un message transactionnel court ; si le compte WhatsApp n'est pas
+     * configure ou le numero absent, l'envoi est ignore sans bloquer les autres
+     * canaux. Gate sous le meme flag que le message voyageur email.
+     */
+    private void dispatchWhatsAppGuest(NoiseAlert alert, NoiseAlertConfig config,
+                                       Property property, String propertyName) {
+        try {
+            Reservation reservation = reservationRepository
+                .findActiveByPropertyIdAndDate(
+                    alert.getPropertyId(), LocalDate.now(), alert.getOrganizationId())
+                .orElse(null);
+            if (reservation == null) {
+                return;
+            }
+
+            Guest guest = reservation.getGuest();
+            if (guest == null || guest.getPhone() == null || guest.getPhone().isBlank()) {
+                log.debug("Pas de telephone voyageur pour reservation {} — WhatsApp ignore",
+                    reservation.getId());
+                return;
+            }
+
+            String guestName = guest.getFullName() != null ? guest.getFullName() : "Cher voyageur";
+            String body = String.format(
+                "Bonjour %s, un niveau sonore eleve (%.0f dB, seuil %d dB) a ete detecte au logement "
+                + "\"%s\". Merci de veiller a preserver le calme afin de ne pas gener le voisinage.",
+                guestName, alert.getMeasuredDb(), alert.getThresholdDb(), propertyName);
+
+            twilioApiService.sendWhatsApp(guest.getPhone(), body);
+            alert.setNotifiedWhatsapp(true);
+            log.info("WhatsApp voyageur envoye pour alerte {} (reservation {})",
+                alert.getId(), reservation.getId());
+        } catch (Exception e) {
+            log.error("Erreur WhatsApp voyageur pour alerte {}: {}", alert.getId(), e.getMessage());
         }
     }
 
