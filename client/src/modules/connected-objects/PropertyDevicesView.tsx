@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Skeleton } from '@mui/material';
-import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, GridView } from '../../icons';
+import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, GridView, ChevronLeft } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
 import EmptyState from '../../components/EmptyState';
@@ -103,8 +103,8 @@ export default function PropertyDevicesView() {
         defaultPropertyId={propertyId}
       />
       {/* Lien retour secondaire pour les écrans étroits */}
-      <Button variant="text" size="small" onClick={() => navigate('/connected-objects')} sx={{ mt: 1, color: 'text.secondary' }}>
-        ← Tous les objets
+      <Button variant="text" size="small" startIcon={<ChevronLeft size={16} strokeWidth={1.75} />} onClick={() => navigate('/connected-objects')} sx={{ mt: 1, color: 'text.secondary' }}>
+        Tous les objets
       </Button>
     </Box>
   );
