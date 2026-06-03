@@ -42,6 +42,7 @@
     "dashboard": "Dashboard",
     "assistant": "Assistant",
     "properties": "Properties",
+    "connectedObjects": "Connected objects",
     "serviceRequests": "Service Requests",
     "interventions": "Interventions",
     "reservations": "Reservations",

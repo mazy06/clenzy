@@ -42,6 +42,7 @@
     "dashboard": "Tableau de bord",
     "assistant": "Assistant",
     "properties": "Propriétés",
+    "connectedObjects": "Objets connectés",
     "serviceRequests": "Demandes de service",
     "interventions": "Interventions",
     "reservations": "Réservations",
