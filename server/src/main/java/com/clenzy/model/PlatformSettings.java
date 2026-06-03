@@ -26,9 +26,10 @@ public class PlatformSettings {
     @Column(name = "send_prospect_devis_emails", nullable = false)
     private boolean sendProspectDevisEmails = true;
 
-    /** Verser les demandes de devis (landing) dans la waitlist tant que le PMS n'est pas public. */
+    /** Verser les demandes de devis (landing) dans la waitlist. Desactive par defaut :
+     *  seules les inscriptions via le formulaire /bientot-disponible alimentent la waitlist. */
     @Column(name = "add_devis_leads_to_waitlist", nullable = false)
-    private boolean addDevisLeadsToWaitlist = true;
+    private boolean addDevisLeadsToWaitlist = false;
 
     /**
      * Destinataires des notifications internes equipe (lead devis, copie devis,
