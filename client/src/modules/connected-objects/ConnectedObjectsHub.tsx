@@ -9,6 +9,7 @@ import FilterChipRow from '../../components/FilterChipRow';
 import { useConnectedObjects } from './useConnectedObjects';
 import { DEVICE_KINDS, DEVICE_KIND_ORDER } from './deviceRegistry';
 import DeviceCard from './components/DeviceCard';
+import AddDeviceWizard from './components/AddDeviceWizard';
 import type { DeviceAction, DeviceKind } from './types';
 
 const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gap: 1 } as const;
@@ -16,8 +17,9 @@ const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(2
 export default function ConnectedObjectsHub() {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { groups, devices, kpis, loading, act, actingUid } = useConnectedObjects();
+  const { groups, devices, kpis, loading, act, actingUid, refetch } = useConnectedObjects();
   const [kindFilter, setKindFilter] = useState<DeviceKind | ''>('');
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   // Providers réellement présents (pont visuel vers les Settings).
   const providers = useMemo(() => {
@@ -55,8 +57,8 @@ export default function ConnectedObjectsHub() {
         backPath="/dashboard"
         backLabel="Tableau de bord"
         actions={
-          <Button variant="contained" size="small" startIcon={<Plus size={16} strokeWidth={2} />} onClick={() => navigate('/settings')}>
-            Connecter un service
+          <Button variant="contained" size="small" startIcon={<Plus size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
+            Ajouter un objet
           </Button>
         }
       />
@@ -129,12 +131,25 @@ export default function ConnectedObjectsHub() {
       ) : (
         filteredGroups.map((group) => (
           <Box key={group.propertyId ?? 'none'} sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.875 }}>
+            <Box
+              onClick={group.propertyId != null ? () => navigate(`/connected-objects/property/${group.propertyId}`) : undefined}
+              sx={{
+                display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.875,
+                cursor: group.propertyId != null ? 'pointer' : 'default',
+                width: 'fit-content',
+                '&:hover .co-prop-name': { color: group.propertyId != null ? 'primary.main' : 'text.primary' },
+              }}
+            >
               <Box component="span" sx={{ color: 'text.secondary', display: 'inline-flex' }}>
                 <Home size={15} strokeWidth={1.75} />
               </Box>
-              <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary' }}>{group.propertyName}</Typography>
+              <Typography className="co-prop-name" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary', transition: 'color 150ms' }}>{group.propertyName}</Typography>
               <Typography variant="caption" sx={{ color: 'text.disabled' }}>· {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}</Typography>
+              {group.propertyId != null && (
+                <Box component="span" sx={{ color: 'text.disabled', display: 'inline-flex', ml: 0.25 }}>
+                  <ChevronRight size={15} strokeWidth={1.75} />
+                </Box>
+              )}
             </Box>
             <Box sx={GRID}>
               {group.devices.map((d) => (
@@ -167,6 +182,8 @@ export default function ConnectedObjectsHub() {
           </Box>
         </Box>
       )}
+
+      <AddDeviceWizard open={wizardOpen} onClose={() => setWizardOpen(false)} onAdded={() => { void refetch(); }} />
     </Box>
   );
 }
