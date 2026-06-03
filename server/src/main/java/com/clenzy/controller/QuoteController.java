@@ -163,7 +163,8 @@ public class QuoteController {
         //    ultérieur dans le PMS ne renverra pas.
         //    Non-bloquant : la demande reste en BDD/PMS même si l'envoi échoue.
         // 4b. Pré-lancement : verser le lead devis dans la waitlist de lancement
-        //     (toggle plateforme add_devis_leads_to_waitlist, activé par défaut).
+        //     (toggle plateforme add_devis_leads_to_waitlist, DÉSACTIVÉ par défaut —
+        //     seul le formulaire /bientot-disponible alimente la waitlist par défaut).
         //     Best-effort : ne jamais faire échouer la demande de devis. Idempotent par email.
         if (platformSettingsService.isAddDevisLeadsToWaitlist()) {
             try {
