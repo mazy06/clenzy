@@ -25,30 +25,25 @@ import java.io.InputStream;
 import java.util.List;
 
 /**
- * Garantit qu'un template DEVIS actif existe au demarrage de l'application.
+ * Garantit que les templates de documents systeme (DEVIS, FACTURE) actifs
+ * existent et restent a jour au demarrage de l'application.
  *
- * <p><b>Pourquoi ce runner</b> : la prod tourne avec
- * {@code SPRING_LIQUIBASE_ENABLED=false} + {@code ddl-auto=update}. Le schema
- * est cree par Hibernate, mais les <i>seeds de donnees</i> (l'INSERT du
- * template DEVIS du changeset 0163) ne sont jamais joues. Resultat : la
- * generation du devis PDF a la soumission d'une demande publique echoue
- * silencieusement (aucun template actif → {@code Mode A}), donc aucun PDF
- * n'est genere, envoye, ni persiste.</p>
+ * <p><b>Pourquoi ce runner</b> : la generation des PDF (devis a la soumission
+ * d'une demande publique, facture a la cloture d'une intervention) exige un
+ * template actif org-scope (numerotation legale NF). Le flux public n'a pas de
+ * TenantContext : l'org de generation est derivee du template, qui DOIT donc
+ * porter l'org Clenzy (non-null), resolue par nom.</p>
  *
- * <p><b>Org-scoping</b> : le DEVIS exige une numerotation legale NF
- * (org-scopee). Le flow public n'a pas de TenantContext, donc l'org de
- * generation est derivee du template. Le template seede DOIT donc porter
- * l'org Clenzy (non-null), resolue par nom comme dans le changeset 0163.</p>
+ * <p><b>Idempotent + re-seed par checksum</b> : pour chaque template embarque,
+ * s'il n'existe pas d'actif il est seede ; s'il en existe un et qu'il provient
+ * du seed ({@code createdBy = system-seed}), son contenu est mis a jour quand le
+ * .odt embarque change (comparaison SHA-256) — ce qui permet de propager une
+ * refonte du rendu en prod. Un template personnalise par un admin via l'UI
+ * ({@code createdBy != system-seed}) n'est JAMAIS ecrase.</p>
  *
- * <p><b>Idempotent + re-seed par checksum</b> : si aucun template DEVIS actif
- * n'existe, il est seede. S'il en existe un et qu'il provient du seed
- * ({@code createdBy = system-seed}), son contenu est mis a jour quand le .odt
- * embarque change (comparaison SHA-256) — ce qui permet de propager une refonte
- * du rendu en prod (ou Liquibase n'insere jamais le seed). Un template
- * personnalise par un admin n'est JAMAIS ecrase.</p>
- *
- * <p><b>Non bloquant</b> : toute erreur est loggee mais ne fait jamais
- * echouer le demarrage de l'application.</p>
+ * <p><b>Isolation + non bloquant</b> : chaque template est traite dans sa propre
+ * transaction ; une erreur sur l'un est loggee sans bloquer les autres ni le
+ * demarrage de l'application.</p>
  */
 @Component
 @Order(Ordered.LOWEST_PRECEDENCE)
@@ -56,10 +51,17 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultDocumentTemplateSeeder.class);
 
-    private static final String RESOURCE_PATH = "seed/document-templates/devis-clenzy.odt";
-    private static final String TEMPLATE_NAME = "Devis Clenzy";
-    private static final String ORIGINAL_FILENAME = "Devis Clenzy.odt";
     private static final String CREATED_BY = "system-seed";
+
+    /** Un template embarque a seeder puis a maintenir a jour (re-seed par checksum). */
+    private record TemplateSeed(DocumentType type, String resourcePath, String name, String originalFilename) {}
+
+    private static final List<TemplateSeed> SEEDS = List.of(
+            new TemplateSeed(DocumentType.DEVIS, "seed/document-templates/devis-clenzy.odt",
+                    "Devis Clenzy", "Devis Clenzy.odt"),
+            new TemplateSeed(DocumentType.FACTURE, "seed/document-templates/facture-clenzy.odt",
+                    "Facture Clenzy", "Facture Clenzy.odt")
+    );
 
     private final DocumentTemplateRepository templateRepository;
     private final DocumentTemplateTagRepository tagRepository;
@@ -67,7 +69,7 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
     private final TemplateParserService templateParserService;
     private final TransactionTemplate transactionTemplate;
 
-    @Value("${clenzy.seed.devis-template.enabled:true}")
+    @Value("${clenzy.seed.document-templates.enabled:true}")
     private boolean enabled;
 
     @Value("${clenzy.seed.default-org-name:Clenzy}")
@@ -88,66 +90,89 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         if (!enabled) {
-            log.debug("Seed du template DEVIS desactive (clenzy.seed.devis-template.enabled=false).");
+            log.debug("Seed des templates de documents desactive (clenzy.seed.document-templates.enabled=false).");
             return;
         }
-        try {
-            transactionTemplate.executeWithoutResult(status -> seedDevisTemplate());
-        } catch (Exception e) {
-            // Ne JAMAIS bloquer le boot : on log et on poursuit le demarrage.
-            log.error("Echec du seed du template DEVIS (non bloquant) : {}", e.getMessage(), e);
+        for (TemplateSeed seed : SEEDS) {
+            try {
+                transactionTemplate.executeWithoutResult(status -> seedTemplate(seed));
+            } catch (Exception e) {
+                log.error("Echec du seed du template {} (non bloquant) : {}", seed.type(), e.getMessage(), e);
+            }
         }
     }
 
-    private void seedDevisTemplate() {
-        byte[] content = loadOdtBytes();
+    private void seedTemplate(TemplateSeed seed) {
+        byte[] content = loadOdtBytes(seed.resourcePath());
         if (content == null) {
             return;
         }
-        // Un template DEVIS actif existe deja : on tente une mise a jour par
-        // checksum (re-seed du nouveau rendu embarque), sans jamais ecraser un
-        // template personnalise par un admin via l'UI.
-        if (templateRepository.existsByDocumentTypeAndActiveTrue(DocumentType.DEVIS)) {
-            templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.DEVIS)
-                    .ifPresent(active -> maybeUpdateSeededTemplate(active, content));
+        // Un template actif existe deja : on tente une mise a jour par checksum
+        // (re-seed du nouveau rendu embarque), sans jamais ecraser un template
+        // personnalise par un admin via l'UI.
+        if (templateRepository.existsByDocumentTypeAndActiveTrue(seed.type())) {
+            templateRepository.findByDocumentTypeAndActiveTrue(seed.type())
+                    .ifPresent(active -> maybeUpdateSeededTemplate(seed, active, content));
             return;
         }
         Organization org = organizationRepository.findByName(orgName).orElse(null);
         if (org == null) {
-            log.warn("Organisation '{}' introuvable : seed du template DEVIS ignore.", orgName);
+            log.warn("Organisation '{}' introuvable : seed du template {} ignore.", orgName, seed.type());
             return;
         }
-        DocumentTemplate template = persistTemplate(org.getId(), content);
+        DocumentTemplate template = persistTemplate(seed, org.getId(), content);
         persistTags(template, content);
-        log.info("Template DEVIS seede pour l'organisation '{}' (orgId={}, templateId={}, {} tags).",
-                orgName, org.getId(), template.getId(), template.getTags().size());
+        log.info("Template {} seede pour l'organisation '{}' (orgId={}, templateId={}, {} tags).",
+                seed.type(), orgName, org.getId(), template.getId(), template.getTags().size());
     }
 
     /**
-     * Met a jour le contenu du template DEVIS seede si le fichier .odt embarque
-     * a change (comparaison par checksum SHA-256). N'ecrase JAMAIS un template
-     * dont le {@code createdBy} n'est pas {@value #CREATED_BY} (= personnalise par
-     * un admin). Idempotent : ne sauvegarde que si le contenu differe reellement.
+     * Met a jour le contenu d'un template seede si le fichier .odt embarque a
+     * change (comparaison par checksum SHA-256). N'ecrase JAMAIS un template dont
+     * le {@code createdBy} n'est pas {@value #CREATED_BY} (= personnalise par un
+     * admin). Idempotent : ne sauvegarde que si le contenu differe reellement.
      */
-    private void maybeUpdateSeededTemplate(DocumentTemplate active, byte[] freshContent) {
+    private void maybeUpdateSeededTemplate(TemplateSeed seed, DocumentTemplate active, byte[] freshContent) {
         if (!CREATED_BY.equals(active.getCreatedBy())) {
-            log.debug("Template DEVIS actif personnalise (createdBy={}) : mise a jour auto ignoree.",
-                    active.getCreatedBy());
+            log.debug("Template {} actif personnalise (createdBy={}) : mise a jour auto ignoree.",
+                    seed.type(), active.getCreatedBy());
             return;
         }
         String current = sha256(active.getFileContent());
         String fresh = sha256(freshContent);
         if (fresh.equals(current)) {
-            log.debug("Template DEVIS (seed) deja a jour (checksum identique).");
+            log.debug("Template {} (seed) deja a jour (checksum identique).", seed.type());
             return;
         }
         active.setFileContent(freshContent);
-        active.setOriginalFilename(ORIGINAL_FILENAME);
+        active.setOriginalFilename(seed.originalFilename());
         Integer v = active.getVersion();
         active.setVersion(v == null ? 2 : v + 1);
         templateRepository.save(active);
-        log.info("Template DEVIS (seed) mis a jour vers le nouveau rendu (checksum {} -> {}, version {}).",
-                shortHash(current), shortHash(fresh), active.getVersion());
+        log.info("Template {} (seed) mis a jour vers le nouveau rendu (checksum {} -> {}, version {}).",
+                seed.type(), shortHash(current), shortHash(fresh), active.getVersion());
+    }
+
+    private DocumentTemplate persistTemplate(TemplateSeed seed, Long organizationId, byte[] content) {
+        DocumentTemplate template = new DocumentTemplate();
+        template.setOrganizationId(organizationId);
+        template.setName(seed.name());
+        template.setDocumentType(seed.type());
+        template.setFileContent(content);
+        template.setOriginalFilename(seed.originalFilename());
+        template.setVersion(1);
+        template.setActive(true);
+        template.setCreatedBy(CREATED_BY);
+        return templateRepository.save(template);
+    }
+
+    private void persistTags(DocumentTemplate template, byte[] content) {
+        List<DocumentTemplateTag> tags = templateParserService.parseTemplate(content);
+        for (DocumentTemplateTag tag : tags) {
+            tag.setTemplate(template);
+        }
+        tagRepository.saveAll(tags);
+        template.setTags(tags);
     }
 
     private static String sha256(byte[] data) {
@@ -170,38 +195,16 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
         return hash.length() >= 8 ? hash.substring(0, 8) : hash;
     }
 
-    private DocumentTemplate persistTemplate(Long organizationId, byte[] content) {
-        DocumentTemplate template = new DocumentTemplate();
-        template.setOrganizationId(organizationId);
-        template.setName(TEMPLATE_NAME);
-        template.setDocumentType(DocumentType.DEVIS);
-        template.setFileContent(content);
-        template.setOriginalFilename(ORIGINAL_FILENAME);
-        template.setVersion(1);
-        template.setActive(true);
-        template.setCreatedBy(CREATED_BY);
-        return templateRepository.save(template);
-    }
-
-    private void persistTags(DocumentTemplate template, byte[] content) {
-        List<DocumentTemplateTag> tags = templateParserService.parseTemplate(content);
-        for (DocumentTemplateTag tag : tags) {
-            tag.setTemplate(template);
-        }
-        tagRepository.saveAll(tags);
-        template.setTags(tags);
-    }
-
-    private byte[] loadOdtBytes() {
-        ClassPathResource resource = new ClassPathResource(RESOURCE_PATH);
+    private byte[] loadOdtBytes(String resourcePath) {
+        ClassPathResource resource = new ClassPathResource(resourcePath);
         if (!resource.exists()) {
-            log.warn("Ressource template DEVIS introuvable au classpath : {}", RESOURCE_PATH);
+            log.warn("Ressource template introuvable au classpath : {}", resourcePath);
             return null;
         }
         try (InputStream in = resource.getInputStream()) {
             return in.readAllBytes();
         } catch (IOException e) {
-            log.error("Lecture de la ressource {} impossible : {}", RESOURCE_PATH, e.getMessage());
+            log.error("Lecture de la ressource {} impossible : {}", resourcePath, e.getMessage());
             return null;
         }
     }
