@@ -18,6 +18,12 @@ const PROVIDER_LABELS: Record<string, string> = {
   MINUT: 'Minut', TUYA: 'Tuya', NUKI: 'Nuki', KEYNEST: 'KeyNest', CLENZY_KEYVAULT: 'KeyVault',
 };
 
+// Types « à venir » disposant d'un écran d'aperçu (Phase 2, UI-first).
+const PREVIEW_ROUTES: Partial<Record<DeviceKind, string>> = {
+  camera: '/connected-objects/cameras',
+  thermostat: '/connected-objects/thermostats',
+};
+
 export default function ConnectedObjectsHub() {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -187,24 +193,24 @@ export default function ConnectedObjectsHub() {
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             {comingSoon.map((k) => {
               const meta = DEVICE_KINDS[k];
-              const isCameraPreview = k === 'camera';
+              const previewRoute = PREVIEW_ROUTES[k];
               return (
-                <Tooltip key={k} title={isCameraPreview ? "Aperçu de l'expérience caméras (Phase 2)" : 'À venir'} arrow>
+                <Tooltip key={k} title={previewRoute ? `Aperçu — ${meta.label} (Phase 2)` : 'À venir'} arrow>
                   <Paper
                     variant="outlined"
-                    onClick={isCameraPreview ? () => navigate('/connected-objects/cameras') : undefined}
+                    onClick={previewRoute ? () => navigate(previewRoute) : undefined}
                     sx={{
                       px: 1.25, py: 0.875, borderRadius: 1.5, borderStyle: 'dashed',
                       display: 'inline-flex', alignItems: 'center', gap: 0.875,
-                      opacity: isCameraPreview ? 1 : 0.7,
-                      cursor: isCameraPreview ? 'pointer' : 'default',
+                      opacity: previewRoute ? 1 : 0.7,
+                      cursor: previewRoute ? 'pointer' : 'default',
                       transition: 'border-color 200ms, background-color 200ms',
-                      ...(isCameraPreview && { '&:hover': { borderColor: meta.color, bgcolor: alpha(meta.color, 0.05) } }),
+                      ...(previewRoute && { '&:hover': { borderColor: meta.color, bgcolor: alpha(meta.color, 0.05) } }),
                     }}
                   >
                     <Box component="span" sx={{ color: meta.color, display: 'inline-flex' }}>{meta.icon(16)}</Box>
                     <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{meta.label}</Typography>
-                    {isCameraPreview ? (
+                    {previewRoute ? (
                       <>
                         <Chip size="small" label="Aperçu" sx={{ height: 18, fontSize: '0.65rem', bgcolor: alpha(meta.color, 0.15), color: meta.color, fontWeight: 700 }} />
                         <Box component="span" sx={{ color: 'text.disabled', display: 'inline-flex' }}><ChevronRight size={14} strokeWidth={1.75} /></Box>
