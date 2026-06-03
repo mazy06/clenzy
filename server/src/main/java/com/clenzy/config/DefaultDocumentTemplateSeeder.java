@@ -60,7 +60,19 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
             new TemplateSeed(DocumentType.DEVIS, "seed/document-templates/devis-clenzy.odt",
                     "Devis Clenzy", "Devis Clenzy.odt"),
             new TemplateSeed(DocumentType.FACTURE, "seed/document-templates/facture-clenzy.odt",
-                    "Facture Clenzy", "Facture Clenzy.odt")
+                    "Facture Clenzy", "Facture Clenzy.odt"),
+            new TemplateSeed(DocumentType.AUTORISATION_TRAVAUX, "seed/document-templates/autorisation-travaux-clenzy.odt",
+                    "Autorisation Travaux Clenzy", "Autorisation Travaux Clenzy.odt"),
+            new TemplateSeed(DocumentType.BON_INTERVENTION, "seed/document-templates/bon-intervention-clenzy.odt",
+                    "Bon Intervention Clenzy", "Bon Intervention Clenzy.odt"),
+            new TemplateSeed(DocumentType.JUSTIFICATIF_PAIEMENT, "seed/document-templates/justificatif-paiement-clenzy.odt",
+                    "Justificatif Paiement Clenzy", "Justificatif Paiement Clenzy.odt"),
+            new TemplateSeed(DocumentType.JUSTIFICATIF_REMBOURSEMENT, "seed/document-templates/justificatif-remboursement-clenzy.odt",
+                    "Justificatif Remboursement", "Justificatif Remboursement.odt"),
+            new TemplateSeed(DocumentType.MANDAT_GESTION, "seed/document-templates/mandat-gestion-clenzy.odt",
+                    "Mandat Gestion Clenzy", "Mandat Gestion Clenzy.odt"),
+            new TemplateSeed(DocumentType.VALIDATION_FIN_MISSION, "seed/document-templates/validation-fin-mission-clenzy.odt",
+                    "Validation Fin Mission Clenzy", "Validation Fin Mission Clenzy.odt")
     );
 
     private final DocumentTemplateRepository templateRepository;

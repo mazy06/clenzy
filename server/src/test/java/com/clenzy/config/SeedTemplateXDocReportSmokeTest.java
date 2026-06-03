@@ -16,8 +16,8 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Smoke test du rendu reel : les templates embarques (devis, facture) sont
- * valides pour le moteur XDocReport/Freemarker tel qu'utilise en prod
+ * Smoke test du rendu reel : les 8 templates embarques se remplissent via le
+ * moteur XDocReport/Freemarker tel qu'utilise en prod
  * ({@code DocumentGeneratorService.fillTemplate}) — directives equilibrees,
  * expressions resolvables, boucle de lignes fonctionnelle.
  *
@@ -28,16 +28,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Seed document templates — rendu XDocReport")
 class SeedTemplateXDocReportSmokeTest {
 
+    /** Les 7 templates au modele "intervention" (meme jeu de tags que la facture). */
+    private static final List<String> INTERVENTION_TEMPLATES = List.of(
+            "facture-clenzy", "autorisation-travaux-clenzy", "bon-intervention-clenzy",
+            "justificatif-paiement-clenzy", "justificatif-remboursement-clenzy",
+            "mandat-gestion-clenzy", "validation-fin-mission-clenzy");
+
     @Test
-    @DisplayName("facture-clenzy.odt se remplit sans erreur Freemarker")
-    void factureTemplate_fillsWithoutError() throws Exception {
-        assertValidOdt(fill("seed/document-templates/facture-clenzy.odt", factureModel()));
+    @DisplayName("les 7 templates type-intervention se remplissent sans erreur Freemarker")
+    void interventionTemplates_fillWithoutError() throws Exception {
+        for (String slug : INTERVENTION_TEMPLATES) {
+            assertValidOdt(fill("seed/document-templates/" + slug + ".odt", interventionModel()), slug);
+        }
     }
 
     @Test
     @DisplayName("devis-clenzy.odt se remplit sans erreur Freemarker")
     void devisTemplate_fillsWithoutError() throws Exception {
-        assertValidOdt(fill("seed/document-templates/devis-clenzy.odt", devisModel()));
+        assertValidOdt(fill("seed/document-templates/devis-clenzy.odt", devisModel()), "devis-clenzy");
     }
 
     /** Reproduit fidelement DocumentGeneratorService.fillTemplate (moteur Freemarker, put direct). */
@@ -52,13 +60,13 @@ class SeedTemplateXDocReportSmokeTest {
         }
     }
 
-    private static void assertValidOdt(byte[] out) {
-        assertThat(out).isNotEmpty();
+    private static void assertValidOdt(byte[] out, String slug) {
+        assertThat(out).as("template %s produit un document", slug).isNotEmpty();
         // En-tete ZIP "PK" => archive ODT valide produite.
-        assertThat(new String(out, 0, 2)).isEqualTo("PK");
+        assertThat(new String(out, 0, 2)).as("template %s est une archive ODT", slug).isEqualTo("PK");
     }
 
-    private static Map<String, Object> factureModel() {
+    private static Map<String, Object> interventionModel() {
         return Map.of(
             "entreprise", Map.of("nom", "Clenzy", "adresse", "12 rue X, 75001 Paris",
                     "siret", "12345678900012", "email", "info@clenzy.fr", "telephone", "07 49 24 54 66"),
@@ -83,7 +91,7 @@ class SeedTemplateXDocReportSmokeTest {
             "nf", Map.of("conditions_paiement", "Paiement a 30 jours",
                     "legal_mention_1", "TVA non applicable, art. 293 B du CGI",
                     "legal_mention_2", "Penalites de retard : 3x taux legal"),
-            "system", Map.of("numero_auto", "F-2026-001", "date", "03/06/2026"));
+            "system", Map.of("numero_auto", "DOC-2026-001", "date", "03/06/2026"));
     }
 
     private static Map<String, Object> devisModel() {
