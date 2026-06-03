@@ -1,6 +1,6 @@
 import React from 'react';
 import { Paper, Box, Typography, Button, CircularProgress, Tooltip, alpha, useTheme } from '@mui/material';
-import { Wifi, WifiOff, BatteryWarning, ChevronRight, Lock, LockOpen } from '../../../icons';
+import { Wifi, WifiOff, BatteryAlert, ChevronRight, Lock, LockOpen } from '../../../icons';
 import { useIconSize } from '../../../hooks/useResponsiveSize';
 import StatusPill from './StatusPill';
 import { DEVICE_KINDS } from '../deviceRegistry';
@@ -75,7 +75,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'inline-flex', alignItems: 'center', gap: 0.375 }}>
             {device.battery != null && device.battery <= 20 && (
               <Box component="span" sx={{ color: 'warning.main', display: 'inline-flex' }}>
-                <BatteryWarning size={13} strokeWidth={1.75} />
+                <BatteryAlert size={13} strokeWidth={1.75} />
               </Box>
             )}
             <Box component="span" sx={{ fontVariantNumeric: 'tabular-nums' }}>
