@@ -69,6 +69,8 @@ public class CameraService {
         camera.setOrganizationId(tenantContext.getRequiredOrganizationId());
 
         Camera saved = cameraRepository.save(camera);
+        // Enregistre le flux RTSP cote go2rtc (best-effort, ne bloque pas la creation).
+        cameraStreamService.registerStream(saved.getStreamName(), dto.rtspUrl());
         log.info("Camera creee: {} (property={}) pour user={}", saved.getName(), saved.getPropertyId(), userId);
         return toDto(saved);
     }
@@ -77,6 +79,7 @@ public class CameraService {
     public void deleteCamera(String userId, Long cameraId) {
         Camera camera = cameraRepository.findById(cameraId)
                 .orElseThrow(() -> new IllegalArgumentException("Camera introuvable: " + cameraId));
+        cameraStreamService.removeStream(camera.getStreamName());
         cameraRepository.delete(camera);
         log.info("Camera supprimee: {} (id={}) pour user={}", camera.getName(), cameraId, userId);
     }
