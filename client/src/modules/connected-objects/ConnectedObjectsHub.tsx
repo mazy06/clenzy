@@ -43,9 +43,22 @@ export default function ConnectedObjectsHub() {
 
   const comingSoon = DEVICE_KIND_ORDER.filter((k) => !DEVICE_KINDS[k].available);
 
+  // Routes de gestion avancée par type de service (vues riches issues des anciens
+  // onglets dashboard, désormais sous le Hub).
+  const MANAGE_ROUTE_BY_KIND: Partial<Record<DeviceKind, string>> = {
+    noise: '/connected-objects/noise',
+    lock: '/connected-objects/locks',
+    keybox: '/connected-objects/keys',
+  };
+
   const handleAction = (uid: string, action: DeviceAction) => {
-    if (action === 'lock' || action === 'unlock') void act(uid, action);
-    else navigate('/dashboard'); // Phase 0 : gestion fine via l'écran existant (assistant d'ajout unifié = Phase 1)
+    if (action === 'lock' || action === 'unlock') {
+      void act(uid, action);
+      return;
+    }
+    // « Gérer » → écran de gestion avancée du service correspondant.
+    const kind = devices.find((d) => d.uid === uid)?.kind;
+    navigate((kind && MANAGE_ROUTE_BY_KIND[kind]) || '/connected-objects');
   };
 
   return (
