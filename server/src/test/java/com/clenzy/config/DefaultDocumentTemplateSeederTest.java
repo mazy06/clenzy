@@ -125,6 +125,50 @@ class DefaultDocumentTemplateSeederTest {
     }
 
     @Test
+    @DisplayName("run: template seed actif au contenu different -> mis a jour (re-seed par checksum)")
+    void run_seededTemplateChanged_updatesContent() {
+        DocumentTemplate active = new DocumentTemplate();
+        active.setDocumentType(DocumentType.DEVIS);
+        active.setActive(true);
+        active.setCreatedBy("system-seed");
+        active.setFileContent("ancien-contenu-different".getBytes());
+        active.setVersion(1);
+        when(templateRepository.existsByDocumentTypeAndActiveTrue(DocumentType.DEVIS)).thenReturn(true);
+        when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.DEVIS)).thenReturn(Optional.of(active));
+        when(templateRepository.save(any(DocumentTemplate.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        seeder.run(null);
+
+        ArgumentCaptor<DocumentTemplate> captor = ArgumentCaptor.forClass(DocumentTemplate.class);
+        verify(templateRepository).save(captor.capture());
+        DocumentTemplate saved = captor.getValue();
+        // Le contenu a ete remplace par le .odt embarque (non vide, different de l'ancien).
+        assertThat(saved.getFileContent()).isNotEmpty();
+        assertThat(new String(saved.getFileContent())).isNotEqualTo("ancien-contenu-different");
+        assertThat(saved.getVersion()).isEqualTo(2);
+        // Pas de nouvel insert : on a juste mis a jour la ligne existante.
+        verify(organizationRepository, never()).findByName(any());
+        verify(tagRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    @DisplayName("run: template DEVIS personnalise par un admin -> jamais ecrase")
+    void run_customizedTemplate_notOverwritten() {
+        DocumentTemplate active = new DocumentTemplate();
+        active.setDocumentType(DocumentType.DEVIS);
+        active.setActive(true);
+        active.setCreatedBy("admin-user");
+        active.setFileContent("template-personnalise".getBytes());
+        active.setVersion(3);
+        when(templateRepository.existsByDocumentTypeAndActiveTrue(DocumentType.DEVIS)).thenReturn(true);
+        when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.DEVIS)).thenReturn(Optional.of(active));
+
+        seeder.run(null);
+
+        verify(templateRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("run: exception interne -> swallowed, ne bloque pas le boot")
     void run_swallowsException() {
         when(templateRepository.existsByDocumentTypeAndActiveTrue(DocumentType.DEVIS))

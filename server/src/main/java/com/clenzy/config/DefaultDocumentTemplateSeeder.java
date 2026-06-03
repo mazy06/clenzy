@@ -40,8 +40,12 @@ import java.util.List;
  * generation est derivee du template. Le template seede DOIT donc porter
  * l'org Clenzy (non-null), resolue par nom comme dans le changeset 0163.</p>
  *
- * <p><b>Idempotent</b> : ne fait rien si un template DEVIS actif existe deja
- * (toutes orgs confondues — au boot le filtre Hibernate n'est pas actif).</p>
+ * <p><b>Idempotent + re-seed par checksum</b> : si aucun template DEVIS actif
+ * n'existe, il est seede. S'il en existe un et qu'il provient du seed
+ * ({@code createdBy = system-seed}), son contenu est mis a jour quand le .odt
+ * embarque change (comparaison SHA-256) — ce qui permet de propager une refonte
+ * du rendu en prod (ou Liquibase n'insere jamais le seed). Un template
+ * personnalise par un admin n'est JAMAIS ecrase.</p>
  *
  * <p><b>Non bloquant</b> : toute erreur est loggee mais ne fait jamais
  * echouer le demarrage de l'application.</p>
@@ -96,8 +100,16 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
     }
 
     private void seedDevisTemplate() {
+        byte[] content = loadOdtBytes();
+        if (content == null) {
+            return;
+        }
+        // Un template DEVIS actif existe deja : on tente une mise a jour par
+        // checksum (re-seed du nouveau rendu embarque), sans jamais ecraser un
+        // template personnalise par un admin via l'UI.
         if (templateRepository.existsByDocumentTypeAndActiveTrue(DocumentType.DEVIS)) {
-            log.debug("Template DEVIS actif deja present : seed ignore (idempotent).");
+            templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.DEVIS)
+                    .ifPresent(active -> maybeUpdateSeededTemplate(active, content));
             return;
         }
         Organization org = organizationRepository.findByName(orgName).orElse(null);
@@ -105,14 +117,57 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
             log.warn("Organisation '{}' introuvable : seed du template DEVIS ignore.", orgName);
             return;
         }
-        byte[] content = loadOdtBytes();
-        if (content == null) {
-            return;
-        }
         DocumentTemplate template = persistTemplate(org.getId(), content);
         persistTags(template, content);
         log.info("Template DEVIS seede pour l'organisation '{}' (orgId={}, templateId={}, {} tags).",
                 orgName, org.getId(), template.getId(), template.getTags().size());
+    }
+
+    /**
+     * Met a jour le contenu du template DEVIS seede si le fichier .odt embarque
+     * a change (comparaison par checksum SHA-256). N'ecrase JAMAIS un template
+     * dont le {@code createdBy} n'est pas {@value #CREATED_BY} (= personnalise par
+     * un admin). Idempotent : ne sauvegarde que si le contenu differe reellement.
+     */
+    private void maybeUpdateSeededTemplate(DocumentTemplate active, byte[] freshContent) {
+        if (!CREATED_BY.equals(active.getCreatedBy())) {
+            log.debug("Template DEVIS actif personnalise (createdBy={}) : mise a jour auto ignoree.",
+                    active.getCreatedBy());
+            return;
+        }
+        String current = sha256(active.getFileContent());
+        String fresh = sha256(freshContent);
+        if (fresh.equals(current)) {
+            log.debug("Template DEVIS (seed) deja a jour (checksum identique).");
+            return;
+        }
+        active.setFileContent(freshContent);
+        active.setOriginalFilename(ORIGINAL_FILENAME);
+        Integer v = active.getVersion();
+        active.setVersion(v == null ? 2 : v + 1);
+        templateRepository.save(active);
+        log.info("Template DEVIS (seed) mis a jour vers le nouveau rendu (checksum {} -> {}, version {}).",
+                shortHash(current), shortHash(fresh), active.getVersion());
+    }
+
+    private static String sha256(byte[] data) {
+        if (data == null) {
+            return "";
+        }
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(data);
+            StringBuilder sb = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {
+                sb.append(Character.forDigit((b >> 4) & 0xF, 16)).append(Character.forDigit(b & 0xF, 16));
+            }
+            return sb.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            return Integer.toHexString(java.util.Arrays.hashCode(data));
+        }
+    }
+
+    private static String shortHash(String hash) {
+        return hash.length() >= 8 ? hash.substring(0, 8) : hash;
     }
 
     private DocumentTemplate persistTemplate(Long organizationId, byte[] content) {
