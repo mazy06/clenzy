@@ -1675,3 +1675,14 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # --- 0173 : Politique waitlist — les demandes de devis ne sont plus versees ---
+  # par defaut dans la waitlist (seul le formulaire /bientot-disponible compte).
+  - changeSet:
+      id: "0173-default-devis-leads-to-waitlist-false"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0173__default_devis_leads_to_waitlist_false.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
