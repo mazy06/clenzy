@@ -14,19 +14,20 @@ import type { DeviceAction, DeviceKind } from './types';
 
 const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gap: 1 } as const;
 
+const PROVIDER_LABELS: Record<string, string> = {
+  MINUT: 'Minut', TUYA: 'Tuya', NUKI: 'Nuki', KEYNEST: 'KeyNest', CLENZY_KEYVAULT: 'KeyVault',
+};
+
 export default function ConnectedObjectsHub() {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { groups, devices, kpis, loading, act, actingUid, refetch } = useConnectedObjects();
+  const { groups, devices, kpis, providers, loading, act, actingUid, refetch } = useConnectedObjects();
   const [kindFilter, setKindFilter] = useState<DeviceKind | ''>('');
   const [wizardOpen, setWizardOpen] = useState(false);
 
-  // Providers réellement présents (pont visuel vers les Settings).
-  const providers = useMemo(() => {
-    const map = new Map<string, number>();
-    devices.forEach((d) => map.set(d.provider, (map.get(d.provider) ?? 0) + 1));
-    return [...map.entries()].filter(([p]) => p !== 'UNKNOWN');
-  }, [devices]);
+  // Services reliés : statut réel des providers (backend), repli présence sinon.
+  // On masque le bruit (provider ni connecté ni porteur d'objets).
+  const visibleProviders = providers.filter((p) => p.connected || p.deviceCount > 0);
 
   // Types présents → options du filtre.
   const kindsPresent = useMemo(() => {
@@ -81,17 +82,21 @@ export default function ConnectedObjectsHub() {
         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', mr: 0.5 }}>
           Services reliés
         </Typography>
-        {providers.length === 0 && !loading ? (
+        {visibleProviders.length === 0 && !loading ? (
           <Typography variant="caption" sx={{ color: 'text.disabled' }}>Aucun service relié pour l'instant.</Typography>
         ) : (
-          providers.map(([provider, count]) => (
-            <Chip
-              key={provider}
-              size="small"
-              label={`${provider.charAt(0) + provider.slice(1).toLowerCase()} · ${count}`}
-              sx={{ height: 24, bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.dark', fontWeight: 600, border: '1px solid', borderColor: alpha(theme.palette.success.main, 0.25) }}
-            />
-          ))
+          visibleProviders.map((p) => {
+            const c = p.connected ? theme.palette.success.main : theme.palette.warning.main;
+            return (
+              <Tooltip key={p.provider} title={p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'} arrow>
+                <Chip
+                  size="small"
+                  label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`}
+                  sx={{ height: 24, bgcolor: alpha(c, 0.1), color: c, fontWeight: 600, border: '1px solid', borderColor: alpha(c, 0.25) }}
+                />
+              </Tooltip>
+            );
+          })
         )}
         <Button variant="text" size="small" endIcon={<ChevronRight size={14} strokeWidth={1.75} />} onClick={() => navigate('/settings')} sx={{ ml: 'auto', color: 'text.secondary' }}>
           Gérer les intégrations
