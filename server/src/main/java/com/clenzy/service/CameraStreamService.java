@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 /**
- * Passerelle media go2rtc : enregistre/retire les flux RTSP cote go2rtc et
- * construit l'URL de lecture pour le frontend.
+ * Passerelle media go2rtc : enregistre/retire les flux cote go2rtc (RTSP en
+ * passthrough, HTTP/HLS via ffmpeg) et construit l'URL de lecture pour le frontend.
  *
  * Config :
  *   clenzy.go2rtc.api-url     (defaut http://clenzy-go2rtc:1984) — API interne
@@ -46,20 +46,40 @@ public class CameraStreamService {
         return publicBaseUrl + "/stream.html?src=" + streamName;
     }
 
-    /** Enregistre le flux RTSP cote go2rtc (best-effort). */
+    /** Enregistre le flux cote go2rtc (best-effort). RTSP en passthrough, HTTP/HLS via ffmpeg. */
     public void registerStream(String streamName, String rtspUrl) {
         if (streamName == null || streamName.isBlank() || rtspUrl == null || rtspUrl.isBlank()) {
             return;
         }
+        String src = toGo2rtcSource(rtspUrl);
         try {
             restClient.put()
-                    .uri(apiUrl + "/api/streams?name={name}&src={src}", streamName, rtspUrl)
+                    .uri(apiUrl + "/api/streams?name={name}&src={src}", streamName, src)
                     .retrieve()
                     .toBodilessEntity();
-            log.info("Flux go2rtc enregistre: {}", streamName);
+            log.info("Flux go2rtc enregistre: {} ({})", streamName,
+                    src.startsWith("ffmpeg:") ? "transcode HTTP/HLS" : "RTSP passthrough");
         } catch (Exception e) {
             log.warn("go2rtc indisponible — flux {} non enregistre: {}", streamName, e.getMessage());
         }
+    }
+
+    /**
+     * Construit le {@code src} go2rtc selon le scheme de l'URL fournie.
+     * <ul>
+     *   <li>{@code rtsp://} (et autres schemes natifs go2rtc) : passthrough — le H.264
+     *       RTSP passe directement en WebRTC, sans transcodage (cout CPU nul).</li>
+     *   <li>{@code http(s)://} (HLS {@code .m3u8}, MP4, flux HTTP) : go2rtc ne lit pas
+     *       l'URL brute. On passe par ffmpeg avec transcodage {@code video=h264} /
+     *       {@code audio=opus} (codecs natifs WebRTC) pour produire un flux lisible.</li>
+     * </ul>
+     */
+    static String toGo2rtcSource(String url) {
+        String lower = url.toLowerCase();
+        if (lower.startsWith("http://") || lower.startsWith("https://")) {
+            return "ffmpeg:" + url + "#video=h264#audio=opus";
+        }
+        return url;
     }
 
     /** Retire le flux cote go2rtc (best-effort). */
