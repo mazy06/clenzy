@@ -3,6 +3,7 @@ package com.clenzy.integration.tuya.service;
 import com.clenzy.integration.tuya.config.TuyaConfig;
 import com.clenzy.integration.tuya.model.TuyaConnection;
 import com.clenzy.integration.tuya.model.TuyaConnection.TuyaConnectionStatus;
+import com.clenzy.integration.tuya.dto.TuyaDeviceDto;
 import com.clenzy.integration.tuya.repository.TuyaConnectionRepository;
 import com.clenzy.service.TokenEncryptionService;
 import com.clenzy.tenant.TenantContext;
@@ -44,6 +45,7 @@ public class TuyaApiService {
     private final TenantContext tenantContext;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final TuyaDeviceClaimService claimService;
 
     // Token cache en memoire (evite de requeter a chaque appel)
     private String cachedAccessToken;
@@ -54,13 +56,15 @@ public class TuyaApiService {
                           TuyaConnectionRepository connectionRepository,
                           TokenEncryptionService encryptionService,
                           TenantContext tenantContext,
-                          RestTemplate restTemplate) {
+                          RestTemplate restTemplate,
+                          TuyaDeviceClaimService claimService) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.tenantContext = tenantContext;
         this.restTemplate = restTemplate;
         this.objectMapper = new ObjectMapper();
+        this.claimService = claimService;
     }
 
     // ─── Token Management ───────────────────────────────────────
@@ -147,6 +151,65 @@ public class TuyaApiService {
     public Map<String, Object> getDeviceInfo(String deviceId) {
         validateDeviceId(deviceId);
         return doGet("/v1.0/devices/" + deviceId);
+    }
+
+    // ─── Decouverte de devices (plug-and-play) ──────────────────
+
+    /**
+     * Liste les devices du compte Tuya de l'organisation courante. Resout la connexion Tuya
+     * org-scopee -> tuya_uid -> {@link #listDevices(String)}. NON VALIDE (pas de compte test).
+     */
+    @CircuitBreaker(name = "tuya-api")
+    public List<TuyaDeviceDto> listOrgDevices() {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        TuyaConnection conn = connectionRepository
+                .findFirstByOrganizationIdAndStatusOrderByConnectedAtDesc(orgId, TuyaConnectionStatus.ACTIVE)
+                .orElseThrow(() -> new IllegalStateException("Aucun compte Tuya relie pour cette organisation"));
+        if (conn.getTuyaUid() == null || conn.getTuyaUid().isBlank()) {
+            throw new IllegalStateException("Connexion Tuya sans identifiant utilisateur (tuya_uid)");
+        }
+        Set<String> otherOrg = claimService.claimedByOtherOrgs();
+        Set<String> myOrg = claimService.claimedByCurrentOrg();
+        List<TuyaDeviceDto> segmented = new ArrayList<>();
+        for (TuyaDeviceDto d : listDevices(conn.getTuyaUid())) {
+            if (otherOrg.contains(d.id())) {
+                continue; // segmentation : masque les devices reclames par une autre org
+            }
+            segmented.add(new TuyaDeviceDto(d.id(), d.name(), d.category(), d.productName(), d.online(),
+                    myOrg.contains(d.id())));
+        }
+        return segmented;
+    }
+
+    /**
+     * Liste les devices d'un compte Tuya. GET /v1.0/users/{uid}/devices (token plateforme).
+     */
+    @CircuitBreaker(name = "tuya-api")
+    @SuppressWarnings("unchecked")
+    public List<TuyaDeviceDto> listDevices(String tuyaUid) {
+        Map<String, Object> resp = doGet("/v1.0/users/" + tuyaUid + "/devices");
+        Object result = resp == null ? null : resp.get("result");
+        if (!(result instanceof List<?> list)) {
+            return List.of();
+        }
+        List<TuyaDeviceDto> devices = new ArrayList<>();
+        for (Object item : list) {
+            if (item instanceof Map<?, ?> m) {
+                Map<String, Object> d = (Map<String, Object>) m;
+                devices.add(new TuyaDeviceDto(
+                        asString(d.get("id")),
+                        asString(d.get("name")),
+                        asString(d.get("category")),
+                        asString(d.get("product_name")),
+                        Boolean.TRUE.equals(d.get("online")),
+                        false));
+            }
+        }
+        return devices;
+    }
+
+    private static String asString(Object o) {
+        return o == null ? null : o.toString();
     }
 
     /**

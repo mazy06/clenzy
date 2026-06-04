@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.camera.CameraDto;
 import com.clenzy.dto.camera.CreateCameraDto;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.Camera;
 import com.clenzy.model.Camera.CameraStatus;
 import com.clenzy.model.Property;
@@ -38,19 +39,22 @@ public class CameraService {
     private final CameraStreamService cameraStreamService;
     private final TenantContext tenantContext;
     private final TuyaApiService tuyaApiService;
+    private final TuyaDeviceClaimService claimService;
 
     public CameraService(CameraRepository cameraRepository,
                          PropertyRepository propertyRepository,
                          TokenEncryptionService encryptionService,
                          CameraStreamService cameraStreamService,
                          TenantContext tenantContext,
-                         TuyaApiService tuyaApiService) {
+                         TuyaApiService tuyaApiService,
+                         TuyaDeviceClaimService claimService) {
         this.cameraRepository = cameraRepository;
         this.propertyRepository = propertyRepository;
         this.encryptionService = encryptionService;
         this.cameraStreamService = cameraStreamService;
         this.tenantContext = tenantContext;
         this.tuyaApiService = tuyaApiService;
+        this.claimService = claimService;
     }
 
     /** Liste les cameras de l'organisation (filtre Hibernate = isolation). */
@@ -76,6 +80,11 @@ public class CameraService {
         camera.setStatus(CameraStatus.ACTIVE);
         camera.setOrganizationId(tenantContext.getRequiredOrganizationId());
 
+        // Garde-fou multi-tenant : reclame le device Tuya (rejet si deja rattache a une autre org).
+        if ("TUYA".equalsIgnoreCase(dto.brand())) {
+            claimService.claim(dto.externalDeviceId().trim(), "camera");
+        }
+
         Camera saved = cameraRepository.save(camera);
         // Enregistre le flux cote go2rtc (best-effort) : RTSP/HTTP direct, ou allocation Tuya.
         registerResolvedStream(saved);
@@ -87,6 +96,11 @@ public class CameraService {
     public void deleteCamera(String userId, Long cameraId) {
         Camera camera = cameraRepository.findById(cameraId)
                 .orElseThrow(() -> new IllegalArgumentException("Camera introuvable: " + cameraId));
+        // Libere la reclamation Tuya si la source en est une.
+        String stored = encryptionService.decrypt(camera.getRtspUrlEncrypted());
+        if (stored != null && stored.startsWith(TUYA_SOURCE_PREFIX)) {
+            claimService.release(stored.substring(TUYA_SOURCE_PREFIX.length()));
+        }
         cameraStreamService.removeStream(camera.getStreamName());
         cameraRepository.delete(camera);
         log.info("Camera supprimee: {} (id={}) pour user={}", camera.getName(), cameraId, userId);

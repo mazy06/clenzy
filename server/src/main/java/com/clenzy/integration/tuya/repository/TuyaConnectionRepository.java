@@ -15,6 +15,10 @@ public interface TuyaConnectionRepository extends JpaRepository<TuyaConnection, 
 
     Optional<TuyaConnection> findByTuyaUid(String tuyaUid);
 
+    /** Connexion Tuya active de l'org (la plus recente) — pour la decouverte de devices org-scopee. */
+    Optional<TuyaConnection> findFirstByOrganizationIdAndStatusOrderByConnectedAtDesc(
+            Long organizationId, TuyaConnectionStatus status);
+
     List<TuyaConnection> findByStatus(TuyaConnectionStatus status);
 
     boolean existsByUserId(String userId);

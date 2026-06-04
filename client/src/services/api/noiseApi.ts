@@ -62,6 +62,17 @@ export interface TuyaConnectionStatus {
   deviceCount: number;
 }
 
+/** Device découvert sur le compte Tuya de l'org (catégorie Tuya brute : sp=caméra, ms=serrure…). */
+export interface TuyaDevice {
+  id: string;
+  name: string | null;
+  category: string | null;
+  productName: string | null;
+  online: boolean;
+  /** Déjà rattaché à l'organisation courante (la découverte masque ceux des autres orgs). */
+  alreadyAdded: boolean;
+}
+
 // ─── Noise Devices API ───────────────────────────────────────────────────────
 
 export const noiseDevicesApi = {
@@ -158,6 +169,11 @@ export const tuyaApi = {
   /** Statut de la connexion Tuya */
   getStatus() {
     return apiClient.get<TuyaConnectionStatus>('/tuya/status');
+  },
+
+  /** Découverte : liste les devices du compte Tuya de l'org (plug-and-play). */
+  listDevices() {
+    return apiClient.get<TuyaDevice[]>('/tuya/devices');
   },
 
   /** Infos d'un device Tuya */
