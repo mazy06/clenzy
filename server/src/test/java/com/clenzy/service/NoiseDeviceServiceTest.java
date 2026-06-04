@@ -6,6 +6,7 @@ import com.clenzy.dto.noise.NoiseDataPointDto;
 import com.clenzy.dto.noise.NoiseDeviceDto;
 import com.clenzy.integration.minut.service.MinutApiService;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.NoiseDevice;
 import com.clenzy.model.NoiseDevice.DeviceStatus;
 import com.clenzy.model.NoiseDevice.DeviceType;
@@ -39,6 +40,7 @@ class NoiseDeviceServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private MinutApiService minutApiService;
     @Mock private TuyaApiService tuyaApiService;
+    @Mock private TuyaDeviceClaimService claimService;
 
     private TenantContext tenantContext;
     private NoiseDeviceService service;
@@ -50,7 +52,7 @@ class NoiseDeviceServiceTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
         service = new NoiseDeviceService(noiseDeviceRepository, propertyRepository,
-                minutApiService, tuyaApiService, tenantContext);
+                minutApiService, tuyaApiService, tenantContext, claimService);
     }
 
     private NoiseDevice buildDevice(Long id, String name, DeviceType type) {

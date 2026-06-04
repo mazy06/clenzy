@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.smartlock.CreateSmartLockDeviceDto;
 import com.clenzy.dto.smartlock.SmartLockDeviceDto;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.SmartLockDevice;
 import com.clenzy.model.SmartLockDevice.DeviceStatus;
 import com.clenzy.model.SmartLockDevice.LockState;
@@ -32,15 +33,18 @@ public class SmartLockService {
     private final PropertyRepository propertyRepository;
     private final TuyaApiService tuyaApiService;
     private final TenantContext tenantContext;
+    private final TuyaDeviceClaimService claimService;
 
     public SmartLockService(SmartLockDeviceRepository smartLockRepository,
                             PropertyRepository propertyRepository,
                             TuyaApiService tuyaApiService,
-                            TenantContext tenantContext) {
+                            TenantContext tenantContext,
+                            TuyaDeviceClaimService claimService) {
         this.smartLockRepository = smartLockRepository;
         this.propertyRepository = propertyRepository;
         this.tuyaApiService = tuyaApiService;
         this.tenantContext = tenantContext;
+        this.claimService = claimService;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -71,6 +75,9 @@ public class SmartLockService {
         device.setLockState(LockState.UNKNOWN);
         device.setOrganizationId(tenantContext.getRequiredOrganizationId());
 
+        // Garde-fou multi-tenant : reclame le device Tuya (rejet si deja rattache a une autre org).
+        claimService.claim(dto.getExternalDeviceId(), "lock");
+
         SmartLockDevice saved = smartLockRepository.save(device);
         log.info("Serrure creee: {} (property={}) pour user={}",
                 saved.getName(), saved.getPropertyId(), userId);
@@ -89,6 +96,7 @@ public class SmartLockService {
         SmartLockDevice device = smartLockRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable: " + deviceId));
 
+        claimService.release(device.getExternalDeviceId());
         smartLockRepository.delete(device);
         log.info("Serrure supprimee: {} (id={}) pour user={}", device.getName(), deviceId, userId);
     }

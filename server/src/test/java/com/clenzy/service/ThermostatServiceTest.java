@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.thermostat.CreateThermostatDto;
 import com.clenzy.dto.thermostat.ThermostatDto;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.Property;
 import com.clenzy.model.Thermostat;
 import com.clenzy.model.Thermostat.ThermostatStatus;
@@ -40,12 +41,13 @@ class ThermostatServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private TuyaApiService tuyaApiService;
     @Mock private TenantContext tenantContext;
+    @Mock private TuyaDeviceClaimService claimService;
 
     private ThermostatService service;
 
     @BeforeEach
     void setUp() {
-        service = new ThermostatService(thermostatRepository, propertyRepository, tuyaApiService, tenantContext);
+        service = new ThermostatService(thermostatRepository, propertyRepository, tuyaApiService, tenantContext, claimService);
     }
 
     private Thermostat persisted(String externalId) {
