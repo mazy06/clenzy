@@ -28,6 +28,9 @@ public class TuyaConfig {
     @Value("${tuya.auth.access-secret:}")
     private String accessSecretEnv;
 
+    @Value("${tuya.app.schema:}")
+    private String appSchemaEnv;
+
     private final ObjectProvider<TuyaPlatformConfigService> dbConfigProvider;
 
     public TuyaConfig(ObjectProvider<TuyaPlatformConfigService> dbConfigProvider) {
@@ -62,6 +65,12 @@ public class TuyaConfig {
         TuyaPlatformConfigService db = db();
         String v = db != null ? db.getAccessSecret() : null;
         return isBlank(v) ? accessSecretEnv : v;
+    }
+
+    public String getAppSchema() {
+        TuyaPlatformConfigService db = db();
+        String v = db != null ? db.getAppSchema() : null;
+        return isBlank(v) ? appSchemaEnv : v;
     }
 
     public boolean isConfigured() {

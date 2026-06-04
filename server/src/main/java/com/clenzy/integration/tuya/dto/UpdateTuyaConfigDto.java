@@ -8,5 +8,6 @@ public record UpdateTuyaConfigDto(
         String accessId,
         String accessSecret,
         String baseUrl,
-        String region
+        String region,
+        String appSchema
 ) {}

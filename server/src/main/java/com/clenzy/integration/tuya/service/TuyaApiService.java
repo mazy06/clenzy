@@ -351,6 +351,33 @@ public class TuyaApiService {
         return enrichedResult;
     }
 
+    // ─── Comptes app Tuya par hote (modele C) ───────────────────
+
+    /**
+     * Provisionne un compte app Tuya sous le schema du projet (modele C).
+     * POST /v1.0/apps/{schema}/user. Le compte est lie au projet plateforme : les appareils que
+     * l'hote y appaire (app mobile de marque) deviennent decouvrables par le PMS.
+     *
+     * <p><b>NON VALIDE</b> : implemente d'apres l'API Tuya, non teste (App SDK pas encore configure).
+     * TODO a confirmer avec le vrai App SDK : hachage du password (md5 ?), username_type, country_code.
+     */
+    @CircuitBreaker(name = "tuya-api")
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> createAppUser(String username, String password, String countryCode) {
+        String schema = config.getAppSchema();
+        if (schema == null || schema.isBlank()) {
+            throw new IllegalStateException(
+                    "Schema App SDK Tuya non configure (tuya_platform_config.app_schema)");
+        }
+        Map<String, Object> body = Map.of(
+                "country_code", countryCode != null && !countryCode.isBlank() ? countryCode : "33",
+                "username", username,
+                "password", password,
+                "username_type", 3 // compte custom (ni email ni telephone verifies)
+        );
+        return doPost("/v1.0/apps/" + schema + "/user", body);
+    }
+
     // ─── Connection Management ──────────────────────────────────
 
     /**

@@ -28,6 +28,10 @@ public class TuyaPlatformConfig {
     @Column(name = "region", length = 20)
     private String region;
 
+    /** Schema de l'App SDK Tuya (modele C) : requis pour provisionner les comptes app des hotes. */
+    @Column(name = "app_schema")
+    private String appSchema;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -53,6 +57,9 @@ public class TuyaPlatformConfig {
 
     public String getRegion() { return region; }
     public void setRegion(String region) { this.region = region; }
+
+    public String getAppSchema() { return appSchema; }
+    public void setAppSchema(String appSchema) { this.appSchema = appSchema; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public String getUpdatedBy() { return updatedBy; }

@@ -8,5 +8,6 @@ public record TuyaConfigStatusDto(
         boolean configured,
         String accessId,
         String baseUrl,
-        String region
+        String region,
+        String appSchema
 ) {}
