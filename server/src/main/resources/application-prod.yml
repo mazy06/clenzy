@@ -179,13 +179,6 @@ clenzy:
     webhook-secret: ${CHANNEX_WEBHOOK_SECRET:}
     timeout: ${CHANNEX_TIMEOUT:30s}
     max-retries: ${CHANNEX_MAX_RETRIES:3}
-  # Twilio — SMS & WhatsApp messaging
-  twilio:
-    account-sid: ${TWILIO_ACCOUNT_SID:}
-    auth-token: ${TWILIO_AUTH_TOKEN:}
-    messaging-service-sid: ${TWILIO_MESSAGING_SERVICE_SID:}
-    whatsapp-from: ${TWILIO_WHATSAPP_FROM:}
-    verify-service-sid: ${TWILIO_VERIFY_SID:}
   # Nuki — Smart Lock integration
   nuki:
     api-url: ${NUKI_API_URL:https://api.nuki.io}
