@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Box, Typography, Chip, Tooltip, IconButton, alpha } from '@mui/material';
 import { PlayArrow, FiberManualRecord, Fullscreen, WifiOff, PhotoCamera, Delete } from '../../../icons';
 import type { CameraDto } from '../../../services/api/camerasApi';
@@ -13,12 +13,13 @@ interface CameraTileProps {
 }
 
 /**
- * Tuile caméra — surface « feed » 16:9. Lecture À LA DEMANDE (jamais d'autoplay).
- * Le streaming réel arrive avec la passerelle media go2rtc ; en attendant, le clic
- * affiche l'état du flux. Branchee sur les vraies cameras (CameraDto).
+ * Tuile caméra — surface « feed » 16:9. Lecture WebRTC À LA DEMANDE (jamais d'autoplay)
+ * via la passerelle media go2rtc (iframe stream.html). Branchee sur les vraies
+ * cameras (CameraDto).
  */
 export default function CameraTile({ camera, onDelete, acting = false }: CameraTileProps) {
   const [streaming, setStreaming] = useState(false);
+  const feedRef = useRef<HTMLDivElement>(null);
   const { id, name, roomName, brand, online, recording } = camera;
 
   return (
@@ -31,6 +32,7 @@ export default function CameraTile({ camera, onDelete, acting = false }: CameraT
     >
       {/* ── Zone feed 16:9 ── */}
       <Box
+        ref={feedRef}
         role={online ? 'button' : undefined}
         tabIndex={online ? 0 : undefined}
         onClick={() => online && setStreaming((s) => !s)}
@@ -109,8 +111,17 @@ export default function CameraTile({ camera, onDelete, acting = false }: CameraT
         <Box component="span" sx={{ color: ACCENT, display: 'inline-flex' }}><PhotoCamera size={14} strokeWidth={1.75} /></Box>
         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>{brand || 'Caméra'}</Typography>
         <Box sx={{ ml: 'auto', display: 'flex', gap: 0.25 }}>
-          <Tooltip title="Plein écran (avec go2rtc)" arrow>
-            <span><IconButton size="small" disabled sx={{ color: 'text.disabled' }}><Fullscreen size={15} /></IconButton></span>
+          <Tooltip title={streaming ? 'Plein écran' : 'Lance la lecture pour le plein écran'} arrow>
+            <span>
+              <IconButton
+                size="small"
+                disabled={!streaming || !camera.webrtcUrl}
+                onClick={() => feedRef.current?.requestFullscreen?.()}
+                sx={{ color: 'text.secondary', '&:hover': { color: ACCENT } }}
+              >
+                <Fullscreen size={15} />
+              </IconButton>
+            </span>
           </Tooltip>
           {onDelete && (
             <Tooltip title="Supprimer" arrow>
