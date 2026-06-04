@@ -8,6 +8,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { camerasApi, type CameraDto } from '../../../services/api/camerasApi';
 import AddDeviceWizard from '../components/AddDeviceWizard';
 import CameraTile from './CameraTile';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 
 const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 1.25 } as const;
 const ACCENT = '#C97A7A';
@@ -21,7 +22,9 @@ export default function CamerasScreen() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [actingId, setActingId] = useState<number | null>(null);
+  // Suppression : caméra en attente de confirmation (modal réutilisable) + état en cours.
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
   // Single active player : une seule caméra lit à la fois (perf + scalabilité multi-tenant —
   // chaque lecture = une connexion WebRTC + une source go2rtc maintenue active côté serveur).
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -38,17 +41,25 @@ export default function CamerasScreen() {
     setActiveId((prev) => (prev === id ? null : id));
   }, []);
 
-  const handleDelete = useCallback(async (id: number) => {
-    if (!window.confirm('Supprimer cette caméra ?')) return;
-    setActiveId((prev) => (prev === id ? null : prev)); // libère le flux si la cam active est supprimée
-    setActingId(id);
+  const requestDelete = useCallback((id: number) => setPendingDeleteId(id), []);
+
+  const pendingCamera = useMemo(
+    () => cameras.find((c) => c.id === pendingDeleteId) ?? null,
+    [cameras, pendingDeleteId],
+  );
+
+  const confirmDelete = useCallback(async () => {
+    if (pendingDeleteId == null) return;
+    setActiveId((prev) => (prev === pendingDeleteId ? null : prev)); // libère le flux si la cam active est supprimée
+    setDeleting(true);
     try {
-      await camerasApi.delete(id);
+      await camerasApi.delete(pendingDeleteId);
       await qc.invalidateQueries({ queryKey: ['cameras'] });
+      setPendingDeleteId(null);
     } finally {
-      setActingId(null);
+      setDeleting(false);
     }
-  }, [qc]);
+  }, [pendingDeleteId, qc]);
 
   const groups = useMemo(() => {
     const map = new Map<string, CameraDto[]>();
@@ -115,8 +126,8 @@ export default function CamerasScreen() {
                   camera={c}
                   active={activeId === c.id}
                   onToggle={toggleActive}
-                  onDelete={handleDelete}
-                  acting={actingId === c.id}
+                  onDelete={requestDelete}
+                  acting={deleting && pendingDeleteId === c.id}
                 />
               ))}
             </Box>
@@ -125,6 +136,19 @@ export default function CamerasScreen() {
       )}
 
       <AddDeviceWizard open={wizardOpen} onClose={() => setWizardOpen(false)} onAdded={invalidate} defaultKind="camera" />
+
+      <ConfirmationModal
+        open={pendingDeleteId != null}
+        onClose={() => setPendingDeleteId(null)}
+        onConfirm={confirmDelete}
+        title="Supprimer la caméra"
+        message={pendingCamera
+          ? `Supprimer définitivement la caméra « ${pendingCamera.name} » ? Cette action est irréversible.`
+          : 'Supprimer définitivement cette caméra ? Cette action est irréversible.'}
+        confirmText="Supprimer"
+        severity="error"
+        loading={deleting}
+      />
     </Box>
   );
 }
