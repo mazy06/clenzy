@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Box, Typography, Button, Paper, alpha, useTheme, Skeleton } from '@mui/material';
 import { PhotoCamera, Add, Home } from '../../../icons';
@@ -22,6 +22,9 @@ export default function CamerasScreen() {
   const qc = useQueryClient();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [actingId, setActingId] = useState<number | null>(null);
+  // Single active player : une seule caméra lit à la fois (perf + scalabilité multi-tenant —
+  // chaque lecture = une connexion WebRTC + une source go2rtc maintenue active côté serveur).
+  const [activeId, setActiveId] = useState<number | null>(null);
 
   const { data: cameras = [], isLoading } = useQuery({
     queryKey: ['cameras'],
@@ -31,11 +34,21 @@ export default function CamerasScreen() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['cameras'] });
 
-  const handleDelete = async (id: number) => {
+  const toggleActive = useCallback((id: number) => {
+    setActiveId((prev) => (prev === id ? null : id));
+  }, []);
+
+  const handleDelete = useCallback(async (id: number) => {
     if (!window.confirm('Supprimer cette caméra ?')) return;
+    setActiveId((prev) => (prev === id ? null : prev)); // libère le flux si la cam active est supprimée
     setActingId(id);
-    try { await camerasApi.delete(id); await invalidate(); } finally { setActingId(null); }
-  };
+    try {
+      await camerasApi.delete(id);
+      await qc.invalidateQueries({ queryKey: ['cameras'] });
+    } finally {
+      setActingId(null);
+    }
+  }, [qc]);
 
   const groups = useMemo(() => {
     const map = new Map<string, CameraDto[]>();
@@ -71,7 +84,8 @@ export default function CamerasScreen() {
           bgcolor: alpha(ACCENT, theme.palette.mode === 'dark' ? 0.08 : 0.04), display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}
       >
         <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1, minWidth: 220 }}>
-          Cliquez sur une caméra pour lancer la <strong>lecture vidéo en direct</strong> (à la demande). Sources : RTSP (caméra IP) ou HTTP/HLS.
+          Cliquez sur une caméra pour lancer la <strong>lecture en direct</strong>. Une seule lecture à la fois
+          (performances) : ouvrir une autre caméra arrête la précédente. <strong>RTSP recommandé</strong> pour une lecture fluide.
         </Typography>
       </Paper>
 
@@ -95,7 +109,16 @@ export default function CamerasScreen() {
               <Typography variant="caption" sx={{ color: 'text.disabled' }}>· {items.length} caméra{items.length > 1 ? 's' : ''}</Typography>
             </Box>
             <Box sx={GRID}>
-              {items.map((c) => <CameraTile key={c.id} camera={c} onDelete={handleDelete} acting={actingId === c.id} />)}
+              {items.map((c) => (
+                <CameraTile
+                  key={c.id}
+                  camera={c}
+                  active={activeId === c.id}
+                  onToggle={toggleActive}
+                  onDelete={handleDelete}
+                  acting={actingId === c.id}
+                />
+              ))}
             </Box>
           </Box>
         ))
