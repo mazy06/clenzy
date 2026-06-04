@@ -119,7 +119,7 @@ function mapSummary(d: DeviceSummaryDto): ConnectedDevice {
       uid: `camera:${d.id}`, kind: 'camera', id: d.id, name: d.name, propertyId, propertyName, roomName: d.roomName, provider,
       statusLevel: online ? 'ok' : 'offline',
       statusLabel: online ? 'En ligne' : 'Hors ligne',
-      primaryMetric: null, battery: null, online, alertCount: 0, actions: ['view'], raw: d,
+      primaryMetric: null, battery: null, online, alertCount: 0, actions: ['view'], previewUrl: d.snapshotUrl, raw: d,
     };
   }
   if (d.kind === 'thermostat') {
