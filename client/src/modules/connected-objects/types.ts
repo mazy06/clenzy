@@ -45,6 +45,8 @@ export interface ConnectedDevice {
   alertCount?: number;
   /** Actions rapides disponibles (résolues par le registre de type). */
   actions: DeviceAction[];
+  /** Caméras : URL du poster (snapshot du flux) affiché sur la carte. */
+  previewUrl?: string | null;
   /** DTO d'origine, pour les actions (lock/unlock par id, navigation…). */
   raw: unknown;
 }
