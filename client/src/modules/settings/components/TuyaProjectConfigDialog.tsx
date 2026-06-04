@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Alert,
   Box,
@@ -52,8 +52,26 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
   const [appSchema, setAppSchema] = useState(current?.appSchema ?? '');
   const [appKey, setAppKey] = useState(current?.appKey ?? '');
   const [appSecret, setAppSecret] = useState('');
+  const [androidAppKey, setAndroidAppKey] = useState(current?.androidAppKey ?? '');
+  const [androidAppSecret, setAndroidAppSecret] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Re-synchronise les champs depuis `current` a chaque ouverture du dialog : `current` (GET config)
+  // peut charger APRES le montage initial -> sans ca les valeurs deja enregistrees ne s'affichent pas
+  // et la sauvegarde echoue (« Access ID obligatoire »). Les secrets restent vides (= inchanges).
+  useEffect(() => {
+    if (!open) return;
+    setAccessId(current?.accessId ?? '');
+    setRegion(current?.region ?? 'eu');
+    setAppSchema(current?.appSchema ?? '');
+    setAppKey(current?.appKey ?? '');
+    setAndroidAppKey(current?.androidAppKey ?? '');
+    setAccessSecret('');
+    setAppSecret('');
+    setAndroidAppSecret('');
+    setError(null);
+  }, [open, current]);
 
   const handleSave = async () => {
     setError(null);
@@ -77,6 +95,8 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
         appSchema: appSchema.trim() || undefined,
         appKey: appKey.trim() || undefined,
         appSecret: appSecret.trim() || undefined,
+        androidAppKey: androidAppKey.trim() || undefined,
+        androidAppSecret: androidAppSecret.trim() || undefined,
       });
       onSaved(status);
       onClose();
@@ -162,16 +182,16 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
             helperText="Schema de l'App SDK Tuya (console → App → App SDK) — requis pour l'appairage mobile. Laisser vide si non utilisé."
           />
           <TextField
-            label="AppKey (App SDK)"
+            label="AppKey iOS (App SDK)"
             value={appKey}
             onChange={(e) => setAppKey(e.target.value)}
             fullWidth
             autoComplete="off"
             disabled={saving}
-            helperText="AppKey de l'App SDK Tuya (partagé iOS + Android)."
+            helperText="AppKey iOS de l'App SDK Tuya (console → App → Get Key → iOS)."
           />
           <TextField
-            label="AppSecret (App SDK)"
+            label="AppSecret iOS (App SDK)"
             value={appSecret}
             onChange={(e) => setAppSecret(e.target.value)}
             type="password"
@@ -179,7 +199,27 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
             autoComplete="new-password"
             disabled={saving}
             placeholder={current?.appKey ? '•••••••• (inchangé si laissé vide)' : undefined}
-            helperText="Laisser vide pour conserver l'AppSecret déjà enregistré."
+            helperText="Laisser vide pour conserver l'AppSecret iOS déjà enregistré."
+          />
+          <TextField
+            label="AppKey Android (App SDK)"
+            value={androidAppKey}
+            onChange={(e) => setAndroidAppKey(e.target.value)}
+            fullWidth
+            autoComplete="off"
+            disabled={saving}
+            helperText="AppKey Android de l'App SDK Tuya (console → App → Get Key → Android) — distinct de l'iOS."
+          />
+          <TextField
+            label="AppSecret Android (App SDK)"
+            value={androidAppSecret}
+            onChange={(e) => setAndroidAppSecret(e.target.value)}
+            type="password"
+            fullWidth
+            autoComplete="new-password"
+            disabled={saving}
+            placeholder={current?.androidAppKey ? '•••••••• (inchangé si laissé vide)' : undefined}
+            helperText="Laisser vide pour conserver l'AppSecret Android déjà enregistré."
           />
         </Box>
       </DialogContent>
