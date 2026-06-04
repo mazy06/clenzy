@@ -26,12 +26,15 @@ public class CameraStreamService {
     private final String publicBaseUrl;
     private final String apiUrl;
     private final RestClient restClient;
+    private final MediaTicketService mediaTicketService;
 
     public CameraStreamService(
             @Value("${clenzy.go2rtc.public-url:/media}") String publicBaseUrl,
-            @Value("${clenzy.go2rtc.api-url:http://clenzy-go2rtc:1984}") String apiUrl) {
+            @Value("${clenzy.go2rtc.api-url:http://clenzy-go2rtc:1984}") String apiUrl,
+            MediaTicketService mediaTicketService) {
         this.publicBaseUrl = publicBaseUrl;
         this.apiUrl = apiUrl;
+        this.mediaTicketService = mediaTicketService;
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(2000);
         factory.setReadTimeout(3000);
@@ -43,7 +46,7 @@ public class CameraStreamService {
         if (streamName == null || streamName.isBlank()) {
             return null;
         }
-        return publicBaseUrl + "/stream.html?src=" + streamName;
+        return publicBaseUrl + "/stream.html?src=" + streamName + "&t=" + mediaTicketService.mint(streamName);
     }
 
     /**
@@ -55,7 +58,7 @@ public class CameraStreamService {
         if (streamName == null || streamName.isBlank()) {
             return null;
         }
-        return publicBaseUrl + "/api/frame.jpeg?src=" + streamName;
+        return publicBaseUrl + "/api/frame.jpeg?src=" + streamName + "&t=" + mediaTicketService.mint(streamName);
     }
 
     /** Enregistre le flux cote go2rtc (best-effort). RTSP en passthrough, HTTP/HLS via ffmpeg. */

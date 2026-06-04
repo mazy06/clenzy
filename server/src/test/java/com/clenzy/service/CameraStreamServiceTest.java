@@ -9,12 +9,15 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 @DisplayName("CameraStreamService")
 class CameraStreamServiceTest {
 
-    private final CameraStreamService service = new CameraStreamService("/media", "http://localhost:1984");
+    private final MediaTicketService tickets = new MediaTicketService("test-secret-key");
+    private final CameraStreamService service = new CameraStreamService("/media", "http://localhost:1984", tickets);
 
     @Test
-    @DisplayName("webrtcUrl — construit l'URL de lecture go2rtc")
+    @DisplayName("webrtcUrl — construit l'URL de lecture go2rtc + ticket media")
     void webrtcUrl_builds() {
-        assertThat(service.webrtcUrl("cam_abc")).isEqualTo("/media/stream.html?src=cam_abc");
+        String url = service.webrtcUrl("cam_abc");
+        assertThat(url).startsWith("/media/stream.html?src=cam_abc&t=");
+        assertThat(tickets.verify("cam_abc", url.substring(url.indexOf("&t=") + 3))).isTrue();
     }
 
     @Test
@@ -25,9 +28,11 @@ class CameraStreamServiceTest {
     }
 
     @Test
-    @DisplayName("snapshotUrl — construit l'URL de capture (poster) go2rtc")
+    @DisplayName("snapshotUrl — construit l'URL de capture (poster) go2rtc + ticket media")
     void snapshotUrl_builds() {
-        assertThat(service.snapshotUrl("cam_abc")).isEqualTo("/media/api/frame.jpeg?src=cam_abc");
+        String url = service.snapshotUrl("cam_abc");
+        assertThat(url).startsWith("/media/api/frame.jpeg?src=cam_abc&t=");
+        assertThat(tickets.verify("cam_abc", url.substring(url.indexOf("&t=") + 3))).isTrue();
     }
 
     @Test
