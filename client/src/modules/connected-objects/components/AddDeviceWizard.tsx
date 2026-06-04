@@ -158,9 +158,9 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             )}
             {kind === 'camera' && (
               <TextField
-                fullWidth size="small" required label="URL RTSP"
+                fullWidth size="small" required label="URL du flux (RTSP recommandé)"
                 placeholder="rtsp://user:pass@192.168.1.50:554/stream"
-                helperText="Flux RTSP de la caméra — chiffré côté serveur, jamais ré-exposé."
+                helperText="RTSP recommandé : lecture directe et fluide. Une URL HTTP/HLS est transcodée (CPU, qualité réduite — pour test). Chiffré côté serveur."
                 value={rtspUrl} onChange={(e) => setRtspUrl(e.target.value)}
               />
             )}
