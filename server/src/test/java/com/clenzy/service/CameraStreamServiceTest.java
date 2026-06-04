@@ -37,4 +37,28 @@ class CameraStreamServiceTest {
     void removeStream_guard() {
         assertThatCode(() -> service.removeStream(null)).doesNotThrowAnyException();
     }
+
+    @Test
+    @DisplayName("toGo2rtcSource — RTSP en passthrough")
+    void toGo2rtcSource_rtspPassthrough() {
+        assertThat(CameraStreamService.toGo2rtcSource("rtsp://user:pass@host:554/stream"))
+                .isEqualTo("rtsp://user:pass@host:554/stream");
+    }
+
+    @Test
+    @DisplayName("toGo2rtcSource — HTTP/HLS enveloppe en ffmpeg (transcode WebRTC)")
+    void toGo2rtcSource_httpWrappedWithFfmpeg() {
+        assertThat(CameraStreamService.toGo2rtcSource("https://cdn.example.com/live/stream.m3u8"))
+                .isEqualTo("ffmpeg:https://cdn.example.com/live/stream.m3u8#video=h264#audio=opus");
+        assertThat(CameraStreamService.toGo2rtcSource("http://cam.local/video.mp4"))
+                .isEqualTo("ffmpeg:http://cam.local/video.mp4#video=h264#audio=opus");
+    }
+
+    @Test
+    @DisplayName("toGo2rtcSource — scheme insensible a la casse")
+    void toGo2rtcSource_caseInsensitive() {
+        assertThat(CameraStreamService.toGo2rtcSource("HTTPS://cdn.example.com/s.m3u8"))
+                .startsWith("ffmpeg:");
+        assertThat(CameraStreamService.toGo2rtcSource("RTSP://host/s")).isEqualTo("RTSP://host/s");
+    }
 }
