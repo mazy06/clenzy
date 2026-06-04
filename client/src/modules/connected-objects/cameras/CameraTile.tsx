@@ -1,6 +1,6 @@
-import { memo, useRef } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Box, Typography, Chip, Tooltip, IconButton, alpha } from '@mui/material';
-import { PlayArrow, StopCircle, FiberManualRecord, Fullscreen, WifiOff, PhotoCamera, Delete } from '../../../icons';
+import { PlayArrow, StopCircle, FiberManualRecord, Fullscreen, FullscreenExit, WifiOff, PhotoCamera, Delete } from '../../../icons';
 import type { CameraDto } from '../../../services/api/camerasApi';
 
 const ACCENT = '#C97A7A'; // argile Baitly (couleur du type « caméra »)
@@ -27,7 +27,24 @@ interface CameraTileProps {
  */
 function CameraTile({ camera, active, onToggle, onDelete, acting = false }: CameraTileProps) {
   const feedRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const { id, name, roomName, brand, online, recording } = camera;
+
+  // Suit l'état plein écran de CE feed (le bouton doit basculer entrer/sortir, et l'overlay
+  // de sortie n'apparaît qu'en plein écran).
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(document.fullscreenElement === feedRef.current);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement === feedRef.current) {
+      void document.exitFullscreen?.();
+    } else {
+      void feedRef.current?.requestFullscreen?.();
+    }
+  }, []);
 
   return (
     <Box
@@ -102,6 +119,23 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
           </Box>
         )}
 
+        {/* Bouton de sortie plein écran — overlay au-dessus de l'iframe (zIndex 4), visible
+            uniquement en plein écran (le bouton du footer est alors hors du cadre). */}
+        {isFullscreen && (
+          <Tooltip title="Quitter le plein écran" arrow>
+            <IconButton
+              onClick={(e) => { e.stopPropagation(); void document.exitFullscreen?.(); }}
+              sx={{
+                position: 'absolute', top: 12, right: 12, zIndex: 4,
+                bgcolor: alpha('#0C1216', 0.6), color: '#fff',
+                '&:hover': { bgcolor: alpha(ACCENT, 0.92) },
+              }}
+            >
+              <FullscreenExit size={20} />
+            </IconButton>
+          </Tooltip>
+        )}
+
         {/* Overlay bas : nom + pièce */}
         <Box sx={{ position: 'absolute', left: 10, right: 10, bottom: 8, zIndex: 2 }}>
           <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.8rem', lineHeight: 1.2, textShadow: '0 1px 4px rgba(12,18,22,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -130,15 +164,15 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
               </IconButton>
             </Tooltip>
           )}
-          <Tooltip title={active ? 'Plein écran' : 'Lancez la lecture pour le plein écran'} arrow>
+          <Tooltip title={isFullscreen ? 'Quitter le plein écran' : (active ? 'Plein écran' : 'Lancez la lecture pour le plein écran')} arrow>
             <span>
               <IconButton
                 size="small"
                 disabled={!active || !camera.webrtcUrl}
-                onClick={() => feedRef.current?.requestFullscreen?.()}
+                onClick={toggleFullscreen}
                 sx={{ color: 'text.secondary', '&:hover': { color: ACCENT } }}
               >
-                <Fullscreen size={15} />
+                {isFullscreen ? <FullscreenExit size={15} /> : <Fullscreen size={15} />}
               </IconButton>
             </span>
           </Tooltip>
