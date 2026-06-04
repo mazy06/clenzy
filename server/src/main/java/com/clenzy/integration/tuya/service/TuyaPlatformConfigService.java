@@ -21,7 +21,7 @@ public class TuyaPlatformConfigService {
     private volatile Creds cached;
     private volatile boolean loaded;
 
-    private record Creds(String accessId, String accessSecret, String baseUrl, String region) {}
+    private record Creds(String accessId, String accessSecret, String baseUrl, String region, String appSchema) {}
 
     public TuyaPlatformConfigService(TuyaPlatformConfigRepository repository,
                                      TokenEncryptionService encryptionService) {
@@ -44,13 +44,14 @@ public class TuyaPlatformConfigService {
     private Creds toCreds(TuyaPlatformConfig c) {
         String secret = c.getAccessSecretEncrypted() == null || c.getAccessSecretEncrypted().isBlank()
                 ? null : encryptionService.decrypt(c.getAccessSecretEncrypted());
-        return new Creds(c.getAccessId(), secret, c.getBaseUrl(), c.getRegion());
+        return new Creds(c.getAccessId(), secret, c.getBaseUrl(), c.getRegion(), c.getAppSchema());
     }
 
     public String getAccessId() { Creds c = current(); return c == null ? null : c.accessId(); }
     public String getAccessSecret() { Creds c = current(); return c == null ? null : c.accessSecret(); }
     public String getApiBaseUrl() { Creds c = current(); return c == null ? null : c.baseUrl(); }
     public String getRegion() { Creds c = current(); return c == null ? null : c.region(); }
+    public String getAppSchema() { Creds c = current(); return c == null ? null : c.appSchema(); }
 
     public boolean isConfigured() {
         Creds c = current();
@@ -60,7 +61,7 @@ public class TuyaPlatformConfigService {
 
     /** Enregistre (upsert du singleton). Si {@code accessSecret} vide, conserve le secret existant. */
     @Transactional
-    public void save(String accessId, String accessSecret, String baseUrl, String region, String updatedBy) {
+    public void save(String accessId, String accessSecret, String baseUrl, String region, String appSchema, String updatedBy) {
         TuyaPlatformConfig c = repository.findFirstByOrderByIdAsc().orElseGet(TuyaPlatformConfig::new);
         c.setAccessId(accessId == null ? null : accessId.trim());
         if (accessSecret != null && !accessSecret.isBlank()) {
@@ -68,6 +69,7 @@ public class TuyaPlatformConfigService {
         }
         if (baseUrl != null && !baseUrl.isBlank()) c.setBaseUrl(baseUrl.trim());
         if (region != null && !region.isBlank()) c.setRegion(region.trim());
+        if (appSchema != null && !appSchema.isBlank()) c.setAppSchema(appSchema.trim());
         c.setUpdatedBy(updatedBy);
         repository.save(c);
         synchronized (this) { this.cached = toCreds(c); this.loaded = true; } // rafraichit le cache

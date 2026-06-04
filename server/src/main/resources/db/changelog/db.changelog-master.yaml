@@ -1726,3 +1726,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Comptes app Tuya par hote (modele C) + schema App SDK dans la config plateforme.
+  - changeSet:
+      id: "0178-tuya-app-account-and-schema"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0178__tuya_app_account_and_schema.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
