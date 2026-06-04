@@ -18,6 +18,7 @@ public record CameraDto(
         boolean recording,
         String streamName,
         String webrtcUrl,
+        String snapshotUrl,
         LocalDateTime createdAt
 ) {
 }

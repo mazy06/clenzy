@@ -25,6 +25,19 @@ class CameraStreamServiceTest {
     }
 
     @Test
+    @DisplayName("snapshotUrl — construit l'URL de capture (poster) go2rtc")
+    void snapshotUrl_builds() {
+        assertThat(service.snapshotUrl("cam_abc")).isEqualTo("/media/api/frame.jpeg?src=cam_abc");
+    }
+
+    @Test
+    @DisplayName("snapshotUrl — null/vide -> null")
+    void snapshotUrl_nullOrBlank() {
+        assertThat(service.snapshotUrl(null)).isNull();
+        assertThat(service.snapshotUrl("  ")).isNull();
+    }
+
+    @Test
     @DisplayName("registerStream — args manquants -> no-op sans appel reseau")
     void registerStream_guards() {
         assertThatCode(() -> service.registerStream(null, "rtsp://x")).doesNotThrowAnyException();

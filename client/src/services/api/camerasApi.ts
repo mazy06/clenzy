@@ -15,6 +15,8 @@ export interface CameraDto {
   streamName: string;
   /** URL de lecture WebRTC (passerelle go2rtc). Null tant que non configuree. */
   webrtcUrl: string | null;
+  /** URL d'une image fixe du flux (poster affiché avant lecture). Null tant que non configuree. */
+  snapshotUrl: string | null;
   createdAt: string;
 }
 

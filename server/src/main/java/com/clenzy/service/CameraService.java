@@ -92,6 +92,7 @@ public class CameraService {
         return new CameraDto(
                 c.getId(), c.getName(), c.getPropertyId(), propertyName, c.getRoomName(),
                 c.getBrand(), c.getStatus().name(), online, c.isRecording(),
-                c.getStreamName(), cameraStreamService.webrtcUrl(c.getStreamName()), c.getCreatedAt());
+                c.getStreamName(), cameraStreamService.webrtcUrl(c.getStreamName()),
+                cameraStreamService.snapshotUrl(c.getStreamName()), c.getCreatedAt());
     }
 }
