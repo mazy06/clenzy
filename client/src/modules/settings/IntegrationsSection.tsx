@@ -34,7 +34,6 @@ import SignatureProviderCards from './components/SignatureProviderCards';
 import OAuthProviderCard from './components/OAuthProviderCard';
 import IoTServicesSection from './components/IoTServicesSection';
 import PricingProviderCard from './components/PricingProviderCard';
-import ProviderLogo from './components/ProviderLogos';
 import IntegrationConfigDialog from './components/IntegrationConfigDialog';
 import { docusignApi } from '../../services/api/docusignApi';
 import { pricingConnectionApi, type PricingProvider } from '../../services/api/pricingConnectionApi';
@@ -55,7 +54,7 @@ import ChannelManagerProviderCard from './components/ChannelManagerProviderCard'
 import ChannexMappingDialog from './components/ChannexMappingDialog';
 import OtaShowcaseSection from './components/OtaShowcaseSection';
 import ServiceCatalogSection from './components/ServiceCatalogSection';
-import ServiceTooltip from './components/ServiceTooltip';
+import ServiceGridCard from './components/ServiceGridCard';
 import BrevoConfigCard from './components/BrevoConfigCard';
 import { useMarketingIntegration } from '../../hooks/useMarketingIntegration';
 
@@ -535,74 +534,39 @@ export default function IntegrationsSection({
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 1,
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: 1.5,
             mt: 1,
           }}
         >
-          <Box
+          <ServiceGridCard
+            serviceTooltipId="BREVO"
+            label="Brevo"
+            description="Emailing · Waitlist & Newsletter · API key"
             role="button"
-            tabIndex={0}
-            aria-label="Configurer Brevo"
+            status={marketingConfigured ? 'connected' : 'idle'}
             onClick={() => setOpenMarketing(true)}
-            onKeyDown={(e) => {
-              if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                setOpenMarketing(true);
-              }
-            }}
-            sx={{
-              position: 'relative',
-              cursor: 'pointer',
-              p: 1,
-              borderRadius: '10px',
-              border: '1px solid',
-              borderColor: marketingConfigured ? `${ACCENT}55` : 'divider',
-              backgroundColor: marketingConfigured ? `${ACCENT}05` : 'background.paper',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              minHeight: 56,
-              outline: 'none',
-              transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-              '&:hover': {
-                borderColor: ACCENT,
-                backgroundColor: `${ACCENT}08`,
-                boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
-              },
-              '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
-            }}
-          >
-            <Box
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '8px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: '#0B996E',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                flexShrink: 0,
-              }}
-              aria-hidden="true"
-            >
-              B
-            </Box>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>Brevo</Typography>
-              <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
-                Emailing · Waitlist &amp; Newsletter · API key
-              </Typography>
-            </Box>
-            {marketingConfigured && (
-              <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
-                <CheckCircleIcon size={14} strokeWidth={2.5} />
+            logo={
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: '#0B996E',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  flexShrink: 0,
+                }}
+                aria-hidden="true"
+              >
+                B
               </Box>
-            )}
-          </Box>
+            }
+          />
         </Box>
       </Paper>
       )}
@@ -649,6 +613,7 @@ export default function IntegrationsSection({
             onChange={(next) => setOpenSignatureProvider(next)}
             connectedSet={connectedProviders}
             serviceFilter={selectedServiceId}
+            disabled
           />
         </Box>
         {providerMessage && (
@@ -989,8 +954,8 @@ export default function IntegrationsSection({
           onKeyDownCapture={blockInteraction}
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 1,
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: 1.5,
             mt: 1,
             ...DISABLED_CARDS_SX,
           }}
@@ -1000,60 +965,16 @@ export default function IntegrationsSection({
             { id: 'BEYOND', label: 'Beyond', desc: 'Algorithme propriétaire · API key' },
             { id: 'WHEELHOUSE', label: 'Wheelhouse', desc: 'Market comparison · API key' },
           ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc }) => (
-            <ServiceTooltip key={p} providerId={p} name={label}>
-            <Box
+            <ServiceGridCard
+              key={p}
+              providerId={p}
+              label={label}
+              description={desc}
               role="radio"
-              aria-checked={openPricingProvider === p}
-              tabIndex={0}
+              selected={openPricingProvider === p}
+              status={connectedPricing.has(p) ? 'connected' : 'comingSoon'}
               onClick={() => setOpenPricingProvider(p)}
-              onKeyDown={(e) => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                  e.preventDefault();
-                  setOpenPricingProvider(p);
-                }
-              }}
-              sx={{
-                position: 'relative',
-                cursor: 'pointer',
-                p: 1,
-                borderRadius: '10px',
-                border: '1px solid',
-                borderColor: openPricingProvider === p
-                  ? ACCENT
-                  : (connectedPricing.has(p) ? `${ACCENT}55` : 'divider'),
-                backgroundColor: openPricingProvider === p
-                  ? `${ACCENT}10`
-                  : (connectedPricing.has(p) ? `${ACCENT}05` : 'background.paper'),
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                minHeight: 56,
-                outline: 'none',
-                transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': {
-                  borderColor: ACCENT,
-                  backgroundColor: openPricingProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
-                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
-                },
-                '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
-              }}
-            >
-              <ProviderLogo provider={p} size={32} />
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
-                  {label}
-                </Typography>
-                <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
-                  {desc}
-                </Typography>
-              </Box>
-              {connectedPricing.has(p) && (
-                <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
-                  <CheckCircleIcon size={14} strokeWidth={2.5} />
-                </Box>
-              )}
-            </Box>
-            </ServiceTooltip>
+            />
           ))}
         </Box>
       </Paper>
@@ -1102,8 +1023,8 @@ export default function IntegrationsSection({
           onKeyDownCapture={blockInteraction}
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 1,
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: 1.5,
             mt: 1,
             ...DISABLED_CARDS_SX,
           }}
@@ -1113,60 +1034,16 @@ export default function IntegrationsSection({
             { id: 'XERO',       label: 'Xero',       desc: 'OAuth2 · leader UK/AU/NZ' },
             { id: 'SAGE',       label: 'Sage',       desc: 'OAuth2 · leader FR/Europe' },
           ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc }) => (
-            <ServiceTooltip key={p} providerId={p} name={label}>
-            <Box
+            <ServiceGridCard
+              key={p}
+              providerId={p}
+              label={label}
+              description={desc}
               role="radio"
-              aria-checked={openAccountingProvider === p}
-              tabIndex={0}
+              selected={openAccountingProvider === p}
+              status={connectedAccounting.has(p) ? 'connected' : 'comingSoon'}
               onClick={() => setOpenAccountingProvider(p)}
-              onKeyDown={(e) => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                  e.preventDefault();
-                  setOpenAccountingProvider(p);
-                }
-              }}
-              sx={{
-                position: 'relative',
-                cursor: 'pointer',
-                p: 1,
-                borderRadius: '10px',
-                border: '1px solid',
-                borderColor: openAccountingProvider === p
-                  ? ACCENT
-                  : (connectedAccounting.has(p) ? `${ACCENT}55` : 'divider'),
-                backgroundColor: openAccountingProvider === p
-                  ? `${ACCENT}10`
-                  : (connectedAccounting.has(p) ? `${ACCENT}05` : 'background.paper'),
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                minHeight: 56,
-                outline: 'none',
-                transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': {
-                  borderColor: ACCENT,
-                  backgroundColor: openAccountingProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
-                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
-                },
-                '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
-              }}
-            >
-              <ProviderLogo provider={p} size={32} />
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
-                  {label}
-                </Typography>
-                <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
-                  {desc}
-                </Typography>
-              </Box>
-              {connectedAccounting.has(p) && (
-                <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
-                  <CheckCircleIcon size={14} strokeWidth={2.5} />
-                </Box>
-              )}
-            </Box>
-            </ServiceTooltip>
+            />
           ))}
         </Box>
       </Paper>
@@ -1236,8 +1113,8 @@ export default function IntegrationsSection({
           onKeyDownCapture={blockInteraction}
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 1,
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: 1.5,
             mt: 1,
             ...DISABLED_CARDS_SX,
           }}
@@ -1247,62 +1124,17 @@ export default function IntegrationsSection({
             { id: 'POLICE_MA',  label: 'Police Maroc',        desc: 'DGSN · déclaration voyageur',   flag: '🇲🇦' },
             { id: 'ABSHER_KSA', label: 'Absher',              desc: 'MOI Arabie Saoudite · KYC',     flag: '🇸🇦' },
           ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc, flag }) => (
-            <ServiceTooltip key={p} providerId={p} name={label}>
-            <Box
+            <ServiceGridCard
+              key={p}
+              providerId={p}
+              label={label}
+              description={desc}
               role="button"
-              tabIndex={0}
+              selected={openComplianceProvider === p}
+              status={connectedCompliance.has(p) ? 'connected' : 'comingSoon'}
               onClick={() => setOpenComplianceProvider(p)}
-              onKeyDown={(e) => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                  e.preventDefault();
-                  setOpenComplianceProvider(p);
-                }
-              }}
-              sx={{
-                position: 'relative',
-                cursor: 'pointer',
-                p: 1,
-                borderRadius: '10px',
-                border: '1px solid',
-                borderColor: openComplianceProvider === p
-                  ? ACCENT
-                  : (connectedCompliance.has(p) ? `${ACCENT}55` : 'divider'),
-                backgroundColor: openComplianceProvider === p
-                  ? `${ACCENT}10`
-                  : (connectedCompliance.has(p) ? `${ACCENT}05` : 'background.paper'),
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                minHeight: 56,
-                outline: 'none',
-                transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': {
-                  borderColor: ACCENT,
-                  backgroundColor: openComplianceProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
-                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
-                },
-                '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
-              }}
-            >
-              <ProviderLogo provider={p} size={32} />
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
-                    {label}
-                  </Typography>
-                  <span aria-hidden="true" style={{ fontSize: '0.78rem' }}>{flag}</span>
-                </Box>
-                <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
-                  {desc}
-                </Typography>
-              </Box>
-              {connectedCompliance.has(p) && (
-                <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
-                  <CheckCircleIcon size={14} strokeWidth={2.5} />
-                </Box>
-              )}
-            </Box>
-            </ServiceTooltip>
+              titleAdornment={<span aria-hidden="true" style={{ fontSize: '0.85rem' }}>{flag}</span>}
+            />
           ))}
         </Box>
       </Paper>
@@ -1351,8 +1183,8 @@ export default function IntegrationsSection({
           onKeyDownCapture={blockInteraction}
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 1,
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: 1.5,
             mt: 1,
             ...DISABLED_CARDS_SX,
           }}
@@ -1362,59 +1194,16 @@ export default function IntegrationsSection({
             { id: 'VERIFF', label: 'Veriff',  desc: 'Qualité/prix · EU + MENA' },
             { id: 'ONFIDO', label: 'Onfido',  desc: 'Premium · UX exceptionnelle' },
           ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc }) => (
-            <ServiceTooltip key={p} providerId={p} name={label}>
-            <Box
+            <ServiceGridCard
+              key={p}
+              providerId={p}
+              label={label}
+              description={desc}
               role="button"
-              tabIndex={0}
+              selected={openKycProvider === p}
+              status={connectedKyc.has(p) ? 'connected' : 'comingSoon'}
               onClick={() => setOpenKycProvider(p)}
-              onKeyDown={(e) => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                  e.preventDefault();
-                  setOpenKycProvider(p);
-                }
-              }}
-              sx={{
-                position: 'relative',
-                cursor: 'pointer',
-                p: 1,
-                borderRadius: '10px',
-                border: '1px solid',
-                borderColor: openKycProvider === p
-                  ? ACCENT
-                  : (connectedKyc.has(p) ? `${ACCENT}55` : 'divider'),
-                backgroundColor: openKycProvider === p
-                  ? `${ACCENT}10`
-                  : (connectedKyc.has(p) ? `${ACCENT}05` : 'background.paper'),
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                minHeight: 56,
-                outline: 'none',
-                transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': {
-                  borderColor: ACCENT,
-                  backgroundColor: openKycProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
-                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
-                },
-                '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
-              }}
-            >
-              <ProviderLogo provider={p} size={32} />
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
-                  {label}
-                </Typography>
-                <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
-                  {desc}
-                </Typography>
-              </Box>
-              {connectedKyc.has(p) && (
-                <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
-                  <CheckCircleIcon size={14} strokeWidth={2.5} />
-                </Box>
-              )}
-            </Box>
-            </ServiceTooltip>
+            />
           ))}
         </Box>
       </Paper>
@@ -1457,8 +1246,8 @@ export default function IntegrationsSection({
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 1,
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: 1.5,
             mt: 1,
           }}
         >
@@ -1468,69 +1257,20 @@ export default function IntegrationsSection({
             { id: 'HOSTAWAY',       label: 'Hostaway',       desc: 'Focus STR · Airbnb natif',              comingSoon: true  },
             { id: 'SITEMINDER',     label: 'SiteMinder',     desc: '~250 OTAs · leader mondial',            comingSoon: true  },
           ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc, comingSoon }) => (
-            <ServiceTooltip key={p} providerId={p} name={label}>
-            <Box
+            <ServiceGridCard
+              key={p}
+              providerId={p}
+              label={label}
+              description={desc}
               role="button"
-              tabIndex={comingSoon ? -1 : 0}
-              aria-disabled={comingSoon || undefined}
+              disabled={comingSoon}
+              selected={openChannelManagerProvider === p}
+              status={comingSoon ? 'comingSoon' : (connectedChannelManager.has(p) ? 'connected' : 'idle')}
               onClick={comingSoon ? undefined : () => {
                 if (p === 'CHANNEX') setChannexDialogOpen(true);
                 else setOpenChannelManagerProvider(p);
               }}
-              onKeyDown={comingSoon ? undefined : (e) => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                  e.preventDefault();
-                  if (p === 'CHANNEX') setChannexDialogOpen(true);
-                  else setOpenChannelManagerProvider(p);
-                }
-              }}
-              sx={{
-                position: 'relative',
-                cursor: comingSoon ? 'not-allowed' : 'pointer',
-                p: 1,
-                borderRadius: '10px',
-                border: '1px solid',
-                borderColor: openChannelManagerProvider === p
-                  ? ACCENT
-                  : (connectedChannelManager.has(p) ? `${ACCENT}55` : 'divider'),
-                backgroundColor: openChannelManagerProvider === p
-                  ? `${ACCENT}10`
-                  : (connectedChannelManager.has(p) ? `${ACCENT}05` : 'background.paper'),
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                minHeight: 56,
-                opacity: comingSoon ? 0.55 : 1,
-                filter: comingSoon ? 'grayscale(0.7)' : 'none',
-                userSelect: comingSoon ? 'none' : 'auto',
-                outline: 'none',
-                transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': comingSoon ? {} : {
-                  borderColor: ACCENT,
-                  backgroundColor: openChannelManagerProvider === p ? `${ACCENT}14` : `${ACCENT}08`,
-                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 10px rgba(45, 55, 72, 0.05)',
-                },
-                '&:focus-visible': comingSoon ? {} : { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
-              }}
-            >
-              <ProviderLogo provider={p} size={32} />
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.15 }}>
-                  {label}
-                </Typography>
-                <Typography sx={{ fontSize: '0.67rem', color: 'text.secondary', lineHeight: 1.25 }}>
-                  {desc}
-                </Typography>
-              </Box>
-              {comingSoon ? (
-                <Chip label="Bientôt" size="small" sx={{ ...COMING_SOON_CHIP_SX, position: 'absolute', top: 4, right: 4 }} />
-              ) : connectedChannelManager.has(p) && (
-                <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'inline-flex', color: ACCENT }}>
-                  <CheckCircleIcon size={14} strokeWidth={2.5} />
-                </Box>
-              )}
-            </Box>
-            </ServiceTooltip>
+            />
           ))}
         </Box>
       </Paper>
