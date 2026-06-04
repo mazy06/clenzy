@@ -46,6 +46,18 @@ public class CameraStreamService {
         return publicBaseUrl + "/stream.html?src=" + streamName;
     }
 
+    /**
+     * URL de capture d'une image fixe (poster) du flux via go2rtc. go2rtc tire la source
+     * a la demande, encode une image JPEG, puis libere la source. Sert d'apercu avant lecture
+     * (evite la dalle noire). Null si pas de flux.
+     */
+    public String snapshotUrl(String streamName) {
+        if (streamName == null || streamName.isBlank()) {
+            return null;
+        }
+        return publicBaseUrl + "/api/frame.jpeg?src=" + streamName;
+    }
+
     /** Enregistre le flux cote go2rtc (best-effort). RTSP en passthrough, HTTP/HLS via ffmpeg. */
     public void registerStream(String streamName, String rtspUrl) {
         if (streamName == null || streamName.isBlank() || rtspUrl == null || rtspUrl.isBlank()) {
