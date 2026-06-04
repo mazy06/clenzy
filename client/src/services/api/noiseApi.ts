@@ -73,6 +73,22 @@ export interface TuyaDevice {
   alreadyAdded: boolean;
 }
 
+/** Statut de configuration du projet Tuya Cloud (credentials plateforme). Le secret n'est jamais renvoyé. */
+export interface TuyaConfigStatus {
+  configured: boolean;
+  accessId: string | null;
+  baseUrl: string | null;
+  region: string | null;
+}
+
+/** Payload de sauvegarde du projet Tuya. accessSecret optionnel : vide = secret inchangé. */
+export interface UpdateTuyaConfigPayload {
+  accessId: string;
+  accessSecret?: string;
+  baseUrl?: string;
+  region?: string;
+}
+
 // ─── Noise Devices API ───────────────────────────────────────────────────────
 
 export const noiseDevicesApi = {
@@ -154,6 +170,16 @@ export const minutApi = {
 // ─── Tuya API ────────────────────────────────────────────────────────────────
 
 export const tuyaApi = {
+  /** Statut de configuration du projet Tuya Cloud (credentials plateforme). */
+  getConfig() {
+    return apiClient.get<TuyaConfigStatus>('/tuya/config');
+  },
+
+  /** Enregistre les credentials du projet Tuya Cloud (depuis l'UI, stockés chiffrés en base). */
+  saveConfig(payload: UpdateTuyaConfigPayload) {
+    return apiClient.put<TuyaConfigStatus>('/tuya/config', payload);
+  },
+
   /** Configurer la connexion Tuya */
   connect() {
     return apiClient.post<{ status: string; message: string; tuya_uid?: string }>(

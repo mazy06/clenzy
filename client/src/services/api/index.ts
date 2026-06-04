@@ -132,6 +132,8 @@ export type {
   NoiseChartDataDto,
   MinutConnectionStatus,
   TuyaConnectionStatus,
+  TuyaConfigStatus,
+  UpdateTuyaConfigPayload,
 } from './noiseApi';
 
 export { noiseAlertConfigApi, noiseAlertsApi } from './noiseAlertApi';

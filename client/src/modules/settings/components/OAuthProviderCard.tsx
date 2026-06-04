@@ -7,6 +7,8 @@ import {
   Chip,
   CircularProgress,
   Alert,
+  IconButton,
+  Tooltip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -20,6 +22,7 @@ import {
   LinkOff as LinkOffIcon,
 } from '../../../icons';
 import ProviderLogo, { type ProviderId } from './ProviderLogos';
+import ServiceTooltip from './ServiceTooltip';
 
 /**
  * Card generique pour les providers de signature electronique en OAuth2
@@ -69,6 +72,14 @@ interface OAuthProviderCardProps {
   api: OAuthApiAdapter;
   /** Notifie le parent du statut de connexion (load / connect / disconnect). */
   onStatusChange?: (connected: boolean) => void;
+  /** Action secondaire optionnelle (icône) rendue à gauche du bouton d'action principal. */
+  secondaryAction?: React.ReactNode;
+  /** Clé SERVICE_TOOLTIPS : enveloppe la zone descriptive d'un tooltip riche (détails du service). */
+  serviceTooltipId?: string;
+  /** Désactive le bouton de connexion (ex: prérequis manquant) ; le motif est porté par le tooltip. */
+  mainActionDisabled?: boolean;
+  /** Motif de désactivation affiché en tooltip sur le bouton de connexion. */
+  mainActionDisabledReason?: string;
   /** Texte i18n eventuel (fallback inline si absent). */
   labels?: {
     connectedAt?: string;
@@ -104,6 +115,10 @@ export default function OAuthProviderCard({
   description,
   api,
   onStatusChange,
+  secondaryAction,
+  mainActionDisabled,
+  mainActionDisabledReason,
+  serviceTooltipId,
   labels = {},
 }: OAuthProviderCardProps) {
   const [status, setStatus] = useState<OAuthCardStatus | null>(null);
@@ -220,6 +235,67 @@ export default function OAuthProviderCard({
     />
   );
 
+  const connectTooltip = mainActionDisabled
+    ? (mainActionDisabledReason ?? `Action indisponible pour ${label}.`)
+    : (labels.connect ?? `Se connecter via ${label}`);
+
+  // Bouton d'action principal en icône seule (libellé porté par le tooltip).
+  const mainAction = notConfigured ? null : isConnected ? (
+    <Tooltip title={labels.disconnect ?? `Déconnecter ${label}`} arrow>
+      <span>
+        <IconButton
+          size="small"
+          onClick={() => setDisconnectOpen(true)}
+          disabled={actionLoading}
+          aria-label={labels.disconnect ?? `Déconnecter ${label}`}
+          sx={{ color: 'text.secondary', '&:hover': { color: '#C97A7A', bgcolor: '#C97A7A14' } }}
+        >
+          <LinkOffIcon size={16} strokeWidth={2} />
+        </IconButton>
+      </span>
+    </Tooltip>
+  ) : (
+    <Tooltip title={connectTooltip} arrow>
+      <span>
+        <IconButton
+          size="small"
+          onClick={handleConnect}
+          disabled={actionLoading || mainActionDisabled}
+          aria-label={connectTooltip}
+          sx={{ color: ACCENT, '&:hover': { bgcolor: `${ACCENT}14` } }}
+        >
+          {actionLoading
+            ? <CircularProgress size={16} sx={{ color: ACCENT }} />
+            : <LinkIcon size={16} strokeWidth={2} />}
+        </IconButton>
+      </span>
+    </Tooltip>
+  );
+
+  // Zone descriptive (logo + titre + statut + description). C'est l'ancre du tooltip riche du service,
+  // tenue à l'écart des boutons (frères) pour qu'aucun tooltip ne s'imbrique.
+  const infoZone = (
+    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1, minWidth: 0 }}>
+      <ProviderLogo provider={providerId} size={40} muted={notConfigured} />
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>{label}</Typography>
+          {statusChip}
+        </Box>
+        <Typography
+          noWrap
+          sx={{
+            fontSize: '0.72rem',
+            color: 'text.secondary',
+            mt: 0.25,
+          }}
+        >
+          {description}
+        </Typography>
+      </Box>
+    </Box>
+  );
+
   return (
     <Paper
       elevation={0}
@@ -236,107 +312,31 @@ export default function OAuthProviderCard({
         },
       }}
     >
-      {/* Header */}
-      <Box
-        sx={{
-          px: 2,
-          py: 1.75,
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1.5,
-          borderBottom: isConnected ? '1px solid' : undefined,
-          borderColor: 'divider',
-        }}
-      >
-        <ProviderLogo provider={providerId} size={40} muted={notConfigured} />
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>{label}</Typography>
-            {statusChip}
-          </Box>
-          <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.25 }}>
-            {description}
-          </Typography>
+      {/* Carte compacte : zone descriptive (tooltip riche du service) + actions en icônes à droite. */}
+      <Box sx={{ px: 2, py: 1.75, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+        {serviceTooltipId ? (
+          <ServiceTooltip providerId={serviceTooltipId} name={label}>{infoZone}</ServiceTooltip>
+        ) : (
+          infoZone
+        )}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
+          {secondaryAction}
+          {mainAction}
         </Box>
       </Box>
 
-      {/* Body */}
-      <Box sx={{ px: 2, py: 1.75 }}>
-        {notConfigured ? (
-          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-            {labels.notConfiguredHelp ??
-              `${label} n'est pas configuré sur cet environnement. Contactez l'administrateur Baitly pour activer l'intégration.`}
-          </Typography>
-        ) : isConnected ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {status?.connectedAt && (
-              <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-                <strong>Connecté le :</strong>{' '}
-                {new Date(status.connectedAt).toLocaleString('fr-FR')}
-              </Typography>
-            )}
-            {status?.scopes && (
-              <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
-                <strong>Scopes :</strong> {status.scopes}
-              </Typography>
-            )}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<LinkOffIcon size={14} strokeWidth={2} />}
-                onClick={() => setDisconnectOpen(true)}
-                disabled={actionLoading}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.78rem',
-                  borderRadius: '8px',
-                  py: 0.625,
-                  px: 1.5,
-                }}
-              >
-                {labels.disconnect ?? 'Déconnecter'}
-              </Button>
-            </Box>
-          </Box>
-        ) : (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<LinkIcon size={14} strokeWidth={2} />}
-              onClick={handleConnect}
-              disabled={actionLoading}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '0.78rem',
-                bgcolor: ACCENT,
-                color: '#fff',
-                borderRadius: '8px',
-                py: 0.625,
-                px: 1.5,
-                boxShadow: 'none',
-                '&:hover': { bgcolor: ACCENT, filter: 'brightness(0.94)' },
-              }}
-            >
-              {actionLoading ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : (labels.connect ?? `Se connecter via ${label}`)}
-            </Button>
-          </Box>
-        )}
-
-        {message && (
+      {message && (
+        <Box sx={{ px: 2, pb: 1.5, mt: -0.5 }}>
           <Alert
             severity={message.type}
             variant="outlined"
-            sx={{ mt: 1.5, borderRadius: '8px', fontSize: '0.75rem', py: 0.25 }}
+            sx={{ borderRadius: '8px', fontSize: '0.75rem', py: 0.25 }}
             onClose={() => setMessage(null)}
           >
             {message.text}
           </Alert>
-        )}
-      </Box>
+        </Box>
+      )}
 
       {/* Dialog confirmation */}
       <Dialog open={disconnectOpen} onClose={() => setDisconnectOpen(false)}>

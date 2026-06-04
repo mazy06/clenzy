@@ -1716,3 +1716,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Config plateforme Tuya editable depuis l'UI (credentials projet Tuya, secret chiffre).
+  - changeSet:
+      id: "0177-create-tuya-platform-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0177__create_tuya_platform_config.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
