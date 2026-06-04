@@ -28,6 +28,8 @@ public class NoiseAlertNotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NoiseAlertNotificationService.class);
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
+    /** Nom Meta du template alerte bruit (cf. whatsapp-templates/noise_alert.yaml). */
+    private static final String NOISE_ALERT_TEMPLATE = "clenzy_noise_alert_v1";
 
     private final NotificationService notificationService;
     private final EmailService emailService;
@@ -272,19 +274,44 @@ public class NoiseAlertNotificationService {
             }
 
             String guestName = guest.getFullName() != null ? guest.getFullName() : "Cher voyageur";
-            String body = String.format(
-                "Bonjour %s, un niveau sonore eleve (%.0f dB, seuil %d dB) a ete detecte au logement "
-                + "\"%s\". Merci de veiller a preserver le calme afin de ne pas gener le voisinage.",
-                guestName, alert.getMeasuredDb(), alert.getThresholdDb(), propertyName);
-
             WhatsAppProvider provider = whatsAppProviderResolver.resolve(waConfig);
-            provider.sendTextMessage(waConfig, guest.getPhone(), body);
+            List<String> templateParams = List.of(
+                guestName,
+                String.format("%.0f", alert.getMeasuredDb()),
+                String.valueOf(alert.getThresholdDb()),
+                propertyName);
+
+            try {
+                // Template approuve Meta (obligatoire hors fenetre 24h), variables {{1}}..{{4}}.
+                provider.sendTemplateMessage(waConfig, guest.getPhone(),
+                    NOISE_ALERT_TEMPLATE, toMetaLocale(guest.getLanguage()), templateParams);
+            } catch (UnsupportedOperationException templateNotSupported) {
+                // Provider sans templates Meta (OpenWA) : repli sur texte libre.
+                String body = String.format(
+                    "Bonjour %s, un niveau sonore eleve (%.0f dB, seuil %d dB) a ete detecte au logement "
+                    + "\"%s\". Merci de veiller a preserver le calme afin de ne pas gener le voisinage.",
+                    guestName, alert.getMeasuredDb(), alert.getThresholdDb(), propertyName);
+                provider.sendTextMessage(waConfig, guest.getPhone(), body);
+            }
             alert.setNotifiedWhatsapp(true);
             log.info("WhatsApp voyageur envoye (Meta) pour alerte {} (reservation {})",
                 alert.getId(), reservation.getId());
         } catch (Exception e) {
             log.error("Erreur WhatsApp voyageur pour alerte {}: {}", alert.getId(), e.getMessage());
         }
+    }
+
+    /**
+     * Mappe la langue guest (fr/en/ar) vers la locale Meta (fr_FR/en_US/ar_AR).
+     * Defaut fr_FR.
+     */
+    private static String toMetaLocale(String language) {
+        if (language == null) return "fr_FR";
+        return switch (language.toLowerCase()) {
+            case "en" -> "en_US";
+            case "ar" -> "ar_AR";
+            default -> "fr_FR";
+        };
     }
 
 }

@@ -335,13 +335,6 @@
             <version>7.14.0</version>
         </dependency>
 
-        <!-- Twilio — SMS & WhatsApp messaging -->
-        <dependency>
-            <groupId>com.twilio.sdk</groupId>
-            <artifactId>twilio</artifactId>
-            <version>10.1.0</version>
-        </dependency>
-
         <!-- Jsoup — HTML parsing for AI design analysis (website fetching) -->
         <dependency>
             <groupId>org.jsoup</groupId>

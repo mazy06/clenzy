@@ -22,10 +22,10 @@ class WhatsAppTemplateLoaderTest {
     }
 
     @Test
-    void load_chargesLes5TemplatesStandards() {
-        // Verifie qu'on a bien les 5 templates Clenzy de base, dans les 3 langues.
+    void load_chargesLes6TemplatesStandards() {
+        // Verifie qu'on a bien les 6 templates Clenzy de base, dans les 3 langues.
         // Toute modification (ajout/retrait) d'un YAML doit etre intentionnelle.
-        assertThat(loader.getAllTemplates()).hasSize(5);
+        assertThat(loader.getAllTemplates()).hasSize(6);
 
         // Verifie les cles attendues
         assertThat(loader.getAllTemplates())
@@ -35,7 +35,8 @@ class WhatsAppTemplateLoaderTest {
                 "checkin_instructions",
                 "arrival_code",
                 "checkout_reminder",
-                "review_request"
+                "review_request",
+                "noise_alert"
             );
 
         // Tous les templates doivent etre UTILITY (pas MARKETING en v1)
@@ -133,8 +134,8 @@ class WhatsAppTemplateLoaderTest {
         WhatsAppTemplateLoader dbLoader = new WhatsAppTemplateLoader(repo, converter);
         dbLoader.load();
 
-        // Falls back to YAML — same 5 standard templates
-        assertThat(dbLoader.getAllTemplates()).hasSize(5);
+        // Falls back to YAML — same 6 standard templates
+        assertThat(dbLoader.getAllTemplates()).hasSize(6);
     }
 
     @Test
@@ -146,7 +147,7 @@ class WhatsAppTemplateLoaderTest {
         WhatsAppTemplateLoader dbLoader = new WhatsAppTemplateLoader(repo, converter);
         dbLoader.load();
 
-        assertThat(dbLoader.getAllTemplates()).hasSize(5);
+        assertThat(dbLoader.getAllTemplates()).hasSize(6);
     }
 
     @Test

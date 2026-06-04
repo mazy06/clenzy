@@ -250,7 +250,9 @@ class NoiseAlertNotificationServiceTest {
 
         service.dispatch(alert, config);
 
-        verify(whatsAppProvider).sendTextMessage(any(WhatsAppConfig.class), eq("+33612345678"), anyString());
+        verify(whatsAppProvider).sendTemplateMessage(
+            any(WhatsAppConfig.class), eq("+33612345678"), eq("clenzy_noise_alert_v1"), anyString(), anyList());
+        verify(whatsAppProvider, never()).sendTextMessage(any(), anyString(), anyString());
         assertTrue(alert.isNotifiedWhatsapp());
     }
 
@@ -272,7 +274,7 @@ class NoiseAlertNotificationServiceTest {
 
         service.dispatch(alert, config);
 
-        verify(whatsAppProvider, never()).sendTextMessage(any(), anyString(), anyString());
+        verify(whatsAppProvider, never()).sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList());
     }
 
     @Test
@@ -298,7 +300,35 @@ class NoiseAlertNotificationServiceTest {
         // Ne doit pas lever : WhatsApp est simplement ignore.
         service.dispatch(alert, config);
 
+        verify(whatsAppProvider, never()).sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList());
         verify(whatsAppProvider, never()).sendTextMessage(any(), anyString(), anyString());
         assertFalse(alert.isNotifiedWhatsapp());
+    }
+
+    @Test
+    void whenProviderDoesNotSupportTemplates_thenFallsBackToText() {
+        config.setNotifyInApp(false);
+        config.setNotifyEmail(false);
+        config.setNotifyGuestMessage(true);
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+
+        Guest guest = new Guest();
+        guest.setFirstName("Marie");
+        guest.setPhone("+33612345678");
+
+        Reservation reservation = new Reservation();
+        reservation.setId(50L);
+        reservation.setGuest(guest);
+
+        when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
+            .thenReturn(Optional.of(reservation));
+        // Provider type OpenWA : les templates Meta ne sont pas supportes -> fallback texte.
+        when(whatsAppProvider.sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList()))
+            .thenThrow(new UnsupportedOperationException("OpenWA"));
+
+        service.dispatch(alert, config);
+
+        verify(whatsAppProvider).sendTextMessage(any(), eq("+33612345678"), anyString());
+        assertTrue(alert.isNotifiedWhatsapp());
     }
 }

@@ -229,6 +229,25 @@ class MetaWhatsAppProviderTest {
         }
 
         @Test
+        @DisplayName("builds body component parameters when variables provided")
+        void payloadContainsParameters() {
+            String body = "{\"messages\":[{\"id\":\"x\"}]}";
+            ArgumentCaptor<HttpEntity<String>> captor = captor();
+            when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(String.class)))
+                .thenReturn(new ResponseEntity<>(body, HttpStatus.OK));
+
+            provider.sendTemplateMessage(newConfig(), "+33", "clenzy_noise_alert_v1", "fr_FR",
+                java.util.List.of("Marie", "75", "70", "Studio Paris"));
+
+            String sent = captor.getValue().getBody();
+            assertThat(sent).contains("\"name\":\"clenzy_noise_alert_v1\"");
+            assertThat(sent).contains("\"components\"");
+            assertThat(sent).contains("\"type\":\"body\"");
+            assertThat(sent).contains("\"text\":\"Marie\"");
+            assertThat(sent).contains("\"text\":\"Studio Paris\"");
+        }
+
+        @Test
         @DisplayName("throws on non-2xx response")
         void non2xx_throws() {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
