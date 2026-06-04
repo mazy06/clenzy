@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Box, TextField, MenuItem, Alert, CircularProgress, Typography } from '@mui/material';
 import { tuyaApi } from '../../../services/api';
+import DevicePairingGuide from './DevicePairingGuide';
 
 interface TuyaDevicePickerProps {
   /** Filtre par catégorie Tuya (ex: 'sp' caméra, 'wk' thermostat). Si le filtre ne ramène rien, on montre tout. */
@@ -16,7 +17,7 @@ interface TuyaDevicePickerProps {
  * (listOrgDevices). NON VALIDÉ faute de compte Tuya réel.
  */
 export default function TuyaDevicePicker({ category, selectedId, onSelect }: TuyaDevicePickerProps) {
-  const { data: devices = [], isLoading, isError } = useQuery({
+  const { data: devices = [], isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['tuya-devices'],
     queryFn: () => tuyaApi.listDevices(),
     staleTime: 30_000,
@@ -43,7 +44,12 @@ export default function TuyaDevicePicker({ category, selectedId, onSelect }: Tuy
   const list = filtered.length > 0 ? filtered : devices; // repli : montre tout si le filtre ne ramène rien
 
   if (list.length === 0) {
-    return <Alert severity="info" sx={{ py: 0.25 }}>Aucun appareil trouvé sur le compte Tuya relié.</Alert>;
+    return (
+      <Box>
+        <Alert severity="info" sx={{ py: 0.25 }}>Aucun appareil trouvé sur le compte Tuya relié.</Alert>
+        <DevicePairingGuide onRefresh={() => { void refetch(); }} refreshing={isFetching} />
+      </Box>
+    );
   }
 
   return (
