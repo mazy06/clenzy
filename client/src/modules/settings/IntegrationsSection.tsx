@@ -32,6 +32,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import ApiKeyProviderCard from './components/ApiKeyProviderCard';
 import SignatureProviderCards from './components/SignatureProviderCards';
 import OAuthProviderCard from './components/OAuthProviderCard';
+import IoTServicesSection from './components/IoTServicesSection';
 import PricingProviderCard from './components/PricingProviderCard';
 import ProviderLogo from './components/ProviderLogos';
 import IntegrationConfigDialog from './components/IntegrationConfigDialog';
@@ -1626,15 +1627,9 @@ export default function IntegrationsSection({
           />
         </Box>
       )}
-      {showSection('smart_locks_iot') && (
+      {(showSection('smart_locks_iot') || showSection('noise_monitoring')) && (
         <Box id="section-smart-locks" sx={{ scrollMarginTop: 80 }}>
-          <ServiceCatalogSection
-            disabled
-            serviceFilter={selectedServiceId}
-            category="smart_locks_iot"
-            title="Serrures connectées & IoT"
-            description="Serrures Bluetooth, thermostats, capteurs. Codes guests dynamiques, économies énergie, supervision à distance."
-          />
+          <IoTServicesSection />
         </Box>
       )}
       {showSection('key_management') && (
@@ -1645,17 +1640,6 @@ export default function IntegrationsSection({
             category="key_management"
             title="Gestion des clés"
             description="Réseaux de gardiens de clés pour les logements sans serrure connectée. Solution propriétaire Baitly ou partenaires externes."
-          />
-        </Box>
-      )}
-      {showSection('noise_monitoring') && (
-        <Box id="section-noise" sx={{ scrollMarginTop: 80 }}>
-          <ServiceCatalogSection
-            disabled
-            serviceFilter={selectedServiceId}
-            category="noise_monitoring"
-            title="Monitoring sonore"
-            description="Surveillez le niveau de bruit en temps réel pour prévenir les nuisances et protéger vos relations de voisinage. Hardware Baitly ou capteur partenaire."
           />
         </Box>
       )}
