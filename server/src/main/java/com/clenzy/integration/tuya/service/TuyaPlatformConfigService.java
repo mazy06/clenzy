@@ -23,7 +23,7 @@ public class TuyaPlatformConfigService {
     private volatile boolean loaded;
 
     private record Creds(String accessId, String accessSecret, String baseUrl, String region, String appSchema,
-                         String appKey, String appSecret) {}
+                         String appKey, String appSecret, String androidAppKey, String androidAppSecret) {}
 
     public TuyaPlatformConfigService(TuyaPlatformConfigRepository repository,
                                      TokenEncryptionService encryptionService) {
@@ -48,8 +48,10 @@ public class TuyaPlatformConfigService {
                 ? null : encryptionService.decrypt(c.getAccessSecretEncrypted());
         String appSecret = c.getAppSecretEncrypted() == null || c.getAppSecretEncrypted().isBlank()
                 ? null : encryptionService.decrypt(c.getAppSecretEncrypted());
+        String androidAppSecret = c.getAndroidAppSecretEncrypted() == null || c.getAndroidAppSecretEncrypted().isBlank()
+                ? null : encryptionService.decrypt(c.getAndroidAppSecretEncrypted());
         return new Creds(c.getAccessId(), secret, c.getBaseUrl(), c.getRegion(), c.getAppSchema(),
-                c.getAppKey(), appSecret);
+                c.getAppKey(), appSecret, c.getAndroidAppKey(), androidAppSecret);
     }
 
     public String getAccessId() { Creds c = current(); return c == null ? null : c.accessId(); }
@@ -59,6 +61,8 @@ public class TuyaPlatformConfigService {
     public String getAppSchema() { Creds c = current(); return c == null ? null : c.appSchema(); }
     public String getAppKey() { Creds c = current(); return c == null ? null : c.appKey(); }
     public String getAppSecret() { Creds c = current(); return c == null ? null : c.appSecret(); }
+    public String getAndroidAppKey() { Creds c = current(); return c == null ? null : c.androidAppKey(); }
+    public String getAndroidAppSecret() { Creds c = current(); return c == null ? null : c.androidAppSecret(); }
 
     public boolean isConfigured() {
         Creds c = current();
@@ -80,6 +84,10 @@ public class TuyaPlatformConfigService {
         if (notBlank(dto.appKey())) c.setAppKey(dto.appKey().trim());
         if (notBlank(dto.appSecret())) {
             c.setAppSecretEncrypted(encryptionService.encrypt(dto.appSecret().trim()));
+        }
+        if (notBlank(dto.androidAppKey())) c.setAndroidAppKey(dto.androidAppKey().trim());
+        if (notBlank(dto.androidAppSecret())) {
+            c.setAndroidAppSecretEncrypted(encryptionService.encrypt(dto.androidAppSecret().trim()));
         }
         c.setUpdatedBy(updatedBy);
         repository.save(c);

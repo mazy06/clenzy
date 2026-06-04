@@ -39,3 +39,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Tuya App SDK binaries (vendored localement pour le build natif — PAS commite :
+# trop volumineux, gere via CocoaPods/Maven + EAS). Seuls README.md + .gitkeep versionnes.
+modules/tuya-pairing/vendor/ios/*
+modules/tuya-pairing/vendor/android/*
+!modules/tuya-pairing/vendor/ios/.gitkeep
+!modules/tuya-pairing/vendor/android/.gitkeep

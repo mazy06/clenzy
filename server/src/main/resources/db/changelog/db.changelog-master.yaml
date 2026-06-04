@@ -1746,3 +1746,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Cles Android distinctes de l'App SDK Tuya (iOS et Android ont des couples differents).
+  - changeSet:
+      id: "0180-tuya-android-app-sdk-keys"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0180__tuya_android_app_sdk_keys.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
