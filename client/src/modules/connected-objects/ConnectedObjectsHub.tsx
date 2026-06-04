@@ -34,6 +34,8 @@ export default function ConnectedObjectsHub() {
   // Services reliés : statut réel des providers (backend), repli présence sinon.
   // On masque le bruit (provider ni connecté ni porteur d'objets).
   const visibleProviders = providers.filter((p) => p.connected || p.deviceCount > 0);
+  // Au moins un service relié → l'invite passe de « connecter un service » à « ajouter un objet ».
+  const hasConnectedService = providers.some((p) => p.connected);
 
   // Types présents → options du filtre.
   const kindsPresent = useMemo(() => {
@@ -106,7 +108,7 @@ export default function ConnectedObjectsHub() {
             );
           })
         )}
-        <Button variant="text" size="small" endIcon={<ChevronRight size={14} strokeWidth={1.75} />} onClick={() => navigate('/settings')} sx={{ ml: 'auto', color: 'text.secondary' }}>
+        <Button variant="text" size="small" endIcon={<ChevronRight size={14} strokeWidth={1.75} />} onClick={() => navigate('/settings?tab=integrations')} sx={{ ml: 'auto', color: 'text.secondary' }}>
           Gérer les intégrations
         </Button>
       </Paper>
@@ -150,8 +152,12 @@ export default function ConnectedObjectsHub() {
         <EmptyState
           icon={<Inventory2 />}
           title="Aucun objet connecté pour l'instant"
-          description="Reliez un service (Nuki, Minut, Tuya, KeyNest…) puis ajoutez vos serrures, capteurs et points de remise — ils apparaîtront ici, regroupés par logement."
-          action={<Button variant="outlined" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => navigate('/settings')}>Connecter un service</Button>}
+          description={hasConnectedService
+            ? "Vos services sont reliés — ajoutez vos serrures, caméras, capteurs et points de remise : ils apparaîtront ici, regroupés par logement."
+            : "Reliez un service (Nuki, Minut, Tuya, KeyNest…) puis ajoutez vos serrures, capteurs et points de remise — ils apparaîtront ici, regroupés par logement."}
+          action={hasConnectedService
+            ? <Button variant="contained" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>Ajouter un objet</Button>
+            : <Button variant="outlined" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => navigate('/settings?tab=integrations')}>Connecter un service</Button>}
           tip="Un seul écran pour tout superviser : verrouillage à distance, niveau sonore, batteries et codes de clés."
         />
       ) : (
