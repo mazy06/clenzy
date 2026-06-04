@@ -164,6 +164,12 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                 value={rtspUrl} onChange={(e) => setRtspUrl(e.target.value)}
               />
             )}
+            {kind === 'camera' && /^https?:\/\//i.test(rtspUrl.trim()) && (
+              <Alert severity="warning" sx={{ py: 0.25 }}>
+                URL HTTP/HLS : <strong>transcodée</strong> côté serveur (CPU, qualité réduite, latence) — à réserver au test.
+                Préférez une URL <strong>RTSP</strong> pour une lecture directe et fluide.
+              </Alert>
+            )}
             {(kind === 'lock' || kind === 'noise' || kind === 'thermostat') && (
               <TextField
                 fullWidth size="small" label="Identifiant externe (optionnel)"
