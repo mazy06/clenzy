@@ -50,6 +50,7 @@ public class TuyaController {
     @PostMapping("/connect")
     @Operation(summary = "Configurer la connexion Tuya",
             description = "Teste la connexion avec les credentials du projet et enregistre le token")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
     public ResponseEntity<Map<String, Object>> connect(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
 
@@ -81,6 +82,7 @@ public class TuyaController {
     @PostMapping("/disconnect")
     @Operation(summary = "Deconnecter le compte Tuya",
             description = "Revoque la connexion Tuya")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
     public ResponseEntity<Map<String, String>> disconnect(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
 
