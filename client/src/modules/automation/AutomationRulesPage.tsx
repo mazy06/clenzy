@@ -18,6 +18,7 @@ import {
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import ConfirmationModal from '../../components/ConfirmationModal';
+import ConditionsEditor from './ConditionsEditor';
 import { useTranslation } from '../../hooks/useTranslation';
 import { SPACING } from '../../theme/spacing';
 import {
@@ -401,17 +402,9 @@ const AutomationRulesPage: React.FC = () => {
             </Select>
           </FormControl>
 
-          <TextField
-            label={t('automation.form.conditions', 'Conditions (JSON, optionnel)')}
-            size="small"
-            fullWidth
-            multiline
-            rows={2}
-            value={formData.conditions ?? ''}
-            onChange={(e) => setFormData({ ...formData, conditions: e.target.value || undefined })}
-            InputProps={{ sx: { fontSize: '0.75rem', fontFamily: 'monospace' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-            placeholder='{"minNights": 3}'
+          <ConditionsEditor
+            value={formData.conditions ?? undefined}
+            onChange={(conditions) => setFormData({ ...formData, conditions })}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
