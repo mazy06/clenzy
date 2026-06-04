@@ -6,6 +6,7 @@ import com.clenzy.integration.tuya.dto.TuyaConfigStatusDto;
 import com.clenzy.integration.tuya.dto.UpdateTuyaConfigDto;
 import com.clenzy.integration.tuya.model.TuyaConnection;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.integration.tuya.service.TuyaAppAccountService;
 import com.clenzy.integration.tuya.service.TuyaPlatformConfigService;
 import com.clenzy.model.NoiseDevice;
 import com.clenzy.repository.NoiseDeviceRepository;
@@ -33,13 +34,14 @@ class TuyaControllerTest {
     @Mock private NoiseDeviceRepository noiseDeviceRepository;
     @Mock private TuyaConfig tuyaConfig;
     @Mock private TuyaPlatformConfigService platformConfigService;
+    @Mock private TuyaAppAccountService appAccountService;
 
     private TuyaController controller;
     private Jwt jwt;
 
     @BeforeEach
     void setUp() {
-        controller = new TuyaController(apiService, noiseDeviceRepository, tuyaConfig, platformConfigService);
+        controller = new TuyaController(apiService, noiseDeviceRepository, tuyaConfig, platformConfigService, appAccountService);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")
@@ -399,11 +401,11 @@ class TuyaControllerTest {
 
             // Act
             ResponseEntity<?> response = controller.updateConfig(jwt,
-                    new UpdateTuyaConfigDto("new-id", "new-secret", null, null));
+                    new UpdateTuyaConfigDto("new-id", "new-secret", null, null, null));
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            verify(platformConfigService).save("new-id", "new-secret", null, null, "user-123");
+            verify(platformConfigService).save("new-id", "new-secret", null, null, null, "user-123");
         }
 
         @Test
@@ -411,7 +413,7 @@ class TuyaControllerTest {
         void updateConfig_rejectsBlankAccessId() {
             // Act
             ResponseEntity<?> response = controller.updateConfig(jwt,
-                    new UpdateTuyaConfigDto("  ", "secret", null, null));
+                    new UpdateTuyaConfigDto("  ", "secret", null, null, null));
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
