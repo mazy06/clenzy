@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Box, Typography, Button, Skeleton } from '@mui/material';
 import { Thermostat, Add, Home } from '../../../icons';
@@ -8,6 +8,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { thermostatsApi, type ThermostatDto } from '../../../services/api/thermostatsApi';
 import AddDeviceWizard from '../components/AddDeviceWizard';
 import ThermostatTile from './ThermostatTile';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 
 const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 1.25 } as const;
 
@@ -20,6 +21,9 @@ export default function ThermostatsScreen() {
   const qc = useQueryClient();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [actingId, setActingId] = useState<number | null>(null);
+  // Suppression : thermostat en attente de confirmation (modal réutilisable) + état en cours.
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: thermostats = [], isLoading } = useQuery({
     queryKey: ['thermostats'],
@@ -29,11 +33,24 @@ export default function ThermostatsScreen() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['thermostats'] });
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Supprimer ce thermostat ?')) return;
-    setActingId(id);
-    try { await thermostatsApi.delete(id); await invalidate(); } finally { setActingId(null); }
-  };
+  const requestDelete = useCallback((id: number) => setPendingDeleteId(id), []);
+
+  const pendingThermostat = useMemo(
+    () => thermostats.find((th) => th.id === pendingDeleteId) ?? null,
+    [thermostats, pendingDeleteId],
+  );
+
+  const confirmDelete = useCallback(async () => {
+    if (pendingDeleteId == null) return;
+    setDeleting(true);
+    try {
+      await thermostatsApi.delete(pendingDeleteId);
+      await qc.invalidateQueries({ queryKey: ['thermostats'] });
+      setPendingDeleteId(null);
+    } finally {
+      setDeleting(false);
+    }
+  }, [pendingDeleteId, qc]);
 
   const handleSetTarget = async (id: number, targetTempC: number) => {
     setActingId(id);
@@ -89,7 +106,7 @@ export default function ThermostatsScreen() {
             </Box>
             <Box sx={GRID}>
               {items.map((th) => (
-                <ThermostatTile key={th.id} thermostat={th} onSetTarget={handleSetTarget} onDelete={handleDelete} acting={actingId === th.id} />
+                <ThermostatTile key={th.id} thermostat={th} onSetTarget={handleSetTarget} onDelete={requestDelete} acting={actingId === th.id || (deleting && pendingDeleteId === th.id)} />
               ))}
             </Box>
           </Box>
@@ -97,6 +114,19 @@ export default function ThermostatsScreen() {
       )}
 
       <AddDeviceWizard open={wizardOpen} onClose={() => setWizardOpen(false)} onAdded={invalidate} defaultKind="thermostat" />
+
+      <ConfirmationModal
+        open={pendingDeleteId != null}
+        onClose={() => setPendingDeleteId(null)}
+        onConfirm={confirmDelete}
+        title="Supprimer le thermostat"
+        message={pendingThermostat
+          ? `Supprimer définitivement le thermostat « ${pendingThermostat.name} » ? Cette action est irréversible.`
+          : 'Supprimer définitivement ce thermostat ? Cette action est irréversible.'}
+        confirmText="Supprimer"
+        severity="error"
+        loading={deleting}
+      />
     </Box>
   );
 }
