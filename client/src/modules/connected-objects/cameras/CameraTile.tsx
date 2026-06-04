@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { memo, useRef } from 'react';
 import { Box, Typography, Chip, Tooltip, IconButton, alpha } from '@mui/material';
-import { PlayArrow, FiberManualRecord, Fullscreen, WifiOff, PhotoCamera, Delete } from '../../../icons';
+import { PlayArrow, StopCircle, FiberManualRecord, Fullscreen, WifiOff, PhotoCamera, Delete } from '../../../icons';
 import type { CameraDto } from '../../../services/api/camerasApi';
 
 const ACCENT = '#C97A7A'; // argile Baitly (couleur du type « caméra »)
@@ -8,17 +8,24 @@ const FEED_BG = '#10171C'; // surface « feed » très sombre, tintée bleu-gris
 
 interface CameraTileProps {
   camera: CameraDto;
+  /** Lecture active — pilotée par le parent : une seule caméra lit à la fois. */
+  active: boolean;
+  /** Bascule lecture/arrêt de cette caméra. */
+  onToggle: (id: number) => void;
   onDelete?: (id: number) => void;
   acting?: boolean;
 }
 
 /**
  * Tuile caméra — surface « feed » 16:9. Lecture WebRTC À LA DEMANDE (jamais d'autoplay)
- * via la passerelle media go2rtc (iframe stream.html). Branchee sur les vraies
- * cameras (CameraDto).
+ * via la passerelle media go2rtc (iframe stream.html).
+ *
+ * L'état de lecture est piloté par le parent : <b>une seule caméra lit à la fois</b>
+ * (perf + scalabilité multi-tenant — chaque iframe = une connexion WebRTC + une source
+ * go2rtc maintenue active côté serveur). Démonter l'iframe ferme la connexion et libère
+ * la source. Mémoïsée : seules les tuiles dont une prop change re-rendent à chaque bascule.
  */
-export default function CameraTile({ camera, onDelete, acting = false }: CameraTileProps) {
-  const [streaming, setStreaming] = useState(false);
+function CameraTile({ camera, active, onToggle, onDelete, acting = false }: CameraTileProps) {
   const feedRef = useRef<HTMLDivElement>(null);
   const { id, name, roomName, brand, online, recording } = camera;
 
@@ -35,9 +42,9 @@ export default function CameraTile({ camera, onDelete, acting = false }: CameraT
         ref={feedRef}
         role={online ? 'button' : undefined}
         tabIndex={online ? 0 : undefined}
-        onClick={() => online && setStreaming((s) => !s)}
+        onClick={() => online && onToggle(id)}
         onKeyDown={(e) => {
-          if (online && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setStreaming((s) => !s); }
+          if (online && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onToggle(id); }
         }}
         sx={{
           position: 'relative', aspectRatio: '16 / 9', bgcolor: FEED_BG,
@@ -67,7 +74,7 @@ export default function CameraTile({ camera, onDelete, acting = false }: CameraT
 
         {/* Centre : play à la demande / état flux / injoignable */}
         {online ? (
-          streaming ? (
+          active ? (
             camera.webrtcUrl ? (
               <Box
                 component="iframe"
@@ -111,11 +118,23 @@ export default function CameraTile({ camera, onDelete, acting = false }: CameraT
         <Box component="span" sx={{ color: ACCENT, display: 'inline-flex' }}><PhotoCamera size={14} strokeWidth={1.75} /></Box>
         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>{brand || 'Caméra'}</Typography>
         <Box sx={{ ml: 'auto', display: 'flex', gap: 0.25 }}>
-          <Tooltip title={streaming ? 'Plein écran' : 'Lance la lecture pour le plein écran'} arrow>
+          {/* Lecture/Arrêt — contrôle fiable au-dessus de l'iframe (le clic sur le feed est capté par l'iframe une fois lancée). */}
+          {online && (
+            <Tooltip title={active ? 'Arrêter la lecture' : 'Lancer la lecture'} arrow>
+              <IconButton
+                size="small"
+                onClick={() => onToggle(id)}
+                sx={{ color: active ? ACCENT : 'text.secondary', '&:hover': { color: ACCENT } }}
+              >
+                {active ? <StopCircle size={16} /> : <PlayArrow size={16} />}
+              </IconButton>
+            </Tooltip>
+          )}
+          <Tooltip title={active ? 'Plein écran' : 'Lancez la lecture pour le plein écran'} arrow>
             <span>
               <IconButton
                 size="small"
-                disabled={!streaming || !camera.webrtcUrl}
+                disabled={!active || !camera.webrtcUrl}
                 onClick={() => feedRef.current?.requestFullscreen?.()}
                 sx={{ color: 'text.secondary', '&:hover': { color: ACCENT } }}
               >
@@ -133,3 +152,5 @@ export default function CameraTile({ camera, onDelete, acting = false }: CameraT
     </Box>
   );
 }
+
+export default memo(CameraTile);
