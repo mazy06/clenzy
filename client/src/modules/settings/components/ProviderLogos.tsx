@@ -41,7 +41,9 @@ export type ProviderId =
   | 'SITEMINDER'
   | 'HOSTAWAY'
   | 'RENTALS_UNITED'
-  | 'CHANNEX';
+  | 'CHANNEX'
+  | 'TUYA'
+  | 'MINUT';
 
 interface ProviderLogoProps {
   provider: ProviderId;
@@ -102,6 +104,10 @@ const PALETTE: Record<ProviderId, BrandPalette> = {
   RENTALS_UNITED: { bg: '#0F172A', fg: '#FFFFFF', accent: '#EF4444' },
   // Channex : teal (couleur brand officielle channex.io)
   CHANNEX: { bg: '#0F766E', fg: '#FFFFFF', accent: '#5EEAD4' },
+  // Tuya : orange brand (cloud IoT)
+  TUYA:    { bg: '#FF5A28', fg: '#FFFFFF', accent: '#FFD0A8' },
+  // Minut : nuit + vert capteur
+  MINUT:   { bg: '#1B2030', fg: '#FFFFFF', accent: '#4ADE80' },
 };
 
 export default function ProviderLogo({ provider, size = 48, muted = false }: ProviderLogoProps) {
@@ -629,6 +635,26 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
           <circle cx="28" cy="38" r="1.6" fill={p.accent} />
           <circle cx="35" cy="38" r="1.6" fill={p.accent} />
           <line x1="13" y1="38" x2="35" y2="38" stroke={p.accent} strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+        </>
+      );
+
+    case 'TUYA':
+      // Tile orange, "T" + noeud cloud
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text x="24" y="33" textAnchor="middle" fontFamily="'Inter', sans-serif" fontSize="24" fontWeight="700" fill={p.fg} letterSpacing="-0.04em">T</text>
+          <circle cx="35" cy="14" r="3" fill={p.accent} />
+        </>
+      );
+
+    case 'MINUT':
+      // Tile nuit, "M" + point capteur vert
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text x="24" y="33" textAnchor="middle" fontFamily="'Inter', sans-serif" fontSize="24" fontWeight="700" fill={p.fg} letterSpacing="-0.04em">M</text>
+          <circle cx="35" cy="14" r="3" fill={p.accent} />
         </>
       );
 

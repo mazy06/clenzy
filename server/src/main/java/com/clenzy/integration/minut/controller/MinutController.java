@@ -56,6 +56,7 @@ public class MinutController {
     @GetMapping("/connect")
     @Operation(summary = "Initier la connexion OAuth Minut",
             description = "Retourne l'URL de redirection vers la page d'autorisation Minut")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
     public ResponseEntity<Map<String, String>> connect(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
 
@@ -110,6 +111,7 @@ public class MinutController {
     @PostMapping("/disconnect")
     @Operation(summary = "Deconnecter le compte Minut",
             description = "Revoque le token OAuth et supprime la connexion")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
     public ResponseEntity<Map<String, String>> disconnect(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
 
