@@ -156,22 +156,21 @@ public class TuyaApiService {
     // ─── Decouverte de devices (plug-and-play) ──────────────────
 
     /**
-     * Liste les devices du compte Tuya de l'organisation courante. Resout la connexion Tuya
-     * org-scopee -> tuya_uid -> {@link #listDevices(String)}. NON VALIDE (pas de compte test).
+     * Liste les devices du compte Tuya de l'organisation courante. Verifie qu'une connexion Tuya
+     * ACTIVE existe pour l'org, puis liste TOUS les devices lies au projet via
+     * {@link #listAssociatedDevices()} — <b>sans uid</b> (le tuya_uid n'est pas resolu a la connexion ;
+     * l'endpoint projet liste les devices de tous les comptes app associes).
      */
     @CircuitBreaker(name = "tuya-api")
     public List<TuyaDeviceDto> listOrgDevices() {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        TuyaConnection conn = connectionRepository
+        connectionRepository
                 .findFirstByOrganizationIdAndStatusOrderByConnectedAtDesc(orgId, TuyaConnectionStatus.ACTIVE)
                 .orElseThrow(() -> new IllegalStateException("Aucun compte Tuya relie pour cette organisation"));
-        if (conn.getTuyaUid() == null || conn.getTuyaUid().isBlank()) {
-            throw new IllegalStateException("Connexion Tuya sans identifiant utilisateur (tuya_uid)");
-        }
         Set<String> otherOrg = claimService.claimedByOtherOrgs();
         Set<String> myOrg = claimService.claimedByCurrentOrg();
         List<TuyaDeviceDto> segmented = new ArrayList<>();
-        for (TuyaDeviceDto d : listDevices(conn.getTuyaUid())) {
+        for (TuyaDeviceDto d : listAssociatedDevices()) {
             if (otherOrg.contains(d.id())) {
                 continue; // segmentation : masque les devices reclames par une autre org
             }
@@ -204,6 +203,43 @@ public class TuyaApiService {
                         Boolean.TRUE.equals(d.get("online")),
                         false));
             }
+        }
+        return devices;
+    }
+
+    /**
+     * Liste TOUS les devices lies au projet Tuya (tous les comptes app associes), <b>sans uid</b>.
+     * GET /v1.0/iot-01/associated-users/devices — la reponse est {@code result.devices} (et non
+     * {@code result} directement comme pour /v1.0/users/{uid}/devices). Une seule page (size=100,
+     * un seul query param -> signature triviale) ; couvre la quasi-totalite des orgs. Si Tuya
+     * renvoie {@code has_more}, on logue (pagination a ajouter si une org depasse 100 devices).
+     */
+    @CircuitBreaker(name = "tuya-api")
+    @SuppressWarnings("unchecked")
+    public List<TuyaDeviceDto> listAssociatedDevices() {
+        Map<String, Object> resp = doGet("/v1.0/iot-01/associated-users/devices?size=100");
+        List<TuyaDeviceDto> devices = new ArrayList<>();
+        if (resp == null || !(resp.get("result") instanceof Map<?, ?> resultMap)) {
+            return devices;
+        }
+        Map<String, Object> result = (Map<String, Object>) resultMap;
+        if (result.get("devices") instanceof List<?> list) {
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> m) {
+                    Map<String, Object> d = (Map<String, Object>) m;
+                    devices.add(new TuyaDeviceDto(
+                            asString(d.get("id")),
+                            asString(d.get("name")),
+                            asString(d.get("category")),
+                            asString(d.get("product_name")),
+                            Boolean.TRUE.equals(d.get("online")),
+                            false));
+                }
+            }
+        }
+        if (Boolean.TRUE.equals(result.get("has_more"))) {
+            log.warn("Tuya: plus de 100 devices associes au projet — pagination non implementee, "
+                    + "certains devices ne sont pas listes.");
         }
         return devices;
     }
