@@ -114,6 +114,22 @@ function mapSummary(d: DeviceSummaryDto): ConnectedDevice {
       primaryMetric: null, battery: null, online, alertCount: 0, actions: ['view'], raw: d,
     };
   }
+  if (d.kind === 'camera') {
+    return {
+      uid: `camera:${d.id}`, kind: 'camera', id: d.id, name: d.name, propertyId, propertyName, roomName: d.roomName, provider,
+      statusLevel: online ? 'ok' : 'offline',
+      statusLabel: online ? 'En ligne' : 'Hors ligne',
+      primaryMetric: null, battery: null, online, alertCount: 0, actions: ['view'], raw: d,
+    };
+  }
+  if (d.kind === 'thermostat') {
+    return {
+      uid: `thermostat:${d.id}`, kind: 'thermostat', id: d.id, name: d.name, propertyId, propertyName, roomName: d.roomName, provider,
+      statusLevel: online ? 'ok' : 'offline',
+      statusLabel: online ? 'Actif' : 'Inactif',
+      primaryMetric: null, battery: null, online, alertCount: 0, actions: ['view'], raw: d,
+    };
+  }
   return {
     uid: `keybox:${d.id}`, kind: 'keybox', id: d.id, name: d.name, propertyId, propertyName, roomName: d.roomName, provider,
     statusLevel: online ? 'ok' : 'offline',

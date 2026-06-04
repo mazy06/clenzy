@@ -3,7 +3,7 @@ import apiClient from '../apiClient';
 // ─── Types (read-model unifié backend) ───────────────────────────────────────
 
 export interface DeviceSummaryDto {
-  kind: 'lock' | 'noise' | 'keybox';
+  kind: 'lock' | 'noise' | 'keybox' | 'camera' | 'thermostat';
   id: number;
   name: string;
   propertyId: number | null;
