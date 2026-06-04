@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
  * Champs nullables selon le type :
  * - lockState, batteryLevel  : serrures uniquement
  * - activeCodesCount         : points de remise uniquement
+ * - snapshotUrl              : cameras uniquement (poster du flux go2rtc)
  * - roomName                 : non renseigne pour les points de remise
  */
 public record DeviceSummaryDto(
@@ -23,6 +24,7 @@ public record DeviceSummaryDto(
         String lockState,         // serrures : LOCKED | UNLOCKED | UNKNOWN
         Integer batteryLevel,     // serrures
         Integer activeCodesCount, // points de remise
+        String snapshotUrl,       // cameras : URL du poster (go2rtc frame.jpeg)
         LocalDateTime createdAt
 ) {
 }
