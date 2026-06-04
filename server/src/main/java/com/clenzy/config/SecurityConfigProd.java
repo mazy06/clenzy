@@ -132,6 +132,9 @@ public class SecurityConfigProd {
                         .requestMatchers(HttpMethod.DELETE, "/api/auth/session").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/health").permitAll()
+                        // Autorisation des flux media : appele par nginx (auth_request) serveur-a-serveur,
+                        // sans JWT. La securite vient du ticket HMAC scope au flux (MediaTicketService).
+                        .requestMatchers(HttpMethod.GET, "/api/media/verify").permitAll()
                         .requestMatchers("/api/webhooks/stripe").permitAll()
                         .requestMatchers("/api/webhooks/expedia").permitAll()
                         .requestMatchers("/api/webhooks/whatsapp").permitAll()
