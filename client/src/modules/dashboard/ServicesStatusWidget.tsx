@@ -45,13 +45,12 @@ interface ServiceStatus {
 }
 
 interface ServicesStatusWidgetProps {
-  onNavigateTab: (tabIndex: number) => void;
   onReady?: () => void;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ onNavigateTab, onReady }) => {
+const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ onReady }) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -108,7 +107,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
     return () => { cancelled = true; };
   }, []);
 
-  // Each service: tabIndex = dashboard tab, or route for external navigation
+  // Chaque service navigue vers sa route (gestion IoT sous le Hub, ou booking).
   const services = [
     {
       key: 'noise',
@@ -116,7 +115,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       color: C.noise,
       label: t('dashboard.services.noise'),
       status: noise,
-      tabIndex: 1,
+      route: '/connected-objects/noise',
       ctaKey: 'dashboard.services.noiseCta',
       activeIcon: <Box component="span" sx={{ display: 'inline-flex', color: C.noise }}><Sensors size={12} strokeWidth={1.75} /></Box>,
     },
@@ -126,7 +125,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       color: C.lock,
       label: t('dashboard.services.locks'),
       status: locks,
-      tabIndex: 2,
+      route: '/connected-objects/locks',
       ctaKey: 'dashboard.services.locksCta',
       activeIcon: <Box component="span" sx={{ display: 'inline-flex', color: C.lock }}><BatteryFull size={12} strokeWidth={1.75} /></Box>,
     },
@@ -136,7 +135,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       color: C.key,
       label: t('dashboard.services.keys'),
       status: keys,
-      tabIndex: 3,
+      route: '/connected-objects/keys',
       ctaKey: 'dashboard.services.keysCta',
       activeIcon: <Box component="span" sx={{ display: 'inline-flex', color: C.key }}><VpnKey size={12} strokeWidth={1.75} /></Box>,
     },
@@ -146,7 +145,6 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       color: C.booking,
       label: t('dashboard.services.booking', 'Booking Engine'),
       status: booking,
-      tabIndex: -1, // uses route navigation instead
       route: '/booking-engine',
       ctaKey: 'dashboard.services.bookingCta',
       activeIcon: <Box component="span" sx={{ display: 'inline-flex', color: C.booking }}><BookingIcon size={12} strokeWidth={1.75} /></Box>,
@@ -163,11 +161,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
   }, [isLoading, onReady]);
 
   const handleServiceClick = (svc: typeof services[number]) => {
-    if ((svc as any).route) {
-      navigate((svc as any).route);
-    } else {
-      onNavigateTab(svc.tabIndex);
-    }
+    navigate(svc.route);
   };
 
   // Loading is handled by parent DashboardSkeleton

@@ -12,9 +12,6 @@ import {
 import {
   Dashboard as DashboardIcon,
   Calculate as CalculateIcon,
-  VolumeUp as VolumeUpIcon,
-  LockOutlined as LockOutlinedIcon,
-  VpnKey as VpnKeyIcon,
   Sync as SyncIcon,
 } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
@@ -27,9 +24,6 @@ import {
   type TabHeaderMeta,
 } from '../../components/PageHeaderActionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import DashboardNoiseTab from './DashboardNoiseTab';
-import DashboardSmartLockTab from './DashboardSmartLockTab';
-import DashboardKeyExchangeTab from './DashboardKeyExchangeTab';
 import DashboardDateFilter from './DashboardDateFilter';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
 import DashboardOverview from './DashboardOverview';
@@ -42,9 +36,6 @@ import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
 
 const TAB_ICONS: Record<string, React.ReactElement> = {
   overview: <DashboardIcon size={16} strokeWidth={1.75} />,
-  noise: <VolumeUpIcon size={16} strokeWidth={1.75} />,
-  smartlock: <LockOutlinedIcon size={16} strokeWidth={1.75} />,
-  keyexchange: <VpnKeyIcon size={16} strokeWidth={1.75} />,
   simulator: <CalculateIcon size={16} strokeWidth={1.75} />,
 };
 
@@ -140,15 +131,6 @@ const Dashboard: React.FC = () => {
     [t('dashboard.tabs.overview', "Vue d'ensemble")]: {
       subtitle: t('tabHeaders.dashboard.subtitle.overview', "Vue d'ensemble : KPIs, planning, alertes critiques et accès rapides à votre activité."),
     },
-    [t('dashboard.tabs.noise', 'Nuisance sonore')]: {
-      subtitle: t('tabHeaders.dashboard.subtitle.noise', 'Monitoring sonore Minut sur vos propriétés : alertes en temps réel, historique et seuils par bien.'),
-    },
-    [t('dashboard.tabs.smartLock', 'Serrures connectées')]: {
-      subtitle: t('tabHeaders.dashboard.subtitle.smartLock', 'État et contrôle de vos serrures connectées (Tuya, Nuki) : verrouillage à distance et batterie.'),
-    },
-    [t('dashboard.tabs.keyExchange', 'Gestion des clés')]: {
-      subtitle: t('tabHeaders.dashboard.subtitle.keyExchange', 'Échange de clés via KeyNest et boîtes à clés : suivi des transferts entre guests et équipes.'),
-    },
     [t('dashboard.tabs.simulator', 'Simulateur')]: {
       subtitle: t('tabHeaders.dashboard.subtitle.simulator', 'Simulateur analytique : projection revenus, occupation et performance sur scenarios variables.'),
     },
@@ -173,16 +155,6 @@ const Dashboard: React.FC = () => {
       />
     );
   }, [showDateFilter, period]);
-
-  // Navigate to tab by key (used by overview for "Voir tout" links)
-  const handleNavigateTab = (targetTabIndex: number) => {
-    // targetTabIndex is the OLD absolute index. Map to key then find new index.
-    const keyMap: Record<number, string> = { 0: 'overview', 1: 'noise', 2: 'smartlock', 3: 'keyexchange', 4: 'simulator' };
-    const targetKey = keyMap[targetTabIndex];
-    if (!targetKey) return;
-    const newIdx = visibleTabs.findIndex((t) => t.key === targetKey);
-    if (newIdx >= 0) setTabValue(newIdx);
-  };
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
@@ -288,34 +260,7 @@ const Dashboard: React.FC = () => {
             {isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
               <UpgradeBanner currentForfait={user.forfait} />
             )}
-            <DashboardOverview period={period} onNavigateTab={handleNavigateTab} />
-          </Box>
-        )}
-
-        {activeTabKey === 'noise' && (
-          <Box
-            role="tabpanel"
-            sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
-          >
-            <DashboardNoiseTab />
-          </Box>
-        )}
-
-        {activeTabKey === 'smartlock' && (
-          <Box
-            role="tabpanel"
-            sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
-          >
-            <DashboardSmartLockTab />
-          </Box>
-        )}
-
-        {activeTabKey === 'keyexchange' && (
-          <Box
-            role="tabpanel"
-            sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
-          >
-            <DashboardKeyExchangeTab />
+            <DashboardOverview period={period} />
           </Box>
         )}
 

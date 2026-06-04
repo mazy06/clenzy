@@ -204,6 +204,7 @@ public class SmartLockService {
         dto.setPropertyId(device.getPropertyId());
         dto.setRoomName(device.getRoomName());
         dto.setExternalDeviceId(device.getExternalDeviceId());
+        dto.setBrand(device.getBrand() != null ? device.getBrand().name() : null);
         dto.setStatus(device.getStatus().name());
         dto.setLockState(device.getLockState().name());
         dto.setBatteryLevel(device.getBatteryLevel());

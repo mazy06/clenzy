@@ -1,5 +1,6 @@
 package com.clenzy.integration.nuki.controller;
 
+import com.clenzy.integration.nuki.service.NukiWebhookService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -33,6 +34,12 @@ public class NukiWebhookController {
 
     private static final Logger log = LoggerFactory.getLogger(NukiWebhookController.class);
 
+    private final NukiWebhookService nukiWebhookService;
+
+    public NukiWebhookController(NukiWebhookService nukiWebhookService) {
+        this.nukiWebhookService = nukiWebhookService;
+    }
+
     /**
      * Callback du Nuki Bridge.
      *
@@ -58,18 +65,19 @@ public class NukiWebhookController {
             ));
         }
 
-        Object nukiId = payload.get("nukiId");
-        Object state = payload.get("state");
-        Object stateName = payload.get("stateName");
-        Object batteryCharge = payload.get("batteryCharge");
-        Object batteryCritical = payload.get("batteryCritical");
-
         log.info("Webhook Nuki Bridge: nukiId={}, state={} ({}), battery={}%, critical={}",
-                nukiId, state, stateName, batteryCharge, batteryCritical);
+                payload.get("nukiId"), payload.get("state"), payload.get("stateName"),
+                payload.get("batteryCharge"), payload.get("batteryCritical"));
 
-        // TODO: Mettre a jour l'etat du device en base
-        // TODO: Emettre un evenement Outbox si batterie critique
-        // TODO: Notifier si changement d'etat inattendu
+        // Persiste l'etat de verrou + batterie. On ne propage jamais d'erreur au
+        // Bridge (toujours 200) pour eviter les retries : l'etat se resynchronise
+        // au prochain evenement ou via getStatus a la demande.
+        try {
+            nukiWebhookService.applyBridgeEvent(payload);
+        } catch (Exception e) {
+            log.error("Webhook Nuki : echec de traitement (nukiId={}): {}",
+                    payload.get("nukiId"), e.getMessage(), e);
+        }
 
         return ResponseEntity.ok(Map.of(
                 "status", "ok",

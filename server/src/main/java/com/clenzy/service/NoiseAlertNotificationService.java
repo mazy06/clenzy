@@ -3,9 +3,12 @@ package com.clenzy.service;
 import com.clenzy.model.*;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.WhatsAppConfigRepository;
 import com.clenzy.service.messaging.EmailWrapperService;
 import com.clenzy.service.messaging.SystemEmailTemplateService;
 import com.clenzy.service.messaging.TemplateInterpolationService;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProvider;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProviderResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,6 +36,11 @@ public class NoiseAlertNotificationService {
     private final SystemEmailTemplateService systemEmailTemplateService;
     private final TemplateInterpolationService templateInterpolationService;
     private final EmailWrapperService emailWrapperService;
+    // WhatsApp via l'abstraction provider (Meta Cloud API / OpenWA selon la config
+    // de l'org). Beans non-conditionnels => demarrage toujours OK ; si l'org n'a pas
+    // de config WhatsApp active, l'envoi est simplement ignore (best-effort).
+    private final WhatsAppProviderResolver whatsAppProviderResolver;
+    private final WhatsAppConfigRepository whatsAppConfigRepository;
 
     public NoiseAlertNotificationService(NotificationService notificationService,
                                           EmailService emailService,
@@ -40,7 +48,11 @@ public class NoiseAlertNotificationService {
                                           ReservationRepository reservationRepository,
                                           SystemEmailTemplateService systemEmailTemplateService,
                                           TemplateInterpolationService templateInterpolationService,
-                                          EmailWrapperService emailWrapperService) {
+                                          EmailWrapperService emailWrapperService,
+                                          WhatsAppProviderResolver whatsAppProviderResolver,
+                                          WhatsAppConfigRepository whatsAppConfigRepository) {
+        this.whatsAppProviderResolver = whatsAppProviderResolver;
+        this.whatsAppConfigRepository = whatsAppConfigRepository;
         this.notificationService = notificationService;
         this.emailService = emailService;
         this.propertyRepository = propertyRepository;
@@ -67,9 +79,10 @@ public class NoiseAlertNotificationService {
             dispatchEmail(alert, config, property, propertyName);
         }
 
-        // 3. Message au voyageur (si reservation active)
+        // 3. Message au voyageur (si reservation active) — email + WhatsApp.
         if (config.isNotifyGuestMessage()) {
             dispatchGuestMessage(alert, config, property, propertyName);
+            dispatchWhatsAppGuest(alert, config, property, propertyName);
         }
     }
 
@@ -217,6 +230,60 @@ public class NoiseAlertNotificationService {
                 guest.getEmail(), alert.getId(), reservation.getId());
         } catch (Exception e) {
             log.error("Erreur message voyageur pour alerte {}: {}", alert.getId(), e.getMessage());
+        }
+    }
+
+    // ─── Guest WhatsApp ──────────────────────────────────────────────────────
+
+    /**
+     * Envoie une alerte bruit au voyageur via WhatsApp (best-effort).
+     *
+     * NB : hors fenetre de session WhatsApp 24h, Meta exige un template approuve.
+     * On envoie un message transactionnel court ; si le compte WhatsApp n'est pas
+     * configure ou le numero absent, l'envoi est ignore sans bloquer les autres
+     * canaux. Gate sous le meme flag que le message voyageur email.
+     */
+    private void dispatchWhatsAppGuest(NoiseAlert alert, NoiseAlertConfig config,
+                                       Property property, String propertyName) {
+        try {
+            // WhatsApp via Meta Cloud API (ou OpenWA) selon la config de l'org.
+            // Resolution par orgId explicite : le scheduler bruit n'a pas de TenantContext.
+            WhatsAppConfig waConfig = whatsAppConfigRepository
+                .findByOrganizationId(alert.getOrganizationId()).orElse(null);
+            if (waConfig == null || !waConfig.isEnabled()) {
+                log.debug("WhatsApp non configure/desactive pour org {} — alerte {} ignoree",
+                    alert.getOrganizationId(), alert.getId());
+                return;
+            }
+
+            Reservation reservation = reservationRepository
+                .findActiveByPropertyIdAndDate(
+                    alert.getPropertyId(), LocalDate.now(), alert.getOrganizationId())
+                .orElse(null);
+            if (reservation == null) {
+                return;
+            }
+
+            Guest guest = reservation.getGuest();
+            if (guest == null || guest.getPhone() == null || guest.getPhone().isBlank()) {
+                log.debug("Pas de telephone voyageur pour reservation {} — WhatsApp ignore",
+                    reservation.getId());
+                return;
+            }
+
+            String guestName = guest.getFullName() != null ? guest.getFullName() : "Cher voyageur";
+            String body = String.format(
+                "Bonjour %s, un niveau sonore eleve (%.0f dB, seuil %d dB) a ete detecte au logement "
+                + "\"%s\". Merci de veiller a preserver le calme afin de ne pas gener le voisinage.",
+                guestName, alert.getMeasuredDb(), alert.getThresholdDb(), propertyName);
+
+            WhatsAppProvider provider = whatsAppProviderResolver.resolve(waConfig);
+            provider.sendTextMessage(waConfig, guest.getPhone(), body);
+            alert.setNotifiedWhatsapp(true);
+            log.info("WhatsApp voyageur envoye (Meta) pour alerte {} (reservation {})",
+                alert.getId(), reservation.getId());
+        } catch (Exception e) {
+            log.error("Erreur WhatsApp voyageur pour alerte {}: {}", alert.getId(), e.getMessage());
         }
     }
 

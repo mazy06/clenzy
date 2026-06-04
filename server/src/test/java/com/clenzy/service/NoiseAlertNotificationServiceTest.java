@@ -5,9 +5,12 @@ import com.clenzy.model.NoiseAlert.AlertSeverity;
 import com.clenzy.model.NoiseAlert.AlertSource;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.WhatsAppConfigRepository;
 import com.clenzy.service.messaging.SystemEmailTemplateService;
 import com.clenzy.service.messaging.TemplateInterpolationService;
 import com.clenzy.service.messaging.TranslationService;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProvider;
+import com.clenzy.service.messaging.whatsapp.WhatsAppProviderResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +33,9 @@ class NoiseAlertNotificationServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private ReservationRepository reservationRepository;
     @Mock private SystemEmailTemplateService systemEmailTemplateService;
+    @Mock private WhatsAppProviderResolver whatsAppProviderResolver;
+    @Mock private WhatsAppConfigRepository whatsAppConfigRepository;
+    @Mock private WhatsAppProvider whatsAppProvider;
 
     // Pas un mock — service pur sans IO, on l'instancie avec un TranslationService
     // mock car on n'invoque pas interpolateAndTranslate dans NoiseAlert flow.
@@ -42,6 +48,7 @@ class NoiseAlertNotificationServiceTest {
     private NoiseAlertConfig config;
     private Property property;
     private User owner;
+    private WhatsAppConfig whatsAppConfig;
 
     @BeforeEach
     void setUp() {
@@ -52,7 +59,17 @@ class NoiseAlertNotificationServiceTest {
         service = new NoiseAlertNotificationService(
             notificationService, emailService, propertyRepository, reservationRepository,
             systemEmailTemplateService, templateInterpolationService,
-            new com.clenzy.service.messaging.EmailWrapperService());
+            new com.clenzy.service.messaging.EmailWrapperService(),
+            whatsAppProviderResolver, whatsAppConfigRepository);
+
+        // Config WhatsApp active par defaut (lenient — seuls les tests guest-message
+        // l'utilisent). Re-stubbable a Optional.empty() pour le cas "non configure".
+        whatsAppConfig = new WhatsAppConfig();
+        whatsAppConfig.setEnabled(true);
+        org.mockito.Mockito.lenient().when(whatsAppConfigRepository.findByOrganizationId(10L))
+            .thenReturn(Optional.of(whatsAppConfig));
+        org.mockito.Mockito.lenient().when(whatsAppProviderResolver.resolve(any()))
+            .thenReturn(whatsAppProvider);
 
         // Stub default : retourne un template systeme minimal avec le subject+body
         // necessaires pour interpoler. Tests sont lenient car certains n'appellent
@@ -210,5 +227,78 @@ class NoiseAlertNotificationServiceTest {
 
         verifyNoInteractions(notificationService);
         assertFalse(alert.isNotifiedInApp());
+    }
+
+    @Test
+    void whenGuestMessageEnabled_andGuestHasPhone_thenSendsWhatsApp() {
+        config.setNotifyInApp(false);
+        config.setNotifyEmail(false);
+        config.setNotifyGuestMessage(true);
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+
+        Guest guest = new Guest();
+        guest.setFirstName("Marie");
+        guest.setLastName("Martin");
+        guest.setPhone("+33612345678");
+
+        Reservation reservation = new Reservation();
+        reservation.setId(50L);
+        reservation.setGuest(guest);
+
+        when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
+            .thenReturn(Optional.of(reservation));
+
+        service.dispatch(alert, config);
+
+        verify(whatsAppProvider).sendTextMessage(any(WhatsAppConfig.class), eq("+33612345678"), anyString());
+        assertTrue(alert.isNotifiedWhatsapp());
+    }
+
+    @Test
+    void whenGuestHasNoPhone_thenNoWhatsApp() {
+        config.setNotifyInApp(false);
+        config.setNotifyEmail(false);
+        config.setNotifyGuestMessage(true);
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+
+        Guest guest = new Guest();
+        guest.setFirstName("Marie");
+
+        Reservation reservation = new Reservation();
+        reservation.setGuest(guest);
+
+        when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
+            .thenReturn(Optional.of(reservation));
+
+        service.dispatch(alert, config);
+
+        verify(whatsAppProvider, never()).sendTextMessage(any(), anyString(), anyString());
+    }
+
+    @Test
+    void whenWhatsAppNotConfigured_thenSkippedGracefully() {
+        // Aucune config WhatsApp pour l'org : l'envoi est ignore sans bloquer.
+        config.setNotifyInApp(false);
+        config.setNotifyEmail(false);
+        config.setNotifyGuestMessage(true);
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+        when(whatsAppConfigRepository.findByOrganizationId(10L)).thenReturn(Optional.empty());
+
+        Guest guest = new Guest();
+        guest.setFirstName("Marie");
+        guest.setPhone("+33612345678");
+
+        Reservation reservation = new Reservation();
+        reservation.setId(50L);
+        reservation.setGuest(guest);
+
+        when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
+            .thenReturn(Optional.of(reservation));
+
+        // Ne doit pas lever : WhatsApp est simplement ignore.
+        service.dispatch(alert, config);
+
+        verify(whatsAppProvider, never()).sendTextMessage(any(), anyString(), anyString());
+        assertFalse(alert.isNotifiedWhatsapp());
     }
 }

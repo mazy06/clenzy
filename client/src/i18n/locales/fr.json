@@ -38,6 +38,17 @@
     "collapseMenu": "Réduire le menu",
     "ratesAt": "Taux au"
   },
+  "connectedObjects": {
+    "previewBadge": "Aperçu",
+    "cameras": {
+      "title": "Caméras",
+      "subtitle": "Supervision vidéo des logements — aperçu de l'expérience à venir."
+    },
+    "thermostats": {
+      "title": "Thermostats",
+      "subtitle": "Confort thermique des logements — aperçu de l'expérience à venir."
+    }
+  },
   "navigation": {
     "dashboard": "Tableau de bord",
     "assistant": "Assistant",

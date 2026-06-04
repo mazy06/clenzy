@@ -29,7 +29,8 @@ class AutomationEvaluationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new AutomationEvaluationService(ruleRepository, executionRepository, messagingService);
+        service = new AutomationEvaluationService(ruleRepository, executionRepository, messagingService,
+            new AutomationConditionEvaluator(new com.fasterxml.jackson.databind.ObjectMapper()));
     }
 
     @Test
@@ -90,6 +91,43 @@ class AutomationEvaluationServiceTest {
     }
 
     @Test
+    void evaluateRulesForReservation_conditionsNotMatched_skips() {
+        AutomationRule rule = new AutomationRule();
+        rule.setId(10L);
+        rule.setName("Sejours longs uniquement");
+        rule.setTriggerType(AutomationTrigger.RESERVATION_CONFIRMED);
+        rule.setConditions("{\"minNights\": 5}");
+
+        when(ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(1L, AutomationTrigger.RESERVATION_CONFIRMED))
+            .thenReturn(List.of(rule));
+        when(executionRepository.existsByAutomationRuleIdAndReservationId(10L, 100L)).thenReturn(false);
+
+        Reservation reservation = new Reservation();
+        reservation.setId(100L);
+        reservation.setCheckIn(LocalDate.now());
+        reservation.setCheckOut(LocalDate.now().plusDays(2)); // 2 nuits < 5
+
+        service.evaluateRulesForReservation(reservation, AutomationTrigger.RESERVATION_CONFIRMED, 1L);
+
+        verify(executionRepository, never()).save(any());
+    }
+
+    @Test
+    void onReservationCreated_evaluatesAllTriggers() {
+        when(ruleRepository.findByOrganizationIdAndTriggerTypeAndEnabledTrue(eq(1L), any()))
+            .thenReturn(List.of());
+
+        Reservation reservation = new Reservation();
+        reservation.setId(100L);
+
+        service.onReservationCreated(reservation, 1L);
+
+        for (AutomationTrigger trigger : AutomationTrigger.values()) {
+            verify(ruleRepository).findByOrganizationIdAndTriggerTypeAndEnabledTrue(1L, trigger);
+        }
+    }
+
+    @Test
     void processScheduledExecutions_executesReady() {
         MessageTemplate template = new MessageTemplate();
         template.setId(5L);
@@ -115,7 +153,9 @@ class AutomationEvaluationServiceTest {
         when(executionRepository.findByStatusAndScheduledAtBefore(
             eq(AutomationExecutionStatus.PENDING), any()))
             .thenReturn(List.of(exec));
-        when(messagingService.sendForReservation(reservation, template, 1L)).thenReturn(null);
+        when(messagingService.sendForReservationViaChannel(
+            eq(reservation), eq(template), eq(1L), eq(MessageChannelType.EMAIL), anyMap()))
+            .thenReturn(null);
 
         service.processScheduledExecutions();
 
@@ -148,7 +188,8 @@ class AutomationEvaluationServiceTest {
         when(executionRepository.findByStatusAndScheduledAtBefore(
             eq(AutomationExecutionStatus.PENDING), any()))
             .thenReturn(List.of(exec));
-        when(messagingService.sendForReservation(reservation, template, 1L))
+        when(messagingService.sendForReservationViaChannel(
+            eq(reservation), eq(template), eq(1L), eq(MessageChannelType.EMAIL), anyMap()))
             .thenThrow(new RuntimeException("Email service down"));
 
         service.processScheduledExecutions();
