@@ -2,7 +2,9 @@ package com.clenzy.integration.tuya.dto;
 
 /**
  * Payload de sauvegarde des credentials du projet Tuya Cloud depuis l'UI.
- * {@code accessSecret} optionnel : laisse vide, conserve le secret deja enregistre.
+ * Secrets optionnels : laisses vides, conservent les valeurs deja enregistrees.
+ * Les couples AppKey/AppSecret App SDK sont <b>distincts par plateforme</b> :
+ * {@code appKey}/{@code appSecret} = iOS, {@code androidAppKey}/{@code androidAppSecret} = Android.
  */
 public record UpdateTuyaConfigDto(
         String accessId,
@@ -11,5 +13,7 @@ public record UpdateTuyaConfigDto(
         String region,
         String appSchema,
         String appKey,
-        String appSecret
+        String appSecret,
+        String androidAppKey,
+        String androidAppSecret
 ) {}

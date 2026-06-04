@@ -74,7 +74,8 @@ public class TuyaController {
                 tuyaConfig.getApiBaseUrl(),
                 tuyaConfig.getRegion(),
                 tuyaConfig.getAppSchema(),
-                tuyaConfig.getAppKey()));
+                tuyaConfig.getAppKey(),
+                tuyaConfig.getAndroidAppKey()));
     }
 
     @PutMapping("/config")
@@ -96,7 +97,8 @@ public class TuyaController {
                 tuyaConfig.getApiBaseUrl(),
                 tuyaConfig.getRegion(),
                 tuyaConfig.getAppSchema(),
-                tuyaConfig.getAppKey()));
+                tuyaConfig.getAppKey(),
+                tuyaConfig.getAndroidAppKey()));
     }
 
     // ─── Compte app Tuya de l'hote (modele C) ────────────────────
