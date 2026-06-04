@@ -62,4 +62,15 @@ public class CameraController {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
+
+    @PostMapping("/{id}/refresh-stream")
+    @Operation(summary = "Re-allouer/re-enregistrer le flux (sources Tuya a URL temporaire)")
+    public ResponseEntity<?> refreshStream(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        try {
+            cameraService.refreshStream(id);
+            return ResponseEntity.ok(Map.of("status", "ok"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
 }

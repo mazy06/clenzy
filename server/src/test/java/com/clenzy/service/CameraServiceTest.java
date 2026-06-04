@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.dto.camera.CameraDto;
 import com.clenzy.dto.camera.CreateCameraDto;
+import com.clenzy.integration.tuya.service.TuyaApiService;
 import com.clenzy.model.Camera;
 import com.clenzy.model.Camera.CameraStatus;
 import com.clenzy.model.Property;
@@ -37,12 +38,13 @@ class CameraServiceTest {
     @Mock private TokenEncryptionService encryptionService;
     @Mock private CameraStreamService cameraStreamService;
     @Mock private TenantContext tenantContext;
+    @Mock private TuyaApiService tuyaApiService;
 
     private CameraService service;
 
     @BeforeEach
     void setUp() {
-        service = new CameraService(cameraRepository, propertyRepository, encryptionService, cameraStreamService, tenantContext);
+        service = new CameraService(cameraRepository, propertyRepository, encryptionService, cameraStreamService, tenantContext, tuyaApiService);
     }
 
     @Test
@@ -53,11 +55,12 @@ class CameraServiceTest {
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
         when(tenantContext.getRequiredOrganizationId()).thenReturn(99L);
         when(encryptionService.encrypt("rtsp://u:p@host/stream")).thenReturn("ENC");
+        when(encryptionService.decrypt("ENC")).thenReturn("rtsp://u:p@host/stream");
         when(cameraStreamService.webrtcUrl(anyString())).thenReturn("/media/stream.html?src=x");
         when(cameraRepository.save(any(Camera.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CameraDto dto = service.createCamera(USER,
-                new CreateCameraDto("Entree", 10L, "Hall", "REOLINK", "rtsp://u:p@host/stream"));
+                new CreateCameraDto("Entree", 10L, "Hall", "REOLINK", "rtsp://u:p@host/stream", null));
 
         // URL RTSP chiffree (jamais en clair en base) + flux enregistre go2rtc avec l'URL claire
         verify(encryptionService).encrypt("rtsp://u:p@host/stream");
@@ -73,7 +76,7 @@ class CameraServiceTest {
     void create_unknownProperty() {
         when(propertyRepository.findById(404L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.createCamera(USER,
-                new CreateCameraDto("X", 404L, null, null, "rtsp://x")))
+                new CreateCameraDto("X", 404L, null, null, "rtsp://x", null)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

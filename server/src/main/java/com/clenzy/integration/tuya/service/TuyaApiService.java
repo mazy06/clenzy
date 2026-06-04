@@ -189,6 +189,25 @@ public class TuyaApiService {
         return doPost("/v1.0/devices/" + deviceId + "/commands", body);
     }
 
+    // ─── Camera (IPC, categorie "sp") — allocation de flux ──────
+
+    /**
+     * Alloue une URL de flux temps reel pour une camera Tuya (categorie "sp").
+     * POST /v1.0/devices/{device_id}/stream/actions/allocate  body {"type":"RTSP"|"HLS"}
+     * Reponse attendue : {@code { "result": { "url": "rtsps://..." } }}.
+     * L'URL est a duree de vie limitee cote Tuya -> re-allouer a l'expiration.
+     *
+     * <p><b>NON VALIDE</b> : implemente d'apres l'API Tuya, non teste faute de camera
+     * Tuya physique. A confirmer avec un vrai device avant de s'y fier en prod.
+     */
+    @CircuitBreaker(name = "tuya-api")
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> allocateStream(String deviceId, String type) {
+        validateDeviceId(deviceId);
+        Map<String, Object> body = Map.of("type", (type == null || type.isBlank()) ? "RTSP" : type);
+        return doPost("/v1.0/devices/" + deviceId + "/stream/actions/allocate", body);
+    }
+
     // ─── Door Lock — Temporary Password ─────────────────────────
 
     /**
