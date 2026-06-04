@@ -37,6 +37,12 @@ public class TuyaConfig {
     @Value("${tuya.app.secret:}")
     private String appSecretEnv;
 
+    @Value("${tuya.app.android-key:}")
+    private String androidAppKeyEnv;
+
+    @Value("${tuya.app.android-secret:}")
+    private String androidAppSecretEnv;
+
     private final ObjectProvider<TuyaPlatformConfigService> dbConfigProvider;
 
     public TuyaConfig(ObjectProvider<TuyaPlatformConfigService> dbConfigProvider) {
@@ -89,6 +95,18 @@ public class TuyaConfig {
         TuyaPlatformConfigService db = db();
         String v = db != null ? db.getAppSecret() : null;
         return isBlank(v) ? appSecretEnv : v;
+    }
+
+    public String getAndroidAppKey() {
+        TuyaPlatformConfigService db = db();
+        String v = db != null ? db.getAndroidAppKey() : null;
+        return isBlank(v) ? androidAppKeyEnv : v;
+    }
+
+    public String getAndroidAppSecret() {
+        TuyaPlatformConfigService db = db();
+        String v = db != null ? db.getAndroidAppSecret() : null;
+        return isBlank(v) ? androidAppSecretEnv : v;
     }
 
     public boolean isConfigured() {
