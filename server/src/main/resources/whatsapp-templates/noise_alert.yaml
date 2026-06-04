@@ -1,0 +1,37 @@
+# Template Clenzy : alerte bruit voyageur
+# ============================================================================
+# Envoye au voyageur quand un niveau sonore eleve est detecte, y compris hors
+# fenetre de session WhatsApp 24h (un template approuve est alors obligatoire).
+# Type UTILITY (transactionnel).
+#
+# Parametres :
+#   {{1}} = prenom / nom du voyageur
+#   {{2}} = niveau sonore mesure en dB (ex: 75)
+#   {{3}} = seuil configure en dB (ex: 70)
+#   {{4}} = nom du logement
+# ============================================================================
+
+key: noise_alert
+category: UTILITY
+languages:
+  fr_FR:
+    body: |
+      Bonjour {{1}} 👋
+
+      Un niveau sonore élevé ({{2}} dB, seuil : {{3}} dB) a été détecté au logement *{{4}}*.
+
+      Merci de veiller à préserver le calme afin de ne pas gêner le voisinage.
+  en_US:
+    body: |
+      Hello {{1}} 👋
+
+      A high noise level ({{2}} dB, threshold: {{3}} dB) was detected at *{{4}}*.
+
+      Please keep the noise down to avoid disturbing the neighbors.
+  ar_AR:
+    body: |
+      مرحبا {{1}} 👋
+
+      تم رصد مستوى صوت مرتفع ({{2}} ديسيبل، الحد: {{3}} ديسيبل) في *{{4}}*.
+
+      يرجى الحفاظ على الهدوء لتجنّب إزعاج الجيران.

@@ -15,6 +15,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Implementation {@link WhatsAppProvider} pour Meta Cloud API officielle
  * (graph.facebook.com v18.0). Default historique de Clenzy depuis l'origine.
@@ -110,6 +114,58 @@ public class MetaWhatsAppProvider implements WhatsAppProvider {
     }
 
     @Override
+    @CircuitBreaker(name = "whatsapp", fallbackMethod = "sendTemplateParamsFallback")
+    public String sendTemplateMessage(WhatsAppConfig config, String phoneNumber,
+                                        String templateName, String language, List<String> parameters) {
+        String url = GRAPH_API_BASE + "/" + config.getPhoneNumberId() + "/messages";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(config.getApiToken());
+
+        Map<String, Object> template = new LinkedHashMap<>();
+        template.put("name", templateName);
+        template.put("language", Map.of("code", language));
+        if (parameters != null && !parameters.isEmpty()) {
+            List<Map<String, String>> bodyParams = parameters.stream()
+                .map(v -> Map.of("type", "text", "text", v != null ? v : ""))
+                .toList();
+            template.put("components", List.of(Map.of("type", "body", "parameters", bodyParams)));
+        }
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("messaging_product", "whatsapp");
+        payload.put("to", sanitizePhone(phoneNumber));
+        payload.put("type", "template");
+        payload.put("template", template);
+
+        String body;
+        try {
+            body = objectMapper.writeValueAsString(payload);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur serialisation payload template Meta WhatsApp", e);
+        }
+
+        HttpEntity<String> request = new HttpEntity<>(body, headers);
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            try {
+                JsonNode root = objectMapper.readTree(response.getBody());
+                JsonNode messages = root.path("messages");
+                if (messages.isArray() && !messages.isEmpty()) {
+                    String messageId = messages.get(0).path("id").asText();
+                    log.info("Meta WhatsApp template '{}' envoye a {}: {}", templateName, phoneNumber, messageId);
+                    return messageId;
+                }
+            } catch (Exception e) {
+                log.warn("Erreur parsing reponse Meta WhatsApp template: {}", e.getMessage());
+            }
+        }
+        throw new RuntimeException("Erreur envoi template Meta WhatsApp: status " + response.getStatusCode());
+    }
+
+    @Override
     public void markAsRead(WhatsAppConfig config, String messageId) {
         try {
             String url = GRAPH_API_BASE + "/" + config.getPhoneNumberId() + "/messages";
@@ -139,6 +195,14 @@ public class MetaWhatsAppProvider implements WhatsAppProvider {
     private String sendTemplateFallback(WhatsAppConfig config, String phoneNumber,
                                          String templateName, String language, Throwable t) {
         log.error("Circuit breaker Meta WhatsApp ouvert (template): {}", t.getMessage());
+        throw new RuntimeException("Service Meta WhatsApp temporairement indisponible", t);
+    }
+
+    @SuppressWarnings("unused")
+    private String sendTemplateParamsFallback(WhatsAppConfig config, String phoneNumber,
+                                               String templateName, String language,
+                                               List<String> parameters, Throwable t) {
+        log.error("Circuit breaker Meta WhatsApp ouvert (template params): {}", t.getMessage());
         throw new RuntimeException("Service Meta WhatsApp temporairement indisponible", t);
     }
 
