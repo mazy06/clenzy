@@ -1,8 +1,12 @@
 package com.clenzy.integration.tuya.controller;
 
 import com.clenzy.dto.noise.TuyaConnectionStatusDto;
+import com.clenzy.integration.tuya.config.TuyaConfig;
+import com.clenzy.integration.tuya.dto.TuyaConfigStatusDto;
+import com.clenzy.integration.tuya.dto.UpdateTuyaConfigDto;
 import com.clenzy.integration.tuya.model.TuyaConnection;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.integration.tuya.service.TuyaPlatformConfigService;
 import com.clenzy.repository.NoiseDeviceRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,11 +42,56 @@ public class TuyaController {
 
     private final TuyaApiService apiService;
     private final NoiseDeviceRepository noiseDeviceRepository;
+    private final TuyaConfig tuyaConfig;
+    private final TuyaPlatformConfigService platformConfigService;
 
     public TuyaController(TuyaApiService apiService,
-                          NoiseDeviceRepository noiseDeviceRepository) {
+                          NoiseDeviceRepository noiseDeviceRepository,
+                          TuyaConfig tuyaConfig,
+                          TuyaPlatformConfigService platformConfigService) {
         this.apiService = apiService;
         this.noiseDeviceRepository = noiseDeviceRepository;
+        this.tuyaConfig = tuyaConfig;
+        this.platformConfigService = platformConfigService;
+    }
+
+    // ─── Configuration du projet Tuya (credentials plateforme, editables depuis l'UI) ───
+
+    @GetMapping("/config")
+    @Operation(summary = "Statut de configuration du projet Tuya",
+            description = "Indique si les credentials du projet Tuya sont enregistres (le secret n'est jamais renvoye)")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
+    public ResponseEntity<TuyaConfigStatusDto> getConfig() {
+        return ResponseEntity.ok(new TuyaConfigStatusDto(
+                tuyaConfig.isConfigured(),
+                tuyaConfig.getAccessId(),
+                tuyaConfig.getApiBaseUrl(),
+                tuyaConfig.getRegion()));
+    }
+
+    @PutMapping("/config")
+    @Operation(summary = "Enregistre les credentials du projet Tuya",
+            description = "Stocke l'access_id et l'access_secret (chiffre) en base. Secret optionnel : vide = inchange")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
+    public ResponseEntity<?> updateConfig(@AuthenticationPrincipal Jwt jwt,
+                                          @RequestBody UpdateTuyaConfigDto body) {
+        if (body == null || body.accessId() == null || body.accessId().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid_request",
+                    "message", "L'Access ID est obligatoire"));
+        }
+        platformConfigService.save(
+                body.accessId(),
+                body.accessSecret(),
+                body.baseUrl(),
+                body.region(),
+                jwt.getSubject());
+        log.info("Config projet Tuya mise a jour par {}", jwt.getSubject());
+        return ResponseEntity.ok(new TuyaConfigStatusDto(
+                tuyaConfig.isConfigured(),
+                tuyaConfig.getAccessId(),
+                tuyaConfig.getApiBaseUrl(),
+                tuyaConfig.getRegion()));
     }
 
     // ─── Connection Management ───────────────────────────────────

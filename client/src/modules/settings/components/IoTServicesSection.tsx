@@ -1,5 +1,9 @@
-import { Box, Paper, Typography } from '@mui/material';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Box, IconButton, Paper, Tooltip, Typography } from '@mui/material';
+import { Settings2 } from 'lucide-react';
 import OAuthProviderCard, { type OAuthApiAdapter } from './OAuthProviderCard';
+import TuyaProjectConfigDialog from './TuyaProjectConfigDialog';
 import { tuyaApi, minutApi } from '../../../services/api';
 
 /**
@@ -9,6 +13,11 @@ import { tuyaApi, minutApi } from '../../../services/api';
  * L'onglet Intégrations est déjà réservé aux SUPER_ADMIN / SUPER_MANAGER, et les endpoints
  * connect/disconnect le sont aussi côté backend. Une fois un service relié, les membres de
  * l'organisation peuvent ajouter leurs devices (cf. AddDeviceWizard).
+ *
+ * Tuya nécessite d'abord la configuration du <b>projet Cloud</b> (Access ID/Secret) : l'action
+ * (icône engrenage + tooltip) est intégrée dans la carte Tuya et ouvre {@link TuyaProjectConfigDialog}
+ * (credentials stockés chiffrés en base, sans redéploiement). Tant que le projet n'est pas configuré,
+ * le bouton de connexion est désactivé (motif en tooltip).
  */
 
 const deviceScope = (count: number): string | undefined =>
@@ -45,6 +54,41 @@ const minutAdapter: OAuthApiAdapter = {
 };
 
 export default function IoTServicesSection() {
+  const [configOpen, setConfigOpen] = useState(false);
+
+  const { data: tuyaConfig, refetch: refetchConfig } = useQuery({
+    queryKey: ['tuya', 'config'],
+    queryFn: () => tuyaApi.getConfig(),
+    staleTime: 60_000,
+    retry: false,
+  });
+  const tuyaConfigured = tuyaConfig?.configured ?? false;
+
+  // Action « configurer le projet Tuya » en icône (libellé + statut/région portés par le tooltip).
+  const tuyaConfigAction = (
+    <Tooltip
+      title={
+        tuyaConfigured
+          ? `Projet Tuya configuré${tuyaConfig?.region ? ` · ${tuyaConfig.region.toUpperCase()}` : ''} · Modifier les identifiants`
+          : 'Configurer le projet Tuya Cloud (Access ID / Secret)'
+      }
+      arrow
+    >
+      <IconButton
+        size="small"
+        onClick={() => setConfigOpen(true)}
+        aria-label="Configurer le projet Tuya"
+        sx={{
+          color: tuyaConfigured ? 'text.secondary' : '#D4A574',
+          '&:hover': { bgcolor: 'action.hover' },
+          cursor: 'pointer',
+        }}
+      >
+        <Settings2 size={16} strokeWidth={2} />
+      </IconButton>
+    </Tooltip>
+  );
+
   return (
     <Paper
       id="section-connected-objects"
@@ -66,20 +110,33 @@ export default function IoTServicesSection() {
         Reliez les comptes IoT de l'organisation : serrures, caméras, thermostats et capteurs de bruit.
         Une fois un service connecté, les membres de l'org ajoutent leurs appareils en quelques clics.
       </Typography>
+
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 1.5 }}>
         <OAuthProviderCard
           providerId="TUYA"
           label="Tuya"
           description="Serrures, caméras, thermostats et capteurs · cloud Tuya IoT"
           api={tuyaAdapter}
+          serviceTooltipId="TUYA"
+          secondaryAction={tuyaConfigAction}
+          mainActionDisabled={!tuyaConfigured}
+          mainActionDisabledReason="Configurez d'abord le projet Tuya Cloud (bouton ⚙)."
         />
         <OAuthProviderCard
           providerId="MINUT"
           label="Minut"
           description="Capteurs de bruit & environnement · OAuth2"
           api={minutAdapter}
+          serviceTooltipId="MINUT"
         />
       </Box>
+
+      <TuyaProjectConfigDialog
+        open={configOpen}
+        onClose={() => setConfigOpen(false)}
+        current={tuyaConfig}
+        onSaved={() => refetchConfig()}
+      />
     </Paper>
   );
 }

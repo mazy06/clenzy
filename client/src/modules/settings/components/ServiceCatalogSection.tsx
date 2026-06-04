@@ -124,8 +124,8 @@ export default function ServiceCatalogSection({
           onKeyDownCapture={disabled ? blockInteraction : undefined}
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 1,
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: 1.5,
             mt: 1,
             ...(disabled && DISABLED_CARDS_SX),
           }}

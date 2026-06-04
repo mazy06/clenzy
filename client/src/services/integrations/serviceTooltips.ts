@@ -347,4 +347,32 @@ export const SERVICE_TOOLTIPS: Record<string, ServiceTooltipData> = {
     websiteUrl: 'https://www.wego.com',
     region: 'MENA',
   },
+
+  // ─── Objets connectes (IoT) ────────────────────────────────────────────
+  TUYA: {
+    description:
+      "Plateforme cloud IoT (Hangzhou, Chine) qui pilote des millions d'objets en marque blanche : serrures, caméras, thermostats et capteurs. La majorité des objets connectés OEM low-cost (Amazon, AliExpress) reposent sur Tuya.",
+    accessModality:
+      "Projet Tuya IoT Cloud (iot.tuya.com, plan Trial gratuit) : Access ID + Access Secret à renseigner via le bouton ⚙ de la carte. Lier le compte app Tuya Smart pour découvrir les appareils de l'organisation.",
+    websiteUrl: 'https://iot.tuya.com',
+    region: 'Global',
+  },
+  MINUT: {
+    description:
+      "Capteur suédois (Malmö) pensé pour la location courte durée : mesure le niveau sonore sans micro ni enregistrement (RGPD-friendly), la température, l'humidité et les mouvements. Idéal pour prévenir fêtes et nuisances.",
+    accessModality:
+      "Compte Minut + appareil (~150 €). Connexion OAuth2 via « Se connecter via Minut ». Webhooks d'alerte bruit en temps réel inclus.",
+    websiteUrl: 'https://www.minut.com',
+    region: 'EU',
+  },
+
+  // ─── Marketing / Emailing ──────────────────────────────────────────────
+  BREVO: {
+    description:
+      "Plateforme d'emailing française (ex-Sendinblue, Paris). Campagnes newsletter, emails transactionnels et gestion de contacts (waitlist, leads devis). Alternative RGPD à Mailchimp.",
+    accessModality:
+      "Compte Brevo (offre gratuite jusqu'à 300 emails/jour). API key v3 dans Paramètres → SMTP & API → Clés API.",
+    websiteUrl: 'https://www.brevo.com',
+    region: 'FR',
+  },
 };
