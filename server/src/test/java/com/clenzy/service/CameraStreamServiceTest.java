@@ -49,9 +49,9 @@ class CameraStreamServiceTest {
     @DisplayName("toGo2rtcSource — HTTP/HLS enveloppe en ffmpeg (transcode WebRTC)")
     void toGo2rtcSource_httpWrappedWithFfmpeg() {
         assertThat(CameraStreamService.toGo2rtcSource("https://cdn.example.com/live/stream.m3u8"))
-                .isEqualTo("ffmpeg:https://cdn.example.com/live/stream.m3u8#video=h264#audio=opus");
+                .isEqualTo("ffmpeg:https://cdn.example.com/live/stream.m3u8#video=h264#audio=opus#width=640#height=360");
         assertThat(CameraStreamService.toGo2rtcSource("http://cam.local/video.mp4"))
-                .isEqualTo("ffmpeg:http://cam.local/video.mp4#video=h264#audio=opus");
+                .isEqualTo("ffmpeg:http://cam.local/video.mp4#video=h264#audio=opus#width=640#height=360");
     }
 
     @Test

@@ -71,13 +71,15 @@ public class CameraStreamService {
      *       RTSP passe directement en WebRTC, sans transcodage (cout CPU nul).</li>
      *   <li>{@code http(s)://} (HLS {@code .m3u8}, MP4, flux HTTP) : go2rtc ne lit pas
      *       l'URL brute. On passe par ffmpeg avec transcodage {@code video=h264} /
-     *       {@code audio=opus} (codecs natifs WebRTC) pour produire un flux lisible.</li>
+     *       {@code audio=opus} (codecs natifs WebRTC) <b>cap a 640x360</b> pour limiter
+     *       le CPU — le transcodage est lourd, c'est une source secondaire/test. Le
+     *       RTSP, lui, passe en direct (passthrough) sans transcodage.</li>
      * </ul>
      */
     static String toGo2rtcSource(String url) {
         String lower = url.toLowerCase();
         if (lower.startsWith("http://") || lower.startsWith("https://")) {
-            return "ffmpeg:" + url + "#video=h264#audio=opus";
+            return "ffmpeg:" + url + "#video=h264#audio=opus#width=640#height=360";
         }
         return url;
     }
