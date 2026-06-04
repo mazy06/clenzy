@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.smartlock.CreateSmartLockDeviceDto;
 import com.clenzy.dto.smartlock.SmartLockDeviceDto;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.Property;
 import com.clenzy.model.SmartLockDevice;
 import com.clenzy.model.SmartLockDevice.DeviceStatus;
@@ -39,12 +40,13 @@ class SmartLockServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private TuyaApiService tuyaApiService;
     @Mock private TenantContext tenantContext;
+    @Mock private TuyaDeviceClaimService claimService;
 
     private SmartLockService service;
 
     @BeforeEach
     void setUp() {
-        service = new SmartLockService(smartLockRepository, propertyRepository, tuyaApiService, tenantContext);
+        service = new SmartLockService(smartLockRepository, propertyRepository, tuyaApiService, tenantContext, claimService);
         lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
     }
 

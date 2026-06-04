@@ -11,6 +11,7 @@ import { noiseDevicesApi } from '../../../services/api/noiseApi';
 import { keyExchangeApi } from '../../../services/api/keyExchangeApi';
 import { camerasApi } from '../../../services/api/camerasApi';
 import { thermostatsApi } from '../../../services/api/thermostatsApi';
+import TuyaDevicePicker from './TuyaDevicePicker';
 import { DEVICE_KINDS } from '../deviceRegistry';
 import type { DeviceKind } from '../types';
 
@@ -175,14 +176,12 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
               </Alert>
             )}
             {kind === 'camera' && provider === 'TUYA' && (
-              <TextField
-                fullWidth size="small" required label="ID du device Tuya"
-                placeholder="bfa1b2c3d4e5f6..."
-                helperText="device_id de la caméra dans ton projet Tuya IoT (catégorie « sp »). Le flux est alloué à la demande via le cloud Tuya. Intégration non encore validée avec un device réel."
-                value={externalDeviceId} onChange={(e) => setExternalDeviceId(e.target.value)}
-              />
+              <TuyaDevicePicker category="sp" selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
             )}
-            {(kind === 'lock' || kind === 'noise' || kind === 'thermostat') && (
+            {(kind === 'lock' || kind === 'noise' || kind === 'thermostat') && provider === 'TUYA' && (
+              <TuyaDevicePicker category={kind === 'thermostat' ? 'wk' : undefined} selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
+            )}
+            {(kind === 'lock' || kind === 'noise' || kind === 'thermostat') && provider !== 'TUYA' && (
               <TextField
                 fullWidth size="small" label="Identifiant externe (optionnel)"
                 helperText={kind === 'thermostat' ? 'ID du device Tuya' : 'ID du device chez le fournisseur'}

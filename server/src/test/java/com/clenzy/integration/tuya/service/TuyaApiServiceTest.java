@@ -39,13 +39,14 @@ class TuyaApiServiceTest {
     @Mock private TokenEncryptionService encryptionService;
     @Mock private TenantContext tenantContext;
     @Mock private RestTemplate restTemplate;
+    @Mock private TuyaDeviceClaimService claimService;
 
     private TuyaApiService service;
 
     @BeforeEach
     void setUp() {
         service = new TuyaApiService(config, connectionRepository, encryptionService,
-                tenantContext, restTemplate);
+                tenantContext, restTemplate, claimService);
     }
 
     @SuppressWarnings("unchecked")

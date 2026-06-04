@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.thermostat.CreateThermostatDto;
 import com.clenzy.dto.thermostat.ThermostatDto;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.Property;
 import com.clenzy.model.Thermostat;
 import com.clenzy.model.Thermostat.ThermostatStatus;
@@ -39,15 +40,18 @@ public class ThermostatService {
     private final PropertyRepository propertyRepository;
     private final TuyaApiService tuyaApiService;
     private final TenantContext tenantContext;
+    private final TuyaDeviceClaimService claimService;
 
     public ThermostatService(ThermostatRepository thermostatRepository,
                              PropertyRepository propertyRepository,
                              TuyaApiService tuyaApiService,
-                             TenantContext tenantContext) {
+                             TenantContext tenantContext,
+                             TuyaDeviceClaimService claimService) {
         this.thermostatRepository = thermostatRepository;
         this.propertyRepository = propertyRepository;
         this.tuyaApiService = tuyaApiService;
         this.tenantContext = tenantContext;
+        this.claimService = claimService;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -73,6 +77,11 @@ public class ThermostatService {
         thermostat.setStatus(ThermostatStatus.ACTIVE);
         thermostat.setOrganizationId(tenantContext.getRequiredOrganizationId());
 
+        // Garde-fou multi-tenant : reclame le device Tuya (rejet si deja rattache a une autre org).
+        if ("TUYA".equalsIgnoreCase(thermostat.getBrand())) {
+            claimService.claim(thermostat.getExternalDeviceId(), "thermostat");
+        }
+
         Thermostat saved = thermostatRepository.save(thermostat);
         log.info("Thermostat cree: {} (property={}) pour user={}", saved.getName(), saved.getPropertyId(), userId);
         return toDto(saved);
@@ -82,6 +91,9 @@ public class ThermostatService {
     public void deleteThermostat(String userId, Long thermostatId) {
         Thermostat thermostat = thermostatRepository.findById(thermostatId)
                 .orElseThrow(() -> new IllegalArgumentException("Thermostat introuvable: " + thermostatId));
+        if ("TUYA".equalsIgnoreCase(thermostat.getBrand())) {
+            claimService.release(thermostat.getExternalDeviceId());
+        }
         thermostatRepository.delete(thermostat);
         log.info("Thermostat supprime: {} (id={}) pour user={}", thermostat.getName(), thermostatId, userId);
     }

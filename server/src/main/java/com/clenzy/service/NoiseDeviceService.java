@@ -6,6 +6,7 @@ import com.clenzy.dto.noise.NoiseDataPointDto;
 import com.clenzy.dto.noise.NoiseDeviceDto;
 import com.clenzy.integration.minut.service.MinutApiService;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.NoiseDevice;
 import com.clenzy.tenant.TenantContext;
 import com.clenzy.model.NoiseDevice.DeviceStatus;
@@ -35,17 +36,20 @@ public class NoiseDeviceService {
     private final MinutApiService minutApiService;
     private final TuyaApiService tuyaApiService;
     private final TenantContext tenantContext;
+    private final TuyaDeviceClaimService claimService;
 
     public NoiseDeviceService(NoiseDeviceRepository noiseDeviceRepository,
                               PropertyRepository propertyRepository,
                               MinutApiService minutApiService,
                               TuyaApiService tuyaApiService,
-                              TenantContext tenantContext) {
+                              TenantContext tenantContext,
+                              TuyaDeviceClaimService claimService) {
         this.noiseDeviceRepository = noiseDeviceRepository;
         this.propertyRepository = propertyRepository;
         this.minutApiService = minutApiService;
         this.tuyaApiService = tuyaApiService;
         this.tenantContext = tenantContext;
+        this.claimService = claimService;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -78,6 +82,11 @@ public class NoiseDeviceService {
         device.setStatus(DeviceStatus.ACTIVE);
         device.setOrganizationId(tenantContext.getRequiredOrganizationId());
 
+        // Garde-fou multi-tenant : reclame le device Tuya (rejet si deja rattache a une autre org).
+        if (DeviceType.TUYA.equals(device.getDeviceType())) {
+            claimService.claim(device.getExternalDeviceId(), "noise");
+        }
+
         NoiseDevice saved = noiseDeviceRepository.save(device);
         log.info("Capteur cree: {} (type={}, property={}) pour user={}",
                 saved.getName(), saved.getDeviceType(), saved.getPropertyId(), userId);
@@ -96,6 +105,9 @@ public class NoiseDeviceService {
         NoiseDevice device = noiseDeviceRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Capteur introuvable: " + deviceId));
 
+        if (DeviceType.TUYA.equals(device.getDeviceType())) {
+            claimService.release(device.getExternalDeviceId());
+        }
         noiseDeviceRepository.delete(device);
         log.info("Capteur supprime: {} (id={}) pour user={}", device.getName(), deviceId, userId);
     }
