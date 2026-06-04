@@ -134,6 +134,16 @@ public class TuyaController {
 
     // ─── Device API Proxy ────────────────────────────────────────
 
+    @GetMapping("/devices")
+    @Operation(summary = "Decouverte : liste les devices du compte Tuya de l'organisation")
+    public ResponseEntity<?> listDevices() {
+        try {
+            return ResponseEntity.ok(apiService.listOrgDevices());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
     @GetMapping("/devices/{deviceId}")
     @Operation(summary = "Infos d'un device Tuya")
     public ResponseEntity<?> getDeviceInfo(@AuthenticationPrincipal Jwt jwt,

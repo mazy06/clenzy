@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.camera.CameraDto;
 import com.clenzy.dto.camera.CreateCameraDto;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.Camera;
 import com.clenzy.model.Camera.CameraStatus;
 import com.clenzy.model.Property;
@@ -39,12 +40,13 @@ class CameraServiceTest {
     @Mock private CameraStreamService cameraStreamService;
     @Mock private TenantContext tenantContext;
     @Mock private TuyaApiService tuyaApiService;
+    @Mock private TuyaDeviceClaimService claimService;
 
     private CameraService service;
 
     @BeforeEach
     void setUp() {
-        service = new CameraService(cameraRepository, propertyRepository, encryptionService, cameraStreamService, tenantContext, tuyaApiService);
+        service = new CameraService(cameraRepository, propertyRepository, encryptionService, cameraStreamService, tenantContext, tuyaApiService, claimService);
     }
 
     @Test
