@@ -73,7 +73,8 @@ public class TuyaController {
                 tuyaConfig.getAccessId(),
                 tuyaConfig.getApiBaseUrl(),
                 tuyaConfig.getRegion(),
-                tuyaConfig.getAppSchema()));
+                tuyaConfig.getAppSchema(),
+                tuyaConfig.getAppKey()));
     }
 
     @PutMapping("/config")
@@ -87,20 +88,15 @@ public class TuyaController {
                     "error", "invalid_request",
                     "message", "L'Access ID est obligatoire"));
         }
-        platformConfigService.save(
-                body.accessId(),
-                body.accessSecret(),
-                body.baseUrl(),
-                body.region(),
-                body.appSchema(),
-                jwt.getSubject());
+        platformConfigService.save(body, jwt.getSubject());
         log.info("Config projet Tuya mise a jour par {}", jwt.getSubject());
         return ResponseEntity.ok(new TuyaConfigStatusDto(
                 tuyaConfig.isConfigured(),
                 tuyaConfig.getAccessId(),
                 tuyaConfig.getApiBaseUrl(),
                 tuyaConfig.getRegion(),
-                tuyaConfig.getAppSchema()));
+                tuyaConfig.getAppSchema(),
+                tuyaConfig.getAppKey()));
     }
 
     // ─── Compte app Tuya de l'hote (modele C) ────────────────────
