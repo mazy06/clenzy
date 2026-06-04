@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -115,6 +116,14 @@ public class OpenWaWhatsAppProvider implements WhatsAppProvider {
     @Override
     public String sendTemplateMessage(WhatsAppConfig config, String phoneNumber,
                                         String templateName, String language) {
+        throw new UnsupportedOperationException(
+            "OpenWA ne supporte pas les templates Meta-approves. " +
+            "Le code appelant doit fallback sur sendTextMessage avec le contenu en clair.");
+    }
+
+    @Override
+    public String sendTemplateMessage(WhatsAppConfig config, String phoneNumber,
+                                        String templateName, String language, List<String> parameters) {
         throw new UnsupportedOperationException(
             "OpenWA ne supporte pas les templates Meta-approves. " +
             "Le code appelant doit fallback sur sendTextMessage avec le contenu en clair.");

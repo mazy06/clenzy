@@ -60,6 +60,39 @@ export interface AutomationExecutionPage {
   size: number;
 }
 
+// ─── Conditions (JSONB) ───────────────────────────────────────────────────────
+// Le backend (AutomationConditionEvaluator) lit ces champs optionnels (ET logique).
+
+export type GuestLanguage = 'fr' | 'en' | 'ar';
+
+export interface AutomationConditions {
+  propertyIds?: number[];
+  minNights?: number;
+  maxNights?: number;
+  guestLanguage?: GuestLanguage;
+}
+
+/** Parse le champ `conditions` (string JSON) en objet structure. Tolerant aux valeurs invalides. */
+export function parseConditions(json: string | null | undefined): AutomationConditions {
+  if (!json || !json.trim()) return {};
+  try {
+    const parsed = JSON.parse(json);
+    return parsed && typeof parsed === 'object' ? (parsed as AutomationConditions) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Serialise les conditions en JSON compact, en omettant les champs vides. Retourne '' si aucune condition. */
+export function stringifyConditions(c: AutomationConditions): string {
+  const out: AutomationConditions = {};
+  if (c.propertyIds && c.propertyIds.length > 0) out.propertyIds = c.propertyIds;
+  if (typeof c.minNights === 'number' && !Number.isNaN(c.minNights)) out.minNights = c.minNights;
+  if (typeof c.maxNights === 'number' && !Number.isNaN(c.maxNights)) out.maxNights = c.maxNights;
+  if (c.guestLanguage) out.guestLanguage = c.guestLanguage;
+  return Object.keys(out).length > 0 ? JSON.stringify(out) : '';
+}
+
 // ─── Display Helpers ────────────────────────────────────────────────────────
 
 export const TRIGGER_LABELS: Record<AutomationTrigger, string> = {

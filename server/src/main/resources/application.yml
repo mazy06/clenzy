@@ -103,8 +103,6 @@ resilience4j:
         slidingWindowSize: 20
         failureRateThreshold: 40
         waitDurationInOpenState: 60s
-      twilio-api:
-        baseConfig: external-api
       nuki-api:
         baseConfig: external-api
       hubspot-api:

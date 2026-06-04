@@ -3,6 +3,8 @@ package com.clenzy.service.messaging.whatsapp;
 import com.clenzy.model.WhatsAppConfig;
 import com.clenzy.model.WhatsAppProviderType;
 
+import java.util.List;
+
 /**
  * Abstraction des operations d'envoi WhatsApp, implementee une fois par
  * {@link WhatsAppProviderType}. Permet de basculer entre Meta Cloud API et
@@ -56,6 +58,19 @@ public interface WhatsAppProvider {
      */
     String sendTemplateMessage(WhatsAppConfig config, String phoneNumber,
                                 String templateName, String language);
+
+    /**
+     * Envoie un message via un template pre-approuve avec des variables de
+     * corps (parametres positionnels {@code {{1}}, {{2}}, ...}).
+     *
+     * @param parameters valeurs ORDONNEES pour {@code {{1}}, {{2}}, ...}.
+     *                   Vide/null = template sans variable.
+     * @throws UnsupportedOperationException si le provider ne supporte pas
+     *         les templates (OpenWA). Le code appelant doit catch et fallback
+     *         sur {@link #sendTextMessage}.
+     */
+    String sendTemplateMessage(WhatsAppConfig config, String phoneNumber,
+                                String templateName, String language, List<String> parameters);
 
     /**
      * Marque un message recu comme "lu" pour mettre a jour le read receipt
