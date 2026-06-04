@@ -55,7 +55,7 @@ class CameraControllerTest {
     @Test
     @DisplayName("POST — 200 avec la camera creee")
     void create() {
-        CreateCameraDto req = new CreateCameraDto("Entree", 10L, "Hall", "REOLINK", "rtsp://x");
+        CreateCameraDto req = new CreateCameraDto("Entree", 10L, "Hall", "REOLINK", "rtsp://x", null);
         when(cameraService.createCamera("kc-user-1", req)).thenReturn(dto());
         ResponseEntity<?> resp = controller.createCamera(jwt, req);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -64,7 +64,7 @@ class CameraControllerTest {
     @Test
     @DisplayName("POST — propriete invalide -> 400")
     void create_badRequest() {
-        CreateCameraDto req = new CreateCameraDto("X", 404L, null, null, "rtsp://x");
+        CreateCameraDto req = new CreateCameraDto("X", 404L, null, null, "rtsp://x", null);
         when(cameraService.createCamera("kc-user-1", req)).thenThrow(new IllegalArgumentException("Propriete introuvable"));
         ResponseEntity<?> resp = controller.createCamera(jwt, req);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);

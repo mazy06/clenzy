@@ -35,7 +35,8 @@ const PROVIDERS: Record<DeviceKind, { value: string; label: string }[]> = {
   noise: [{ value: 'MINUT', label: 'Minut' }, { value: 'TUYA', label: 'Tuya' }],
   keybox: [{ value: 'CLENZY_KEYVAULT', label: 'Baitly KeyVault' }, { value: 'KEYNEST', label: 'KeyNest' }],
   camera: [
-    { value: 'GENERIC', label: 'Caméra IP (RTSP)' }, { value: 'REOLINK', label: 'Reolink' },
+    { value: 'GENERIC', label: 'Caméra IP (RTSP)' }, { value: 'TUYA', label: 'Tuya (cloud)' },
+    { value: 'REOLINK', label: 'Reolink' },
     { value: 'TAPO', label: 'Tapo' }, { value: 'HIKVISION', label: 'Hikvision' }, { value: 'DAHUA', label: 'Dahua' },
   ],
   thermostat: [{ value: 'TUYA', label: 'Tuya' }],
@@ -67,7 +68,8 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
   const handleClose = () => { reset(); onClose(); };
 
   const canNext = (step === 0 && kind) || (step === 1 && provider)
-    || (step === 2 && propertyId && name.trim() && (kind !== 'camera' || rtspUrl.trim()));
+    || (step === 2 && propertyId && name.trim()
+        && (kind !== 'camera' || (provider === 'TUYA' ? externalDeviceId.trim() : rtspUrl.trim())));
 
   const submit = async () => {
     if (!kind || !provider || !propertyId || !name.trim()) return;
@@ -80,7 +82,9 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
       } else if (kind === 'keybox') {
         await keyExchangeApi.createPoint({ propertyId, provider: provider as 'KEYNEST' | 'CLENZY_KEYVAULT', storeName: name.trim(), guardianType: 'INDIVIDUAL' });
       } else if (kind === 'camera') {
-        await camerasApi.create({ name: name.trim(), propertyId, roomName: roomName || undefined, brand: provider, rtspUrl: rtspUrl.trim() });
+        await camerasApi.create({ name: name.trim(), propertyId, roomName: roomName || undefined, brand: provider,
+          rtspUrl: provider === 'TUYA' ? undefined : rtspUrl.trim(),
+          externalDeviceId: provider === 'TUYA' ? externalDeviceId.trim() : undefined });
       } else if (kind === 'thermostat') {
         await thermostatsApi.create({ name: name.trim(), propertyId, roomName: roomName || undefined, brand: provider, externalDeviceId: externalDeviceId || undefined });
       }
@@ -156,7 +160,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             {kind !== 'keybox' && (
               <TextField fullWidth size="small" label="Pièce (optionnel)" value={roomName} onChange={(e) => setRoomName(e.target.value)} />
             )}
-            {kind === 'camera' && (
+            {kind === 'camera' && provider !== 'TUYA' && (
               <TextField
                 fullWidth size="small" required label="URL du flux (RTSP recommandé)"
                 placeholder="rtsp://user:pass@192.168.1.50:554/stream"
@@ -169,6 +173,14 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                 URL HTTP/HLS : <strong>transcodée</strong> côté serveur (CPU, qualité réduite, latence) — à réserver au test.
                 Préférez une URL <strong>RTSP</strong> pour une lecture directe et fluide.
               </Alert>
+            )}
+            {kind === 'camera' && provider === 'TUYA' && (
+              <TextField
+                fullWidth size="small" required label="ID du device Tuya"
+                placeholder="bfa1b2c3d4e5f6..."
+                helperText="device_id de la caméra dans ton projet Tuya IoT (catégorie « sp »). Le flux est alloué à la demande via le cloud Tuya. Intégration non encore validée avec un device réel."
+                value={externalDeviceId} onChange={(e) => setExternalDeviceId(e.target.value)}
+              />
             )}
             {(kind === 'lock' || kind === 'noise' || kind === 'thermostat') && (
               <TextField

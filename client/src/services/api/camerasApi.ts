@@ -25,8 +25,10 @@ export interface CreateCameraDto {
   propertyId: number;
   roomName?: string;
   brand?: string;
-  /** URL RTSP source (avec credentials) — chiffree cote backend, jamais re-exposee. */
-  rtspUrl: string;
+  /** URL RTSP/HTTP source (avec credentials) — chiffree cote backend. Requis sauf Tuya. */
+  rtspUrl?: string;
+  /** device_id Tuya (brand=TUYA) — le flux est alloue a la demande via le cloud Tuya. */
+  externalDeviceId?: string;
 }
 
 // ─── Cameras API ─────────────────────────────────────────────────────────────
@@ -40,5 +42,9 @@ export const camerasApi = {
   },
   delete(id: number) {
     return apiClient.delete(`/cameras/${id}`);
+  },
+  /** Re-alloue/re-enregistre le flux (sources Tuya à URL temporaire). */
+  refreshStream(id: number) {
+    return apiClient.post(`/cameras/${id}/refresh-stream`, {});
   },
 };
