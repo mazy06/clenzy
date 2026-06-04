@@ -37,6 +37,7 @@ import { HostSettingsScreen } from '@/screens/host/HostSettingsScreen';
 import { TeamManagementScreen } from '@/screens/host/TeamManagementScreen';
 import { ReviewsScreen } from '@/screens/host/ReviewsScreen';
 import { SmartLockScreen } from '@/screens/host/SmartLockScreen';
+import TuyaPairingScreen from '@/screens/host/TuyaPairingScreen';
 import { RatePlanManagementScreen } from '@/screens/host/RatePlanManagementScreen';
 import { ReservationDetailScreen } from '@/screens/host/ReservationDetailScreen';
 import { ReservationEditScreen } from '@/screens/host/ReservationEditScreen';
@@ -93,6 +94,7 @@ export type DashboardStackParamList = {
   AnalyticsExport: undefined;
   Reviews: undefined;
   SmartLocks: undefined;
+  TuyaPairing: undefined;
   RatePlanManagement: { propertyId: number; propertyName: string };
 };
 
@@ -173,6 +175,7 @@ function DashboardStackNavigator() {
       <DashboardStack.Screen name="AnalyticsExport" component={AnalyticsExportScreen} />
       <DashboardStack.Screen name="Reviews" component={ReviewsScreen} />
       <DashboardStack.Screen name="SmartLocks" component={SmartLockScreen} />
+      <DashboardStack.Screen name="TuyaPairing" component={TuyaPairingScreen} />
       <DashboardStack.Screen name="RatePlanManagement" component={RatePlanManagementScreen} />
     </DashboardStack.Navigator>
   );
