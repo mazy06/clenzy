@@ -28,7 +28,12 @@ interface CameraTileProps {
 function CameraTile({ camera, active, onToggle, onDelete, acting = false }: CameraTileProps) {
   const feedRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [posterOk, setPosterOk] = useState(true);
   const { id, name, roomName, brand, online, recording } = camera;
+
+  // Poster : image fixe du flux (go2rtc frame.jpeg) affichée avant lecture, à la place de la
+  // dalle noire. Null si hors ligne / en lecture / pas de snapshot / image en erreur.
+  const poster = online && !active && posterOk ? camera.snapshotUrl : null;
 
   // Suit l'état plein écran de CE feed (le bouton doit basculer entrer/sortir, et l'overlay
   // de sortie n'apparaît qu'en plein écran).
@@ -71,7 +76,24 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
           '&:hover .co-cam-play': { bgcolor: alpha(ACCENT, 0.9) },
         }}
       >
-        <Box sx={{ position: 'absolute', inset: 0, background: `radial-gradient(circle at 50% 38%, ${alpha('#2C3E48', 0.55)}, ${FEED_BG} 72%)` }} />
+        {/* Fond : poster (snapshot du flux) si dispo, sinon dégradé radial sombre. Le poster
+            évite la dalle noire avant lecture (go2rtc tire l'image à la demande). */}
+        {poster && (
+          <Box
+            component="img"
+            src={poster}
+            alt=""
+            loading="lazy"
+            onError={() => setPosterOk(false)}
+            sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+          />
+        )}
+        <Box sx={{
+          position: 'absolute', inset: 0, zIndex: 1,
+          background: poster
+            ? alpha('#0C1216', 0.34)
+            : `radial-gradient(circle at 50% 38%, ${alpha('#2C3E48', 0.55)}, ${FEED_BG} 72%)`,
+        }} />
 
         {/* Pills haut */}
         <Box sx={{ position: 'absolute', top: 8, left: 8, right: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 2 }}>

@@ -39,7 +39,8 @@ class CameraControllerTest {
 
     private CameraDto dto() {
         return new CameraDto(1L, "Entree", 10L, "Villa", "Hall", "REOLINK", "ACTIVE",
-                true, false, "cam_1", "/media/stream.html?src=cam_1", LocalDateTime.now());
+                true, false, "cam_1", "/media/stream.html?src=cam_1",
+                "/media/api/frame.jpeg?src=cam_1", LocalDateTime.now());
     }
 
     @Test
