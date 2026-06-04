@@ -1736,3 +1736,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Cles AppKey/AppSecret de l'App SDK Tuya mobile (modele C).
+  - changeSet:
+      id: "0179-tuya-app-sdk-keys"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0179__tuya_app_sdk_keys.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

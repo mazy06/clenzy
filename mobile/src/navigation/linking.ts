@@ -24,6 +24,13 @@ export const linkingConfig: LinkingOptions<ReactNavigation.RootParamList> = {
           Notifications: 'notifications',
           Calendar: 'calendar',
           Reports: 'reports',
+          // Appairage Tuya (modele C) — ouvert depuis le guide d'appairage du PMS web.
+          Dashboard: {
+            path: 'dashboard',
+            screens: {
+              TuyaPairing: 'pairing/tuya',
+            },
+          },
         },
       },
       Auth: {

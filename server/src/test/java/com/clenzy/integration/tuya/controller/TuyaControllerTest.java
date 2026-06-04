@@ -400,12 +400,12 @@ class TuyaControllerTest {
             when(tuyaConfig.getRegion()).thenReturn("eu");
 
             // Act
-            ResponseEntity<?> response = controller.updateConfig(jwt,
-                    new UpdateTuyaConfigDto("new-id", "new-secret", null, null, null));
+            var dto = new UpdateTuyaConfigDto("new-id", "new-secret", null, null, null, null, null);
+            ResponseEntity<?> response = controller.updateConfig(jwt, dto);
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            verify(platformConfigService).save("new-id", "new-secret", null, null, null, "user-123");
+            verify(platformConfigService).save(dto, "user-123");
         }
 
         @Test
@@ -413,7 +413,7 @@ class TuyaControllerTest {
         void updateConfig_rejectsBlankAccessId() {
             // Act
             ResponseEntity<?> response = controller.updateConfig(jwt,
-                    new UpdateTuyaConfigDto("  ", "secret", null, null, null));
+                    new UpdateTuyaConfigDto("  ", "secret", null, null, null, null, null));
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
