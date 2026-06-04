@@ -7,6 +7,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Link,
   MenuItem,
   TextField,
@@ -49,6 +50,8 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
   const [accessSecret, setAccessSecret] = useState('');
   const [region, setRegion] = useState(current?.region ?? 'eu');
   const [appSchema, setAppSchema] = useState(current?.appSchema ?? '');
+  const [appKey, setAppKey] = useState(current?.appKey ?? '');
+  const [appSecret, setAppSecret] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,6 +75,8 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
         baseUrl: dc.baseUrl,
         region: dc.value,
         appSchema: appSchema.trim() || undefined,
+        appKey: appKey.trim() || undefined,
+        appSecret: appSecret.trim() || undefined,
       });
       onSaved(status);
       onClose();
@@ -143,6 +148,10 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
               </MenuItem>
             ))}
           </TextField>
+          <Divider sx={{ mt: 0.5 }} />
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+            App SDK mobile (appairage — modèle C)
+          </Typography>
           <TextField
             label="App SDK schema (optionnel)"
             value={appSchema}
@@ -150,7 +159,27 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
             fullWidth
             autoComplete="off"
             disabled={saving}
-            helperText="Schema de l'App SDK Tuya (console → App → App SDK) — requis pour l'appairage mobile (modèle C). Laisser vide si non utilisé."
+            helperText="Schema de l'App SDK Tuya (console → App → App SDK) — requis pour l'appairage mobile. Laisser vide si non utilisé."
+          />
+          <TextField
+            label="AppKey (App SDK)"
+            value={appKey}
+            onChange={(e) => setAppKey(e.target.value)}
+            fullWidth
+            autoComplete="off"
+            disabled={saving}
+            helperText="AppKey de l'App SDK Tuya (partagé iOS + Android)."
+          />
+          <TextField
+            label="AppSecret (App SDK)"
+            value={appSecret}
+            onChange={(e) => setAppSecret(e.target.value)}
+            type="password"
+            fullWidth
+            autoComplete="new-password"
+            disabled={saving}
+            placeholder={current?.appKey ? '•••••••• (inchangé si laissé vide)' : undefined}
+            helperText="Laisser vide pour conserver l'AppSecret déjà enregistré."
           />
         </Box>
       </DialogContent>

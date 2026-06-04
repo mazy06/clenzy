@@ -81,15 +81,19 @@ export interface TuyaConfigStatus {
   region: string | null;
   /** Schema de l'App SDK Tuya (modèle C — appairage mobile). */
   appSchema: string | null;
+  /** AppKey de l'App SDK Tuya mobile (le secret n'est jamais renvoyé). */
+  appKey: string | null;
 }
 
-/** Payload de sauvegarde du projet Tuya. accessSecret optionnel : vide = secret inchangé. */
+/** Payload de sauvegarde du projet Tuya. Secrets optionnels : vide = inchangé. */
 export interface UpdateTuyaConfigPayload {
   accessId: string;
   accessSecret?: string;
   baseUrl?: string;
   region?: string;
   appSchema?: string;
+  appKey?: string;
+  appSecret?: string;
 }
 
 // ─── Noise Devices API ───────────────────────────────────────────────────────

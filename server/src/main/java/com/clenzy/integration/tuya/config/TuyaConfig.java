@@ -31,6 +31,12 @@ public class TuyaConfig {
     @Value("${tuya.app.schema:}")
     private String appSchemaEnv;
 
+    @Value("${tuya.app.key:}")
+    private String appKeyEnv;
+
+    @Value("${tuya.app.secret:}")
+    private String appSecretEnv;
+
     private final ObjectProvider<TuyaPlatformConfigService> dbConfigProvider;
 
     public TuyaConfig(ObjectProvider<TuyaPlatformConfigService> dbConfigProvider) {
@@ -71,6 +77,18 @@ public class TuyaConfig {
         TuyaPlatformConfigService db = db();
         String v = db != null ? db.getAppSchema() : null;
         return isBlank(v) ? appSchemaEnv : v;
+    }
+
+    public String getAppKey() {
+        TuyaPlatformConfigService db = db();
+        String v = db != null ? db.getAppKey() : null;
+        return isBlank(v) ? appKeyEnv : v;
+    }
+
+    public String getAppSecret() {
+        TuyaPlatformConfigService db = db();
+        String v = db != null ? db.getAppSecret() : null;
+        return isBlank(v) ? appSecretEnv : v;
     }
 
     public boolean isConfigured() {
