@@ -69,27 +69,27 @@ public class DeviceAggregationService {
         for (SmartLockDeviceDto d : smartLockService.getUserDevices(userId)) {
             devices.add(new DeviceSummaryDto(
                     "lock", d.getId(), d.getName(), d.getPropertyId(), d.getPropertyName(), d.getRoomName(),
-                    orUnknown(d.getBrand()), d.getStatus(), d.getLockState(), d.getBatteryLevel(), null, d.getCreatedAt()));
+                    orUnknown(d.getBrand()), d.getStatus(), d.getLockState(), d.getBatteryLevel(), null, null, d.getCreatedAt()));
         }
         for (NoiseDeviceDto d : noiseDeviceService.getUserDevices(userId)) {
             devices.add(new DeviceSummaryDto(
                     "noise", d.getId(), d.getName(), d.getPropertyId(), d.getPropertyName(), d.getRoomName(),
-                    orUnknown(d.getDeviceType()), d.getStatus(), null, null, null, d.getCreatedAt()));
+                    orUnknown(d.getDeviceType()), d.getStatus(), null, null, null, null, d.getCreatedAt()));
         }
         for (KeyExchangePointDto d : keyExchangeService.getPoints(userId)) {
             devices.add(new DeviceSummaryDto(
                     "keybox", d.getId(), d.getStoreName(), d.getPropertyId(), d.getPropertyName(), null,
-                    orUnknown(d.getProvider()), d.getStatus(), null, null, (int) d.getActiveCodesCount(), d.getCreatedAt()));
+                    orUnknown(d.getProvider()), d.getStatus(), null, null, (int) d.getActiveCodesCount(), null, d.getCreatedAt()));
         }
         for (CameraDto c : cameraService.getUserCameras(userId)) {
             devices.add(new DeviceSummaryDto(
                     "camera", c.id(), c.name(), c.propertyId(), c.propertyName(), c.roomName(),
-                    orUnknown(c.brand()), c.status(), null, null, null, c.createdAt()));
+                    orUnknown(c.brand()), c.status(), null, null, null, c.snapshotUrl(), c.createdAt()));
         }
         for (ThermostatDto th : thermostatService.getUserThermostats(userId)) {
             devices.add(new DeviceSummaryDto(
                     "thermostat", th.id(), th.name(), th.propertyId(), th.propertyName(), th.roomName(),
-                    orUnknown(th.brand()), th.status(), null, null, null, th.createdAt()));
+                    orUnknown(th.brand()), th.status(), null, null, null, null, th.createdAt()));
         }
         return devices;
     }

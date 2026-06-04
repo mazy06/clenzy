@@ -43,16 +43,41 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
     >
       {/* En-tête : badge type + nom (+ pièce) | indicateur en ligne */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
-        <Box
-          sx={{
-            width: 30, height: 30, borderRadius: 1, flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: meta.color,
-            bgcolor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.2 : 0.12),
-          }}
-        >
-          {meta.icon(iconSize)}
-        </Box>
+        {device.kind === 'camera' ? (
+          // Caméra : aperçu (snapshot) du flux. Repli sur l'icône (placée derrière) si hors
+          // ligne, pas de snapshot, ou image en erreur (onError masque l'img → l'icône réapparaît).
+          <Box
+            sx={{
+              position: 'relative', width: 40, height: 30, borderRadius: 1, flexShrink: 0, overflow: 'hidden',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: meta.color,
+              bgcolor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.2 : 0.12),
+            }}
+          >
+            {meta.icon(iconSize)}
+            {device.online && device.previewUrl && (
+              <Box
+                component="img"
+                src={device.previewUrl}
+                alt=""
+                loading="lazy"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            )}
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              width: 30, height: 30, borderRadius: 1, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: meta.color,
+              bgcolor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.2 : 0.12),
+            }}
+          >
+            {meta.icon(iconSize)}
+          </Box>
+        )}
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.25, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {device.name}

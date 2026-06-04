@@ -14,6 +14,8 @@ export interface DeviceSummaryDto {
   lockState: string | null;
   batteryLevel: number | null;
   activeCodesCount: number | null;
+  /** Caméras : URL du poster (snapshot du flux). Null pour les autres types. */
+  snapshotUrl: string | null;
   createdAt: string;
 }
 
