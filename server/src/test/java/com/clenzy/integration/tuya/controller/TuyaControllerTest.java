@@ -1,8 +1,12 @@
 package com.clenzy.integration.tuya.controller;
 
 import com.clenzy.dto.noise.TuyaConnectionStatusDto;
+import com.clenzy.integration.tuya.config.TuyaConfig;
+import com.clenzy.integration.tuya.dto.TuyaConfigStatusDto;
+import com.clenzy.integration.tuya.dto.UpdateTuyaConfigDto;
 import com.clenzy.integration.tuya.model.TuyaConnection;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.integration.tuya.service.TuyaPlatformConfigService;
 import com.clenzy.model.NoiseDevice;
 import com.clenzy.repository.NoiseDeviceRepository;
 import org.junit.jupiter.api.*;
@@ -27,13 +31,15 @@ class TuyaControllerTest {
 
     @Mock private TuyaApiService apiService;
     @Mock private NoiseDeviceRepository noiseDeviceRepository;
+    @Mock private TuyaConfig tuyaConfig;
+    @Mock private TuyaPlatformConfigService platformConfigService;
 
     private TuyaController controller;
     private Jwt jwt;
 
     @BeforeEach
     void setUp() {
-        controller = new TuyaController(apiService, noiseDeviceRepository);
+        controller = new TuyaController(apiService, noiseDeviceRepository, tuyaConfig, platformConfigService);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")
@@ -352,6 +358,64 @@ class TuyaControllerTest {
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // ── config (credentials projet Tuya editables depuis l'UI) ──────
+
+    @Nested
+    @DisplayName("config")
+    class Config {
+
+        @Test
+        @DisplayName("getConfig reflects the effective Tuya config without exposing the secret")
+        void getConfig_returnsEffectiveStatus() {
+            // Arrange
+            when(tuyaConfig.isConfigured()).thenReturn(true);
+            when(tuyaConfig.getAccessId()).thenReturn("access-abc");
+            when(tuyaConfig.getApiBaseUrl()).thenReturn("https://openapi.tuyaeu.com");
+            when(tuyaConfig.getRegion()).thenReturn("eu");
+
+            // Act
+            ResponseEntity<TuyaConfigStatusDto> response = controller.getConfig();
+
+            // Assert
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            TuyaConfigStatusDto dto = response.getBody();
+            assertThat(dto).isNotNull();
+            assertThat(dto.configured()).isTrue();
+            assertThat(dto.accessId()).isEqualTo("access-abc");
+            assertThat(dto.region()).isEqualTo("eu");
+        }
+
+        @Test
+        @DisplayName("updateConfig persists credentials and echoes new status")
+        void updateConfig_persistsAndReturnsStatus() {
+            // Arrange
+            when(tuyaConfig.isConfigured()).thenReturn(true);
+            when(tuyaConfig.getAccessId()).thenReturn("new-id");
+            when(tuyaConfig.getApiBaseUrl()).thenReturn("https://openapi.tuyaeu.com");
+            when(tuyaConfig.getRegion()).thenReturn("eu");
+
+            // Act
+            ResponseEntity<?> response = controller.updateConfig(jwt,
+                    new UpdateTuyaConfigDto("new-id", "new-secret", null, null));
+
+            // Assert
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            verify(platformConfigService).save("new-id", "new-secret", null, null, "user-123");
+        }
+
+        @Test
+        @DisplayName("updateConfig rejects a blank access id")
+        void updateConfig_rejectsBlankAccessId() {
+            // Act
+            ResponseEntity<?> response = controller.updateConfig(jwt,
+                    new UpdateTuyaConfigDto("  ", "secret", null, null));
+
+            // Assert
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            verifyNoInteractions(platformConfigService);
         }
     }
 }
