@@ -32,6 +32,14 @@ public class TuyaPlatformConfig {
     @Column(name = "app_schema")
     private String appSchema;
 
+    /** AppKey de l'App SDK Tuya mobile (init du SDK, partage iOS + Android). */
+    @Column(name = "app_key")
+    private String appKey;
+
+    /** AppSecret de l'App SDK Tuya mobile, chiffre. */
+    @Column(name = "app_secret_encrypted", columnDefinition = "TEXT")
+    private String appSecretEncrypted;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -60,6 +68,12 @@ public class TuyaPlatformConfig {
 
     public String getAppSchema() { return appSchema; }
     public void setAppSchema(String appSchema) { this.appSchema = appSchema; }
+
+    public String getAppKey() { return appKey; }
+    public void setAppKey(String appKey) { this.appKey = appKey; }
+
+    public String getAppSecretEncrypted() { return appSecretEncrypted; }
+    public void setAppSecretEncrypted(String appSecretEncrypted) { this.appSecretEncrypted = appSecretEncrypted; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public String getUpdatedBy() { return updatedBy; }

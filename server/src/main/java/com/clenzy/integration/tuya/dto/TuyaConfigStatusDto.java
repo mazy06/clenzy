@@ -9,5 +9,6 @@ public record TuyaConfigStatusDto(
         String accessId,
         String baseUrl,
         String region,
-        String appSchema
+        String appSchema,
+        String appKey
 ) {}
