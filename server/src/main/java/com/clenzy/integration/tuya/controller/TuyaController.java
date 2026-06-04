@@ -2,10 +2,13 @@ package com.clenzy.integration.tuya.controller;
 
 import com.clenzy.dto.noise.TuyaConnectionStatusDto;
 import com.clenzy.integration.tuya.config.TuyaConfig;
+import com.clenzy.integration.tuya.dto.TuyaAppAccountDto;
 import com.clenzy.integration.tuya.dto.TuyaConfigStatusDto;
 import com.clenzy.integration.tuya.dto.UpdateTuyaConfigDto;
+import com.clenzy.integration.tuya.model.TuyaAppAccount;
 import com.clenzy.integration.tuya.model.TuyaConnection;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.integration.tuya.service.TuyaAppAccountService;
 import com.clenzy.integration.tuya.service.TuyaPlatformConfigService;
 import com.clenzy.repository.NoiseDeviceRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,15 +47,18 @@ public class TuyaController {
     private final NoiseDeviceRepository noiseDeviceRepository;
     private final TuyaConfig tuyaConfig;
     private final TuyaPlatformConfigService platformConfigService;
+    private final TuyaAppAccountService appAccountService;
 
     public TuyaController(TuyaApiService apiService,
                           NoiseDeviceRepository noiseDeviceRepository,
                           TuyaConfig tuyaConfig,
-                          TuyaPlatformConfigService platformConfigService) {
+                          TuyaPlatformConfigService platformConfigService,
+                          TuyaAppAccountService appAccountService) {
         this.apiService = apiService;
         this.noiseDeviceRepository = noiseDeviceRepository;
         this.tuyaConfig = tuyaConfig;
         this.platformConfigService = platformConfigService;
+        this.appAccountService = appAccountService;
     }
 
     // ─── Configuration du projet Tuya (credentials plateforme, editables depuis l'UI) ───
@@ -66,7 +72,8 @@ public class TuyaController {
                 tuyaConfig.isConfigured(),
                 tuyaConfig.getAccessId(),
                 tuyaConfig.getApiBaseUrl(),
-                tuyaConfig.getRegion()));
+                tuyaConfig.getRegion(),
+                tuyaConfig.getAppSchema()));
     }
 
     @PutMapping("/config")
@@ -85,13 +92,42 @@ public class TuyaController {
                 body.accessSecret(),
                 body.baseUrl(),
                 body.region(),
+                body.appSchema(),
                 jwt.getSubject());
         log.info("Config projet Tuya mise a jour par {}", jwt.getSubject());
         return ResponseEntity.ok(new TuyaConfigStatusDto(
                 tuyaConfig.isConfigured(),
                 tuyaConfig.getAccessId(),
                 tuyaConfig.getApiBaseUrl(),
-                tuyaConfig.getRegion()));
+                tuyaConfig.getRegion(),
+                tuyaConfig.getAppSchema()));
+    }
+
+    // ─── Compte app Tuya de l'hote (modele C) ────────────────────
+
+    @PostMapping("/app-account")
+    @Operation(summary = "Provisionne / retourne le compte app Tuya de l'hote",
+            description = "Cree (si besoin) un compte app Tuya sous le schema du projet et retourne ses "
+                    + "identifiants pour la connexion SDK mobile avant l'appairage (modele C)")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> appAccount(@AuthenticationPrincipal Jwt jwt) {
+        try {
+            TuyaAppAccount acc = appAccountService.getOrCreate(jwt.getSubject());
+            return ResponseEntity.ok(new TuyaAppAccountDto(
+                    acc.getTuyaUid(),
+                    acc.getTuyaUsername(),
+                    appAccountService.decryptSecret(acc),
+                    acc.getCountryCode(),
+                    tuyaConfig.getAppSchema()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "configuration_missing", "message", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Erreur provisioning compte app Tuya pour {}: {}", jwt.getSubject(), e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "provisioning_failed",
+                    "message", "Echec du provisioning du compte app Tuya"));
+        }
     }
 
     // ─── Connection Management ───────────────────────────────────

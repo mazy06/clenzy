@@ -48,6 +48,7 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
   const [accessId, setAccessId] = useState(current?.accessId ?? '');
   const [accessSecret, setAccessSecret] = useState('');
   const [region, setRegion] = useState(current?.region ?? 'eu');
+  const [appSchema, setAppSchema] = useState(current?.appSchema ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +71,7 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
         accessSecret: accessSecret.trim() || undefined,
         baseUrl: dc.baseUrl,
         region: dc.value,
+        appSchema: appSchema.trim() || undefined,
       });
       onSaved(status);
       onClose();
@@ -141,6 +143,15 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
               </MenuItem>
             ))}
           </TextField>
+          <TextField
+            label="App SDK schema (optionnel)"
+            value={appSchema}
+            onChange={(e) => setAppSchema(e.target.value)}
+            fullWidth
+            autoComplete="off"
+            disabled={saving}
+            helperText="Schema de l'App SDK Tuya (console → App → App SDK) — requis pour l'appairage mobile (modèle C). Laisser vide si non utilisé."
+          />
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
