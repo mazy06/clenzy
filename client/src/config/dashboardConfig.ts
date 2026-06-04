@@ -17,24 +17,9 @@ export const DASHBOARD_TABS: DashboardTabConfig[] = [
     iconName: 'Dashboard',
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR', 'TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'],
   },
-  {
-    key: 'noise',
-    labelKey: 'dashboard.tabs.noise',
-    iconName: 'VolumeUp',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
-  },
-  {
-    key: 'smartlock',
-    labelKey: 'dashboard.tabs.smartLock',
-    iconName: 'Lock',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
-  },
-  {
-    key: 'keyexchange',
-    labelKey: 'dashboard.tabs.keyExchange',
-    iconName: 'Key',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
-  },
+  // Les services « objets connectés » (bruit, serrures, clés) ont migré vers le
+  // Hub /connected-objects (écran unique groupé par logement). Les vues riches
+  // restent accessibles via /connected-objects/{noise,locks,keys}.
   {
     key: 'simulator',
     labelKey: 'dashboard.tabs.simulator',

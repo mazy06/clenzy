@@ -7,6 +7,7 @@ import com.clenzy.repository.MinNightsOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.messaging.AutomationEvaluationService;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,7 @@ public class ReservationService {
     private final ServiceRequestRepository serviceRequestRepository;
     private final NotificationService notificationService;
     private final MinNightsOverrideRepository minNightsOverrideRepository;
+    private final AutomationEvaluationService automationEvaluationService;
 
     public ReservationService(ReservationRepository reservationRepository,
                               UserRepository userRepository,
@@ -43,7 +45,8 @@ public class ReservationService {
                               SyncMetrics syncMetrics,
                               ServiceRequestRepository serviceRequestRepository,
                               NotificationService notificationService,
-                              MinNightsOverrideRepository minNightsOverrideRepository) {
+                              MinNightsOverrideRepository minNightsOverrideRepository,
+                              AutomationEvaluationService automationEvaluationService) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
@@ -53,6 +56,7 @@ public class ReservationService {
         this.serviceRequestRepository = serviceRequestRepository;
         this.notificationService = notificationService;
         this.minNightsOverrideRepository = minNightsOverrideRepository;
+        this.automationEvaluationService = automationEvaluationService;
     }
 
     /**
@@ -163,6 +167,7 @@ public class ReservationService {
             // Notification pour nouvelle reservation
             if (isNewConfirmed) {
                 notifyReservationCreated(saved);
+                seedAutomations(saved, orgId);
             }
 
             return saved;
@@ -272,6 +277,21 @@ public class ReservationService {
             return Integer.parseInt(checkOutTime.split(":")[0]);
         } catch (Exception e) {
             return 11;
+        }
+    }
+
+    // ── Automatisations ──────────────────────────────────────────────────
+
+    /**
+     * Amorce les regles d'automatisation pour une reservation nouvellement creee.
+     * L'echec ne doit jamais empecher la creation de la reservation.
+     */
+    private void seedAutomations(Reservation reservation, Long orgId) {
+        try {
+            automationEvaluationService.onReservationCreated(reservation, orgId);
+        } catch (Exception e) {
+            log.warn("Erreur amorcage automatisations pour reservation {}: {}",
+                    reservation.getId(), e.getMessage());
         }
     }
 

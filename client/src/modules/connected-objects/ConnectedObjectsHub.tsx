@@ -14,19 +14,26 @@ import type { DeviceAction, DeviceKind } from './types';
 
 const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gap: 1 } as const;
 
+const PROVIDER_LABELS: Record<string, string> = {
+  MINUT: 'Minut', TUYA: 'Tuya', NUKI: 'Nuki', KEYNEST: 'KeyNest', CLENZY_KEYVAULT: 'KeyVault',
+};
+
+// Types « à venir » disposant d'un écran d'aperçu (Phase 2, UI-first).
+const PREVIEW_ROUTES: Partial<Record<DeviceKind, string>> = {
+  camera: '/connected-objects/cameras',
+  thermostat: '/connected-objects/thermostats',
+};
+
 export default function ConnectedObjectsHub() {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { groups, devices, kpis, loading, act, actingUid, refetch } = useConnectedObjects();
+  const { groups, devices, kpis, providers, loading, act, actingUid, refetch } = useConnectedObjects();
   const [kindFilter, setKindFilter] = useState<DeviceKind | ''>('');
   const [wizardOpen, setWizardOpen] = useState(false);
 
-  // Providers réellement présents (pont visuel vers les Settings).
-  const providers = useMemo(() => {
-    const map = new Map<string, number>();
-    devices.forEach((d) => map.set(d.provider, (map.get(d.provider) ?? 0) + 1));
-    return [...map.entries()].filter(([p]) => p !== 'UNKNOWN');
-  }, [devices]);
+  // Services reliés : statut réel des providers (backend), repli présence sinon.
+  // On masque le bruit (provider ni connecté ni porteur d'objets).
+  const visibleProviders = providers.filter((p) => p.connected || p.deviceCount > 0);
 
   // Types présents → options du filtre.
   const kindsPresent = useMemo(() => {
@@ -43,9 +50,24 @@ export default function ConnectedObjectsHub() {
 
   const comingSoon = DEVICE_KIND_ORDER.filter((k) => !DEVICE_KINDS[k].available);
 
+  // Routes de gestion avancée par type de service (vues riches issues des anciens
+  // onglets dashboard, désormais sous le Hub).
+  const MANAGE_ROUTE_BY_KIND: Partial<Record<DeviceKind, string>> = {
+    noise: '/connected-objects/noise',
+    lock: '/connected-objects/locks',
+    keybox: '/connected-objects/keys',
+    camera: '/connected-objects/cameras',
+    thermostat: '/connected-objects/thermostats',
+  };
+
   const handleAction = (uid: string, action: DeviceAction) => {
-    if (action === 'lock' || action === 'unlock') void act(uid, action);
-    else navigate('/dashboard'); // Phase 0 : gestion fine via l'écran existant (assistant d'ajout unifié = Phase 1)
+    if (action === 'lock' || action === 'unlock') {
+      void act(uid, action);
+      return;
+    }
+    // « Gérer » → écran de gestion avancée du service correspondant.
+    const kind = devices.find((d) => d.uid === uid)?.kind;
+    navigate((kind && MANAGE_ROUTE_BY_KIND[kind]) || '/connected-objects');
   };
 
   return (
@@ -68,17 +90,21 @@ export default function ConnectedObjectsHub() {
         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', mr: 0.5 }}>
           Services reliés
         </Typography>
-        {providers.length === 0 && !loading ? (
+        {visibleProviders.length === 0 && !loading ? (
           <Typography variant="caption" sx={{ color: 'text.disabled' }}>Aucun service relié pour l'instant.</Typography>
         ) : (
-          providers.map(([provider, count]) => (
-            <Chip
-              key={provider}
-              size="small"
-              label={`${provider.charAt(0) + provider.slice(1).toLowerCase()} · ${count}`}
-              sx={{ height: 24, bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.dark', fontWeight: 600, border: '1px solid', borderColor: alpha(theme.palette.success.main, 0.25) }}
-            />
-          ))
+          visibleProviders.map((p) => {
+            const c = p.connected ? theme.palette.success.main : theme.palette.warning.main;
+            return (
+              <Tooltip key={p.provider} title={p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'} arrow>
+                <Chip
+                  size="small"
+                  label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`}
+                  sx={{ height: 24, bgcolor: alpha(c, 0.1), color: c, fontWeight: 600, border: '1px solid', borderColor: alpha(c, 0.25) }}
+                />
+              </Tooltip>
+            );
+          })
         )}
         <Button variant="text" size="small" endIcon={<ChevronRight size={14} strokeWidth={1.75} />} onClick={() => navigate('/settings')} sx={{ ml: 'auto', color: 'text.secondary' }}>
           Gérer les intégrations
@@ -169,12 +195,31 @@ export default function ConnectedObjectsHub() {
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             {comingSoon.map((k) => {
               const meta = DEVICE_KINDS[k];
+              const previewRoute = PREVIEW_ROUTES[k];
               return (
-                <Tooltip key={k} title={k === 'camera' ? 'Streaming vidéo en direct — Phase 2' : 'À venir'} arrow>
-                  <Paper variant="outlined" sx={{ px: 1.25, py: 0.875, borderRadius: 1.5, borderStyle: 'dashed', display: 'inline-flex', alignItems: 'center', gap: 0.875, opacity: 0.7 }}>
+                <Tooltip key={k} title={previewRoute ? `Aperçu — ${meta.label} (Phase 2)` : 'À venir'} arrow>
+                  <Paper
+                    variant="outlined"
+                    onClick={previewRoute ? () => navigate(previewRoute) : undefined}
+                    sx={{
+                      px: 1.25, py: 0.875, borderRadius: 1.5, borderStyle: 'dashed',
+                      display: 'inline-flex', alignItems: 'center', gap: 0.875,
+                      opacity: previewRoute ? 1 : 0.7,
+                      cursor: previewRoute ? 'pointer' : 'default',
+                      transition: 'border-color 200ms, background-color 200ms',
+                      ...(previewRoute && { '&:hover': { borderColor: meta.color, bgcolor: alpha(meta.color, 0.05) } }),
+                    }}
+                  >
                     <Box component="span" sx={{ color: meta.color, display: 'inline-flex' }}>{meta.icon(16)}</Box>
                     <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{meta.label}</Typography>
-                    <Chip size="small" label="Bientôt" sx={{ height: 18, fontSize: '0.65rem' }} />
+                    {previewRoute ? (
+                      <>
+                        <Chip size="small" label="Aperçu" sx={{ height: 18, fontSize: '0.65rem', bgcolor: alpha(meta.color, 0.15), color: meta.color, fontWeight: 700 }} />
+                        <Box component="span" sx={{ color: 'text.disabled', display: 'inline-flex' }}><ChevronRight size={14} strokeWidth={1.75} /></Box>
+                      </>
+                    ) : (
+                      <Chip size="small" label="Bientôt" sx={{ height: 18, fontSize: '0.65rem' }} />
+                    )}
                   </Paper>
                 </Tooltip>
               );

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AutomationEvaluationService {
@@ -19,13 +20,29 @@ public class AutomationEvaluationService {
     private final AutomationRuleRepository ruleRepository;
     private final AutomationExecutionRepository executionRepository;
     private final GuestMessagingService messagingService;
+    private final AutomationConditionEvaluator conditionEvaluator;
 
     public AutomationEvaluationService(AutomationRuleRepository ruleRepository,
                                         AutomationExecutionRepository executionRepository,
-                                        GuestMessagingService messagingService) {
+                                        GuestMessagingService messagingService,
+                                        AutomationConditionEvaluator conditionEvaluator) {
         this.ruleRepository = ruleRepository;
         this.executionRepository = executionRepository;
         this.messagingService = messagingService;
+        this.conditionEvaluator = conditionEvaluator;
+    }
+
+    /**
+     * Amorce les automatisations du cycle de vie d'une reservation a sa creation.
+     * Le declencheur RESERVATION_CONFIRMED s'execute immediatement ; les declencheurs
+     * temporels (check-in/check-out/review) sont planifies (PENDING) pour leur date cible
+     * et draines ensuite par {@link AutomationSchedulerService}.
+     */
+    @Transactional
+    public void onReservationCreated(Reservation reservation, Long orgId) {
+        for (AutomationTrigger trigger : AutomationTrigger.values()) {
+            evaluateRulesForReservation(reservation, trigger, orgId);
+        }
     }
 
     @Transactional
@@ -36,6 +53,11 @@ public class AutomationEvaluationService {
         for (AutomationRule rule : rules) {
             if (executionRepository.existsByAutomationRuleIdAndReservationId(rule.getId(), reservation.getId())) {
                 log.debug("Rule {} deja executee pour reservation {}", rule.getId(), reservation.getId());
+                continue;
+            }
+
+            if (!conditionEvaluator.matches(rule.getConditions(), reservation)) {
+                log.debug("Rule {} ne matche pas les conditions pour reservation {}", rule.getId(), reservation.getId());
                 continue;
             }
 
@@ -78,7 +100,10 @@ public class AutomationEvaluationService {
                                 Reservation reservation, Long orgId) {
         try {
             if (rule.getTemplate() != null && rule.getActionType() == AutomationAction.SEND_MESSAGE) {
-                messagingService.sendForReservation(reservation, rule.getTemplate(), orgId);
+                MessageChannelType channel = rule.getDeliveryChannel() != null
+                    ? rule.getDeliveryChannel() : MessageChannelType.EMAIL;
+                messagingService.sendForReservationViaChannel(
+                    reservation, rule.getTemplate(), orgId, channel, Map.of());
             }
             execution.setStatus(AutomationExecutionStatus.EXECUTED);
             execution.setExecutedAt(LocalDateTime.now());

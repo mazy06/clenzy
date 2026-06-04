@@ -60,6 +60,13 @@ import ContactCreatePage from './contact/ContactCreatePage';
 import DocumentsPage from './documents/DocumentsPage';
 import ConnectedObjectsHub from './connected-objects/ConnectedObjectsHub';
 import PropertyDevicesView from './connected-objects/PropertyDevicesView';
+import {
+  NoiseManagementScreen,
+  LockManagementScreen,
+  KeyExchangeManagementScreen,
+} from './connected-objects/screens/IotManagementScreens';
+import CamerasScreen from './connected-objects/cameras/CamerasScreen';
+import ThermostatsScreen from './connected-objects/thermostats/ThermostatsScreen';
 import TemplateDetails from './documents/TemplateDetails';
 
 // Notifications
@@ -143,6 +150,33 @@ const AuthenticatedApp: React.FC = () => {
         <Route path="/connected-objects/property/:id" element={
           <ErrorBoundary>
             <PropertyDevicesView />
+          </ErrorBoundary>
+        } />
+        {/* Gestion avancée par service (vues riches issues des anciens onglets dashboard) */}
+        <Route path="/connected-objects/noise" element={
+          <ErrorBoundary>
+            <NoiseManagementScreen />
+          </ErrorBoundary>
+        } />
+        <Route path="/connected-objects/locks" element={
+          <ErrorBoundary>
+            <LockManagementScreen />
+          </ErrorBoundary>
+        } />
+        <Route path="/connected-objects/keys" element={
+          <ErrorBoundary>
+            <KeyExchangeManagementScreen />
+          </ErrorBoundary>
+        } />
+        {/* Aperçus Phase 2 (UI-first — données simulées) */}
+        <Route path="/connected-objects/cameras" element={
+          <ErrorBoundary>
+            <CamerasScreen />
+          </ErrorBoundary>
+        } />
+        <Route path="/connected-objects/thermostats" element={
+          <ErrorBoundary>
+            <ThermostatsScreen />
           </ErrorBoundary>
         } />
 

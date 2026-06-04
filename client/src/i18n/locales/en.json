@@ -38,6 +38,17 @@
     "collapseMenu": "Collapse menu",
     "ratesAt": "Rates as of"
   },
+  "connectedObjects": {
+    "previewBadge": "Preview",
+    "cameras": {
+      "title": "Cameras",
+      "subtitle": "Video monitoring across your properties — a preview of what's coming."
+    },
+    "thermostats": {
+      "title": "Thermostats",
+      "subtitle": "Thermal comfort across your properties — a preview of what's coming."
+    }
+  },
   "navigation": {
     "dashboard": "Dashboard",
     "assistant": "Assistant",

@@ -45,7 +45,6 @@ import type { DashboardPeriod } from './DashboardDateFilter';
 
 interface DashboardOverviewProps {
   period: DashboardPeriod;
-  onNavigateTab?: (tabIndex: number) => void;
 }
 
 // ─── Empty interventions for analytics engine ───────────────────────────────
@@ -78,7 +77,7 @@ const kpiHoverSx = (isDark: boolean) => ({
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period, onNavigateTab }) => {
+const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -328,9 +327,9 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
             )}
 
           {/* Services Status (noise, locks, keys) — management & host only */}
-          {showServices && onNavigateTab && (
+          {showServices && (
             <DashboardErrorBoundary widgetName="ServicesStatus">
-              <ServicesStatusWidget onNavigateTab={onNavigateTab} onReady={onServicesReady} />
+              <ServicesStatusWidget onReady={onServicesReady} />
             </DashboardErrorBoundary>
           )}
 
