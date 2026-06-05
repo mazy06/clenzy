@@ -114,9 +114,11 @@ public class NetatmoController {
                 configService.isConfigured(), configService.getClientId(), configService.getRedirectUri()));
     }
 
+    // Connexion d'un compte = par utilisateur (modèle Netatmo par-hôte) → accessible à
+    // tout utilisateur authentifié (chaque hôte connecte SON compte depuis le hub).
+    // La config de l'app (client_id/secret, /config) reste réservée aux SUPER_ADMIN/MANAGER.
     @GetMapping("/connect")
-    @Operation(summary = "Initier la connexion OAuth Netatmo")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
+    @Operation(summary = "Initier la connexion OAuth Netatmo (compte de l'utilisateur courant)")
     public ResponseEntity<Map<String, String>> connect(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
 
@@ -157,17 +159,16 @@ public class NetatmoController {
         try {
             NetatmoOAuthService.OAuthState st = oAuthService.consumeState(state);
             oAuthService.exchangeCodeForToken(code, st.userId(), st.organizationId());
-            target = "/settings?tab=integrations&netatmo=connected";
+            target = "/properties?tab=connected-objects&netatmo=connected";
         } catch (Exception e) {
             log.error("Erreur callback OAuth Netatmo: {}", e.getMessage());
-            target = "/settings?tab=integrations&netatmo=error";
+            target = "/properties?tab=connected-objects&netatmo=error";
         }
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(target)).build();
     }
 
     @PostMapping("/disconnect")
-    @Operation(summary = "Deconnecter le compte Netatmo")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
+    @Operation(summary = "Deconnecter le compte Netatmo de l'utilisateur courant")
     public ResponseEntity<Map<String, String>> disconnect(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         try {
