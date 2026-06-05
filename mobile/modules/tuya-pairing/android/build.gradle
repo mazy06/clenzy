@@ -46,7 +46,15 @@ repositories {
 
 dependencies {
   // SDK Tuya App (Home) 7.5.x — appairage (device activator EZ/AP/BLE).
-  implementation 'com.thingclips.smart:thingsmart:7.5.1'
+  // BUG Tuya : asynclib:7.5.x reference une dep transitive FANTOME
+  // `thingsmart-modularCampAnno:1.0.0-SNAPSHOT` (scope runtime, version inexistante dans TOUS
+  // les repos ; seules des releases 2.3.x existent ; idem en 7.5.6). En integration complete un
+  // autre module la tire en release (resolution de conflit) ; ici on exclut le SNAPSHOT fantome
+  // et on epingle une release disponible.
+  implementation('com.thingclips.smart:thingsmart:7.5.1') {
+    exclude group: 'com.thingclips.smart', module: 'thingsmart-modularCampAnno'
+  }
+  implementation 'com.thingclips.smart:thingsmart-modularCampAnno:2.3.1-android15'
   implementation 'com.alibaba:fastjson:1.1.67.android'
   implementation 'com.squareup.okhttp3:okhttp-urlconnection:3.14.9'
   // Brique de securite locale (liee a l'AppKey) — fournie dans libs/.
