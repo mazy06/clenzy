@@ -41,7 +41,9 @@ export default function PropertyDevicesView() {
   }), [propertyDevices]);
 
   const handleAction = (uid: string, action: DeviceAction) => {
-    if (action === 'lock' || action === 'unlock') void act(uid, action);
+    if (action === 'lock' || action === 'unlock') { void act(uid, action); return; }
+    const dev = devices.find((d) => d.uid === uid);
+    if (dev) navigate(`/connected-objects/device/${dev.kind}/${dev.id}`);
   };
 
   return (

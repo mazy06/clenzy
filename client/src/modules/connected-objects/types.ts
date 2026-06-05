@@ -23,6 +23,19 @@ export type DeviceProvider =
 /** Action rapide proposée sur une carte d'objet. */
 export type DeviceAction = 'lock' | 'unlock' | 'view' | 'acknowledge';
 
+/**
+ * Types d'objets que l'utilisateur peut retirer depuis le Hub. Limité aux types
+ * « réels » disposant d'un endpoint de suppression (serrures, capteurs sonores,
+ * points de remise). Les caméras / thermostats sont en aperçu (Phase 2) — non
+ * supprimables tant qu'ils ne sont pas adossés à un vrai enregistrement.
+ */
+const DELETABLE_KINDS: DeviceKind[] = ['lock', 'noise', 'keybox'];
+
+/** Vrai si l'objet expose une action « Supprimer » (cf. {@link DELETABLE_KINDS}). */
+export function isDeviceDeletable(kind: DeviceKind): boolean {
+  return DELETABLE_KINDS.includes(kind);
+}
+
 export interface ConnectedDevice {
   /** Identifiant unique tous types confondus : `${kind}:${id}`. */
   uid: string;

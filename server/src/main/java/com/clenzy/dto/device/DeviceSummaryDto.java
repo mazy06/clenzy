@@ -20,7 +20,8 @@ public record DeviceSummaryDto(
         String propertyName,
         String roomName,
         String provider,          // brand (lock) / deviceType (noise) / provider (keybox)
-        String status,            // ACTIVE | INACTIVE | PENDING
+        String status,            // ACTIVE | INACTIVE | PENDING (cycle de vie, != connectivite)
+        Boolean online,           // connectivite reelle ; serrures = flag Tuya, autres = status==ACTIVE ; null = inconnu
         String lockState,         // serrures : LOCKED | UNLOCKED | UNKNOWN
         Integer batteryLevel,     // serrures
         Integer activeCodesCount, // points de remise

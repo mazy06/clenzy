@@ -13,20 +13,25 @@ import com.thingclips.smart.android.user.bean.User
 import com.thingclips.smart.home.sdk.bean.HomeBean
 import com.thingclips.smart.home.sdk.callback.IThingGetHomeListCallback
 import com.thingclips.smart.home.sdk.callback.IThingHomeResultCallback
-import com.thingclips.smart.sdk.api.IThingActivator
 import com.thingclips.smart.sdk.api.IThingActivatorGetToken
-import com.thingclips.smart.sdk.api.IThingSmartActivatorListener
 import com.thingclips.smart.sdk.bean.DeviceBean
-import com.thingclips.smart.sdk.builder.ThingActivatorBuilder
-import com.thingclips.smart.sdk.enums.ActivatorModelEnum
+// Nouvelle API activator 7.x (artefact thingsmart-activator-core-kit) — cf. sample officiel Tuya
+// + module Expo-Tuya de reference.
+import com.thingclips.smart.activator.core.kit.ThingActivatorCoreKit
+import com.thingclips.smart.activator.core.kit.ThingActivatorDeviceCoreKit
+import com.thingclips.smart.activator.core.kit.active.inter.IThingActiveManager
+import com.thingclips.smart.activator.core.kit.bean.ThingDeviceActiveErrorBean
+import com.thingclips.smart.activator.core.kit.bean.ThingDeviceActiveLimitBean
+import com.thingclips.smart.activator.core.kit.builder.ThingDeviceActiveBuilder
+import com.thingclips.smart.activator.core.kit.constant.ThingDeviceActiveModeEnum
+import com.thingclips.smart.activator.core.kit.listener.IThingDeviceActiveListener
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Module natif d'appairage Tuya (modele C) — Android. Encapsule le device activator
-// du SDK Tuya (Smart Life App SDK 7.5.x, namespace com.thingclips.smart). Enregistre
-// sous « TuyaPairing », consomme par src/native/tuyaPairing.ts.
+// Module natif d'appairage Tuya (modele C) — Android. Encapsule l'activator du SDK Tuya
+// (Smart Life App SDK 7.5.x). Enregistre sous « TuyaPairing », consomme par src/native/tuyaPairing.ts.
 //
-// NB API : les classes/methodes Tuya marquees « VALIDATION » sont a confirmer au 1er
-// build EAS (le SDK 7.5.x "Thing" peut differer). La structure (callbacks, promises) est stable.
+// Flux : init(appKey, appSecret) -> loginAppAccount (compte app de l'hote) -> getPairingToken (lie a
+// un home) -> startPairing (activator EZ/AP via ThingActivatorCoreKit) -> resout avec le device appaire.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class StartPairingParams : Record {
@@ -39,7 +44,7 @@ class StartPairingParams : Record {
 
 class TuyaPairingModule : Module() {
 
-  private var activator: IThingActivator? = null
+  private var activeManager: IThingActiveManager? = null
 
   override fun definition() = ModuleDefinition {
     Name("TuyaPairing")
@@ -56,8 +61,6 @@ class TuyaPairingModule : Module() {
     }
 
     // Connecte le SDK au compte app Tuya de l'hote (provisionne par le PMS).
-    // VALIDATION : loginWithUid pour un compte app cree via apps/{schema}/user — a aligner
-    // avec username_type cote backend createAppUser.
     AsyncFunction("loginAppAccount") { countryCode: String, username: String, password: String, promise: Promise ->
       ThingHomeSdk.getUserInstance().loginWithUid(countryCode, username, password, object : ILoginCallback {
         override fun onSuccess(user: User) {
@@ -73,12 +76,12 @@ class TuyaPairingModule : Module() {
     AsyncFunction("getPairingToken") { promise: Promise ->
       resolveHomeId(
         onResolved = { homeId ->
-          ThingHomeSdk.getActivatorInstance().getActivatorToken(homeId, object : IThingActivatorGetToken {
+          ThingActivatorDeviceCoreKit.getActivatorInstance().getActivatorToken(homeId, object : IThingActivatorGetToken {
             override fun onSuccess(token: String) {
               promise.resolve(token)
             }
-            override fun onFailure(code: String, error: String) {
-              promise.reject("token_failed", error, null)
+            override fun onFailure(errorCode: String, errorMsg: String) {
+              promise.reject("token_failed", errorMsg, null)
             }
           })
         },
@@ -128,50 +131,43 @@ class TuyaPairingModule : Module() {
       return
     }
 
-    val context = appContext.reactContext?.applicationContext
-    if (context == null) {
-      promise.reject("no_context", "Application context indisponible", null)
-      return
-    }
+    val mode = if (params.mode == "AP") ThingDeviceActiveModeEnum.AP else ThingDeviceActiveModeEnum.EZ
+    val manager = ThingActivatorCoreKit.getActiveManager().newThingActiveManager()
+    activeManager = manager
 
-    val model = if (params.mode == "AP") ActivatorModelEnum.THING_AP else ActivatorModelEnum.THING_EZ
-
-    val builder = ThingActivatorBuilder()
-      .setContext(context)
+    val builder = ThingDeviceActiveBuilder()
+      .setActiveModel(mode)
       .setSsid(params.ssid)
       .setPassword(params.password)
-      .setActivatorModel(model)
-      .setTimeOut(params.timeoutSec.toLong())
       .setToken(params.token)
-      .setListener(object : IThingSmartActivatorListener {
-        override fun onError(errorCode: String, errorMsg: String) {
-          promise.reject("pairing_failed", errorMsg, null)
-          cleanup()
-        }
-
-        override fun onActiveSuccess(devResp: DeviceBean) {
+      .setTimeOut(params.timeoutSec.toLong())
+      .setListener(object : IThingDeviceActiveListener {
+        override fun onFind(devId: String) {}
+        override fun onBind(devId: String) {}
+        override fun onActiveSuccess(deviceBean: DeviceBean) {
           val device = mapOf(
-            "devId" to (devResp.devId ?: ""),
-            "name" to (devResp.name ?: ""),
-            "productId" to (devResp.productId ?: ""),
-            "category" to (devResp.getCategory() ?: "")
+            "devId" to (deviceBean.devId ?: ""),
+            "name" to (deviceBean.name ?: ""),
+            "productId" to (deviceBean.productId ?: "")
           )
           promise.resolve(listOf(device))
           cleanup()
         }
-
-        override fun onStep(step: String, data: Any?) {
-          // Progression (facultatif) — pourra etre relaye via un event Expo plus tard.
+        override fun onActiveError(errorBean: ThingDeviceActiveErrorBean) {
+          promise.reject("pairing_failed", "Echec de l'appairage: $errorBean", null)
+          cleanup()
+        }
+        override fun onActiveLimited(limitBean: ThingDeviceActiveLimitBean) {
+          promise.reject("pairing_limited", "Appairage limite: $limitBean", null)
+          cleanup()
         }
       })
 
-    activator = ThingHomeSdk.getActivatorInstance().newActivator(builder)
-    activator?.start()
+    manager.startActive(builder)
   }
 
   private fun cleanup() {
-    activator?.stop()
-    activator?.onDestroy()
-    activator = null
+    activeManager?.stopActive()
+    activeManager = null
   }
 }

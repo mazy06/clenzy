@@ -7,6 +7,7 @@ export const propertySchema = z.object({
   postalCode: z.string().min(1, 'Le code postal est requis'),
   country: z.string().min(1, 'Le pays est requis'),
   countryCode: z.string().length(2, 'Code pays ISO sur 2 lettres requis').default('FR'),
+  timezone: z.string().default('Europe/Paris'),
   defaultCleaningType: z.enum(['CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING']).default('CLEANING'),
   type: z.string().min(1, 'Le type est requis'),
   status: z.string().min(1, 'Le statut est requis'),

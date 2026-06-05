@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
   Alert,
@@ -21,6 +21,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useTarification } from '../../hooks/useTarification';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import { useTabKeyParam } from '../../components/tabKeyParam';
 import {
   PageHeaderActionsProvider,
   usePageHeaderActionsSlot,
@@ -66,7 +67,8 @@ export default function Tarification() {
     closeSnackbar,
   } = useTarification();
 
-  const [activeTab, setActiveTab] = useState(0);
+  // TAB_DEFS porte deja les `key` stables : on le passe directement au hook (URL ?tab=<key>).
+  const [activeTab, setActiveTab] = useTabKeyParam(TAB_DEFS);
 
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.

@@ -14,6 +14,7 @@ public class SmartLockDeviceDto {
     private String status;
     private String lockState;
     private Integer batteryLevel;
+    private Boolean online;
     private LocalDateTime createdAt;
 
     // ─── Getters / Setters ──────────────────────────────────────
@@ -47,6 +48,9 @@ public class SmartLockDeviceDto {
 
     public Integer getBatteryLevel() { return batteryLevel; }
     public void setBatteryLevel(Integer batteryLevel) { this.batteryLevel = batteryLevel; }
+
+    public Boolean getOnline() { return online; }
+    public void setOnline(Boolean online) { this.online = online; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

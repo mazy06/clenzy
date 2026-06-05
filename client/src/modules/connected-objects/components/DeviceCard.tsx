@@ -1,16 +1,21 @@
-import React from 'react';
-import { Paper, Box, Typography, Button, CircularProgress, Tooltip, alpha, useTheme } from '@mui/material';
-import { Wifi, WifiOff, BatteryAlert, ChevronRight, Lock, LockOpen } from '../../../icons';
+import React, { useState } from 'react';
+import { Paper, Box, Typography, Button, CircularProgress, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert, alpha, useTheme } from '@mui/material';
+import { Wifi, WifiOff, ChevronRight, Lock, LockOpen, MoreVert, Delete } from '../../../icons';
 import { useIconSize } from '../../../hooks/useResponsiveSize';
 import StatusPill from './StatusPill';
+import BatteryIndicator from './BatteryIndicator';
+import AccessCodeSection from './AccessCodeSection';
 import { DEVICE_KINDS } from '../deviceRegistry';
-import type { ConnectedDevice, DeviceAction } from '../types';
+import { useDeleteDevice } from '../useDeleteDevice';
+import { useLockLiveStatus } from '../useLockLiveStatus';
+import { useNoiseLiveStatus } from '../useNoiseLiveStatus';
+import { isDeviceDeletable, type ConnectedDevice, type DeviceAction } from '../types';
 
 interface DeviceCardProps {
   device: ConnectedDevice;
   /** Déclenche une action rapide (lock/unlock/view). */
   onAction?: (uid: string, action: DeviceAction) => void;
-  /** Action en cours (spinner + désactivation). */
+  /** Action lock/unlock en cours (spinner + désactivation). */
   acting?: boolean;
 }
 
@@ -26,6 +31,31 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
   const iconSize = useIconSize('row');
   const meta = DEVICE_KINDS[device.kind];
   const locked = device.kind === 'lock' && (device.raw as { lockState?: string })?.lockState?.toUpperCase() === 'LOCKED';
+
+  // Suppression auto-portée par la carte : fonctionne partout où elle est rendue
+  // (Hub, vue par logement…) sans câblage par l'hôte. Confirmation explicite
+  // (geste destructif) ; au succès la carte disparaît au refetch, l'erreur reste
+  // affichée en snackbar pour permettre un nouvel essai.
+  // Sync ponctuelle du statut réel au montage (online réel via provider), qui
+  // rafraîchit le read-model → carte + KPIs cohérents. No-op hors du type concerné.
+  useLockLiveStatus(device.id, device.kind === 'lock');
+  useNoiseLiveStatus(device.id, device.kind === 'noise');
+
+  const deletable = isDeviceDeletable(device.kind);
+  const { remove, removing } = useDeleteDevice();
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const closeMenu = () => setMenuAnchor(null);
+  const handleDeleteClick = () => { closeMenu(); setConfirmOpen(true); };
+  const handleConfirmDelete = async () => {
+    try {
+      await remove(device);
+      setConfirmOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Échec de la suppression.');
+    }
+  };
 
   return (
     <Paper
@@ -79,7 +109,10 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
           </Box>
         )}
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.25, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <Typography
+            onClick={() => onAction?.(device.uid, 'view')}
+            sx={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.25, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
+          >
             {device.name}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -96,19 +129,17 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
       {/* État + métrique principale */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
         <StatusPill level={device.statusLevel} label={device.statusLabel} pulse={device.online} />
-        {device.primaryMetric && (
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'inline-flex', alignItems: 'center', gap: 0.375 }}>
-            {device.battery != null && device.battery <= 20 && (
-              <Box component="span" sx={{ color: 'warning.main', display: 'inline-flex' }}>
-                <BatteryAlert size={13} strokeWidth={1.75} />
-              </Box>
-            )}
-            <Box component="span" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-              {device.primaryMetric.label} : <strong>{device.primaryMetric.value}</strong>
-            </Box>
+        {device.kind === 'lock' ? (
+          <BatteryIndicator level={device.battery} />
+        ) : device.primaryMetric ? (
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+            {device.primaryMetric.label} : <strong>{device.primaryMetric.value}</strong>
           </Typography>
-        )}
+        ) : null}
       </Box>
+
+      {/* Code d'accès (serrures uniquement) */}
+      {device.kind === 'lock' && <AccessCodeSection deviceId={device.id} />}
 
       {/* Action rapide contextualisée */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 'auto', pt: 0.25 }}>
@@ -134,7 +165,79 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
             Gérer
           </Button>
         )}
+
+        {/* Menu d'options (⋮) — actions secondaires dont la suppression. */}
+        {deletable && (
+          <>
+            <Tooltip title="Options" arrow>
+              <IconButton
+                size="small"
+                aria-label="Options de l'objet"
+                onClick={(e) => setMenuAnchor(e.currentTarget)}
+                disabled={removing}
+                sx={{ flexShrink: 0, color: 'text.secondary', cursor: 'pointer' }}
+              >
+                {removing ? <CircularProgress size={16} /> : <MoreVert size={16} strokeWidth={1.75} />}
+              </IconButton>
+            </Tooltip>
+            <Menu
+              anchorEl={menuAnchor}
+              open={Boolean(menuAnchor)}
+              onClose={closeMenu}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main', gap: 1 }}>
+                <Delete size={16} strokeWidth={1.75} />
+                Supprimer
+              </MenuItem>
+            </Menu>
+          </>
+        )}
       </Box>
+
+      {/* Confirmation de suppression (geste destructif → dialog explicite). */}
+      <Dialog
+        open={confirmOpen}
+        onClose={() => { if (!removing) setConfirmOpen(false); }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Supprimer cet objet ?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            «&nbsp;{device.name}&nbsp;» sera retiré de vos objets connectés.
+            Le service relié reste connecté — vous pourrez le rajouter ensuite.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)} disabled={removing}>
+            Annuler
+          </Button>
+          <Button
+            onClick={() => { void handleConfirmDelete(); }}
+            color="error"
+            variant="contained"
+            disabled={removing}
+            startIcon={removing ? <CircularProgress size={14} color="inherit" /> : <Delete size={16} strokeWidth={1.75} />}
+          >
+            Supprimer
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={Boolean(error)}
+        autoHideDuration={5000}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        {error ? (
+          <Alert severity="error" variant="filled" onClose={() => setError(null)} sx={{ width: '100%' }}>
+            {error}
+          </Alert>
+        ) : undefined}
+      </Snackbar>
     </Paper>
   );
 }

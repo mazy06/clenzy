@@ -12,6 +12,8 @@ export interface Property {
   postalCode: string;
   country: string;
   countryCode?: string;
+  /** Fuseau IANA du logement (ex: Europe/Paris, Africa/Casablanca). */
+  timezone?: string;
   defaultCleaningType?: 'CLEANING' | 'EXPRESS_CLEANING' | 'DEEP_CLEANING';
   /** URL relative de la photo principale (ex: /api/properties/3/photos/12/data). */
   coverPhotoUrl?: string;
@@ -81,6 +83,8 @@ export interface PropertyFormData {
   postalCode: string;
   country: string;
   countryCode?: string;
+  /** Fuseau IANA du logement (ex: Europe/Paris, Africa/Casablanca). */
+  timezone?: string;
   defaultCleaningType?: 'CLEANING' | 'EXPRESS_CLEANING' | 'DEEP_CLEANING';
   type: string;
   status: string;

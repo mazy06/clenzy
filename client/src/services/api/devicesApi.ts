@@ -11,6 +11,8 @@ export interface DeviceSummaryDto {
   roomName: string | null;
   provider: string;
   status: string;
+  /** Connectivité réelle : serrures = vrai flag Tuya, autres types = status===ACTIVE. null = jamais synchronisé. */
+  online: boolean | null;
   lockState: string | null;
   batteryLevel: number | null;
   activeCodesCount: number | null;

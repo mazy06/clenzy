@@ -57,6 +57,14 @@ public class NoiseDevice {
     @Column(name = "status", nullable = false, length = 20)
     private DeviceStatus status = DeviceStatus.ACTIVE;
 
+    /** Connectivite reelle (flag Tuya/Minut). Null = jamais synchronise. */
+    @Column(name = "online")
+    private Boolean online;
+
+    /** Dernier rafraichissement du statut live. */
+    @Column(name = "last_seen_at")
+    private LocalDateTime lastSeenAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -112,6 +120,12 @@ public class NoiseDevice {
 
     public DeviceStatus getStatus() { return status; }
     public void setStatus(DeviceStatus status) { this.status = status; }
+
+    public Boolean getOnline() { return online; }
+    public void setOnline(Boolean online) { this.online = online; }
+
+    public LocalDateTime getLastSeenAt() { return lastSeenAt; }
+    public void setLastSeenAt(LocalDateTime lastSeenAt) { this.lastSeenAt = lastSeenAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

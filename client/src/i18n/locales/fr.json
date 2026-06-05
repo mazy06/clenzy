@@ -2348,7 +2348,8 @@
     "tabs": {
       "properties": "Propriétés",
       "pricing": "Prix dynamique",
-      "vouchers": "Codes promo"
+      "vouchers": "Codes promo",
+      "connectedObjects": "Objets connectés"
     }
   },
   "directoryPage": {
@@ -4141,7 +4142,8 @@
       "subtitle": {
         "properties": "Liste de vos biens immobiliers avec leur statut, taux d'occupation et alertes.",
         "pricing": "Configuration de la tarification dynamique par bien : prix de base, saisonnalité, ajustements.",
-        "vouchers": "Codes promo et campagnes auto applicables aux nuitées : remises pourcentage ou montant fixe, scope par bien."
+        "vouchers": "Codes promo et campagnes auto applicables aux nuitées : remises pourcentage ou montant fixe, scope par bien.",
+        "connectedObjects": "Supervisez et pilotez vos serrures, capteurs et clés, logement par logement."
       }
     },
     "directory": {

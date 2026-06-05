@@ -9,6 +9,7 @@ import {
   Select,
   MenuItem,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import {
   VolumeUp,
@@ -251,9 +252,11 @@ interface NoiseMonitorChartProps {
   data: NoiseMonitoringData;
   combinedChartData: Record<string, string | number>[];
   activeThresholds?: TimeWindowThreshold[] | null;
+  /** Chargement de l'historique réel (Tuya/Minut). */
+  loading?: boolean;
 }
 
-const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, combinedChartData, activeThresholds }) => {
+const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, combinedChartData, activeThresholds, loading = false }) => {
   const [selectedProperty, setSelectedProperty] = useState<string>('all');
 
   const maxCritical = activeThresholds && activeThresholds.length > 0
@@ -401,9 +404,22 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
           })}
         </Box>
 
-        {/* Chart */}
-        <Box sx={{ flex: 1, minHeight: 0 }}>
-          <ResponsiveContainer width="100%" height="100%">
+        {/* Chart : spinner au chargement, état vide si pas d'historique, sinon courbes. */}
+        {loading ? (
+          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CircularProgress size={28} />
+          </Box>
+        ) : combinedChartData.length === 0 ? (
+          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.5, px: 2, textAlign: 'center', color: 'text.secondary' }}>
+            <VolumeUp size={28} strokeWidth={1.5} />
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>Aucune mesure pour l'instant</Typography>
+            <Typography variant="caption" sx={{ color: 'text.disabled', maxWidth: 360 }}>
+              Le capteur n'a pas encore remonté d'historique. Les courbes apparaîtront dès les premières mesures.
+            </Typography>
+          </Box>
+        ) : (
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={displayData} margin={{ top: 8, right: 12, left: -10, bottom: 8 }}>
               <defs>
                 {displayProperties.map((name, idx) => {
@@ -469,8 +485,9 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                 );
               })}
             </AreaChart>
-          </ResponsiveContainer>
-        </Box>
+            </ResponsiveContainer>
+          </Box>
+        )}
 
         {/* Recent alerts strip */}
         {recentAlerts.length > 0 && (

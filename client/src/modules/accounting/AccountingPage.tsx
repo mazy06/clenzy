@@ -11,7 +11,6 @@ import {
   CheckCircle as ApproveIcon,
   Payment as PaidIcon,
   AccountBalance as AccountIcon,
-  Save as SaveIcon,
   Cancel as CancelIcon,
   Description as PoIcon,
   Download as DownloadIcon,
@@ -33,13 +32,9 @@ import {
   Inventory as StepFormatIcon,
   Visibility as VisibilityIcon,
 } from '../../icons';
-import PageHeader from '../../components/PageHeader';
-import PageTabs from '../../components/PageTabs';
 import FilterChipRow from '../../components/FilterChipRow';
 import HelpBanner from '../../components/HelpBanner';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useSearchParams } from 'react-router-dom';
-import { SPACING } from '../../theme/spacing';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 import {
@@ -48,10 +43,8 @@ import {
   useMarkAsPaid,
   useExecutePayout,
   useRetryPayout,
-  useCommissions,
-  useSaveCommission,
 } from '../../hooks/useAccounting';
-import type { OwnerPayout, OwnerPayoutConfig, ChannelCommission, PayoutStatus } from '../../services/api/accountingApi';
+import type { OwnerPayout, OwnerPayoutConfig, PayoutStatus } from '../../services/api/accountingApi';
 import { PAYOUT_STATUS_COLORS, accountingApi } from '../../services/api/accountingApi';
 import {
   providerExpensesApi,
@@ -69,7 +62,6 @@ import { usersApi } from '../../services/api/usersApi';
 import { accountingExportApi } from '../../services/api/accountingExportApi';
 import ExportPreviewDialog from './ExportPreviewDialog';
 import SepaTransferProcedureTooltip from './components/SepaTransferProcedureTooltip';
-import FiscalReportSection from '../reports/FiscalReportSection';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCurrency } from '../../hooks/useCurrency';
 
@@ -109,50 +101,6 @@ const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('fr-FR') : '—';
 
 const fmtPercent = (n: number) => `${(n * 100).toFixed(1)}%`;
-
-// ─── Component ──────────────────────────────────────────────────────────────
-
-const AccountingPage: React.FC = () => {
-  const { t } = useTranslation();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = parseInt(searchParams.get('tab') || '0', 10);
-  const [activeTab, setActiveTab] = useState(isNaN(tabParam) ? 0 : tabParam);
-
-  const handleTabChange = (newValue: number) => {
-    setActiveTab(newValue);
-    setSearchParams(newValue === 0 ? {} : { tab: String(newValue) }, { replace: true });
-  };
-
-  return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
-      <PageHeader
-        title={t('accounting.title', 'Comptabilite')}
-        subtitle={t('accounting.subtitle', 'Payouts proprietaires et commissions channels')}
-        iconBadge={<StepCalcIcon />}
-        showBackButton={false}
-        backPath="/dashboard"
-      />
-
-      <PageTabs
-        options={[
-          { label: t('accounting.tabs.payouts', 'Payouts') },
-          { label: t('accounting.tabs.commissions', 'Commissions') },
-          { label: t('accounting.tabs.expenses', 'Depenses') },
-          { label: t('accounting.tabs.fiscalReport', 'Rapport fiscal') },
-          { label: t('accounting.tabs.exports', 'Exports') },
-        ]}
-        value={activeTab}
-        onChange={handleTabChange}
-      />
-
-      {activeTab === 0 && <PayoutsTab />}
-      {activeTab === 1 && <CommissionsTab />}
-      {activeTab === 2 && <ExpensesTab />}
-      {activeTab === 3 && <FiscalReportSection />}
-      {activeTab === 4 && <ExportsTab />}
-    </Box>
-  );
-};
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  Payouts Tab
@@ -682,143 +630,6 @@ export const PayoutsTab: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </>
-  );
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  Commissions Tab
-// ═══════════════════════════════════════════════════════════════════════════
-
-export const CommissionsTab: React.FC = () => {
-  const { t } = useTranslation();
-  const { data: commissions = [], isLoading, isError } = useCommissions();
-  const saveMutation = useSaveCommission();
-
-  const [editRates, setEditRates] = useState<Record<string, string>>({});
-  const [savedChannel, setSavedChannel] = useState<string | null>(null);
-
-  // Init edit rates from data
-  React.useEffect(() => {
-    if (commissions.length > 0 && Object.keys(editRates).length === 0) {
-      const rates: Record<string, string> = {};
-      for (const c of commissions) {
-        rates[c.channelName] = String(c.commissionRate);
-      }
-      setEditRates(rates);
-    }
-  }, [commissions, editRates]);
-
-  const handleSave = useCallback(
-    async (commission: ChannelCommission) => {
-      const newRate = parseFloat(editRates[commission.channelName] ?? '0');
-      if (isNaN(newRate) || newRate < 0 || newRate > 100) return;
-      await saveMutation.mutateAsync({
-        channel: commission.channelName,
-        data: { ...commission, commissionRate: newRate },
-      });
-      setSavedChannel(commission.channelName);
-      setTimeout(() => setSavedChannel(null), 2000);
-    },
-    [editRates, saveMutation],
-  );
-
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress size={32} />
-      </Box>
-    );
-  }
-
-  if (isError) {
-    return (
-      <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-        {t('accounting.commissionError', 'Erreur lors du chargement des commissions')}
-      </Alert>
-    );
-  }
-
-  if (commissions.length === 0) {
-    return (
-      <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><AccountIcon size={48} strokeWidth={1.75} /></Box>
-        <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-          {t('accounting.emptyCommissions', 'Aucune commission configuree')}
-        </Typography>
-      </Paper>
-    );
-  }
-
-  return (
-    <>
-    <HelpBanner
-      storageKey="clenzy_commissions_help_dismissed"
-      title={t('accounting.commissions.help.title', 'Comment fonctionnent les commissions ?')}
-      description={t('accounting.commissions.help.description', 'Les commissions representent le pourcentage preleve par chaque canal de reservation (Airbnb, Booking...) sur vos revenus.')}
-      dismissLabel={t('accounting.commissions.help.dismiss', 'Ne plus afficher')}
-      steps={[
-        { icon: <StepRevenueIcon size={14} strokeWidth={1.75} />, title: t('accounting.commissions.help.step1Title', 'Canaux'), description: t('accounting.commissions.help.step1Desc', 'Chaque plateforme (Airbnb, Booking...) applique un taux de commission different.'), accent: 'secondary' },
-        { icon: <StepPercentIcon size={14} strokeWidth={1.75} />, title: t('accounting.commissions.help.step2Title', 'Configurer'), description: t('accounting.commissions.help.step2Desc', 'Ajustez le taux de commission pour chaque canal selon votre contrat.'), accent: 'primary' },
-        { icon: <StepCalcIcon size={14} strokeWidth={1.75} />, title: t('accounting.commissions.help.step3Title', 'Impact'), description: t('accounting.commissions.help.step3Desc', 'Les commissions sont deduites automatiquement lors du calcul des payouts proprietaires.'), accent: 'info' },
-      ]}
-    />
-    <TableContainer component={Paper} sx={CARD_SX}>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell sx={HEAD_CELL_SX}>{t('accounting.col.channel', 'Channel')}</TableCell>
-            <TableCell sx={HEAD_CELL_SX} align="center">{t('accounting.col.rate', 'Taux (%)')}</TableCell>
-            <TableCell sx={HEAD_CELL_SX} align="right">{t('common.actions', 'Actions')}</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {commissions.map((c) => {
-            const channelColors: Record<string, string> = { AIRBNB: '#FF5A5F', BOOKING: '#003580' };
-            return (
-              <TableRow key={c.channelName} hover>
-                <TableCell sx={CELL_SX}>
-                  <Chip
-                    label={c.channelName}
-                    size="small"
-                    sx={softChipSx(channelColors[c.channelName] ?? '#666')}
-                  />
-                </TableCell>
-                <TableCell align="center" sx={CELL_SX}>
-                  <TextField
-                    type="number"
-                    size="small"
-                    value={editRates[c.channelName] ?? c.commissionRate}
-                    onChange={(e) =>
-                      setEditRates((prev) => ({ ...prev, [c.channelName]: e.target.value }))
-                    }
-                    inputProps={{ min: 0, max: 100, step: 0.5, style: { textAlign: 'center' } }}
-                    sx={{ width: 100 }}
-                    InputProps={{ sx: { fontSize: '0.8125rem' } }}
-                  />
-                </TableCell>
-                <TableCell align="right" sx={CELL_SX}>
-                  {savedChannel === c.channelName ? (
-                    <Chip label={t('common.saved', 'Sauvegarde')} size="small" sx={softChipSx('#4A9B8E')} />
-                  ) : (
-                    <Tooltip title={t('common.save', 'Enregistrer')}>
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => handleSave(c)}
-                        disabled={saveMutation.isPending}
-                      >
-                        <SaveIcon size={'1rem'} strokeWidth={1.75} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </TableContainer>
     </>
   );
 };
@@ -1663,5 +1474,3 @@ export const ExportsTab: React.FC = () => {
     </Box>
   );
 };
-
-export default AccountingPage;

@@ -10,6 +10,7 @@ import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.MessageTemplateRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.SmartLockDeviceRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.GuestService;
@@ -18,6 +19,7 @@ import com.clenzy.service.ReservationMapper;
 import com.clenzy.service.ReservationService;
 import com.clenzy.service.StripeService;
 import com.clenzy.service.messaging.GuestMessagingService;
+import com.clenzy.service.smartlock.SmartLockAccessCodeService;
 import com.clenzy.tenant.TenantContext;
 import com.stripe.Stripe;
 import com.stripe.model.checkout.Session;
@@ -67,6 +69,8 @@ public class ReservationController {
     private final MessageTemplateRepository messageTemplateRepository;
     private final InterventionMapper interventionMapper;
     private final TenantContext tenantContext;
+    private final SmartLockDeviceRepository smartLockDeviceRepository;
+    private final SmartLockAccessCodeService accessCodeService;
 
     public ReservationController(ReservationService reservationService,
                                  ReservationMapper reservationMapper,
@@ -81,7 +85,11 @@ public class ReservationController {
                                  GuestMessagingService guestMessagingService,
                                  MessageTemplateRepository messageTemplateRepository,
                                  InterventionMapper interventionMapper,
-                                 TenantContext tenantContext) {
+                                 TenantContext tenantContext,
+                                 SmartLockDeviceRepository smartLockDeviceRepository,
+                                 SmartLockAccessCodeService accessCodeService) {
+        this.smartLockDeviceRepository = smartLockDeviceRepository;
+        this.accessCodeService = accessCodeService;
         this.reservationService = reservationService;
         this.reservationMapper = reservationMapper;
         this.reservationRepository = reservationRepository;
@@ -230,7 +238,8 @@ public class ReservationController {
             }
         }
 
-        // Sauvegarder l'ancien checkout pour detecter un changement
+        // Sauvegarder les anciennes dates pour detecter un changement
+        LocalDate oldCheckIn = existing.getCheckIn();
         LocalDate oldCheckOut = existing.getCheckOut();
 
         // Tous les champs sont modifiables (OTA et direct)
@@ -255,6 +264,24 @@ public class ReservationController {
         }
 
         Reservation saved = reservationRepository.save(existing);
+
+        // Dates modifiees → revoque + regenere les codes d'acces serrure sur la nouvelle
+        // fenetre (non bloquant : une panne Tuya ne doit pas bloquer la mise a jour).
+        boolean datesChanged = !java.util.Objects.equals(saved.getCheckIn(), oldCheckIn)
+                || !java.util.Objects.equals(saved.getCheckOut(), oldCheckOut);
+        if (datesChanged && "confirmed".equals(saved.getStatus())) {
+            try {
+                accessCodeService.revokeForReservation(saved.getId(), "system");
+                for (SmartLockDevice lock : smartLockDeviceRepository.findByPropertyIdAndStatus(
+                        saved.getProperty().getId(), SmartLockDevice.DeviceStatus.ACTIVE)) {
+                    accessCodeService.generateForReservation(
+                            saved, lock, SmartLockAccessCode.CodeSource.AUTO_RESERVATION);
+                }
+            } catch (Exception e) {
+                log.warn("Regeneration des codes d'acces serrure echouee (reservation={}): {}",
+                        saved.getId(), e.getMessage());
+            }
+        }
 
         // Notification de mise a jour
         reservationService.notifyReservationUpdated(saved);

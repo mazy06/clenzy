@@ -6,11 +6,14 @@ import com.clenzy.model.*;
 import com.clenzy.repository.MinNightsOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
+import com.clenzy.repository.SmartLockDeviceRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.messaging.AutomationEvaluationService;
+import com.clenzy.service.smartlock.SmartLockAccessCodeService;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +39,8 @@ public class ReservationService {
     private final NotificationService notificationService;
     private final MinNightsOverrideRepository minNightsOverrideRepository;
     private final AutomationEvaluationService automationEvaluationService;
+    private final SmartLockDeviceRepository smartLockDeviceRepository;
+    private final SmartLockAccessCodeService smartLockAccessCodeService;
 
     public ReservationService(ReservationRepository reservationRepository,
                               UserRepository userRepository,
@@ -46,7 +51,10 @@ public class ReservationService {
                               ServiceRequestRepository serviceRequestRepository,
                               NotificationService notificationService,
                               MinNightsOverrideRepository minNightsOverrideRepository,
-                              AutomationEvaluationService automationEvaluationService) {
+                              AutomationEvaluationService automationEvaluationService,
+                              SmartLockDeviceRepository smartLockDeviceRepository,
+                              // @Lazy : casse un eventuel cycle (codes -> messaging -> ...).
+                              @Lazy SmartLockAccessCodeService smartLockAccessCodeService) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
@@ -57,6 +65,8 @@ public class ReservationService {
         this.notificationService = notificationService;
         this.minNightsOverrideRepository = minNightsOverrideRepository;
         this.automationEvaluationService = automationEvaluationService;
+        this.smartLockDeviceRepository = smartLockDeviceRepository;
+        this.smartLockAccessCodeService = smartLockAccessCodeService;
     }
 
     /**
@@ -168,6 +178,7 @@ public class ReservationService {
             if (isNewConfirmed) {
                 notifyReservationCreated(saved);
                 seedAutomations(saved, orgId);
+                generateAccessCodes(saved, orgId);
             }
 
             return saved;
@@ -204,9 +215,42 @@ public class ReservationService {
         reservation.setStatus("cancelled");
         Reservation cancelled = reservationRepository.save(reservation);
 
+        // Revoque les codes d'acces serrure de la reservation (best-effort, non bloquant).
+        revokeAccessCodes(reservationId);
+
         notifyReservationCancelled(cancelled);
 
         return cancelled;
+    }
+
+    /**
+     * Genere un code d'acces sur chaque serrure ACTIVE du logement pour la reservation.
+     * NON BLOQUANT : une panne Tuya ne doit pas faire echouer la creation de la
+     * reservation (meme contrat que {@code seedAutomations}).
+     */
+    private void generateAccessCodes(Reservation reservation, Long orgId) {
+        try {
+            Long propertyId = reservation.getProperty().getId();
+            List<SmartLockDevice> locks = smartLockDeviceRepository
+                    .findByPropertyIdAndStatus(propertyId, SmartLockDevice.DeviceStatus.ACTIVE);
+            for (SmartLockDevice lock : locks) {
+                smartLockAccessCodeService.generateForReservation(
+                        reservation, lock, SmartLockAccessCode.CodeSource.AUTO_RESERVATION);
+            }
+        } catch (Exception e) {
+            log.warn("Generation des codes d'acces serrure echouee pour reservation={}: {}",
+                    reservation.getId(), e.getMessage());
+        }
+    }
+
+    /** Revoque les codes d'acces serrure de la reservation (annulation). NON BLOQUANT. */
+    private void revokeAccessCodes(Long reservationId) {
+        try {
+            smartLockAccessCodeService.revokeForReservation(reservationId, "system");
+        } catch (Exception e) {
+            log.warn("Revocation des codes d'acces serrure echouee pour reservation={}: {}",
+                    reservationId, e.getMessage());
+        }
     }
 
     /**

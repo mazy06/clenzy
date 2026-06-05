@@ -11,6 +11,8 @@ export interface NoiseDeviceDto {
   roomName: string | null;
   externalDeviceId: string | null;
   status: string;
+  /** Connectivité réelle (vrai flag Tuya/Minut). null = jamais synchronisé. */
+  online: boolean | null;
   createdAt: string;
 }
 
@@ -108,6 +110,11 @@ export const noiseDevicesApi = {
   /** Liste des capteurs de bruit de l'utilisateur */
   getAll() {
     return apiClient.get<NoiseDeviceDto[]>('/noise-devices');
+  },
+
+  /** Statut live d'un capteur (online réel via Tuya/Minut, persisté côté backend). */
+  getStatus(id: number) {
+    return apiClient.get<{ online: boolean }>(`/noise-devices/${id}/status`);
   },
 
   /** Creer un nouveau capteur */

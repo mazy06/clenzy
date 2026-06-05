@@ -18,7 +18,9 @@ const EMPTY_KPIS: ConnectedObjectsKpis = { total: 0, online: 0, offline: 0, aler
 // ─── Projections par type vers le modèle unifié (fallback legacy) ────────────
 
 function mapLock(d: SmartLockDeviceDto): ConnectedDevice {
-  const online = (d.status || '').toUpperCase() === 'ACTIVE';
+  // online tri-état : null = jamais synchronisé (→ « inconnu », pas « hors ligne »).
+  const known = d.online != null;
+  const online = d.online === true;
   const locked = (d.lockState || '').toUpperCase() === 'LOCKED';
   const unlocked = (d.lockState || '').toUpperCase() === 'UNLOCKED';
   const lowBattery = d.batteryLevel != null && d.batteryLevel <= LOW_BATTERY;
@@ -31,8 +33,8 @@ function mapLock(d: SmartLockDeviceDto): ConnectedDevice {
     propertyName: d.propertyName || 'Sans logement',
     roomName: d.roomName,
     provider: (d.brand as DeviceProvider) || 'UNKNOWN',
-    statusLevel: !online ? 'offline' : lowBattery ? 'warning' : 'ok',
-    statusLabel: !online ? 'Hors ligne' : locked ? 'Verrouillée' : unlocked ? 'Déverrouillée' : 'État inconnu',
+    statusLevel: !known ? 'unknown' : !online ? 'offline' : lowBattery ? 'warning' : 'ok',
+    statusLabel: !known ? 'État inconnu' : !online ? 'Hors ligne' : locked ? 'Verrouillée' : unlocked ? 'Déverrouillée' : 'État inconnu',
     primaryMetric: d.batteryLevel != null ? { label: 'Batterie', value: `${d.batteryLevel}%` } : null,
     battery: d.batteryLevel,
     online,
@@ -43,7 +45,9 @@ function mapLock(d: SmartLockDeviceDto): ConnectedDevice {
 }
 
 function mapNoise(d: NoiseDeviceDto): ConnectedDevice {
-  const online = (d.status || '').toUpperCase() === 'ACTIVE';
+  // online tri-état : null = jamais synchronisé (→ « En attente », pas « actif »).
+  const known = d.online != null;
+  const online = d.online === true;
   return {
     uid: `noise:${d.id}`,
     kind: 'noise',
@@ -53,8 +57,8 @@ function mapNoise(d: NoiseDeviceDto): ConnectedDevice {
     propertyName: d.propertyName || 'Sans logement',
     roomName: d.roomName,
     provider: (d.deviceType?.toUpperCase() as DeviceProvider) || 'UNKNOWN',
-    statusLevel: online ? 'ok' : 'offline',
-    statusLabel: online ? 'Surveillance active' : 'Inactif',
+    statusLevel: !known ? 'unknown' : online ? 'ok' : 'offline',
+    statusLabel: !known ? 'En attente' : online ? 'Surveillance active' : 'Hors ligne',
     primaryMetric: null,
     battery: null,
     online,
@@ -89,7 +93,10 @@ function mapPoint(d: KeyExchangePointDto): ConnectedDevice {
 // ─── Projection du read-model backend unifié (GET /api/devices) ──────────────
 
 function mapSummary(d: DeviceSummaryDto): ConnectedDevice {
-  const online = (d.status || '').toUpperCase() === 'ACTIVE';
+  // online vient du read-model : vrai flag Tuya pour les serrures, status===ACTIVE
+  // pour les autres types. null = jamais synchronisé (serrures uniquement).
+  const known = d.online != null;
+  const online = d.online === true;
   const provider = (d.provider as DeviceProvider) || 'UNKNOWN';
   const propertyName = d.propertyName || 'Sans logement';
   const propertyId = d.propertyId ?? null;
@@ -100,8 +107,8 @@ function mapSummary(d: DeviceSummaryDto): ConnectedDevice {
     const lowBattery = d.batteryLevel != null && d.batteryLevel <= LOW_BATTERY;
     return {
       uid: `lock:${d.id}`, kind: 'lock', id: d.id, name: d.name, propertyId, propertyName, roomName: d.roomName, provider,
-      statusLevel: !online ? 'offline' : lowBattery ? 'warning' : 'ok',
-      statusLabel: !online ? 'Hors ligne' : locked ? 'Verrouillée' : unlocked ? 'Déverrouillée' : 'État inconnu',
+      statusLevel: !known ? 'unknown' : !online ? 'offline' : lowBattery ? 'warning' : 'ok',
+      statusLabel: !known ? 'État inconnu' : !online ? 'Hors ligne' : locked ? 'Verrouillée' : unlocked ? 'Déverrouillée' : 'État inconnu',
       primaryMetric: d.batteryLevel != null ? { label: 'Batterie', value: `${d.batteryLevel}%` } : null,
       battery: d.batteryLevel, online, alertCount: 0, actions: ['lock', 'unlock'], raw: d,
     };
@@ -109,8 +116,8 @@ function mapSummary(d: DeviceSummaryDto): ConnectedDevice {
   if (d.kind === 'noise') {
     return {
       uid: `noise:${d.id}`, kind: 'noise', id: d.id, name: d.name, propertyId, propertyName, roomName: d.roomName, provider,
-      statusLevel: online ? 'ok' : 'offline',
-      statusLabel: online ? 'Surveillance active' : 'Inactif',
+      statusLevel: !known ? 'unknown' : online ? 'ok' : 'offline',
+      statusLabel: !known ? 'En attente' : online ? 'Surveillance active' : 'Hors ligne',
       primaryMetric: null, battery: null, online, alertCount: 0, actions: ['view'], raw: d,
     };
   }

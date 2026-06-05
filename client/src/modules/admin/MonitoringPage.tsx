@@ -8,6 +8,7 @@ import {
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import { useTabKeyParam } from '../../components/tabKeyParam';
 import {
   resolveTabHeader,
   type TabHeaderMeta,
@@ -46,7 +47,16 @@ const TAB_ICONS = [
 
 const MonitoringPage: React.FC = () => {
   const { t } = useTranslation();
-  const [tabValue, setTabValue] = useState(0);
+
+  // Source de verite des tabs (avec `key` stable pour l'URL ?tab=<key>). Definie AVANT useTabKeyParam,
+  // dont le resultat (tabValue) est consomme par le useEffect ci-dessous (TDZ).
+  const monitoringTabs = [
+    { key: 'tokens', label: t('tabHeaders.monitoring.tabs.tokens', 'Monitoring des Tokens'), icon: TAB_ICONS[0] },
+    { key: 'keycloak', label: t('tabHeaders.monitoring.tabs.keycloak', 'Métriques Keycloak'), icon: TAB_ICONS[1] },
+    { key: 'audit', label: t('tabHeaders.monitoring.tabs.audit', 'Audit et Logging'), icon: TAB_ICONS[2] },
+    { key: 'health-checks', label: t('tabHeaders.monitoring.tabs.healthChecks', 'Health Checks Avancés'), icon: TAB_ICONS[3] },
+  ];
+  const [tabValue, setTabValue] = useTabKeyParam(monitoringTabs);
   const [headerActions, setHeaderActions] = useState<React.ReactNode>(null);
   const [headerLastUpdate, setHeaderLastUpdate] = useState<Date | null>(null);
 
@@ -61,14 +71,6 @@ const MonitoringPage: React.FC = () => {
     [],
   );
 
-  // Source de verite des tabs — construite via t() pour reagir au changement
-  // de langue. Les labels sont matchee a la meta par cle stable (label traduit).
-  const monitoringTabs = [
-    { label: t('tabHeaders.monitoring.tabs.tokens', 'Monitoring des Tokens'), icon: TAB_ICONS[0] },
-    { label: t('tabHeaders.monitoring.tabs.keycloak', 'Métriques Keycloak'), icon: TAB_ICONS[1] },
-    { label: t('tabHeaders.monitoring.tabs.audit', 'Audit et Logging'), icon: TAB_ICONS[2] },
-    { label: t('tabHeaders.monitoring.tabs.healthChecks', 'Health Checks Avancés'), icon: TAB_ICONS[3] },
-  ];
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const monitoringTabMeta: Record<string, TabHeaderMeta> = {
     [t('tabHeaders.monitoring.tabs.tokens', 'Monitoring des Tokens')]: {

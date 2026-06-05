@@ -36,14 +36,31 @@ android {
 repositories {
   mavenCentral()
   google()
-  // Repo Maven Tuya (App SDK). Aussi ajoute au projet par le config plugin (defense-in-depth).
+  // Repos Maven Tuya (cf. sample officiel + module Expo-Tuya de reference) : l'App SDK 7.5.x +
+  // l'activator core kit vivent dans `maven-releases` / `maven-commercial-releases` ; `maven-snapshots`
+  // couvre d'eventuels transitifs. Aussi declares en extraMavenRepos (app.json) selon le mode de resolution.
+  maven { url "https://maven-other.tuya.com/repository/maven-releases/" }
+  maven { url "https://maven-other.tuya.com/repository/maven-commercial-releases/" }
   maven { url "https://maven-other.tuya.com/repository/maven-public/" }
+  maven { url "https://maven-other.tuya.com/repository/maven-snapshots/" }
   flatDir { dirs "libs" }
 }
 
+// Modules d'annotations Tuya epingles a des SNAPSHOT fantomes (bug de packaging — jamais publies) ->
+// exclusion GLOBALE (cf. module Expo-Tuya de reference). Ce sont des annotations compile-time, sans
+// impact runtime. Evite les erreurs « Could not find ...-SNAPSHOT » a la chaine.
+configurations.all {
+  exclude group: 'com.thingclips.smart', module: 'thingsmart-modularCampAnno'
+  exclude group: 'com.thingclips.android.module', module: 'thingmodule-annotation'
+}
+
 dependencies {
-  // SDK Tuya App (Home) 7.5.x — appairage (device activator EZ/AP/BLE).
+  // SDK Tuya App (Home) 7.5.x.
   implementation 'com.thingclips.smart:thingsmart:7.5.1'
+  // Activator core kit : fournit `com.thingclips.smart.activator.core.kit.*` (appairage EZ/AP).
+  // PAS inclus dans `thingsmart` -> dependance dediee. Versioning PROPRE (pas de 7.5.1) : les 7.5.x
+  // publiees sont 7.5.0 / 7.5.0.2 (latest) — cf. maven-metadata commercial-releases.
+  implementation 'com.thingclips.smart:thingsmart-activator-core-kit:7.5.0.2'
   implementation 'com.alibaba:fastjson:1.1.67.android'
   implementation 'com.squareup.okhttp3:okhttp-urlconnection:3.14.9'
   // Brique de securite locale (liee a l'AppKey) — fournie dans libs/.

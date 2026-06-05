@@ -12,6 +12,7 @@ public class NoiseDeviceDto {
     private String roomName;
     private String externalDeviceId;
     private String status;
+    private Boolean online;
     private LocalDateTime createdAt;
 
     // ─── Getters / Setters ──────────────────────────────────────
@@ -39,6 +40,9 @@ public class NoiseDeviceDto {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public Boolean getOnline() { return online; }
+    public void setOnline(Boolean online) { this.online = online; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
