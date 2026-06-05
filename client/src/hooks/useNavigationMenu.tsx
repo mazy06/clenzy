@@ -169,8 +169,8 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.tarification',
     group: 'management',
   },
-  // Note : l'entree /vouchers a ete deplacee dans Propriétés (tab #3).
-  // La route /vouchers reste accessible mais redirige vers /properties?tab=2
+  // Note : l'entree /vouchers a ete deplacee dans Propriétés (onglet "vouchers").
+  // La route /vouchers reste accessible mais redirige vers /properties?tab=vouchers
   // pour preserver les bookmarks. Pas d'entree sidebar dediee.
   {
     icon: <Payment />,
@@ -180,8 +180,8 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.billing',
     group: 'management',
   },
-  // Comptabilité fusionnée dans Facturation (/billing?tab=3+)
-  // Portefeuille fusionné dans Facturation (/billing?tab=2)
+  // Comptabilité fusionnée dans Facturation (onglets /billing?tab=payouts|expenses|reports)
+  // Portefeuille fusionné dans Facturation (/billing?tab=wallets)
   {
     icon: <Handshake />,
     path: '/contracts',

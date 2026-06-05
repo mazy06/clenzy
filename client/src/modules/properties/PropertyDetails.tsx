@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTabKeyParam } from '../../components/tabKeyParam';
 import {
   Box,
   Typography,
@@ -322,8 +323,19 @@ const PropertyDetails: React.FC = () => {
       .map((p) => propertyPhotosApi.getPhotoUrl(Number(id), p.id));
   }, [photosQuery.data, id]);
 
-  const [tabValue, setTabValue] = useState(0);
   const [canEdit, setCanEdit] = useState(false);
+  // Onglets de la fiche bien — `key` stable pour l'URL (?tab=<key>). L'onglet "settings" (dernier)
+  // est masque sans droit d'edition ; useTabKeyParam derive l'index visible depuis la cle.
+  const detailTabs = [
+    { key: 'overview', hidden: false },
+    { key: 'interventions', hidden: false },
+    { key: 'channels', hidden: false },
+    { key: 'check-in', hidden: false },
+    { key: 'photos', hidden: false },
+    { key: 'inventory', hidden: false },
+    { key: 'settings', hidden: !canEdit },
+  ];
+  const [tabValue, setTabValue] = useTabKeyParam(detailTabs);
   const [channelStatus, setChannelStatus] = useState<{ airbnb: { linked: boolean; syncEnabled: boolean; lastSyncAt: string | null; status: string } } | null>(null);
 
   // ─── Permissions (lightweight, kept as useEffect) ───────────────────────

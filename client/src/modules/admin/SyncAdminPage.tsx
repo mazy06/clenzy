@@ -11,6 +11,7 @@ import {
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import { useTabKeyParam } from '../../components/tabKeyParam';
 import {
   resolveTabHeader,
   type TabHeaderMeta,
@@ -56,7 +57,19 @@ const TAB_ICONS = [
 
 const SyncAdminPage: React.FC = () => {
   const { t } = useTranslation();
-  const [tabValue, setTabValue] = useState(0);
+
+  // Source de verite des tabs (avec `key` stable pour l'URL ?tab=<key>). Definie AVANT useTabKeyParam,
+  // dont le resultat (tabValue) est consomme par le useEffect ci-dessous (TDZ).
+  const syncAdminTabs = [
+    { key: 'connections', label: t('tabHeaders.syncAdmin.tabs.connections', 'Connexions'), icon: TAB_ICONS[0] },
+    { key: 'sync-events', label: t('tabHeaders.syncAdmin.tabs.syncEvents', 'Sync Events'), icon: TAB_ICONS[1] },
+    { key: 'outbox', label: t('tabHeaders.syncAdmin.tabs.outbox', 'Outbox'), icon: TAB_ICONS[2] },
+    { key: 'calendar', label: t('tabHeaders.syncAdmin.tabs.calendar', 'Calendrier'), icon: TAB_ICONS[3] },
+    { key: 'mappings', label: t('tabHeaders.syncAdmin.tabs.mappings', 'Mappings'), icon: TAB_ICONS[4] },
+    { key: 'diagnostics', label: t('tabHeaders.syncAdmin.tabs.diagnostics', 'Diagnostics'), icon: TAB_ICONS[5] },
+    { key: 'reconciliation', label: t('tabHeaders.syncAdmin.tabs.reconciliation', 'Reconciliation'), icon: TAB_ICONS[6] },
+  ];
+  const [tabValue, setTabValue] = useTabKeyParam(syncAdminTabs);
   const [headerFilters, setHeaderFilters] = useState<React.ReactNode>(null);
   const [headerActions, setHeaderActions] = useState<React.ReactNode>(null);
 
@@ -71,17 +84,6 @@ const SyncAdminPage: React.FC = () => {
     [],
   );
 
-  // Source de verite des tabs — construite via t() pour reagir au changement
-  // de langue. Les labels servent aussi de cle dans le mapping meta ci-dessous.
-  const syncAdminTabs = [
-    { label: t('tabHeaders.syncAdmin.tabs.connections', 'Connexions'), icon: TAB_ICONS[0] },
-    { label: t('tabHeaders.syncAdmin.tabs.syncEvents', 'Sync Events'), icon: TAB_ICONS[1] },
-    { label: t('tabHeaders.syncAdmin.tabs.outbox', 'Outbox'), icon: TAB_ICONS[2] },
-    { label: t('tabHeaders.syncAdmin.tabs.calendar', 'Calendrier'), icon: TAB_ICONS[3] },
-    { label: t('tabHeaders.syncAdmin.tabs.mappings', 'Mappings'), icon: TAB_ICONS[4] },
-    { label: t('tabHeaders.syncAdmin.tabs.diagnostics', 'Diagnostics'), icon: TAB_ICONS[5] },
-    { label: t('tabHeaders.syncAdmin.tabs.reconciliation', 'Reconciliation'), icon: TAB_ICONS[6] },
-  ];
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const syncAdminTabMeta: Record<string, TabHeaderMeta> = {
     [t('tabHeaders.syncAdmin.tabs.connections', 'Connexions')]: {

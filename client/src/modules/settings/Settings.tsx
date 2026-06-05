@@ -54,6 +54,7 @@ import { propertiesApi } from '../../services/api/propertiesApi';
 import { planningKeys } from '../../hooks/useDashboardPlanning';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import { useTabKeyParam } from '../../components/tabKeyParam';
 import { SettingsHeaderProvider, useSettingsHeaderActionsSlot } from './SettingsHeaderContext';
 
 // Type re-export pour la metadata des tabs. Le mapping concret est construit
@@ -132,9 +133,6 @@ export default function Settings() {
   const { settings: workflowSettings, updateSettings: updateWorkflowSettings } = useWorkflowSettings();
   const { mode: themeMode, setMode: setThemeMode, isDark } = useThemeMode();
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab');
-  const initialTab = tabParam === 'integrations' ? 7 : parseInt(tabParam || '0', 10);
-  const [tabValue, setTabValue] = useState(isNaN(initialTab) ? 0 : initialTab);
 
   // ─── Etat tab Integrations (hoiste depuis IntegrationsSection) ──────────
   // Permet d'injecter la barre de recherche + filtre categorie dans le slot
@@ -225,6 +223,26 @@ export default function Settings() {
   const [canViewSettings, setCanViewSettings] = useState(false);
   const [canEditSettings, setCanEditSettings] = useState(false);
   const [canViewAi, setCanViewAi] = useState(false);
+
+  // ─── Onglets (source unique) + onglet actif resolu par CLE (URL ?tab=<key>) ──────────────
+  // Defini ICI (avant la 1ere utilisation de tabValue par handleTabChange / headerActions).
+  // La cle est STABLE face aux onglets masques par role, contrairement a l'index visible (qui
+  // shifte selon le role). Cf. components/tabKeyParam.ts (useTabKeyParam / tabIndexFromKey).
+  const settingsTabs = [
+    { key: 'general', label: t('tabHeaders.settings.tabs.general', 'Général'), icon: <TuneOutlined />, hidden: false },
+    { key: 'notifications', label: t('tabHeaders.settings.tabs.notifications', 'Notifications'), icon: <Notifications />, hidden: false },
+    { key: 'messaging', label: t('tabHeaders.settings.tabs.messaging', 'Messagerie'), icon: <ChatBubbleOutline />, hidden: false },
+    { key: 'my-payout', label: t('settings.myPayout.tabLabel', 'Mes reversements'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOST']) },
+    { key: 'ai', label: t('tabHeaders.settings.tabs.ai', 'IA'), icon: <SmartToy />, hidden: !canViewAi },
+    { key: 'fiscal', label: t('tabHeaders.settings.tabs.fiscal', 'Fiscal'), icon: <AccountBalance />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { key: 'organization', label: t('tabHeaders.settings.tabs.organization', 'Organisation'), icon: <GroupAdd />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { key: 'payment', label: t('tabHeaders.settings.tabs.payment', 'Paiement'), icon: <Payment />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { key: 'integrations', label: t('tabHeaders.settings.tabs.integrations', 'Intégrations'), icon: <Extension />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
+    { key: 'payouts', label: t('tabHeaders.settings.tabs.payouts', 'Reversements'), icon: <CalendarMonth />, hidden: !hasAnyRole(['SUPER_ADMIN']) },
+    { key: 'amenities-ota', label: t('tabHeaders.settings.tabs.amenitiesOta', 'Commodités OTA'), icon: <LocalOffer />, hidden: !hasAnyRole(['HOST', 'SUPERVISOR', 'SUPER_ADMIN', 'SUPER_MANAGER']) },
+  ];
+  const visibleSettingsTabs = settingsTabs.filter((tab) => !tab.hidden);
+  const [tabValue, setTabValue] = useTabKeyParam(settingsTabs);
 
   // TOUS les useState DOIVENT être déclarés AVANT les vérifications conditionnelles
   const [settings, setSettings] = useState({
@@ -447,10 +465,8 @@ export default function Settings() {
     setSnackbarOpen(true);
   };
 
-  const handleTabChange = (newValue: number) => {
-    setTabValue(newValue);
-    setSearchParams(newValue === 0 ? {} : { tab: String(newValue) }, { replace: true });
-  };
+  // useTabKeyParam ecrit la cle de l'onglet actif dans l'URL (?tab=<key>), robuste au role.
+  const handleTabChange = setTabValue;
 
   const handleNotifSave = async () => {
     if (notifRef.current) {
@@ -609,23 +625,8 @@ export default function Settings() {
     </Button>
   ) : undefined;
 
-  // Construction de la liste des tabs UNE SEULE fois — utilisee pour PageTabs
-  // ET pour resoudre le tab actif (via son label, stable face aux roles qui
-  // cachent certains tabs).
-  const settingsTabs = [
-    { label: t('tabHeaders.settings.tabs.general', 'Général'), icon: <TuneOutlined />, hidden: false },
-    { label: t('tabHeaders.settings.tabs.notifications', 'Notifications'), icon: <Notifications />, hidden: false },
-    { label: t('tabHeaders.settings.tabs.messaging', 'Messagerie'), icon: <ChatBubbleOutline />, hidden: false },
-    { label: t('settings.myPayout.tabLabel', 'Mes reversements'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOST']) },
-    { label: t('tabHeaders.settings.tabs.ai', 'IA'), icon: <SmartToy />, hidden: !canViewAi },
-    { label: t('tabHeaders.settings.tabs.fiscal', 'Fiscal'), icon: <AccountBalance />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { label: t('tabHeaders.settings.tabs.organization', 'Organisation'), icon: <GroupAdd />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { label: t('tabHeaders.settings.tabs.payment', 'Paiement'), icon: <Payment />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { label: t('tabHeaders.settings.tabs.integrations', 'Intégrations'), icon: <Extension />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { label: t('tabHeaders.settings.tabs.payouts', 'Reversements'), icon: <CalendarMonth />, hidden: !hasAnyRole(['SUPER_ADMIN']) },
-    { label: t('tabHeaders.settings.tabs.amenitiesOta', 'Commodités OTA'), icon: <LocalOffer />, hidden: !hasAnyRole(['HOST', 'SUPERVISOR', 'SUPER_ADMIN', 'SUPER_MANAGER']) },
-  ];
-  const visibleSettingsTabs = settingsTabs.filter((tab) => !tab.hidden);
+  // settingsTabs + visibleSettingsTabs + tabValue sont definis plus haut (avant leur 1ere
+  // utilisation par handleTabChange / headerActions). Cf. « Onglets (source unique) ».
 
   // Mapping label → subtitle traduit. Construit dynamiquement pour reagir au
   // changement de langue (les labels sont resolus via t() juste au-dessus).
