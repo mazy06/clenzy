@@ -427,7 +427,10 @@ public class AgentOrchestrator {
         List<AssistantMemory> memories = loadMemories(context, effectiveMessage);
         List<KbSearchService.KbSearchHit> kbHits =
                 loadRelevantKbHits(effectiveMessage, context.organizationId());
-        String apiKey = resolveApiKey(context.organizationId());
+        // Cible LLM resolue UNE SEULE FOIS (provider effectif + modele + cle + baseUrl),
+        // partagee entre le flow multi-agent et le fallback mono-agent.
+        ChatTarget target = resolveAssistantTarget(context.organizationId(), context.modelOverride());
+        String apiKey = target.apiKey();
 
         // 5. Tentative multi-agent (si flag on + sans attachments + spécialistes prêts).
         //    Attachments → fallback mono-agent car les spécialistes ne gerent pas
@@ -438,14 +441,11 @@ public class AgentOrchestrator {
             try {
                 com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx =
                         new com.clenzy.service.agent.multiagent.OrchestrationContext(memories, kbHits);
-                // Resoud le modele a utiliser : context.modelOverride > Settings >
-                // null. Si l'admin a assigne un modele a la feature ASSISTANT_CHAT
-                // dans Settings > IA, on l'utilise pour piloter orchestrator +
-                // specialists. Sinon fallback sur le defaut provider (Sonnet).
-                String multiAgentModel = resolveAssistantModel(context.modelOverride());
-                AgentContext effectiveContext = multiAgentModel != null
-                        ? context.withModelOverride(multiAgentModel)
-                        : context;
+                // Modele + provider + baseUrl resolus (cf. target) propages aux
+                // specialists multi-agents via le contexte (routage multi-provider :
+                // Anthropic, OpenAI, ou modele plateforme OpenAI-compatible).
+                AgentContext effectiveContext = context.withAiTarget(
+                        target.model(), target.provider(), target.baseUrl());
 
                 boolean handledByMultiAgent = tryMultiAgentFlow(
                         effectiveMessage, chatMessages, orchestrationCtx, apiKey,
@@ -487,10 +487,10 @@ public class AgentOrchestrator {
         //      3. null → defaut provider (Anthropic Sonnet)
         List<ToolDescriptor> tools = toolRegistry.listDescriptors();
         ComposedSystemPrompt systemPrompt = buildSegmentedSystemPrompt(context, effectiveMessage, memories, kbHits);
-        String resolvedModel = resolveAssistantModel(context.modelOverride());
         ChatRequest request = new ChatRequest(
-                systemPrompt.cacheablePrefix(), chatMessages, tools, resolvedModel,
-                DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN, systemPrompt.volatileSuffix());
+                systemPrompt.cacheablePrefix(), chatMessages, tools, target.model(),
+                DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN, systemPrompt.volatileSuffix(),
+                target.provider(), target.baseUrl());
 
         runToolLoop(request, conversation, context, apiKey, consumer);
 
@@ -571,13 +571,14 @@ public class AgentOrchestrator {
         messages.add(ChatMessage.tool(pending.toolCallId(), result.content()));
 
         ComposedSystemPrompt resumeSystem = buildSegmentedSystemPrompt(context);
+        ChatTarget target = resolveAssistantTarget(context.organizationId(), context.modelOverride());
         ChatRequest request = new ChatRequest(
                 resumeSystem.cacheablePrefix(), messages, toolRegistry.listDescriptors(),
-                conversation.getModel(), DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN,
-                resumeSystem.volatileSuffix());
+                target.model() != null ? target.model() : conversation.getModel(),
+                DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN, resumeSystem.volatileSuffix(),
+                target.provider(), target.baseUrl());
 
-        String apiKey = resolveApiKey(context.organizationId());
-        runToolLoop(request, conversation, context, apiKey, consumer);
+        runToolLoop(request, conversation, context, target.apiKey(), consumer);
 
         conversation.setUpdatedAt(LocalDateTime.now());
         conversationRepository.save(conversation);
@@ -693,7 +694,8 @@ public class AgentOrchestrator {
         // haut (Sonnet est plus cher), donc estimation conservative — OK.
         String multiAgentModel = conversation.getModel() != null
                 ? conversation.getModel() : "claude-sonnet-4";
-        recordUsageSafe(context.organizationId(), "anthropic",
+        recordUsageSafe(context.organizationId(),
+                context.aiProvider() != null ? context.aiProvider() : "anthropic",
                 result.totalPromptTokens(), result.totalCompletionTokens(),
                 multiAgentModel, result.truncated() ? "length" : "end_turn");
 
@@ -737,7 +739,8 @@ public class AgentOrchestrator {
             // Track usage : alimente ai_token_usage pour le badge frontend
             // "$0.12 ce mois" + alertes budget. Granularite = par iteration LLM
             // (1 record par tool call round, pour matcher la realite des couts).
-            recordUsageSafe(context.organizationId(), "anthropic",
+            recordUsageSafe(context.organizationId(),
+                    request.provider() != null ? request.provider() : "anthropic",
                     outcome.promptTokens, outcome.completionTokens,
                     outcome.model, outcome.finishReason);
 
@@ -1063,21 +1066,103 @@ public class AgentOrchestrator {
                         "Conversation " + id + " introuvable ou non autorisee"));
     }
 
-    private String resolveApiKey(Long organizationId) {
+    /**
+     * Resout la cible LLM de l'assistant : provider effectif, modele, cle API et base URL.
+     *
+     * <p>Precedence (alignee sur {@link com.clenzy.service.AiKeyResolver}, appliquee a la
+     * feature {@code ASSISTANT_CHAT}) :</p>
+     * <ol>
+     *   <li>Provider connecte assigne a la feature (Settings &gt; IA) → cle BYOK de l'org,
+     *       sinon cle plateforme du provider</li>
+     *   <li>Modele plateforme assigne a la feature → provider/cle/baseUrl/modele du modele
+     *       (NVIDIA, Bedrock, OpenAI... tous OpenAI-compatibles)</li>
+     *   <li>Cle BYOK Anthropic de l'org</li>
+     *   <li>Defaut Anthropic plateforme (cle null → le provider utilise sa cle env)</li>
+     * </ol>
+     *
+     * <p>Le {@code contextModelOverride} (briefings : Haiku) prime sur le modele resolu.
+     * Fail-safe : toute exception de lookup degrade vers Anthropic par defaut.</p>
+     */
+    private ChatTarget resolveAssistantTarget(Long organizationId, String contextModelOverride) {
+        final String ctxModel = (contextModelOverride != null && !contextModelOverride.isBlank())
+                ? contextModelOverride : null;
+
+        // 1. Provider connecte assigne a ASSISTANT_CHAT (Settings > IA).
         try {
-            Optional<OrgAiApiKey> byokKey = orgAiApiKeyRepository
-                    .findByOrganizationIdAndProvider(organizationId, "anthropic");
-            if (byokKey.isPresent() && byokKey.get().isValid()
-                    && byokKey.get().getApiKey() != null && !byokKey.get().getApiKey().isBlank()) {
-                return byokKey.get().getApiKey();
+            Optional<String> assigned = platformAiConfigService
+                    .getActiveProviderForFeature(com.clenzy.model.AiFeature.ASSISTANT_CHAT.name());
+            if (assigned.isPresent()) {
+                String provider = assigned.get();
+                Optional<OrgAiApiKey> byok = orgAiApiKeyRepository
+                        .findByOrganizationIdAndProvider(organizationId, provider)
+                        .filter(k -> k.isValid() && k.getApiKey() != null && !k.getApiKey().isBlank());
+                if (byok.isPresent()) {
+                    OrgAiApiKey k = byok.get();
+                    return new ChatTarget(provider, ctxModel != null ? ctxModel : k.getModelOverride(),
+                            k.getApiKey(), defaultBaseUrl(provider));
+                }
+                String envKey = platformEnvKey(provider);
+                if (envKey != null && !envKey.isBlank()) {
+                    return new ChatTarget(provider, ctxModel, envKey, defaultBaseUrl(provider));
+                }
+                // Provider assigne sans cle utilisable → on retombe sur la resolution par defaut.
             }
         } catch (Exception e) {
-            log.debug("Pas de cle BYOK Anthropic pour org {} ({}), fallback plateforme",
-                    organizationId, e.getMessage());
+            log.debug("resolveAssistantTarget: lookup provider override echoue : {}", e.getMessage());
         }
-        // null => le provider utilisera la cle plateforme via la signature sans apiKey
-        return null;
+
+        // 2. Modele plateforme assigne a ASSISTANT_CHAT.
+        try {
+            Optional<com.clenzy.model.PlatformAiModel> model = platformAiConfigService
+                    .getActiveModelForFeature(com.clenzy.model.AiFeature.ASSISTANT_CHAT.name())
+                    .filter(m -> m.getApiKey() != null && !m.getApiKey().isBlank());
+            if (model.isPresent()) {
+                com.clenzy.model.PlatformAiModel m = model.get();
+                return new ChatTarget(m.getProvider(), ctxModel != null ? ctxModel : m.getModelId(),
+                        m.getApiKey(), m.getBaseUrl());
+            }
+        } catch (Exception e) {
+            log.debug("resolveAssistantTarget: lookup modele plateforme echoue : {}", e.getMessage());
+        }
+
+        // 3. Cle BYOK Anthropic de l'org.
+        try {
+            Optional<OrgAiApiKey> anthropicByok = orgAiApiKeyRepository
+                    .findByOrganizationIdAndProvider(organizationId, "anthropic")
+                    .filter(k -> k.isValid() && k.getApiKey() != null && !k.getApiKey().isBlank());
+            if (anthropicByok.isPresent()) {
+                OrgAiApiKey k = anthropicByok.get();
+                return new ChatTarget("anthropic", ctxModel != null ? ctxModel : k.getModelOverride(),
+                        k.getApiKey(), null);
+            }
+        } catch (Exception e) {
+            log.debug("resolveAssistantTarget: lookup BYOK Anthropic echoue : {}", e.getMessage());
+        }
+
+        // 4. Defaut Anthropic plateforme : cle null => AnthropicChatProvider utilise sa cle env.
+        return new ChatTarget("anthropic", ctxModel, null, null);
     }
+
+    /** Base URL par defaut d'un provider connecte (les modeles plateforme portent la leur). */
+    private String defaultBaseUrl(String provider) {
+        return switch (provider) {
+            case "openai" -> aiProperties.getOpenai().getBaseUrl();
+            case "anthropic" -> aiProperties.getAnthropic().getBaseUrl();
+            default -> null;
+        };
+    }
+
+    /** Cle plateforme (env var) d'un provider connecte. */
+    private String platformEnvKey(String provider) {
+        return switch (provider) {
+            case "openai" -> aiProperties.getOpenai().getApiKey();
+            case "anthropic" -> aiProperties.getAnthropic().getApiKey();
+            default -> null;
+        };
+    }
+
+    /** Cible LLM resolue pour l'assistant : provider + modele + cle + base URL. */
+    private record ChatTarget(String provider, String model, String apiKey, String baseUrl) {}
 
     private List<ChatMessage> toChatMessages(List<AssistantMessage> history) {
         List<ChatMessage> result = new ArrayList<>();
@@ -1149,42 +1234,6 @@ public class AgentOrchestrator {
      * resilient au schema (storageKey + mediaType minimum) pour pouvoir relire
      * meme apres une evolution du modele.
      */
-    /**
-     * Resoud le modele a utiliser pour le chat assistant (orchestrator
-     * multi-agent + specialists + mono-agent fallback).
-     *
-     * <p>Priorite decroissante :</p>
-     * <ol>
-     *   <li>{@code overrideFromContext} (briefings : Haiku force par
-     *       BriefingComposer pour reduire les couts)</li>
-     *   <li>Modele assigne a la feature {@code ASSISTANT_CHAT} dans Settings
-     *       &gt; IA &gt; Modeles &amp; features (configurable par l'admin)</li>
-     *   <li>{@code null} → le ChatLLMProvider utilise son modele defaut
-     *       (Claude Sonnet 4 actuellement)</li>
-     * </ol>
-     *
-     * <p>Fail-safe : si la lookup Settings throw (DB down), on retourne
-     * {@code overrideFromContext} → degradation gracieuse vers le defaut
-     * provider.</p>
-     */
-    private String resolveAssistantModel(String overrideFromContext) {
-        // Priorite 1 : modelOverride explicite du AgentContext (briefings, etc.)
-        if (overrideFromContext != null && !overrideFromContext.isBlank()) {
-            return overrideFromContext;
-        }
-        // Priorite 2 : modele assigne a la feature ASSISTANT_CHAT en Settings
-        if (platformAiConfigService == null) return null;
-        try {
-            return platformAiConfigService
-                    .getActiveModelForFeature(com.clenzy.model.AiFeature.ASSISTANT_CHAT.name())
-                    .map(com.clenzy.model.PlatformAiModel::getModelId)
-                    .orElse(null);
-        } catch (Exception e) {
-            log.debug("Failed to resolve assistant model from Settings : {}", e.getMessage());
-            return null;
-        }
-    }
-
     /**
      * Enregistre la consommation tokens dans {@code ai_token_usage} (feature
      * {@code ASSISTANT_CHAT}). Wrappee defensivement : ne propage JAMAIS

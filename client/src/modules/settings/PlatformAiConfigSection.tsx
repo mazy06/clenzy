@@ -15,6 +15,7 @@ import {
   DialogActions,
   Divider,
   MenuItem,
+  ListSubheader,
   Switch,
   Tooltip,
   useTheme,
@@ -52,8 +53,21 @@ import {
   useSetAiFeatureToggle,
   useAiUsageStats,
   useAiUsageBreakdown,
+  useAiKeyStatus,
+  useFeatureProviderAssignments,
+  useAssignProviderToFeature,
 } from '../../hooks/useAi';
 import type { AiModelUsage, PlatformAiModel, SavePlatformModelRequest, TestPlatformModelRequest } from '../../services/api/aiApi';
+
+/** Provider connecte (BYOK/partagee) propose dans le selecteur de modele d'une feature. */
+interface ConnectedProviderOption {
+  provider: string;
+  label: string;
+  /** Modele effectif (override de la cle org) ou null = modele par defaut du provider. */
+  model: string | null;
+  /** 'ORGANIZATION' = cle perso, 'PLATFORM' = cle partagee plateforme. */
+  source: string;
+}
 import AiSettingsCard from './AiSettingsCard';
 
 // ─── Provider / Model Catalog ──────────────────────────────────────────────
@@ -131,6 +145,17 @@ const AI_FEATURES = [
   { key: 'ANALYTICS', label: 'Analytics IA', desc: 'Insights performance', icon: <BarChart />, color: '#D97706' },
   { key: 'SENTIMENT', label: 'Sentiment IA', desc: 'Analyse avis guests', icon: <StarRate />, color: '#DC2626' },
 ];
+
+// En-tete de groupe dans le selecteur de modele (providers connectes / modeles plateforme).
+const subheaderSx = {
+  fontSize: '0.6rem',
+  fontWeight: 700,
+  letterSpacing: 0.5,
+  textTransform: 'uppercase' as const,
+  color: 'text.secondary',
+  lineHeight: 2.2,
+  bgcolor: 'transparent',
+};
 
 // ─── Model Dialog ──────────────────────────────────────────────────────────
 
@@ -598,29 +623,54 @@ function UsageBreakdownTooltip({
 interface FeatureRowProps {
   feature: typeof AI_FEATURES[number];
   models: PlatformAiModel[];
+  /** Providers connectes (BYOK/partagee) proposables comme modele de la feature. */
+  connectedProviders: ConnectedProviderOption[];
   assignedModel: PlatformAiModel | undefined;
+  /** Provider connecte assigne a la feature (alternative a un modele plateforme). */
+  assignedProvider: string | undefined;
   budget: number;
   used: number;
   /** Decomposition par (provider, model) avec cout USD. Vide = pas d'usage ce mois. */
   usageBreakdown: AiModelUsage[];
   enabled: boolean;
   onAssign: (feature: string, modelId: number) => void;
+  onAssignProvider: (feature: string, provider: string) => void;
   onUnassign: (feature: string) => void;
   onBudgetChange: (feature: string, limit: number) => void;
   onToggle: (feature: string, enabled: boolean) => void;
   isAssigning: boolean;
 }
 
-function FeatureRow({ feature, models, assignedModel, budget, used, usageBreakdown, enabled, onAssign, onUnassign, onBudgetChange, onToggle, isAssigning }: FeatureRowProps) {
+const PROVIDER_VALUE_PREFIX = 'provider:';
+const MODEL_VALUE_PREFIX = 'model:';
+
+function FeatureRow({ feature, models, connectedProviders, assignedModel, assignedProvider, budget, used, usageBreakdown, enabled, onAssign, onAssignProvider, onUnassign, onBudgetChange, onToggle, isAssigning }: FeatureRowProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
+  // Valeur encodee : 'provider:<p>' | 'model:<id>' | '__none__' (le selecteur melange
+  // providers connectes ET modeles plateforme, mutuellement exclusifs cote backend).
+  const selectValue = assignedProvider
+    ? `${PROVIDER_VALUE_PREFIX}${assignedProvider}`
+    : assignedModel
+      ? `${MODEL_VALUE_PREFIX}${assignedModel.id}`
+      : '__none__';
+
+  // Garantit que le provider assigne reste affichable meme s'il n'est plus "connecte"
+  // (clé retiree apres assignation) — evite une valeur Select hors-plage.
+  const providerOptions: ConnectedProviderOption[] =
+    assignedProvider && !connectedProviders.some((p) => p.provider === assignedProvider)
+      ? [...connectedProviders, { provider: assignedProvider, label: PROVIDER_LABELS[assignedProvider] || assignedProvider, model: null, source: 'PLATFORM' }]
+      : connectedProviders;
+
   const handleChange = (value: string) => {
     if (value === '__none__') {
       onUnassign(feature.key);
-    } else {
-      const modelId = parseInt(value, 10);
+    } else if (value.startsWith(PROVIDER_VALUE_PREFIX)) {
+      onAssignProvider(feature.key, value.slice(PROVIDER_VALUE_PREFIX.length));
+    } else if (value.startsWith(MODEL_VALUE_PREFIX)) {
+      const modelId = parseInt(value.slice(MODEL_VALUE_PREFIX.length), 10);
       if (!isNaN(modelId)) {
         onAssign(feature.key, modelId);
       }
@@ -679,11 +729,11 @@ function FeatureRow({ feature, models, assignedModel, budget, used, usageBreakdo
         </Typography>
       </Box>
 
-      {/* Model selector */}
+      {/* Model / connected-provider selector */}
       <TextField
         select
         size="small"
-        value={assignedModel?.id?.toString() || '__none__'}
+        value={selectValue}
         onChange={(e) => handleChange(e.target.value)}
         disabled={isAssigning}
         sx={{
@@ -700,8 +750,30 @@ function FeatureRow({ feature, models, assignedModel, budget, used, usageBreakdo
             {t('settings.ai.platform.noModel')}
           </Typography>
         </MenuItem>
+
+        {/* Providers connectes (OpenAI/Anthropic) — utilises en priorite par l'agent */}
+        {providerOptions.length > 0 && (
+          <ListSubheader sx={subheaderSx}>{t('settings.ai.platform.connectedProviders')}</ListSubheader>
+        )}
+        {providerOptions.map((p) => (
+          <MenuItem key={`${PROVIDER_VALUE_PREFIX}${p.provider}`} value={`${PROVIDER_VALUE_PREFIX}${p.provider}`}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, width: '100%' }}>
+              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: PROVIDER_COLORS[p.provider] || '#888', flexShrink: 0 }} />
+              <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{p.label}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', ml: 'auto', pl: 1, flexShrink: 0 }}>
+                {p.source === 'ORGANIZATION' ? t('settings.ai.platform.providerOwnKey') : t('settings.ai.platform.providerSharedKey')}
+                {p.model ? ` · ${p.model}` : ''}
+              </Typography>
+            </Box>
+          </MenuItem>
+        ))}
+
+        {/* Modeles plateforme configures par le SUPER_ADMIN */}
+        {models.length > 0 && (
+          <ListSubheader sx={subheaderSx}>{t('settings.ai.platform.platformModels')}</ListSubheader>
+        )}
         {models.map((m) => (
-          <MenuItem key={m.id} value={m.id.toString()}>
+          <MenuItem key={`${MODEL_VALUE_PREFIX}${m.id}`} value={`${MODEL_VALUE_PREFIX}${m.id}`}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: PROVIDER_COLORS[m.provider] || '#888', flexShrink: 0 }} />
               <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{m.name}</Typography>
@@ -793,12 +865,15 @@ export default function PlatformAiConfigSection() {
 
   const { data: models, isLoading: modelsLoading, error: modelsError } = usePlatformModels();
   const { data: assignments, isLoading: assignmentsLoading } = useFeatureAssignments();
+  const { data: providerAssignments } = useFeatureProviderAssignments();
+  const { data: keyStatus } = useAiKeyStatus();
   const { data: budgets } = useFeatureBudgets();
   const { data: featureToggles } = useAiFeatureToggles();
   const { data: usageStats } = useAiUsageStats();
   const { data: usageBreakdown } = useAiUsageBreakdown();
   const deleteMutation = useDeletePlatformModel();
   const assignMutation = useAssignModelToFeature();
+  const assignProviderMutation = useAssignProviderToFeature();
   const unassignMutation = useUnassignFeature();
   const setBudgetMutation = useSetFeatureBudget();
   const toggleMutation = useSetAiFeatureToggle();
@@ -825,6 +900,19 @@ export default function PlatformAiConfigSection() {
 
   const modelList = models || [];
   const featureMap = assignments || {};
+  const providerMap = providerAssignments || {};
+
+  // Providers connectes (cle org BYOK validee OU cle partagee plateforme dispo)
+  // proposables comme modele de n'importe quelle feature. L'agent IA les utilise
+  // en priorite (cf. AiKeyResolver) — on les rend donc selectionnables explicitement.
+  const connectedProviders: ConnectedProviderOption[] = (keyStatus || [])
+    .filter((k) => k.valid)
+    .map((k) => ({
+      provider: k.provider,
+      label: PROVIDER_LABELS[k.provider] || k.provider,
+      model: k.modelOverride || null,
+      source: k.source,
+    }));
 
   const handleOpenAdd = () => {
     setEditModel(null);
@@ -948,17 +1036,21 @@ export default function PlatformAiConfigSection() {
             <FeatureRow
               feature={feat}
               models={modelList}
+              connectedProviders={connectedProviders}
               assignedModel={featureMap[feat.key]}
+              assignedProvider={providerMap[feat.key]}
               budget={budgets?.[feat.key] ?? 100000}
               used={usageStats?.usageByFeature?.[feat.key] ?? 0}
               usageBreakdown={usageBreakdown?.breakdownByFeature?.[feat.key] ?? []}
               enabled={featureToggles?.find(ft => ft.feature === feat.key)?.enabled ?? true}
               onAssign={handleAssign}
+              onAssignProvider={(f, p) => assignProviderMutation.mutate({ feature: f, provider: p })}
               onUnassign={handleUnassign}
               onBudgetChange={(f, limit) => setBudgetMutation.mutate({ feature: f, limit })}
               onToggle={(f, enabled) => toggleMutation.mutate({ feature: f, enabled })}
               isAssigning={
                 (assignMutation.isPending && assignMutation.variables?.feature === feat.key) ||
+                (assignProviderMutation.isPending && assignProviderMutation.variables?.feature === feat.key) ||
                 (unassignMutation.isPending && unassignMutation.variables === feat.key)
               }
             />
