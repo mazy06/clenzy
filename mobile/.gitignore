@@ -46,3 +46,9 @@ modules/tuya-pairing/vendor/ios/*
 modules/tuya-pairing/vendor/android/*
 !modules/tuya-pairing/vendor/ios/.gitkeep
 !modules/tuya-pairing/vendor/android/.gitkeep
+
+# Le xcframework Tuya vit dans "ios_core_sdk/Build/" qui matche la regle racine `build/`
+# (insensible a la casse sur macOS core.ignorecase) -> re-inclusion explicite, sinon le
+# xcframework n'est pas commite et le build EAS echoue (framework absent).
+!modules/tuya-pairing/ios/ios_core_sdk/Build/
+!modules/tuya-pairing/ios/ios_core_sdk/Build/**
