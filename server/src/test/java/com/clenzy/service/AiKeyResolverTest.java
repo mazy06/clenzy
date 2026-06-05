@@ -5,9 +5,11 @@ import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.OrgAiApiKey;
 import com.clenzy.model.PlatformAiFeatureModel;
+import com.clenzy.model.PlatformAiFeatureProvider;
 import com.clenzy.model.PlatformAiModel;
 import com.clenzy.repository.OrgAiApiKeyRepository;
 import com.clenzy.repository.PlatformAiFeatureModelRepository;
+import com.clenzy.repository.PlatformAiFeatureProviderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,6 +25,7 @@ class AiKeyResolverTest {
     private AiProperties aiProperties;
     private OrgAiApiKeyRepository orgAiApiKeyRepository;
     private PlatformAiFeatureModelRepository platformAiFeatureModelRepository;
+    private PlatformAiFeatureProviderRepository platformAiFeatureProviderRepository;
     private AiKeyResolver resolver;
 
     private static final Long ORG_ID = 1L;
@@ -42,7 +45,9 @@ class AiKeyResolverTest {
 
         orgAiApiKeyRepository = mock(OrgAiApiKeyRepository.class);
         platformAiFeatureModelRepository = mock(PlatformAiFeatureModelRepository.class);
-        resolver = new AiKeyResolver(aiProperties, orgAiApiKeyRepository, platformAiFeatureModelRepository);
+        platformAiFeatureProviderRepository = mock(PlatformAiFeatureProviderRepository.class);
+        resolver = new AiKeyResolver(aiProperties, orgAiApiKeyRepository,
+                platformAiFeatureModelRepository, platformAiFeatureProviderRepository);
     }
 
     @Nested
@@ -191,6 +196,44 @@ class AiKeyResolverTest {
             assertEquals(PLATFORM_KEY, result.apiKey());
             assertEquals(AiKeyResolver.KeySource.PLATFORM, result.source());
             verifyNoInteractions(orgAiApiKeyRepository);
+        }
+    }
+
+    @Nested
+    @DisplayName("resolve() with per-feature connected-provider override")
+    class ProviderOverride {
+
+        @Test
+        @DisplayName("override remplace le provider demande par celui assigne a la feature (org BYOK)")
+        void featureProviderOverride_usesOverriddenOrgKey() {
+            // Feature DESIGN assignee au provider connecte "openai", alors que l'appelant demande "anthropic".
+            when(platformAiFeatureProviderRepository.findByFeature("DESIGN"))
+                    .thenReturn(Optional.of(new PlatformAiFeatureProvider("DESIGN", "openai")));
+            OrgAiApiKey openaiKey = new OrgAiApiKey(ORG_ID, "openai", "sk-openai-org");
+            openaiKey.setValid(true);
+            when(orgAiApiKeyRepository.findByOrganizationIdAndProvider(ORG_ID, "openai"))
+                    .thenReturn(Optional.of(openaiKey));
+
+            AiKeyResolver.ResolvedKey result = resolver.resolve(ORG_ID, "anthropic", AiFeature.DESIGN);
+
+            assertEquals("sk-openai-org", result.apiKey());
+            assertEquals(AiKeyResolver.KeySource.ORGANIZATION, result.source());
+            assertEquals("openai", result.providerName());
+        }
+
+        @Test
+        @DisplayName("override retombe sur la cle env du provider override quand pas de BYOK")
+        void featureProviderOverride_fallsBackToEnvOfOverridden() {
+            when(platformAiFeatureProviderRepository.findByFeature("PRICING"))
+                    .thenReturn(Optional.of(new PlatformAiFeatureProvider("PRICING", "openai")));
+            when(orgAiApiKeyRepository.findByOrganizationIdAndProvider(ORG_ID, "openai"))
+                    .thenReturn(Optional.empty());
+
+            AiKeyResolver.ResolvedKey result = resolver.resolve(ORG_ID, "anthropic", AiFeature.PRICING);
+
+            assertEquals(PLATFORM_KEY, result.apiKey());
+            assertEquals(AiKeyResolver.KeySource.PLATFORM, result.source());
+            assertEquals("openai", result.providerName());
         }
     }
 

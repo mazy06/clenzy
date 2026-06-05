@@ -24,6 +24,11 @@ import java.util.List;
  * @param volatileSystemSuffix complement system dynamique (memoire/RAG/contexte). Null = system mono-bloc.
  *                            Quand present, le provider l'emet comme un 2e bloc system NON cache,
  *                            apres le prefixe stable cache — voir prompt caching Anthropic.
+ * @param provider            hint de routage : "anthropic" | "openai" | "nvidia" | "bedrock" ...
+ *                            Null = anthropic (defaut). Lu par {@link ChatLLMRouter} pour choisir
+ *                            l'implementation {@link ChatLLMProvider} (Anthropic vs OpenAI-compatible).
+ * @param baseUrl             base URL du provider (ex: NVIDIA Build, proxy Bedrock). Null = defaut
+ *                            du provider. Utilise par les providers OpenAI-compatibles.
  */
 public record ChatRequest(
         String systemPrompt,
@@ -32,7 +37,9 @@ public record ChatRequest(
         String model,
         double temperature,
         int maxTokens,
-        String volatileSystemSuffix
+        String volatileSystemSuffix,
+        String provider,
+        String baseUrl
 ) {
 
     public ChatRequest {
@@ -44,13 +51,19 @@ public record ChatRequest(
     }
 
     /**
-     * Surcharge retro-compatible (system mono-bloc, pas de suffixe volatil).
+     * Surcharge retro-compatible (system mono-bloc, pas de suffixe volatil, provider par defaut).
      * La majorite des appelants (specialistes multi-agent, tests) n'ont pas
      * besoin de scinder le system : ils passent par ce constructeur.
      */
     public ChatRequest(String systemPrompt, List<ChatMessage> messages, List<ToolDescriptor> tools,
                        String model, double temperature, int maxTokens) {
-        this(systemPrompt, messages, tools, model, temperature, maxTokens, null);
+        this(systemPrompt, messages, tools, model, temperature, maxTokens, null, null, null);
+    }
+
+    /** Surcharge retro-compatible (system scinde, provider par defaut). */
+    public ChatRequest(String systemPrompt, List<ChatMessage> messages, List<ToolDescriptor> tools,
+                       String model, double temperature, int maxTokens, String volatileSystemSuffix) {
+        this(systemPrompt, messages, tools, model, temperature, maxTokens, volatileSystemSuffix, null, null);
     }
 
     /**
@@ -58,7 +71,17 @@ public record ChatRequest(
      * Utilise pour les overrides BYOK / platform routing.
      */
     public ChatRequest overrideModel(String newModel) {
-        return new ChatRequest(systemPrompt, messages, tools, newModel, temperature, maxTokens, volatileSystemSuffix);
+        return new ChatRequest(systemPrompt, messages, tools, newModel, temperature, maxTokens,
+                volatileSystemSuffix, provider, baseUrl);
+    }
+
+    /**
+     * Retourne une copie ciblant un provider + base URL specifiques (routage assistant
+     * multi-provider : anthropic / openai / modeles plateforme OpenAI-compatibles).
+     */
+    public ChatRequest withTarget(String provider, String baseUrl) {
+        return new ChatRequest(systemPrompt, messages, tools, model, temperature, maxTokens,
+                volatileSystemSuffix, provider, baseUrl);
     }
 
     /**
@@ -68,6 +91,7 @@ public record ChatRequest(
     public ChatRequest withAppendedMessage(ChatMessage message) {
         java.util.ArrayList<ChatMessage> next = new java.util.ArrayList<>(messages);
         next.add(message);
-        return new ChatRequest(systemPrompt, next, tools, model, temperature, maxTokens, volatileSystemSuffix);
+        return new ChatRequest(systemPrompt, next, tools, model, temperature, maxTokens,
+                volatileSystemSuffix, provider, baseUrl);
     }
 }

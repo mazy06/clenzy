@@ -255,9 +255,12 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                 buildSystemPrompt(request),
                 List.of(ChatMessage.user(request.query())),
                 tools,
-                null,             // model defaut provider
+                request.context().modelOverride(),   // modele resolu (Settings/BYOK) ou null = defaut provider
                 TEMPERATURE,
-                MAX_TOKENS
+                MAX_TOKENS,
+                null,                                 // system mono-bloc (pas de suffixe volatil)
+                request.context().aiProvider(),       // provider effectif (routage multi-provider)
+                request.context().aiBaseUrl()
         );
         List<String> toolCallsLog = new ArrayList<>();
         List<ToolInvocationSnapshot> toolInvocations = new ArrayList<>();
