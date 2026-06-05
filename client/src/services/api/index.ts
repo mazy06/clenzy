@@ -124,6 +124,8 @@ export { propertyTeamsApi, propertyTeamsKeys } from './propertyTeamsApi';
 export type { PropertyTeamMapping } from './propertyTeamsApi';
 
 export { noiseDevicesApi, minutApi, tuyaApi } from './noiseApi';
+export { netatmoApi } from './netatmoApi';
+export type { NetatmoConnectionStatus } from './netatmoApi';
 export type {
   NoiseDeviceDto,
   CreateNoiseDeviceDto,

@@ -9,6 +9,7 @@ import com.clenzy.integration.minut.model.MinutConnection;
 import com.clenzy.integration.minut.repository.MinutConnectionRepository;
 import com.clenzy.integration.nuki.model.NukiConnection;
 import com.clenzy.integration.nuki.repository.NukiConnectionRepository;
+import com.clenzy.integration.netatmo.repository.NetatmoConnectionRepository;
 import com.clenzy.integration.tuya.repository.TuyaConnectionRepository;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,7 @@ class DeviceAggregationServiceTest {
     @Mock private MinutConnectionRepository minutConnectionRepository;
     @Mock private TuyaConnectionRepository tuyaConnectionRepository;
     @Mock private NukiConnectionRepository nukiConnectionRepository;
+    @Mock private NetatmoConnectionRepository netatmoConnectionRepository;
     @Mock private TenantContext tenantContext;
 
     private DeviceAggregationService service;
@@ -50,7 +52,7 @@ class DeviceAggregationServiceTest {
     @BeforeEach
     void setUp() {
         service = new DeviceAggregationService(smartLockService, noiseDeviceService, keyExchangeService,
-                cameraService, thermostatService, minutConnectionRepository, tuyaConnectionRepository, nukiConnectionRepository, tenantContext);
+                cameraService, thermostatService, minutConnectionRepository, tuyaConnectionRepository, nukiConnectionRepository, netatmoConnectionRepository, tenantContext);
     }
 
     private SmartLockDeviceDto lock() {
