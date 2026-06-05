@@ -25,6 +25,10 @@ export interface EnvironmentSensorDto {
   motionDetected: boolean | null;
   /** SMOKE */
   smokeDetected: boolean | null;
+  /** Station météo (Netatmo) : CO2 (ppm). */
+  co2: number | null;
+  /** Station météo (Netatmo) : bruit (dB). */
+  noiseDb: number | null;
   lastSeenAt: string | null;
   lastEventAt: string | null;
   createdAt: string;

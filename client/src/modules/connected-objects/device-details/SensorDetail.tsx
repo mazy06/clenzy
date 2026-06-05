@@ -83,6 +83,8 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
           <>
             <InfoRow label="Température" value={sensor.temperatureC != null ? `${sensor.temperatureC.toFixed(1)} °C` : '—'} />
             <InfoRow label="Humidité" value={sensor.humidity != null ? `${sensor.humidity} %` : '—'} />
+            {sensor.co2 != null && <InfoRow label="CO₂" value={`${sensor.co2} ppm`} />}
+            {sensor.noiseDb != null && <InfoRow label="Bruit" value={`${sensor.noiseDb} dB`} />}
           </>
         )}
         <InfoRow

@@ -121,6 +121,8 @@ function mapSensor(d: EnvironmentSensorDto): ConnectedDevice {
       const parts = [
         d.temperatureC != null ? `${d.temperatureC.toFixed(1)} °C` : null,
         d.humidity != null ? `${d.humidity} %` : null,
+        d.co2 != null ? `${d.co2} ppm` : null,
+        d.noiseDb != null ? `${d.noiseDb} dB` : null,
       ].filter(Boolean) as string[];
       metric = parts.length ? { label: 'Mesure', value: parts.join(' · ') } : null;
       if (parts.length) label = parts.join(' · ');
