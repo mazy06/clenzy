@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, VolumeUp, VpnKey, PhotoCamera, Thermostat } from '../../icons';
+import { Lock, VolumeUp, VpnKey, PhotoCamera, Thermostat, SensorDoor, DirectionsWalk, SmokeFree, WeatherDroplets } from '../../icons';
 import type { DeviceKind, DeviceStatusLevel } from './types';
 
 /**
@@ -63,9 +63,43 @@ export const DEVICE_KINDS: Record<DeviceKind, DeviceKindMeta> = {
     available: true, // CRUD + pilotage Tuya
     icon: (s = 16) => <Thermostat size={s} strokeWidth={1.75} />,
   },
+  climate: {
+    kind: 'climate',
+    label: 'Temp./Humidité',
+    singular: 'Capteur temp./humidité',
+    color: '#7BA3C2', // bleu Baitly
+    available: true, // CRUD + lecture Tuya
+    icon: (s = 16) => <WeatherDroplets size={s} strokeWidth={1.75} />,
+  },
+  contact: {
+    kind: 'contact',
+    label: 'Porte/Fenêtre',
+    singular: 'Capteur porte/fenêtre',
+    color: '#6B8A9A', // primary Baitly
+    available: true, // CRUD + lecture Tuya
+    icon: (s = 16) => <SensorDoor size={s} strokeWidth={1.75} />,
+  },
+  motion: {
+    kind: 'motion',
+    label: 'Mouvement',
+    singular: 'Capteur de mouvement',
+    color: '#4A9B8E', // vert Baitly
+    available: true, // CRUD + lecture Tuya + alertes
+    icon: (s = 16) => <DirectionsWalk size={s} strokeWidth={1.75} />,
+  },
+  smoke: {
+    kind: 'smoke',
+    label: 'Fumée/Vape',
+    singular: 'Détecteur fumée/vape',
+    color: '#C97A7A', // argile Baitly (danger)
+    available: true, // CRUD + lecture Tuya + alertes
+    icon: (s = 16) => <SmokeFree size={s} strokeWidth={1.75} />,
+  },
 };
 
-export const DEVICE_KIND_ORDER: DeviceKind[] = ['lock', 'noise', 'keybox', 'camera', 'thermostat'];
+export const DEVICE_KIND_ORDER: DeviceKind[] = [
+  'lock', 'noise', 'keybox', 'camera', 'thermostat', 'climate', 'contact', 'motion', 'smoke',
+];
 
 /** Couleurs des niveaux d'état (le seul endroit où la couleur porte un sens). */
 export const STATUS_COLORS: Record<DeviceStatusLevel, string> = {
