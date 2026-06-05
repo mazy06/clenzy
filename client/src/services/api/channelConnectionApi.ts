@@ -27,7 +27,9 @@ export const CHANNEL_BACKEND_MAP: Record<ChannelId, string> = {
 /** Backend channels that can be connected (deduplicated) */
 export const CONNECTABLE_CHANNELS: ChannelId[] = [
   'booking', 'expedia', 'hotels', 'agoda', 'vrbo', 'abritel',
-  'tripcom', 'hometogo', 'gathern', 'rentelly', 'kease', 'stay', 'mabeet',
+  // 'hometogo' retire : gate « Bientot » tant que la vraie route (Channex ou
+  // API directe) n'est pas livree. Le stub partnerId+iCal est inerte. Cf. HANDOFF_HOMETOGO.md.
+  'tripcom', 'gathern', 'rentelly', 'kease', 'stay', 'mabeet',
 ];
 
 export interface ChannelConnectionStatus {
