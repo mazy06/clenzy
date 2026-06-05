@@ -45,14 +45,17 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
   const primary = (() => {
     switch (sensor.sensorType) {
       case 'CONTACT': {
+        if (sensor.contactOpen == null) return { label: 'État', node: <Chip size="small" label="Inconnu" sx={softChipSx('#9CA3AF')} /> };
         const open = sensor.contactOpen === true;
         return { label: 'État', node: <Chip size="small" label={open ? 'Ouvert' : 'Fermé'} sx={softChipSx(open ? '#D4A574' : '#4A9B8E')} /> };
       }
       case 'MOTION': {
+        if (sensor.motionDetected == null) return { label: 'Mouvement', node: <Chip size="small" label="Inconnu" sx={softChipSx('#9CA3AF')} /> };
         const m = sensor.motionDetected === true;
         return { label: 'Mouvement', node: <Chip size="small" label={m ? 'Détecté' : 'Aucun'} sx={softChipSx(m ? '#D4A574' : '#4A9B8E')} /> };
       }
       case 'SMOKE': {
+        if (sensor.smokeDetected == null) return { label: 'Fumée / vape', node: <Chip size="small" label="Inconnu" sx={softChipSx('#9CA3AF')} /> };
         const s = sensor.smokeDetected === true;
         return { label: 'Fumée / vape', node: <Chip size="small" label={s ? 'Détectée' : 'Aucune'} sx={softChipSx(s ? '#C97A7A' : '#4A9B8E')} /> };
       }
@@ -71,7 +74,7 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
             variant="outlined"
             startIcon={refresh.isPending ? <CircularProgress size={13} color="inherit" /> : <Refresh size={15} strokeWidth={1.75} />}
             onClick={() => refresh.mutate()}
-            disabled={refresh.isPending || !sensor.online}
+            disabled={refresh.isPending}
             sx={{ textTransform: 'none' }}
           >
             Rafraîchir
