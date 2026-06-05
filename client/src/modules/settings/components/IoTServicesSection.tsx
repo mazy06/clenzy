@@ -4,6 +4,7 @@ import { Box, IconButton, Paper, Tooltip, Typography } from '@mui/material';
 import { Settings2 } from 'lucide-react';
 import OAuthProviderCard, { type OAuthApiAdapter } from './OAuthProviderCard';
 import TuyaProjectConfigDialog from './TuyaProjectConfigDialog';
+import NetatmoProjectConfigDialog from './NetatmoProjectConfigDialog';
 import { tuyaApi, minutApi, netatmoApi } from '../../../services/api';
 
 /**
@@ -79,6 +80,15 @@ export default function IoTServicesSection() {
   });
   const tuyaConfigured = tuyaConfig?.configured ?? false;
 
+  const [netatmoConfigOpen, setNetatmoConfigOpen] = useState(false);
+  const { data: netatmoConfig, refetch: refetchNetatmoConfig } = useQuery({
+    queryKey: ['netatmo', 'config'],
+    queryFn: () => netatmoApi.getConfig(),
+    staleTime: 60_000,
+    retry: false,
+  });
+  const netatmoConfigured = netatmoConfig?.configured ?? false;
+
   // Action « configurer le projet Tuya » en icône (libellé + statut/région portés par le tooltip).
   const tuyaConfigAction = (
     <Tooltip
@@ -95,6 +105,27 @@ export default function IoTServicesSection() {
         aria-label="Configurer le projet Tuya"
         sx={{
           color: tuyaConfigured ? 'text.secondary' : '#D4A574',
+          '&:hover': { bgcolor: 'action.hover' },
+          cursor: 'pointer',
+        }}
+      >
+        <Settings2 size={16} strokeWidth={2} />
+      </IconButton>
+    </Tooltip>
+  );
+
+  // Action « configurer l'app Netatmo » (Client ID / Secret / Redirect URI).
+  const netatmoConfigAction = (
+    <Tooltip
+      title={netatmoConfigured ? "App Netatmo configurée · Modifier les identifiants" : "Configurer l'app Netatmo (Client ID / Secret)"}
+      arrow
+    >
+      <IconButton
+        size="small"
+        onClick={() => setNetatmoConfigOpen(true)}
+        aria-label="Configurer l'app Netatmo"
+        sx={{
+          color: netatmoConfigured ? 'text.secondary' : '#D4A574',
           '&:hover': { bgcolor: 'action.hover' },
           cursor: 'pointer',
         }}
@@ -149,6 +180,9 @@ export default function IoTServicesSection() {
           label="Netatmo"
           description="Station météo, thermostat, caméras & détecteurs · OAuth2"
           api={netatmoAdapter}
+          secondaryAction={netatmoConfigAction}
+          mainActionDisabled={!netatmoConfigured}
+          mainActionDisabledReason="Configurez d'abord l'app Netatmo (bouton ⚙)."
         />
       </Box>
 
@@ -157,6 +191,13 @@ export default function IoTServicesSection() {
         onClose={() => setConfigOpen(false)}
         current={tuyaConfig}
         onSaved={() => refetchConfig()}
+      />
+
+      <NetatmoProjectConfigDialog
+        open={netatmoConfigOpen}
+        onClose={() => setNetatmoConfigOpen(false)}
+        current={netatmoConfig}
+        onSaved={() => refetchNetatmoConfig()}
       />
     </Paper>
   );
