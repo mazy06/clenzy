@@ -10,6 +10,9 @@ import {
   MenuItem,
   Tooltip,
   CircularProgress,
+  alpha,
+  type SxProps,
+  type Theme,
 } from '@mui/material';
 import {
   VolumeUp,
@@ -46,6 +49,35 @@ const PROPERTY_COLORS = [
   '#8B7EC8', // purple
   '#C97A7A', // coral
 ];
+
+// Overlay non bloquant centré sur la zone de tracé (le graphique reste visible derrière).
+const CHART_OVERLAY_SX: SxProps<Theme> = {
+  position: 'absolute',
+  inset: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  pointerEvents: 'none',
+  p: 2,
+};
+
+// Pastille translucide qui porte le message sans masquer les axes alentour.
+const CHART_OVERLAY_PILL_SX: SxProps<Theme> = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 0.5,
+  textAlign: 'center',
+  px: 2.5,
+  py: 1.5,
+  maxWidth: 320,
+  borderRadius: 2,
+  border: '1px solid',
+  borderColor: 'divider',
+  bgcolor: (t) => alpha(t.palette.background.paper, 0.86),
+  boxShadow: (t) => `0 6px 20px ${alpha(t.palette.common.black, 0.06)}`,
+  backdropFilter: 'blur(2px)',
+};
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -254,9 +286,17 @@ interface NoiseMonitorChartProps {
   activeThresholds?: TimeWindowThreshold[] | null;
   /** Chargement de l'historique réel (Tuya/Minut). */
   loading?: boolean;
+  /**
+   * `device` : détail d'UN capteur unique → masque le sélecteur de logement et la
+   * rangée de puces multi-capteurs (l'identité du capteur est déjà portée par le
+   * header de page + le bandeau de lecture live au-dessus).
+   * `dashboard` (défaut) : vue agrégée multi-logements.
+   */
+  variant?: 'dashboard' | 'device';
 }
 
-const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, combinedChartData, activeThresholds, loading = false }) => {
+const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, combinedChartData, activeThresholds, loading = false, variant = 'dashboard' }) => {
+  const isDevice = variant === 'device';
   const [selectedProperty, setSelectedProperty] = useState<string>('all');
 
   const maxCritical = activeThresholds && activeThresholds.length > 0
@@ -293,7 +333,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
   const recentAlerts = data.allAlerts.slice(0, 3);
 
   return (
-    <Card sx={{ height: '100%' }}>
+    <Card sx={{ height: '100%', width: '100%' }}>
       <CardContent
         sx={{
           p: 1.25,
@@ -316,10 +356,10 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                 color: 'text.secondary',
               }}
             >
-              Monitoring sonore
+              {isDevice ? 'Niveau sonore' : 'Monitoring sonore'}
             </Typography>
             <Chip
-              label={`${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}
+              label={isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}
               size="small"
               variant="outlined"
               sx={{
@@ -333,25 +373,28 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
             />
           </Box>
 
-          <FormControl size="small" sx={{ minWidth: 130 }}>
-            <Select
-              value={selectedProperty}
-              onChange={(e) => setSelectedProperty(e.target.value)}
-              sx={{
-                fontSize: '0.6875rem',
-                height: 26,
-                '& .MuiSelect-select': { py: 0.25, px: 1 },
-              }}
-            >
-              <MenuItem value="all" sx={{ fontSize: '0.75rem' }}>Tous les logements</MenuItem>
-              {propertyNames.map(name => (
-                <MenuItem key={name} value={name} sx={{ fontSize: '0.75rem' }}>{name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {!isDevice && (
+            <FormControl size="small" sx={{ minWidth: 130 }}>
+              <Select
+                value={selectedProperty}
+                onChange={(e) => setSelectedProperty(e.target.value)}
+                sx={{
+                  fontSize: '0.6875rem',
+                  height: 26,
+                  '& .MuiSelect-select': { py: 0.25, px: 1 },
+                }}
+              >
+                <MenuItem value="all" sx={{ fontSize: '0.75rem' }}>Tous les logements</MenuItem>
+                {propertyNames.map(name => (
+                  <MenuItem key={name} value={name} sx={{ fontSize: '0.75rem' }}>{name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
         </Box>
 
-        {/* Current levels indicators */}
+        {/* Current levels indicators — masqués en mode device (lecture live portée par le bandeau au-dessus) */}
+        {!isDevice && (
         <Box sx={{ display: 'flex', gap: 0.75, mb: 0.75, flexShrink: 0, flexWrap: 'wrap' }}>
           {data.properties.map((prop, idx) => {
             const status = getNoiseStatus(prop.currentLevel);
@@ -403,23 +446,16 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
             );
           })}
         </Box>
+        )}
 
-        {/* Chart : spinner au chargement, état vide si pas d'historique, sinon courbes. */}
-        {loading ? (
-          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CircularProgress size={28} />
-          </Box>
-        ) : combinedChartData.length === 0 ? (
-          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.5, px: 2, textAlign: 'center', color: 'text.secondary' }}>
-            <VolumeUp size={28} strokeWidth={1.5} />
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>Aucune mesure pour l'instant</Typography>
-            <Typography variant="caption" sx={{ color: 'text.disabled', maxWidth: 360 }}>
-              Le capteur n'a pas encore remonté d'historique. Les courbes apparaîtront dès les premières mesures.
-            </Typography>
-          </Box>
-        ) : (
-          <Box sx={{ flex: 1, minHeight: 0 }}>
-            <ResponsiveContainer width="100%" height="100%">
+        {/*
+          Graphique TOUJOURS monté : axes, grille et lignes de seuil restent visibles
+          même sans données. Les états « chargement » / « en attente » sont des overlays
+          translucides PAR-DESSUS la zone de tracé (jamais un remplacement du graphe),
+          pour que la structure du graphique soit lisible d'emblée.
+        */}
+        <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
+          <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={displayData} margin={{ top: 8, right: 12, left: -10, bottom: 8 }}>
               <defs>
                 {displayProperties.map((name, idx) => {
@@ -485,9 +521,37 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                 );
               })}
             </AreaChart>
-            </ResponsiveContainer>
-          </Box>
-        )}
+          </ResponsiveContainer>
+
+          {/* Overlay : chargement de l'historique réel (axes visibles derrière) */}
+          {loading && (
+            <Box sx={CHART_OVERLAY_SX}>
+              <Box sx={CHART_OVERLAY_PILL_SX}>
+                <CircularProgress size={22} />
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                  Chargement de l'historique…
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {/* Overlay : aucune mesure encore remontée (le graphique reste « amorcé ») */}
+          {!loading && combinedChartData.length === 0 && (
+            <Box sx={CHART_OVERLAY_SX}>
+              <Box sx={CHART_OVERLAY_PILL_SX}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
+                  <VolumeUp size={24} strokeWidth={1.5} />
+                </Box>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  En attente des premières mesures
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.4 }}>
+                  Les courbes s'afficheront ici dès que le capteur remontera ses relevés.
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </Box>
 
         {/* Recent alerts strip */}
         {recentAlerts.length > 0 && (
