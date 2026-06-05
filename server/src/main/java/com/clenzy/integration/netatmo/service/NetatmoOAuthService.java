@@ -38,6 +38,7 @@ public class NetatmoOAuthService {
     private static final Duration OAUTH_STATE_TTL = Duration.ofMinutes(10);
 
     private final NetatmoConfig config;
+    private final NetatmoPlatformConfigService configService;
     private final NetatmoConnectionRepository connectionRepository;
     private final TokenEncryptionService encryptionService;
     private final TenantContext tenantContext;
@@ -45,12 +46,14 @@ public class NetatmoOAuthService {
     private final RestTemplate restTemplate;
 
     public NetatmoOAuthService(NetatmoConfig config,
+                               NetatmoPlatformConfigService configService,
                                NetatmoConnectionRepository connectionRepository,
                                TokenEncryptionService encryptionService,
                                TenantContext tenantContext,
                                StringRedisTemplate redisTemplate,
                                RestTemplate restTemplate) {
         this.config = config;
+        this.configService = configService;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.tenantContext = tenantContext;
@@ -63,7 +66,7 @@ public class NetatmoOAuthService {
      * State CSRF aleatoire stocke en Redis (TTL 10 min).
      */
     public String getAuthorizationUrl(String userId) {
-        if (!config.isConfigured()) {
+        if (!configService.isConfigured()) {
             throw new IllegalStateException("Configuration Netatmo incomplete. Verifiez NETATMO_CLIENT_ID, NETATMO_CLIENT_SECRET, NETATMO_REDIRECT_URI.");
         }
 
@@ -71,8 +74,8 @@ public class NetatmoOAuthService {
         redisTemplate.opsForValue().set(OAUTH_STATE_PREFIX + state, userId, OAUTH_STATE_TTL);
 
         return config.getAuthorizationUrl()
-                + "?client_id=" + enc(config.getClientId())
-                + "&redirect_uri=" + enc(config.getRedirectUri())
+                + "?client_id=" + enc(configService.getClientId())
+                + "&redirect_uri=" + enc(configService.getRedirectUri())
                 + "&scope=" + enc(config.getScopes())
                 + "&state=" + enc(state)
                 + "&response_type=code";
@@ -102,10 +105,10 @@ public class NetatmoOAuthService {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", config.getClientId());
-        params.add("client_secret", config.getClientSecret());
+        params.add("client_id", configService.getClientId());
+        params.add("client_secret", configService.getClientSecret());
         params.add("code", code);
-        params.add("redirect_uri", config.getRedirectUri());
+        params.add("redirect_uri", configService.getRedirectUri());
         params.add("grant_type", "authorization_code");
         params.add("scope", config.getScopes());
 
@@ -166,8 +169,8 @@ public class NetatmoOAuthService {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", config.getClientId());
-        params.add("client_secret", config.getClientSecret());
+        params.add("client_id", configService.getClientId());
+        params.add("client_secret", configService.getClientSecret());
         params.add("refresh_token", refreshToken);
         params.add("grant_type", "refresh_token");
 

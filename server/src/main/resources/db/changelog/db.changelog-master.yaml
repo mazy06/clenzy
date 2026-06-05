@@ -1848,3 +1848,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Config plateforme Netatmo (credentials OAuth editables depuis l'UI, chiffres).
+  - changeSet:
+      id: "0190-create-netatmo-platform-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0190__create_netatmo_platform_config.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
