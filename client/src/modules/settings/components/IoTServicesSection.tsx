@@ -4,7 +4,7 @@ import { Box, IconButton, Paper, Tooltip, Typography } from '@mui/material';
 import { Settings2 } from 'lucide-react';
 import OAuthProviderCard, { type OAuthApiAdapter } from './OAuthProviderCard';
 import TuyaProjectConfigDialog from './TuyaProjectConfigDialog';
-import { tuyaApi, minutApi } from '../../../services/api';
+import { tuyaApi, minutApi, netatmoApi } from '../../../services/api';
 
 /**
  * Section « Objets connectés (IoT) » de l'onglet Intégrations : connexion des comptes
@@ -43,6 +43,21 @@ const minutAdapter: OAuthApiAdapter = {
   disconnect: () => minutApi.disconnect().then(() => undefined),
   getStatus: async () => {
     const s = await minutApi.getStatus();
+    return {
+      connected: s.connected,
+      connectedAt: s.connectedAt ?? undefined,
+      status: s.status,
+      errorMessage: s.errorMessage ?? undefined,
+      scopes: deviceScope(s.deviceCount),
+    };
+  },
+};
+
+const netatmoAdapter: OAuthApiAdapter = {
+  connect: () => netatmoApi.connect(),
+  disconnect: () => netatmoApi.disconnect().then(() => undefined),
+  getStatus: async () => {
+    const s = await netatmoApi.getStatus();
     return {
       connected: s.connected,
       connectedAt: s.connectedAt ?? undefined,
@@ -128,6 +143,12 @@ export default function IoTServicesSection() {
           description="Capteurs de bruit & environnement · OAuth2"
           api={minutAdapter}
           serviceTooltipId="MINUT"
+        />
+        <OAuthProviderCard
+          providerId="NETATMO"
+          label="Netatmo"
+          description="Station météo, thermostat, caméras & détecteurs · OAuth2"
+          api={netatmoAdapter}
         />
       </Box>
 

@@ -154,6 +154,7 @@ public class SecurityConfigProd {
                         // OAuth callbacks (appeles par les providers externes sans JWT)
                         .requestMatchers("/api/airbnb/callback").permitAll()
                         .requestMatchers("/api/minut/callback").permitAll()
+                        .requestMatchers("/api/netatmo/callback").permitAll()
                         .requestMatchers("/api/pennylane/callback").permitAll()
                         .requestMatchers("/api/docusign/callback").permitAll()
                         .requestMatchers("/api/quickbooks/callback").permitAll()
