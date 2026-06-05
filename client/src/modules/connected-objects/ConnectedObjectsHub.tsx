@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Skeleton, Paper, Chip, Tooltip, alpha, useTheme } from '@mui/material';
+import { Box, Typography, Button, Skeleton, Paper, Chip, Tooltip, alpha, useTheme, Snackbar, Alert } from '@mui/material';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -11,6 +11,7 @@ import { useConnectedObjects } from './useConnectedObjects';
 import { DEVICE_KINDS, DEVICE_KIND_ORDER } from './deviceRegistry';
 import DeviceCard from './components/DeviceCard';
 import AddDeviceWizard from './components/AddDeviceWizard';
+import { netatmoApi } from '../../services/api';
 import type { DeviceAction, DeviceKind } from './types';
 
 const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gap: 1 } as const;
@@ -51,6 +52,20 @@ export default function ConnectedObjectsHub({
   const visibleProviders = providers.filter((p) => p.connected || p.deviceCount > 0);
   // Au moins un service relié → l'invite passe de « connecter un service » à « ajouter un objet ».
   const hasConnectedService = providers.some((p) => p.connected);
+
+  // Netatmo = modèle par-hôte : chaque hôte connecte SON compte depuis le hub (l'onglet
+  // Intégrations est réservé aux SUPER_ADMIN/MANAGER). La config de l'app reste admin.
+  const netatmoConnected = providers.some((p) => p.provider === 'NETATMO' && p.connected);
+  const [connectMsg, setConnectMsg] = useState<string | null>(null);
+  const connectNetatmo = async () => {
+    try {
+      const res = await netatmoApi.connect();
+      if (res.authorization_url) { window.location.href = res.authorization_url; return; }
+      if (res.status === 'already_connected') { void refetch(); }
+    } catch {
+      setConnectMsg("Netatmo n'est pas encore activé par l'administrateur (clé API à configurer dans les Intégrations).");
+    }
+  };
 
   // Types présents → options du filtre.
   const kindsPresent = useMemo(() => {
@@ -120,7 +135,12 @@ export default function ConnectedObjectsHub({
             );
           })
         )}
-        <Button variant="text" size="small" endIcon={<ChevronRight size={14} strokeWidth={1.75} />} onClick={() => navigate('/settings?tab=integrations')} sx={{ ml: 'auto', color: 'text.secondary' }}>
+        {!netatmoConnected && (
+          <Button variant="contained" size="small" onClick={() => { void connectNetatmo(); }} sx={{ ml: 'auto', textTransform: 'none' }}>
+            Connecter Netatmo
+          </Button>
+        )}
+        <Button variant="text" size="small" endIcon={<ChevronRight size={14} strokeWidth={1.75} />} onClick={() => navigate('/settings?tab=integrations')} sx={{ ml: netatmoConnected ? 'auto' : 1, color: 'text.secondary' }}>
           Gérer les intégrations
         </Button>
       </Paper>
@@ -247,6 +267,10 @@ export default function ConnectedObjectsHub({
       )}
 
       <AddDeviceWizard open={wizardOpen} onClose={() => setWizardOpen(false)} onAdded={() => { void refetch(); }} />
+
+      <Snackbar open={!!connectMsg} autoHideDuration={6000} onClose={() => setConnectMsg(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        {connectMsg ? <Alert severity="info" variant="filled" onClose={() => setConnectMsg(null)} sx={{ width: '100%' }}>{connectMsg}</Alert> : undefined}
+      </Snackbar>
     </Box>
   );
 }
