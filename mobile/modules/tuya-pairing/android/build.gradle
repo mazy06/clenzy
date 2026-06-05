@@ -36,7 +36,10 @@ android {
 repositories {
   mavenCentral()
   google()
-  // Repo Maven Tuya (App SDK). Aussi ajoute au projet par le config plugin (defense-in-depth).
+  // Repos Maven Tuya : `maven-commercial-releases` heberge l'App SDK 7.5.x (thingsmart:7.5.1) ;
+  // `maven-public` plafonne a 5.17.x (artefacts transitifs plus anciens). Les deux sont aussi
+  // declares en extraMavenRepos (app.json) pour couvrir le mode de resolution Gradle.
+  maven { url "https://maven-other.tuya.com/repository/maven-commercial-releases/" }
   maven { url "https://maven-other.tuya.com/repository/maven-public/" }
   flatDir { dirs "libs" }
 }
