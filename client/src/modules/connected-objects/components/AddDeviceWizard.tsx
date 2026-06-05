@@ -11,6 +11,7 @@ import { noiseDevicesApi } from '../../../services/api/noiseApi';
 import { keyExchangeApi } from '../../../services/api/keyExchangeApi';
 import { camerasApi } from '../../../services/api/camerasApi';
 import { thermostatsApi } from '../../../services/api/thermostatsApi';
+import { environmentSensorsApi, type SensorType } from '../../../services/api/environmentSensorsApi';
 import TuyaDevicePicker from './TuyaDevicePicker';
 import { DEVICE_KINDS } from '../deviceRegistry';
 import type { DeviceKind } from '../types';
@@ -26,7 +27,15 @@ interface AddDeviceWizardProps {
 }
 
 /** Types ajoutables + providers proposés (un seul flux pour tous). */
-const ADDABLE: DeviceKind[] = ['lock', 'noise', 'keybox', 'camera', 'thermostat'];
+const ADDABLE: DeviceKind[] = [
+  'lock', 'noise', 'keybox', 'camera', 'thermostat', 'climate', 'contact', 'motion', 'smoke',
+];
+
+/** Capteurs d'environnement (modèle backend générique EnvironmentSensor). */
+const ENV_SENSOR_KINDS: DeviceKind[] = ['climate', 'contact', 'motion', 'smoke'];
+const SENSOR_TYPE_BY_KIND: Partial<Record<DeviceKind, SensorType>> = {
+  climate: 'TEMP_HUMIDITY', contact: 'CONTACT', motion: 'MOTION', smoke: 'SMOKE',
+};
 
 const PROVIDERS: Record<DeviceKind, { value: string; label: string }[]> = {
   lock: [
@@ -41,6 +50,11 @@ const PROVIDERS: Record<DeviceKind, { value: string; label: string }[]> = {
     { value: 'TAPO', label: 'Tapo' }, { value: 'HIKVISION', label: 'Hikvision' }, { value: 'DAHUA', label: 'Dahua' },
   ],
   thermostat: [{ value: 'TUYA', label: 'Tuya' }],
+  // Capteurs Tuya/Zigbee (via passerelle Tuya cloud).
+  climate: [{ value: 'TUYA', label: 'Tuya' }],
+  contact: [{ value: 'TUYA', label: 'Tuya' }],
+  motion: [{ value: 'TUYA', label: 'Tuya' }],
+  smoke: [{ value: 'TUYA', label: 'Tuya' }],
 };
 
 export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropertyId, defaultKind }: AddDeviceWizardProps) {
@@ -88,6 +102,11 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
           externalDeviceId: provider === 'TUYA' ? externalDeviceId.trim() : undefined });
       } else if (kind === 'thermostat') {
         await thermostatsApi.create({ name: name.trim(), propertyId, roomName: roomName || undefined, brand: provider, externalDeviceId: externalDeviceId || undefined });
+      } else if (ENV_SENSOR_KINDS.includes(kind)) {
+        await environmentSensorsApi.create({
+          name: name.trim(), propertyId, roomName: roomName || undefined,
+          sensorType: SENSOR_TYPE_BY_KIND[kind]!, brand: provider, externalDeviceId: externalDeviceId || undefined,
+        });
       }
       onAdded();
       handleClose();
@@ -178,7 +197,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             {kind === 'camera' && provider === 'TUYA' && (
               <TuyaDevicePicker category="sp" selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
             )}
-            {(kind === 'lock' || kind === 'noise' || kind === 'thermostat') && provider === 'TUYA' && (
+            {(kind === 'lock' || kind === 'noise' || kind === 'thermostat' || ENV_SENSOR_KINDS.includes(kind)) && provider === 'TUYA' && (
               <TuyaDevicePicker category={kind === 'thermostat' ? 'wk' : undefined} selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
             )}
             {(kind === 'lock' || kind === 'noise' || kind === 'thermostat') && provider !== 'TUYA' && (

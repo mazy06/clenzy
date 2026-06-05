@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { smartLockApi } from '../../services/api/smartLockApi';
 import { noiseDevicesApi } from '../../services/api/noiseApi';
 import { keyExchangeApi } from '../../services/api/keyExchangeApi';
+import { environmentSensorsApi } from '../../services/api/environmentSensorsApi';
 import type { ConnectedDevice } from './types';
 
 /**
@@ -25,6 +26,10 @@ export function useDeleteDevice() {
         case 'lock': await smartLockApi.delete(device.id); break;
         case 'noise': await noiseDevicesApi.delete(device.id); break;
         case 'keybox': await keyExchangeApi.deletePoint(device.id); break;
+        case 'climate':
+        case 'contact':
+        case 'motion':
+        case 'smoke': await environmentSensorsApi.delete(device.id); break;
         default: throw new Error("La suppression n'est pas disponible pour ce type d'objet.");
       }
       await qc.invalidateQueries({ queryKey: ['connected-objects'] });

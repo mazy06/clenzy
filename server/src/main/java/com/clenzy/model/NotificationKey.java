@@ -201,7 +201,12 @@ public enum NotificationKey {
 
     // ─── ASSISTANT (briefings proactifs) ──────────────────────────────────
     BRIEFING_READY(NotificationType.INFO, NotificationCategory.SYSTEM, true),
-    VISION_USAGE_THRESHOLD_REACHED(NotificationType.WARNING, NotificationCategory.SYSTEM, true);
+    VISION_USAGE_THRESHOLD_REACHED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+
+    // ─── OBJETS CONNECTES — capteurs d'environnement ────────────────────────────
+
+    IOT_SMOKE_DETECTED(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+    IOT_MOTION_DETECTED(NotificationType.WARNING, NotificationCategory.SYSTEM, true);
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

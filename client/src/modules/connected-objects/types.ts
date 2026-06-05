@@ -8,7 +8,13 @@
  * types « à venir » pour réserver leur place dans l'UI.
  */
 
-export type DeviceKind = 'lock' | 'noise' | 'keybox' | 'camera' | 'thermostat';
+export type DeviceKind =
+  | 'lock' | 'noise' | 'keybox' | 'camera' | 'thermostat'
+  // Capteurs d'environnement (modèle backend générique EnvironmentSensor) :
+  | 'climate'   // Temp/Humidité
+  | 'contact'   // Porte/Fenêtre
+  | 'motion'    // Mouvement / présence
+  | 'smoke';    // Fumée / vape
 
 /** Niveau d'état normalisé : pilote la pastille de couleur (vert/ambre/rouge/gris). */
 export type DeviceStatusLevel = 'ok' | 'warning' | 'critical' | 'offline' | 'unknown';
@@ -29,7 +35,7 @@ export type DeviceAction = 'lock' | 'unlock' | 'view' | 'acknowledge';
  * points de remise). Les caméras / thermostats sont en aperçu (Phase 2) — non
  * supprimables tant qu'ils ne sont pas adossés à un vrai enregistrement.
  */
-const DELETABLE_KINDS: DeviceKind[] = ['lock', 'noise', 'keybox'];
+const DELETABLE_KINDS: DeviceKind[] = ['lock', 'noise', 'keybox', 'climate', 'contact', 'motion', 'smoke'];
 
 /** Vrai si l'objet expose une action « Supprimer » (cf. {@link DELETABLE_KINDS}). */
 export function isDeviceDeletable(kind: DeviceKind): boolean {
