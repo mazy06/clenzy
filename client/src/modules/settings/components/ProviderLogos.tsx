@@ -43,7 +43,8 @@ export type ProviderId =
   | 'RENTALS_UNITED'
   | 'CHANNEX'
   | 'TUYA'
-  | 'MINUT';
+  | 'MINUT'
+  | 'NETATMO';
 
 interface ProviderLogoProps {
   provider: ProviderId;
@@ -108,6 +109,8 @@ const PALETTE: Record<ProviderId, BrandPalette> = {
   TUYA:    { bg: '#FF5A28', fg: '#FFFFFF', accent: '#FFD0A8' },
   // Minut : nuit + vert capteur
   MINUT:   { bg: '#1B2030', fg: '#FFFFFF', accent: '#4ADE80' },
+  // Netatmo : ardoise + teal capteur
+  NETATMO: { bg: '#2D3A45', fg: '#FFFFFF', accent: '#00B0B9' },
 };
 
 export default function ProviderLogo({ provider, size = 48, muted = false }: ProviderLogoProps) {
@@ -654,6 +657,16 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
         <>
           <rect width="48" height="48" rx="12" fill={p.bg} />
           <text x="24" y="33" textAnchor="middle" fontFamily="'Inter', sans-serif" fontSize="24" fontWeight="700" fill={p.fg} letterSpacing="-0.04em">M</text>
+          <circle cx="35" cy="14" r="3" fill={p.accent} />
+        </>
+      );
+
+    case 'NETATMO':
+      // Tile ardoise, "N" + point capteur teal
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text x="24" y="33" textAnchor="middle" fontFamily="'Inter', sans-serif" fontSize="24" fontWeight="700" fill={p.fg} letterSpacing="-0.04em">N</text>
           <circle cx="35" cy="14" r="3" fill={p.accent} />
         </>
       );

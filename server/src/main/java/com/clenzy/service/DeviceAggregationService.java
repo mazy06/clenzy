@@ -9,6 +9,8 @@ import com.clenzy.dto.noise.NoiseDeviceDto;
 import com.clenzy.dto.smartlock.SmartLockDeviceDto;
 import com.clenzy.integration.minut.model.MinutConnection;
 import com.clenzy.integration.minut.repository.MinutConnectionRepository;
+import com.clenzy.integration.netatmo.model.NetatmoConnection;
+import com.clenzy.integration.netatmo.repository.NetatmoConnectionRepository;
 import com.clenzy.integration.nuki.model.NukiConnection;
 import com.clenzy.integration.nuki.repository.NukiConnectionRepository;
 import com.clenzy.integration.tuya.model.TuyaConnection;
@@ -40,6 +42,7 @@ public class DeviceAggregationService {
     private final MinutConnectionRepository minutConnectionRepository;
     private final TuyaConnectionRepository tuyaConnectionRepository;
     private final NukiConnectionRepository nukiConnectionRepository;
+    private final NetatmoConnectionRepository netatmoConnectionRepository;
     private final TenantContext tenantContext;
 
     public DeviceAggregationService(SmartLockService smartLockService,
@@ -50,6 +53,7 @@ public class DeviceAggregationService {
                                     MinutConnectionRepository minutConnectionRepository,
                                     TuyaConnectionRepository tuyaConnectionRepository,
                                     NukiConnectionRepository nukiConnectionRepository,
+                                    NetatmoConnectionRepository netatmoConnectionRepository,
                                     TenantContext tenantContext) {
         this.smartLockService = smartLockService;
         this.noiseDeviceService = noiseDeviceService;
@@ -59,6 +63,7 @@ public class DeviceAggregationService {
         this.minutConnectionRepository = minutConnectionRepository;
         this.tuyaConnectionRepository = tuyaConnectionRepository;
         this.nukiConnectionRepository = nukiConnectionRepository;
+        this.netatmoConnectionRepository = netatmoConnectionRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -108,11 +113,14 @@ public class DeviceAggregationService {
         Long orgId = tenantContext.getOrganizationId();
         boolean nuki = orgId != null && nukiConnectionRepository.findByOrganizationId(orgId)
                 .map(NukiConnection::isActive).orElse(false);
+        boolean netatmo = netatmoConnectionRepository.findByUserId(userId)
+                .map(NetatmoConnection::isActive).orElse(false);
 
         List<ProviderStatusDto> statuses = new ArrayList<>();
         statuses.add(connectionStatus("MINUT", minut, counts));
         statuses.add(connectionStatus("TUYA", tuya, counts));
         statuses.add(connectionStatus("NUKI", nuki, counts));
+        statuses.add(connectionStatus("NETATMO", netatmo, counts));
 
         // KeyNest / KeyVault : pas de connexion org-level → statut base sur la presence.
         addPresenceProvider(statuses, "KEYNEST", counts);
