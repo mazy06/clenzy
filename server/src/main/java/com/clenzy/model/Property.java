@@ -56,6 +56,11 @@ public class Property {
     @Column(name = "country_code", length = 2)
     private String countryCode;
 
+    /** Fuseau IANA du logement (ex: Europe/Paris, Africa/Casablanca). Pilote la
+     *  fenetre de validite des codes d'acces serrure (sinon heure serveur). */
+    @Column(name = "timezone", length = 64)
+    private String timezone = "Europe/Paris";
+
     /**
      * Type de menage par defaut pour cette propriete (CLEANING / EXPRESS_CLEANING / DEEP_CLEANING).
      * Utilise lors de la creation automatique de demandes de service (iCal, channels OTA).
@@ -330,6 +335,14 @@ public class Property {
 
     public void setCountryCode(String countryCode) {
         this.countryCode = countryCode;
+    }
+
+    public String getTimezone() {
+        return timezone;
+    }
+
+    public void setTimezone(String timezone) {
+        this.timezone = timezone;
     }
 
     public String getDefaultCleaningType() {

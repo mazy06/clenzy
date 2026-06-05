@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -141,6 +142,64 @@ public class NoiseDeviceService {
             log.error("Erreur recuperation donnees bruit pour device {}: {}", deviceId, e.getMessage());
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * Statut live d'un capteur : connectivite reelle (flag Tuya/Minut), persistee
+     * pour le read-model GET /api/devices. Mirror de SmartLockService.getLockStatus.
+     */
+    @Transactional
+    public Map<String, Object> getDeviceStatus(String userId, Long deviceId) {
+        NoiseDevice device = noiseDeviceRepository.findById(deviceId)
+                .orElseThrow(() -> new IllegalArgumentException("Capteur introuvable: " + deviceId));
+
+        boolean online = fetchOnline(userId, device);
+        device.setOnline(online);
+        device.setLastSeenAt(LocalDateTime.now());
+        noiseDeviceRepository.save(device);
+
+        return Map.of("online", online);
+    }
+
+    /** Connectivite reelle d'un capteur (Tuya getDeviceInfo / Minut getDevice), false si indispo. */
+    @SuppressWarnings("unchecked")
+    private boolean fetchOnline(String userId, NoiseDevice device) {
+        String ext = device.getExternalDeviceId();
+        if (ext == null || ext.isBlank()) {
+            return false;
+        }
+        try {
+            switch (device.getDeviceType()) {
+                case TUYA: {
+                    Map<String, Object> info = tuyaApiService.getDeviceInfo(ext);
+                    return info != null && Boolean.TRUE.equals(info.get("online"));
+                }
+                case MINUT:
+                    return parseMinutOnline(minutApiService.getDevice(userId, ext));
+                default:
+                    return false;
+            }
+        } catch (Exception e) {
+            log.warn("Statut online indisponible pour capteur {}: {}", device.getId(), e.getMessage());
+            return false;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean parseMinutOnline(Map<String, Object> info) {
+        if (info == null) {
+            return false;
+        }
+        Object dev = info.get("device");
+        Map<String, Object> m = dev instanceof Map ? (Map<String, Object>) dev : info;
+        if (m.get("offline") instanceof Boolean b) {
+            return !b;
+        }
+        if (m.get("online") instanceof Boolean b) {
+            return b;
+        }
+        // A defaut : un dernier contact connu => considere en ligne.
+        return m.get("last_heard_from_at") != null;
     }
 
     /**
@@ -280,6 +339,7 @@ public class NoiseDeviceService {
         dto.setRoomName(device.getRoomName());
         dto.setExternalDeviceId(device.getExternalDeviceId());
         dto.setStatus(device.getStatus().name());
+        dto.setOnline(device.getOnline());
         dto.setCreatedAt(device.getCreatedAt());
 
         // Resolve property name

@@ -29,7 +29,6 @@ import {
   Contacts,
   Public,
   StorefrontOutlined,
-  Inventory2,
 } from '../icons';
 import BaitlyMarkLogo from '../components/BaitlyMarkLogo';
 
@@ -105,14 +104,10 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.properties',
     group: 'main',
   },
-  {
-    icon: <Inventory2 />,
-    path: '/connected-objects',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
-    permission: 'properties:view',
-    translationKey: 'navigation.connectedObjects',
-    group: 'main',
-  },
+  // Note : l'entree /connected-objects a ete deplacee dans Propriétés (onglet
+  // "connected-objects", conceptuellement lie aux biens). La route
+  // /connected-objects redirige vers /properties?tab=connected-objects
+  // (cf. AuthenticatedApp) pour preserver les bookmarks. Pas d'entree sidebar dediee.
   {
     icon: <Build />,
     path: '/interventions',

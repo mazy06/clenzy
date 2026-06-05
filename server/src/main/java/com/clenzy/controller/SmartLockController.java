@@ -1,8 +1,12 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.smartlock.CreateSmartLockDeviceDto;
+import com.clenzy.dto.smartlock.RotateAccessCodeRequest;
+import com.clenzy.dto.smartlock.SmartLockAccessCodeDto;
 import com.clenzy.dto.smartlock.SmartLockDeviceDto;
+import com.clenzy.model.SmartLockAccessCode;
 import com.clenzy.service.SmartLockService;
+import com.clenzy.service.smartlock.SmartLockAccessCodeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -37,9 +41,12 @@ public class SmartLockController {
     private static final Logger log = LoggerFactory.getLogger(SmartLockController.class);
 
     private final SmartLockService smartLockService;
+    private final SmartLockAccessCodeService accessCodeService;
 
-    public SmartLockController(SmartLockService smartLockService) {
+    public SmartLockController(SmartLockService smartLockService,
+                               SmartLockAccessCodeService accessCodeService) {
         this.smartLockService = smartLockService;
+        this.accessCodeService = accessCodeService;
     }
 
     // ─── CRUD ────────────────────────────────────────────────────
@@ -176,5 +183,54 @@ public class SmartLockController {
                     "message", "Erreur lors du deverrouillage"
             ));
         }
+    }
+
+    // ─── Access codes (mots de passe temporaires) ────────────────
+
+    @GetMapping("/{id}/access-code")
+    @Operation(summary = "Code d'acces courant d'une serrure",
+            description = "Retourne le code actif courant (ou 204 si aucun)")
+    public ResponseEntity<?> getAccessCode(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        return accessCodeService.getCurrentForDevice(id)
+                .<ResponseEntity<?>>map(c -> ResponseEntity.ok(SmartLockAccessCodeDto.from(c)))
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("/{id}/access-code/rotate")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    @Operation(summary = "Regenere / change le code d'acces d'une serrure",
+            description = "Revoque le code actif et en genere un nouveau (declenche un event)")
+    public ResponseEntity<?> rotateAccessCode(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
+                                              @RequestBody(required = false) RotateAccessCodeRequest body) {
+        String userId = jwt.getSubject();
+        try {
+            RotateAccessCodeRequest req = body != null ? body : new RotateAccessCodeRequest(null, null, null);
+            SmartLockAccessCode code = accessCodeService.rotateManual(
+                    id, req.validFrom(), req.validUntil(), req.reservationId(), userId);
+            return ResponseEntity.ok(SmartLockAccessCodeDto.from(code));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "not_found",
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("Erreur rotation code serrure {} pour user {}: {}", id, userId, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "server_error",
+                    "message", "Erreur lors de la generation du code"
+            ));
+        }
+    }
+
+    @DeleteMapping("/{id}/access-code")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    @Operation(summary = "Revoque le code d'acces courant d'une serrure")
+    public ResponseEntity<?> revokeAccessCode(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        String userId = jwt.getSubject();
+        accessCodeService.revokeForDevice(id, userId);
+        return ResponseEntity.ok(Map.of(
+                "status", "revoked",
+                "message", "Code revoque"
+        ));
     }
 }

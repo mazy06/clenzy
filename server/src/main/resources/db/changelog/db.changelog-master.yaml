@@ -1756,3 +1756,63 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Connectivite reelle des serrures (online + last_seen_at) — vrai flag Tuya vs status=ACTIVE.
+  - changeSet:
+      id: "0181-add-smart-lock-online-last-seen"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0181__add_smart_lock_online_last_seen.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Codes d'acces des serrures (mots de passe temporaires Tuya, PIN chiffre au repos).
+  - changeSet:
+      id: "0182-create-smart-lock-access-code"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0182__create_smart_lock_access_code.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Journal d'audit des codes d'acces de serrures (genere/revoque/delivre/echec).
+  - changeSet:
+      id: "0183-create-smart-lock-access-code-event"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0183__create_smart_lock_access_code_event.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Template dedie ACCESS_CODE (envoi du code au voyageur) + CHECK constraint complet.
+  - changeSet:
+      id: "0184-access-code-message-template"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0184__access_code_message_template.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Fuseau horaire par logement (fenetre des codes en heure locale du bien).
+  - changeSet:
+      id: "0185-add-property-timezone"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0185__add_property_timezone.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Connectivite reelle des capteurs de bruit (online + last_seen_at) — vrai flag Tuya/Minut.
+  - changeSet:
+      id: "0186-add-noise-device-online-last-seen"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0186__add_noise_device_online_last_seen.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

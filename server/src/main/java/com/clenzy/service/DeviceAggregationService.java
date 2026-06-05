@@ -67,29 +67,31 @@ public class DeviceAggregationService {
         List<DeviceSummaryDto> devices = new ArrayList<>();
 
         for (SmartLockDeviceDto d : smartLockService.getUserDevices(userId)) {
+            // Serrure : online = vrai flag Tuya persiste (null si jamais synchronise — ni en ligne ni hors ligne).
             devices.add(new DeviceSummaryDto(
                     "lock", d.getId(), d.getName(), d.getPropertyId(), d.getPropertyName(), d.getRoomName(),
-                    orUnknown(d.getBrand()), d.getStatus(), d.getLockState(), d.getBatteryLevel(), null, null, d.getCreatedAt()));
+                    orUnknown(d.getBrand()), d.getStatus(), d.getOnline(), d.getLockState(), d.getBatteryLevel(), null, null, d.getCreatedAt()));
         }
         for (NoiseDeviceDto d : noiseDeviceService.getUserDevices(userId)) {
+            // Capteur bruit : online = vrai flag Tuya/Minut persiste (null si jamais synchronise).
             devices.add(new DeviceSummaryDto(
                     "noise", d.getId(), d.getName(), d.getPropertyId(), d.getPropertyName(), d.getRoomName(),
-                    orUnknown(d.getDeviceType()), d.getStatus(), null, null, null, null, d.getCreatedAt()));
+                    orUnknown(d.getDeviceType()), d.getStatus(), d.getOnline(), null, null, null, null, d.getCreatedAt()));
         }
         for (KeyExchangePointDto d : keyExchangeService.getPoints(userId)) {
             devices.add(new DeviceSummaryDto(
                     "keybox", d.getId(), d.getStoreName(), d.getPropertyId(), d.getPropertyName(), null,
-                    orUnknown(d.getProvider()), d.getStatus(), null, null, (int) d.getActiveCodesCount(), null, d.getCreatedAt()));
+                    orUnknown(d.getProvider()), d.getStatus(), activeOnline(d.getStatus()), null, null, (int) d.getActiveCodesCount(), null, d.getCreatedAt()));
         }
         for (CameraDto c : cameraService.getUserCameras(userId)) {
             devices.add(new DeviceSummaryDto(
                     "camera", c.id(), c.name(), c.propertyId(), c.propertyName(), c.roomName(),
-                    orUnknown(c.brand()), c.status(), null, null, null, c.snapshotUrl(), c.createdAt()));
+                    orUnknown(c.brand()), c.status(), activeOnline(c.status()), null, null, null, c.snapshotUrl(), c.createdAt()));
         }
         for (ThermostatDto th : thermostatService.getUserThermostats(userId)) {
             devices.add(new DeviceSummaryDto(
                     "thermostat", th.id(), th.name(), th.propertyId(), th.propertyName(), th.roomName(),
-                    orUnknown(th.brand()), th.status(), null, null, null, null, th.createdAt()));
+                    orUnknown(th.brand()), th.status(), activeOnline(th.status()), null, null, null, null, th.createdAt()));
         }
         return devices;
     }
@@ -133,5 +135,13 @@ public class DeviceAggregationService {
 
     private static String orUnknown(String value) {
         return (value == null || value.isBlank()) ? "UNKNOWN" : value;
+    }
+
+    /**
+     * Connectivite des types sans signal "online" dedie (noise / keybox / camera / thermostat) :
+     * derivee du cycle de vie (ACTIVE = en ligne). Les serrures utilisent le vrai flag Tuya.
+     */
+    private static Boolean activeOnline(String status) {
+        return "ACTIVE".equals(status);
     }
 }

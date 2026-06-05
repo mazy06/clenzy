@@ -220,6 +220,9 @@ public class PropertyService {
         property.setCity(dto.city);
         property.setCountry(dto.country);
         property.setCountryCode(dto.countryCode);
+        if (dto.timezone != null && !dto.timezone.isBlank()) {
+            property.setTimezone(dto.timezone);
+        }
         if (dto.defaultCleaningType != null && !dto.defaultCleaningType.isBlank()) {
             property.setDefaultCleaningType(dto.defaultCleaningType);
         }
@@ -288,6 +291,7 @@ public class PropertyService {
             dto.city = p.getCity();
             dto.country = p.getCountry();
             dto.countryCode = p.getCountryCode();
+            dto.timezone = p.getTimezone();
             dto.defaultCleaningType = p.getDefaultCleaningType();
             // Photos : triees par sortOrder, puis id. coverPhotoUrl = premiere de la liste.
             if (p.getPhotos() != null && !p.getPhotos().isEmpty()) {

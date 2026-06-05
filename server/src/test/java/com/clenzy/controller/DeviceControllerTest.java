@@ -39,7 +39,7 @@ class DeviceControllerTest {
     @DisplayName("GET /api/devices — read-model unifie")
     void getDevices() {
         DeviceSummaryDto d = new DeviceSummaryDto("lock", 1L, "Serrure", 10L, "Villa", "Entree",
-                "NUKI", "ACTIVE", "LOCKED", 80, null, null, LocalDateTime.now());
+                "NUKI", "ACTIVE", true, "LOCKED", 80, null, null, LocalDateTime.now());
         when(deviceAggregationService.getDevices("kc-user-1")).thenReturn(List.of(d));
         assertThat(controller.getDevices(jwt).getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(controller.getDevices(jwt).getBody()).hasSize(1);
