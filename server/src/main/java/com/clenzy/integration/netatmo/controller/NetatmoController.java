@@ -1,8 +1,11 @@
 package com.clenzy.integration.netatmo.controller;
 
+import com.clenzy.dto.netatmo.NetatmoConfigStatusDto;
 import com.clenzy.dto.netatmo.NetatmoConnectionStatusDto;
+import com.clenzy.dto.netatmo.UpdateNetatmoConfigDto;
 import com.clenzy.integration.netatmo.model.NetatmoConnection;
 import com.clenzy.integration.netatmo.service.NetatmoOAuthService;
+import com.clenzy.integration.netatmo.service.NetatmoPlatformConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -34,9 +37,32 @@ public class NetatmoController {
     private static final Logger log = LoggerFactory.getLogger(NetatmoController.class);
 
     private final NetatmoOAuthService oAuthService;
+    private final NetatmoPlatformConfigService configService;
 
-    public NetatmoController(NetatmoOAuthService oAuthService) {
+    public NetatmoController(NetatmoOAuthService oAuthService,
+                             NetatmoPlatformConfigService configService) {
         this.oAuthService = oAuthService;
+        this.configService = configService;
+    }
+
+    // ─── Configuration de l'app Netatmo (credentials plateforme, editables depuis l'UI) ───
+
+    @GetMapping("/config")
+    @Operation(summary = "Statut de configuration de l'app Netatmo")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
+    public ResponseEntity<NetatmoConfigStatusDto> getConfig() {
+        return ResponseEntity.ok(new NetatmoConfigStatusDto(
+                configService.isConfigured(), configService.getClientId(), configService.getRedirectUri()));
+    }
+
+    @PutMapping("/config")
+    @Operation(summary = "Enregistrer les credentials de l'app Netatmo (secret chiffre en base)")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER')")
+    public ResponseEntity<NetatmoConfigStatusDto> updateConfig(@AuthenticationPrincipal Jwt jwt,
+                                                               @RequestBody UpdateNetatmoConfigDto dto) {
+        configService.save(dto, jwt.getSubject());
+        return ResponseEntity.ok(new NetatmoConfigStatusDto(
+                configService.isConfigured(), configService.getClientId(), configService.getRedirectUri()));
     }
 
     @GetMapping("/connect")

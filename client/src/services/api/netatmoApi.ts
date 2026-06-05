@@ -11,6 +11,20 @@ export interface NetatmoConnectionStatus {
   deviceCount: number;
 }
 
+/** Statut de configuration de l'app Netatmo. Le secret n'est jamais renvoyé. */
+export interface NetatmoConfigStatus {
+  configured: boolean;
+  clientId: string | null;
+  redirectUri: string | null;
+}
+
+export interface UpdateNetatmoConfigPayload {
+  clientId: string;
+  /** Laisser vide pour conserver le secret déjà enregistré. */
+  clientSecret?: string;
+  redirectUri: string;
+}
+
 // ─── Netatmo OAuth API ────────────────────────────────────────────────────────
 
 export const netatmoApi = {
@@ -29,5 +43,15 @@ export const netatmoApi = {
   /** Statut de la connexion Netatmo. */
   getStatus() {
     return apiClient.get<NetatmoConnectionStatus>('/netatmo/status');
+  },
+
+  /** Statut de configuration de l'app Netatmo (credentials plateforme). */
+  getConfig() {
+    return apiClient.get<NetatmoConfigStatus>('/netatmo/config');
+  },
+
+  /** Enregistre les credentials de l'app Netatmo (secret chiffré en base). */
+  saveConfig(payload: UpdateNetatmoConfigPayload) {
+    return apiClient.put<NetatmoConfigStatus>('/netatmo/config', payload);
   },
 };
