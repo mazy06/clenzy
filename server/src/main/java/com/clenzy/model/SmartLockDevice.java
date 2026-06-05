@@ -62,6 +62,14 @@ public class SmartLockDevice {
     @Column(name = "battery_level")
     private Integer batteryLevel;
 
+    /** Connectivite reelle remontee par Tuya (flag device "online"). Null = jamais synchronise. */
+    @Column(name = "online")
+    private Boolean online;
+
+    /** Dernier rafraichissement du statut live (getLockStatus). */
+    @Column(name = "last_seen_at")
+    private LocalDateTime lastSeenAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -120,6 +128,12 @@ public class SmartLockDevice {
 
     public Integer getBatteryLevel() { return batteryLevel; }
     public void setBatteryLevel(Integer batteryLevel) { this.batteryLevel = batteryLevel; }
+
+    public Boolean getOnline() { return online; }
+    public void setOnline(Boolean online) { this.online = online; }
+
+    public LocalDateTime getLastSeenAt() { return lastSeenAt; }
+    public void setLastSeenAt(LocalDateTime lastSeenAt) { this.lastSeenAt = lastSeenAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

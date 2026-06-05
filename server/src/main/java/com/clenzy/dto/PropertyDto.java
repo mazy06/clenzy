@@ -32,6 +32,8 @@ public class PropertyDto {
     public String country;
     @Size(max = 2)
     public String countryCode;
+    /** Fuseau IANA du logement (ex: Europe/Paris, Africa/Casablanca). */
+    public String timezone;
     public BigDecimal latitude;
     public BigDecimal longitude;
     public String department;

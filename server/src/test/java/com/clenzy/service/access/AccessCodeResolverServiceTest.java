@@ -7,6 +7,7 @@ import com.clenzy.model.KeyExchangePoint.PointStatus;
 import com.clenzy.model.KeyExchangePoint.Provider;
 import com.clenzy.model.SmartLockDevice.DeviceStatus;
 import com.clenzy.repository.KeyExchangePointRepository;
+import com.clenzy.repository.SmartLockAccessCodeRepository;
 import com.clenzy.repository.SmartLockDeviceRepository;
 import com.clenzy.service.KeyExchangeService;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,7 @@ class AccessCodeResolverServiceTest {
     @Mock private KeyExchangePointRepository keyExchangePointRepository;
     @Mock private TuyaApiService tuyaApiService;
     @Mock private KeyExchangeService keyExchangeService;
+    @Mock private SmartLockAccessCodeRepository accessCodeRepository;
 
     private AccessCodeResolverService service;
 
@@ -41,7 +43,7 @@ class AccessCodeResolverServiceTest {
     void setUp() {
         service = new AccessCodeResolverService(
                 smartLockRepository, keyExchangePointRepository,
-                tuyaApiService, keyExchangeService
+                tuyaApiService, keyExchangeService, accessCodeRepository
         );
 
         property = new Property();

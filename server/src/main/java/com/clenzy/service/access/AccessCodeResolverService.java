@@ -7,6 +7,7 @@ import com.clenzy.model.*;
 import com.clenzy.model.KeyExchangePoint.PointStatus;
 import com.clenzy.model.SmartLockDevice.DeviceStatus;
 import com.clenzy.repository.KeyExchangePointRepository;
+import com.clenzy.repository.SmartLockAccessCodeRepository;
 import com.clenzy.repository.SmartLockDeviceRepository;
 import com.clenzy.service.KeyExchangeService;
 import org.slf4j.Logger;
@@ -18,6 +19,7 @@ import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Determine la methode d'acces pour une propriete et genere le code
@@ -40,17 +42,20 @@ public class AccessCodeResolverService {
     private final KeyExchangePointRepository keyExchangePointRepository;
     private final TuyaApiService tuyaApiService;
     private final KeyExchangeService keyExchangeService;
+    private final SmartLockAccessCodeRepository accessCodeRepository;
 
     public AccessCodeResolverService(
             SmartLockDeviceRepository smartLockRepository,
             KeyExchangePointRepository keyExchangePointRepository,
             TuyaApiService tuyaApiService,
-            KeyExchangeService keyExchangeService
+            KeyExchangeService keyExchangeService,
+            SmartLockAccessCodeRepository accessCodeRepository
     ) {
         this.smartLockRepository = smartLockRepository;
         this.keyExchangePointRepository = keyExchangePointRepository;
         this.tuyaApiService = tuyaApiService;
         this.keyExchangeService = keyExchangeService;
+        this.accessCodeRepository = accessCodeRepository;
     }
 
     /**
@@ -98,6 +103,31 @@ public class AccessCodeResolverService {
             Reservation reservation,
             CheckInInstructions instructions
     ) {
+        // Code deja persiste pour cette reservation (genere au cycle reservation par
+        // SmartLockAccessCodeService) → on le REUTILISE. Idempotence : pas de nouveau
+        // PIN a chaque envoi de message (sinon le voyageur recevrait un code different
+        // de celui programme sur la serrure).
+        if (reservation.getId() != null) {
+            List<SmartLockAccessCode> codes = accessCodeRepository
+                    .findByReservationIdAndStatus(reservation.getId(), SmartLockAccessCode.CodeStatus.ACTIVE)
+                    .stream()
+                    .filter(c -> c.getCode() != null && !c.getCode().isBlank())
+                    .toList();
+            if (!codes.isEmpty()) {
+                // Multi-portes : prefixe chaque code par le nom de sa serrure (sinon code seul).
+                String accessCode = codes.size() == 1
+                        ? codes.get(0).getCode()
+                        : codes.stream()
+                                .map(c -> smartLockRepository.findById(c.getDeviceId())
+                                        .map(SmartLockDevice::getName).orElse("Serrure") + " : " + c.getCode())
+                                .collect(Collectors.joining("\n"));
+                Map<String, String> vars = new LinkedHashMap<>();
+                vars.put("accessCode", accessCode);
+                vars.put("accessMethod", "SMART_LOCK");
+                return new AccessCodeResult(AccessCodeResult.AccessMethod.SMART_LOCK, vars);
+            }
+        }
+
         String externalDeviceId = device.getExternalDeviceId();
         if (externalDeviceId == null || externalDeviceId.isBlank()) {
             log.warn("Smart lock {} sans external device ID, fallback manuel", device.getId());

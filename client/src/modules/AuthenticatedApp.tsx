@@ -58,13 +58,10 @@ import ContactCreatePage from './contact/ContactCreatePage';
 
 // Documents
 import DocumentsPage from './documents/DocumentsPage';
-import ConnectedObjectsHub from './connected-objects/ConnectedObjectsHub';
+// ConnectedObjectsHub : plus de route standalone — rendu comme onglet de PropertiesPage.
+// /connected-objects redirige desormais vers /properties?tab=connected-objects.
 import PropertyDevicesView from './connected-objects/PropertyDevicesView';
-import {
-  NoiseManagementScreen,
-  LockManagementScreen,
-  KeyExchangeManagementScreen,
-} from './connected-objects/screens/IotManagementScreens';
+import DeviceDetail from './connected-objects/DeviceDetail';
 import CamerasScreen from './connected-objects/cameras/CamerasScreen';
 import ThermostatsScreen from './connected-objects/thermostats/ThermostatsScreen';
 import TemplateDetails from './documents/TemplateDetails';
@@ -141,33 +138,27 @@ const AuthenticatedApp: React.FC = () => {
         <Dashboard />
       } />
 
-        {/* Hub des objets connectés (serrures, capteurs, clés — Phase 0) */}
-        <Route path="/connected-objects" element={
-          <ErrorBoundary>
-            <ConnectedObjectsHub />
-          </ErrorBoundary>
-        } />
+        {/* Hub des objets connectés : integre comme onglet "connected-objects"
+            dans Propriétés (conceptuellement lie aux biens). On garde un redirect
+            pour les bookmarks et les "retour" des sous-ecrans (property/:id, noise,
+            locks, keys, cameras, thermostats). */}
+        <Route path="/connected-objects" element={<Navigate to="/properties?tab=connected-objects" replace />} />
         <Route path="/connected-objects/property/:id" element={
           <ErrorBoundary>
             <PropertyDevicesView />
           </ErrorBoundary>
         } />
-        {/* Gestion avancée par service (vues riches issues des anciens onglets dashboard) */}
-        <Route path="/connected-objects/noise" element={
+        {/* Détail unifié d'un objet connecté (remplace les écrans de gestion par type). */}
+        <Route path="/connected-objects/device/:kind/:id" element={
           <ErrorBoundary>
-            <NoiseManagementScreen />
+            <DeviceDetail />
           </ErrorBoundary>
         } />
-        <Route path="/connected-objects/locks" element={
-          <ErrorBoundary>
-            <LockManagementScreen />
-          </ErrorBoundary>
-        } />
-        <Route path="/connected-objects/keys" element={
-          <ErrorBoundary>
-            <KeyExchangeManagementScreen />
-          </ErrorBoundary>
-        } />
+        {/* Anciens écrans de gestion par type → remplacés par le détail unifié
+            (/connected-objects/device/:kind/:id). Redirect des bookmarks. */}
+        <Route path="/connected-objects/noise" element={<Navigate to="/properties?tab=connected-objects" replace />} />
+        <Route path="/connected-objects/locks" element={<Navigate to="/properties?tab=connected-objects" replace />} />
+        <Route path="/connected-objects/keys" element={<Navigate to="/properties?tab=connected-objects" replace />} />
         {/* Aperçus Phase 2 (UI-first — données simulées) */}
         <Route path="/connected-objects/cameras" element={
           <ErrorBoundary>

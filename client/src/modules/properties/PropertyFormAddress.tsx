@@ -31,6 +31,17 @@ const SECTION_TITLE_SX = {
   gap: 0.5,
 } as const;
 
+// Fuseaux pertinents pour les marchés Clenzy (Europe + Maghreb + DOM-TOM). La
+// valeur courante est prepended si absente (édition d'un logement au fuseau exotique).
+const TIMEZONES = [
+  'Europe/Paris', 'Europe/London', 'Europe/Madrid', 'Europe/Lisbon', 'Europe/Brussels',
+  'Europe/Amsterdam', 'Europe/Berlin', 'Europe/Rome', 'Europe/Zurich', 'Europe/Athens',
+  'Europe/Istanbul', 'Atlantic/Canary', 'Africa/Casablanca', 'Africa/Tunis', 'Africa/Algiers',
+  'Africa/Cairo', 'Asia/Dubai', 'America/New_York', 'America/Los_Angeles', 'America/Montreal',
+  'America/Guadeloupe', 'America/Martinique', 'America/Cayenne', 'Indian/Reunion', 'Indian/Mauritius',
+  'Pacific/Noumea', 'Pacific/Tahiti',
+];
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface PropertyFormAddressProps {
@@ -206,6 +217,34 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                   helperText={fieldState.error?.message}
                 />
               )}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Controller
+              name="timezone"
+              control={control}
+              render={({ field, fieldState }) => {
+                const opts = field.value && !TIMEZONES.includes(field.value)
+                  ? [field.value, ...TIMEZONES]
+                  : TIMEZONES;
+                return (
+                  <TextField
+                    {...field}
+                    value={field.value || 'Europe/Paris'}
+                    select
+                    fullWidth
+                    size="small"
+                    label={t('properties.timezone', 'Fuseau horaire')}
+                    helperText={t('properties.timezoneHelp', "Heure locale du logement (codes d'accès, planning)")}
+                    error={!!fieldState.error}
+                  >
+                    {opts.map((tz) => (
+                      <MenuItem key={tz} value={tz}>{tz}</MenuItem>
+                    ))}
+                  </TextField>
+                );
+              }}
             />
           </Grid>
 

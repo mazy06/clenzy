@@ -58,6 +58,8 @@ class ReservationControllerTest {
     @Mock private MessageTemplateRepository messageTemplateRepository;
     @Mock private InterventionMapper interventionMapper;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.repository.SmartLockDeviceRepository smartLockDeviceRepository;
+    @Mock private com.clenzy.service.smartlock.SmartLockAccessCodeService accessCodeService;
 
     private ReservationController controller;
 
@@ -92,7 +94,7 @@ class ReservationControllerTest {
         controller = new ReservationController(reservationService, reservationMapper,
                 reservationRepository, interventionRepository, propertyRepository, userRepository, guestRepository,
                 guestService, stripeService, emailService, guestMessagingService, messageTemplateRepository,
-                interventionMapper, tenantContext);
+                interventionMapper, tenantContext, smartLockDeviceRepository, accessCodeService);
     }
 
     @Nested

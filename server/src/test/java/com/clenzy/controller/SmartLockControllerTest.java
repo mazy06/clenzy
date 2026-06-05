@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.smartlock.CreateSmartLockDeviceDto;
 import com.clenzy.dto.smartlock.SmartLockDeviceDto;
 import com.clenzy.service.SmartLockService;
+import com.clenzy.service.smartlock.SmartLockAccessCodeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,13 +33,14 @@ import static org.mockito.Mockito.when;
 class SmartLockControllerTest {
 
     @Mock private SmartLockService smartLockService;
+    @Mock private SmartLockAccessCodeService accessCodeService;
 
     private SmartLockController controller;
     private Jwt jwt;
 
     @BeforeEach
     void setUp() {
-        controller = new SmartLockController(smartLockService);
+        controller = new SmartLockController(smartLockService, accessCodeService);
         jwt = Jwt.withTokenValue("token")
             .header("alg", "RS256")
             .claim("sub", "kc-user-1")
