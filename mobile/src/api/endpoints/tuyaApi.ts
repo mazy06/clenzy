@@ -15,6 +15,13 @@ export interface TuyaAppAccountDto {
   schema: string | null;
 }
 
+/** Credentials App SDK Tuya (AppKey + AppSecret) pour l'init du SDK natif, par plateforme. */
+export interface TuyaAppSdkCredentialsDto {
+  platform: string;
+  appKey: string;
+  appSecret: string;
+}
+
 /* ─── API ─── */
 
 export const tuyaApi = {
@@ -25,5 +32,13 @@ export const tuyaApi = {
    */
   getAppAccount() {
     return apiClient.post<TuyaAppAccountDto>('/tuya/app-account');
+  },
+
+  /**
+   * Credentials de l'App SDK Tuya (AppKey + AppSecret) pour l'init du SDK natif, par plateforme.
+   * GET /api/tuya/app-sdk-credentials?platform=ios|android.
+   */
+  getAppSdkCredentials(platform: 'ios' | 'android') {
+    return apiClient.get<TuyaAppSdkCredentialsDto>(`/tuya/app-sdk-credentials?platform=${platform}`);
   },
 };

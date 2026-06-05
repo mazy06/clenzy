@@ -1,0 +1,7 @@
+{
+  "name": "tuya-pairing",
+  "version": "1.0.0",
+  "description": "Appairage Tuya (modele C) — Expo native module encapsulant le device activator du SDK Tuya",
+  "main": "index.ts",
+  "license": "MIT"
+}

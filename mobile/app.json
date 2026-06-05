@@ -20,7 +20,9 @@
         "NSCameraUsageDescription": "Clenzy utilise la camera pour prendre des photos avant/apres les interventions.",
         "NSPhotoLibraryUsageDescription": "Clenzy accede a la galerie pour selectionner des photos d'interventions.",
         "NSLocationWhenInUseUsageDescription": "Clenzy utilise votre position pour verifier les interventions sur site.",
-        "NSFaceIDUsageDescription": "Clenzy utilise Face ID pour un acces securise a votre compte."
+        "NSFaceIDUsageDescription": "Clenzy utilise Face ID pour un acces securise a votre compte.",
+        "NSBluetoothAlwaysUsageDescription": "Clenzy utilise le Bluetooth pour appairer vos objets connectes.",
+        "NSLocalNetworkUsageDescription": "Clenzy utilise le reseau local pour appairer vos objets connectes (Wi-Fi)."
       }
     },
     "android": {
@@ -40,7 +42,15 @@
         "android.permission.VIBRATE",
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_WIFI_STATE",
+        "android.permission.CHANGE_WIFI_STATE",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.CHANGE_NETWORK_STATE",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT"
       ]
     },
     "plugins": [
@@ -63,11 +73,13 @@
             "newArchEnabled": true
           },
           "android": {
-            "newArchEnabled": true
+            "newArchEnabled": true,
+            "extraMavenRepos": ["https://maven-other.tuya.com/repository/maven-public/"]
           }
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "./plugins/withTuyaPairing"
     ],
     "updates": {
       "url": "https://u.expo.dev/8e27c4c6-5b30-48f5-9949-eaee2c82851b"

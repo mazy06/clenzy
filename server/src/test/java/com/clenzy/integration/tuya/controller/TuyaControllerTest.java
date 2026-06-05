@@ -2,6 +2,7 @@ package com.clenzy.integration.tuya.controller;
 
 import com.clenzy.dto.noise.TuyaConnectionStatusDto;
 import com.clenzy.integration.tuya.config.TuyaConfig;
+import com.clenzy.integration.tuya.dto.TuyaAppSdkCredentialsDto;
 import com.clenzy.integration.tuya.dto.TuyaConfigStatusDto;
 import com.clenzy.integration.tuya.dto.UpdateTuyaConfigDto;
 import com.clenzy.integration.tuya.model.TuyaConnection;
@@ -418,6 +419,56 @@ class TuyaControllerTest {
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
             verifyNoInteractions(platformConfigService);
+        }
+
+        @Test
+        @DisplayName("appSdkCredentials returns android keys by default")
+        void appSdkCredentials_returnsAndroidKeys() {
+            // Arrange
+            when(tuyaConfig.getAndroidAppKey()).thenReturn("android-key");
+            when(tuyaConfig.getAndroidAppSecret()).thenReturn("android-secret");
+
+            // Act
+            ResponseEntity<?> response = controller.appSdkCredentials("android");
+
+            // Assert
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            TuyaAppSdkCredentialsDto dto = (TuyaAppSdkCredentialsDto) response.getBody();
+            assertThat(dto).isNotNull();
+            assertThat(dto.platform()).isEqualTo("android");
+            assertThat(dto.appKey()).isEqualTo("android-key");
+            assertThat(dto.appSecret()).isEqualTo("android-secret");
+        }
+
+        @Test
+        @DisplayName("appSdkCredentials returns ios keys when platform=ios")
+        void appSdkCredentials_returnsIosKeys() {
+            // Arrange
+            when(tuyaConfig.getAppKey()).thenReturn("ios-key");
+            when(tuyaConfig.getAppSecret()).thenReturn("ios-secret");
+
+            // Act
+            ResponseEntity<?> response = controller.appSdkCredentials("ios");
+
+            // Assert
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            TuyaAppSdkCredentialsDto dto = (TuyaAppSdkCredentialsDto) response.getBody();
+            assertThat(dto.platform()).isEqualTo("ios");
+            assertThat(dto.appKey()).isEqualTo("ios-key");
+            assertThat(dto.appSecret()).isEqualTo("ios-secret");
+        }
+
+        @Test
+        @DisplayName("appSdkCredentials returns 400 when platform not configured")
+        void appSdkCredentials_returns400WhenMissing() {
+            // Arrange
+            when(tuyaConfig.getAndroidAppKey()).thenReturn(null);
+
+            // Act
+            ResponseEntity<?> response = controller.appSdkCredentials("android");
+
+            // Assert
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
     }
 }
