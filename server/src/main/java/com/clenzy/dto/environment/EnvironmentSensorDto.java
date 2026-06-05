@@ -27,6 +27,8 @@ public record EnvironmentSensorDto(
         Boolean contactOpen,
         Boolean motionDetected,
         Boolean smokeDetected,
+        Integer co2,
+        Integer noiseDb,
         LocalDateTime lastSeenAt,
         LocalDateTime lastEventAt,
         LocalDateTime createdAt

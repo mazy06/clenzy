@@ -25,6 +25,15 @@ export interface UpdateNetatmoConfigPayload {
   redirectUri: string;
 }
 
+/** Un module Netatmo découvert (station météo ou module rattaché), pour le picker. */
+export interface NetatmoModule {
+  id: string;
+  name: string;
+  type: string;
+  stationName: string | null;
+  reachable: boolean;
+}
+
 // ─── Netatmo OAuth API ────────────────────────────────────────────────────────
 
 export const netatmoApi = {
@@ -53,5 +62,20 @@ export const netatmoApi = {
   /** Enregistre les credentials de l'app Netatmo (secret chiffré en base). */
   saveConfig(payload: UpdateNetatmoConfigPayload) {
     return apiClient.put<NetatmoConfigStatus>('/netatmo/config', payload);
+  },
+
+  /** Modules Netatmo découverts (station météo) pour le wizard d'ajout. */
+  getDevices() {
+    return apiClient.get<NetatmoModule[]>('/netatmo/devices');
+  },
+
+  /** Thermostats / vannes Netatmo découverts pour le wizard d'ajout. */
+  getThermostats() {
+    return apiClient.get<NetatmoModule[]>('/netatmo/thermostats');
+  },
+
+  /** Modules sécurité Netatmo (détecteur fumée, door tags) pour le wizard d'ajout. */
+  getSecurity() {
+    return apiClient.get<NetatmoModule[]>('/netatmo/security');
   },
 };
