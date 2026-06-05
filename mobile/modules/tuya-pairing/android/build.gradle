@@ -58,8 +58,9 @@ dependencies {
   // SDK Tuya App (Home) 7.5.x.
   implementation 'com.thingclips.smart:thingsmart:7.5.1'
   // Activator core kit : fournit `com.thingclips.smart.activator.core.kit.*` (appairage EZ/AP).
-  // PAS inclus dans `thingsmart` -> dependance dediee (confirme par le sample officiel + le module Expo-Tuya).
-  implementation 'com.thingclips.smart:thingsmart-activator-core-kit:7.5.1'
+  // PAS inclus dans `thingsmart` -> dependance dediee. Versioning PROPRE (pas de 7.5.1) : les 7.5.x
+  // publiees sont 7.5.0 / 7.5.0.2 (latest) — cf. maven-metadata commercial-releases.
+  implementation 'com.thingclips.smart:thingsmart-activator-core-kit:7.5.0.2'
   implementation 'com.alibaba:fastjson:1.1.67.android'
   implementation 'com.squareup.okhttp3:okhttp-urlconnection:3.14.9'
   // Brique de securite locale (liee a l'AppKey) — fournie dans libs/.
