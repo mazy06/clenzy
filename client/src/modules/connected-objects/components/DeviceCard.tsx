@@ -9,6 +9,7 @@ import { DEVICE_KINDS } from '../deviceRegistry';
 import { useDeleteDevice } from '../useDeleteDevice';
 import { useLockLiveStatus } from '../useLockLiveStatus';
 import { useNoiseLiveStatus } from '../useNoiseLiveStatus';
+import { useSensorLiveStatus } from '../useSensorLiveStatus';
 import { isDeviceDeletable, type ConnectedDevice, type DeviceAction } from '../types';
 
 interface DeviceCardProps {
@@ -40,6 +41,11 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
   // rafraîchit le read-model → carte + KPIs cohérents. No-op hors du type concerné.
   useLockLiveStatus(device.id, device.kind === 'lock');
   useNoiseLiveStatus(device.id, device.kind === 'noise');
+  // Capteurs d'environnement (Tuya/Netatmo) : 1re lecture auto au montage (init).
+  useSensorLiveStatus(
+    device.id,
+    device.kind === 'climate' || device.kind === 'contact' || device.kind === 'motion' || device.kind === 'smoke',
+  );
 
   const deletable = isDeviceDeletable(device.kind);
   const { remove, removing } = useDeleteDevice();
