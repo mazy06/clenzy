@@ -112,13 +112,17 @@ export const OTA_CHANNELS: OtaChannel[] = [
     descriptionKey: 'channels.ota.abritel.description',
     segment: 'B2C',
   },
+  // Gate « Bientot » : le stub actuel (partnerId + URL iCal) ne correspond PAS
+  // a la vraie connectivite HomeToGo (API two-way : push tarifs/contenu +
+  // reception reservations avec pass-through CB). A reactiver une fois la vraie
+  // route livree (via Channex deja integre, ou adapter direct). Cf. HANDOFF_HOMETOGO.md.
   {
     id: 'hometogo',
     name: 'HomeToGo',
     brandColor: '#4D21B7',
     brandGradient: 'linear-gradient(135deg, #4D21B7 28.84%, #FF8080 102.45%)',
     logo: hometogoLogo,
-    available: true,
+    available: false,
     descriptionKey: 'channels.ota.hometogo.description',
     segment: 'B2C',
   },

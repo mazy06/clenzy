@@ -192,6 +192,8 @@ class SmartLockServiceTest {
                     )
             );
             when(tuyaApiService.getDeviceStatus("tuya-1")).thenReturn(tuyaStatus);
+            // Connectivite reelle : getLockStatus lit le flag "online" via getDeviceInfo.
+            when(tuyaApiService.getDeviceInfo("tuya-1")).thenReturn(Map.of("online", true));
 
             Map<String, Object> result = service.getLockStatus("kc-1", 1L);
 
