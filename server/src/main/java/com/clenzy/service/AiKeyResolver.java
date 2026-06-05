@@ -5,9 +5,11 @@ import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.OrgAiApiKey;
 import com.clenzy.model.PlatformAiFeatureModel;
+import com.clenzy.model.PlatformAiFeatureProvider;
 import com.clenzy.model.PlatformAiModel;
 import com.clenzy.repository.OrgAiApiKeyRepository;
 import com.clenzy.repository.PlatformAiFeatureModelRepository;
+import com.clenzy.repository.PlatformAiFeatureProviderRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,7 +19,10 @@ import java.util.Optional;
 /**
  * Service central de resolution des cles API IA.
  *
- * Logique de priorite :
+ * Provider effectif : si un provider connecte est assigne a la feature (Settings &gt; IA),
+ * il remplace le provider demande par defaut (hardcode dans le service appelant).
+ *
+ * Logique de priorite (sur le provider effectif) :
  * 1. Cle propre de l'organisation (BYOK) → KeySource.ORGANIZATION
  * 2. Modele plateforme assigne a la feature (DB) → KeySource.PLATFORM_DB
  * 3. Cle plateforme en env var            → KeySource.PLATFORM
@@ -31,13 +36,16 @@ public class AiKeyResolver {
     private final AiProperties aiProperties;
     private final OrgAiApiKeyRepository orgAiApiKeyRepository;
     private final PlatformAiFeatureModelRepository platformAiFeatureModelRepository;
+    private final PlatformAiFeatureProviderRepository platformAiFeatureProviderRepository;
 
     public AiKeyResolver(AiProperties aiProperties,
                          OrgAiApiKeyRepository orgAiApiKeyRepository,
-                         PlatformAiFeatureModelRepository platformAiFeatureModelRepository) {
+                         PlatformAiFeatureModelRepository platformAiFeatureModelRepository,
+                         PlatformAiFeatureProviderRepository platformAiFeatureProviderRepository) {
         this.aiProperties = aiProperties;
         this.orgAiApiKeyRepository = orgAiApiKeyRepository;
         this.platformAiFeatureModelRepository = platformAiFeatureModelRepository;
+        this.platformAiFeatureProviderRepository = platformAiFeatureProviderRepository;
     }
 
     /**
@@ -56,16 +64,21 @@ public class AiKeyResolver {
      * Resout la cle API avec le modele specifique a la feature.
      */
     public ResolvedKey resolve(Long organizationId, String providerName, AiFeature feature) {
-        // 1. Check org-level key (BYOK)
+        // Provider effectif : un provider connecte assigne a la feature (Settings > IA)
+        // prime sur le provider demande par defaut. Sans override, == providerName.
+        final String effectiveProvider = resolveEffectiveProvider(providerName, feature);
+
+        // 1. Check org-level key (BYOK) pour le provider effectif
         if (organizationId != null) {
             Optional<OrgAiApiKey> orgKey = orgAiApiKeyRepository
-                    .findByOrganizationIdAndProvider(organizationId, providerName);
+                    .findByOrganizationIdAndProvider(organizationId, effectiveProvider);
 
             if (orgKey.isPresent() && orgKey.get().isValid()
                     && orgKey.get().getApiKey() != null && !orgKey.get().getApiKey().isBlank()) {
                 OrgAiApiKey key = orgKey.get();
-                log.debug("Using org-level API key for org={} provider={}", organizationId, providerName);
-                return new ResolvedKey(key.getApiKey(), key.getModelOverride(), KeySource.ORGANIZATION);
+                log.debug("Using org-level API key for org={} provider={}", organizationId, effectiveProvider);
+                return new ResolvedKey(key.getApiKey(), key.getModelOverride(),
+                        KeySource.ORGANIZATION, effectiveProvider, null);
             }
         }
 
@@ -77,26 +90,39 @@ public class AiKeyResolver {
                 PlatformAiModel model = featureModel.get().getModel();
                 if (model.getApiKey() != null && !model.getApiKey().isBlank()) {
                     log.debug("No {} org key, using platform feature model {} ({}/{}) for org={}",
-                            providerName, model.getName(), model.getProvider(), model.getModelId(), organizationId);
+                            effectiveProvider, model.getName(), model.getProvider(), model.getModelId(), organizationId);
                     return new ResolvedKey(model.getApiKey(), model.getModelId(),
                             KeySource.PLATFORM_DB, model.getProvider(), model.getBaseUrl());
                 }
             }
         }
 
-        // 3. Fallback to platform env vars (backward-compat)
-        String platformKey = getPlatformEnvKey(providerName);
+        // 3. Fallback to platform env vars (backward-compat) pour le provider effectif
+        String platformKey = getPlatformEnvKey(effectiveProvider);
         if (platformKey != null && !platformKey.isBlank()) {
-            return new ResolvedKey(platformKey, null, KeySource.PLATFORM, providerName, null);
+            return new ResolvedKey(platformKey, null, KeySource.PLATFORM, effectiveProvider, null);
         }
 
         // 4. No key available
         throw new AiNotConfiguredException(
                 "AI_NOT_CONFIGURED",
-                providerName,
+                effectiveProvider,
                 "Aucune cle API IA n'est configuree. "
                         + "Configurez un provider dans les parametres ou contactez l'administrateur."
         );
+    }
+
+    /**
+     * Provider effectif = override connecte assigne a la feature (Settings &gt; IA),
+     * sinon le provider demande par l'appelant. Sans feature, pas d'override.
+     */
+    private String resolveEffectiveProvider(String requestedProvider, AiFeature feature) {
+        if (feature == null) {
+            return requestedProvider;
+        }
+        return platformAiFeatureProviderRepository.findByFeature(feature.name())
+                .map(PlatformAiFeatureProvider::getProvider)
+                .orElse(requestedProvider);
     }
 
     private String getPlatformEnvKey(String providerName) {

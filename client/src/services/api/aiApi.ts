@@ -196,6 +196,14 @@ export const aiApi = {
   assignModelToFeature: (feature: string, modelId: number): Promise<{ message: string }> =>
     apiClient.put(`/admin/ai/platform-config/features/${feature}/model/${modelId}`),
 
+  // Assignations feature → provider connecte (BYOK OpenAI/Anthropic).
+  // Retourne une map feature(name) → provider(name). Alternative a un modele plateforme.
+  getFeatureProviderAssignments: (): Promise<Record<string, string>> =>
+    apiClient.get('/admin/ai/platform-config/features/providers'),
+
+  assignProviderToFeature: (feature: string, provider: string): Promise<{ message: string }> =>
+    apiClient.put(`/admin/ai/platform-config/features/${feature}/provider/${provider}`),
+
   // ── Platform Token Budgets (SUPER_ADMIN) ──
   getFeatureBudgets: (): Promise<Record<string, number>> =>
     apiClient.get('/admin/ai/platform-config/budgets'),

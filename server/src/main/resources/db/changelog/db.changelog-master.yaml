@@ -1816,3 +1816,14 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Assignation feature IA -> provider connecte (BYOK OpenAI/Anthropic), alternative
+  # au modele plateforme. Mutuellement exclusif avec platform_ai_feature_model.
+  - changeSet:
+      id: "0187-add-platform-ai-feature-provider"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0187__add_platform_ai_feature_provider.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

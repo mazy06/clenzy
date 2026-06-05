@@ -11,9 +11,11 @@ import com.clenzy.dto.TestPlatformModelRequest;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.AiTokenBudget;
 import com.clenzy.model.PlatformAiFeatureModel;
+import com.clenzy.model.PlatformAiFeatureProvider;
 import com.clenzy.model.PlatformAiModel;
 import com.clenzy.repository.AiTokenBudgetRepository;
 import com.clenzy.repository.PlatformAiFeatureModelRepository;
+import com.clenzy.repository.PlatformAiFeatureProviderRepository;
 import com.clenzy.repository.PlatformAiModelRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +43,7 @@ class PlatformAiConfigServiceTest {
 
     @Mock private PlatformAiModelRepository modelRepository;
     @Mock private PlatformAiFeatureModelRepository featureModelRepository;
+    @Mock private PlatformAiFeatureProviderRepository featureProviderRepository;
     @Mock private AiTokenBudgetRepository budgetRepository;
     @Mock private AnthropicProvider anthropicProvider;
 
@@ -52,8 +55,8 @@ class PlatformAiConfigServiceTest {
         aiProperties = new AiProperties();
         aiProperties.getTokenBudget().setDefaultMonthlyTokens(100_000L);
         service = new PlatformAiConfigService(
-                modelRepository, featureModelRepository, budgetRepository,
-                aiProperties, anthropicProvider);
+                modelRepository, featureModelRepository, featureProviderRepository,
+                budgetRepository, aiProperties, anthropicProvider);
     }
 
     private PlatformAiModel buildModel(Long id, String name, String provider, String modelId, String apiKey) {
@@ -394,10 +397,67 @@ class PlatformAiConfigServiceTest {
     class UnassignFeature {
 
         @Test
-        void delegatesToRepository() {
+        void delegatesToBothRepositories() {
             service.unassignFeature("DESIGN");
 
             verify(featureModelRepository).deleteByFeature("DESIGN");
+            verify(featureProviderRepository).deleteByFeature("DESIGN");
+        }
+    }
+
+    // ─── assignProviderToFeature ───────────────────────────────────────────
+
+    @Nested
+    @DisplayName("assignProviderToFeature")
+    class AssignProviderToFeature {
+
+        @Test
+        void assignsProvider_andRemovesModelAssignment() {
+            when(featureProviderRepository.findByFeature("DESIGN")).thenReturn(Optional.empty());
+
+            service.assignProviderToFeature("DESIGN", "anthropic");
+
+            // Exclusivite mutuelle : l'assignation de modele est supprimee.
+            verify(featureModelRepository).deleteByFeature("DESIGN");
+            ArgumentCaptor<PlatformAiFeatureProvider> captor =
+                    ArgumentCaptor.forClass(PlatformAiFeatureProvider.class);
+            verify(featureProviderRepository).save(captor.capture());
+            assertThat(captor.getValue().getFeature()).isEqualTo("DESIGN");
+            assertThat(captor.getValue().getProvider()).isEqualTo("anthropic");
+        }
+
+        @Test
+        void nonConnectableProvider_throws() {
+            assertThatThrownBy(() -> service.assignProviderToFeature("DESIGN", "nvidia"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("non connectable");
+        }
+
+        @Test
+        void unknownFeature_throws() {
+            assertThatThrownBy(() -> service.assignProviderToFeature("NOT_A_FEATURE", "openai"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Feature IA inconnue");
+        }
+    }
+
+    // ─── getFeatureProviderAssignments ─────────────────────────────────────
+
+    @Nested
+    @DisplayName("getFeatureProviderAssignments")
+    class GetFeatureProviderAssignments {
+
+        @Test
+        void returnsFeatureToProviderMap() {
+            when(featureProviderRepository.findAll()).thenReturn(List.of(
+                    new PlatformAiFeatureProvider("DESIGN", "anthropic"),
+                    new PlatformAiFeatureProvider("PRICING", "openai")));
+
+            Map<String, String> result = service.getFeatureProviderAssignments();
+
+            assertThat(result)
+                    .containsEntry("DESIGN", "anthropic")
+                    .containsEntry("PRICING", "openai");
         }
     }
 

@@ -12,8 +12,10 @@ import com.clenzy.dto.PlatformAiModelDto;
 import com.clenzy.dto.SavePlatformModelRequest;
 import com.clenzy.dto.TestPlatformModelRequest;
 import com.clenzy.model.PlatformAiFeatureModel;
+import com.clenzy.model.PlatformAiFeatureProvider;
 import com.clenzy.model.PlatformAiModel;
 import com.clenzy.repository.PlatformAiFeatureModelRepository;
+import com.clenzy.repository.PlatformAiFeatureProviderRepository;
 import com.clenzy.repository.PlatformAiModelRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,19 +52,25 @@ public class PlatformAiConfigService {
             "anthropic", new ProviderDefaults("claude-sonnet-4-20250514", "https://api.anthropic.com/v1")
     );
 
+    /** Providers connectables en BYOK (cle org ou partagee) assignables a une feature. */
+    public static final java.util.Set<String> CONNECTABLE_PROVIDERS = java.util.Set.of("openai", "anthropic");
+
     private final PlatformAiModelRepository modelRepository;
     private final PlatformAiFeatureModelRepository featureModelRepository;
+    private final PlatformAiFeatureProviderRepository featureProviderRepository;
     private final AiTokenBudgetRepository budgetRepository;
     private final AiProperties aiProperties;
     private final AnthropicProvider anthropicProvider;
 
     public PlatformAiConfigService(PlatformAiModelRepository modelRepository,
                                     PlatformAiFeatureModelRepository featureModelRepository,
+                                    PlatformAiFeatureProviderRepository featureProviderRepository,
                                     AiTokenBudgetRepository budgetRepository,
                                     AiProperties aiProperties,
                                     AnthropicProvider anthropicProvider) {
         this.modelRepository = modelRepository;
         this.featureModelRepository = featureModelRepository;
+        this.featureProviderRepository = featureProviderRepository;
         this.budgetRepository = budgetRepository;
         this.aiProperties = aiProperties;
         this.anthropicProvider = anthropicProvider;
@@ -191,11 +199,16 @@ public class PlatformAiConfigService {
 
     /**
      * Assigne un modele a une feature (upsert).
+     * Mutuellement exclusif avec un provider connecte : supprime l'eventuelle
+     * assignation de provider pour cette feature.
      */
     @Transactional
     public void assignModelToFeature(Long modelId, String feature) {
         PlatformAiModel model = modelRepository.findById(modelId)
                 .orElseThrow(() -> new IllegalArgumentException("Model not found: " + modelId));
+
+        // Exclusivite mutuelle : une feature a soit un modele plateforme, soit un provider connecte.
+        featureProviderRepository.deleteByFeature(feature);
 
         PlatformAiFeatureModel featureModel = featureModelRepository.findByFeature(feature)
                 .orElseGet(() -> new PlatformAiFeatureModel(feature, model));
@@ -207,12 +220,66 @@ public class PlatformAiConfigService {
     }
 
     /**
-     * Desassigne une feature (supprime le mapping).
+     * Assigne un provider connecte (BYOK OpenAI/Anthropic) a une feature.
+     * Mutuellement exclusif avec un modele plateforme : supprime l'eventuelle
+     * assignation de modele pour cette feature.
+     */
+    @Transactional
+    public void assignProviderToFeature(String feature, String provider) {
+        validateFeature(feature);
+        if (!CONNECTABLE_PROVIDERS.contains(provider)) {
+            throw new IllegalArgumentException("Provider non connectable: " + provider
+                    + ". Valeurs acceptees: " + CONNECTABLE_PROVIDERS);
+        }
+
+        // Exclusivite mutuelle : une feature a soit un modele plateforme, soit un provider connecte.
+        featureModelRepository.deleteByFeature(feature);
+
+        PlatformAiFeatureProvider mapping = featureProviderRepository.findByFeature(feature)
+                .orElseGet(() -> new PlatformAiFeatureProvider(feature, provider));
+        mapping.setProvider(provider);
+        featureProviderRepository.save(mapping);
+
+        log.info("Feature {} assigned to connected provider {}", feature, provider);
+    }
+
+    /**
+     * Desassigne une feature (supprime le mapping modele ET provider).
      */
     @Transactional
     public void unassignFeature(String feature) {
         featureModelRepository.deleteByFeature(feature);
+        featureProviderRepository.deleteByFeature(feature);
         log.info("Feature {} unassigned", feature);
+    }
+
+    /**
+     * Retourne le provider connecte assigne pour une feature (ou vide si non assigne).
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> getActiveProviderForFeature(String feature) {
+        return featureProviderRepository.findByFeature(feature)
+                .map(PlatformAiFeatureProvider::getProvider);
+    }
+
+    /**
+     * Retourne toutes les associations feature → provider connecte.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, String> getFeatureProviderAssignments() {
+        Map<String, String> result = new LinkedHashMap<>();
+        for (PlatformAiFeatureProvider fp : featureProviderRepository.findAll()) {
+            result.put(fp.getFeature(), fp.getProvider());
+        }
+        return result;
+    }
+
+    private void validateFeature(String feature) {
+        try {
+            AiFeature.valueOf(feature);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new IllegalArgumentException("Feature IA inconnue: " + feature);
+        }
     }
 
     /**
