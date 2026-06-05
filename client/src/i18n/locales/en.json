@@ -2020,6 +2020,10 @@
         "editModel": "Edit model",
         "featureMapping": "Feature assignment",
         "noModel": "No model",
+        "connectedProviders": "Connected providers",
+        "platformModels": "Platform models",
+        "providerOwnKey": "own key",
+        "providerSharedKey": "shared",
         "name": "Name",
         "provider": "Provider"
       }

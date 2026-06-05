@@ -2044,6 +2044,10 @@
         "editModel": "Modifier le modele",
         "featureMapping": "Assignation par feature",
         "noModel": "Aucun modele",
+        "connectedProviders": "Providers connectés",
+        "platformModels": "Modèles plateforme",
+        "providerOwnKey": "clé perso",
+        "providerSharedKey": "partagée",
         "name": "Nom",
         "provider": "Provider"
       }

@@ -189,9 +189,12 @@ public class OrchestratorAgent {
                 systemPrompt,
                 messages,
                 tools,
-                null,
+                context.modelOverride(),       // modele resolu (Settings/BYOK) ou null = defaut provider
                 TEMPERATURE,
-                MAX_TOKENS
+                MAX_TOKENS,
+                null,                           // system mono-bloc (pas de suffixe volatil)
+                context.aiProvider(),           // provider effectif (routage multi-provider)
+                context.aiBaseUrl()
         );
 
         List<String> delegationsLog = new ArrayList<>();

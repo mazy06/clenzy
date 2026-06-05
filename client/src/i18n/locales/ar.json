@@ -1990,6 +1990,10 @@
         "editModel": "تعديل النموذج",
         "featureMapping": "تعيين حسب الميزة",
         "noModel": "بدون نموذج",
+        "connectedProviders": "المزودون المتصلون",
+        "platformModels": "نماذج المنصة",
+        "providerOwnKey": "مفتاح خاص",
+        "providerSharedKey": "مشترك",
         "name": "الاسم",
         "provider": "المزود"
       }

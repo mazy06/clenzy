@@ -66,8 +66,11 @@ public class AiProviderRouter {
             return routeViaPlatformDb(key, request, orgId);
         }
 
-        // ORGANIZATION or PLATFORM env var — utilise le provider demande
-        AiProvider provider = getProvider(preferredProvider);
+        // ORGANIZATION or PLATFORM env var — utilise le provider EFFECTIF resolu
+        // (peut differer du provider demande quand une feature a un override provider
+        //  connecte assigne en Settings > IA). Fallback sur preferredProvider par securite.
+        String effectiveProvider = key.providerName() != null ? key.providerName() : preferredProvider;
+        AiProvider provider = getProvider(effectiveProvider);
         AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
         AiResponse response = (key.source() == KeySource.ORGANIZATION)
                 ? provider.chat(resolved, key.apiKey())

@@ -225,6 +225,27 @@ export function useAssignModelToFeature() {
     mutationFn: ({ feature, modelId }: { feature: string; modelId: number }) =>
       aiApi.assignModelToFeature(feature, modelId),
     onSuccess: () => {
+      // invalide tout le sous-arbre platform-config (features modeles + providers).
+      queryClient.invalidateQueries({ queryKey: aiKeys.platformConfig() });
+    },
+  });
+}
+
+/** Assignations feature → provider connecte (alternative a un modele plateforme). */
+export function useFeatureProviderAssignments() {
+  return useQuery({
+    queryKey: [...aiKeys.platformConfig(), 'feature-providers'] as const,
+    queryFn: () => aiApi.getFeatureProviderAssignments(),
+    staleTime: 30_000,
+  });
+}
+
+export function useAssignProviderToFeature() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ feature, provider }: { feature: string; provider: string }) =>
+      aiApi.assignProviderToFeature(feature, provider),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aiKeys.platformConfig() });
     },
   });

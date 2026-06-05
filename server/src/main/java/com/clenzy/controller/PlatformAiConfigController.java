@@ -94,6 +94,23 @@ public class PlatformAiConfigController {
         return ResponseEntity.ok(Map.of("message", "Feature " + feature + " assigned to model " + modelId));
     }
 
+    /**
+     * Assigne un provider connecte (BYOK OpenAI/Anthropic) a une feature.
+     * Mutuellement exclusif avec un modele plateforme.
+     */
+    @PutMapping("/features/{feature}/provider/{provider}")
+    public ResponseEntity<Map<String, String>> assignProviderToFeature(
+            @PathVariable String feature, @PathVariable String provider) {
+        configService.assignProviderToFeature(feature, provider);
+        return ResponseEntity.ok(Map.of("message", "Feature " + feature + " assigned to provider " + provider));
+    }
+
+    /** Retourne les associations feature → provider connecte (feature name → provider name). */
+    @GetMapping("/features/providers")
+    public ResponseEntity<Map<String, String>> getFeatureProviderAssignments() {
+        return ResponseEntity.ok(configService.getFeatureProviderAssignments());
+    }
+
     @DeleteMapping("/features/{feature}")
     public ResponseEntity<Map<String, String>> unassignFeature(@PathVariable String feature) {
         configService.unassignFeature(feature);
