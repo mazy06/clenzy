@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Platform } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { tuyaApi, type TuyaAppAccountDto } from '@/api/endpoints/tuyaApi';
 import {
@@ -51,8 +52,14 @@ export function useTuyaPairing() {
 
       try {
         setStatus('preparing');
+        setProgress('Initialisation du SDK…');
+        // Init du SDK Tuya (idempotent) avec l'AppKey/AppSecret App SDK de la plateforme,
+        // servis par le backend (GET /tuya/app-sdk-credentials), selon iOS/Android.
+        const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+        const creds = await tuyaApi.getAppSdkCredentials(platform);
+        await TuyaPairing.init(creds.appKey, creds.appSecret);
+
         setProgress('Connexion au compte…');
-        // NB: l'init du SDK (appKey/appSecret) se fait au demarrage de l'app — cf. TODO module natif.
         await TuyaPairing.loginAppAccount(account.countryCode ?? '33', account.username, account.secret);
 
         setProgress("Récupération du token d'appairage…");

@@ -1,0 +1,51 @@
+apply plugin: 'com.android.library'
+apply plugin: 'org.jetbrains.kotlin.android'
+
+group = 'expo.modules.tuyapairing'
+version = '1.0.0'
+
+def safeExtGet(prop, fallback) {
+  rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+}
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useExpoPublishing()
+
+android {
+  namespace "expo.modules.tuyapairing"
+  compileSdkVersion safeExtGet("compileSdkVersion", 34)
+
+  defaultConfig {
+    minSdkVersion safeExtGet("minSdkVersion", 24)
+    targetSdkVersion safeExtGet("targetSdkVersion", 34)
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  kotlinOptions {
+    jvmTarget = "17"
+  }
+}
+
+repositories {
+  mavenCentral()
+  google()
+  // Repo Maven Tuya (App SDK). Aussi ajoute au projet par le config plugin (defense-in-depth).
+  maven { url "https://maven-other.tuya.com/repository/maven-public/" }
+  flatDir { dirs "libs" }
+}
+
+dependencies {
+  // SDK Tuya App (Home) 7.5.x — appairage (device activator EZ/AP/BLE).
+  implementation 'com.thingclips.smart:thingsmart:7.5.1'
+  implementation 'com.alibaba:fastjson:1.1.67.android'
+  implementation 'com.squareup.okhttp3:okhttp-urlconnection:3.14.9'
+  // Brique de securite locale (liee a l'AppKey) — fournie dans libs/.
+  implementation files("libs/security-algorithm-1.0.0-beta.aar")
+}
