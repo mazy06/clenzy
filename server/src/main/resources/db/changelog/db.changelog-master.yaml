@@ -1838,3 +1838,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Connexions OAuth Netatmo (API Connect : station meteo, thermostat, securite).
+  - changeSet:
+      id: "0189-create-netatmo-connections"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0189__create_netatmo_connections.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
