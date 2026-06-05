@@ -10,7 +10,10 @@ import { useConnectedObjects } from './useConnectedObjects';
 import NoiseDetail from './device-details/NoiseDetail';
 import LockDetail from './device-details/LockDetail';
 import KeyboxDetail from './device-details/KeyboxDetail';
+import SensorDetail from './device-details/SensorDetail';
 import type { DeviceKind } from './types';
+
+const SENSOR_KINDS: DeviceKind[] = ['climate', 'contact', 'motion', 'smoke'];
 
 const HUB_PATH = '/properties?tab=connected-objects';
 
@@ -94,6 +97,7 @@ export default function DeviceDetail() {
       {device.kind === 'noise' && <NoiseDetail device={device} />}
       {device.kind === 'lock' && <LockDetail device={device} />}
       {device.kind === 'keybox' && <KeyboxDetail device={device} />}
+      {SENSOR_KINDS.includes(device.kind) && <SensorDetail device={device} />}
       {LEGACY_ROUTE[device.kind] && (
         <EmptyState
           icon={meta.icon(28)}
