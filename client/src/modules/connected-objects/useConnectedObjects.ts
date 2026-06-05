@@ -4,10 +4,13 @@ import { smartLockApi, type SmartLockDeviceDto } from '../../services/api/smartL
 import { noiseDevicesApi, type NoiseDeviceDto } from '../../services/api/noiseApi';
 import { keyExchangeApi, type KeyExchangePointDto } from '../../services/api/keyExchangeApi';
 import { devicesApi, type DeviceSummaryDto, type ProviderStatusDto } from '../../services/api/devicesApi';
+import { environmentSensorsApi, type EnvironmentSensorDto, type SensorType } from '../../services/api/environmentSensorsApi';
 import type {
   ConnectedDevice,
   ConnectedObjectsKpis,
+  DeviceKind,
   DeviceProvider,
+  DeviceStatusLevel,
   PropertyDeviceGroup,
 } from './types';
 
@@ -85,6 +88,77 @@ function mapPoint(d: KeyExchangePointDto): ConnectedDevice {
     battery: null,
     online,
     alertCount: 0,
+    actions: ['view'],
+    raw: d,
+  };
+}
+
+// ─── Capteurs d'environnement (GET /api/environment-sensors) ─────────────────
+
+const SENSOR_KIND: Record<SensorType, DeviceKind> = {
+  TEMP_HUMIDITY: 'climate',
+  CONTACT: 'contact',
+  MOTION: 'motion',
+  SMOKE: 'smoke',
+};
+
+/** Projette un capteur d'environnement (DTO riche) sur le modèle unifié. La
+ *  métrique principale + la sévérité dépendent du type (ouvert/fermé, mouvement,
+ *  fumée, temp/humidité). Fumée détectée = critique, ouvert/mouvement = attention. */
+function mapSensor(d: EnvironmentSensorDto): ConnectedDevice {
+  const kind = SENSOR_KIND[d.sensorType];
+  const known = d.online != null;
+  const online = d.online === true;
+  const lowBattery = d.batteryLevel != null && d.batteryLevel <= LOW_BATTERY;
+
+  let metric: { label: string; value: string } | null = null;
+  let level: DeviceStatusLevel = !known ? 'unknown' : online ? 'ok' : 'offline';
+  let label = !known ? 'En attente' : online ? 'En ligne' : 'Hors ligne';
+  let alert = 0;
+
+  if (online) {
+    if (kind === 'climate') {
+      const parts = [
+        d.temperatureC != null ? `${d.temperatureC.toFixed(1)} °C` : null,
+        d.humidity != null ? `${d.humidity} %` : null,
+      ].filter(Boolean) as string[];
+      metric = parts.length ? { label: 'Mesure', value: parts.join(' · ') } : null;
+      if (parts.length) label = parts.join(' · ');
+    } else if (kind === 'contact') {
+      const open = d.contactOpen === true;
+      metric = { label: 'État', value: open ? 'Ouvert' : 'Fermé' };
+      level = open ? 'warning' : 'ok';
+      label = open ? 'Ouvert' : 'Fermé';
+    } else if (kind === 'motion') {
+      const moving = d.motionDetected === true;
+      metric = { label: 'Mouvement', value: moving ? 'Détecté' : 'Aucun' };
+      if (moving) { level = 'warning'; alert = 1; }
+      label = moving ? 'Mouvement détecté' : 'Aucun mouvement';
+    } else if (kind === 'smoke') {
+      const smoke = d.smokeDetected === true;
+      metric = { label: 'Fumée', value: smoke ? 'Détectée' : 'OK' };
+      if (smoke) { level = 'critical'; alert = 1; }
+      label = smoke ? 'Fumée détectée' : 'Aucune fumée';
+    }
+  }
+  // Batterie faible : dégrade en attention si rien de plus grave.
+  if (lowBattery && level === 'ok') level = 'warning';
+
+  return {
+    uid: `${kind}:${d.id}`,
+    kind,
+    id: d.id,
+    name: d.name,
+    propertyId: d.propertyId ?? null,
+    propertyName: d.propertyName || 'Sans logement',
+    roomName: d.roomName,
+    provider: (d.brand as DeviceProvider) || 'UNKNOWN',
+    statusLevel: level,
+    statusLabel: label,
+    primaryMetric: metric,
+    battery: d.batteryLevel,
+    online,
+    alertCount: alert,
     actions: ['view'],
     raw: d,
   };
@@ -195,14 +269,22 @@ async function fetchAllLegacy(): Promise<DevicesResult> {
   return buildResult([...locks.map(mapLock), ...noise.map(mapNoise), ...points.map(mapPoint)]);
 }
 
-/** Read-model unifié backend (1 appel). Repli automatique sur l'agrégation legacy. */
+/**
+ * Read-model unifié backend (serrures/bruit/keybox/caméra/thermostat via 1 appel)
+ * + capteurs d'environnement (appel dédié), fusionnés. Repli auto sur l'agrégation
+ * legacy pour la 1re partie ; les capteurs sont récupérés indépendamment.
+ */
 async function fetchAll(): Promise<DevicesResult> {
+  const sensorsPromise = environmentSensorsApi.getAll().catch(() => [] as EnvironmentSensorDto[]);
+  let base: ConnectedDevice[];
   try {
     const summaries = await devicesApi.getAll();
-    return buildResult(summaries.map(mapSummary));
+    base = summaries.map(mapSummary);
   } catch {
-    return fetchAllLegacy();
+    base = (await fetchAllLegacy()).devices;
   }
+  const sensors = (await sensorsPromise).map(mapSensor);
+  return buildResult([...base, ...sensors]);
 }
 
 /** Statut providers backend ; null si indisponible (→ repli présence côté hook). */

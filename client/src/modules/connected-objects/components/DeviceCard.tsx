@@ -131,11 +131,16 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
         <StatusPill level={device.statusLevel} label={device.statusLabel} pulse={device.online} />
         {device.kind === 'lock' ? (
           <BatteryIndicator level={device.battery} />
-        ) : device.primaryMetric ? (
-          <Typography variant="caption" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
-            {device.primaryMetric.label} : <strong>{device.primaryMetric.value}</strong>
-          </Typography>
-        ) : null}
+        ) : (
+          <>
+            {device.primaryMetric && (
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+                {device.primaryMetric.label} : <strong>{device.primaryMetric.value}</strong>
+              </Typography>
+            )}
+            {device.battery != null && <BatteryIndicator level={device.battery} />}
+          </>
+        )}
       </Box>
 
       {/* Code d'accès (serrures uniquement) */}
