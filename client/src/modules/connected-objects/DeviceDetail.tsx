@@ -70,21 +70,25 @@ export default function DeviceDetail() {
         backLabel="Objets connectés"
       />
 
-      {/* Résumé compact (pas de carte-dans-carte) */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1, mb: 2 }}>
-        <StatTile
-          icon={<MonitorHeart />}
-          label="Connexion"
-          value={device.online ? 'En ligne' : device.statusLevel === 'unknown' ? 'En attente' : 'Hors ligne'}
-          color={device.online ? '#4A9B8E' : '#9CA3AF'}
-        />
-        {device.battery != null && (
-          <StatTile icon={<BatteryAlert />} label="Batterie" value={`${device.battery}%`} color="#D4A574" />
-        )}
-        {device.primaryMetric && (
-          <StatTile icon={meta.icon()} label={device.primaryMetric.label} value={device.primaryMetric.value} color={meta.color} />
-        )}
-      </Box>
+      {/* Résumé compact (pas de carte-dans-carte). Les capteurs de bruit fournissent
+          leur propre bandeau de lecture live (Niveau actuel / Moyenne / Pic) dans
+          NoiseDetail — on évite ainsi une rangée générique « Connexion » orpheline. */}
+      {device.kind !== 'noise' && (
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1, mb: 2 }}>
+          <StatTile
+            icon={<MonitorHeart />}
+            label="Connexion"
+            value={device.online ? 'En ligne' : device.statusLevel === 'unknown' ? 'En attente' : 'Hors ligne'}
+            color={device.online ? '#4A9B8E' : '#9CA3AF'}
+          />
+          {device.battery != null && (
+            <StatTile icon={<BatteryAlert />} label="Batterie" value={`${device.battery}%`} color="#D4A574" />
+          )}
+          {device.primaryMetric && (
+            <StatTile icon={meta.icon()} label={device.primaryMetric.label} value={device.primaryMetric.value} color={meta.color} />
+          )}
+        </Box>
+      )}
 
       {/* Corps spécifique au type */}
       {device.kind === 'noise' && <NoiseDetail device={device} />}
