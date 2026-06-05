@@ -75,8 +75,10 @@
           "android": {
             "newArchEnabled": true,
             "extraMavenRepos": [
+              "https://maven-other.tuya.com/repository/maven-releases/",
               "https://maven-other.tuya.com/repository/maven-commercial-releases/",
-              "https://maven-other.tuya.com/repository/maven-public/"
+              "https://maven-other.tuya.com/repository/maven-public/",
+              "https://maven-other.tuya.com/repository/maven-snapshots/"
             ]
           }
         }
