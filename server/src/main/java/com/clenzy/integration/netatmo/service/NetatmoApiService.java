@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
  * Appels REST vers l'API Netatmo Connect (station meteo). Authentifie via le token OAuth
@@ -30,15 +32,36 @@ public class NetatmoApiService {
     private final NetatmoOAuthService oAuthService;
     private final RestTemplate restTemplate;
 
+    /** Cache mémoire court anti rate-limit Netatmo (~2000 req/h/user). */
+    private static final long CACHE_TTL_MS = 30_000;
+    private final Map<String, Cached> cache = new ConcurrentHashMap<>();
+    private record Cached(Map<String, Object> data, long expiresAtMs) {}
+
     public NetatmoApiService(NetatmoConfig config, NetatmoOAuthService oAuthService, RestTemplate restTemplate) {
         this.config = config;
         this.oAuthService = oAuthService;
         this.restTemplate = restTemplate;
     }
 
+    /**
+     * Cache mémoire (TTL court) : un burst de refresh de N capteurs d'un même compte/home
+     * partage UN seul appel Netatmo pendant la fenêtre TTL → reste loin de la limite
+     * 2000 req/h/user. Les réponses globales (getstationsdata/homestatus) contiennent déjà
+     * tous les modules, donc 0 perte d'info.
+     */
+    private Map<String, Object> cached(String key, Supplier<Map<String, Object>> fetch) {
+        long now = System.currentTimeMillis();
+        Cached c = cache.get(key);
+        if (c != null && c.expiresAtMs() > now) return c.data();
+        Map<String, Object> data = fetch.get();
+        cache.put(key, new Cached(data, now + CACHE_TTL_MS));
+        return data;
+    }
+
     /** Donnees brutes des stations meteo de l'utilisateur. GET /api/getstationsdata */
     public Map<String, Object> getStationsData(String userId) {
-        return doGet(userId, "/api/getstationsdata", new ParameterizedTypeReference<Map<String, Object>>() {});
+        return cached("stations:" + userId,
+                () -> doGet(userId, "/api/getstationsdata", new ParameterizedTypeReference<Map<String, Object>>() {}));
     }
 
     /** Modules decouverts (stations + modules rattaches), pour le picker du wizard. */
@@ -84,12 +107,14 @@ public class NetatmoApiService {
     // ─── Thermostat / Energy (homesdata + homestatus + setroomthermpoint) ───
 
     public Map<String, Object> getHomesData(String userId) {
-        return doGet(userId, "/api/homesdata", new ParameterizedTypeReference<Map<String, Object>>() {});
+        return cached("homesdata:" + userId,
+                () -> doGet(userId, "/api/homesdata", new ParameterizedTypeReference<Map<String, Object>>() {}));
     }
 
     public Map<String, Object> getHomeStatus(String userId, String homeId) {
-        return doGet(userId, "/api/homestatus?home_id=" + homeId,
-                new ParameterizedTypeReference<Map<String, Object>>() {});
+        return cached("homestatus:" + userId + ":" + homeId,
+                () -> doGet(userId, "/api/homestatus?home_id=" + homeId,
+                        new ParameterizedTypeReference<Map<String, Object>>() {}));
     }
 
     /** Thermostats / vannes découverts (id = {@code homeId|roomId}), pour le picker. */
@@ -149,6 +174,7 @@ public class NetatmoApiService {
         String path = "/api/setroomthermpoint?home_id=" + homeId + "&room_id=" + roomId
                 + "&mode=manual&temp=" + temp;
         doPost(userId, path, new ParameterizedTypeReference<Map<String, Object>>() {});
+        cache.remove("homestatus:" + userId + ":" + homeId); // la consigne a changé → invalider
     }
 
     // ─── Sécurité (détecteur fumée NSD + door tag NACamDoorTag) ───
