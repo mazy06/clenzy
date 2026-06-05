@@ -3,6 +3,7 @@ package com.clenzy.integration.tuya.controller;
 import com.clenzy.dto.noise.TuyaConnectionStatusDto;
 import com.clenzy.integration.tuya.config.TuyaConfig;
 import com.clenzy.integration.tuya.dto.TuyaAppAccountDto;
+import com.clenzy.integration.tuya.dto.TuyaAppSdkCredentialsDto;
 import com.clenzy.integration.tuya.dto.TuyaConfigStatusDto;
 import com.clenzy.integration.tuya.dto.UpdateTuyaConfigDto;
 import com.clenzy.integration.tuya.model.TuyaAppAccount;
@@ -126,6 +127,24 @@ public class TuyaController {
                     "error", "provisioning_failed",
                     "message", "Echec du provisioning du compte app Tuya"));
         }
+    }
+
+    @GetMapping("/app-sdk-credentials")
+    @Operation(summary = "Credentials App SDK Tuya pour l'init du SDK natif mobile",
+            description = "Retourne l'AppKey + AppSecret de l'App SDK pour la plateforme demandee (ios|android). "
+                    + "Le SDK Tuya exige ces valeurs cote client (deja embarquees dans tout build) : exposition "
+                    + "deliberee a l'app authentifiee, mais configurable en base.")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> appSdkCredentials(@RequestParam(defaultValue = "android") String platform) {
+        boolean ios = "ios".equalsIgnoreCase(platform);
+        String appKey = ios ? tuyaConfig.getAppKey() : tuyaConfig.getAndroidAppKey();
+        String appSecret = ios ? tuyaConfig.getAppSecret() : tuyaConfig.getAndroidAppSecret();
+        if (appKey == null || appKey.isBlank() || appSecret == null || appSecret.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "configuration_missing",
+                    "message", "App SDK non configure pour la plateforme " + (ios ? "ios" : "android")));
+        }
+        return ResponseEntity.ok(new TuyaAppSdkCredentialsDto(ios ? "ios" : "android", appKey, appSecret));
     }
 
     // ─── Connection Management ───────────────────────────────────

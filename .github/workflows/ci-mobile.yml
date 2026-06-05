@@ -3,7 +3,7 @@
 # ===========================================
 # Flux :
 #   - push main/develop  → CI (typecheck + lint + tests)
-#   - push production    → CI + EAS Build (iOS + Android) + EAS Submit
+#   - push production    → CI uniquement (phase dev). Build/submit EAS = MANUEL via workflow_dispatch.
 #   - PR main/develop/production → CI obligatoire (gate de validation)
 #   - workflow_dispatch  → Build/submit manuel
 #
@@ -95,7 +95,8 @@ jobs:
   build:
     name: EAS Build (${{ matrix.platform }})
     needs: ci
-    if: github.ref == 'refs/heads/production' || github.event_name == 'workflow_dispatch'
+    # Phase dev : builds EAS uniquement manuels (workflow_dispatch). Pas de build auto sur push production.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -145,9 +146,8 @@ jobs:
   submit:
     name: Submit to Stores
     needs: build
-    if: |
-      (github.ref == 'refs/heads/production' && github.event_name == 'push') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.submit == 'true')
+    # Phase dev : soumission stores uniquement manuelle (workflow_dispatch + submit=true). Jamais auto.
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.submit == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
