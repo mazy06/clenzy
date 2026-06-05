@@ -2,16 +2,11 @@
  * Onboarding step definitions per user role.
  * Each role has a sequential list of steps the user should complete.
  *
- * Settings tab indices (for navigationPath):
- *   tab=0 → General (all roles)
- *   tab=1 → Notifications (all roles)
- *   tab=2 → Messagerie (all roles)
- *   tab=3 → HOST: "Mes reversements" | ADMIN/MANAGER: "IA"
- *   tab=4 → Fiscal (ADMIN/MANAGER only)
- *   tab=5 → Organisation (ADMIN/MANAGER only)
- *   tab=6 → Paiement (ADMIN/MANAGER only)
- *   tab=7 → Integrations (ADMIN/MANAGER only)
- *   tab=8 → Reversements (ADMIN only)
+ * navigationPath utilise des CLES d'onglet stables (?tab=<key>), robustes au role —
+ * l'index visible des onglets shifte selon les roles, jamais la cle. Cf. components/tabKeyParam.ts.
+ *   Cles Settings   : general | notifications | messaging | my-payout | ai | fiscal |
+ *                     organization | payment | integrations | payouts | amenities-ota
+ *   Cles Properties : properties | pricing | vouchers
  */
 
 export interface OnboardingStepConfig {
@@ -33,52 +28,52 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'configure_org',
       labelKey: 'onboarding.steps.configureOrg.label',
       descriptionKey: 'onboarding.steps.configureOrg.description',
-      navigationPath: '/settings?tab=5',
+      navigationPath: '/settings?tab=organization',
     },
     {
       key: 'setup_fiscal',
       labelKey: 'onboarding.steps.setupFiscal.label',
       descriptionKey: 'onboarding.steps.setupFiscal.description',
-      navigationPath: '/settings?tab=4',
+      navigationPath: '/settings?tab=fiscal',
     },
     {
       key: 'invite_members',
       labelKey: 'onboarding.steps.inviteMembers.label',
       descriptionKey: 'onboarding.steps.inviteMembers.description',
-      navigationPath: '/settings?tab=5',
+      navigationPath: '/settings?tab=organization',
       skippable: true,
     },
     {
       key: 'setup_payment',
       labelKey: 'onboarding.steps.setupPayment.label',
       descriptionKey: 'onboarding.steps.setupPayment.description',
-      navigationPath: '/settings?tab=6',
+      navigationPath: '/settings?tab=payment',
     },
     {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=1',
+      navigationPath: '/settings?tab=notifications',
       skippable: true,
     },
     {
       key: 'setup_messaging',
       labelKey: 'onboarding.steps.setupMessaging.label',
       descriptionKey: 'onboarding.steps.setupMessaging.description',
-      navigationPath: '/settings?tab=2',
+      navigationPath: '/settings?tab=messaging',
       skippable: true,
     },
     {
       key: 'setup_general',
       labelKey: 'onboarding.steps.setupGeneral.label',
       descriptionKey: 'onboarding.steps.setupGeneral.description',
-      navigationPath: '/settings?tab=0',
+      navigationPath: '/settings?tab=general',
     },
     {
       key: 'setup_integrations',
       labelKey: 'onboarding.steps.setupIntegrations.label',
       descriptionKey: 'onboarding.steps.setupIntegrations.description',
-      navigationPath: '/settings?tab=7',
+      navigationPath: '/settings?tab=integrations',
       skippable: true,
     },
   ],
@@ -89,52 +84,52 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'configure_org',
       labelKey: 'onboarding.steps.configureOrg.label',
       descriptionKey: 'onboarding.steps.configureOrg.description',
-      navigationPath: '/settings?tab=5',
+      navigationPath: '/settings?tab=organization',
     },
     {
       key: 'setup_fiscal',
       labelKey: 'onboarding.steps.setupFiscal.label',
       descriptionKey: 'onboarding.steps.setupFiscal.description',
-      navigationPath: '/settings?tab=4',
+      navigationPath: '/settings?tab=fiscal',
     },
     {
       key: 'invite_members',
       labelKey: 'onboarding.steps.inviteMembers.label',
       descriptionKey: 'onboarding.steps.inviteMembers.description',
-      navigationPath: '/settings?tab=5',
+      navigationPath: '/settings?tab=organization',
       skippable: true,
     },
     {
       key: 'setup_payment',
       labelKey: 'onboarding.steps.setupPayment.label',
       descriptionKey: 'onboarding.steps.setupPayment.description',
-      navigationPath: '/settings?tab=6',
+      navigationPath: '/settings?tab=payment',
     },
     {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=1',
+      navigationPath: '/settings?tab=notifications',
       skippable: true,
     },
     {
       key: 'setup_messaging',
       labelKey: 'onboarding.steps.setupMessaging.label',
       descriptionKey: 'onboarding.steps.setupMessaging.description',
-      navigationPath: '/settings?tab=2',
+      navigationPath: '/settings?tab=messaging',
       skippable: true,
     },
     {
       key: 'setup_general',
       labelKey: 'onboarding.steps.setupGeneral.label',
       descriptionKey: 'onboarding.steps.setupGeneral.description',
-      navigationPath: '/settings?tab=0',
+      navigationPath: '/settings?tab=general',
     },
     {
       key: 'setup_integrations',
       labelKey: 'onboarding.steps.setupIntegrations.label',
       descriptionKey: 'onboarding.steps.setupIntegrations.description',
-      navigationPath: '/settings?tab=7',
+      navigationPath: '/settings?tab=integrations',
       skippable: true,
     },
   ],
@@ -145,7 +140,7 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'complete_profile',
       labelKey: 'onboarding.steps.completeProfile.label',
       descriptionKey: 'onboarding.steps.completeProfile.description',
-      navigationPath: '/settings?tab=0',
+      navigationPath: '/settings?tab=general',
     },
     {
       key: 'create_property',
@@ -157,13 +152,13 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'configure_details',
       labelKey: 'onboarding.steps.configureDetails.label',
       descriptionKey: 'onboarding.steps.configureDetails.description',
-      navigationPath: '/properties?tab=0',
+      navigationPath: '/properties?tab=properties',
     },
     {
       key: 'define_pricing',
       labelKey: 'onboarding.steps.definePricing.label',
       descriptionKey: 'onboarding.steps.definePricing.description',
-      navigationPath: '/properties?tab=1',
+      navigationPath: '/properties?tab=pricing',
     },
     {
       key: 'connect_channels',
@@ -176,14 +171,14 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=1',
+      navigationPath: '/settings?tab=notifications',
       skippable: true,
     },
     {
       key: 'setup_payouts',
       labelKey: 'onboarding.steps.setupPayouts.label',
       descriptionKey: 'onboarding.steps.setupPayouts.description',
-      navigationPath: '/settings?tab=3',
+      navigationPath: '/settings?tab=my-payout',
       skippable: true,
     },
   ],
@@ -194,13 +189,13 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'complete_profile',
       labelKey: 'onboarding.steps.completeProfile.label',
       descriptionKey: 'onboarding.steps.completeProfile.description',
-      navigationPath: '/settings?tab=0',
+      navigationPath: '/settings?tab=general',
     },
     {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=1',
+      navigationPath: '/settings?tab=notifications',
       skippable: true,
     },
     {
@@ -217,13 +212,13 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'complete_profile',
       labelKey: 'onboarding.steps.completeProfile.label',
       descriptionKey: 'onboarding.steps.completeProfile.description',
-      navigationPath: '/settings?tab=0',
+      navigationPath: '/settings?tab=general',
     },
     {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=1',
+      navigationPath: '/settings?tab=notifications',
       skippable: true,
     },
     {
@@ -240,13 +235,13 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'complete_profile',
       labelKey: 'onboarding.steps.completeProfile.label',
       descriptionKey: 'onboarding.steps.completeProfile.description',
-      navigationPath: '/settings?tab=0',
+      navigationPath: '/settings?tab=general',
     },
     {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=1',
+      navigationPath: '/settings?tab=notifications',
       skippable: true,
     },
     {
@@ -270,13 +265,13 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'complete_profile',
       labelKey: 'onboarding.steps.completeProfile.label',
       descriptionKey: 'onboarding.steps.completeProfile.description',
-      navigationPath: '/settings?tab=0',
+      navigationPath: '/settings?tab=general',
     },
     {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=1',
+      navigationPath: '/settings?tab=notifications',
       skippable: true,
     },
     {
@@ -293,13 +288,13 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'complete_profile',
       labelKey: 'onboarding.steps.completeProfile.label',
       descriptionKey: 'onboarding.steps.completeProfile.description',
-      navigationPath: '/settings?tab=0',
+      navigationPath: '/settings?tab=general',
     },
     {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=1',
+      navigationPath: '/settings?tab=notifications',
       skippable: true,
     },
     {

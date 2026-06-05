@@ -98,8 +98,8 @@ import TokenMonitoringPage from './admin/TokenMonitoringPage';
 import MonitoringPage from './admin/MonitoringPage';
 import SyncAdminPage from './admin/SyncAdminPage';
 import PromoCodesPage from './admin/PromoCodesPage';
-// VouchersPage est desormais monte comme tab #3 dans PropertiesPage
-// (cf. /properties?tab=2). L'ancienne route /vouchers est conservee
+// VouchersPage est desormais monte comme tab dans PropertiesPage
+// (cf. /properties?tab=vouchers). L'ancienne route /vouchers est conservee
 // en redirection pour preserver les bookmarks.
 import KpiReadinessPage from './admin/KpiReadinessPage';
 import DatabaseAdminPage from './admin/DatabaseAdminPage';
@@ -215,7 +215,7 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        <Route path="/service-requests" element={<Navigate to="/interventions?tab=0" replace />} />
+        <Route path="/service-requests" element={<Navigate to="/interventions?tab=service-requests" replace />} />
         <Route path="/service-requests/new" element={
           <ProtectedRoute requiredPermission="service-requests:create">
             <ErrorBoundary>
@@ -297,9 +297,9 @@ const AuthenticatedApp: React.FC = () => {
         {/* Annuaire (Directory) — merged Teams + Portfolios + Guests */}
         <Route path="/directory" element={<DirectoryPage />} />
         {/* Backward-compat redirects for old URLs */}
-        <Route path="/guests" element={<Navigate to="/directory?tab=2" replace />} />
+        <Route path="/guests" element={<Navigate to="/directory?tab=guests" replace />} />
 
-        <Route path="/dynamic-pricing" element={<Navigate to="/properties?tab=1" replace />} />
+        <Route path="/dynamic-pricing" element={<Navigate to="/properties?tab=pricing" replace />} />
 
         <Route path="/billing" element={
           <ProtectedRoute requiredPermission="payments:view">
@@ -315,7 +315,7 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/teams" element={<Navigate to="/directory?tab=0" replace />} />
+        <Route path="/teams" element={<Navigate to="/directory?tab=teams" replace />} />
         <Route path="/teams/new" element={
           <ProtectedRoute requiredPermission="teams:create">
             <TeamForm />
@@ -402,7 +402,7 @@ const AuthenticatedApp: React.FC = () => {
           <NotificationsPage />
         } />
         
-        <Route path="/portfolios" element={<Navigate to="/directory?tab=1" replace />} />
+        <Route path="/portfolios" element={<Navigate to="/directory?tab=portfolios" replace />} />
         <Route path="/portfolios/client-assignment" element={
           <ProtectedRoute requiredPermission="portfolios:manage">
             <ClientPropertyAssignmentForm />
@@ -461,7 +461,7 @@ const AuthenticatedApp: React.FC = () => {
         {/* Vouchers : la page a ete integree comme tab #3 dans Propriétés
             (depuis qu'elle est conceptuellement liee aux biens). On garde
             un redirect pour les bookmarks existants. */}
-        <Route path="/vouchers" element={<Navigate to="/properties?tab=2" replace />} />
+        <Route path="/vouchers" element={<Navigate to="/properties?tab=vouchers" replace />} />
 
         <Route path="/admin/exchange-rates" element={
           <ProtectedRoute requiredPermission="users:manage">
@@ -506,8 +506,8 @@ const AuthenticatedApp: React.FC = () => {
         } />
 
         {/* Messaging routes — redirect to Documents unified page */}
-        <Route path="/messaging/templates" element={<Navigate to="/documents?tab=1" replace />} />
-        <Route path="/messaging/history" element={<Navigate to="/documents?tab=3" replace />} />
+        <Route path="/messaging/templates" element={<Navigate to="/documents?tab=message-templates" replace />} />
+        <Route path="/messaging/history" element={<Navigate to="/documents?tab=history" replace />} />
 
         <Route path="/promotions" element={
           <ProtectedRoute requiredPermission="pricing:view">
@@ -518,11 +518,11 @@ const AuthenticatedApp: React.FC = () => {
         } />
 
         {/* Comptabilite fusionnee dans Facturation */}
-        <Route path="/accounting" element={<Navigate to="/billing?tab=3" replace />} />
+        <Route path="/accounting" element={<Navigate to="/billing?tab=payouts" replace />} />
 
         {/* Backward-compat redirects — wallets merged into billing */}
-        <Route path="/wallets" element={<Navigate to="/billing?tab=2" replace />} />
-        <Route path="/invoices" element={<Navigate to="/billing?tab=1" replace />} />
+        <Route path="/wallets" element={<Navigate to="/billing?tab=wallets" replace />} />
+        <Route path="/invoices" element={<Navigate to="/billing?tab=invoices" replace />} />
 
         <Route path="/owner-portal" element={
           <ProtectedRoute requiredPermission="payments:view">

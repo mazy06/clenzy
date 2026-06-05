@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -18,7 +18,7 @@ import {
   Search,
   Forum,
 } from '../../icons';
-import { useSearchParams } from 'react-router-dom';
+import { useTabKeyParam } from '../../components/tabKeyParam';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import {
@@ -57,9 +57,18 @@ const TAB_COMPLIANCE = 6;
 
 const DocumentsPage: React.FC = () => {
   const { t } = useTranslation();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = parseInt(searchParams.get('tab') || '0', 10);
-  const [activeTab, setActiveTab] = useState(isNaN(initialTab) ? 0 : Math.min(initialTab, 6));
+  // Source de verite des tabs : `key` stable pour l'URL (?tab=<key>) + label pour le header.
+  // Defini ICI car activeTab/setActiveTab sont consommes tot (callbacks, inlineActions).
+  const tabs = [
+    { value: TAB_CATALOG,            key: 'catalog',            label: t('documents.tabs.catalog'),            icon: <ViewList /> },
+    { value: TAB_MSG_TEMPLATES,      key: 'message-templates',  label: t('documents.tabs.messageTemplates'),   icon: <ChatBubbleOutline /> },
+    { value: TAB_WHATSAPP_TEMPLATES, key: 'whatsapp-templates', label: t('documents.tabs.whatsappTemplates'),  icon: <Forum /> },
+    { value: TAB_DOC_TEMPLATES,      key: 'document-templates', label: t('documents.tabs.documentTemplates'),  icon: <Description /> },
+    { value: TAB_HISTORY,            key: 'history',            label: t('documents.tabs.history'),            icon: <History /> },
+    { value: TAB_VARIABLES,          key: 'variables',          label: t('documents.tabs.variablesAndTags'),   icon: <LocalOffer /> },
+    { value: TAB_COMPLIANCE,         key: 'compliance',         label: t('documents.tabs.compliance'),         icon: <GppGood /> },
+  ];
+  const [activeTab, setActiveTab] = useTabKeyParam(tabs);
 
   const [tagsSearch, setTagsSearch] = useState('');
   const [complianceSearch, setComplianceSearch] = useState('');
@@ -77,39 +86,13 @@ const DocumentsPage: React.FC = () => {
   // Templates for the catalog tab
   const { data: catalogTemplates = [] } = useTemplates();
 
-  // Sync tab to URL param
-  const handleTabChange = useCallback((v: number) => {
-    setActiveTab(v);
-    setSearchParams(v === 0 ? {} : { tab: String(v) }, { replace: true });
-  }, [setSearchParams]);
+  // useTabKeyParam ecrit la cle de l'onglet dans l'URL (?tab=<key>) et derive activeTab de l'URL
+  // (source de verite) — plus besoin de useEffect de sync.
+  const handleTabChange = setActiveTab;
 
-  // Handle initial tab from URL
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam) {
-      const parsed = parseInt(tabParam, 10);
-      if (!isNaN(parsed) && parsed >= 0 && parsed <= 6 && parsed !== activeTab) {
-        setActiveTab(parsed);
-      }
-    }
-  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  const switchToMessagingTab = useCallback(() => setActiveTab(TAB_MSG_TEMPLATES), [setActiveTab]);
 
-  const switchToMessagingTab = useCallback(() => {
-    setActiveTab(TAB_MSG_TEMPLATES);
-    setSearchParams({ tab: String(TAB_MSG_TEMPLATES) }, { replace: true });
-  }, [setSearchParams]);
-
-  // Source de verite des tabs — utilisee pour PageTabs ET pour la resolution
-  // {title, subtitle} via resolveTabHeader (indexe par label).
-  const tabs = [
-    { value: TAB_CATALOG,            label: t('documents.tabs.catalog'),            icon: <ViewList /> },
-    { value: TAB_MSG_TEMPLATES,      label: t('documents.tabs.messageTemplates'),   icon: <ChatBubbleOutline /> },
-    { value: TAB_WHATSAPP_TEMPLATES, label: t('documents.tabs.whatsappTemplates'), icon: <Forum /> },
-    { value: TAB_DOC_TEMPLATES,      label: t('documents.tabs.documentTemplates'),  icon: <Description /> },
-    { value: TAB_HISTORY,            label: t('documents.tabs.history'),            icon: <History /> },
-    { value: TAB_VARIABLES,          label: t('documents.tabs.variablesAndTags'),   icon: <LocalOffer /> },
-    { value: TAB_COMPLIANCE,         label: t('documents.tabs.compliance'),         icon: <GppGood /> },
-  ];
+  // tabs (source unique) defini plus haut (avant les callbacks/inlineActions qui le consomment).
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const documentsTabMeta: Record<string, TabHeaderMeta> = {
     [t('documents.tabs.catalog')]: {
@@ -267,7 +250,6 @@ const DocumentsPage: React.FC = () => {
             templates={catalogTemplates}
             onOpenUpload={() => {
               setActiveTab(TAB_DOC_TEMPLATES);
-              setSearchParams({ tab: String(TAB_DOC_TEMPLATES) }, { replace: true });
               setTimeout(() => docTemplatesRef.current?.openUpload(), 100);
             }}
             onSwitchToMessagingTab={switchToMessagingTab}
@@ -275,7 +257,6 @@ const DocumentsPage: React.FC = () => {
               // Les system templates sont desormais dans la tab "Templates messages".
               // On switch dessus — l'user voit la liste fusionnee user+system.
               setActiveTab(TAB_MSG_TEMPLATES);
-              setSearchParams({ tab: String(TAB_MSG_TEMPLATES) }, { replace: true });
             }}
           />
         )}

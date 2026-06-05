@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Box, Tabs, Tab, CircularProgress } from '@mui/material';
 import { Inventory2, LocalLaundryService, Receipt } from '../../icons';
+import { useTabKeyParam } from '../../components/tabKeyParam';
 import { usePropertyInventory } from '../../hooks/usePropertyInventory';
 import InventoryItemsSection from './inventory/InventoryItemsSection';
 import LaundryItemsSection from './inventory/LaundryItemsSection';
@@ -11,8 +12,12 @@ interface Props {
   canEdit: boolean;
 }
 
+// Sous-onglet imbrique dans PropertyDetails > Inventaire : persiste dans l'URL via ?subtab=<key>
+// (param distinct du ?tab= top-level). Cles : items / laundry / quotes.
+const INVENTORY_SUBTABS = [{ key: 'items' }, { key: 'laundry' }, { key: 'quotes' }];
+
 export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
-  const [subTab, setSubTab] = useState(0);
+  const [subTab, setSubTab] = useTabKeyParam(INVENTORY_SUBTABS, { param: 'subtab' });
 
   const {
     inventoryItems, laundryItems, catalog, quotes,

@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Box } from '@mui/material';
 import {
   Home,
   TrendingUp,
   LocalOffer,
 } from '../../icons';
-import { useSearchParams } from 'react-router-dom';
+import { useTabKeyParam } from '../../components/tabKeyParam';
 import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
@@ -35,12 +35,18 @@ const TAB_VOUCHERS = 2;
 
 const PropertiesPage: React.FC = () => {
   const { t } = useTranslation();
-  const [searchParams, setSearchParams] = useSearchParams();
 
-  const initialTab = parseInt(searchParams.get('tab') || '0', 10);
-  const [activeTab, setActiveTab] = useState(
-    isNaN(initialTab) ? 0 : Math.min(initialTab, TAB_VOUCHERS)
-  );
+  // Source de verite des tabs : `key` stable pour l'URL (?tab=<key>) + label pour le header.
+  // Definie AVANT useTabKeyParam (qui en derive l'onglet actif) et AVANT tout early return.
+  const tabs = [
+    { value: TAB_PROPERTIES, key: 'properties', label: t('propertiesPage.tabs.properties'), icon: <Home /> },
+    { value: TAB_PRICING,    key: 'pricing',    label: t('propertiesPage.tabs.pricing'),    icon: <TrendingUp /> },
+    { value: TAB_VOUCHERS,   key: 'vouchers',   label: t('propertiesPage.tabs.vouchers', 'Codes promo'), icon: <LocalOffer /> },
+  ];
+  const visibleTabs = tabs.filter((tab) => !(tab as { hidden?: boolean }).hidden);
+  // useTabKeyParam derive l'onglet actif de l'URL (?tab=<key>) — source de verite, pas de useState/useEffect.
+  const [activeTab, setActiveTab] = useTabKeyParam(tabs);
+  const handleTabChange = setActiveTab;
 
   // Portal containers: child components render their actions/filters into these DOM elements
   const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
@@ -50,32 +56,6 @@ const PropertiesPage: React.FC = () => {
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
   const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = usePageHeaderActionsSlot();
-
-  // Sync tab to URL param
-  const handleTabChange = useCallback((v: number) => {
-    setActiveTab(v);
-    setSearchParams(v === 0 ? {} : { tab: String(v) }, { replace: true });
-  }, [setSearchParams]);
-
-  // Handle URL param changes (browser back/forward)
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam) {
-      const parsed = parseInt(tabParam, 10);
-      if (!isNaN(parsed) && parsed >= 0 && parsed <= TAB_VOUCHERS && parsed !== activeTab) {
-        setActiveTab(parsed);
-      }
-    }
-  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Source de verite des tabs — utilisee pour PageTabs ET pour la resolution
-  // {title, subtitle} via resolveTabHeader (indexe par label).
-  const tabs = [
-    { value: TAB_PROPERTIES, label: t('propertiesPage.tabs.properties'), icon: <Home /> },
-    { value: TAB_PRICING,    label: t('propertiesPage.tabs.pricing'),    icon: <TrendingUp /> },
-    { value: TAB_VOUCHERS,   label: t('propertiesPage.tabs.vouchers', 'Codes promo'), icon: <LocalOffer /> },
-  ];
-  const visibleTabs = tabs.filter((tab) => !(tab as { hidden?: boolean }).hidden);
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const propertiesTabMeta: Record<string, TabHeaderMeta> = {
     [t('propertiesPage.tabs.properties')]: {
