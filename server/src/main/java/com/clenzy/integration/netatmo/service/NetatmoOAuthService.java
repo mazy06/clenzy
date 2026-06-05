@@ -70,8 +70,12 @@ public class NetatmoOAuthService {
             throw new IllegalStateException("Configuration Netatmo incomplete. Verifiez NETATMO_CLIENT_ID, NETATMO_CLIENT_SECRET, NETATMO_REDIRECT_URI.");
         }
 
+        // Le callback OAuth est public (pas de session/JWT au retour Netatmo) → on stocke
+        // userId + orgId dans le state pour resoudre l'org sans le TenantContext au callback.
         String state = UUID.randomUUID().toString();
-        redisTemplate.opsForValue().set(OAUTH_STATE_PREFIX + state, userId, OAUTH_STATE_TTL);
+        Long orgId = tenantContext.getOrganizationId();
+        String stateValue = userId + "|" + (orgId != null ? orgId : "");
+        redisTemplate.opsForValue().set(OAUTH_STATE_PREFIX + state, stateValue, OAUTH_STATE_TTL);
 
         return config.getAuthorizationUrl()
                 + "?client_id=" + enc(configService.getClientId())
@@ -81,24 +85,29 @@ public class NetatmoOAuthService {
                 + "&response_type=code";
     }
 
+    /** Donnees portees par le state OAuth (resolues au /connect authentifie). */
+    public record OAuthState(String userId, Long organizationId) {}
+
     /**
-     * Valide le state OAuth (usage unique) et retourne le userId associe.
+     * Valide le state OAuth (usage unique) et retourne le userId + l'org associes.
      */
-    public String validateAndConsumeState(String state) {
+    public OAuthState consumeState(String state) {
         String key = OAUTH_STATE_PREFIX + state;
-        String userId = redisTemplate.opsForValue().get(key);
-        if (userId == null) {
+        String value = redisTemplate.opsForValue().get(key);
+        if (value == null) {
             throw new SecurityException("Invalid or expired OAuth state parameter");
         }
         redisTemplate.delete(key);
-        return userId;
+        String[] parts = value.split("\\|", 2);
+        Long orgId = (parts.length > 1 && !parts[1].isBlank()) ? Long.valueOf(parts[1]) : null;
+        return new OAuthState(parts[0], orgId);
     }
 
     /**
      * Echange le code d'autorisation contre un access token.
      */
     @SuppressWarnings("unchecked")
-    public NetatmoConnection exchangeCodeForToken(String code, String userId) {
+    public NetatmoConnection exchangeCodeForToken(String code, String userId, Long organizationId) {
         log.info("Echange du code OAuth Netatmo pour l'utilisateur: {}", userId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -136,8 +145,8 @@ public class NetatmoOAuthService {
                 connection.setScopes(config.getScopes());
                 connection.setStatus(NetatmoConnectionStatus.ACTIVE);
                 connection.setErrorMessage(null);
-                if (connection.getOrganizationId() == null) {
-                    connection.setOrganizationId(tenantContext.getRequiredOrganizationId());
+                if (connection.getOrganizationId() == null && organizationId != null) {
+                    connection.setOrganizationId(organizationId);
                 }
 
                 return connectionRepository.save(connection);

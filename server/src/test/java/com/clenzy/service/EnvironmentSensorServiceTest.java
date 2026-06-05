@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.dto.environment.CreateEnvironmentSensorDto;
 import com.clenzy.dto.environment.EnvironmentSensorDto;
+import com.clenzy.integration.netatmo.service.NetatmoApiService;
 import com.clenzy.integration.tuya.service.TuyaApiService;
 import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.EnvironmentSensor;
@@ -43,13 +44,14 @@ class EnvironmentSensorServiceTest {
     @Mock TenantContext tenantContext;
     @Mock TuyaDeviceClaimService claimService;
     @Mock NotificationService notificationService;
+    @Mock NetatmoApiService netatmoApiService;
 
     EnvironmentSensorService service;
 
     @BeforeEach
     void setUp() {
         service = new EnvironmentSensorService(sensorRepository, propertyRepository,
-                tuyaApiService, tenantContext, claimService, notificationService);
+                tuyaApiService, tenantContext, claimService, notificationService, netatmoApiService);
     }
 
     private EnvironmentSensor buildSensor(SensorType type, String externalId) {

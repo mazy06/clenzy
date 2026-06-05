@@ -13,6 +13,7 @@ import { camerasApi } from '../../../services/api/camerasApi';
 import { thermostatsApi } from '../../../services/api/thermostatsApi';
 import { environmentSensorsApi, type SensorType } from '../../../services/api/environmentSensorsApi';
 import TuyaDevicePicker from './TuyaDevicePicker';
+import NetatmoDevicePicker from './NetatmoDevicePicker';
 import { DEVICE_KINDS } from '../deviceRegistry';
 import type { DeviceKind } from '../types';
 
@@ -49,12 +50,12 @@ const PROVIDERS: Record<DeviceKind, { value: string; label: string }[]> = {
     { value: 'REOLINK', label: 'Reolink' },
     { value: 'TAPO', label: 'Tapo' }, { value: 'HIKVISION', label: 'Hikvision' }, { value: 'DAHUA', label: 'Dahua' },
   ],
-  thermostat: [{ value: 'TUYA', label: 'Tuya' }],
-  // Capteurs Tuya/Zigbee (via passerelle Tuya cloud).
-  climate: [{ value: 'TUYA', label: 'Tuya' }],
-  contact: [{ value: 'TUYA', label: 'Tuya' }],
+  thermostat: [{ value: 'TUYA', label: 'Tuya' }, { value: 'NETATMO', label: 'Netatmo' }],
+  // Temp/humidité : Tuya/Zigbee OU station météo Netatmo (temp + humidité + CO2 + bruit).
+  climate: [{ value: 'TUYA', label: 'Tuya' }, { value: 'NETATMO', label: 'Netatmo' }],
+  contact: [{ value: 'TUYA', label: 'Tuya' }, { value: 'NETATMO', label: 'Netatmo (door tag)' }],
   motion: [{ value: 'TUYA', label: 'Tuya' }],
-  smoke: [{ value: 'TUYA', label: 'Tuya' }],
+  smoke: [{ value: 'TUYA', label: 'Tuya' }, { value: 'NETATMO', label: 'Netatmo' }],
 };
 
 export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropertyId, defaultKind }: AddDeviceWizardProps) {
@@ -199,6 +200,15 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             )}
             {(kind === 'lock' || kind === 'noise' || kind === 'thermostat' || ENV_SENSOR_KINDS.includes(kind)) && provider === 'TUYA' && (
               <TuyaDevicePicker category={kind === 'thermostat' ? 'wk' : undefined} selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
+            )}
+            {kind === 'climate' && provider === 'NETATMO' && (
+              <NetatmoDevicePicker source="weather" selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
+            )}
+            {(kind === 'smoke' || kind === 'contact') && provider === 'NETATMO' && (
+              <NetatmoDevicePicker source="security" selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
+            )}
+            {kind === 'thermostat' && provider === 'NETATMO' && (
+              <NetatmoDevicePicker source="thermostat" selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
             )}
             {(kind === 'lock' || kind === 'noise' || kind === 'thermostat') && provider !== 'TUYA' && (
               <TextField

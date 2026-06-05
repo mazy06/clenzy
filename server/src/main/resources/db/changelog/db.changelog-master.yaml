@@ -1858,3 +1858,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # CO2 + bruit (dB) sur les capteurs d'environnement (station meteo Netatmo).
+  - changeSet:
+      id: "0191-add-environment-sensor-co2-noise"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0191__add_environment_sensor_co2_noise.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.dto.environment.CreateEnvironmentSensorDto;
 import com.clenzy.dto.environment.EnvironmentSensorDto;
+import com.clenzy.integration.netatmo.service.NetatmoApiService;
 import com.clenzy.integration.tuya.service.TuyaApiService;
 import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.EnvironmentSensor;
@@ -50,19 +51,22 @@ public class EnvironmentSensorService {
     private final TenantContext tenantContext;
     private final TuyaDeviceClaimService claimService;
     private final NotificationService notificationService;
+    private final NetatmoApiService netatmoApiService;
 
     public EnvironmentSensorService(EnvironmentSensorRepository sensorRepository,
                                     PropertyRepository propertyRepository,
                                     TuyaApiService tuyaApiService,
                                     TenantContext tenantContext,
                                     TuyaDeviceClaimService claimService,
-                                    NotificationService notificationService) {
+                                    NotificationService notificationService,
+                                    NetatmoApiService netatmoApiService) {
         this.sensorRepository = sensorRepository;
         this.propertyRepository = propertyRepository;
         this.tuyaApiService = tuyaApiService;
         this.tenantContext = tenantContext;
         this.claimService = claimService;
         this.notificationService = notificationService;
+        this.netatmoApiService = netatmoApiService;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -153,6 +157,11 @@ public class EnvironmentSensorService {
             return toDto(sensor);
         }
 
+        // Marque Netatmo : lecture via l'API Connect (station meteo), pas Tuya.
+        if ("NETATMO".equalsIgnoreCase(sensor.getBrand())) {
+            return refreshFromNetatmo(sensor);
+        }
+
         try {
             // Etat precedent (pour detecter une transition → alerte).
             boolean prevSmoke = Boolean.TRUE.equals(sensor.getSmokeDetected());
@@ -194,6 +203,62 @@ public class EnvironmentSensorService {
                     sensor.getId(), sensor.getExternalDeviceId(), e.getMessage());
         }
         return toDto(sensor);
+    }
+
+    /**
+     * Lecture d'un capteur Netatmo (station meteo) : temperature/humidite + CO2 + bruit (dB)
+     * via getstationsdata. Pas d'alertes (la station meteo n'a ni fumee ni mouvement).
+     */
+    private EnvironmentSensorDto refreshFromNetatmo(EnvironmentSensor sensor) {
+        try {
+            if (sensor.getSensorType() == SensorType.SMOKE || sensor.getSensorType() == SensorType.CONTACT) {
+                refreshNetatmoSecurity(sensor);
+            } else {
+                refreshNetatmoWeather(sensor);
+            }
+            sensorRepository.save(sensor);
+        } catch (Exception e) {
+            log.error("Erreur lecture Netatmo capteur {} (module {}): {}",
+                    sensor.getId(), sensor.getExternalDeviceId(), e.getMessage());
+        }
+        return toDto(sensor);
+    }
+
+    /** Station météo Netatmo : temp/humidité + CO2 + bruit via getstationsdata. */
+    private void refreshNetatmoWeather(EnvironmentSensor sensor) {
+        Map<String, Object> r = netatmoApiService.fetchModuleReadings(
+                sensor.getUserId(), sensor.getExternalDeviceId());
+        if (r != null) {
+            if (r.get("Temperature") instanceof Number n) {
+                sensor.setTemperatureC(BigDecimal.valueOf(n.doubleValue()).setScale(1, RoundingMode.HALF_UP));
+            }
+            if (r.get("Humidity") instanceof Number n) sensor.setHumidity(n.intValue());
+            if (r.get("CO2") instanceof Number n) sensor.setCo2(n.intValue());
+            if (r.get("Noise") instanceof Number n) sensor.setNoiseDb(n.intValue());
+            sensor.setOnline(Boolean.TRUE.equals(r.get("reachable")));
+            sensor.setLastSeenAt(LocalDateTime.now());
+        } else {
+            sensor.setOnline(false);
+        }
+    }
+
+    /**
+     * Module sécurité Netatmo (clé {@code homeId|moduleId}) via homestatus : online + batterie ;
+     * pour un door tag (CONTACT), l'état ouvert/fermé. La détection fumée (NSD) est
+     * événementielle (webhook) → non lue ici (online + batterie seulement).
+     */
+    private void refreshNetatmoSecurity(EnvironmentSensor sensor) {
+        String[] parts = sensor.getExternalDeviceId().split("\\|", 2);
+        if (parts.length != 2) { sensor.setOnline(false); return; }
+        Map<String, Object> m = netatmoApiService.fetchSecurityModuleStatus(
+                sensor.getUserId(), parts[0], parts[1]);
+        if (m == null) { sensor.setOnline(false); return; }
+        sensor.setOnline(Boolean.TRUE.equals(m.get("reachable")));
+        if (m.get("battery_percent") instanceof Number n) sensor.setBatteryLevel(n.intValue());
+        if (sensor.getSensorType() == SensorType.CONTACT && m.get("status") != null) {
+            sensor.setContactOpen("open".equalsIgnoreCase(String.valueOf(m.get("status"))));
+        }
+        sensor.setLastSeenAt(LocalDateTime.now());
     }
 
     /**
@@ -342,6 +407,7 @@ public class EnvironmentSensorService {
                 s.getBatteryLevel(),
                 s.getTemperatureC() != null ? s.getTemperatureC().doubleValue() : null,
                 s.getHumidity(), s.getContactOpen(), s.getMotionDetected(), s.getSmokeDetected(),
+                s.getCo2(), s.getNoiseDb(),
                 s.getLastSeenAt(), s.getLastEventAt(), s.getCreatedAt());
     }
 }
