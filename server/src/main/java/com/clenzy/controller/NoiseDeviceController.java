@@ -133,6 +133,24 @@ public class NoiseDeviceController {
         }
     }
 
+    @GetMapping("/{id}/status")
+    @Operation(summary = "Statut live d'un capteur",
+            description = "Connectivite reelle (online) via Tuya/Minut, persistee pour le read-model")
+    public ResponseEntity<?> getDeviceStatus(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        String userId = jwt.getSubject();
+        try {
+            return ResponseEntity.ok(noiseDeviceService.getDeviceStatus(userId, id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "not_found", "message", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Erreur statut capteur {} pour user {}: {}", id, userId, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "server_error",
+                    "message", "Erreur lors de la recuperation du statut"
+            ));
+        }
+    }
+
     @GetMapping("/data")
     @Operation(summary = "Donnees bruit agregees",
             description = "Recupere les donnees de bruit agregees de tous les capteurs de l'utilisateur")

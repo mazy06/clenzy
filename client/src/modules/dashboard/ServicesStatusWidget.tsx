@@ -107,7 +107,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
     return () => { cancelled = true; };
   }, []);
 
-  // Chaque service navigue vers sa route (gestion IoT sous le Hub, ou booking).
+  // Les services IoT pointent vers l'onglet unifié Objets connectés ; booking vers son module.
   const services = [
     {
       key: 'noise',
@@ -115,7 +115,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       color: C.noise,
       label: t('dashboard.services.noise'),
       status: noise,
-      route: '/connected-objects/noise',
+      route: '/properties?tab=connected-objects',
       ctaKey: 'dashboard.services.noiseCta',
       activeIcon: <Box component="span" sx={{ display: 'inline-flex', color: C.noise }}><Sensors size={12} strokeWidth={1.75} /></Box>,
     },
@@ -125,7 +125,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       color: C.lock,
       label: t('dashboard.services.locks'),
       status: locks,
-      route: '/connected-objects/locks',
+      route: '/properties?tab=connected-objects',
       ctaKey: 'dashboard.services.locksCta',
       activeIcon: <Box component="span" sx={{ display: 'inline-flex', color: C.lock }}><BatteryFull size={12} strokeWidth={1.75} /></Box>,
     },
@@ -135,7 +135,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       color: C.key,
       label: t('dashboard.services.keys'),
       status: keys,
-      route: '/connected-objects/keys',
+      route: '/properties?tab=connected-objects',
       ctaKey: 'dashboard.services.keysCta',
       activeIcon: <Box component="span" sx={{ display: 'inline-flex', color: C.key }}><VpnKey size={12} strokeWidth={1.75} /></Box>,
     },

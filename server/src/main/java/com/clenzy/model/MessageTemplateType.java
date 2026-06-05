@@ -8,7 +8,8 @@ public enum MessageTemplateType {
     WELCOME("WELCOME"),
     CUSTOM("CUSTOM"),
     NOISE_ALERT("NOISE_ALERT"),
-    PAYMENT_LINK("PAYMENT_LINK");
+    PAYMENT_LINK("PAYMENT_LINK"),
+    ACCESS_CODE("ACCESS_CODE");
 
     private final String value;
 

@@ -75,7 +75,12 @@ function SourceChip({ source }: { source: string }) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-const NoiseAlertHistory: React.FC = () => {
+interface NoiseAlertHistoryProps {
+  /** Filtre les alertes sur un logement (vue détail d'un appareil). */
+  propertyId?: number;
+}
+
+const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [severityFilter, setSeverityFilter] = useState<string>('');
@@ -88,6 +93,7 @@ const NoiseAlertHistory: React.FC = () => {
   const [ackNotes, setAckNotes] = useState('');
 
   const alertsQuery = useNoiseAlerts({
+    propertyId,
     severity: severityFilter || undefined,
     page,
     size: rowsPerPage,

@@ -9,6 +9,7 @@ import {
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import { useTabKeyParam } from '../../components/tabKeyParam';
 import {
   PageHeaderActionsProvider,
   usePageHeaderActionsSlot,
@@ -98,7 +99,9 @@ const TAB_PANEL_SX = { pt: 1.5 } as const;
 const Reports: React.FC = () => {
   const { hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState(0);
+  // REPORT_TABS.id sert de cle stable d'URL (?tab=<id>). Tous les onglets sont toujours affiches
+  // (juste disabled si non autorise), donc l'index visible == l'index dans REPORT_TABS.
+  const [activeTab, setActiveTab] = useTabKeyParam(REPORT_TABS.map((rt) => ({ key: rt.id })));
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
   const [allowedTabs, setAllowedTabs] = useState<boolean[]>([]);
   const [period, setPeriod] = useState<DashboardPeriod>('month');

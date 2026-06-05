@@ -2324,7 +2324,8 @@
     "tabs": {
       "properties": "Properties",
       "pricing": "Dynamic Pricing",
-      "vouchers": "Promo Codes"
+      "vouchers": "Promo Codes",
+      "connectedObjects": "Connected Objects"
     }
   },
   "directoryPage": {
@@ -4083,7 +4084,8 @@
       "subtitle": {
         "properties": "List of your properties with their status, occupancy rate and alerts.",
         "pricing": "Dynamic pricing configuration per property: base price, seasonality, adjustments.",
-        "vouchers": "Promo codes and auto campaigns applicable to nightly rates: percentage or fixed discount, per-property scope."
+        "vouchers": "Promo codes and auto campaigns applicable to nightly rates: percentage or fixed discount, per-property scope.",
+        "connectedObjects": "Monitor and control your locks, sensors and keys, property by property."
       }
     },
     "directory": {

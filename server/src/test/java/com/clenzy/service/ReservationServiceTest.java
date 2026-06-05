@@ -37,6 +37,8 @@ class ReservationServiceTest {
     @Mock private NotificationService notificationService;
     @Mock private MinNightsOverrideRepository minNightsOverrideRepository;
     @Mock private com.clenzy.service.messaging.AutomationEvaluationService automationEvaluationService;
+    @Mock private com.clenzy.repository.SmartLockDeviceRepository smartLockDeviceRepository;
+    @Mock private com.clenzy.service.smartlock.SmartLockAccessCodeService smartLockAccessCodeService;
 
     private TenantContext tenantContext;
     private ReservationService reservationService;
@@ -56,7 +58,8 @@ class ReservationServiceTest {
                 reservationRepository, userRepository, tenantContext,
                 calendarEngine, guestService, syncMetrics,
                 serviceRequestRepository, notificationService,
-                minNightsOverrideRepository, automationEvaluationService
+                minNightsOverrideRepository, automationEvaluationService,
+                smartLockDeviceRepository, smartLockAccessCodeService
         );
 
         // Pas d'override min-nights par defaut dans les tests (resolution

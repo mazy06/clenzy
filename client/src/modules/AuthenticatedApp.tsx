@@ -58,13 +58,10 @@ import ContactCreatePage from './contact/ContactCreatePage';
 
 // Documents
 import DocumentsPage from './documents/DocumentsPage';
-import ConnectedObjectsHub from './connected-objects/ConnectedObjectsHub';
+// ConnectedObjectsHub : plus de route standalone — rendu comme onglet de PropertiesPage.
+// /connected-objects redirige desormais vers /properties?tab=connected-objects.
 import PropertyDevicesView from './connected-objects/PropertyDevicesView';
-import {
-  NoiseManagementScreen,
-  LockManagementScreen,
-  KeyExchangeManagementScreen,
-} from './connected-objects/screens/IotManagementScreens';
+import DeviceDetail from './connected-objects/DeviceDetail';
 import CamerasScreen from './connected-objects/cameras/CamerasScreen';
 import ThermostatsScreen from './connected-objects/thermostats/ThermostatsScreen';
 import TemplateDetails from './documents/TemplateDetails';
@@ -98,8 +95,8 @@ import TokenMonitoringPage from './admin/TokenMonitoringPage';
 import MonitoringPage from './admin/MonitoringPage';
 import SyncAdminPage from './admin/SyncAdminPage';
 import PromoCodesPage from './admin/PromoCodesPage';
-// VouchersPage est desormais monte comme tab #3 dans PropertiesPage
-// (cf. /properties?tab=2). L'ancienne route /vouchers est conservee
+// VouchersPage est desormais monte comme tab dans PropertiesPage
+// (cf. /properties?tab=vouchers). L'ancienne route /vouchers est conservee
 // en redirection pour preserver les bookmarks.
 import KpiReadinessPage from './admin/KpiReadinessPage';
 import DatabaseAdminPage from './admin/DatabaseAdminPage';
@@ -141,33 +138,27 @@ const AuthenticatedApp: React.FC = () => {
         <Dashboard />
       } />
 
-        {/* Hub des objets connectés (serrures, capteurs, clés — Phase 0) */}
-        <Route path="/connected-objects" element={
-          <ErrorBoundary>
-            <ConnectedObjectsHub />
-          </ErrorBoundary>
-        } />
+        {/* Hub des objets connectés : integre comme onglet "connected-objects"
+            dans Propriétés (conceptuellement lie aux biens). On garde un redirect
+            pour les bookmarks et les "retour" des sous-ecrans (property/:id, noise,
+            locks, keys, cameras, thermostats). */}
+        <Route path="/connected-objects" element={<Navigate to="/properties?tab=connected-objects" replace />} />
         <Route path="/connected-objects/property/:id" element={
           <ErrorBoundary>
             <PropertyDevicesView />
           </ErrorBoundary>
         } />
-        {/* Gestion avancée par service (vues riches issues des anciens onglets dashboard) */}
-        <Route path="/connected-objects/noise" element={
+        {/* Détail unifié d'un objet connecté (remplace les écrans de gestion par type). */}
+        <Route path="/connected-objects/device/:kind/:id" element={
           <ErrorBoundary>
-            <NoiseManagementScreen />
+            <DeviceDetail />
           </ErrorBoundary>
         } />
-        <Route path="/connected-objects/locks" element={
-          <ErrorBoundary>
-            <LockManagementScreen />
-          </ErrorBoundary>
-        } />
-        <Route path="/connected-objects/keys" element={
-          <ErrorBoundary>
-            <KeyExchangeManagementScreen />
-          </ErrorBoundary>
-        } />
+        {/* Anciens écrans de gestion par type → remplacés par le détail unifié
+            (/connected-objects/device/:kind/:id). Redirect des bookmarks. */}
+        <Route path="/connected-objects/noise" element={<Navigate to="/properties?tab=connected-objects" replace />} />
+        <Route path="/connected-objects/locks" element={<Navigate to="/properties?tab=connected-objects" replace />} />
+        <Route path="/connected-objects/keys" element={<Navigate to="/properties?tab=connected-objects" replace />} />
         {/* Aperçus Phase 2 (UI-first — données simulées) */}
         <Route path="/connected-objects/cameras" element={
           <ErrorBoundary>
@@ -215,7 +206,7 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        <Route path="/service-requests" element={<Navigate to="/interventions?tab=0" replace />} />
+        <Route path="/service-requests" element={<Navigate to="/interventions?tab=service-requests" replace />} />
         <Route path="/service-requests/new" element={
           <ProtectedRoute requiredPermission="service-requests:create">
             <ErrorBoundary>
@@ -297,9 +288,9 @@ const AuthenticatedApp: React.FC = () => {
         {/* Annuaire (Directory) — merged Teams + Portfolios + Guests */}
         <Route path="/directory" element={<DirectoryPage />} />
         {/* Backward-compat redirects for old URLs */}
-        <Route path="/guests" element={<Navigate to="/directory?tab=2" replace />} />
+        <Route path="/guests" element={<Navigate to="/directory?tab=guests" replace />} />
 
-        <Route path="/dynamic-pricing" element={<Navigate to="/properties?tab=1" replace />} />
+        <Route path="/dynamic-pricing" element={<Navigate to="/properties?tab=pricing" replace />} />
 
         <Route path="/billing" element={
           <ProtectedRoute requiredPermission="payments:view">
@@ -315,7 +306,7 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/teams" element={<Navigate to="/directory?tab=0" replace />} />
+        <Route path="/teams" element={<Navigate to="/directory?tab=teams" replace />} />
         <Route path="/teams/new" element={
           <ProtectedRoute requiredPermission="teams:create">
             <TeamForm />
@@ -402,7 +393,7 @@ const AuthenticatedApp: React.FC = () => {
           <NotificationsPage />
         } />
         
-        <Route path="/portfolios" element={<Navigate to="/directory?tab=1" replace />} />
+        <Route path="/portfolios" element={<Navigate to="/directory?tab=portfolios" replace />} />
         <Route path="/portfolios/client-assignment" element={
           <ProtectedRoute requiredPermission="portfolios:manage">
             <ClientPropertyAssignmentForm />
@@ -461,7 +452,7 @@ const AuthenticatedApp: React.FC = () => {
         {/* Vouchers : la page a ete integree comme tab #3 dans Propriétés
             (depuis qu'elle est conceptuellement liee aux biens). On garde
             un redirect pour les bookmarks existants. */}
-        <Route path="/vouchers" element={<Navigate to="/properties?tab=2" replace />} />
+        <Route path="/vouchers" element={<Navigate to="/properties?tab=vouchers" replace />} />
 
         <Route path="/admin/exchange-rates" element={
           <ProtectedRoute requiredPermission="users:manage">
@@ -506,8 +497,8 @@ const AuthenticatedApp: React.FC = () => {
         } />
 
         {/* Messaging routes — redirect to Documents unified page */}
-        <Route path="/messaging/templates" element={<Navigate to="/documents?tab=1" replace />} />
-        <Route path="/messaging/history" element={<Navigate to="/documents?tab=3" replace />} />
+        <Route path="/messaging/templates" element={<Navigate to="/documents?tab=message-templates" replace />} />
+        <Route path="/messaging/history" element={<Navigate to="/documents?tab=history" replace />} />
 
         <Route path="/promotions" element={
           <ProtectedRoute requiredPermission="pricing:view">
@@ -518,11 +509,11 @@ const AuthenticatedApp: React.FC = () => {
         } />
 
         {/* Comptabilite fusionnee dans Facturation */}
-        <Route path="/accounting" element={<Navigate to="/billing?tab=3" replace />} />
+        <Route path="/accounting" element={<Navigate to="/billing?tab=payouts" replace />} />
 
         {/* Backward-compat redirects — wallets merged into billing */}
-        <Route path="/wallets" element={<Navigate to="/billing?tab=2" replace />} />
-        <Route path="/invoices" element={<Navigate to="/billing?tab=1" replace />} />
+        <Route path="/wallets" element={<Navigate to="/billing?tab=wallets" replace />} />
+        <Route path="/invoices" element={<Navigate to="/billing?tab=invoices" replace />} />
 
         <Route path="/owner-portal" element={
           <ProtectedRoute requiredPermission="payments:view">

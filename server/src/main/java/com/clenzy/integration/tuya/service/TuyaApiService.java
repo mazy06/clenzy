@@ -345,10 +345,35 @@ public class TuyaApiService {
         Map<String, Object> enrichedResult = new LinkedHashMap<>(result);
         enrichedResult.put("password", password);
 
+        // Capture l'id Tuya du mot de passe (requis pour la revocation ulterieure).
+        // Absent sur certains modeles → revocation alors locale uniquement (le code
+        // expire de toute facon a invalid_time).
+        Object tuyaId = result.get("id");
+        if (tuyaId != null) {
+            enrichedResult.put("tuyaPasswordId", tuyaId.toString());
+        }
+
         log.info("Mot de passe temporaire Tuya cree pour device={} (validite: {} -> {})",
                 deviceId, effectiveTime, invalidTime);
 
         return enrichedResult;
+    }
+
+    /**
+     * Revoque un mot de passe temporaire sur une serrure Tuya.
+     * DELETE /v1.0/devices/{device_id}/door-lock/temp-passwords/{password_id}
+     *
+     * @param deviceId   Tuya external device ID
+     * @param passwordId identifiant du mot de passe cote Tuya (capture a la creation)
+     */
+    @CircuitBreaker(name = "tuya-api")
+    public Map<String, Object> deleteTemporaryPassword(String deviceId, String passwordId) {
+        validateDeviceId(deviceId);
+        // Reutilise le pattern device (alphanumerique/-/_) comme garde anti path-traversal.
+        if (passwordId == null || !DEVICE_ID_PATTERN.matcher(passwordId).matches()) {
+            throw new IllegalArgumentException("Password ID Tuya invalide");
+        }
+        return doDelete("/v1.0/devices/" + deviceId + "/door-lock/temp-passwords/" + passwordId);
     }
 
     // ─── Comptes app Tuya par hote (modele C) ───────────────────
@@ -556,6 +581,47 @@ public class TuyaApiService {
             throw e;
         } catch (Exception e) {
             log.error("Erreur API Tuya POST {}: {}", path, e.getMessage());
+            throw new RuntimeException("Erreur appel API Tuya", e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> doDelete(String path) {
+        String token = getAccessToken();
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String nonce = UUID.randomUUID().toString();
+
+        // Body vide pour un DELETE → meme hash de contenu qu'un GET.
+        String stringToSign = buildStringToSign("DELETE", path, "", null);
+        String signStr = config.getAccessId() + token + timestamp + nonce + stringToSign;
+        String sign = hmacSha256(signStr, config.getAccessSecret());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("client_id", config.getAccessId());
+        headers.set("access_token", token);
+        headers.set("t", timestamp);
+        headers.set("sign_method", "HMAC-SHA256");
+        headers.set("sign", sign);
+        headers.set("nonce", nonce);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    config.getApiBaseUrl() + path,
+                    HttpMethod.DELETE,
+                    new HttpEntity<>(headers),
+                    Map.class);
+
+            Map<String, Object> body = response.getBody();
+            if (body != null && Boolean.TRUE.equals(body.get("success"))) {
+                Object result = body.get("result");
+                return result instanceof Map ? (Map<String, Object>) result : Map.of("result", result);
+            }
+            String msg = body != null ? String.valueOf(body.get("msg")) : "unknown";
+            throw new RuntimeException("Erreur API Tuya: " + msg);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Erreur API Tuya DELETE {}: {}", path, e.getMessage());
             throw new RuntimeException("Erreur appel API Tuya", e);
         }
     }

@@ -15,6 +15,8 @@ export interface SmartLockDeviceDto {
   status: string;
   lockState: string;
   batteryLevel: number | null;
+  /** Connectivité réelle (vrai flag Tuya). null = jamais synchronisé. */
+  online: boolean | null;
   createdAt: string;
 }
 
@@ -30,6 +32,26 @@ export interface SmartLockStatusDto {
   locked: boolean;
   batteryLevel: number;
   online: boolean;
+}
+
+export interface SmartLockAccessCodeDto {
+  id: number;
+  deviceId: number;
+  reservationId: number | null;
+  /** PIN — visible seulement pour les rôles autorisés (endpoint role-gate). */
+  code: string | null;
+  name: string | null;
+  validFrom: string | null;
+  validUntil: string | null;
+  status: string;
+  source: string;
+  createdAt: string;
+}
+
+export interface RotateAccessCodeRequest {
+  validFrom?: string;
+  validUntil?: string;
+  reservationId?: number;
 }
 
 // ─── Smart Lock API ─────────────────────────────────────────────────────────
@@ -63,5 +85,20 @@ export const smartLockApi = {
   /** Deverrouiller une serrure */
   unlock(id: number) {
     return apiClient.post<{ status: string; message: string }>(`/smart-locks/${id}/unlock`);
+  },
+
+  /** Code d'accès courant d'une serrure (corps vide si aucun — 204). */
+  getAccessCode(id: number) {
+    return apiClient.get<SmartLockAccessCodeDto | ''>(`/smart-locks/${id}/access-code`);
+  },
+
+  /** Régénère / change le code d'accès (révoque l'actif + en génère un nouveau, déclenche un event). */
+  rotateAccessCode(id: number, body?: RotateAccessCodeRequest) {
+    return apiClient.post<SmartLockAccessCodeDto>(`/smart-locks/${id}/access-code/rotate`, body ?? {});
+  },
+
+  /** Révoque le code d'accès courant. */
+  revokeAccessCode(id: number) {
+    return apiClient.delete(`/smart-locks/${id}/access-code`);
   },
 };

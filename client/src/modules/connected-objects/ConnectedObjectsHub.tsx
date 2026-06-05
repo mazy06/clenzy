@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Skeleton, Paper, Chip, Tooltip, alpha, useTheme } from '@mui/material';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
@@ -24,7 +25,21 @@ const PREVIEW_ROUTES: Partial<Record<DeviceKind, string>> = {
   thermostat: '/connected-objects/thermostats',
 };
 
-export default function ConnectedObjectsHub() {
+interface ConnectedObjectsHubProps {
+  /**
+   * Mode « embedded » : le hub est rendu comme onglet de {@link PropertiesPage}
+   * (4e tab, conceptuellement lie aux biens). Dans ce mode il ne rend PAS son
+   * propre {@code PageHeader} ; le bouton « Ajouter un objet » est porte dans le
+   * slot actions du parent via React Portal.
+   */
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+}
+
+export default function ConnectedObjectsHub({
+  embedded = false,
+  actionsContainer,
+}: ConnectedObjectsHubProps = {}) {
   const navigate = useNavigate();
   const theme = useTheme();
   const { groups, devices, kpis, providers, loading, act, actingUid, refetch } = useConnectedObjects();
@@ -52,40 +67,37 @@ export default function ConnectedObjectsHub() {
 
   const comingSoon = DEVICE_KIND_ORDER.filter((k) => !DEVICE_KINDS[k].available);
 
-  // Routes de gestion avancée par type de service (vues riches issues des anciens
-  // onglets dashboard, désormais sous le Hub).
-  const MANAGE_ROUTE_BY_KIND: Partial<Record<DeviceKind, string>> = {
-    noise: '/connected-objects/noise',
-    lock: '/connected-objects/locks',
-    keybox: '/connected-objects/keys',
-    camera: '/connected-objects/cameras',
-    thermostat: '/connected-objects/thermostats',
-  };
-
   const handleAction = (uid: string, action: DeviceAction) => {
     if (action === 'lock' || action === 'unlock') {
       void act(uid, action);
       return;
     }
-    // « Gérer » → écran de gestion avancée du service correspondant.
-    const kind = devices.find((d) => d.uid === uid)?.kind;
-    navigate((kind && MANAGE_ROUTE_BY_KIND[kind]) || '/connected-objects');
+    // « Gérer » / clic sur la carte → détail unifié de l'objet.
+    const dev = devices.find((d) => d.uid === uid);
+    if (dev) navigate(`/connected-objects/device/${dev.kind}/${dev.id}`);
   };
+
+  // Action « Ajouter un objet » : rendue dans le PageHeader propre (standalone)
+  // ou portee dans le slot actions du parent (embedded, cf. PropertiesPage).
+  const headerAction = (
+    <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
+      Ajouter un objet
+    </Button>
+  );
 
   return (
     <Box>
-      <PageHeader
-        title="Objets connectés"
-        subtitle="Supervisez et pilotez vos serrures, capteurs et clés, logement par logement."
-        iconBadge={<Inventory2 />}
-        backPath="/dashboard"
-        backLabel="Tableau de bord"
-        actions={
-          <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
-            Ajouter un objet
-          </Button>
-        }
-      />
+      {!embedded && (
+        <PageHeader
+          title="Objets connectés"
+          subtitle="Supervisez et pilotez vos serrures, capteurs et clés, logement par logement."
+          iconBadge={<Inventory2 />}
+          backPath="/dashboard"
+          backLabel="Tableau de bord"
+          actions={headerAction}
+        />
+      )}
+      {embedded && actionsContainer ? createPortal(headerAction, actionsContainer) : null}
 
       {/* Bandeau de connexion — pont vers les Settings */}
       <Paper variant="outlined" sx={{ p: 1, mb: 1.5, borderRadius: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>

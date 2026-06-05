@@ -26,12 +26,16 @@ import { notificationsApi } from '../../services/api';
 import type { Notification } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import { useTabValueParam } from '../../components/tabKeyParam';
 import EmptyState from '../../components/EmptyState';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'payment' | 'reservation' | 'system' | 'contact' | 'document';
+
+// Valeurs d'onglet autorisees (= cles d'URL ?tab=<value>). 'all' est le defaut (URL propre).
+const NOTIFICATION_TAB_VALUES: TabFilter[] = ['all', 'unread', 'intervention', 'service_request', 'payment', 'reservation', 'system', 'contact', 'document'];
 
 const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   intervention: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Build size={18} strokeWidth={1.75} /></Box>,
@@ -64,7 +68,8 @@ function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown
 export default function NotificationsPage() {
   const navigate = useNavigate();
   const { t, currentLanguage } = useTranslation();
-  const [activeTab, setActiveTab] = useState<TabFilter>('all');
+  // Onglet actif = filtre string, persiste dans l'URL (?tab=<value>) — la valeur EST la cle stable.
+  const [activeTab, setActiveTab] = useTabValueParam<TabFilter>(NOTIFICATION_TAB_VALUES, 'all');
 
   // Reset availability on mount so the page always tries to reach the backend
   React.useEffect(() => {

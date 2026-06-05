@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useTabValueParam } from '../../components/tabKeyParam';
 import {
   Box,
   Paper,
@@ -720,24 +720,9 @@ export default function AiSettingsSection() {
   const deleteMutation = useDeleteAiKey();
   const [dialogProvider, setDialogProvider] = useState<'openai' | 'anthropic' | null>(null);
 
-  // Sous-tab actif persiste dans l'URL pour partage/refresh
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab: SubTab = useMemo(() => {
-    const raw = searchParams.get('subtab');
-    return (SUBTABS as readonly string[]).includes(raw ?? '')
-      ? (raw as SubTab)
-      : DEFAULT_SUBTAB;
-  }, [searchParams]);
-
-  const handleTabChange = useCallback(
-    (_evt: React.SyntheticEvent, value: SubTab) => {
-      // Replace pour ne pas polluer l'historique a chaque click
-      const next = new URLSearchParams(searchParams);
-      next.set('subtab', value);
-      setSearchParams(next, { replace: true });
-    },
-    [searchParams, setSearchParams],
-  );
+  // Sous-tab actif persiste dans l'URL (?subtab=<key>, param distinct du ?tab= de Settings) pour
+  // partage/refresh. La valeur string EST la cle (cf. useTabValueParam, composants/tabKeyParam.ts).
+  const [activeTab, setActiveTab] = useTabValueParam<SubTab>(SUBTABS, DEFAULT_SUBTAB, { param: 'subtab' });
 
   if (isLoading) {
     return (
@@ -773,7 +758,7 @@ export default function AiSettingsSection() {
       {/* ── Tabs internes ── */}
       <Tabs
         value={activeTab}
-        onChange={handleTabChange}
+        onChange={(_, v) => setActiveTab(v as SubTab)}
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile

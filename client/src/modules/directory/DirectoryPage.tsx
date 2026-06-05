@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Box } from '@mui/material';
 import {
   People,
@@ -8,7 +8,7 @@ import {
   CorporateFare,
   TrendingUp,
 } from '../../icons';
-import { useSearchParams } from 'react-router-dom';
+import { useTabKeyParam } from '../../components/tabKeyParam';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
@@ -57,7 +57,6 @@ const ALL_TABS: TabDef[] = [
 const DirectoryPage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   // Build visible tabs based on user permissions
   const visibleTabs = useMemo(() => {
@@ -69,11 +68,10 @@ const DirectoryPage: React.FC = () => {
     });
   }, [user?.permissions, user?.roles]);
 
-  const maxTab = Math.max(0, visibleTabs.length - 1);
-  const initialTab = parseInt(searchParams.get('tab') || '0', 10);
-  const [activeTab, setActiveTab] = useState(
-    isNaN(initialTab) ? 0 : Math.min(initialTab, maxTab)
-  );
+  // useTabKeyParam derive l'onglet actif de l'URL (?tab=<key>) via la `key` stable de chaque
+  // TabDef — robuste aux onglets filtres par permission (l'index visible shifte, jamais la cle).
+  const [activeTab, setActiveTab] = useTabKeyParam(visibleTabs);
+  const handleTabChange = setActiveTab;
 
   // Portal container
   const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
@@ -81,23 +79,6 @@ const DirectoryPage: React.FC = () => {
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
   const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = usePageHeaderActionsSlot();
-
-  // Sync tab to URL param
-  const handleTabChange = useCallback((v: number) => {
-    setActiveTab(v);
-    setSearchParams(v === 0 ? {} : { tab: String(v) }, { replace: true });
-  }, [setSearchParams]);
-
-  // Handle URL param changes (browser back/forward)
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam) {
-      const parsed = parseInt(tabParam, 10);
-      if (!isNaN(parsed) && parsed >= 0 && parsed <= maxTab && parsed !== activeTab) {
-        setActiveTab(parsed);
-      }
-    }
-  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Single-tab: render component directly without tabs ──
   if (visibleTabs.length === 1) {

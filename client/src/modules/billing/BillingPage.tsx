@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Paper,
@@ -13,7 +13,7 @@ import {
   Category,
   Assessment,
 } from '../../icons';
-import { useSearchParams } from 'react-router-dom';
+import { useTabKeyParam } from '../../components/tabKeyParam';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
@@ -29,15 +29,6 @@ import InvoicesList from '../invoices/InvoicesList';
 import WalletDashboard from '../finance/WalletDashboard';
 import { PayoutsTab, ExpensesTab, ExportsTab } from '../accounting/AccountingPage';
 import FiscalReportSection from '../reports/FiscalReportSection';
-
-// ─── Tab indices (logical, stable) ──────────────────────────────────────────
-
-const TAB_PAYMENTS = 0;
-const TAB_INVOICES = 1;
-const TAB_WALLETS = 2;
-const TAB_PAYOUTS = 3;
-const TAB_EXPENSES = 4;
-const TAB_REPORTS = 5;
 
 // La metadata par tab (breadcrumb + subtitle) est construite dans le composant
 // via t() pour reagir au changement de langue (cf. billingTabMeta plus bas).
@@ -78,7 +69,6 @@ const ReportsExportsTab: React.FC = () => {
 const BillingPage: React.FC = () => {
   const { t } = useTranslation();
   const { user, hasAnyRole } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const canViewInvoices = user?.permissions?.includes('reports:view') ?? false;
   const canViewWallets = user?.permissions?.includes('payments:manage') ?? false;
@@ -88,66 +78,23 @@ const BillingPage: React.FC = () => {
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
   const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = usePageHeaderActionsSlot();
 
-  // Build visible tabs dynamically (order preserved)
-  const visibleTabs: { index: number; key: string }[] = [
-    { index: TAB_PAYMENTS, key: 'payments' },
-  ];
-  if (canViewInvoices) visibleTabs.push({ index: TAB_INVOICES, key: 'invoices' });
-  if (canViewWallets) visibleTabs.push({ index: TAB_WALLETS, key: 'wallets' });
-  if (canViewAccounting) {
-    visibleTabs.push({ index: TAB_PAYOUTS, key: 'payouts' });
-    visibleTabs.push({ index: TAB_EXPENSES, key: 'expenses' });
-    visibleTabs.push({ index: TAB_REPORTS, key: 'reports' });
-  }
-
-  // Map URL ?tab=<logicalIndex> → visible position
-  const getInitialPos = () => {
-    const tabParam = searchParams.get('tab');
-    if (!tabParam) return 0;
-    const parsed = parseInt(tabParam, 10);
-    if (isNaN(parsed)) return 0;
-    const pos = visibleTabs.findIndex((vt) => vt.index === parsed);
-    return pos >= 0 ? pos : 0;
-  };
-
-  const [activePos, setActivePos] = useState(getInitialPos);
-  const activeLogicalIndex = visibleTabs[activePos]?.index ?? TAB_PAYMENTS;
-
-  const handleTabChange = useCallback(
-    (newPos: number) => {
-      setActivePos(newPos);
-      const logicalIndex = visibleTabs[newPos]?.index ?? 0;
-      setSearchParams(logicalIndex === 0 ? {} : { tab: String(logicalIndex) }, { replace: true });
-    },
-    [setSearchParams, visibleTabs],
-  );
-
-  // Handle URL param changes (browser back/forward)
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam) {
-      const parsed = parseInt(tabParam, 10);
-      if (!isNaN(parsed)) {
-        const pos = visibleTabs.findIndex((vt) => vt.index === parsed);
-        if (pos >= 0 && pos !== activePos) {
-          setActivePos(pos);
-        }
-      }
-    }
-  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Source de verite des tabs (avec hidden flag) — utilisee pour PageTabs ET
-  // pour resoudre le tab actif via resolveTabHeader. Le filtre `hidden` doit
-  // matcher la logique de visibleTabs ci-dessus pour rester coherent.
+  // Source de verite des tabs (avec `key` stable + `hidden`). Definie AVANT useTabKeyParam,
+  // qui derive l'onglet actif de l'URL (?tab=<key>) — robuste au role (l'index visible shifte,
+  // jamais la cle). Le filtre `hidden` matche les permissions ci-dessus.
   const tabs = [
-    { label: t('billing.tabs.payments'),                          icon: <Payment />,                hidden: false },
-    { label: t('billing.tabs.invoices'),                          icon: <Receipt />,                hidden: !canViewInvoices },
-    { label: t('navigation.wallets'),                             icon: <AccountBalanceWallet />,   hidden: !canViewWallets },
-    { label: t('billing.tabs.payouts', 'Reversements'),           icon: <AccountBalance />,         hidden: !canViewAccounting },
-    { label: t('billing.tabs.expenses', 'Depenses'),              icon: <Category />,               hidden: !canViewAccounting },
-    { label: t('billing.tabs.reportsExports', 'Rapports & Exports'), icon: <Assessment />,          hidden: !canViewAccounting },
+    { key: 'payments', label: t('billing.tabs.payments'),                             icon: <Payment />,                hidden: false },
+    { key: 'invoices', label: t('billing.tabs.invoices'),                             icon: <Receipt />,                hidden: !canViewInvoices },
+    { key: 'wallets',  label: t('navigation.wallets'),                                icon: <AccountBalanceWallet />,   hidden: !canViewWallets },
+    { key: 'payouts',  label: t('billing.tabs.payouts', 'Reversements'),              icon: <AccountBalance />,         hidden: !canViewAccounting },
+    { key: 'expenses', label: t('billing.tabs.expenses', 'Depenses'),                 icon: <Category />,               hidden: !canViewAccounting },
+    { key: 'reports',  label: t('billing.tabs.reportsExports', 'Rapports & Exports'), icon: <Assessment />,             hidden: !canViewAccounting },
   ];
-  const visibleTabLabels = tabs.filter((tab) => !tab.hidden).map((tab) => tab.label);
+  const visibleTabs = tabs.filter((tab) => !tab.hidden);
+  const [activePos, setActivePos] = useTabKeyParam(tabs);
+  const handleTabChange = setActivePos;
+  // Cle de l'onglet actif (pour le rendu du contenu) — stable, independante du role.
+  const activeKey = visibleTabs[activePos]?.key ?? 'payments';
+  const visibleTabLabels = visibleTabs.map((tab) => tab.label);
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const billingTabMeta: Record<string, TabHeaderMeta> = {
     [t('billing.tabs.payments')]: {
@@ -194,13 +141,13 @@ const BillingPage: React.FC = () => {
           onChange={handleTabChange}
         />
 
-        {/* ── Tab content ── */}
-        {activeLogicalIndex === TAB_PAYMENTS && <PaymentHistoryPage embedded />}
-        {activeLogicalIndex === TAB_INVOICES && canViewInvoices && <InvoicesList embedded />}
-        {activeLogicalIndex === TAB_WALLETS && canViewWallets && <WalletDashboard embedded />}
-        {activeLogicalIndex === TAB_PAYOUTS && canViewAccounting && <PayoutsTab />}
-        {activeLogicalIndex === TAB_EXPENSES && canViewAccounting && <ExpensesTab />}
-        {activeLogicalIndex === TAB_REPORTS && canViewAccounting && <ReportsExportsTab />}
+        {/* ── Tab content (rendu par cle stable, independante du role) ── */}
+        {activeKey === 'payments' && <PaymentHistoryPage embedded />}
+        {activeKey === 'invoices' && canViewInvoices && <InvoicesList embedded />}
+        {activeKey === 'wallets' && canViewWallets && <WalletDashboard embedded />}
+        {activeKey === 'payouts' && canViewAccounting && <PayoutsTab />}
+        {activeKey === 'expenses' && canViewAccounting && <ExpensesTab />}
+        {activeKey === 'reports' && canViewAccounting && <ReportsExportsTab />}
       </Box>
     </PageHeaderActionsProvider>
   );

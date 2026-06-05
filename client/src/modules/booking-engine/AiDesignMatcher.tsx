@@ -172,7 +172,7 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
             <Button
               color="warning"
               size="small"
-              onClick={() => navigate('/settings?tab=3')}
+              onClick={() => navigate('/settings?tab=ai')}
               sx={{ whiteSpace: 'nowrap', fontWeight: 600 }}
             >
               {t('bookingEngine.ai.goToSettings')}
@@ -198,7 +198,7 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
             <Button
               color="warning"
               size="small"
-              onClick={() => navigate('/settings?tab=3')}
+              onClick={() => navigate('/settings?tab=ai')}
               sx={{ whiteSpace: 'nowrap', fontWeight: 600 }}
             >
               {t('bookingEngine.ai.goToSettings')}

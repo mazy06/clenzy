@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -127,7 +128,6 @@ public class SmartLockService {
 
             boolean locked = false;
             int batteryLevel = -1;
-            boolean online = true;
 
             // Parse Tuya status DPs (returned as list of {code, value})
             if (status instanceof Map) {
@@ -156,9 +156,15 @@ public class SmartLockService {
                 }
             }
 
-            // Update cached state
+            // Connectivite reelle : flag Tuya "online" via getDeviceInfo, isole pour ne pas
+            // perdre lock/batterie si l'appel echoue (vs l'ancien online=true en dur).
+            boolean online = fetchOnline(device.getExternalDeviceId());
+
+            // Update cached state (persiste pour le read-model GET /api/devices)
             device.setLockState(locked ? LockState.LOCKED : LockState.UNLOCKED);
             device.setBatteryLevel(batteryLevel >= 0 ? batteryLevel : null);
+            device.setOnline(online);
+            device.setLastSeenAt(LocalDateTime.now());
             smartLockRepository.save(device);
 
             return Map.of(
@@ -205,6 +211,21 @@ public class SmartLockService {
 
     // ─── Private helpers ────────────────────────────────────────
 
+    /**
+     * Connectivite reelle d'une serrure (flag Tuya "online" via GET /v1.0/devices/{id}).
+     * Isole dans son propre try/catch : une indisponibilite degrade vers false sans
+     * faire perdre l'etat verrou / la batterie deja parses.
+     */
+    private boolean fetchOnline(String externalDeviceId) {
+        try {
+            Map<String, Object> info = tuyaApiService.getDeviceInfo(externalDeviceId);
+            return info != null && Boolean.TRUE.equals(info.get("online"));
+        } catch (Exception e) {
+            log.warn("Statut online Tuya indisponible pour device {}: {}", externalDeviceId, e.getMessage());
+            return false;
+        }
+    }
+
     private SmartLockDeviceDto toDto(SmartLockDevice device) {
         SmartLockDeviceDto dto = new SmartLockDeviceDto();
         dto.setId(device.getId());
@@ -216,6 +237,7 @@ public class SmartLockService {
         dto.setStatus(device.getStatus().name());
         dto.setLockState(device.getLockState().name());
         dto.setBatteryLevel(device.getBatteryLevel());
+        dto.setOnline(device.getOnline());
         dto.setCreatedAt(device.getCreatedAt());
 
         // Resolve property name

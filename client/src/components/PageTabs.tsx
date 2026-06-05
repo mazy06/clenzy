@@ -10,6 +10,12 @@ import { useIconSize } from '../hooks/useResponsiveSize';
  */
 export interface PageTabItem<T extends string | number = number> {
   value?: T;
+  /**
+   * Cle stable de l'onglet pour la navigation par URL (`?tab=<key>`), robuste aux onglets masques
+   * par role : c'est l'index VISIBLE qui shifte selon le role, jamais la cle. Cf. `useTabKeyParam`
+   * + `tabIndexFromKey` / `tabKeyFromIndex` (components/tabKeyParam.ts).
+   */
+  key?: string;
   label: string;
   icon?: React.ReactNode;
   /** Compteur affiché en badge à droite du label (notifications, demandes en attente, etc.). */

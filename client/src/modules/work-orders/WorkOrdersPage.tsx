@@ -1,10 +1,10 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Box } from '@mui/material';
 import {
   Assignment,
   Build,
 } from '../../icons';
-import { useSearchParams } from 'react-router-dom';
+import { useTabKeyParam } from '../../components/tabKeyParam';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
@@ -25,7 +25,6 @@ const TAB_INTERVENTIONS = 1;
 const WorkOrdersPage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   // Permission checks
   // Operational roles (HOUSEKEEPER, TECHNICIAN, etc.) can view service requests assigned to them
@@ -36,34 +35,19 @@ const WorkOrdersPage: React.FC = () => {
   const canViewInterventions = (user?.permissions?.includes('interventions:view') || canViewServiceRequests) ?? false;
   const showBothTabs = canViewServiceRequests && canViewInterventions;
 
-  const maxTab = showBothTabs ? TAB_INTERVENTIONS : 0;
-  // Operational roles default to Interventions tab
-  const defaultTab = isOperational ? TAB_INTERVENTIONS : TAB_SERVICE_REQUESTS;
-  const initialTab = parseInt(searchParams.get('tab') || String(defaultTab), 10);
-  const [activeTab, setActiveTab] = useState(
-    isNaN(initialTab) ? 0 : Math.min(initialTab, maxTab)
-  );
+  // Source de verite des tabs : `key` stable pour l'URL (?tab=<key>). Definie AVANT useTabKeyParam
+  // et AVANT l'early return (Rules of Hooks).
+  const tabs = [
+    { value: TAB_SERVICE_REQUESTS, key: 'service-requests', label: t('workOrders.tabs.serviceRequests'), icon: <Assignment /> },
+    { value: TAB_INTERVENTIONS,    key: 'interventions',    label: t('workOrders.tabs.interventions'),  icon: <Build /> },
+  ];
+  // Roles operationnels : onglet Interventions par defaut (URL sans param). Sinon Demandes.
+  const [activeTab, setActiveTab] = useTabKeyParam(tabs, isOperational ? { defaultKey: 'interventions' } : undefined);
+  const handleTabChange = setActiveTab;
 
   // Portal containers: child components render their actions/filters into these DOM elements
   const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
   const [filtersContainer, setFiltersContainer] = useState<HTMLDivElement | null>(null);
-
-  // Sync tab to URL param
-  const handleTabChange = useCallback((v: number) => {
-    setActiveTab(v);
-    setSearchParams(v === 0 ? {} : { tab: String(v) }, { replace: true });
-  }, [setSearchParams]);
-
-  // Handle URL param changes (browser back/forward)
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam) {
-      const parsed = parseInt(tabParam, 10);
-      if (!isNaN(parsed) && parsed >= 0 && parsed <= maxTab && parsed !== activeTab) {
-        setActiveTab(parsed);
-      }
-    }
-  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Single-view: user can only see one module → render directly (no tabs) ──
   if (!showBothTabs) {
@@ -86,10 +70,7 @@ const WorkOrdersPage: React.FC = () => {
       </Box>
       <Box sx={{ flexShrink: 0 }}>
         <PageTabs
-          options={[
-            { value: TAB_SERVICE_REQUESTS, label: t('workOrders.tabs.serviceRequests'), icon: <Assignment /> },
-            { value: TAB_INTERVENTIONS,    label: t('workOrders.tabs.interventions'),  icon: <Build /> },
-          ]}
+          options={tabs}
           value={activeTab}
           onChange={handleTabChange}
         />

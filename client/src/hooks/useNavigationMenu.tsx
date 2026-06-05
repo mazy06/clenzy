@@ -29,7 +29,6 @@ import {
   Contacts,
   Public,
   StorefrontOutlined,
-  Inventory2,
 } from '../icons';
 import BaitlyMarkLogo from '../components/BaitlyMarkLogo';
 
@@ -105,14 +104,10 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.properties',
     group: 'main',
   },
-  {
-    icon: <Inventory2 />,
-    path: '/connected-objects',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
-    permission: 'properties:view',
-    translationKey: 'navigation.connectedObjects',
-    group: 'main',
-  },
+  // Note : l'entree /connected-objects a ete deplacee dans Propriétés (onglet
+  // "connected-objects", conceptuellement lie aux biens). La route
+  // /connected-objects redirige vers /properties?tab=connected-objects
+  // (cf. AuthenticatedApp) pour preserver les bookmarks. Pas d'entree sidebar dediee.
   {
     icon: <Build />,
     path: '/interventions',
@@ -169,8 +164,8 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.tarification',
     group: 'management',
   },
-  // Note : l'entree /vouchers a ete deplacee dans Propriétés (tab #3).
-  // La route /vouchers reste accessible mais redirige vers /properties?tab=2
+  // Note : l'entree /vouchers a ete deplacee dans Propriétés (onglet "vouchers").
+  // La route /vouchers reste accessible mais redirige vers /properties?tab=vouchers
   // pour preserver les bookmarks. Pas d'entree sidebar dediee.
   {
     icon: <Payment />,
@@ -180,8 +175,8 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.billing',
     group: 'management',
   },
-  // Comptabilité fusionnée dans Facturation (/billing?tab=3+)
-  // Portefeuille fusionné dans Facturation (/billing?tab=2)
+  // Comptabilité fusionnée dans Facturation (onglets /billing?tab=payouts|expenses|reports)
+  // Portefeuille fusionné dans Facturation (/billing?tab=wallets)
   {
     icon: <Handshake />,
     path: '/contracts',

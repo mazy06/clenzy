@@ -65,6 +65,8 @@ class ReservationControllerUpdateTest {
     @Mock private com.clenzy.repository.MessageTemplateRepository messageTemplateRepository;
     @Mock private InterventionMapper interventionMapper;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.repository.SmartLockDeviceRepository smartLockDeviceRepository;
+    @Mock private com.clenzy.service.smartlock.SmartLockAccessCodeService accessCodeService;
 
     private ReservationController controller;
 
@@ -74,7 +76,8 @@ class ReservationControllerUpdateTest {
                 reservationService, reservationMapper, reservationRepository,
                 interventionRepository, propertyRepository, userRepository,
                 guestRepository, guestService, stripeService, emailService,
-                guestMessagingService, messageTemplateRepository, interventionMapper, tenantContext);
+                guestMessagingService, messageTemplateRepository, interventionMapper, tenantContext,
+                smartLockDeviceRepository, accessCodeService);
     }
 
     private Jwt createJwt(String sub) {
