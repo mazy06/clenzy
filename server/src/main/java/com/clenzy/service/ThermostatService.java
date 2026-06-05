@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.dto.thermostat.CreateThermostatDto;
 import com.clenzy.dto.thermostat.ThermostatDto;
+import com.clenzy.integration.netatmo.service.NetatmoApiService;
 import com.clenzy.integration.tuya.service.TuyaApiService;
 import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
 import com.clenzy.model.Property;
@@ -41,17 +42,20 @@ public class ThermostatService {
     private final TuyaApiService tuyaApiService;
     private final TenantContext tenantContext;
     private final TuyaDeviceClaimService claimService;
+    private final NetatmoApiService netatmoApiService;
 
     public ThermostatService(ThermostatRepository thermostatRepository,
                              PropertyRepository propertyRepository,
                              TuyaApiService tuyaApiService,
                              TenantContext tenantContext,
-                             TuyaDeviceClaimService claimService) {
+                             TuyaDeviceClaimService claimService,
+                             NetatmoApiService netatmoApiService) {
         this.thermostatRepository = thermostatRepository;
         this.propertyRepository = propertyRepository;
         this.tuyaApiService = tuyaApiService;
         this.tenantContext = tenantContext;
         this.claimService = claimService;
+        this.netatmoApiService = netatmoApiService;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -111,6 +115,11 @@ public class ThermostatService {
             return toDto(t);
         }
 
+        // Marque Netatmo : lecture via l'API Energy (homestatus), pas Tuya.
+        if ("NETATMO".equalsIgnoreCase(t.getBrand())) {
+            return refreshFromNetatmo(t);
+        }
+
         try {
             Map<String, Object> status = tuyaApiService.getDeviceStatus(t.getExternalDeviceId());
             Object statusList = status.getOrDefault("result", status);
@@ -132,6 +141,37 @@ public class ThermostatService {
         return toDto(t);
     }
 
+    /**
+     * Lecture d'un thermostat Netatmo (clé {@code homeId|roomId}) : température mesurée +
+     * consigne + mode, via homestatus.
+     */
+    private ThermostatDto refreshFromNetatmo(Thermostat t) {
+        try {
+            String[] parts = t.getExternalDeviceId().split("\\|", 2);
+            if (parts.length == 2) {
+                Map<String, Object> room = netatmoApiService.fetchThermostatReadings(
+                        t.getUserId(), parts[0], parts[1]);
+                if (room != null) {
+                    if (room.get("therm_measured_temperature") instanceof Number n) {
+                        t.setCurrentTempC(BigDecimal.valueOf(n.doubleValue()).setScale(1, RoundingMode.HALF_UP));
+                    }
+                    if (room.get("therm_setpoint_temperature") instanceof Number n) {
+                        t.setTargetTempC(BigDecimal.valueOf(n.doubleValue()).setScale(1, RoundingMode.HALF_UP));
+                    }
+                    if (room.get("therm_setpoint_mode") instanceof String s) {
+                        t.setMode(mapMode(s));
+                    }
+                }
+            }
+            t.setLastSeenAt(LocalDateTime.now());
+            thermostatRepository.save(t);
+        } catch (Exception e) {
+            log.error("Erreur lecture Netatmo thermostat {} ({}): {}",
+                    t.getId(), t.getExternalDeviceId(), e.getMessage());
+        }
+        return toDto(t);
+    }
+
     /** Definit la consigne (°C) via Tuya et met en cache. */
     @Transactional
     public ThermostatDto setTargetTemp(String userId, Long thermostatId, double targetTempC) {
@@ -139,7 +179,19 @@ public class ThermostatService {
                 .orElseThrow(() -> new IllegalArgumentException("Thermostat introuvable: " + thermostatId));
 
         if (t.getExternalDeviceId() == null || t.getExternalDeviceId().isEmpty()) {
-            throw new IllegalStateException("Pas d'ID device Tuya configure pour ce thermostat");
+            throw new IllegalStateException("Pas d'ID device configure pour ce thermostat");
+        }
+
+        // Marque Netatmo : pilotage via setroomthermpoint (clé homeId|roomId).
+        if ("NETATMO".equalsIgnoreCase(t.getBrand())) {
+            String[] parts = t.getExternalDeviceId().split("\\|", 2);
+            if (parts.length == 2) {
+                netatmoApiService.setThermpoint(t.getUserId(), parts[0], parts[1], targetTempC);
+            }
+            t.setTargetTempC(BigDecimal.valueOf(targetTempC).setScale(1, RoundingMode.HALF_UP));
+            thermostatRepository.save(t);
+            log.info("Consigne thermostat Netatmo {} = {}°C", thermostatId, targetTempC);
+            return toDto(t);
         }
 
         // Beaucoup de thermostats Tuya utilisent l'echelle 1 (valeur entiere = °C x10).

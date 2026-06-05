@@ -2,21 +2,26 @@ package com.clenzy.integration.netatmo.controller;
 
 import com.clenzy.dto.netatmo.NetatmoConfigStatusDto;
 import com.clenzy.dto.netatmo.NetatmoConnectionStatusDto;
+import com.clenzy.dto.netatmo.NetatmoModuleDto;
 import com.clenzy.dto.netatmo.UpdateNetatmoConfigDto;
 import com.clenzy.integration.netatmo.model.NetatmoConnection;
+import com.clenzy.integration.netatmo.service.NetatmoApiService;
 import com.clenzy.integration.netatmo.service.NetatmoOAuthService;
 import com.clenzy.integration.netatmo.service.NetatmoPlatformConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -38,11 +43,55 @@ public class NetatmoController {
 
     private final NetatmoOAuthService oAuthService;
     private final NetatmoPlatformConfigService configService;
+    private final NetatmoApiService apiService;
 
     public NetatmoController(NetatmoOAuthService oAuthService,
-                             NetatmoPlatformConfigService configService) {
+                             NetatmoPlatformConfigService configService,
+                             NetatmoApiService apiService) {
         this.oAuthService = oAuthService;
         this.configService = configService;
+        this.apiService = apiService;
+    }
+
+    // ─── Découverte d'appareils (pour le wizard d'ajout) ───
+
+    @GetMapping("/devices")
+    @Operation(summary = "Liste les modules Netatmo découverts (station météo) pour l'ajout d'un capteur")
+    public ResponseEntity<?> listDevices(@AuthenticationPrincipal Jwt jwt) {
+        try {
+            List<NetatmoModuleDto> modules = apiService.listWeatherModules(jwt.getSubject());
+            return ResponseEntity.ok(modules);
+        } catch (Exception e) {
+            log.error("Erreur liste devices Netatmo: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "api_error", "message", "Compte Netatmo non relié ou indisponible"));
+        }
+    }
+
+    @GetMapping("/thermostats")
+    @Operation(summary = "Liste les thermostats / vannes Netatmo découverts (pour l'ajout d'un thermostat)")
+    public ResponseEntity<?> listThermostats(@AuthenticationPrincipal Jwt jwt) {
+        try {
+            List<NetatmoModuleDto> thermostats = apiService.listThermostats(jwt.getSubject());
+            return ResponseEntity.ok(thermostats);
+        } catch (Exception e) {
+            log.error("Erreur liste thermostats Netatmo: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "api_error", "message", "Compte Netatmo non relié ou indisponible"));
+        }
+    }
+
+    @GetMapping("/security")
+    @Operation(summary = "Liste les modules sécurité Netatmo (détecteur fumée, door tags) découverts")
+    public ResponseEntity<?> listSecurity(@AuthenticationPrincipal Jwt jwt) {
+        try {
+            List<NetatmoModuleDto> modules = apiService.listSecurityModules(jwt.getSubject());
+            return ResponseEntity.ok(modules);
+        } catch (Exception e) {
+            log.error("Erreur liste sécurité Netatmo: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "api_error", "message", "Compte Netatmo non relié ou indisponible"));
+        }
     }
 
     // ─── Configuration de l'app Netatmo (credentials plateforme, editables depuis l'UI) ───
@@ -92,27 +141,28 @@ public class NetatmoController {
         }
     }
 
+    /**
+     * Callback OAuth Netatmo. PUBLIC : appele par une redirection navigateur depuis Netatmo
+     * (pas de JWT/session) → {@code permitAll()} pour ne pas etre bloque par la method-security
+     * de classe. L'org est resolue via le state Redis (stocke au /connect authentifie), pas le
+     * TenantContext. Redirige vers les Reglages (UX) plutot que de renvoyer du JSON brut.
+     */
     @GetMapping("/callback")
     @Operation(summary = "Callback OAuth Netatmo")
-    public ResponseEntity<Map<String, Object>> callback(
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<Void> callback(
             @RequestParam("code") String code,
             @RequestParam("state") String state) {
+        String target;
         try {
-            String userId = oAuthService.validateAndConsumeState(state);
-            oAuthService.exchangeCodeForToken(code, userId);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "connected");
-            response.put("message", "Connexion Netatmo etablie avec succes");
-            return ResponseEntity.ok(response);
-
+            NetatmoOAuthService.OAuthState st = oAuthService.consumeState(state);
+            oAuthService.exchangeCodeForToken(code, st.userId(), st.organizationId());
+            target = "/settings?tab=integrations&netatmo=connected";
         } catch (Exception e) {
             log.error("Erreur callback OAuth Netatmo: {}", e.getMessage());
-            Map<String, Object> error = new HashMap<>();
-            error.put("status", "error");
-            error.put("message", "Echec de la connexion Netatmo");
-            return ResponseEntity.internalServerError().body(error);
+            target = "/settings?tab=integrations&netatmo=error";
         }
+        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(target)).build();
     }
 
     @PostMapping("/disconnect")

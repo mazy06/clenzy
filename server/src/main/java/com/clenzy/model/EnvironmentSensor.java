@@ -94,6 +94,14 @@ public class EnvironmentSensor {
     @Column(name = "smoke_detected")
     private Boolean smokeDetected;
 
+    /** Station meteo (Netatmo) : CO2 (ppm). */
+    @Column(name = "co2")
+    private Integer co2;
+
+    /** Station meteo (Netatmo) : niveau sonore (dB). */
+    @Column(name = "noise_db")
+    private Integer noiseDb;
+
     @Column(name = "last_seen_at")
     private LocalDateTime lastSeenAt;
 
@@ -181,6 +189,12 @@ public class EnvironmentSensor {
 
     public Boolean getSmokeDetected() { return smokeDetected; }
     public void setSmokeDetected(Boolean smokeDetected) { this.smokeDetected = smokeDetected; }
+
+    public Integer getCo2() { return co2; }
+    public void setCo2(Integer co2) { this.co2 = co2; }
+
+    public Integer getNoiseDb() { return noiseDb; }
+    public void setNoiseDb(Integer noiseDb) { this.noiseDb = noiseDb; }
 
     public LocalDateTime getLastSeenAt() { return lastSeenAt; }
     public void setLastSeenAt(LocalDateTime lastSeenAt) { this.lastSeenAt = lastSeenAt; }
