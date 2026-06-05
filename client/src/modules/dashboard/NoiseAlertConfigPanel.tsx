@@ -106,13 +106,31 @@ export interface NoiseAlertConfigHandle {
   canSave: boolean;
 }
 
+/**
+ * Instantané de l'état de sauvegarde émis vers le parent via {@link NoiseAlertConfigPanelProps.onStatusChange}.
+ * Permet à un bouton « Sauvegarder » externe de réagir de façon fiable (sans lire la ref en render).
+ */
+export interface NoiseAlertConfigStatus {
+  canSave: boolean;
+  isSaving: boolean;
+  isSaved: boolean;
+  hasError: boolean;
+}
+
 interface NoiseAlertConfigPanelProps {
   propertyIds: number[];
   /** Appelé à chaque changement de slider pour mettre à jour les lignes du graphique en temps réel. */
   onThresholdsChange?: (thresholds: ActiveThresholds) => void;
+  /** Émis à chaque évolution de l'état de sauvegarde — pour piloter un bouton « Sauvegarder » externe. */
+  onStatusChange?: (status: NoiseAlertConfigStatus) => void;
+  /**
+   * `embedded` : panneau intégré au détail d'un capteur (logement déjà fixé) →
+   * masque le sélecteur de logement redondant.
+   */
+  embedded?: boolean;
 }
 
-const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfigPanelProps>(({ propertyIds, onThresholdsChange }, ref) => {
+const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfigPanelProps>(({ propertyIds, onThresholdsChange, onStatusChange, embedded = false }, ref) => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(
     propertyIds.length > 0 ? propertyIds[0] : null,
   );
@@ -250,14 +268,22 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
     );
   }, [selectedPropertyId, form, saveMutation]);
 
-  // Exposer save() au parent via ref
+  const canSave = form.enabled && form.timeWindows.length > 0;
+
+  // Exposer save() au parent via ref (déclenchement impératif).
   useImperativeHandle(ref, () => ({
     save: handleSave,
     isSaving: saveMutation.isPending,
     isSaved: saved,
     hasError: saveMutation.isError,
-    canSave: form.enabled && form.timeWindows.length > 0,
-  }), [handleSave, saveMutation.isPending, saved, saveMutation.isError, form.enabled, form.timeWindows.length]);
+    canSave,
+  }), [handleSave, saveMutation.isPending, saved, saveMutation.isError, canSave]);
+
+  // Émettre l'état de sauvegarde vers le parent (bouton « Sauvegarder » externe fiable,
+  // sans lire la ref pendant le render — cf. règles des hooks React).
+  useEffect(() => {
+    onStatusChange?.({ canSave, isSaving: saveMutation.isPending, isSaved: saved, hasError: saveMutation.isError });
+  }, [onStatusChange, canSave, saveMutation.isPending, saved, saveMutation.isError]);
 
   if (propertyIds.length === 0) return null;
 
@@ -273,19 +299,21 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
             </Typography>
           </Box>
 
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <Select
-              value={selectedPropertyId || ''}
-              onChange={(e) => setSelectedPropertyId(Number(e.target.value))}
-              sx={{ fontSize: '0.8125rem', height: 32 }}
-            >
-              {properties.map(p => (
-                <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
-                  {p.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {!embedded && (
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <Select
+                value={selectedPropertyId || ''}
+                onChange={(e) => setSelectedPropertyId(Number(e.target.value))}
+                sx={{ fontSize: '0.8125rem', height: 32 }}
+              >
+                {properties.map(p => (
+                  <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
+                    {p.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
 
           {!configQuery.isLoading && (
             <FormControlLabel
@@ -299,7 +327,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
               }
               label={
                 <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
-                  Alertes activees
+                  Alertes activées
                 </Typography>
               }
               sx={{ ml: 'auto', mr: 0 }}
@@ -323,7 +351,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                   <Grid item xs={12} md={7}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                       <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary', letterSpacing: '0.04em' }}>
-                        Creneaux horaires
+                        Créneaux horaires
                       </Typography>
                       <Button
                         size="small"
