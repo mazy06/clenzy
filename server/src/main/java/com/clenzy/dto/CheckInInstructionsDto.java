@@ -14,6 +14,7 @@ public record CheckInInstructionsDto(
     String houseRules,
     String emergencyContact,
     String additionalNotes,
+    String arrivalPhotos,
     String updatedAt
 ) {
     public static CheckInInstructionsDto fromEntity(CheckInInstructions e) {
@@ -29,6 +30,7 @@ public record CheckInInstructionsDto(
             e.getHouseRules(),
             e.getEmergencyContact(),
             e.getAdditionalNotes(),
+            e.getArrivalPhotos(),
             e.getUpdatedAt() != null ? e.getUpdatedAt().toString() : null
         );
     }

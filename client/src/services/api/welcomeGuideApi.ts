@@ -160,6 +160,8 @@ export interface PublicGuidePractical {
   houseRules: string | null;
   emergencyContact: string | null;
   additionalNotes: string | null;
+  /** JSON [{key, caption}] — photos d'indication d'accès (servies via le token). */
+  arrivalPhotos: string | null;
 }
 
 export interface PublicGuideStay {

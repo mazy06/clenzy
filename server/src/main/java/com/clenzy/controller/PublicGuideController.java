@@ -16,13 +16,16 @@ import com.clenzy.service.WelcomeGuideAnalyticsService;
 import com.clenzy.service.WelcomeGuideEntryService;
 import com.clenzy.service.WelcomeGuideService;
 import jakarta.validation.Valid;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/public/guide")
@@ -83,6 +86,26 @@ public class PublicGuideController {
     @GetMapping("/{token}/activities")
     public ResponseEntity<List<ActivityDto>> listActivities(@PathVariable UUID token) {
         return ResponseEntity.ok(activityService.searchForGuide(token, 12));
+    }
+
+    /** Sert une photo d'indication d'accès (token-scopé). Clé en query param (peut contenir des '/'). */
+    @GetMapping("/{token}/access-photos")
+    public ResponseEntity<byte[]> getAccessPhoto(@PathVariable UUID token, @RequestParam("key") String key) {
+        return guideService.getAccessPhotoBytes(token, key)
+            .map(data -> ResponseEntity.ok()
+                .contentType(sniffImageType(data))
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())
+                .body(data))
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    private static MediaType sniffImageType(byte[] d) {
+        if (d.length >= 2 && (d[0] & 0xFF) == 0xFF && (d[1] & 0xFF) == 0xD8) return MediaType.IMAGE_JPEG;
+        if (d.length >= 4 && (d[0] & 0xFF) == 0x89 && d[1] == 'P' && d[2] == 'N' && d[3] == 'G') return MediaType.IMAGE_PNG;
+        if (d.length >= 3 && d[0] == 'G' && d[1] == 'I' && d[2] == 'F') return MediaType.IMAGE_GIF;
+        if (d.length >= 12 && d[0] == 'R' && d[1] == 'I' && d[2] == 'F' && d[3] == 'F'
+                && d[8] == 'W' && d[9] == 'E' && d[10] == 'B' && d[11] == 'P') return MediaType.parseMediaType("image/webp");
+        return MediaType.IMAGE_JPEG;
     }
 
     @GetMapping("/{token}/upsells")
