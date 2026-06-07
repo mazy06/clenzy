@@ -100,6 +100,8 @@ export interface CheckInInstructions {
   houseRules: string | null;
   emergencyContact: string | null;
   additionalNotes: string | null;
+  /** JSON [{key, caption}] — photos d'indication d'accès. Géré séparément (état accessPhotos). */
+  arrivalPhotos?: string | null;
   updatedAt: string | null;
 }
 
@@ -174,6 +176,13 @@ export const airbnbApi = {
 
   updateCheckInInstructions: (propertyId: number, data: UpdateCheckInInstructions): Promise<CheckInInstructions> =>
     apiClient.put(`/properties/${propertyId}/check-in-instructions`, data),
+
+  /** Upload d'une photo d'indication d'accès → renvoie la clé de stockage à placer dans arrivalPhotos. */
+  uploadAccessPhoto: (propertyId: number, file: File): Promise<{ key: string }> => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.upload(`/properties/${propertyId}/check-in-instructions/access-photos`, form);
+  },
 
   // ── Channel Health (per-property) ──
   getPropertyChannelStatus: (propertyId: number): Promise<{

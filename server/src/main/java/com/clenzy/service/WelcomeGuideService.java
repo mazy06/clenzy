@@ -4,6 +4,7 @@ import com.clenzy.config.GuideConfig;
 import com.clenzy.dto.WelcomeGuidePublicDto;
 import com.clenzy.dto.WelcomeGuideRequest;
 import com.clenzy.service.access.AccessCodeResolverService;
+import com.clenzy.service.PhotoStorageService;
 import com.clenzy.model.*;
 import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyRepository;
@@ -39,6 +40,7 @@ public class WelcomeGuideService {
     private final GuideConfig guideConfig;
     private final AccessCodeResolverService accessCodeResolverService;
     private final OnlineCheckInService onlineCheckInService;
+    private final PhotoStorageService photoStorageService;
 
     public WelcomeGuideService(WelcomeGuideRepository guideRepository,
                                 WelcomeGuideTokenRepository tokenRepository,
@@ -46,7 +48,8 @@ public class WelcomeGuideService {
                                 CheckInInstructionsRepository checkInInstructionsRepository,
                                 GuideConfig guideConfig,
                                 AccessCodeResolverService accessCodeResolverService,
-                                OnlineCheckInService onlineCheckInService) {
+                                OnlineCheckInService onlineCheckInService,
+                                PhotoStorageService photoStorageService) {
         this.guideRepository = guideRepository;
         this.tokenRepository = tokenRepository;
         this.propertyRepository = propertyRepository;
@@ -54,6 +57,7 @@ public class WelcomeGuideService {
         this.guideConfig = guideConfig;
         this.accessCodeResolverService = accessCodeResolverService;
         this.onlineCheckInService = onlineCheckInService;
+        this.photoStorageService = photoStorageService;
     }
 
     @Transactional
@@ -276,6 +280,27 @@ public class WelcomeGuideService {
         return tokenRepository.findByToken(token)
             .filter(WelcomeGuideToken::isCurrentlyValid)
             .flatMap(this::buildPublicPayload);
+    }
+
+    /**
+     * Sert une photo d'indication d'acces pour un token guest valide. Verifie que la cle
+     * appartient bien aux {@code arrivalPhotos} des instructions du logement du livret
+     * (token-scope), puis recupere le binaire via {@link PhotoStorageService}. Vide si token
+     * invalide / livret non publie / cle inconnue.
+     */
+    @Transactional(readOnly = true)
+    public Optional<byte[]> getAccessPhotoBytes(UUID token, String key) {
+        if (key == null || key.isBlank()) {
+            return Optional.empty();
+        }
+        return tokenRepository.findByToken(token)
+            .filter(WelcomeGuideToken::isCurrentlyValid)
+            .map(WelcomeGuideToken::getGuide)
+            .filter(g -> g != null && g.isPublished() && g.getProperty() != null)
+            .flatMap(g -> checkInInstructionsRepository.findByPropertyId(g.getProperty().getId()))
+            .filter(ci -> ci.getArrivalPhotos() != null
+                && ci.getArrivalPhotos().contains("\"" + key + "\""))
+            .map(ci -> photoStorageService.retrieve(key));
     }
 
     /** Contexte du chatbot guest : org (résolution IA), langue, et contenu du livret sérialisé. */

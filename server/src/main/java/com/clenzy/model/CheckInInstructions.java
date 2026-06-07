@@ -60,6 +60,11 @@ public class CheckInInstructions {
     @Column(name = "additional_notes", columnDefinition = "TEXT")
     private String additionalNotes;
 
+    /** Photos d'indication d'acces (JSON : [{key, caption}]). Pass-through, servi a la page guest. */
+    @Column(name = "arrival_photos", columnDefinition = "JSONB", nullable = false)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    private String arrivalPhotos = "[]";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -116,6 +121,9 @@ public class CheckInInstructions {
 
     public String getAdditionalNotes() { return additionalNotes; }
     public void setAdditionalNotes(String additionalNotes) { this.additionalNotes = additionalNotes; }
+
+    public String getArrivalPhotos() { return arrivalPhotos; }
+    public void setArrivalPhotos(String arrivalPhotos) { this.arrivalPhotos = arrivalPhotos; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

@@ -52,7 +52,9 @@ public record WelcomeGuidePublicDto(
         String departureInstructions,
         String houseRules,
         String emergencyContact,
-        String additionalNotes
+        String additionalNotes,
+        /** JSON [{key, caption}] — photos d'indication d'acces ; le front construit l'URL via le token. */
+        String arrivalPhotos
     ) {}
 
     /** Check-in en ligne lie au sejour (nullable si non configure pour ce sejour). */
@@ -88,7 +90,8 @@ public record WelcomeGuidePublicDto(
             ci != null ? ci.getDepartureInstructions() : null,
             ci != null ? ci.getHouseRules() : null,
             resolveEmergency(ci, p),
-            ci != null ? ci.getAdditionalNotes() : null
+            ci != null ? ci.getAdditionalNotes() : null,
+            ci != null && ci.getArrivalPhotos() != null ? ci.getArrivalPhotos() : "[]"
         );
 
         StayInfo stayInfo = (r == null) ? null : new StayInfo(
