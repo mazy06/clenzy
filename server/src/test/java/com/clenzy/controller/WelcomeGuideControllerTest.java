@@ -106,9 +106,8 @@ class WelcomeGuideControllerTest {
     void create_delegatesToService() {
         when(tenantContext.getOrganizationId()).thenReturn(7L);
         WelcomeGuideRequest req = new WelcomeGuideRequest(99L, "Welcome", "fr",
-                "[]", "#000000", "https://logo", false, true, true, true, "[]");
-        when(guideService.createGuide(eq(7L), eq(99L), eq("Welcome"), eq("fr"), eq("[]"),
-                eq("#000000"), eq("https://logo"), eq(true), eq(true), eq(true), eq("[]"))).thenReturn(guide(1L));
+                "[]", "#000000", "https://logo", false, true, true, true, "[]", "[]");
+        when(guideService.createGuide(eq(7L), any(WelcomeGuideRequest.class))).thenReturn(guide(1L));
 
         ResponseEntity<WelcomeGuideDto> response = controller.create(req);
 
@@ -120,9 +119,8 @@ class WelcomeGuideControllerTest {
     void update_delegatesToService() {
         when(tenantContext.getOrganizationId()).thenReturn(7L);
         WelcomeGuideRequest req = new WelcomeGuideRequest(99L, "Updated", "fr",
-                "[]", "#ffffff", "https://logo", true, true, true, true, "[]");
-        when(guideService.updateGuide(eq(1L), eq(7L), eq("Updated"), eq("[]"),
-                eq("#ffffff"), eq("https://logo"), eq(true), eq(true), eq(true), eq(true), eq("[]"))).thenReturn(guide(1L));
+                "[]", "#ffffff", "https://logo", true, true, true, true, "[]", "[]");
+        when(guideService.updateGuide(eq(1L), eq(7L), any(WelcomeGuideRequest.class))).thenReturn(guide(1L));
 
         ResponseEntity<WelcomeGuideDto> response = controller.update(1L, req);
 

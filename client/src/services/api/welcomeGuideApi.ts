@@ -13,6 +13,8 @@ export interface WelcomeGuide {
   sections: string;
   /** JSON string : tableau de {@link GuidePoi} ("autour de moi"). */
   pois: string;
+  /** JSON string : tableau de {@link GuideActivity} (activités curées par l'hôte). */
+  curatedActivities: string;
   brandingColor: string;
   logoUrl: string | null;
   published: boolean;
@@ -35,6 +37,7 @@ export interface WelcomeGuideRequest {
   guestbookEnabled?: boolean;
   activitiesEnabled?: boolean;
   pois?: string;
+  curatedActivities?: string;
 }
 
 /** Resultat de generation d'un lien d'acces (token + URL publique). */
@@ -83,6 +86,21 @@ export interface GuidePoi {
   lat: number | null;
   lng: number | null;
   note: string;
+}
+
+/** Activité curée par l'hôte sur son livret (manuelle aujourd'hui ; pool fournisseur à terme). */
+export interface GuideActivity {
+  id: string;
+  /** 'MANUAL' aujourd'hui ; 'VIATOR' | 'GETYOURGUIDE' | 'KLOOK' quand importée du pool fournisseur. */
+  source: string;
+  externalId: string | null;
+  title: string;
+  imageUrl: string | null;
+  price: string | null;
+  bookingUrl: string;
+  description: string;
+  /** Mise en avant (affichée en premier, badge). */
+  featured: boolean;
 }
 
 // ─── Analytics (cote hote) ────────────────────────────────────────────────────
@@ -156,6 +174,7 @@ export interface PublicGuide {
   logoUrl: string | null;
   sections: string;
   pois: string;
+  curatedActivities: string;
   property: PublicGuideProperty | null;
   practical: PublicGuidePractical | null;
   stay: PublicGuideStay | null;
@@ -238,5 +257,44 @@ export function parsePois(json: string | null | undefined): GuidePoi[] {
 export function serializePois(pois: GuidePoi[]): string {
   return JSON.stringify(
     pois.map(({ id, category, name, address, lat, lng, note }) => ({ id, category, name, address, lat, lng, note })),
+  );
+}
+
+export function parseActivities(json: string | null | undefined): GuideActivity[] {
+  if (!json) return [];
+  try {
+    const arr: unknown = JSON.parse(json);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((a): a is Record<string, unknown> => !!a && typeof a === 'object')
+      .map((a, i) => ({
+        id: typeof a.id === 'string' ? a.id : `act-${i}`,
+        source: typeof a.source === 'string' ? a.source : 'MANUAL',
+        externalId: typeof a.externalId === 'string' ? a.externalId : null,
+        title: typeof a.title === 'string' ? a.title : '',
+        imageUrl: typeof a.imageUrl === 'string' ? a.imageUrl : null,
+        price: typeof a.price === 'string' ? a.price : null,
+        bookingUrl: typeof a.bookingUrl === 'string' ? a.bookingUrl : '',
+        description: typeof a.description === 'string' ? a.description : '',
+        featured: a.featured === true,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export function serializeActivities(items: GuideActivity[]): string {
+  return JSON.stringify(
+    items.map(({ id, source, externalId, title, imageUrl, price, bookingUrl, description, featured }) => ({
+      id,
+      source,
+      externalId,
+      title,
+      imageUrl,
+      price,
+      bookingUrl,
+      description,
+      featured,
+    })),
   );
 }

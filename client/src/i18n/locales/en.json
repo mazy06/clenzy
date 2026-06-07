@@ -111,6 +111,18 @@
       "located": "Location found",
       "queryTooShort": "Enter a name or address to locate",
       "notFound": "Place not found — refine the address"
+    },
+    "curation": {
+      "title": "Activities to offer",
+      "hint": "Choose which activities to show on the guide and feature some of them.",
+      "add": "Add an activity",
+      "empty": "No activity yet. Add your excursions and bookable tips.",
+      "activityTitle": "Title",
+      "price": "Price",
+      "bookingUrl": "Booking link",
+      "imageUrl": "Image URL (optional)",
+      "description": "Description (optional)",
+      "featured": "Feature"
     }
   },
   "appUpdate": {

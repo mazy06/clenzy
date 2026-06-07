@@ -1959,3 +1959,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Curation d'activites par l'hote (welcome_guides.curated_activities).
+  - changeSet:
+      id: "0201-add-welcome-guide-curated-activities"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0201__add_welcome_guide_curated_activities.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
