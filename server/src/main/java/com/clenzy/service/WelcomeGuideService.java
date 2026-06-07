@@ -9,6 +9,7 @@ import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.WelcomeGuideRepository;
 import com.clenzy.repository.WelcomeGuideTokenRepository;
+import org.springframework.data.domain.Sort;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
@@ -59,8 +60,18 @@ public class WelcomeGuideService {
         Property property = propertyRepository.findById(req.propertyId())
             .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + req.propertyId()));
 
+        // L'organisation du livret = celle de son logement. Plus correct (un livret
+        // appartient a l'org du bien) et fonctionne pour le staff plateforme dont le
+        // contexte org est null. Repli sur le contexte org si le logement n'en a pas.
+        Long resolvedOrgId = property.getOrganizationId() != null ? property.getOrganizationId() : orgId;
+        if (resolvedOrgId == null) {
+            throw new IllegalStateException(
+                "Impossible de determiner l'organisation du livret : le logement #"
+                + property.getId() + " n'a pas d'organisation.");
+        }
+
         WelcomeGuide guide = new WelcomeGuide();
-        guide.setOrganizationId(orgId);
+        guide.setOrganizationId(resolvedOrgId);
         guide.setProperty(property);
         guide.setTitle(req.title());
         guide.setLanguage(req.language() != null ? req.language() : "fr");
@@ -79,8 +90,7 @@ public class WelcomeGuideService {
     /** Met a jour un livret. Le logement et la langue ne sont pas modifiables apres creation (ignores). */
     @Transactional
     public WelcomeGuide updateGuide(Long guideId, Long orgId, WelcomeGuideRequest req) {
-        WelcomeGuide guide = guideRepository.findByIdAndOrganizationId(guideId, orgId)
-            .orElseThrow(() -> new IllegalArgumentException("Guide introuvable: " + guideId));
+        WelcomeGuide guide = loadGuide(guideId, orgId);
 
         if (req.title() != null) guide.setTitle(req.title());
         if (req.sections() != null) guide.setSections(req.sections());
@@ -97,11 +107,28 @@ public class WelcomeGuideService {
     }
 
     public Optional<WelcomeGuide> getById(Long id, Long orgId) {
-        return guideRepository.findByIdAndOrganizationId(id, orgId);
+        // Staff plateforme (org de contexte null) : accès cross-org par id.
+        return orgId != null
+            ? guideRepository.findByIdAndOrganizationId(id, orgId)
+            : guideRepository.findById(id);
     }
 
     public List<WelcomeGuide> getAll(Long orgId) {
-        return guideRepository.findByOrganizationIdOrderByCreatedAtDesc(orgId);
+        // Staff plateforme (org de contexte null) : vue cross-org de tous les livrets.
+        return orgId != null
+            ? guideRepository.findByOrganizationIdOrderByCreatedAtDesc(orgId)
+            : guideRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+    }
+
+    /**
+     * Charge un livret en respectant le scope organisation. Pour le staff plateforme
+     * (orgId null), accès cross-org par id. Lève si introuvable.
+     */
+    private WelcomeGuide loadGuide(Long guideId, Long orgId) {
+        return (orgId != null
+                ? guideRepository.findByIdAndOrganizationId(guideId, orgId)
+                : guideRepository.findById(guideId))
+            .orElseThrow(() -> new IllegalArgumentException("Guide introuvable: " + guideId));
     }
 
     public List<WelcomeGuide> getByProperty(Long propertyId, Long orgId) {
@@ -110,8 +137,7 @@ public class WelcomeGuideService {
 
     @Transactional
     public WelcomeGuideToken generateToken(Long guideId, Long orgId, Reservation reservation) {
-        WelcomeGuide guide = guideRepository.findByIdAndOrganizationId(guideId, orgId)
-            .orElseThrow(() -> new IllegalArgumentException("Guide introuvable: " + guideId));
+        WelcomeGuide guide = loadGuide(guideId, orgId);
 
         WelcomeGuideToken token = new WelcomeGuideToken();
         token.setOrganizationId(orgId);
@@ -359,8 +385,7 @@ public class WelcomeGuideService {
 
     @Transactional
     public void deleteGuide(Long guideId, Long orgId) {
-        WelcomeGuide guide = guideRepository.findByIdAndOrganizationId(guideId, orgId)
-            .orElseThrow(() -> new IllegalArgumentException("Guide introuvable: " + guideId));
+        WelcomeGuide guide = loadGuide(guideId, orgId);
         guideRepository.delete(guide);
     }
 }

@@ -92,7 +92,11 @@ public class WelcomeGuideAnalyticsService {
     /** Statistiques agregees d'un livret. Vide si le livret n'appartient pas a l'org. */
     @Transactional(readOnly = true)
     public Optional<WelcomeGuideStatsDto> getStats(Long guideId, Long orgId) {
-        if (guideRepository.findByIdAndOrganizationId(guideId, orgId).isEmpty()) {
+        // Staff plateforme (orgId null) : accès cross-org par id.
+        var owned = orgId != null
+            ? guideRepository.findByIdAndOrganizationId(guideId, orgId)
+            : guideRepository.findById(guideId);
+        if (owned.isEmpty()) {
             return Optional.empty();
         }
         Map<WelcomeGuideEventType, Long> counts = new EnumMap<>(WelcomeGuideEventType.class);

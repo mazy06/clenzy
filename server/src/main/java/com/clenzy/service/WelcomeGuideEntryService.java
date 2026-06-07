@@ -67,7 +67,11 @@ public class WelcomeGuideEntryService {
     /** Liste cote hote (org-scopee via le livret). */
     @Transactional(readOnly = true)
     public List<GuestbookEntryDto> listForGuide(Long guideId, Long orgId) {
-        return guideRepository.findByIdAndOrganizationId(guideId, orgId)
+        // Staff plateforme (orgId null) : accès cross-org par id.
+        var guide = orgId != null
+            ? guideRepository.findByIdAndOrganizationId(guideId, orgId)
+            : guideRepository.findById(guideId);
+        return guide
             .map(g -> entryRepository.findByGuideIdOrderByCreatedAtDesc(g.getId())
                 .stream().map(GuestbookEntryDto::from).toList())
             .orElseGet(List::of);
