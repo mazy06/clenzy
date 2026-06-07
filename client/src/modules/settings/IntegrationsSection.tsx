@@ -54,8 +54,23 @@ import ChannelManagerProviderCard from './components/ChannelManagerProviderCard'
 import ChannexMappingDialog from './components/ChannexMappingDialog';
 import OtaShowcaseSection from './components/OtaShowcaseSection';
 import ServiceCatalogSection from './components/ServiceCatalogSection';
-import ActivitiesConfigDialog from './components/ActivitiesConfigDialog';
+import ActivityProviderConfigForm from './components/ActivityProviderConfigForm';
 import IntegrationsWhatsAppConfig from './IntegrationsWhatsAppConfig';
+import type { ActivityProvider } from '../../services/api/activitiesApi';
+import type { CatalogService } from '../../services/integrations/servicesCatalog';
+
+/** Map id de service catalogue → fournisseur d'activités (config in-modal). */
+const ACTIVITY_PROVIDER_BY_SERVICE: Record<string, ActivityProvider> = {
+  viator: 'VIATOR',
+  getyourguide: 'GETYOURGUIDE',
+  klook: 'KLOOK',
+};
+
+/** Formulaire de config d'affiliation rendu dans le modal du marketplace (si configurable). */
+function activityConfigForService(service: CatalogService): React.ReactNode {
+  const provider = ACTIVITY_PROVIDER_BY_SERVICE[service.id];
+  return provider && service.available ? <ActivityProviderConfigForm provider={provider} /> : null;
+}
 import ServiceGridCard from './components/ServiceGridCard';
 import BrevoConfigCard from './components/BrevoConfigCard';
 import { useMarketingIntegration } from '../../hooks/useMarketingIntegration';
@@ -169,9 +184,6 @@ export default function IntegrationsSection({
   const [openMarketing, setOpenMarketing] = useState(false);
   const { data: marketingData } = useMarketingIntegration();
   const marketingConfigured = !!marketingData?.configured;
-
-  // ─── Activités & affiliation (Viator / GetYourGuide / Klook — connexion org) ──
-  const [activitiesDialogOpen, setActivitiesDialogOpen] = useState(false);
 
   const [status, setStatus] = useState<PennylaneStatus | null>(null);
   const [syncStatus, setSyncStatus] = useState<PennylaneSyncStatus | null>(null);
@@ -1392,21 +1404,10 @@ export default function IntegrationsSection({
             category="activities_affiliate"
             title="Activités & affiliation"
             description="Vendez des activités à vos guests en cross-sell. Commission affiliée 8-20 % par réservation."
+            configForService={activityConfigForService}
           />
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<LinkIcon size={14} strokeWidth={1.75} />}
-              onClick={() => setActivitiesDialogOpen(true)}
-              sx={refinedOutlinedSx(ACCENT)}
-            >
-              {t('welcomeGuide.activities.connect', 'Connecter un fournisseur')}
-            </Button>
-          </Box>
         </Box>
       )}
-      <ActivitiesConfigDialog open={activitiesDialogOpen} onClose={() => setActivitiesDialogOpen(false)} />
       {showSection('reviews_reputation') && (
         <Box id="section-reviews" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
