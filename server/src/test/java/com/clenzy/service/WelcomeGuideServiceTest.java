@@ -8,6 +8,7 @@ import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.WelcomeGuideRepository;
 import com.clenzy.repository.WelcomeGuideTokenRepository;
+import org.springframework.data.domain.Sort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -73,6 +74,59 @@ class WelcomeGuideServiceTest {
         assertThatThrownBy(() -> service.createGuide(1L, new WelcomeGuideRequest(
             999L, "Test", null, null, null, null, null, null, null, null, null, null)))
             .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void createGuide_staffNullOrg_usesPropertyOrganization() {
+        Property property = new Property();
+        property.setId(10L);
+        property.setOrganizationId(7L);
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+        when(guideRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Staff plateforme : contexte org null → l'org doit etre derivee du logement.
+        WelcomeGuide result = service.createGuide(null, new WelcomeGuideRequest(
+            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null));
+
+        assertThat(result.getOrganizationId()).isEqualTo(7L);
+    }
+
+    @Test
+    void createGuide_propertyOrganizationWinsOverContext() {
+        Property property = new Property();
+        property.setId(10L);
+        property.setOrganizationId(7L);
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+        when(guideRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        WelcomeGuide result = service.createGuide(99L, new WelcomeGuideRequest(
+            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null));
+
+        assertThat(result.getOrganizationId()).isEqualTo(7L);
+    }
+
+    @Test
+    void getAll_staffNullOrg_returnsAllGuidesCrossOrg() {
+        when(guideRepository.findAll(any(Sort.class))).thenReturn(List.of(new WelcomeGuide()));
+
+        List<WelcomeGuide> result = service.getAll(null);
+
+        assertThat(result).hasSize(1);
+        verify(guideRepository).findAll(any(Sort.class));
+        verify(guideRepository, never()).findByOrganizationIdOrderByCreatedAtDesc(any());
+    }
+
+    @Test
+    void getById_staffNullOrg_findsByIdCrossOrg() {
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(5L);
+        when(guideRepository.findById(5L)).thenReturn(Optional.of(guide));
+
+        Optional<WelcomeGuide> result = service.getById(5L, null);
+
+        assertThat(result).isPresent();
+        verify(guideRepository).findById(5L);
+        verify(guideRepository, never()).findByIdAndOrganizationId(any(), any());
     }
 
     @Test
