@@ -24,7 +24,10 @@ public record WelcomeGuidePublicDto(
     PropertyInfo property,
     PracticalInfo practical,
     StayInfo stay,
-    CheckInInfo checkIn
+    CheckInInfo checkIn,
+    boolean chatbotEnabled,
+    boolean guestbookEnabled,
+    boolean activitiesEnabled
 ) {
     /** Localisation du logement (pour la carte "autour de moi" + adresse). */
     public record PropertyInfo(
@@ -95,7 +98,8 @@ public record WelcomeGuidePublicDto(
 
         return new WelcomeGuidePublicDto(
             g.getTitle(), g.getLanguage(), g.getBrandingColor(), g.getLogoUrl(), g.getSections(),
-            propertyInfo, practicalInfo, stayInfo, checkIn
+            propertyInfo, practicalInfo, stayInfo, checkIn,
+            g.isChatbotEnabled(), g.isGuestbookEnabled(), g.isActivitiesEnabled()
         );
     }
 

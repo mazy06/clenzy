@@ -502,7 +502,7 @@ const PublicGuide: React.FC = () => {
           ))}
 
         {/* Activités à proximité */}
-        {activities.length > 0
+        {guide.activitiesEnabled && activities.length > 0
           ? block(
               L.activitiesTitle,
               <Stack spacing={1.25}>
@@ -548,7 +548,7 @@ const PublicGuide: React.FC = () => {
           : null}
 
         {/* Livre d'or */}
-        {block(
+        {guide.guestbookEnabled ? block(
           L.guestbookTitle,
           <Box>
             {entries.length > 0 ? (
@@ -611,7 +611,7 @@ const PublicGuide: React.FC = () => {
               </Stack>
             )}
           </Box>,
-        )}
+        ) : null}
 
         <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', mt: 2 }}>
           {L.poweredBy} Clenzy
@@ -619,7 +619,7 @@ const PublicGuide: React.FC = () => {
       </Box>
 
       {/* Chatbot guest (assistant du livret) */}
-      {chatOpen ? (
+      {guide.chatbotEnabled && (chatOpen ? (
         <Box
           sx={{
             position: 'fixed',
@@ -721,7 +721,7 @@ const PublicGuide: React.FC = () => {
         >
           <MessageCircle size={24} strokeWidth={1.75} />
         </IconButton>
-      )}
+      ))}
     </Box>
   );
 };

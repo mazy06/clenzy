@@ -10,5 +10,8 @@ public record WelcomeGuideRequest(
     String sections,
     String brandingColor,
     String logoUrl,
-    Boolean published
+    Boolean published,
+    Boolean chatbotEnabled,
+    Boolean guestbookEnabled,
+    Boolean activitiesEnabled
 ) {}

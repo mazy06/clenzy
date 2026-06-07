@@ -36,15 +36,18 @@ public class GuestChatService {
     private final AiProviderRouter aiProviderRouter;
     private final StringRedisTemplate redisTemplate;
     private final GuideConfig guideConfig;
+    private final AiTokenBudgetService tokenBudgetService;
 
     public GuestChatService(WelcomeGuideService welcomeGuideService,
                             AiProviderRouter aiProviderRouter,
                             StringRedisTemplate redisTemplate,
-                            GuideConfig guideConfig) {
+                            GuideConfig guideConfig,
+                            AiTokenBudgetService tokenBudgetService) {
         this.welcomeGuideService = welcomeGuideService;
         this.aiProviderRouter = aiProviderRouter;
         this.redisTemplate = redisTemplate;
         this.guideConfig = guideConfig;
+        this.tokenBudgetService = tokenBudgetService;
     }
 
     public GuestChatResult answer(UUID token, String message) {
@@ -66,6 +69,13 @@ public class GuestChatService {
             String reply = routed.response() != null ? routed.response().content() : null;
             if (reply == null || reply.isBlank()) {
                 return new GuestChatResult(Status.UNAVAILABLE, fallback(ctx.language(), false));
+            }
+            // Débite l'usage IA sur le budget de l'org (best-effort, ne bloque pas la réponse).
+            try {
+                tokenBudgetService.recordUsage(
+                    ctx.orgId(), AiFeature.ASSISTANT_CHAT, routed.providerName(), routed.response());
+            } catch (Exception e) {
+                log.debug("recordUsage chatbot échoué (token={}): {}", token, e.getMessage());
             }
             return new GuestChatResult(Status.OK, reply.trim());
         } catch (Exception e) {

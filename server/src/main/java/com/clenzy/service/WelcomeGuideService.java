@@ -56,7 +56,8 @@ public class WelcomeGuideService {
     @Transactional
     public WelcomeGuide createGuide(Long orgId, Long propertyId, String title,
                                       String language, String sections,
-                                      String brandingColor, String logoUrl) {
+                                      String brandingColor, String logoUrl,
+                                      Boolean chatbotEnabled, Boolean guestbookEnabled, Boolean activitiesEnabled) {
         Property property = propertyRepository.findById(propertyId)
             .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + propertyId));
 
@@ -68,6 +69,9 @@ public class WelcomeGuideService {
         guide.setSections(sections != null ? sections : "[]");
         if (brandingColor != null) guide.setBrandingColor(brandingColor);
         if (logoUrl != null) guide.setLogoUrl(logoUrl);
+        if (chatbotEnabled != null) guide.setChatbotEnabled(chatbotEnabled);
+        if (guestbookEnabled != null) guide.setGuestbookEnabled(guestbookEnabled);
+        if (activitiesEnabled != null) guide.setActivitiesEnabled(activitiesEnabled);
 
         return guideRepository.save(guide);
     }
@@ -75,7 +79,8 @@ public class WelcomeGuideService {
     @Transactional
     public WelcomeGuide updateGuide(Long guideId, Long orgId, String title,
                                       String sections, String brandingColor,
-                                      String logoUrl, Boolean published) {
+                                      String logoUrl, Boolean published,
+                                      Boolean chatbotEnabled, Boolean guestbookEnabled, Boolean activitiesEnabled) {
         WelcomeGuide guide = guideRepository.findByIdAndOrganizationId(guideId, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Guide introuvable: " + guideId));
 
@@ -84,6 +89,9 @@ public class WelcomeGuideService {
         if (brandingColor != null) guide.setBrandingColor(brandingColor);
         if (logoUrl != null) guide.setLogoUrl(logoUrl);
         if (published != null) guide.setPublished(published);
+        if (chatbotEnabled != null) guide.setChatbotEnabled(chatbotEnabled);
+        if (guestbookEnabled != null) guide.setGuestbookEnabled(guestbookEnabled);
+        if (activitiesEnabled != null) guide.setActivitiesEnabled(activitiesEnabled);
 
         return guideRepository.save(guide);
     }
@@ -236,7 +244,7 @@ public class WelcomeGuideService {
             .filter(WelcomeGuideToken::isCurrentlyValid)
             .flatMap(t -> {
                 WelcomeGuide guide = t.getGuide();
-                if (guide == null || !guide.isPublished()) {
+                if (guide == null || !guide.isPublished() || !guide.isChatbotEnabled()) {
                     return Optional.empty();
                 }
                 return buildPublicPayload(t).map(dto ->

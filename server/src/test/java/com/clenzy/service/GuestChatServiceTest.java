@@ -29,12 +29,14 @@ class GuestChatServiceTest {
     @Mock private AiProviderRouter aiProviderRouter;
     @Mock private StringRedisTemplate redisTemplate;
     @Mock private ValueOperations<String, String> valueOps;
+    @Mock private AiTokenBudgetService tokenBudgetService;
 
     private GuestChatService service;
 
     @BeforeEach
     void setUp() {
-        service = new GuestChatService(welcomeGuideService, aiProviderRouter, redisTemplate, new GuideConfig());
+        service = new GuestChatService(
+            welcomeGuideService, aiProviderRouter, redisTemplate, new GuideConfig(), tokenBudgetService);
     }
 
     @Test
