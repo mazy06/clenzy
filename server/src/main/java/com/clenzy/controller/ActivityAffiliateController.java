@@ -1,8 +1,11 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.ActivityCommissionDto;
+import com.clenzy.dto.ActivityCommissionSummaryDto;
 import com.clenzy.dto.ActivityConfigDto;
 import com.clenzy.dto.UpsertActivityConfigRequest;
 import com.clenzy.model.ActivityProvider;
+import com.clenzy.service.ActivityCommissionService;
 import com.clenzy.service.ActivityService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
@@ -21,10 +24,14 @@ import java.util.List;
 public class ActivityAffiliateController {
 
     private final ActivityService activityService;
+    private final ActivityCommissionService commissionService;
     private final TenantContext tenantContext;
 
-    public ActivityAffiliateController(ActivityService activityService, TenantContext tenantContext) {
+    public ActivityAffiliateController(ActivityService activityService,
+                                       ActivityCommissionService commissionService,
+                                       TenantContext tenantContext) {
         this.activityService = activityService;
+        this.commissionService = commissionService;
         this.tenantContext = tenantContext;
     }
 
@@ -41,4 +48,15 @@ public class ActivityAffiliateController {
             request.apiKey(), request.affiliateId(), request.enabled());
         return ResponseEntity.ok(dto);
     }
+
+    @GetMapping("/commissions")
+    public ResponseEntity<List<ActivityCommissionDto>> listCommissions() {
+        return ResponseEntity.ok(commissionService.listForOrg(tenantContext.getOrganizationId()));
+    }
+
+    @GetMapping("/commissions/summary")
+    public ResponseEntity<ActivityCommissionSummaryDto> commissionsSummary() {
+        return ResponseEntity.ok(commissionService.summaryForOrg(tenantContext.getOrganizationId()));
+    }
 }
+

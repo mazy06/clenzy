@@ -1,11 +1,13 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.GuestbookEntryDto;
+import com.clenzy.dto.PoiSuggestionDto;
 import com.clenzy.dto.WelcomeGuideDto;
 import com.clenzy.dto.WelcomeGuideRequest;
 import com.clenzy.dto.WelcomeGuideStatsDto;
 import com.clenzy.model.WelcomeGuide;
 import com.clenzy.model.WelcomeGuideToken;
+import com.clenzy.service.PoiSuggestionService;
 import com.clenzy.service.WelcomeGuideAnalyticsService;
 import com.clenzy.service.WelcomeGuideEntryService;
 import com.clenzy.service.WelcomeGuideService;
@@ -28,15 +30,18 @@ public class WelcomeGuideController {
     private final WelcomeGuideService guideService;
     private final WelcomeGuideEntryService entryService;
     private final WelcomeGuideAnalyticsService analyticsService;
+    private final PoiSuggestionService poiSuggestionService;
     private final TenantContext tenantContext;
 
     public WelcomeGuideController(WelcomeGuideService guideService,
                                   WelcomeGuideEntryService entryService,
                                   WelcomeGuideAnalyticsService analyticsService,
+                                  PoiSuggestionService poiSuggestionService,
                                   TenantContext tenantContext) {
         this.guideService = guideService;
         this.entryService = entryService;
         this.analyticsService = analyticsService;
+        this.poiSuggestionService = poiSuggestionService;
         this.tenantContext = tenantContext;
     }
 
@@ -69,6 +74,13 @@ public class WelcomeGuideController {
         return analyticsService.getStats(id, orgId)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
+    }
+
+    /** Suggestions de POI « autour de moi » auto-populées (OSM) à partir du logement du livret. */
+    @GetMapping("/{id}/poi-suggestions")
+    public ResponseEntity<List<PoiSuggestionDto>> poiSuggestions(@PathVariable Long id) {
+        Long orgId = tenantContext.getOrganizationId();
+        return ResponseEntity.ok(poiSuggestionService.suggest(id, orgId));
     }
 
     @PostMapping

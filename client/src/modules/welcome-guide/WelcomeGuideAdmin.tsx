@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
@@ -25,7 +26,7 @@ import {
 } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew, Info } from '../../icons';
-import { MessageSquare, Star, BarChart3, Eye, MapPin, MessageCircle, DoorOpen } from 'lucide-react';
+import { MessageSquare, Star, BarChart3, Eye, MapPin, MessageCircle, DoorOpen, Sparkles } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -45,8 +46,9 @@ import {
   type GuideActivity,
   type GuestbookEntry,
   type WelcomeGuideStats,
+  type PoiSuggestion,
 } from '../../services/api/welcomeGuideApi';
-import { POI_CATEGORIES, poiLabel } from './poiCatalog';
+import { POI_CATEGORIES, poiCategory, poiLabel } from './poiCatalog';
 import { nominatimApi } from '../../services/nominatimApi';
 
 type View = 'list' | 'form';
@@ -83,6 +85,12 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [pois, setPois] = useState<GuidePoi[]>([]);
   const [geocoding, setGeocoding] = useState<string | null>(null);
   const [curatedActivities, setCuratedActivities] = useState<GuideActivity[]>([]);
+  const [suggest, setSuggest] = useState<{ open: boolean; loading: boolean; items: PoiSuggestion[]; selected: Set<number> }>({
+    open: false,
+    loading: false,
+    items: [],
+    selected: new Set(),
+  });
 
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: AlertColor }>({
     open: false,
@@ -278,6 +286,46 @@ const WelcomeGuideAdmin: React.FC = () => {
     } finally {
       setGeocoding(null);
     }
+  };
+
+  // Suggestions auto (OSM) autour du logement → import sélectif dans les POI.
+  const openSuggest = async () => {
+    if (editingId == null) {
+      notify(t('welcomeGuide.pois.suggestSaveFirst', "Enregistrez d'abord le livret pour suggérer des lieux"), 'info');
+      return;
+    }
+    setSuggest({ open: true, loading: true, items: [], selected: new Set() });
+    try {
+      const items = await welcomeGuideApi.suggestPois(editingId);
+      setSuggest({ open: true, loading: false, items, selected: new Set() });
+    } catch {
+      setSuggest({ open: false, loading: false, items: [], selected: new Set() });
+      notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
+    }
+  };
+  const toggleSuggest = (idx: number) =>
+    setSuggest((s) => {
+      const selected = new Set(s.selected);
+      if (selected.has(idx)) selected.delete(idx);
+      else selected.add(idx);
+      return { ...s, selected };
+    });
+  const addSuggested = () => {
+    setPois((prev) => [
+      ...prev,
+      ...suggest.items
+        .filter((_, i) => suggest.selected.has(i))
+        .map((sug, i) => ({
+          id: `poi-${Date.now()}-${i}`,
+          category: sug.category,
+          name: sug.name,
+          address: sug.address ?? '',
+          lat: sug.lat,
+          lng: sug.lng,
+          note: '',
+        })),
+    ]);
+    setSuggest({ open: false, loading: false, items: [], selected: new Set() });
   };
 
   // ─── Curation d'activités ("met en avant" = featured) ──────────────────────
@@ -550,9 +598,14 @@ const WelcomeGuideAdmin: React.FC = () => {
               {t('welcomeGuide.pois.hint', 'Recommandations géolocalisées affichées sur une carte dans le livret.')}
             </Typography>
           </Box>
-          <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addPoi}>
-            {t('welcomeGuide.pois.add', 'Ajouter un lieu')}
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+            <Button size="small" startIcon={<Sparkles size={14} strokeWidth={1.75} />} onClick={openSuggest}>
+              {t('welcomeGuide.pois.suggest', 'Suggérer')}
+            </Button>
+            <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addPoi}>
+              {t('welcomeGuide.pois.add', 'Ajouter un lieu')}
+            </Button>
+          </Box>
         </Box>
 
         {pois.length === 0 ? (
@@ -939,6 +992,59 @@ const WelcomeGuideAdmin: React.FC = () => {
         <DialogActions>
           <Button onClick={() => setStats((s) => ({ ...s, open: false }))}>
             {t('welcomeGuide.actions.close', 'Fermer')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Suggestions auto (OSM) autour du logement */}
+      <Dialog open={suggest.open} onClose={() => setSuggest((s) => ({ ...s, open: false }))} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('welcomeGuide.pois.suggestTitle', 'Suggestions autour du logement')}</DialogTitle>
+        <DialogContent dividers>
+          {suggest.loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : suggest.items.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              {t('welcomeGuide.pois.suggestEmpty', 'Aucune suggestion trouvée autour du logement.')}
+            </Typography>
+          ) : (
+            <Stack spacing={0.25}>
+              {suggest.items.map((sug, i) => {
+                const cat = poiCategory(sug.category);
+                const CatIcon = cat.Icon;
+                return (
+                  <FormControlLabel
+                    key={i}
+                    sx={{ alignItems: 'flex-start', m: 0, py: 0.5 }}
+                    control={<Checkbox size="small" checked={suggest.selected.has(i)} onChange={() => toggleSuggest(i)} />}
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.5 }}>
+                        <CatIcon size={14} strokeWidth={1.9} style={{ color: cat.color, flexShrink: 0 }} />
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {sug.name}
+                          </Typography>
+                          {sug.address ? (
+                            <Typography variant="caption" color="text.secondary">
+                              {sug.address}
+                            </Typography>
+                          ) : null}
+                        </Box>
+                      </Box>
+                    }
+                  />
+                );
+              })}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSuggest((s) => ({ ...s, open: false }))}>
+            {t('welcomeGuide.actions.close', 'Fermer')}
+          </Button>
+          <Button variant="contained" disabled={suggest.selected.size === 0} onClick={addSuggested}>
+            {t('welcomeGuide.pois.suggestAdd', 'Ajouter')} ({suggest.selected.size})
           </Button>
         </DialogActions>
       </Dialog>
