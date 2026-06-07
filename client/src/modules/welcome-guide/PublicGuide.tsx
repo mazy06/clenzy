@@ -14,10 +14,11 @@ import {
   Typography,
 } from '@mui/material';
 import { Wifi, VpnKey, LocationOn, Phone, ContentCopy, OpenInNew, CalendarMonth, Info } from '../../icons';
-import { Send, MessageCircle, X } from 'lucide-react';
+import { Send, MessageCircle, X, Star } from 'lucide-react';
 import {
   parseSections,
   parsePois,
+  parseActivities,
   type GuestbookEntry,
   type GuideEventType,
   type PublicGuide as PublicGuideData,
@@ -310,6 +311,11 @@ const PublicGuide: React.FC = () => {
   const poiGroups = POI_CATEGORIES.map((c) => ({ cat: c, items: pois.filter((p) => p.category === c.id) })).filter(
     (g) => g.items.length > 0,
   );
+
+  // Activités curées par l'hôte : mises en avant d'abord. À défaut, repli sur les
+  // activités remontées par les fournisseurs (provider fetch, inerte sans clé live).
+  const curated = parseActivities(guide.curatedActivities);
+  const sortedActivities = [...curated].sort((a, b) => Number(b.featured) - Number(a.featured));
 
   const mapsUrl =
     property?.latitude != null && property?.longitude != null
@@ -639,8 +645,59 @@ const PublicGuide: React.FC = () => {
             )
           : null}
 
-        {/* Activités à proximité */}
-        {guide.activitiesEnabled && activities.length > 0
+        {/* Activités : curées par l'hôte (mises en avant d'abord), sinon fournisseurs */}
+        {guide.activitiesEnabled && sortedActivities.length > 0
+          ? block(
+              L.activitiesTitle,
+              <Stack spacing={1.25}>
+                {sortedActivities.map((a) => (
+                  <Box key={a.id} sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+                    {a.imageUrl ? (
+                      <Box
+                        component="img"
+                        src={a.imageUrl}
+                        alt=""
+                        sx={{ width: 64, height: 64, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }}
+                      />
+                    ) : null}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {a.featured ? (
+                          <Star size={13} strokeWidth={1.75} fill="currentColor" style={{ color: '#D4A574', flexShrink: 0 }} />
+                        ) : null}
+                        <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                          {a.title}
+                        </Typography>
+                      </Box>
+                      {a.description ? (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          {a.description}
+                        </Typography>
+                      ) : null}
+                      {a.price ? (
+                        <Typography variant="caption" color="text.secondary">
+                          {a.price}
+                        </Typography>
+                      ) : null}
+                    </Box>
+                    {a.bookingUrl ? (
+                      <Button
+                        size="small"
+                        href={a.bookingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => token && recordEvent(token, 'ACTIVITY_CLICK', a.title || undefined)}
+                        endIcon={<OpenInNew size={14} strokeWidth={1.75} />}
+                        sx={{ color, flexShrink: 0 }}
+                      >
+                        {L.book}
+                      </Button>
+                    ) : null}
+                  </Box>
+                ))}
+              </Stack>,
+            )
+          : guide.activitiesEnabled && activities.length > 0
           ? block(
               L.activitiesTitle,
               <Stack spacing={1.25}>

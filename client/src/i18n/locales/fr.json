@@ -111,6 +111,18 @@
       "located": "Position trouvée",
       "queryTooShort": "Renseignez un nom ou une adresse à localiser",
       "notFound": "Lieu introuvable — précisez l'adresse"
+    },
+    "curation": {
+      "title": "Activités à proposer",
+      "hint": "Choisissez les activités à afficher sur le livret et mettez-en certaines en avant.",
+      "add": "Ajouter une activité",
+      "empty": "Aucune activité. Ajoutez vos excursions et bons plans à réserver.",
+      "activityTitle": "Titre",
+      "price": "Prix",
+      "bookingUrl": "Lien de réservation",
+      "imageUrl": "URL de l'image (optionnel)",
+      "description": "Description (optionnel)",
+      "featured": "Mettre en avant"
     }
   },
   "appUpdate": {
