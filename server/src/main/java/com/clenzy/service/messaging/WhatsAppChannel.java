@@ -5,10 +5,11 @@ import com.clenzy.model.WhatsAppConfig;
 import com.clenzy.repository.WhatsAppConfigRepository;
 import com.clenzy.service.messaging.whatsapp.WhatsAppProvider;
 import com.clenzy.service.messaging.whatsapp.WhatsAppProviderResolver;
-import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * Canal d'envoi WhatsApp. Resout dynamiquement le {@link WhatsAppProvider}
@@ -26,14 +27,11 @@ public class WhatsAppChannel implements MessageChannel {
 
     private final WhatsAppProviderResolver providerResolver;
     private final WhatsAppConfigRepository configRepository;
-    private final TenantContext tenantContext;
 
     public WhatsAppChannel(WhatsAppProviderResolver providerResolver,
-                            WhatsAppConfigRepository configRepository,
-                            TenantContext tenantContext) {
+                            WhatsAppConfigRepository configRepository) {
         this.providerResolver = providerResolver;
         this.configRepository = configRepository;
-        this.tenantContext = tenantContext;
     }
 
     @Override
@@ -44,8 +42,7 @@ public class WhatsAppChannel implements MessageChannel {
     @Override
     public boolean isAvailable() {
         try {
-            Long orgId = tenantContext.getOrganizationId();
-            return configRepository.findByOrganizationId(orgId)
+            return configRepository.findFirstByOrganizationIdIsNull()
                 .map(WhatsAppConfig::isEnabled)
                 .orElse(false);
         } catch (Exception e) {
@@ -60,12 +57,11 @@ public class WhatsAppChannel implements MessageChannel {
         }
 
         try {
-            Long orgId = tenantContext.getOrganizationId();
-            WhatsAppConfig config = configRepository.findByOrganizationId(orgId)
+            WhatsAppConfig config = configRepository.findFirstByOrganizationIdIsNull()
                 .orElseThrow(() -> new IllegalStateException("WhatsApp non configure"));
 
             if (!config.isEnabled()) {
-                return MessageDeliveryResult.failure("WhatsApp desactive pour cette organisation");
+                return MessageDeliveryResult.failure("WhatsApp desactive (compte global)");
             }
 
             WhatsAppProvider provider = providerResolver.resolve(config);
@@ -74,6 +70,39 @@ public class WhatsAppChannel implements MessageChannel {
             return MessageDeliveryResult.success(messageId);
         } catch (Exception e) {
             log.error("Erreur envoi WhatsApp a {}: {}", request.recipientPhone(), e.getMessage());
+            return MessageDeliveryResult.failure(e.getMessage());
+        }
+    }
+
+    /**
+     * Envoie un template WhatsApp. Avec Meta → API template officielle
+     * ({@code sendTemplateMessage} avec params positionnels). Avec OpenWA (pas de
+     * templates Meta) → fallback automatique sur l'envoi texte du corps rendu
+     * ({@code fallbackText}). Bypasse la fenetre 24h (un template approuve, ou un
+     * envoi OpenWA, n'y est pas soumis).
+     */
+    public MessageDeliveryResult sendTemplate(String phone, String metaTemplateName, String language,
+                                              List<String> params, String fallbackText) {
+        if (phone == null || phone.isBlank()) {
+            return MessageDeliveryResult.failure("Numero de telephone manquant");
+        }
+        try {
+            WhatsAppConfig config = configRepository.findFirstByOrganizationIdIsNull()
+                .orElseThrow(() -> new IllegalStateException("WhatsApp non configure"));
+            if (!config.isEnabled()) {
+                return MessageDeliveryResult.failure("WhatsApp desactive (compte global)");
+            }
+            WhatsAppProvider provider = providerResolver.resolve(config);
+            String messageId;
+            try {
+                messageId = provider.sendTemplateMessage(config, phone, metaTemplateName, language, params);
+            } catch (UnsupportedOperationException unsupported) {
+                // OpenWA : pas de templates Meta → on envoie le corps interpole en texte.
+                messageId = provider.sendTextMessage(config, phone, fallbackText);
+            }
+            return MessageDeliveryResult.success(messageId);
+        } catch (Exception e) {
+            log.error("Erreur envoi template WhatsApp a {}: {}", phone, e.getMessage());
             return MessageDeliveryResult.failure(e.getMessage());
         }
     }

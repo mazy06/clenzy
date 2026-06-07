@@ -1,9 +1,13 @@
 package com.clenzy.service.messaging;
 
+import com.clenzy.dto.ConversationDto;
 import com.clenzy.model.*;
 import com.clenzy.repository.ConversationMessageRepository;
 import com.clenzy.repository.ConversationRepository;
+import com.clenzy.repository.GuestRepository;
+import com.clenzy.repository.ReservationRepository;
 import com.clenzy.service.NotificationService;
+import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -27,15 +31,24 @@ public class ConversationService {
     private final ConversationMessageRepository messageRepository;
     private final ConversationEventPublisher eventPublisher;
     private final NotificationService notificationService;
+    private final WhatsAppChannel whatsAppChannel;
+    private final ReservationRepository reservationRepository;
+    private final GuestRepository guestRepository;
 
     public ConversationService(ConversationRepository conversationRepository,
                                ConversationMessageRepository messageRepository,
                                ConversationEventPublisher eventPublisher,
-                               NotificationService notificationService) {
+                               NotificationService notificationService,
+                               WhatsAppChannel whatsAppChannel,
+                               ReservationRepository reservationRepository,
+                               GuestRepository guestRepository) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.eventPublisher = eventPublisher;
         this.notificationService = notificationService;
+        this.whatsAppChannel = whatsAppChannel;
+        this.reservationRepository = reservationRepository;
+        this.guestRepository = guestRepository;
     }
 
     /**
@@ -167,7 +180,71 @@ public class ConversationService {
 
         eventPublisher.publishNewMessage(conversation, msg);
 
+        // Envoi reel via WhatsApp (compte global) si la conversation est sur ce canal.
+        if (conversation.getChannel() == ConversationChannel.WHATSAPP) {
+            deliverViaWhatsApp(conversation.getId(), msg, senderName, content);
+        }
+
         return msg;
+    }
+
+    /**
+     * Envoi reel d'une reponse host -> guest via WhatsApp (canal WHATSAPP).
+     * Recharge la conversation (managed) pour acceder au guest/property (LAZY),
+     * verifie la fenetre de service 24h Meta, signe le message (host + propriete),
+     * puis delegue au {@link WhatsAppChannel} (compte global). Met a jour le
+     * statut de livraison du message.
+     */
+    private void deliverViaWhatsApp(Long conversationId, ConversationMessage msg,
+                                     String senderName, String content) {
+        Conversation conv = conversationRepository.findById(conversationId).orElse(null);
+        if (conv == null) return;
+
+        Guest guest = conv.getGuest();
+        if (guest == null || guest.getPhone() == null || guest.getPhone().isBlank()) {
+            log.warn("Envoi WhatsApp impossible (guest/numero absent) pour conversation {}", conversationId);
+            msg.setDeliveryStatus("FAILED");
+            messageRepository.save(msg);
+            return;
+        }
+
+        // Fenetre de service 24h : hors fenetre, Meta interdit le message libre
+        // (template requis -> gere par l'UI, lot B3). On ne tente pas l'envoi.
+        Optional<ConversationMessage> lastInbound = messageRepository
+            .findTopByConversationIdAndDirectionOrderBySentAtDesc(conversationId, MessageDirection.INBOUND);
+        boolean within24h = lastInbound.isPresent()
+            && lastInbound.get().getSentAt() != null
+            && lastInbound.get().getSentAt().isAfter(LocalDateTime.now().minusHours(24));
+        if (!within24h) {
+            log.info("Fenetre 24h WhatsApp expiree (conv {}) : message libre non envoye, template requis", conversationId);
+            msg.setDeliveryStatus("WINDOW_EXPIRED");
+            messageRepository.save(msg);
+            return;
+        }
+
+        String signed = buildSignedContent(senderName, conv.getProperty(), content);
+        MessageDeliveryRequest request = new MessageDeliveryRequest(
+            null, guest.getPhone(), guest.getFullName(), null, null, signed, guest.getLanguage());
+        MessageDeliveryResult result = whatsAppChannel.send(request);
+
+        msg.setDeliveryStatus(result.success() ? "SENT" : "FAILED");
+        if (result.providerMessageId() != null) {
+            msg.setExternalMessageId(result.providerMessageId());
+        }
+        messageRepository.save(msg);
+        if (!result.success()) {
+            log.warn("Echec envoi WhatsApp (conv {}): {}", conversationId, result.errorMessage());
+        }
+    }
+
+    /** Signature cote guest : "Jean (Villa Azur) : message". */
+    private String buildSignedContent(String senderName, Property property, String content) {
+        String propName = (property != null) ? property.getName() : null;
+        boolean hasSender = senderName != null && !senderName.isBlank();
+        boolean hasProp = propName != null && !propName.isBlank();
+        if (hasSender && hasProp) return senderName + " (" + propName + ") : " + content;
+        if (hasSender) return senderName + " : " + content;
+        return content;
     }
 
     @Transactional
@@ -202,6 +279,88 @@ public class ConversationService {
             .orElseThrow(() -> new IllegalArgumentException("Conversation introuvable: " + conversationId));
         conv.setStatus(status);
         return conversationRepository.save(conv);
+    }
+
+    /**
+     * Rattache une conversation orpheline (« à trier ») à une réservation : la
+     * relie au guest / logement / réservation, la déplace dans l'org du host et
+     * l'assigne au propriétaire. Si {@code memorizePhone}, le numéro WhatsApp est
+     * enregistré sur le guest (phone_hash) pour que les futurs messages de ce
+     * numéro soient reconnus automatiquement par {@link WhatsAppInboundRouter}.
+     *
+     * <p>Charge la conversation sans scope d'org (findById) car les conversations
+     * « à trier » vivent dans l'org SYSTEM et l'appelant (SUPER_ADMIN/MANAGER)
+     * bypasse le filtre tenant.</p>
+     */
+    @Transactional
+    public ConversationDto attachToReservation(Long conversationId, Long reservationId, boolean memorizePhone) {
+        Conversation conv = conversationRepository.findById(conversationId)
+            .orElseThrow(() -> new IllegalArgumentException("Conversation introuvable: " + conversationId));
+        Reservation res = reservationRepository.findById(reservationId)
+            .orElseThrow(() -> new IllegalArgumentException("Réservation introuvable: " + reservationId));
+
+        Guest guest = res.getGuest();
+        Property property = res.getProperty();
+
+        conv.setReservation(res);
+        conv.setGuest(guest);
+        conv.setProperty(property);
+        conv.setOrganizationId(res.getOrganizationId());
+        if (property != null) {
+            conv.setSubject(property.getName());
+        }
+        conv.setStatus(ConversationStatus.OPEN);
+        if (property != null && property.getOwner() != null
+                && property.getOwner().getKeycloakId() != null) {
+            conv.setAssignedToKeycloakId(property.getOwner().getKeycloakId());
+        }
+
+        // Mémorise le numéro WhatsApp sur le guest → auto-rattachement futur.
+        if (memorizePhone && guest != null
+                && conv.getChannel() == ConversationChannel.WHATSAPP
+                && conv.getExternalConversationId() != null) {
+            String number = conv.getExternalConversationId().replaceAll("@.*$", "");
+            String phoneHash = StringUtils.computePhoneHash(number, guest.getCountryCode());
+            if (phoneHash != null) {
+                guest.setPhone(number);
+                guest.setPhoneHash(phoneHash);
+                guestRepository.save(guest);
+            }
+        }
+
+        Conversation saved = conversationRepository.save(conv);
+        log.info("Conversation {} rattachée à la réservation {} (org {})",
+            conversationId, reservationId, res.getOrganizationId());
+        // Mapping DANS la transaction (OSIV off) → relations LAZY initialisables.
+        return ConversationDto.from(saved);
+    }
+
+    /**
+     * Enregistre un message SORTANT déjà délivré (ex: template WhatsApp envoyé par
+     * {@code WhatsAppTemplateSender}) : crée le ConversationMessage, met à jour la
+     * conversation et publie l'événement temps réel. Ne RE-déclenche PAS l'envoi
+     * (contrairement à {@link #sendOutboundMessage}) ni la signature ni la
+     * fenêtre 24h — l'envoi a déjà eu lieu.
+     */
+    @Transactional
+    public ConversationMessage recordOutboundDelivered(Conversation conversation, String senderName,
+                                                       String senderKeycloakId, String content,
+                                                       String externalMessageId, String deliveryStatus) {
+        ConversationMessage msg = new ConversationMessage();
+        msg.setOrganizationId(conversation.getOrganizationId());
+        msg.setConversation(conversation);
+        msg.setDirection(MessageDirection.OUTBOUND);
+        msg.setChannelSource(conversation.getChannel());
+        msg.setSenderName(senderName);
+        msg.setSenderIdentifier(senderKeycloakId);
+        msg.setContent(content);
+        msg.setDeliveryStatus(deliveryStatus);
+        msg.setExternalMessageId(externalMessageId);
+        msg.setSentAt(LocalDateTime.now());
+        msg = messageRepository.save(msg);
+        updateConversationOnNewMessage(conversation, content, false);
+        eventPublisher.publishNewMessage(conversation, msg);
+        return msg;
     }
 
     public Page<Conversation> getInbox(Long orgId, ConversationStatus status, Pageable pageable) {

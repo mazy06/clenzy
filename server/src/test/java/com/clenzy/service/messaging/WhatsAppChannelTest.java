@@ -5,7 +5,6 @@ import com.clenzy.model.WhatsAppConfig;
 import com.clenzy.repository.WhatsAppConfigRepository;
 import com.clenzy.service.messaging.whatsapp.WhatsAppProvider;
 import com.clenzy.service.messaging.whatsapp.WhatsAppProviderResolver;
-import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,22 +19,24 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/**
+ * Tests du canal WhatsApp en mode COMPTE GLOBAL : la config est resolue via
+ * {@code findFirstByOrganizationIdIsNull()} (singleton plateforme), plus de
+ * TenantContext.
+ */
 @ExtendWith(MockitoExtension.class)
 class WhatsAppChannelTest {
 
     @Mock private WhatsAppProviderResolver providerResolver;
     @Mock private WhatsAppConfigRepository configRepository;
-    @Mock private TenantContext tenantContext;
 
     private WhatsAppProvider stubProvider;
     private WhatsAppChannel channel;
 
     @BeforeEach
     void setUp() {
-        // Stub provider mocke a part : on veut controler ses retours pour les
-        // tests d'envoi, et le faire renvoyer par le resolver.
         stubProvider = mock(WhatsAppProvider.class);
-        channel = new WhatsAppChannel(providerResolver, configRepository, tenantContext);
+        channel = new WhatsAppChannel(providerResolver, configRepository);
     }
 
     @Test
@@ -47,16 +48,14 @@ class WhatsAppChannelTest {
     void isAvailable_enabledConfig_returnsTrue() {
         WhatsAppConfig config = new WhatsAppConfig();
         config.setEnabled(true);
-        when(tenantContext.getOrganizationId()).thenReturn(1L);
-        when(configRepository.findByOrganizationId(1L)).thenReturn(Optional.of(config));
+        when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.of(config));
 
         assertThat(channel.isAvailable()).isTrue();
     }
 
     @Test
     void isAvailable_noConfig_returnsFalse() {
-        when(tenantContext.getOrganizationId()).thenReturn(1L);
-        when(configRepository.findByOrganizationId(1L)).thenReturn(Optional.empty());
+        when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.empty());
 
         assertThat(channel.isAvailable()).isFalse();
     }
@@ -65,8 +64,7 @@ class WhatsAppChannelTest {
     void isAvailable_disabledConfig_returnsFalse() {
         WhatsAppConfig config = new WhatsAppConfig();
         config.setEnabled(false);
-        when(tenantContext.getOrganizationId()).thenReturn(1L);
-        when(configRepository.findByOrganizationId(1L)).thenReturn(Optional.of(config));
+        when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.of(config));
 
         assertThat(channel.isAvailable()).isFalse();
     }
@@ -98,8 +96,7 @@ class WhatsAppChannelTest {
         config.setEnabled(true);
         config.setApiToken("test-token");
 
-        when(tenantContext.getOrganizationId()).thenReturn(1L);
-        when(configRepository.findByOrganizationId(1L)).thenReturn(Optional.of(config));
+        when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.of(config));
         when(providerResolver.resolve(config)).thenReturn(stubProvider);
         when(stubProvider.sendTextMessage(config, "+33612345678", "Hello")).thenReturn("msg-123");
 
@@ -117,8 +114,7 @@ class WhatsAppChannelTest {
         WhatsAppConfig config = new WhatsAppConfig();
         config.setEnabled(true);
 
-        when(tenantContext.getOrganizationId()).thenReturn(1L);
-        when(configRepository.findByOrganizationId(1L)).thenReturn(Optional.of(config));
+        when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.of(config));
         when(providerResolver.resolve(config)).thenReturn(stubProvider);
         when(stubProvider.sendTextMessage(any(), anyString(), anyString()))
             .thenThrow(new RuntimeException("API error"));

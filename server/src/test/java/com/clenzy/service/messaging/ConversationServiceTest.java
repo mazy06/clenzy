@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,13 +31,16 @@ class ConversationServiceTest {
     @Mock private ConversationMessageRepository messageRepository;
     @Mock private ConversationEventPublisher eventPublisher;
     @Mock private NotificationService notificationService;
+    @Mock private WhatsAppChannel whatsAppChannel;
+    @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
+    @Mock private com.clenzy.repository.GuestRepository guestRepository;
 
     private ConversationService service;
 
     @BeforeEach
     void setUp() {
         service = new ConversationService(conversationRepository, messageRepository,
-            eventPublisher, notificationService);
+            eventPublisher, notificationService, whatsAppChannel, reservationRepository, guestRepository);
     }
 
     @Test
@@ -409,5 +413,64 @@ class ConversationServiceTest {
         service.sendOutboundMessage(conv, "Admin", "admin-1", "Reply", "<p>reply</p>");
 
         assertThat(conv.getStatus()).isEqualTo(ConversationStatus.OPEN);
+    }
+
+    @Test
+    void sendOutboundMessage_whatsappWithin24h_sendsSignedMessage() {
+        Guest guest = new Guest("Alice", "Martin", 1L);
+        guest.setPhone("+33612345678");
+        guest.setLanguage("fr");
+        Property property = new Property();
+        property.setName("Villa Azur");
+        Conversation conv = new Conversation();
+        conv.setId(50L);
+        conv.setOrganizationId(1L);
+        conv.setChannel(ConversationChannel.WHATSAPP);
+        conv.setStatus(ConversationStatus.OPEN);
+        conv.setMessageCount(0);
+        conv.setGuest(guest);
+        conv.setProperty(property);
+
+        when(messageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(conversationRepository.findById(50L)).thenReturn(Optional.of(conv));
+        ConversationMessage inbound = new ConversationMessage();
+        inbound.setSentAt(LocalDateTime.now());
+        when(messageRepository.findTopByConversationIdAndDirectionOrderBySentAtDesc(50L, MessageDirection.INBOUND))
+            .thenReturn(Optional.of(inbound));
+        when(whatsAppChannel.send(any())).thenReturn(MessageDeliveryResult.success("wamid-out"));
+
+        ConversationMessage result = service.sendOutboundMessage(
+            conv, "Jean", "kc-host", "Bonjour", "<p>Bonjour</p>");
+
+        ArgumentCaptor<MessageDeliveryRequest> captor = ArgumentCaptor.forClass(MessageDeliveryRequest.class);
+        verify(whatsAppChannel).send(captor.capture());
+        assertThat(captor.getValue().recipientPhone()).isEqualTo("+33612345678");
+        assertThat(captor.getValue().plainBody()).isEqualTo("Jean (Villa Azur) : Bonjour");
+        assertThat(result.getDeliveryStatus()).isEqualTo("SENT");
+        assertThat(result.getExternalMessageId()).isEqualTo("wamid-out");
+    }
+
+    @Test
+    void sendOutboundMessage_whatsappOutside24h_doesNotSend() {
+        Guest guest = new Guest("Alice", "Martin", 1L);
+        guest.setPhone("+33612345678");
+        Conversation conv = new Conversation();
+        conv.setId(51L);
+        conv.setOrganizationId(1L);
+        conv.setChannel(ConversationChannel.WHATSAPP);
+        conv.setStatus(ConversationStatus.OPEN);
+        conv.setMessageCount(0);
+        conv.setGuest(guest);
+
+        when(messageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(conversationRepository.findById(51L)).thenReturn(Optional.of(conv));
+        when(messageRepository.findTopByConversationIdAndDirectionOrderBySentAtDesc(51L, MessageDirection.INBOUND))
+            .thenReturn(Optional.empty()); // aucun inbound -> hors fenetre 24h
+
+        ConversationMessage result = service.sendOutboundMessage(
+            conv, "Jean", "kc-host", "Bonjour", "<p>Bonjour</p>");
+
+        verify(whatsAppChannel, never()).send(any());
+        assertThat(result.getDeliveryStatus()).isEqualTo("WINDOW_EXPIRED");
     }
 }

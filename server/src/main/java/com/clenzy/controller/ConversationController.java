@@ -8,6 +8,7 @@ import com.clenzy.model.ConversationChannel;
 import com.clenzy.model.ConversationMessage;
 import com.clenzy.model.ConversationStatus;
 import com.clenzy.service.messaging.ConversationService;
+import com.clenzy.service.messaging.WhatsAppTemplateSender;
 import com.clenzy.tenant.TenantContext;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -28,10 +29,14 @@ import java.util.Map;
 public class ConversationController {
 
     private final ConversationService conversationService;
+    private final WhatsAppTemplateSender whatsAppTemplateSender;
     private final TenantContext tenantContext;
 
-    public ConversationController(ConversationService conversationService, TenantContext tenantContext) {
+    public ConversationController(ConversationService conversationService,
+                                  WhatsAppTemplateSender whatsAppTemplateSender,
+                                  TenantContext tenantContext) {
         this.conversationService = conversationService;
+        this.whatsAppTemplateSender = whatsAppTemplateSender;
         this.tenantContext = tenantContext;
     }
 
@@ -50,6 +55,61 @@ public class ConversationController {
             conversations = conversationService.getInbox(orgId, status, pageable);
         }
         return ResponseEntity.ok(conversations.map(ConversationDto::from));
+    }
+
+    /**
+     * Rattache une conversation « à trier » à une réservation (relais WhatsApp).
+     * Réservé aux platform staff qui gèrent la file « à trier ». Body :
+     * {@code { reservationId: number, memorizePhone?: boolean }}.
+     */
+    @PutMapping("/{id}/attach")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    public ResponseEntity<ConversationDto> attach(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        Object resIdRaw = body.get("reservationId");
+        if (!(resIdRaw instanceof Number)) {
+            return ResponseEntity.badRequest().build();
+        }
+        Long reservationId = ((Number) resIdRaw).longValue();
+        boolean memorizePhone = !Boolean.FALSE.equals(body.get("memorizePhone"));
+        return ResponseEntity.ok(conversationService.attachToReservation(id, reservationId, memorizePhone));
+    }
+
+    /**
+     * Envoie un template WhatsApp sur la conversation (relance, code d'accès, etc.).
+     * Body : {@code { templateKey: "checkin_instructions" }}. Fonctionne dans et
+     * hors fenêtre 24h (un template n'y est pas soumis).
+     */
+    @PostMapping("/{id}/send-template")
+    public ResponseEntity<ConversationDto> sendTemplate(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        String templateKey = body.get("templateKey");
+        if (templateKey == null || templateKey.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        String senderName = jwt.getClaimAsString("name");
+        if (senderName == null) senderName = jwt.getClaimAsString("preferred_username");
+        return ResponseEntity.ok(whatsAppTemplateSender.sendTemplate(id, templateKey, senderName, jwt.getSubject()));
+    }
+
+    /**
+     * Envoi PROACTIF d'un template WhatsApp depuis une réservation (crée la
+     * conversation au besoin). Body : {@code { templateKey: "checkin_instructions" }}.
+     */
+    @PostMapping("/reservation/{reservationId}/send-template")
+    public ResponseEntity<ConversationDto> sendTemplateForReservation(
+            @PathVariable Long reservationId,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        String templateKey = body.get("templateKey");
+        if (templateKey == null || templateKey.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        String senderName = jwt.getClaimAsString("name");
+        if (senderName == null) senderName = jwt.getClaimAsString("preferred_username");
+        return ResponseEntity.ok(whatsAppTemplateSender.sendTemplateForReservation(
+            reservationId, templateKey, senderName, jwt.getSubject()));
     }
 
     @GetMapping("/mine")

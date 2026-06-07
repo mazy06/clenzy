@@ -51,4 +51,18 @@ public interface GuestRepository extends JpaRepository<Guest, Long> {
      */
     @Query("SELECT g FROM Guest g ORDER BY g.lastName, g.firstName")
     List<Guest> findAllOrderByLastName();
+
+    /**
+     * Recherche cross-org par hash de numero (relais WhatsApp entrant). Le webhook
+     * est public => le filtre tenant n'est pas actif => lookup sur toutes les orgs.
+     * Plusieurs resultats possibles (meme numero dans des orgs differentes).
+     */
+    @Query("SELECT g FROM Guest g WHERE g.phoneHash = :phoneHash")
+    List<Guest> findByPhoneHash(@Param("phoneHash") String phoneHash);
+
+    /**
+     * Guests dont le phone_hash n'est pas encore calcule (backfill au boot).
+     */
+    @Query("SELECT g FROM Guest g WHERE g.phoneHash IS NULL")
+    List<Guest> findByPhoneHashIsNull();
 }

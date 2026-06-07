@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { CONTACT_LIST_WIDTH } from '../channels/channelConfig';
+import { usePageHeaderFilters } from '../../components/PageHeaderActionsContext';
+import InboxListItem from '../../components/InboxListItem';
 import {
   Box,
   Typography,
@@ -145,7 +148,7 @@ function formatDateSeparator(dateStr: string): string {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const InternalChatTab: React.FC<{ archived?: boolean }> = ({ archived = false }) => {
+const InternalChatTab: React.FC<{ archived?: boolean; listHeaderSlot?: React.ReactNode }> = ({ archived = false, listHeaderSlot }) => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const theme = useTheme();
@@ -156,6 +159,30 @@ const InternalChatTab: React.FC<{ archived?: boolean }> = ({ archived = false })
 
   // ── State ────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
+
+  // Recherche portée dans la barre filtres du PageHeader (inline) — tous modes.
+  const headerSearch = (
+    <TextField
+      size="small"
+      placeholder={t('contact.searchContacts') || 'Rechercher un contact…'}
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+              <SearchIcon size={'1.125rem'} strokeWidth={1.75} />
+            </Box>
+          </InputAdornment>
+        ),
+      }}
+      sx={{
+        width: { xs: 150, sm: 220 },
+        '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '0.8125rem' },
+      }}
+    />
+  );
+  const headerFilters = usePageHeaderFilters(headerSearch);
   const [selectedThread, setSelectedThread] = useState<ContactThreadSummary | null>(null);
   const [replyText, setReplyText] = useState('');
   const [replyAttachments, setReplyAttachments] = useState<File[]>([]);
@@ -391,13 +418,12 @@ const InternalChatTab: React.FC<{ archived?: boolean }> = ({ archived = false })
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      {headerFilters}
       {/* ── Left Panel: Conversation List ──────────────────────────────── */}
       {showLeftPanel && (
         <Box
           sx={{
-            width: isMobile ? '100%' : '35%',
-            minWidth: isMobile ? undefined : 280,
-            maxWidth: isMobile ? undefined : 400,
+            width: CONTACT_LIST_WIDTH,
             borderRight: isMobile ? 0 : 1,
             borderColor: 'divider',
             display: 'flex',
@@ -405,32 +431,7 @@ const InternalChatTab: React.FC<{ archived?: boolean }> = ({ archived = false })
             bgcolor: 'background.paper',
           }}
         >
-          {/* Search bar */}
-          <Box sx={{ p: 1.5, borderBottom: 1, borderColor: 'divider' }}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder={t('contact.searchContacts') || 'Rechercher un contact...'}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SearchIcon size={'1.125rem'} strokeWidth={1.75} /></Box>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  bgcolor: 'action.hover',
-                  '& fieldset': { border: 'none' },
-                },
-                '& .MuiInputBase-input': { fontSize: '0.8125rem', py: 0.75 },
-              }}
-            />
-          </Box>
-
+          {listHeaderSlot}
           {/* Thread list */}
           <Box sx={{ flex: 1, overflowY: 'auto' }}>
             {filteredThreads.length === 0 ? (
@@ -452,121 +453,37 @@ const InternalChatTab: React.FC<{ archived?: boolean }> = ({ archived = false })
                 const online = isUserOnline(thread.counterpartKeycloakId);
 
                 return (
-                  <Box
+                  <InboxListItem
                     key={thread.counterpartKeycloakId}
+                    active={isSelected}
+                    unread={hasUnread}
                     onClick={() => handleSelectThread(thread)}
-                    role="button"
-                    tabIndex={0}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      px: 2,
-                      py: 1.25,
-                      cursor: 'pointer',
-                      position: 'relative',
-                      bgcolor: isSelected
-                        ? alpha(theme.palette.primary.main, 0.08)
-                        : 'transparent',
-                      // E12 \u2014 1px left filet on active row (respects Impeccable's max-1px rule).
-                      '&::before': isSelected
-                        ? {
-                            content: '""',
-                            position: 'absolute',
-                            left: 0, top: 0, bottom: 0,
-                            width: '1px',
-                            bgcolor: 'primary.main',
-                          }
-                        : undefined,
-                      transition: 'background-color 0.15s',
-                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                      '&:hover': {
-                        bgcolor: isSelected
-                          ? alpha(theme.palette.primary.main, 0.12)
-                          : 'action.hover',
-                      },
-                    }}
-                  >
-                    {/* Avatar + presence dot */}
-                    <Box sx={{ position: 'relative', flexShrink: 0 }}>
-                      <Avatar
-                        src={userAvatarSrc({
-                          id: thread.counterpartUserId,
-                          profilePictureUrl: thread.counterpartProfilePictureUrl,
-                          updatedAt: thread.counterpartUpdatedAt,
-                        })}
-                        sx={{
-                          width: 40,
-                          height: 40,
-                          bgcolor: avatarColor,
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {getInitials(thread.counterpartFirstName, thread.counterpartLastName)}
-                      </Avatar>
-                      <PresenceDot online={online} />
-                    </Box>
-
-                    {/* Info */}
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-                        <Typography
-                          sx={{
-                            fontSize: '0.8125rem',
-                            fontWeight: hasUnread ? 700 : 500,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            // H18 \u2014 balance long names if they wrap.
-                            textWrap: 'balance',
-                          }}
+                    avatar={
+                      <Box sx={{ position: 'relative' }}>
+                        <Avatar
+                          src={userAvatarSrc({
+                            id: thread.counterpartUserId,
+                            profilePictureUrl: thread.counterpartProfilePictureUrl,
+                            updatedAt: thread.counterpartUpdatedAt,
+                          })}
+                          sx={{ width: 40, height: 40, bgcolor: avatarColor, fontSize: '0.875rem', fontWeight: 600 }}
                         >
-                          {thread.counterpartFirstName} {thread.counterpartLastName}
-                        </Typography>
-                        <Typography
-                          sx={{
-                            fontSize: '0.6875rem',
-                            color: hasUnread ? 'primary.main' : 'text.secondary',
-                            fontWeight: hasUnread ? 600 : 400,
-                            flexShrink: 0,
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
-                          {formatThreadTime(thread.lastMessageAt)}
-                        </Typography>
+                          {getInitials(thread.counterpartFirstName, thread.counterpartLastName)}
+                        </Avatar>
+                        <PresenceDot online={online} />
                       </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, mt: 0.25 }}>
-                        <Typography
-                          sx={{
-                            fontSize: '0.75rem',
-                            color: 'text.secondary',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            fontWeight: hasUnread ? 500 : 400,
-                            flex: 1,
-                            minWidth: 0,
-                          }}
-                        >
-                          {thread.lastMessagePreview || '\u2014'}
-                        </Typography>
-                        {/* E11 \u2014 soft unread chip */}
-                        {hasUnread && (
-                          <Chip
-                            label={thread.unreadCount > 99 ? '99+' : String(thread.unreadCount)}
-                            size="small"
-                            sx={{
-                              ...softChipSx(semanticToHex('primary')),
-                              height: 18,
-                              fontSize: '0.625rem',
-                              flexShrink: 0,
-                            }}
-                          />
-                        )}
-                      </Box>
-                    </Box>
-                  </Box>
+                    }
+                    title={`${thread.counterpartFirstName} ${thread.counterpartLastName}`}
+                    time={formatThreadTime(thread.lastMessageAt)}
+                    preview={thread.lastMessagePreview || '\u2014'}
+                    trailing={hasUnread ? (
+                      <Chip
+                        label={thread.unreadCount > 99 ? '99+' : String(thread.unreadCount)}
+                        size="small"
+                        sx={{ ...softChipSx(semanticToHex('primary')), height: 18, fontSize: '0.625rem' }}
+                      />
+                    ) : undefined}
+                  />
                 );
               })
             )}

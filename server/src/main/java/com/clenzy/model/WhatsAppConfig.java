@@ -16,7 +16,12 @@ public class WhatsAppConfig {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "organization_id", nullable = false, unique = true)
+    /**
+     * NULL = config GLOBALE plateforme (singleton, le compte WhatsApp Baitly unique).
+     * Non-null = ancienne config par-org (legacy, ignoree par le resolver global).
+     * Cf. migration 0192 + index partiel uq_whatsapp_config_global.
+     */
+    @Column(name = "organization_id", nullable = true, unique = true)
     private Long organizationId;
 
     /**
@@ -64,6 +69,17 @@ public class WhatsAppConfig {
     @Column(name = "openwa_api_key", length = 1000)
     private String openwaApiKey;
 
+    /**
+     * Secret HMAC du webhook ENTRANT OpenWA (chiffre Jasypt, comme openwaApiKey).
+     * Genere automatiquement a la creation de session, passe a OpenWA lors de
+     * l'enregistrement du webhook (POST /sessions/:id/webhooks {secret}) ET utilise
+     * pour verifier la signature X-OpenWA-Signature des POST entrants. En BDD,
+     * jamais en .env (cf. relais WhatsApp lot B entrant OpenWA).
+     */
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "openwa_webhook_secret", length = 1000)
+    private String openwaWebhookSecret;
+
     @Column(nullable = false)
     private boolean enabled = false;
 
@@ -99,6 +115,8 @@ public class WhatsAppConfig {
     public void setOpenwaSessionId(String openwaSessionId) { this.openwaSessionId = openwaSessionId; }
     public String getOpenwaApiKey() { return openwaApiKey; }
     public void setOpenwaApiKey(String openwaApiKey) { this.openwaApiKey = openwaApiKey; }
+    public String getOpenwaWebhookSecret() { return openwaWebhookSecret; }
+    public void setOpenwaWebhookSecret(String openwaWebhookSecret) { this.openwaWebhookSecret = openwaWebhookSecret; }
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }

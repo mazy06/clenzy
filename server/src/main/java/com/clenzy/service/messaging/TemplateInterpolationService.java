@@ -209,6 +209,17 @@ public class TemplateInterpolationService {
     }
 
     /**
+     * Expose la construction de la map de variables pour les services qui
+     * interpolent des templates hors {@code MessageTemplate} (ex: templates
+     * WhatsApp editables). {@code instructions} peut etre null (les variables
+     * accessCode/wifi resteront vides).
+     */
+    public Map<String, String> buildVariables(Reservation reservation, Guest guest,
+                                               Property property, CheckInInstructions instructions) {
+        return buildVariableMap(reservation, guest, property, instructions);
+    }
+
+    /**
      * Remplace les variables {name} dans le texte.
      * Si escapeHtml=true, les valeurs sont echappees pour le HTML (sauf celles
      * listees dans {@link #HTML_SAFE_VARIABLES} qui contiennent deja du HTML

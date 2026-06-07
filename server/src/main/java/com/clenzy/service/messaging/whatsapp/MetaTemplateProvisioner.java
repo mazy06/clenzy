@@ -62,7 +62,7 @@ public class MetaTemplateProvisioner {
             WhatsAppTemplateLoader templateLoader,
             OrgWhatsAppTemplateRepository orgTemplateRepository,
             ObjectMapper objectMapper,
-            @Value("${clenzy.whatsapp.meta.graph-api-base:https://graph.facebook.com/v18.0}") String graphApiBase) {
+            @Value("${clenzy.whatsapp.meta.graph-api-base:https://graph.facebook.com/v23.0}") String graphApiBase) {
         this.templateLoader = templateLoader;
         this.orgTemplateRepository = orgTemplateRepository;
         this.restTemplate = new RestTemplate();

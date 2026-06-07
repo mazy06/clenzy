@@ -54,6 +54,7 @@ import ChannelManagerProviderCard from './components/ChannelManagerProviderCard'
 import ChannexMappingDialog from './components/ChannexMappingDialog';
 import OtaShowcaseSection from './components/OtaShowcaseSection';
 import ServiceCatalogSection from './components/ServiceCatalogSection';
+import IntegrationsWhatsAppConfig from './IntegrationsWhatsAppConfig';
 import ServiceGridCard from './components/ServiceGridCard';
 import BrevoConfigCard from './components/BrevoConfigCard';
 import { useMarketingIntegration } from '../../hooks/useMarketingIntegration';
@@ -1311,18 +1312,15 @@ export default function IntegrationsSection({
         </Box>
       )}
 
-      {/* ─── Sections catalogue (services informatifs avec tooltips riches) ─── */}
+      {/* ─── Messagerie WhatsApp : config provider ACTIVE (par org, plateforme) ───
+          Pas une carte de catalogue : sélecteur d'org dédié + formulaire de config. */}
       {showSection('messaging') && (
         <Box id="section-messaging" sx={{ scrollMarginTop: 80 }}>
-          <ServiceCatalogSection
-            disabled
-            serviceFilter={selectedServiceId}
-            category="messaging"
-            title="Messagerie"
-            description="Envoyez emails, SMS et messages WhatsApp directement via les APIs natives des providers, sans intermédiaire."
-          />
+          <IntegrationsWhatsAppConfig />
         </Box>
       )}
+
+      {/* ─── Sections catalogue (services informatifs avec tooltips riches) ─── */}
       {showSection('market_intelligence') && (
         <Box id="section-market-intelligence" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection

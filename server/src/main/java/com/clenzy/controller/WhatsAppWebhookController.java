@@ -33,9 +33,9 @@ public class WhatsAppWebhookController {
     public ResponseEntity<String> verify(
             @RequestParam("hub.mode") String mode,
             @RequestParam("hub.verify_token") String token,
-            @RequestParam("hub.challenge") String challenge,
-            @RequestParam(value = "org_id", defaultValue = "0") Long orgId) {
-        if (webhookService.verifyWebhook(mode, token, challenge, orgId)) {
+            @RequestParam("hub.challenge") String challenge) {
+        // Compte WhatsApp GLOBAL : plus de param org_id (un seul webhook plateforme).
+        if (webhookService.verifyWebhook(mode, token, challenge)) {
             return ResponseEntity.ok(challenge);
         }
         return ResponseEntity.status(403).body("Forbidden");

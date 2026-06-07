@@ -38,7 +38,7 @@ class MetaWhatsAppProviderTest {
 
     @BeforeEach
     void setUp() {
-        provider = new MetaWhatsAppProvider(new ObjectMapper());
+        provider = new MetaWhatsAppProvider(new ObjectMapper(), "https://graph.facebook.com/v23.0");
         ReflectionTestUtils.setField(provider, "restTemplate", restTemplate);
     }
 
@@ -92,7 +92,7 @@ class MetaWhatsAppProviderTest {
             ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
             verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class));
             assertThat(urlCaptor.getValue()).contains("ph-1/messages");
-            assertThat(urlCaptor.getValue()).contains("graph.facebook.com/v18.0");
+            assertThat(urlCaptor.getValue()).contains("graph.facebook.com/v23.0");
         }
 
         @Test

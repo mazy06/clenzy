@@ -164,6 +164,7 @@ public class SecurityConfig {
                     "/api/webhooks/tripadvisor",
                     "/api/webhooks/expedia",
                     "/api/webhooks/whatsapp",
+                    "/api/webhooks/whatsapp/openwa",
                     "/api/webhooks/channex/**",
                     "/api/airbnb/callback",
                     "/api/minut/callback",

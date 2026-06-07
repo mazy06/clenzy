@@ -1835,7 +1835,12 @@
     "unread": "غير مقروء",
     "markAsRead": "تحديد كمقروء",
     "viewMessages": "عرض الرسائل",
-    "lastMessage": "آخر رسالة"
+    "lastMessage": "آخر رسالة",
+    "noMessages": "لا توجد رسائل في هذه المحادثة",
+    "selectConversation": "اختر محادثة",
+    "selectConversationHint": "اختر محادثة لعرض الرسائل والرد عليها.",
+    "search": "ابحث عن محادثة…",
+    "noSearchResults": "لا توجد نتائج"
   },
   "users": {
     "title": "المستخدمون",
@@ -2945,6 +2950,14 @@
     }
   },
   "messaging": {
+    "whatsappStatus": {
+      "notConfiguredTitle": "واتساب غير مُهيّأ",
+      "notConfiguredBody": "لم يتم إعداد المراسلة عبر واتساب لمؤسستك بعد. تواصل مع مدير المنصّة لتفعيلها.",
+      "disabledTitle": "واتساب معطّل",
+      "disabledBody": "تتم إدارة المراسلة عبر واتساب من قِبل منصّتك وهي غير مفعّلة حاليًا. لن تُرسَل رسائل النزلاء عبر هذه القناة.",
+      "activeTitle": "واتساب مفعّل",
+      "activeBody": "المراسلة عبر واتساب مفعّلة عبر {{provider}}، وتتم إدارتها من قِبل منصّتك."
+    },
     "automation": {
       "loadError": "خطأ أثناء تحميل الإعدادات",
       "saveError": "خطأ أثناء الحفظ",
