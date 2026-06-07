@@ -1,10 +1,17 @@
 package com.clenzy.controller;
 
-import com.clenzy.dto.WelcomeGuideDto;
+import com.clenzy.dto.ActivityDto;
+import com.clenzy.dto.GuestbookEntryDto;
+import com.clenzy.dto.GuestbookEntryRequest;
+import com.clenzy.dto.WelcomeGuidePublicDto;
+import com.clenzy.service.ActivityService;
+import com.clenzy.service.WelcomeGuideEntryService;
 import com.clenzy.service.WelcomeGuideService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -12,16 +19,39 @@ import java.util.UUID;
 public class PublicGuideController {
 
     private final WelcomeGuideService guideService;
+    private final WelcomeGuideEntryService entryService;
+    private final ActivityService activityService;
 
-    public PublicGuideController(WelcomeGuideService guideService) {
+    public PublicGuideController(WelcomeGuideService guideService,
+                                 WelcomeGuideEntryService entryService,
+                                 ActivityService activityService) {
         this.guideService = guideService;
+        this.entryService = entryService;
+        this.activityService = activityService;
     }
 
     @GetMapping("/{token}")
-    public ResponseEntity<WelcomeGuideDto> getGuide(@PathVariable UUID token) {
-        return guideService.getPublicGuide(token)
-            .map(WelcomeGuideDto::from)
+    public ResponseEntity<WelcomeGuidePublicDto> getGuide(@PathVariable UUID token) {
+        return guideService.getPublicGuidePayload(token)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{token}/guestbook")
+    public ResponseEntity<List<GuestbookEntryDto>> listGuestbook(@PathVariable UUID token) {
+        return ResponseEntity.ok(entryService.listPublic(token));
+    }
+
+    @PostMapping("/{token}/guestbook")
+    public ResponseEntity<GuestbookEntryDto> addGuestbookEntry(@PathVariable UUID token,
+                                                               @Valid @RequestBody GuestbookEntryRequest request) {
+        return entryService.addEntry(token, request)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{token}/activities")
+    public ResponseEntity<List<ActivityDto>> listActivities(@PathVariable UUID token) {
+        return ResponseEntity.ok(activityService.searchForGuide(token, 12));
     }
 }

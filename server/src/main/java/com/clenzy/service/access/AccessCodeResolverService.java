@@ -19,6 +19,7 @@ import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -94,6 +95,32 @@ public class AccessCodeResolverService {
         return AccessCodeResult.manual();
     }
 
+    /**
+     * Code d'acces deja persiste pour la reservation (serrure connectee), SANS
+     * generation — lecture seule, safe pour un affichage frequent (livret guest).
+     * Multi-portes : un code par ligne, prefixe du nom de la serrure. Vide si aucun
+     * code actif persiste.
+     */
+    public Optional<String> existingAccessCode(Long reservationId) {
+        if (reservationId == null) {
+            return Optional.empty();
+        }
+        List<SmartLockAccessCode> codes = accessCodeRepository
+                .findByReservationIdAndStatus(reservationId, SmartLockAccessCode.CodeStatus.ACTIVE)
+                .stream()
+                .filter(c -> c.getCode() != null && !c.getCode().isBlank())
+                .toList();
+        if (codes.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(codes.size() == 1
+                ? codes.get(0).getCode()
+                : codes.stream()
+                        .map(c -> smartLockRepository.findById(c.getDeviceId())
+                                .map(SmartLockDevice::getName).orElse("Serrure") + " : " + c.getCode())
+                        .collect(Collectors.joining("\n")));
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // Tier 1 — Serrure connectee Tuya
     // ═══════════════════════════════════════════════════════════════
@@ -107,25 +134,12 @@ public class AccessCodeResolverService {
         // SmartLockAccessCodeService) → on le REUTILISE. Idempotence : pas de nouveau
         // PIN a chaque envoi de message (sinon le voyageur recevrait un code different
         // de celui programme sur la serrure).
-        if (reservation.getId() != null) {
-            List<SmartLockAccessCode> codes = accessCodeRepository
-                    .findByReservationIdAndStatus(reservation.getId(), SmartLockAccessCode.CodeStatus.ACTIVE)
-                    .stream()
-                    .filter(c -> c.getCode() != null && !c.getCode().isBlank())
-                    .toList();
-            if (!codes.isEmpty()) {
-                // Multi-portes : prefixe chaque code par le nom de sa serrure (sinon code seul).
-                String accessCode = codes.size() == 1
-                        ? codes.get(0).getCode()
-                        : codes.stream()
-                                .map(c -> smartLockRepository.findById(c.getDeviceId())
-                                        .map(SmartLockDevice::getName).orElse("Serrure") + " : " + c.getCode())
-                                .collect(Collectors.joining("\n"));
-                Map<String, String> vars = new LinkedHashMap<>();
-                vars.put("accessCode", accessCode);
-                vars.put("accessMethod", "SMART_LOCK");
-                return new AccessCodeResult(AccessCodeResult.AccessMethod.SMART_LOCK, vars);
-            }
+        Optional<String> persisted = existingAccessCode(reservation.getId());
+        if (persisted.isPresent()) {
+            Map<String, String> vars = new LinkedHashMap<>();
+            vars.put("accessCode", persisted.get());
+            vars.put("accessMethod", "SMART_LOCK");
+            return new AccessCodeResult(AccessCodeResult.AccessMethod.SMART_LOCK, vars);
         }
 
         String externalDeviceId = device.getExternalDeviceId();

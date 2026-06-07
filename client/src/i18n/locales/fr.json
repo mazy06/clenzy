@@ -1,4 +1,87 @@
 {
+  "guestExperience": {
+    "navLabel": "Réservation & accueil",
+    "title": "Réservation & accueil",
+    "subtitleWelcomeGuide": "Le livret d'accueil numérique de vos voyageurs",
+    "subtitleBookingEngine": "Configurez votre moteur de réservation directe",
+    "tabs": {
+      "welcomeGuide": "Livret d'accueil",
+      "bookingEngine": "Booking Engine"
+    }
+  },
+  "welcomeGuide": {
+    "actions": {
+      "new": "Nouveau livret",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "generateLink": "Générer le lien",
+      "addSection": "Ajouter une section",
+      "guestbook": "Livre d'or",
+      "close": "Fermer",
+      "activities": "Activités"
+    },
+    "fields": {
+      "property": "Logement",
+      "propertyLocked": "Le logement ne peut pas être changé après création",
+      "title": "Titre du livret",
+      "titlePlaceholder": "Bienvenue à l'Appartement du Vieux-Port",
+      "language": "Langue",
+      "brandingColor": "Couleur",
+      "logoUrl": "URL du logo",
+      "published": "Publier le livret (accessible aux voyageurs)",
+      "sectionTitle": "Titre de la section",
+      "sectionBody": "Contenu"
+    },
+    "form": {
+      "autofillHint": "Le wifi, le digicode, les règles et les numéros utiles sont remplis automatiquement depuis la fiche du logement (instructions de check-in). Ici, ajoutez le message d'accueil et vos recommandations « autour de moi ».",
+      "sectionsTitle": "Sections du livret",
+      "noSection": "Aucune section. Ajoutez un message d'accueil ou des recommandations."
+    },
+    "list": {
+      "emptyTitle": "Aucun livret pour le moment",
+      "emptyDescription": "Créez un livret d'accueil pour partager le wifi, le digicode et vos bons plans avec vos voyageurs."
+    },
+    "status": {
+      "published": "Publié",
+      "draft": "Brouillon"
+    },
+    "languages": {
+      "fr": "Français",
+      "en": "Anglais",
+      "ar": "Arabe"
+    },
+    "link": {
+      "dialogTitle": "Lien du livret d'accueil",
+      "note": "Lien de partage manuel (aperçu). La diffusion automatique d'un lien propre à chaque réservation — valable uniquement le temps du séjour — arrive prochainement.",
+      "open": "Ouvrir",
+      "copy": "Copier",
+      "copied": "Copié !",
+      "downloadQr": "Télécharger le QR"
+    },
+    "guestbook": {
+      "title": "Livre d'or",
+      "empty": "Aucun message pour le moment."
+    },
+    "activities": {
+      "title": "Activités (affiliation)",
+      "note": "Connectez un service d'activités pour proposer des excursions à vos voyageurs (et toucher une commission). Renseignez votre clé API partenaire.",
+      "enabled": "Actif",
+      "apiKey": "Clé API",
+      "apiKeySet": "Clé API (déjà configurée)",
+      "affiliateId": "ID affilié"
+    },
+    "messages": {
+      "created": "Livret créé",
+      "updated": "Livret mis à jour",
+      "deleted": "Livret supprimé",
+      "error": "Une erreur est survenue",
+      "titleRequired": "Le titre est obligatoire",
+      "propertyRequired": "Sélectionnez un logement",
+      "confirmDelete": "Supprimer ce livret ?"
+    }
+  },
   "appUpdate": {
     "message": "Une nouvelle version de Baitly est disponible.",
     "reload": "Recharger maintenant",
@@ -1861,7 +1944,12 @@
     "unread": "Non lu",
     "markAsRead": "Marquer comme lu",
     "viewMessages": "Voir les messages",
-    "lastMessage": "Dernier message"
+    "lastMessage": "Dernier message",
+    "noMessages": "Aucun message dans cette conversation",
+    "selectConversation": "Sélectionnez une conversation",
+    "selectConversationHint": "Choisissez un échange à gauche pour afficher les messages et répondre.",
+    "search": "Rechercher une conversation…",
+    "noSearchResults": "Aucun résultat"
   },
   "users": {
     "title": "Utilisateurs",
@@ -3005,6 +3093,14 @@
     }
   },
   "messaging": {
+    "whatsappStatus": {
+      "notConfiguredTitle": "WhatsApp non configuré",
+      "notConfiguredBody": "L'envoi WhatsApp n'est pas encore configuré pour votre organisation. Contactez votre gestionnaire de plateforme pour l'activer.",
+      "disabledTitle": "WhatsApp désactivé",
+      "disabledBody": "L'envoi WhatsApp est géré par votre plateforme et n'est pas actif actuellement. Vos messages voyageurs ne partiront pas sur ce canal.",
+      "activeTitle": "WhatsApp actif",
+      "activeBody": "L'envoi WhatsApp est actif via {{provider}}, géré par votre plateforme."
+    },
     "automation": {
       "loadError": "Erreur lors du chargement de la configuration",
       "saveError": "Erreur lors de la sauvegarde",

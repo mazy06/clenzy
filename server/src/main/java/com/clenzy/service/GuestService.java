@@ -5,6 +5,7 @@ import com.clenzy.model.GuestChannel;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -96,6 +97,7 @@ public class GuestService {
         Guest guest = new Guest(firstName, lastName, orgId);
         guest.setEmail(email);
         guest.setPhone(phone);
+        guest.setPhoneHash(StringUtils.computePhoneHash(phone, guest.getCountryCode()));
         guest.setChannel(channel);
         guest.setChannelGuestId(channelGuestId);
 
@@ -206,6 +208,7 @@ public class GuestService {
         }
         if (phone != null && !phone.isBlank() && !phone.equals(guest.getPhone())) {
             guest.setPhone(phone);
+            guest.setPhoneHash(StringUtils.computePhoneHash(phone, guest.getCountryCode()));
             updated = true;
         }
         if (updated) {

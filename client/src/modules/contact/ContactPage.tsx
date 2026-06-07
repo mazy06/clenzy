@@ -21,6 +21,7 @@ import { useTabKeyParam } from '../../components/tabKeyParam';
 import {
   PageHeaderActionsProvider,
   usePageHeaderActionsSlot,
+  usePageHeaderFiltersSlot,
   resolveTabHeader,
   type TabHeaderMeta,
 } from '../../components/PageHeaderActionsContext';
@@ -97,6 +98,7 @@ const ContactPage: React.FC = () => {
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
   const { slot: headerActionsSlot, portalContainer: headerActionsPortal } = usePageHeaderActionsSlot();
+  const { filtersSlot, filtersContainer } = usePageHeaderFiltersSlot();
 
   const handleNewMessage = () => {
     navigate('/contact/create');
@@ -137,8 +139,47 @@ const ContactPage: React.FC = () => {
     contactTabMeta,
   );
 
+  // Bascule des sous-vues de « Messages archivés ». Rendue DANS la colonne de
+  // gauche du master-detail (via listHeaderSlot) afin que la bordure entre les
+  // colonnes remonte jusqu'en haut, comme les autres onglets.
+  const archivedToggle = (isAdminOrManager || canAccessOta) ? (
+    <Box sx={{ display: 'flex', gap: 0.75, p: 1.5, borderBottom: 1, borderColor: 'divider', flexWrap: 'wrap', flexShrink: 0 }}>
+      <Button
+        size="small"
+        variant={archivedView === 'conversations' ? 'contained' : 'text'}
+        onClick={() => setArchivedView('conversations')}
+        sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 500, borderRadius: '8px', minWidth: 0 }}
+      >
+        Conversations
+        <Box component="span" sx={{ ml: 0.5, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>{archivedConversationsCount}</Box>
+      </Button>
+      {isAdminOrManager && (
+        <Button
+          size="small"
+          variant={archivedView === 'formulaires' ? 'contained' : 'text'}
+          onClick={() => setArchivedView('formulaires')}
+          sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 500, borderRadius: '8px', minWidth: 0 }}
+        >
+          Formulaires
+          <Box component="span" sx={{ ml: 0.5, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>{archivedFormsCount}</Box>
+        </Button>
+      )}
+      {canAccessOta && (
+        <Button
+          size="small"
+          variant={archivedView === 'ota' ? 'contained' : 'text'}
+          onClick={() => setArchivedView('ota')}
+          sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 500, borderRadius: '8px', minWidth: 0 }}
+        >
+          OTA
+          <Box component="span" sx={{ ml: 0.5, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>{archivedOtaCount}</Box>
+        </Button>
+      )}
+    </Box>
+  ) : null;
+
   return (
-    <PageHeaderActionsProvider slot={headerActionsSlot}>
+    <PageHeaderActionsProvider slot={headerActionsSlot} filtersSlot={filtersSlot}>
       <Box sx={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <PageHeader
           title={title}
@@ -147,6 +188,7 @@ const ContactPage: React.FC = () => {
           backPath="/dashboard"
           showBackButton={false}
           actions={headerActionsPortal}
+          filters={filtersContainer}
         />
         <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', height: '100%' }}>
           <PageTabs
@@ -174,59 +216,13 @@ const ContactPage: React.FC = () => {
             </TabPanel>
 
             <TabPanel value={tabValue} index={1}>
-              {/* Bascule conversations / formulaires / messagerie OTA archivés (selon les droits) */}
-              {(isAdminOrManager || canAccessOta) && (
-                <Box sx={{ display: 'flex', gap: 1, px: 2, pt: 1.5, pb: 1, flexShrink: 0 }}>
-                  <Button
-                    size="small"
-                    variant={archivedView === 'conversations' ? 'contained' : 'text'}
-                    onClick={() => setArchivedView('conversations')}
-                    sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
-                  >
-                    Conversations
-                    <Box component="span" sx={{ ml: 0.75, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
-                      {archivedConversationsCount}
-                    </Box>
-                  </Button>
-                  {isAdminOrManager && (
-                    <Button
-                      size="small"
-                      variant={archivedView === 'formulaires' ? 'contained' : 'text'}
-                      onClick={() => setArchivedView('formulaires')}
-                      sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
-                    >
-                      Formulaires
-                      <Box component="span" sx={{ ml: 0.75, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
-                        {archivedFormsCount}
-                      </Box>
-                    </Button>
-                  )}
-                  {canAccessOta && (
-                    <Button
-                      size="small"
-                      variant={archivedView === 'ota' ? 'contained' : 'text'}
-                      onClick={() => setArchivedView('ota')}
-                      sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
-                    >
-                      Messagerie OTA
-                      <Box component="span" sx={{ ml: 0.75, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
-                        {archivedOtaCount}
-                      </Box>
-                    </Button>
-                  )}
-                </Box>
+              {isAdminOrManager && archivedView === 'formulaires' ? (
+                <ReceivedFormsTab archivedOnly listHeaderSlot={archivedToggle} />
+              ) : canAccessOta && archivedView === 'ota' ? (
+                <ChannelInboxTab archivedOnly listHeaderSlot={archivedToggle} />
+              ) : (
+                <InternalChatTab archived listHeaderSlot={archivedToggle} />
               )}
-              <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                {isAdminOrManager && archivedView === 'formulaires' ? (
-                  <ReceivedFormsTab archivedOnly />
-                ) : canAccessOta && archivedView === 'ota' ? (
-                  <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-                    <ChannelInboxTab archivedOnly />
-                  </Box>
-                ) : (
-                  <InternalChatTab archived />
-                )}
-              </Box>
             </TabPanel>
 
             {isAdminOrManager && (

@@ -68,8 +68,8 @@ public class MetaSignupService {
             @Value("${clenzy.whatsapp.meta.app-id:}") String appId,
             @Value("${clenzy.whatsapp.meta.app-secret:}") String appSecret,
             @Value("${clenzy.whatsapp.meta.embedded-signup-config-id:}") String configId,
-            @Value("${clenzy.whatsapp.meta.graph-api-base:https://graph.facebook.com/v18.0}") String graphApiBase,
-            @Value("${clenzy.whatsapp.meta.oauth-token-url:https://graph.facebook.com/v18.0/oauth/access_token}") String oauthTokenUrl,
+            @Value("${clenzy.whatsapp.meta.graph-api-base:https://graph.facebook.com/v23.0}") String graphApiBase,
+            @Value("${clenzy.whatsapp.meta.oauth-token-url:https://graph.facebook.com/v23.0/oauth/access_token}") String oauthTokenUrl,
             // En Embedded Signup, redirect_uri est typiquement vide (popup mode) — mais
             // Meta exige qu'il soit egal a celui defini dans App Dashboard si non vide.
             // Default = empty string pour le popup mode.
@@ -250,10 +250,13 @@ public class MetaSignupService {
      * chiffre automatiquement apiToken au persist.
      */
     private WhatsAppConfig provisionConfig(Long organizationId, String accessToken, WabaInfo waba) {
-        WhatsAppConfig config = configRepository.findByOrganizationId(organizationId)
+        // Compte WhatsApp GLOBAL (singleton plateforme) : la config n'est plus par-org.
+        // organizationId reste passe pour les templates/logs, mais la config cible la
+        // ligne globale (organization_id NULL).
+        WhatsAppConfig config = configRepository.findFirstByOrganizationIdIsNull()
             .orElseGet(() -> {
                 WhatsAppConfig c = new WhatsAppConfig();
-                c.setOrganizationId(organizationId);
+                c.setOrganizationId(null); // ligne globale
                 return c;
             });
         config.setProvider(WhatsAppProviderType.META);

@@ -26,6 +26,18 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
            "AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
+    /**
+     * Recherche par nom de guest ou de logement (autocomplete rattachement
+     * « à trier » → réservation). Pas de filtre org explicite : réservé au
+     * platform staff (cross-org) ; le filtre tenant Hibernate s'applique pour
+     * les autres rôles.
+     */
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
+           "WHERE LOWER(r.guestName) LIKE LOWER(CONCAT('%', :q, '%')) " +
+           "OR LOWER(r.property.name) LIKE LOWER(CONCAT('%', :q, '%')) " +
+           "ORDER BY r.checkIn DESC")
+    List<Reservation> searchByGuestOrProperty(@Param("q") String q, Pageable pageable);
+
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.property.owner.id = :ownerId " +
            "AND r.checkOut >= :from AND r.checkIn <= :to AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findByOwnerIdAndDateRange(

@@ -97,3 +97,39 @@ export function useUpdateConversationStatus() {
     },
   });
 }
+
+/** Rattacher une conversation « à trier » à une réservation (relais WhatsApp). */
+export function useAttachToReservation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, reservationId, memorizePhone }: { conversationId: number; reservationId: number; memorizePhone?: boolean }) =>
+      conversationApi.attachToReservation(conversationId, reservationId, memorizePhone),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.all });
+    },
+  });
+}
+
+/** Envoyer un template WhatsApp sur une conversation. */
+export function useSendTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, templateKey }: { conversationId: number; templateKey: string }) =>
+      conversationApi.sendTemplate(conversationId, templateKey),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.all });
+    },
+  });
+}
+
+/** Envoyer un template WhatsApp depuis une réservation (envoi proactif). */
+export function useSendTemplateForReservation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reservationId, templateKey }: { reservationId: number; templateKey: string }) =>
+      conversationApi.sendTemplateForReservation(reservationId, templateKey),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.all });
+    },
+  });
+}

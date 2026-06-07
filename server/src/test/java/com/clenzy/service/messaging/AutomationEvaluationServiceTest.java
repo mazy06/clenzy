@@ -24,13 +24,15 @@ class AutomationEvaluationServiceTest {
     @Mock private AutomationRuleRepository ruleRepository;
     @Mock private AutomationExecutionRepository executionRepository;
     @Mock private GuestMessagingService messagingService;
+    @Mock private com.clenzy.service.WelcomeGuideService welcomeGuideService;
 
     private AutomationEvaluationService service;
 
     @BeforeEach
     void setUp() {
         service = new AutomationEvaluationService(ruleRepository, executionRepository, messagingService,
-            new AutomationConditionEvaluator(new com.fasterxml.jackson.databind.ObjectMapper()));
+            new AutomationConditionEvaluator(new com.fasterxml.jackson.databind.ObjectMapper()),
+            welcomeGuideService);
     }
 
     @Test
@@ -196,5 +198,79 @@ class AutomationEvaluationServiceTest {
 
         assertThat(exec.getStatus()).isEqualTo(AutomationExecutionStatus.FAILED);
         assertThat(exec.getErrorMessage()).contains("Email service down");
+    }
+
+    @Test
+    void processScheduledExecutions_sendGuide_generatesLinkAndSends() {
+        MessageTemplate template = new MessageTemplate();
+        template.setId(7L);
+
+        AutomationRule rule = new AutomationRule();
+        rule.setId(11L);
+        rule.setName("Envoi livret");
+        rule.setActionType(AutomationAction.SEND_GUIDE);
+        rule.setTemplate(template);
+
+        Reservation reservation = new Reservation();
+        reservation.setId(101L);
+
+        AutomationExecution exec = new AutomationExecution();
+        exec.setId(2L);
+        exec.setOrganizationId(1L);
+        exec.setAutomationRule(rule);
+        exec.setReservation(reservation);
+        exec.setStatus(AutomationExecutionStatus.PENDING);
+        exec.setScheduledAt(LocalDateTime.now().minusHours(1));
+
+        when(executionRepository.findByStatusAndScheduledAtBefore(
+            eq(AutomationExecutionStatus.PENDING), any()))
+            .thenReturn(List.of(exec));
+        when(welcomeGuideService.linkForReservation(reservation))
+            .thenReturn(java.util.Optional.of("https://app.clenzy.fr/guide/abc"));
+        when(messagingService.sendForReservationViaChannel(
+            eq(reservation), eq(template), eq(1L), eq(MessageChannelType.EMAIL), anyMap()))
+            .thenReturn(null);
+
+        service.processScheduledExecutions();
+
+        assertThat(exec.getStatus()).isEqualTo(AutomationExecutionStatus.EXECUTED);
+        verify(welcomeGuideService).linkForReservation(reservation);
+    }
+
+    @Test
+    void processScheduledExecutions_sendReviewRequest_generatesLinkAndSends() {
+        MessageTemplate template = new MessageTemplate();
+        template.setId(8L);
+
+        AutomationRule rule = new AutomationRule();
+        rule.setId(12L);
+        rule.setName("Demande d'avis");
+        rule.setActionType(AutomationAction.SEND_REVIEW_REQUEST);
+        rule.setTemplate(template);
+
+        Reservation reservation = new Reservation();
+        reservation.setId(102L);
+
+        AutomationExecution exec = new AutomationExecution();
+        exec.setId(3L);
+        exec.setOrganizationId(1L);
+        exec.setAutomationRule(rule);
+        exec.setReservation(reservation);
+        exec.setStatus(AutomationExecutionStatus.PENDING);
+        exec.setScheduledAt(LocalDateTime.now().minusHours(1));
+
+        when(executionRepository.findByStatusAndScheduledAtBefore(
+            eq(AutomationExecutionStatus.PENDING), any()))
+            .thenReturn(List.of(exec));
+        when(welcomeGuideService.reviewLinkForReservation(reservation))
+            .thenReturn(java.util.Optional.of("https://app.clenzy.fr/guide/rev"));
+        when(messagingService.sendForReservationViaChannel(
+            eq(reservation), eq(template), eq(1L), eq(MessageChannelType.EMAIL), anyMap()))
+            .thenReturn(null);
+
+        service.processScheduledExecutions();
+
+        assertThat(exec.getStatus()).isEqualTo(AutomationExecutionStatus.EXECUTED);
+        verify(welcomeGuideService).reviewLinkForReservation(reservation);
     }
 }

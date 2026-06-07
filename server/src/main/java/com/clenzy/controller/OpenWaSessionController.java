@@ -3,7 +3,6 @@ package com.clenzy.controller;
 import com.clenzy.model.WhatsAppConfig;
 import com.clenzy.model.WhatsAppProviderType;
 import com.clenzy.repository.WhatsAppConfigRepository;
-import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -14,252 +13,279 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Endpoints frontend pour le flow de scan QR OpenWA (Phase 4b). Ces endpoints
- * sont des PROXY signes vers l'instance OpenWA partagee (cf. clenzy-infra
- * docker-compose service `openwa`, port 2785 interne).
+ * Endpoints frontend pour le flow de scan QR OpenWA (proxy signe vers l'instance
+ * OpenWA — cf. clenzy-infra/openwa, NestJS + whatsapp-web.js).
  *
- * <h3>Pourquoi un proxy</h3>
- * Le frontend ne doit JAMAIS appeler directement OpenWA :
+ * <h3>Compte WhatsApp GLOBAL</h3>
+ * Une seule session OpenWA pour toute la plateforme (nom {@code clenzy-global}).
+ * La <b>master key</b> OpenWA (rôle ADMIN) est stockée chiffrée en base dans
+ * {@link WhatsAppConfig#getOpenwaApiKey()} (saisie depuis l'UI) — plus de
+ * variable d'environnement. L'{@code openwaSessionId} stocke l'id (uuid) de la
+ * session créée côté OpenWA.
+ *
+ * <h3>Contrat API OpenWA réel</h3>
  * <ul>
- *   <li>OpenWA est sur le reseau Docker interne (pas expose externe en prod)</li>
- *   <li>L'API_MASTER_KEY ne doit pas etre embarquee cote browser</li>
- *   <li>Le scoping per-org est fait ici (chaque org a sa propre session)</li>
+ *   <li>POST /api/sessions {name} → {id, status} (puis POST /sessions/:id/start)</li>
+ *   <li>GET  /api/sessions/:id/qr → {qrCode, status}</li>
+ *   <li>GET  /api/sessions/:id → {status, phone}</li>
+ *   <li>DELETE /api/sessions/:id</li>
+ *   <li>Auth : header {@code X-API-Key: <master key>} (rôle ADMIN suffit pour tout)</li>
  * </ul>
  *
- * <h3>Flow scan QR</h3>
- * <ol>
- *   <li><b>POST /api/whatsapp/openwa/session</b> : cree une session sur OpenWA
- *       (ID = owa-org-{orgId}-{uuid8}), genere une API key per-session, persist
- *       sessionId + chiffre la apiKey dans whatsapp_configs, retourne au frontend
- *       les credentials qu'il pourra renseigner dans le form.</li>
- *   <li><b>GET /api/whatsapp/openwa/qr</b> : recupere l'image QR base64 depuis
- *       OpenWA (instance partagee) pour la session de l'org courante. Le
- *       frontend l'affiche dans un Dialog modal.</li>
- *   <li><b>GET /api/whatsapp/openwa/status</b> : polling toutes les 2s cote
- *       frontend pour detecter quand l'user a scanne le QR. Retourne
- *       {@code "qr_pending" | "connected" | "disconnected" | "failed"}.</li>
- * </ol>
- *
- * <h3>Securite</h3>
- * Tous les endpoints exigent {@code @PreAuthorize("isAuthenticated()")} et
- * resolvent l'org via {@link TenantContext} — pas de cross-tenant possible.
+ * <h3>Sécurité</h3>
+ * Opération PLATEFORME : {@code hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')}.
  */
 @RestController
 @RequestMapping("/api/whatsapp/openwa")
-@PreAuthorize("isAuthenticated()")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
 public class OpenWaSessionController {
 
     private static final Logger log = LoggerFactory.getLogger(OpenWaSessionController.class);
 
+    /** Nom de la session OpenWA unique (compte WhatsApp global). 3-50 chars, alphanum + tirets. */
+    private static final String SESSION_NAME = "clenzy-global";
+
     private final WhatsAppConfigRepository configRepository;
-    private final TenantContext tenantContext;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final String openwaBaseUrl;
-    private final String openwaMasterKey;
+    private final String webhookUrl;
 
     public OpenWaSessionController(
             WhatsAppConfigRepository configRepository,
-            TenantContext tenantContext,
             ObjectMapper objectMapper,
             @Value("${clenzy.whatsapp.openwa.base-url:http://openwa:2785}") String openwaBaseUrl,
-            @Value("${OPENWA_API_MASTER_KEY:}") String openwaMasterKey) {
+            @Value("${clenzy.whatsapp.openwa.webhook-url:http://host.docker.internal:8084/api/webhooks/whatsapp/openwa}") String webhookUrl) {
         this.configRepository = configRepository;
-        this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
         this.restTemplate = new RestTemplate();
         this.openwaBaseUrl = openwaBaseUrl;
-        this.openwaMasterKey = openwaMasterKey;
+        this.webhookUrl = webhookUrl;
     }
 
-    // ─── POST /session : provisionne une session OpenWA pour l'org ─────────
+    // ─── POST /session : crée (ou réutilise) + démarre la session OpenWA ────
 
     @PostMapping("/session")
     public ResponseEntity<Map<String, Object>> createSession() {
-        ensureMasterKey();
-        Long orgId = tenantContext.getRequiredOrganizationId();
-
-        // ID de session deterministe par-org + suffix UUID pour eviter les
-        // collisions si l'user reset plusieurs fois (l'ancienne session
-        // restera en base OpenWA, c'est OK — orphan cleanup possible plus tard).
-        String sessionId = "owa-org-" + orgId + "-" + UUID.randomUUID().toString().substring(0, 8);
-        // API key per-session : 32 bytes hex. Stockee chiffree dans whatsapp_configs.
-        String apiKey = "owa_" + UUID.randomUUID().toString().replace("-", "")
-                + UUID.randomUUID().toString().replace("-", "").substring(0, 4);
-
-        // Crée la session sur l'instance OpenWA (auth par API_MASTER_KEY)
-        try {
-            String url = openwaBaseUrl + "/api/sessions";
-            Map<String, Object> body = Map.of(
-                "sessionId", sessionId,
-                "apiKey", apiKey
-            );
-            restTemplate.exchange(url, HttpMethod.POST, withMasterKey(body), String.class);
-        } catch (Exception e) {
-            log.error("Echec creation session OpenWA pour org {}: {}", orgId, e.getMessage());
-            return ResponseEntity.status(503).body(Map.of(
-                "error", "Instance OpenWA injoignable",
-                "details", "Verifier que le container openwa est demarre (docker compose --profile openwa up -d)"));
+        WhatsAppConfig config = configRepository.findFirstByOrganizationIdIsNull().orElse(null);
+        String masterKey = (config != null) ? config.getOpenwaApiKey() : null;
+        if (masterKey == null || masterKey.isBlank()) {
+            return ResponseEntity.status(400).body(Map.of(
+                "error", "Master key OpenWA non configurée. Saisissez-la dans la configuration et enregistrez d'abord."));
         }
 
-        // Persiste les credentials sur l'entite WhatsAppConfig de l'org
-        WhatsAppConfig config = configRepository.findByOrganizationId(orgId)
-            .orElseGet(() -> {
-                WhatsAppConfig c = new WhatsAppConfig();
-                c.setOrganizationId(orgId);
-                return c;
-            });
+        String sessionId = config.getOpenwaSessionId();
+        try {
+            if (sessionId == null || sessionId.isBlank()) {
+                sessionId = createOrFindSession(masterKey);
+            }
+            startSession(masterKey, sessionId);
+        } catch (Exception e) {
+            log.error("Echec creation/demarrage session OpenWA: {}", e.getMessage());
+            return ResponseEntity.status(503).body(Map.of(
+                "error", "Instance OpenWA injoignable ou master key invalide",
+                "details", "Verifier que le container openwa est demarre et la master key correcte."));
+        }
+
         config.setProvider(WhatsAppProviderType.OPENWA);
         config.setOpenwaSessionId(sessionId);
-        config.setOpenwaApiKey(apiKey); // Setter encode automatiquement via converter Jasypt
+        ensureWebhook(masterKey, sessionId, config); // genere+persiste le secret HMAC + enregistre le webhook entrant (best-effort)
         configRepository.save(config);
 
-        log.info("Session OpenWA cree pour org {}: {}", orgId, sessionId);
-        return ResponseEntity.ok(Map.of(
-            "sessionId", sessionId,
-            "status", "qr_pending"
-        ));
+        log.info("Session OpenWA globale prête: {}", sessionId);
+        return ResponseEntity.ok(Map.of("sessionId", sessionId, "status", "qr_pending"));
     }
 
-    // ─── GET /qr : recupere l'image QR depuis OpenWA ───────────────────────
+    // ─── GET /qr : récupère l'image QR depuis OpenWA ───────────────────────
 
     @GetMapping("/qr")
     public ResponseEntity<Map<String, Object>> getQr() {
-        ensureMasterKey();
-        Long orgId = tenantContext.getRequiredOrganizationId();
-
-        WhatsAppConfig config = configRepository.findByOrganizationId(orgId)
-            .orElseThrow(() -> new AccessDeniedException("Pas de config WhatsApp pour cette organisation"));
-
-        if (config.getOpenwaSessionId() == null) {
+        WhatsAppConfig config = configRepository.findFirstByOrganizationIdIsNull().orElse(null);
+        if (config == null || isBlank(config.getOpenwaSessionId()) || isBlank(config.getOpenwaApiKey())) {
             return ResponseEntity.status(404).body(Map.of(
-                "error", "Aucune session OpenWA active. Cliquez sur 'Scanner le QR code' pour en creer une."));
+                "error", "Aucune session OpenWA active. Cliquez sur 'Scanner le QR code'."));
         }
-
         try {
             String url = openwaBaseUrl + "/api/sessions/" + config.getOpenwaSessionId() + "/qr";
             ResponseEntity<String> response = restTemplate.exchange(
-                url, HttpMethod.GET, withSessionAuth(config), String.class);
-
+                url, HttpMethod.GET, auth(config.getOpenwaApiKey(), null), String.class);
             if (response.getBody() != null) {
                 JsonNode root = objectMapper.readTree(response.getBody());
-                // OpenWA renvoie { "qr": "data:image/png;base64,..." } ou { "qrCode": "..." }
-                String qr = root.path("qr").asText(root.path("qrCode").asText(""));
+                String qr = root.path("qrCode").asText(root.path("qr").asText(""));
                 if (qr.isBlank()) {
                     return ResponseEntity.status(404).body(Map.of(
-                        "error", "QR code non disponible (session deja connectee ?)"));
+                        "error", "QR code non disponible (session déjà connectée ?)"));
                 }
                 return ResponseEntity.ok(Map.of("qr", qr, "sessionId", config.getOpenwaSessionId()));
             }
         } catch (Exception e) {
-            log.warn("Erreur recuperation QR OpenWA pour org {}: {}", orgId, e.getMessage());
+            log.warn("Erreur recuperation QR OpenWA: {}", e.getMessage());
         }
-        return ResponseEntity.status(503).body(Map.of("error", "Instance OpenWA injoignable ou session expiree"));
+        return ResponseEntity.status(503).body(Map.of("error", "Instance OpenWA injoignable ou QR pas prêt"));
     }
 
-    // ─── GET /status : polling du status connexion ─────────────────────────
+    // ─── GET /status : polling du statut de connexion ──────────────────────
 
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getStatus() {
-        ensureMasterKey();
-        Long orgId = tenantContext.getRequiredOrganizationId();
-
-        WhatsAppConfig config = configRepository.findByOrganizationId(orgId).orElse(null);
-        if (config == null || config.getOpenwaSessionId() == null) {
+        WhatsAppConfig config = configRepository.findFirstByOrganizationIdIsNull().orElse(null);
+        if (config == null || isBlank(config.getOpenwaSessionId()) || isBlank(config.getOpenwaApiKey())) {
             return ResponseEntity.ok(Map.of("status", "not_configured"));
         }
-
         try {
-            String url = openwaBaseUrl + "/api/sessions/" + config.getOpenwaSessionId() + "/status";
+            String url = openwaBaseUrl + "/api/sessions/" + config.getOpenwaSessionId();
             ResponseEntity<String> response = restTemplate.exchange(
-                url, HttpMethod.GET, withSessionAuth(config), String.class);
-
+                url, HttpMethod.GET, auth(config.getOpenwaApiKey(), null), String.class);
             if (response.getBody() != null) {
                 JsonNode root = objectMapper.readTree(response.getBody());
-                String status = root.path("status").asText("unknown");
-                // OpenWA peut renvoyer : QR / CONNECTED / DISCONNECTED / FAILED
-                // On normalise vers les valeurs attendues par le frontend
                 Map<String, Object> result = new HashMap<>();
-                result.put("status", normalizeStatus(status));
+                result.put("status", normalizeStatus(root.path("status").asText("unknown")));
                 result.put("sessionId", config.getOpenwaSessionId());
-                if (root.has("phoneNumber")) result.put("phoneNumber", root.path("phoneNumber").asText());
+                if (root.has("phone")) result.put("phoneNumber", root.path("phone").asText());
                 return ResponseEntity.ok(result);
             }
         } catch (Exception e) {
-            log.debug("Erreur polling status OpenWA pour org {}: {}", orgId, e.getMessage());
+            log.debug("Erreur polling status OpenWA: {}", e.getMessage());
         }
         return ResponseEntity.ok(Map.of("status", "disconnected"));
     }
 
-    // ─── DELETE /session : detruit la session OpenWA + reset config ────────
+    // ─── DELETE /session : détruit la session OpenWA + reset l'id ──────────
 
     @DeleteMapping("/session")
     public ResponseEntity<Void> deleteSession() {
-        ensureMasterKey();
-        Long orgId = tenantContext.getRequiredOrganizationId();
-        WhatsAppConfig config = configRepository.findByOrganizationId(orgId).orElse(null);
-        if (config == null || config.getOpenwaSessionId() == null) {
+        WhatsAppConfig config = configRepository.findFirstByOrganizationIdIsNull().orElse(null);
+        if (config == null || isBlank(config.getOpenwaSessionId())) {
             return ResponseEntity.noContent().build();
         }
-
-        // Best-effort : delete cote OpenWA, mais on continue meme si OpenWA est down
-        try {
-            String url = openwaBaseUrl + "/api/sessions/" + config.getOpenwaSessionId();
-            restTemplate.exchange(url, HttpMethod.DELETE, withSessionAuth(config), String.class);
-        } catch (Exception e) {
-            log.warn("Echec delete session OpenWA pour org {}: {}", orgId, e.getMessage());
+        if (!isBlank(config.getOpenwaApiKey())) {
+            try {
+                String url = openwaBaseUrl + "/api/sessions/" + config.getOpenwaSessionId();
+                restTemplate.exchange(url, HttpMethod.DELETE, auth(config.getOpenwaApiKey(), null), String.class);
+            } catch (Exception e) {
+                log.warn("Echec delete session OpenWA: {}", e.getMessage());
+            }
         }
-
-        config.setOpenwaSessionId(null);
-        config.setOpenwaApiKey(null);
+        config.setOpenwaSessionId(null); // on garde la master key (openwaApiKey)
         configRepository.save(config);
         return ResponseEntity.noContent().build();
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────
 
-    /**
-     * Garantit que OPENWA_API_MASTER_KEY est configure (sinon les calls
-     * admin a OpenWA echouent). Retourne 503 explicite a l'user au lieu
-     * d'un 500 cryptique.
-     */
-    private void ensureMasterKey() {
-        if (openwaMasterKey == null || openwaMasterKey.isBlank()) {
-            throw new IllegalStateException(
-                "OPENWA_API_MASTER_KEY non configuree cote serveur. " +
-                "Lancer ./scripts/setup-openwa.sh dans clenzy-infra pour la generer.");
+    /** Crée la session {name}; si le nom existe déjà (409), récupère son id. Retourne l'id (uuid). */
+    private String createOrFindSession(String masterKey) throws Exception {
+        try {
+            ResponseEntity<String> resp = restTemplate.exchange(
+                openwaBaseUrl + "/api/sessions", HttpMethod.POST,
+                auth(masterKey, Map.of("name", SESSION_NAME)), String.class);
+            return objectMapper.readTree(resp.getBody()).path("id").asText();
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 409) {
+                return findSessionIdByName(masterKey, SESSION_NAME);
+            }
+            throw e;
         }
     }
 
-    private HttpEntity<Map<String, Object>> withMasterKey(Map<String, Object> body) {
+    private String findSessionIdByName(String masterKey, String name) throws Exception {
+        ResponseEntity<String> resp = restTemplate.exchange(
+            openwaBaseUrl + "/api/sessions", HttpMethod.GET, auth(masterKey, null), String.class);
+        JsonNode root = objectMapper.readTree(resp.getBody());
+        JsonNode arr = root.isArray() ? root : root.path("data");
+        if (arr.isArray()) {
+            for (JsonNode s : arr) {
+                if (name.equals(s.path("name").asText())) return s.path("id").asText();
+            }
+        }
+        throw new IllegalStateException("Session OpenWA '" + name + "' introuvable après conflit");
+    }
+
+    /** Démarre la session (génère le QR). Non bloquant si déjà démarrée. */
+    private void startSession(String masterKey, String sessionId) {
+        try {
+            restTemplate.exchange(
+                openwaBaseUrl + "/api/sessions/" + sessionId + "/start", HttpMethod.POST,
+                auth(masterKey, null), String.class);
+        } catch (Exception e) {
+            log.debug("start session OpenWA (non bloquant): {}", e.getMessage());
+        }
+    }
+
+    // ─── Webhook entrant (relais guest -> host) ───────────────────────────
+
+    /** Enregistre (idempotent) le webhook entrant cote OpenWA + persiste le secret HMAC en BDD. */
+    private void ensureWebhook(String masterKey, String sessionId, WhatsAppConfig config) {
+        if (isBlank(webhookUrl)) return;
+        try {
+            if (isBlank(config.getOpenwaWebhookSecret())) {
+                config.setOpenwaWebhookSecret(UUID.randomUUID().toString());
+            }
+            // OpenWA ne dedoublonne pas : ne pas recreer si l'URL est deja enregistree.
+            if (webhookAlreadyRegistered(masterKey, sessionId)) {
+                log.debug("Webhook OpenWA deja enregistre pour {}", sessionId);
+                return;
+            }
+            Map<String, Object> body = Map.of(
+                "url", webhookUrl,
+                "events", List.of("message.received"),
+                "secret", config.getOpenwaWebhookSecret());
+            restTemplate.exchange(
+                openwaBaseUrl + "/api/sessions/" + sessionId + "/webhooks",
+                HttpMethod.POST, auth(masterKey, body), String.class);
+            log.info("Webhook OpenWA entrant enregistre: {} -> {}", sessionId, webhookUrl);
+        } catch (Exception e) {
+            log.warn("Echec enregistrement webhook OpenWA (relais entrant indisponible): {}", e.getMessage());
+        }
+    }
+
+    private boolean webhookAlreadyRegistered(String masterKey, String sessionId) {
+        try {
+            ResponseEntity<String> resp = restTemplate.exchange(
+                openwaBaseUrl + "/api/sessions/" + sessionId + "/webhooks",
+                HttpMethod.GET, auth(masterKey, null), String.class);
+            JsonNode root = objectMapper.readTree(resp.getBody());
+            JsonNode arr = root.isArray() ? root : root.path("data");
+            if (arr.isArray()) {
+                for (JsonNode w : arr) {
+                    if (webhookUrl.equals(w.path("url").asText())) return true;
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Liste webhooks OpenWA indisponible: {}", e.getMessage());
+        }
+        return false;
+    }
+
+    private HttpEntity<Object> auth(String masterKey, Object body) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("X-API-Key", openwaMasterKey);
+        headers.set("X-API-Key", masterKey);
         return new HttpEntity<>(body, headers);
     }
 
-    private HttpEntity<Void> withSessionAuth(WhatsAppConfig config) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-API-Key", config.getOpenwaApiKey());
-        return new HttpEntity<>(headers);
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 
+    /** Normalise les statuts OpenWA vers les valeurs attendues par le frontend. */
     private String normalizeStatus(String openwaStatus) {
         if (openwaStatus == null) return "disconnected";
-        return switch (openwaStatus.toUpperCase()) {
-            case "QR", "QR_PENDING", "QRCODE", "SCAN_QR_CODE" -> "qr_pending";
-            case "CONNECTED", "AUTHENTICATED", "READY" -> "connected";
-            case "FAILED", "AUTH_FAILURE" -> "failed";
+        return switch (openwaStatus.toLowerCase()) {
+            case "created", "initializing", "qr_ready", "authenticating" -> "qr_pending";
+            case "ready", "connected", "authenticated" -> "connected";
+            case "failed", "auth_failure" -> "failed";
             default -> "disconnected";
         };
     }

@@ -132,7 +132,7 @@ class MetaSignupServiceTest {
                     .thenReturn(ResponseEntity.ok(wabasJson))
                     .thenReturn(ResponseEntity.ok(phonesJson));
 
-            when(configRepository.findByOrganizationId(100L)).thenReturn(Optional.empty());
+            when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.empty());
             when(configRepository.save(any(WhatsAppConfig.class))).thenAnswer(inv -> {
                 WhatsAppConfig c = inv.getArgument(0);
                 c.setId(1L);
@@ -177,7 +177,7 @@ class MetaSignupServiceTest {
                     .thenReturn(ResponseEntity.ok(wabasJson))
                     .thenReturn(ResponseEntity.ok(phonesJson));
 
-            when(configRepository.findByOrganizationId(100L)).thenReturn(Optional.empty());
+            when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.empty());
             when(configRepository.save(any())).thenAnswer(inv -> {
                 WhatsAppConfig c = inv.getArgument(0);
                 c.setId(2L);
@@ -210,7 +210,7 @@ class MetaSignupServiceTest {
                     .thenReturn(ResponseEntity.ok(wabasJson))
                     .thenReturn(ResponseEntity.ok(phonesJson));
 
-            when(configRepository.findByOrganizationId(100L)).thenReturn(Optional.of(existing));
+            when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.of(existing));
             when(configRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
             when(templateProvisioner.provisionAll(any()))
                     .thenReturn(new MetaTemplateProvisioner.ProvisionResult(0, 0, List.of()));

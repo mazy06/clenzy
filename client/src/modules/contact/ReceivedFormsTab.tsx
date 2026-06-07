@@ -1,4 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { CONTACT_LIST_WIDTH } from '../channels/channelConfig';
+import { usePageHeaderFilters } from '../../components/PageHeaderActionsContext';
+import FilterChipRow from '../../components/FilterChipRow';
+import InboxListItem from '../../components/InboxListItem';
 import {
   Box,
   Typography,
@@ -401,7 +405,7 @@ function SupportDetails({ data }: { data: Record<string, unknown> }) {
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
-const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly = false }) => {
+const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean; listHeaderSlot?: React.ReactNode }> = ({ archivedOnly = false, listHeaderSlot }) => {
   const theme = useTheme();
   const [selectedForm, setSelectedForm] = useState<ReceivedForm | null>(null);
   const [filterType, setFilterType] = useState<string>('');
@@ -428,6 +432,37 @@ const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly =
   const { data: formsPage, isLoading } = useReceivedForms(queryParams);
   const updateStatusMutation = useUpdateFormStatus();
   const resetAvailabilityMutation = useResetFormsAvailability();
+
+  // Recherche + filtre type + refresh : portés dans la barre filtres du PageHeader (inline).
+  const filtersNode = (
+    <>
+      <TextField
+        size="small"
+        placeholder="Rechercher…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        InputProps={{ startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><SearchIcon size={18} strokeWidth={1.75} /></Box> }}
+        sx={{ width: { xs: 150, sm: 220 }, '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', borderRadius: '8px' } }}
+      />
+      <FilterChipRow<'DEVIS' | 'MAINTENANCE' | 'SUPPORT'>
+        options={[
+          { value: 'DEVIS', label: FORM_TYPE_CONFIG.DEVIS.label, color: FORM_TYPE_CONFIG.DEVIS.color },
+          { value: 'MAINTENANCE', label: FORM_TYPE_CONFIG.MAINTENANCE.label, color: FORM_TYPE_CONFIG.MAINTENANCE.color },
+          { value: 'SUPPORT', label: FORM_TYPE_CONFIG.SUPPORT.label, color: FORM_TYPE_CONFIG.SUPPORT.color },
+        ]}
+        value={filterType as '' | 'DEVIS' | 'MAINTENANCE' | 'SUPPORT'}
+        onChange={(v) => { setFilterType(v); setPage(0); }}
+        allLabel="Tous"
+        size="compact"
+      />
+      <Tooltip title="Rafraîchir">
+        <IconButton size="small" onClick={() => resetAvailabilityMutation.mutate()}>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><RefreshIcon size={18} strokeWidth={1.75} /></Box>
+        </IconButton>
+      </Tooltip>
+    </>
+  );
+  const headerFilters = usePageHeaderFilters(filtersNode);
   const { data: templates } = useTemplates();
   const generateDocumentMutation = useGenerateDocument();
   const { notify } = useNotification();
@@ -635,51 +670,7 @@ const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly =
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-
-      {/* Toolbar */}
-      <Box sx={{ display: 'flex', gap: 1, p: 1.5, borderBottom: 1, borderColor: 'divider', alignItems: 'center', flexWrap: 'wrap' }}>
-        <TextField
-          size="small"
-          placeholder="Rechercher..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          InputProps={{ startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><SearchIcon size={18} strokeWidth={1.75} /></Box> }}
-          sx={{
-            minWidth: 180, flex: 1,
-            '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', borderRadius: '8px' },
-          }}
-        />
-        {['', 'DEVIS', 'MAINTENANCE', 'SUPPORT'].map(t => {
-          const conf = t ? FORM_TYPE_CONFIG[t] : null;
-          const chipColor = conf?.color || '#0288d1';
-          const isActive = filterType === t;
-          return (
-            <Chip
-              key={t || 'all'}
-              label={conf ? conf.label : 'Tous'}
-              size="small"
-              onClick={() => { setFilterType(t); setPage(0); }}
-              sx={{
-                fontSize: '0.6875rem', height: 26, borderRadius: '6px', cursor: 'pointer',
-                fontWeight: 600,
-                '& .MuiChip-label': { px: 1 },
-                backgroundColor: isActive ? chipColor : `${chipColor}18`,
-                color: isActive ? '#fff' : chipColor,
-                border: `1px solid ${chipColor}40`,
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  backgroundColor: isActive ? chipColor : `${chipColor}28`,
-                },
-              }}
-            />
-          );
-        })}
-        <Tooltip title="Rafraichir">
-          <IconButton size="small" onClick={() => resetAvailabilityMutation.mutate()}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><RefreshIcon size={18} strokeWidth={1.75} /></Box>
-          </IconButton>
-        </Tooltip>
-      </Box>
+      {headerFilters}
 
       {/* Content */}
       {isLoading ? (
@@ -698,86 +689,54 @@ const ReceivedFormsTab: React.FC<{ archivedOnly?: boolean }> = ({ archivedOnly =
         <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
           {/* ─── Liste gauche (largeur fixe, adaptée au texte) ─── */}
-          <Box sx={{ width: { xs: 300, md: 340, xl: 360 }, flexShrink: 0, borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <Box sx={{ width: CONTACT_LIST_WIDTH, flexShrink: 0, borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {listHeaderSlot}
             <Box sx={{ flex: 1, overflowY: 'auto' }}>
               {filteredForms.map(form => {
                 const typeConf = FORM_TYPE_CONFIG[form.formType] || FORM_TYPE_CONFIG.DEVIS;
                 const statusConf = STATUS_CONFIG[form.status] || STATUS_CONFIG.NEW;
                 const isSelected = selectedForm?.id === form.id;
 
+                const formInitials = form.fullName
+                  .split(' ').filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase() || '?';
                 return (
-                  <Box
+                  <InboxListItem
                     key={form.id}
+                    active={isSelected}
                     onClick={() => handleSelect(form)}
-                    sx={{
-                      px: 1.5, py: 1.25,
-                      cursor: 'pointer',
-                      borderBottom: 1, borderColor: 'divider',
-                      bgcolor: isSelected
-                        ? alpha(typeConf.color, theme.palette.mode === 'dark' ? 0.12 : 0.06)
-                        : 'transparent',
-                      transition: 'background-color 0.15s ease',
-                      '&:hover': {
-                        bgcolor: isSelected
-                          ? alpha(typeConf.color, theme.palette.mode === 'dark' ? 0.16 : 0.09)
-                          : 'action.hover',
-                      },
-                    }}
-                  >
-                    {/* Row 1: Nom + chips type/statut (même ligne) */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-                      <Typography sx={{
-                        flex: 1, minWidth: 0,
-                        fontSize: '0.8125rem',
-                        fontWeight: 600,
-                        color: 'text.primary',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        lineHeight: 1.3,
-                      }}>
-                        {form.fullName}
-                      </Typography>
-                      <Tooltip title={typeConf.label} arrow placement="top">
-                        <Box component="span" sx={{ display: 'inline-flex', color: typeConf.color, flexShrink: 0 }}>
-                          {React.cloneElement(typeConf.icon as React.ReactElement, { size: 15 })}
-                        </Box>
-                      </Tooltip>
+                    avatar={
+                      <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: typeConf.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8125rem', fontWeight: 600 }}>
+                        {formInitials}
+                      </Box>
+                    }
+                    title={form.fullName}
+                    time={formatDate(form.createdAt)}
+                    meta={
+                      <>
+                        <Tooltip title={typeConf.label} arrow placement="top">
+                          <Box component="span" sx={{ display: 'inline-flex', color: typeConf.color, flexShrink: 0 }}>
+                            {React.cloneElement(typeConf.icon as React.ReactElement, { size: 13 })}
+                          </Box>
+                        </Tooltip>
+                        {form.city && (
+                          <>
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0 }}><LocationIcon size={10} strokeWidth={1.75} /></Box>
+                            <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {form.city}
+                            </Typography>
+                          </>
+                        )}
+                      </>
+                    }
+                    preview={form.subject}
+                    trailing={
                       <Tooltip title={statusConf.label} arrow placement="top">
-                        <Box component="span" sx={{ display: 'inline-flex', color: statusConf.color, flexShrink: 0 }}>
+                        <Box component="span" sx={{ display: 'inline-flex', color: statusConf.color }}>
                           {renderStatusIcon(form.status)}
                         </Box>
                       </Tooltip>
-                    </Box>
-
-                    {/* Row 3: Subject */}
-                    <Typography sx={{
-                      fontSize: '0.6875rem', color: 'text.secondary',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      display: 'block', lineHeight: 1.4, mt: 0.25,
-                    }}>
-                      {form.subject}
-                    </Typography>
-
-                    {/* Row 4: Date + city */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                      <Typography sx={{
-                        fontSize: '0.625rem', color: 'text.disabled',
-                        lineHeight: 1,
-                      }}>
-                        {formatDate(form.createdAt)}
-                      </Typography>
-                      {form.city && (
-                        <>
-                          <Box sx={{ width: 2, height: 2, borderRadius: '50%', bgcolor: 'text.disabled' }} />
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><LocationIcon size={10} strokeWidth={1.75} /></Box>
-                            <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', lineHeight: 1 }}>
-                              {form.city}
-                            </Typography>
-                          </Box>
-                        </>
-                      )}
-                    </Box>
-                  </Box>
+                    }
+                  />
                 );
               })}
             </Box>

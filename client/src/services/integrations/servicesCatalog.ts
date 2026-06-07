@@ -68,9 +68,12 @@ export interface CatalogService {
 
 export const CATALOG_SERVICES: CatalogService[] = [
   // ─── Messaging ────────────────────────────────────────────────────────────
+  // WhatsApp est CONFIGURABLE depuis Baitly (available: true). La card est rendue
+  // par IntegrationsWhatsAppConfig, qui intercepte le clic pour ouvrir un dialog
+  // de config (sélecteur d'org + provider) au lieu de la modale info standard.
   {
     id: 'whatsapp_business',
-    name: 'WhatsApp Business Cloud',
+    name: 'WhatsApp',
     category: 'messaging',
     brandColor: '#25D366',
     brandTextColor: '#FFFFFF',
@@ -78,8 +81,8 @@ export const CATALOG_SERVICES: CatalogService[] = [
     tooltipDescription:
       'API officielle Meta pour WhatsApp Business. Envoi de messages transactionnels (confirmation réservation, check-in, etc.), templates approuvés, médias enrichis. WhatsApp Catalog pour vendre des extras dans le chat. WhatsApp est le canal #1 au Maroc et en Arabie Saoudite (95 %+ de pénétration mobile).',
     websiteUrl: 'https://business.whatsapp.com/products/business-platform',
-    accessModality: 'Créer un compte Meta Business → ajouter une app WhatsApp Business → obtenir un numéro vérifié + token permanent. Tarification au message (~0.005-0.05 € selon pays).',
-    available: false,
+    accessModality: 'Configurez le provider (Meta Cloud API ou OpenWA) par organisation, directement depuis Baitly.',
+    available: true,
     region: 'Global',
   },
 
@@ -343,8 +346,9 @@ export const CATALOG_SERVICES: CatalogService[] = [
       'Filiale TripAdvisor. Catalogue ultra-large d\'activités et expériences. Commission affiliée 8 %. Présence forte FR/EU/Global.',
     websiteUrl: 'https://www.viatorpartners.com/',
     accessModality: 'Partner program (signup gratuit) → API key. Bibliothèques officielles JavaScript/Python disponibles.',
-    available: false,
+    available: true,
     region: 'Global',
+    internalRoute: '/booking-engine',
   },
 
   // ─── Reviews & Reputation ────────────────────────────────────────────────

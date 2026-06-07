@@ -68,7 +68,7 @@ import type { NotificationPreferencesHandle } from './NotificationPreferencesCar
 import MarketingPreferencesCard from './MarketingPreferencesCard';
 import OrganizationSection from '../organization/OrganizationSection';
 import MessagingAutomationSection from '../messaging/MessagingAutomationSection';
-import WhatsAppProviderConfigSection from './WhatsAppProviderConfigSection';
+import WhatsAppStatusBanner from '../messaging/WhatsAppStatusBanner';
 import FiscalProfileSection from './FiscalProfileSection';
 import type { FiscalProfileHandle } from './FiscalProfileSection';
 import SepaDebtorSettings, { type SepaDebtorHandle } from './SepaDebtorSettings';
@@ -1044,10 +1044,10 @@ export default function Settings() {
       {/* ─── Onglet Messagerie ────────────────────────────────────────── */}
       <TabPanel value={tabValue} index={2}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {/* Provider WhatsApp (Meta Cloud API ou OpenWA self-hosted) :
-              section en premier car bloquante — sans provider configure,
-              les automations ci-dessous n'envoient rien sur le canal WhatsApp. */}
-          <WhatsAppProviderConfigSection />
+          {/* La config du provider WhatsApp (credentials Meta/OpenWA) est gérée
+              par la plateforme depuis l'onglet Organisation. Le HOST voit ici un
+              statut read-only + ses automatisations de messages voyageurs. */}
+          <WhatsAppStatusBanner />
           <MessagingAutomationSection />
         </Box>
       </TabPanel>

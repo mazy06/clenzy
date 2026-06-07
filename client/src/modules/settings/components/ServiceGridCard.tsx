@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Paper, Typography, Chip } from '@mui/material';
-import { CheckCircle as CheckCircleIcon, ErrorOutline, ChevronRight } from '../../../icons';
+import { CheckCircle as CheckCircleIcon, ErrorOutline } from '../../../icons';
+import { Settings2 } from 'lucide-react';
 import ProviderLogo, { type ProviderId } from './ProviderLogos';
 import ServiceTooltip from './ServiceTooltip';
 import type { ServiceTooltipData } from '../../../services/integrations/serviceTooltips';
@@ -16,6 +17,7 @@ import type { ServiceTooltipData } from '../../../services/integrations/serviceT
 
 const ACCENT = '#4A9B8E';
 const NEUTRAL = '#8A8378';
+const WARM = '#D4A574';
 
 export const buildStatusChipSx = (color: string) => ({
   height: 22,
@@ -53,6 +55,8 @@ interface ServiceGridCardProps {
   /** Données de tooltip riche (override SERVICE_TOOLTIPS) pour les services du catalogue. */
   tooltipData?: ServiceTooltipData & { name?: string };
   role?: 'radio' | 'button';
+  /** Actions custom (icônes) rendues à droite À LA PLACE du chevron (ex: config + connexion, comme les cartes IoT). */
+  actions?: React.ReactNode;
 }
 
 export default function ServiceGridCard({
@@ -69,6 +73,7 @@ export default function ServiceGridCard({
   badge,
   tooltipData,
   role = 'button',
+  actions,
 }: ServiceGridCardProps) {
   const statusChip =
     status === 'connected' ? (
@@ -143,11 +148,30 @@ export default function ServiceGridCard({
         ) : (
           infoZone
         )}
-        {interactive && (
-          <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, color: 'text.disabled', mt: 0.25 }}>
-            <ChevronRight size={18} strokeWidth={2} />
+        {actions ? (
+          <Box
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {actions}
           </Box>
-        )}
+        ) : interactive && status !== 'comingSoon' ? (
+          // Affordance par défaut (remplace l'ancien chevron) : engrenage de config,
+          // teinté selon l'état — warm tant que non configuré, neutre une fois connecté
+          // (même langage visuel que les cartes IoT / WhatsApp). La carte entière reste
+          // cliquable ; l'icône est purement visuelle.
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+              mt: 0.25,
+              color: status === 'connected' ? 'text.secondary' : WARM,
+            }}
+          >
+            <Settings2 size={18} strokeWidth={2} />
+          </Box>
+        ) : null}
       </Box>
     </Paper>
   );

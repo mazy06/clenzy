@@ -84,8 +84,9 @@ export interface OpenWaSessionCreateResponse {
 
 export const whatsAppConfigApi = {
   /**
-   * Recupere la config WhatsApp de l'org courante. Retourne `null` si pas
-   * encore configuree (premiere fois sur la section).
+   * Lecture de la config WhatsApp GLOBALE (singleton plateforme). Accessible a
+   * tout utilisateur authentifie (bandeau de statut read-only). Retourne `null`
+   * si pas encore configuree. L'EDITION passe par updateConfig (plateforme).
    */
   async getConfig(): Promise<WhatsAppConfig | null> {
     try {
@@ -100,19 +101,20 @@ export const whatsAppConfigApi = {
   },
 
   /**
-   * Update partiel de la config WhatsApp. Le backend fait un merge selectif :
-   * seuls les champs non-undefined sont modifies. Cree la config si pas existante.
+   * Update partiel de la config WhatsApp GLOBALE (singleton plateforme). Le
+   * backend merge selectivement (champs non-undefined) et cree la config
+   * globale si inexistante. Reserve SUPER_ADMIN/SUPER_MANAGER.
    */
   async updateConfig(patch: UpdateWhatsAppConfigRequest): Promise<WhatsAppConfig> {
     return await apiClient.put<WhatsAppConfig>('/whatsapp/config', patch);
   },
 
-  // ─── OpenWA QR scan flow (Phase 4b) ────────────────────────────────
+  // ─── OpenWA QR scan flow (Phase 4b) — cible par org (plateforme) ────
 
   /**
-   * Cree une session OpenWA per-org sur l'instance partagee + persist les
-   * credentials chiffres. Le frontend devra ensuite appeler getOpenWaQr()
-   * et poller getOpenWaStatus() pour suivre le scan.
+   * Cree une session OpenWA pour l'org cible sur l'instance partagee +
+   * persist les credentials chiffres. Le frontend devra ensuite appeler
+   * getOpenWaQr() et poller getOpenWaStatus() pour suivre le scan.
    */
   async createOpenWaSession(): Promise<OpenWaSessionCreateResponse> {
     return await apiClient.post<OpenWaSessionCreateResponse>('/whatsapp/openwa/session', {});
@@ -150,7 +152,7 @@ export const whatsAppConfigApi = {
   /**
    * Recupere la config publique necessaire au SDK FB JS cote frontend.
    * Throw si l'app n'est pas configuree cote serveur (META_APP_ID manquant) —
-   * le frontend doit fallback sur le form manuel dans ce cas.
+   * le frontend doit fallback sur le form manuel dans ce cas. Non org-specifique.
    */
   async getMetaAppConfig(): Promise<MetaAppConfig> {
     return await apiClient.get<MetaAppConfig>('/whatsapp/meta/app-config');
@@ -158,10 +160,12 @@ export const whatsAppConfigApi = {
 
   /**
    * Envoie le code OAuth recu du SDK FB au backend, qui l'echange contre un
-   * token, resout le WABA + phone number, et provisionne whatsapp_configs.
+   * token, resout le WABA + phone number, et provisionne whatsapp_configs
+   * pour l'org cible.
    */
   async completeMetaOAuth(code: string): Promise<MetaSignupResult> {
-    return await apiClient.post<MetaSignupResult>('/whatsapp/meta/oauth-callback', { code });
+    return await apiClient.post<MetaSignupResult>(
+      '/whatsapp/meta/oauth-callback', { code });
   },
 };
 

@@ -1,4 +1,87 @@
 {
+  "guestExperience": {
+    "navLabel": "Booking & welcome",
+    "title": "Booking & welcome",
+    "subtitleWelcomeGuide": "The digital welcome guide for your guests",
+    "subtitleBookingEngine": "Configure your direct booking engine",
+    "tabs": {
+      "welcomeGuide": "Welcome guide",
+      "bookingEngine": "Booking Engine"
+    }
+  },
+  "welcomeGuide": {
+    "actions": {
+      "new": "New guide",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "generateLink": "Generate link",
+      "addSection": "Add a section",
+      "guestbook": "Guestbook",
+      "close": "Close",
+      "activities": "Activities"
+    },
+    "fields": {
+      "property": "Property",
+      "propertyLocked": "The property cannot be changed after creation",
+      "title": "Guide title",
+      "titlePlaceholder": "Welcome to the Old Port Apartment",
+      "language": "Language",
+      "brandingColor": "Color",
+      "logoUrl": "Logo URL",
+      "published": "Publish the guide (visible to guests)",
+      "sectionTitle": "Section title",
+      "sectionBody": "Content"
+    },
+    "form": {
+      "autofillHint": "Wi-Fi, access code, house rules and useful numbers are filled automatically from the property's check-in instructions. Here, add your welcome message and your local recommendations.",
+      "sectionsTitle": "Guide sections",
+      "noSection": "No section yet. Add a welcome message or recommendations."
+    },
+    "list": {
+      "emptyTitle": "No guide yet",
+      "emptyDescription": "Create a welcome guide to share the Wi-Fi, access code and your local tips with your guests."
+    },
+    "status": {
+      "published": "Published",
+      "draft": "Draft"
+    },
+    "languages": {
+      "fr": "French",
+      "en": "English",
+      "ar": "Arabic"
+    },
+    "link": {
+      "dialogTitle": "Welcome guide link",
+      "note": "Manual share link (preview). Automatic delivery of a per-reservation link — valid only for the duration of the stay — is coming soon.",
+      "open": "Open",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "downloadQr": "Download QR"
+    },
+    "guestbook": {
+      "title": "Guestbook",
+      "empty": "No message yet."
+    },
+    "activities": {
+      "title": "Activities (affiliate)",
+      "note": "Connect an activities service to offer excursions to your guests (and earn a commission). Enter your partner API key.",
+      "enabled": "Active",
+      "apiKey": "API key",
+      "apiKeySet": "API key (already set)",
+      "affiliateId": "Affiliate ID"
+    },
+    "messages": {
+      "created": "Guide created",
+      "updated": "Guide updated",
+      "deleted": "Guide deleted",
+      "error": "Something went wrong",
+      "titleRequired": "Title is required",
+      "propertyRequired": "Select a property",
+      "confirmDelete": "Delete this guide?"
+    }
+  },
   "appUpdate": {
     "message": "A new version of Baitly is available.",
     "reload": "Reload now",
@@ -1837,7 +1920,12 @@
     "unread": "Unread",
     "markAsRead": "Mark as read",
     "viewMessages": "View messages",
-    "lastMessage": "Last message"
+    "lastMessage": "Last message",
+    "noMessages": "No messages in this conversation",
+    "selectConversation": "Select a conversation",
+    "selectConversationHint": "Pick a thread on the left to view messages and reply.",
+    "search": "Search a conversation…",
+    "noSearchResults": "No results"
   },
   "users": {
     "title": "Users",
@@ -2981,6 +3069,14 @@
     }
   },
   "messaging": {
+    "whatsappStatus": {
+      "notConfiguredTitle": "WhatsApp not configured",
+      "notConfiguredBody": "WhatsApp messaging isn't set up for your organization yet. Contact your platform manager to enable it.",
+      "disabledTitle": "WhatsApp disabled",
+      "disabledBody": "WhatsApp messaging is managed by your platform and is currently inactive. Your guest messages won't be sent on this channel.",
+      "activeTitle": "WhatsApp active",
+      "activeBody": "WhatsApp messaging is active via {{provider}}, managed by your platform."
+    },
     "automation": {
       "loadError": "Failed to load configuration",
       "saveError": "Failed to save",

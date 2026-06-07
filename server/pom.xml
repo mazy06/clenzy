@@ -191,6 +191,13 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
 
+        <!-- Normalisation E.164 des numeros de telephone (relais WhatsApp entrant) -->
+        <dependency>
+            <groupId>com.googlecode.libphonenumber</groupId>
+            <artifactId>libphonenumber</artifactId>
+            <version>8.13.50</version>
+        </dependency>
+
         <!-- OAuth2 Resource Server (Keycloak JWT) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
