@@ -45,9 +45,20 @@ public class WelcomeGuideController {
         this.tenantContext = tenantContext;
     }
 
+    /**
+     * Organisation de scope pour les opérations sur les livrets.
+     * <p>Pour le staff plateforme (SUPER_ADMIN/SUPER_MANAGER), renvoie {@code null} → vue et
+     * gestion <strong>cross-org</strong> (le staff n'est rattaché à aucune org métier, et peut
+     * même avoir une org « maison » non-null qu'il ne faut pas utiliser comme filtre).
+     * Pour un HOST, renvoie son organisation courante (scope strict).</p>
+     */
+    private Long scopeOrgId() {
+        return tenantContext.isSuperAdmin() ? null : tenantContext.getOrganizationId();
+    }
+
     @GetMapping
     public ResponseEntity<List<WelcomeGuideDto>> getAll() {
-        Long orgId = tenantContext.getOrganizationId();
+        Long orgId = scopeOrgId();
         List<WelcomeGuideDto> guides = guideService.getAll(orgId)
             .stream().map(WelcomeGuideDto::from).toList();
         return ResponseEntity.ok(guides);
@@ -55,7 +66,7 @@ public class WelcomeGuideController {
 
     @GetMapping("/{id}")
     public ResponseEntity<WelcomeGuideDto> getById(@PathVariable Long id) {
-        Long orgId = tenantContext.getOrganizationId();
+        Long orgId = scopeOrgId();
         return guideService.getById(id, orgId)
             .map(WelcomeGuideDto::from)
             .map(ResponseEntity::ok)
@@ -64,13 +75,13 @@ public class WelcomeGuideController {
 
     @GetMapping("/{id}/guestbook")
     public ResponseEntity<List<GuestbookEntryDto>> getGuestbook(@PathVariable Long id) {
-        Long orgId = tenantContext.getOrganizationId();
+        Long orgId = scopeOrgId();
         return ResponseEntity.ok(entryService.listForGuide(id, orgId));
     }
 
     @GetMapping("/{id}/stats")
     public ResponseEntity<WelcomeGuideStatsDto> getStats(@PathVariable Long id) {
-        Long orgId = tenantContext.getOrganizationId();
+        Long orgId = scopeOrgId();
         return analyticsService.getStats(id, orgId)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
@@ -79,13 +90,13 @@ public class WelcomeGuideController {
     /** Suggestions de POI « autour de moi » auto-populées (OSM) à partir du logement du livret. */
     @GetMapping("/{id}/poi-suggestions")
     public ResponseEntity<List<PoiSuggestionDto>> poiSuggestions(@PathVariable Long id) {
-        Long orgId = tenantContext.getOrganizationId();
+        Long orgId = scopeOrgId();
         return ResponseEntity.ok(poiSuggestionService.suggest(id, orgId));
     }
 
     @PostMapping
     public ResponseEntity<WelcomeGuideDto> create(@Valid @RequestBody WelcomeGuideRequest request) {
-        Long orgId = tenantContext.getOrganizationId();
+        Long orgId = scopeOrgId();
         WelcomeGuide guide = guideService.createGuide(orgId, request);
         return ResponseEntity.ok(WelcomeGuideDto.from(guide));
     }
@@ -93,21 +104,21 @@ public class WelcomeGuideController {
     @PutMapping("/{id}")
     public ResponseEntity<WelcomeGuideDto> update(@PathVariable Long id,
                                                     @Valid @RequestBody WelcomeGuideRequest request) {
-        Long orgId = tenantContext.getOrganizationId();
+        Long orgId = scopeOrgId();
         WelcomeGuide guide = guideService.updateGuide(id, orgId, request);
         return ResponseEntity.ok(WelcomeGuideDto.from(guide));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        Long orgId = tenantContext.getOrganizationId();
+        Long orgId = scopeOrgId();
         guideService.deleteGuide(id, orgId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/token")
     public ResponseEntity<Map<String, String>> generateToken(@PathVariable Long id) {
-        Long orgId = tenantContext.getOrganizationId();
+        Long orgId = scopeOrgId();
         WelcomeGuideToken token = guideService.generateToken(id, orgId, null);
         String link = guideService.generateGuideLink(token);
         return ResponseEntity.ok(Map.of("token", token.getToken().toString(), "link", link));
@@ -115,7 +126,7 @@ public class WelcomeGuideController {
 
     @GetMapping("/{id}/qrcode")
     public ResponseEntity<byte[]> getQrCode(@PathVariable Long id) {
-        Long orgId = tenantContext.getOrganizationId();
+        Long orgId = scopeOrgId();
         WelcomeGuideToken token = guideService.generateToken(id, orgId, null);
         String link = guideService.generateGuideLink(token);
         byte[] qrCode = guideService.generateQrCode(link, 300, 300);
@@ -127,7 +138,7 @@ public class WelcomeGuideController {
     /** Lien de partage + QR code (data URL base64) en un seul appel. */
     @PostMapping("/{id}/share")
     public ResponseEntity<Map<String, String>> share(@PathVariable Long id) {
-        Long orgId = tenantContext.getOrganizationId();
+        Long orgId = scopeOrgId();
         WelcomeGuideToken token = guideService.generateToken(id, orgId, null);
         String link = guideService.generateGuideLink(token);
         byte[] qr = guideService.generateQrCode(link, 300, 300);
