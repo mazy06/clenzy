@@ -17,10 +17,14 @@ import { Wifi, VpnKey, LocationOn, Phone, ContentCopy, OpenInNew, CalendarMonth,
 import { Send, MessageCircle, X } from 'lucide-react';
 import {
   parseSections,
+  parsePois,
   type GuestbookEntry,
+  type GuideEventType,
   type PublicGuide as PublicGuideData,
 } from '../../services/api/welcomeGuideApi';
 import { type Activity } from '../../services/api/activitiesApi';
+import { POI_CATEGORIES, poiCategory, poiLabel } from './poiCatalog';
+import { GuideMap, type GuideMapPin } from './GuideMap';
 
 type Lang = 'fr' | 'en' | 'ar';
 
@@ -34,7 +38,7 @@ const LABELS: Record<Lang, Record<string, string>> = {
     copy: 'Copier', copied: 'Copié', poweredBy: 'Propulsé par',
     guestbookTitle: "Livre d'or", guestbookName: 'Votre nom', guestbookMessage: 'Votre message',
     guestbookRating: 'Note', guestbookSend: 'Envoyer', guestbookThanks: 'Merci pour votre message !',
-    activitiesTitle: 'Activités à proximité', book: 'Réserver',
+    activitiesTitle: 'Activités à proximité', book: 'Réserver', aroundMe: 'Autour de moi',
     checkinTitle: 'Check-in en ligne', checkinCta: 'Effectuer mon check-in', checkinDone: 'Check-in déjà effectué ✓',
     chatTitle: 'Assistant du livret', chatPlaceholder: 'Posez votre question…',
     chatGreeting: 'Bonjour ! Je réponds à vos questions sur le logement (wifi, accès, infos pratiques…).',
@@ -52,7 +56,7 @@ const LABELS: Record<Lang, Record<string, string>> = {
     copy: 'Copy', copied: 'Copied', poweredBy: 'Powered by',
     guestbookTitle: 'Guestbook', guestbookName: 'Your name', guestbookMessage: 'Your message',
     guestbookRating: 'Rating', guestbookSend: 'Send', guestbookThanks: 'Thank you for your message!',
-    activitiesTitle: 'Activities nearby', book: 'Book',
+    activitiesTitle: 'Activities nearby', book: 'Book', aroundMe: 'Around me',
     checkinTitle: 'Online check-in', checkinCta: 'Complete my check-in', checkinDone: 'Check-in already completed ✓',
     chatTitle: 'Welcome book assistant', chatPlaceholder: 'Ask a question…',
     chatGreeting: 'Hi! I can answer questions about the place (wifi, access, practical info…).',
@@ -70,7 +74,7 @@ const LABELS: Record<Lang, Record<string, string>> = {
     copy: 'نسخ', copied: 'تم النسخ', poweredBy: 'بدعم من',
     guestbookTitle: 'سجل الزوار', guestbookName: 'اسمك', guestbookMessage: 'رسالتك',
     guestbookRating: 'التقييم', guestbookSend: 'إرسال', guestbookThanks: 'شكرًا على رسالتك!',
-    activitiesTitle: 'أنشطة قريبة', book: 'احجز',
+    activitiesTitle: 'أنشطة قريبة', book: 'احجز', aroundMe: 'حولي',
     checkinTitle: 'تسجيل الوصول عبر الإنترنت', checkinCta: 'أكمل تسجيل وصولي', checkinDone: 'تم تسجيل الوصول ✓',
     chatTitle: 'مساعد الدليل', chatPlaceholder: 'اطرح سؤالك…',
     chatGreeting: 'مرحبًا! أجيب عن أسئلتك حول الإقامة (واي فاي، الدخول، معلومات مفيدة…).',
@@ -135,6 +139,16 @@ async function postChat(token: string, message: string): Promise<string | null> 
   }
 }
 
+/** Capture best-effort d'un evenement guest (analytics hote). N'affecte jamais l'UI. */
+function recordEvent(token: string, eventType: GuideEventType, detail?: string): void {
+  void fetch(`${API_BASE}/api/public/guide/${token}/event`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ eventType, detail: detail ?? null }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 function formatDate(iso: string | null, lang: Lang): string {
   if (!iso) return '';
   try {
@@ -142,6 +156,17 @@ function formatDate(iso: string | null, lang: Lang): string {
   } catch {
     return iso;
   }
+}
+
+/** Distance à vol d'oiseau (km) entre deux points GPS (haversine). */
+function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 6371;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLng = ((bLng - aLng) * Math.PI) / 180;
+  const lat1 = (aLat * Math.PI) / 180;
+  const lat2 = (bLat * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
 }
 
 const PublicGuide: React.FC = () => {
@@ -189,6 +214,16 @@ const PublicGuide: React.FC = () => {
     if (status === 'ready' && token) {
       fetchGuestbook(token).then(setEntries).catch(() => {});
       fetchActivities(token).then(setActivities).catch(() => {});
+      // Ouverture : une seule fois par session guest (dedup sessionStorage, tolere le mode prive).
+      let firstOpen = true;
+      try {
+        const key = `cz_guide_open_${token}`;
+        if (sessionStorage.getItem(key)) firstOpen = false;
+        else sessionStorage.setItem(key, '1');
+      } catch {
+        /* mode prive : on compte l'ouverture */
+      }
+      if (firstOpen) recordEvent(token, 'GUIDE_OPENED');
     }
   }, [status, token]);
 
@@ -253,6 +288,28 @@ const PublicGuide: React.FC = () => {
   const color = guide.brandingColor || '#6B8A9A';
   const sections = parseSections(guide.sections);
   const { property, practical, stay, checkIn } = guide;
+
+  // "Autour de moi" : POI structurés (carte Mapbox + liste catégorisée + distance).
+  const pois = parsePois(guide.pois);
+  const propLat = property?.latitude ?? null;
+  const propLng = property?.longitude ?? null;
+  const poiPins: GuideMapPin[] = pois
+    .filter((p) => p.lat != null && p.lng != null)
+    .map((p) => ({
+      lat: p.lat as number,
+      lng: p.lng as number,
+      color: poiCategory(p.category).color,
+      label: p.name || poiLabel(p.category, lang),
+    }));
+  const mapCenter: [number, number] | null =
+    propLat != null && propLng != null ? [propLng, propLat] : poiPins[0] ? [poiPins[0].lng, poiPins[0].lat] : null;
+  const mapPins: GuideMapPin[] =
+    propLat != null && propLng != null
+      ? [{ lat: propLat, lng: propLng, color, label: property?.name || guide.title }, ...poiPins]
+      : poiPins;
+  const poiGroups = POI_CATEGORIES.map((c) => ({ cat: c, items: pois.filter((p) => p.category === c.id) })).filter(
+    (g) => g.items.length > 0,
+  );
 
   const mapsUrl =
     property?.latitude != null && property?.longitude != null
@@ -376,6 +433,7 @@ const PublicGuide: React.FC = () => {
                   href={checkIn.link}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => token && recordEvent(token, 'CHECKIN_CLICK')}
                   endIcon={<OpenInNew size={14} strokeWidth={1.75} />}
                   sx={{ bgcolor: color, '&:hover': { bgcolor: color, filter: 'brightness(0.95)' } }}
                 >
@@ -494,12 +552,92 @@ const PublicGuide: React.FC = () => {
             )
           : null}
 
-        {/* Sections éditoriales (autour de moi, message d'accueil, bons plans…) */}
+        {/* Sections éditoriales (message d'accueil, bons plans…) */}
         {sections
           .filter((s) => s.title || s.body)
           .map((s) => (
             <React.Fragment key={s.id}>{block(s.title, textRow(s.body))}</React.Fragment>
           ))}
+
+        {/* Autour de moi (POI géolocalisés) */}
+        {pois.length > 0
+          ? block(
+              L.aroundMe,
+              <Stack spacing={1.75}>
+                {mapCenter ? <GuideMap center={mapCenter} pins={mapPins} /> : null}
+                {poiGroups.map(({ cat, items }) => {
+                  const CatIcon = cat.Icon;
+                  return (
+                    <Box key={cat.id}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                        <CatIcon size={15} strokeWidth={1.9} style={{ color: cat.color }} />
+                        <Typography
+                          variant="caption"
+                          sx={{ fontWeight: 700, color: cat.color, textTransform: 'uppercase', letterSpacing: 0.4 }}
+                        >
+                          {poiLabel(cat.id, lang)}
+                        </Typography>
+                      </Box>
+                      <Stack spacing={1}>
+                        {items.map((p) => {
+                          const dist =
+                            propLat != null && propLng != null && p.lat != null && p.lng != null
+                              ? distanceKm(propLat, propLng, p.lat, p.lng)
+                              : null;
+                          const gmaps =
+                            p.lat != null && p.lng != null
+                              ? `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`
+                              : p.address
+                                ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address)}`
+                                : null;
+                          return (
+                            <Box key={p.id} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                              <Box
+                                sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: cat.color, mt: 0.7, flexShrink: 0 }}
+                              />
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, justifyContent: 'space-between' }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    {p.name || poiLabel(cat.id, lang)}
+                                  </Typography>
+                                  {dist != null ? (
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
+                                    >
+                                      {dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`}
+                                    </Typography>
+                                  ) : null}
+                                </Box>
+                                {p.note ? (
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                    {p.note}
+                                  </Typography>
+                                ) : null}
+                                {gmaps ? (
+                                  <Button
+                                    size="small"
+                                    href={gmaps}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    startIcon={<LocationOn size={13} strokeWidth={1.75} />}
+                                    sx={{ color, px: 0.5, minWidth: 0, mt: 0.25 }}
+                                  >
+                                    {L.viewMap}
+                                  </Button>
+                                ) : null}
+                              </Box>
+                            </Box>
+                          );
+                        })}
+                      </Stack>
+                    </Box>
+                  );
+                })}
+              </Stack>,
+            )
+          : null}
 
         {/* Activités à proximité */}
         {guide.activitiesEnabled && activities.length > 0
@@ -535,6 +673,7 @@ const PublicGuide: React.FC = () => {
                         href={a.bookingUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={() => token && recordEvent(token, 'ACTIVITY_CLICK', a.title ?? undefined)}
                         endIcon={<OpenInNew size={14} strokeWidth={1.75} />}
                         sx={{ color, flexShrink: 0 }}
                       >

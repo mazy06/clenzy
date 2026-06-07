@@ -20,7 +20,8 @@
       "addSection": "Ajouter une section",
       "guestbook": "Livre d'or",
       "close": "Fermer",
-      "activities": "Activités"
+      "activities": "Activités",
+      "stats": "Statistiques"
     },
     "fields": {
       "property": "Logement",
@@ -73,7 +74,8 @@
       "enabled": "Actif",
       "apiKey": "Clé API",
       "apiKeySet": "Clé API (déjà configurée)",
-      "affiliateId": "ID affilié"
+      "affiliateId": "ID affilié",
+      "connect": "Connecter un fournisseur"
     },
     "messages": {
       "created": "Livret créé",
@@ -83,6 +85,32 @@
       "titleRequired": "Le titre est obligatoire",
       "propertyRequired": "Sélectionnez un logement",
       "confirmDelete": "Supprimer ce livret ?"
+    },
+    "stats": {
+      "title": "Statistiques",
+      "empty": "Aucune donnée pour le moment.",
+      "opens": "Ouvertures",
+      "chat": "Messages chatbot",
+      "guestbook": "Avis livre d'or",
+      "activities": "Clics activités",
+      "checkin": "Clics check-in",
+      "trend": "Ouvertures (30 derniers jours)",
+      "noTrend": "Pas encore d'ouvertures.",
+      "topActivities": "Activités les plus cliquées"
+    },
+    "pois": {
+      "title": "Autour de moi",
+      "hint": "Recommandations géolocalisées affichées sur une carte dans le livret.",
+      "add": "Ajouter un lieu",
+      "empty": "Aucun lieu. Ajoutez vos restaurants, transports et incontournables.",
+      "category": "Catégorie",
+      "name": "Nom",
+      "address": "Adresse",
+      "geocode": "Localiser sur la carte",
+      "note": "Note (optionnel)",
+      "located": "Position trouvée",
+      "queryTooShort": "Renseignez un nom ou une adresse à localiser",
+      "notFound": "Lieu introuvable — précisez l'adresse"
     }
   },
   "appUpdate": {

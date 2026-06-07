@@ -25,7 +25,8 @@ import {
 } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew, Info } from '../../icons';
-import { MessageSquare, Star, Plug } from 'lucide-react';
+import { MessageSquare, Star, BarChart3, Eye, MapPin, MessageCircle, DoorOpen } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
@@ -34,11 +35,16 @@ import {
   welcomeGuideApi,
   parseSections,
   serializeSections,
+  parsePois,
+  serializePois,
   type WelcomeGuide,
   type GuideSection,
+  type GuidePoi,
   type GuestbookEntry,
+  type WelcomeGuideStats,
 } from '../../services/api/welcomeGuideApi';
-import { activitiesApi, type ActivityProvider } from '../../services/api/activitiesApi';
+import { POI_CATEGORIES, poiLabel } from './poiCatalog';
+import { nominatimApi } from '../../services/nominatimApi';
 
 type View = 'list' | 'form';
 
@@ -47,15 +53,8 @@ const DEFAULT_COLOR = '#6B8A9A';
 
 const newSection = (): GuideSection => ({ id: `s-${Date.now()}`, title: '', body: '' });
 
-type ActRow = { apiKey: string; affiliateId: string; enabled: boolean; hasKey: boolean };
-const ACT_PROVIDERS: { id: ActivityProvider; name: string }[] = [
-  { id: 'VIATOR', name: 'Viator' },
-  { id: 'GETYOURGUIDE', name: 'GetYourGuide' },
-  { id: 'KLOOK', name: 'Klook' },
-];
-
 const WelcomeGuideAdmin: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const { properties } = usePropertiesList();
 
   const { data: guides = [], isLoading, refetch } = useQuery({
@@ -78,6 +77,8 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [guestbookEnabled, setGuestbookEnabled] = useState(true);
   const [activitiesEnabled, setActivitiesEnabled] = useState(true);
   const [sections, setSections] = useState<GuideSection[]>([]);
+  const [pois, setPois] = useState<GuidePoi[]>([]);
+  const [geocoding, setGeocoding] = useState<string | null>(null);
 
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: AlertColor }>({
     open: false,
@@ -96,10 +97,11 @@ const WelcomeGuideAdmin: React.FC = () => {
     entries: GuestbookEntry[];
     loading: boolean;
   }>({ open: false, title: '', entries: [], loading: false });
-  const [actDialog, setActDialog] = useState<{ open: boolean; loading: boolean; rows: Record<string, ActRow> }>({
+  const [stats, setStats] = useState<{ open: boolean; title: string; loading: boolean; data: WelcomeGuideStats | null }>({
     open: false,
+    title: '',
     loading: false,
-    rows: {},
+    data: null,
   });
 
   const notify = (message: string, severity: AlertColor = 'success') =>
@@ -117,6 +119,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     setGuestbookEnabled(true);
     setActivitiesEnabled(true);
     setSections([]);
+    setPois([]);
     setView('form');
   };
 
@@ -132,6 +135,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     setGuestbookEnabled(g.guestbookEnabled);
     setActivitiesEnabled(g.activitiesEnabled);
     setSections(parseSections(g.sections));
+    setPois(parsePois(g.pois));
     setView('form');
   };
 
@@ -151,6 +155,7 @@ const WelcomeGuideAdmin: React.FC = () => {
         title: title.trim(),
         language,
         sections: serializeSections(sections),
+        pois: serializePois(pois),
         brandingColor,
         logoUrl: logoUrl.trim() || null,
         published,
@@ -195,6 +200,17 @@ const WelcomeGuideAdmin: React.FC = () => {
     }
   };
 
+  const handleOpenStats = async (g: WelcomeGuide) => {
+    setStats({ open: true, title: g.title, loading: true, data: null });
+    try {
+      const data = await welcomeGuideApi.getStats(g.id);
+      setStats({ open: true, title: g.title, loading: false, data });
+    } catch {
+      setStats({ open: true, title: g.title, loading: false, data: null });
+      notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
+    }
+  };
+
   const handleOpenGuestbook = async (g: WelcomeGuide) => {
     setGuestbook({ open: true, title: g.title, entries: [], loading: true });
     try {
@@ -202,52 +218,6 @@ const WelcomeGuideAdmin: React.FC = () => {
       setGuestbook({ open: true, title: g.title, entries, loading: false });
     } catch {
       setGuestbook({ open: true, title: g.title, entries: [], loading: false });
-      notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
-    }
-  };
-
-  const openActivities = async () => {
-    setActDialog({ open: true, loading: true, rows: {} });
-    try {
-      const configs = await activitiesApi.listConfigs();
-      const byProvider = new Map(configs.map((c) => [c.provider, c]));
-      const rows: Record<string, ActRow> = {};
-      for (const p of ACT_PROVIDERS) {
-        const c = byProvider.get(p.id);
-        rows[p.id] = {
-          apiKey: '',
-          affiliateId: c?.affiliateId ?? '',
-          enabled: c?.enabled ?? false,
-          hasKey: c?.hasKey ?? false,
-        };
-      }
-      setActDialog({ open: true, loading: false, rows });
-    } catch {
-      setActDialog({ open: true, loading: false, rows: {} });
-      notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
-    }
-  };
-
-  const updateActRow = (provider: string, patch: Partial<ActRow>) =>
-    setActDialog((s) => ({ ...s, rows: { ...s.rows, [provider]: { ...s.rows[provider], ...patch } } }));
-
-  const saveActProvider = async (provider: ActivityProvider) => {
-    const row = actDialog.rows[provider];
-    if (!row) return;
-    try {
-      const saved = await activitiesApi.upsertConfig(provider, {
-        apiKey: row.apiKey.trim() || null,
-        affiliateId: row.affiliateId.trim() || null,
-        enabled: row.enabled,
-      });
-      updateActRow(provider, {
-        apiKey: '',
-        hasKey: saved.hasKey,
-        enabled: saved.enabled,
-        affiliateId: saved.affiliateId ?? '',
-      });
-      notify(t('welcomeGuide.messages.updated', 'Livret mis à jour'));
-    } catch {
       notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
     }
   };
@@ -268,23 +238,48 @@ const WelcomeGuideAdmin: React.FC = () => {
     setSections((prev) => prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s)));
   const removeSection = (idx: number) => setSections((prev) => prev.filter((_, i) => i !== idx));
 
+  // ─── POI editor handlers ("autour de moi") ─────────────────────────────────
+  const addPoi = () =>
+    setPois((prev) => [
+      ...prev,
+      { id: `poi-${Date.now()}`, category: 'RESTAURANT', name: '', address: '', lat: null, lng: null, note: '' },
+    ]);
+  const updatePoi = (idx: number, patch: Partial<GuidePoi>) =>
+    setPois((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  const removePoi = (idx: number) => setPois((prev) => prev.filter((_, i) => i !== idx));
+
+  // Geocode via Nominatim (OSM, sans clé) → lat/lng pour le pin sur la carte guest.
+  const geocodePoi = async (idx: number) => {
+    const poi = pois[idx];
+    const query = [poi.name, poi.address].filter((s) => s.trim()).join(' ').trim();
+    if (query.length < 3) {
+      notify(t('welcomeGuide.pois.queryTooShort', 'Renseignez un nom ou une adresse à localiser'), 'error');
+      return;
+    }
+    setGeocoding(poi.id);
+    try {
+      const results = await nominatimApi.search(query, [], 1);
+      if (results.length === 0) {
+        notify(t('welcomeGuide.pois.notFound', 'Lieu introuvable — précisez l’adresse'), 'error');
+        return;
+      }
+      const r = results[0];
+      updatePoi(idx, { lat: r.latitude, lng: r.longitude, address: poi.address.trim() || r.label });
+      notify(t('welcomeGuide.pois.located', 'Position trouvée'));
+    } catch {
+      notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
+    } finally {
+      setGeocoding(null);
+    }
+  };
+
   // ─── Render: toolbar ───────────────────────────────────────────────────────
   const toolbar = (
     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 2 }}>
       {view === 'list' ? (
-        <>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Plug size={14} strokeWidth={1.75} />}
-            onClick={openActivities}
-          >
-            {t('welcomeGuide.actions.activities', 'Activités')}
-          </Button>
-          <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={openCreate}>
-            {t('welcomeGuide.actions.new', 'Nouveau livret')}
-          </Button>
-        </>
+        <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={openCreate}>
+          {t('welcomeGuide.actions.new', 'Nouveau livret')}
+        </Button>
       ) : (
         <>
           <Button variant="text" size="small" onClick={() => setView('list')}>
@@ -374,6 +369,11 @@ const WelcomeGuideAdmin: React.FC = () => {
                 <Tooltip title={t('welcomeGuide.actions.guestbook', "Livre d'or")}>
                   <IconButton size="small" onClick={() => handleOpenGuestbook(g)}>
                     <MessageSquare size={16} strokeWidth={1.75} />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title={t('welcomeGuide.actions.stats', 'Statistiques')}>
+                  <IconButton size="small" onClick={() => handleOpenStats(g)}>
+                    <BarChart3 size={16} strokeWidth={1.75} />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title={t('welcomeGuide.actions.edit', 'Modifier')}>
@@ -523,6 +523,104 @@ const WelcomeGuideAdmin: React.FC = () => {
 
       <Divider />
 
+      <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, gap: 1 }}>
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {t('welcomeGuide.pois.title', 'Autour de moi')}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {t('welcomeGuide.pois.hint', 'Recommandations géolocalisées affichées sur une carte dans le livret.')}
+            </Typography>
+          </Box>
+          <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addPoi}>
+            {t('welcomeGuide.pois.add', 'Ajouter un lieu')}
+          </Button>
+        </Box>
+
+        {pois.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">
+            {t('welcomeGuide.pois.empty', 'Aucun lieu. Ajoutez vos restaurants, transports et incontournables.')}
+          </Typography>
+        ) : (
+          <Stack spacing={1.5}>
+            {pois.map((p, idx) => (
+              <Card key={p.id} variant="outlined">
+                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+                        <TextField
+                          select
+                          size="small"
+                          label={t('welcomeGuide.pois.category', 'Catégorie')}
+                          value={p.category}
+                          onChange={(e) => updatePoi(idx, { category: e.target.value })}
+                          sx={{ minWidth: 160 }}
+                        >
+                          {POI_CATEGORIES.map((c) => (
+                            <MenuItem key={c.id} value={c.id}>
+                              {poiLabel(c.id, currentLanguage)}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                        <TextField
+                          size="small"
+                          label={t('welcomeGuide.pois.name', 'Nom')}
+                          value={p.name}
+                          onChange={(e) => updatePoi(idx, { name: e.target.value })}
+                          sx={{ flex: 1, minWidth: 180 }}
+                        />
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
+                        <TextField
+                          size="small"
+                          label={t('welcomeGuide.pois.address', 'Adresse')}
+                          value={p.address}
+                          onChange={(e) => updatePoi(idx, { address: e.target.value })}
+                          fullWidth
+                        />
+                        <Tooltip title={t('welcomeGuide.pois.geocode', 'Localiser sur la carte')}>
+                          <span>
+                            <IconButton size="small" onClick={() => geocodePoi(idx)} disabled={geocoding === p.id}>
+                              {geocoding === p.id ? (
+                                <CircularProgress size={16} />
+                              ) : (
+                                <MapPin size={16} strokeWidth={1.75} />
+                              )}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </Box>
+                      <TextField
+                        size="small"
+                        label={t('welcomeGuide.pois.note', 'Note (optionnel)')}
+                        value={p.note}
+                        onChange={(e) => updatePoi(idx, { note: e.target.value })}
+                        fullWidth
+                      />
+                      {p.lat != null && p.lng != null ? (
+                        <Typography
+                          variant="caption"
+                          sx={{ color: 'success.main', display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.75 }}
+                        >
+                          <MapPin size={12} strokeWidth={2} /> {t('welcomeGuide.pois.located', 'Position trouvée')}
+                        </Typography>
+                      ) : null}
+                    </Box>
+                    <IconButton size="small" color="error" onClick={() => removePoi(idx)} sx={{ mt: 0.5 }}>
+                      <Delete size={16} strokeWidth={1.75} />
+                    </IconButton>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        )}
+      </Box>
+
+      <Divider />
+
       <FormControlLabel
         control={<Switch checked={published} onChange={(e) => setPublished(e.target.checked)} />}
         label={t('welcomeGuide.fields.published', 'Publier le livret (accessible aux voyageurs)')}
@@ -642,74 +740,92 @@ const WelcomeGuideAdmin: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={actDialog.open} onClose={() => setActDialog((s) => ({ ...s, open: false }))} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('welcomeGuide.activities.title', 'Activités (affiliation)')}</DialogTitle>
+      <Dialog open={stats.open} onClose={() => setStats((s) => ({ ...s, open: false }))} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {t('welcomeGuide.stats.title', 'Statistiques')} — {stats.title}
+        </DialogTitle>
         <DialogContent dividers>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t(
-              'welcomeGuide.activities.note',
-              "Connectez un service d'activités pour proposer des excursions à vos voyageurs (et toucher une commission). Renseignez votre clé API partenaire.",
-            )}
-          </Typography>
-          {actDialog.loading ? (
+          {stats.loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
               <CircularProgress />
             </Box>
+          ) : !stats.data ? (
+            <Typography variant="body2" color="text.secondary">
+              {t('welcomeGuide.stats.empty', 'Aucune donnée pour le moment.')}
+            </Typography>
           ) : (
             <Stack spacing={2.5}>
-              {ACT_PROVIDERS.map((p) => {
-                const row = actDialog.rows[p.id];
-                if (!row) return null;
-                return (
-                  <Box key={p.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        {p.name}
-                      </Typography>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            size="small"
-                            checked={row.enabled}
-                            onChange={(e) => updateActRow(p.id, { enabled: e.target.checked })}
-                          />
-                        }
-                        label={t('welcomeGuide.activities.enabled', 'Actif')}
-                      />
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' },
+                  gap: 1,
+                }}
+              >
+                {[
+                  { key: 'opens', icon: <Eye size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.opens', 'Ouvertures'), value: stats.data.totalOpens },
+                  { key: 'chat', icon: <MessageCircle size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.chat', 'Messages chatbot'), value: stats.data.chatMessages },
+                  { key: 'guestbook', icon: <Star size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.guestbook', "Avis livre d'or"), value: stats.data.guestbookEntries },
+                  { key: 'activities', icon: <MapPin size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.activities', 'Clics activités'), value: stats.data.activityClicks },
+                  { key: 'checkin', icon: <DoorOpen size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.checkin', 'Clics check-in'), value: stats.data.checkinClicks },
+                ].map((tile) => (
+                  <Box key={tile.key} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.25 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'text.secondary', mb: 0.5 }}>
+                      {tile.icon}
+                      <Typography variant="caption">{tile.label}</Typography>
                     </Box>
-                    <TextField
-                      label={
-                        row.hasKey
-                          ? t('welcomeGuide.activities.apiKeySet', 'Clé API (déjà configurée)')
-                          : t('welcomeGuide.activities.apiKey', 'Clé API')
-                      }
-                      type="password"
-                      value={row.apiKey}
-                      onChange={(e) => updateActRow(p.id, { apiKey: e.target.value })}
-                      size="small"
-                      fullWidth
-                      placeholder={row.hasKey ? '••••••••' : ''}
-                      sx={{ mb: 1 }}
-                    />
-                    <TextField
-                      label={t('welcomeGuide.activities.affiliateId', 'ID affilié')}
-                      value={row.affiliateId}
-                      onChange={(e) => updateActRow(p.id, { affiliateId: e.target.value })}
-                      size="small"
-                      fullWidth
-                      sx={{ mb: 1 }}
-                    />
-                    <Button size="small" variant="contained" onClick={() => saveActProvider(p.id)}>
-                      {t('welcomeGuide.actions.save', 'Enregistrer')}
-                    </Button>
+                    <Typography variant="h6" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                      {tile.value}
+                    </Typography>
                   </Box>
-                );
-              })}
+                ))}
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                  {t('welcomeGuide.stats.trend', 'Ouvertures (30 derniers jours)')}
+                </Typography>
+                {stats.data.dailyOpens.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">
+                    {t('welcomeGuide.stats.noTrend', 'Pas encore d’ouvertures.')}
+                  </Typography>
+                ) : (
+                  <Box sx={{ width: '100%', height: 200 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stats.data.dailyOpens.map((d) => ({ day: d.date.slice(5), count: d.count }))}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                        <YAxis allowDecimals={false} width={28} tick={{ fontSize: 11 }} />
+                        <RechartsTooltip />
+                        <Bar dataKey="count" fill={DEFAULT_COLOR} radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                )}
+              </Box>
+
+              {stats.data.topActivities.length > 0 ? (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                    {t('welcomeGuide.stats.topActivities', 'Activités les plus cliquées')}
+                  </Typography>
+                  <Stack spacing={0.75}>
+                    {stats.data.topActivities.map((a, i) => (
+                      <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" noWrap>
+                          {a.label}
+                        </Typography>
+                        <Chip size="small" label={a.count} sx={softChipSx(DEFAULT_COLOR)} />
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
+              ) : null}
             </Stack>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setActDialog((s) => ({ ...s, open: false }))}>
+          <Button onClick={() => setStats((s) => ({ ...s, open: false }))}>
             {t('welcomeGuide.actions.close', 'Fermer')}
           </Button>
         </DialogActions>
