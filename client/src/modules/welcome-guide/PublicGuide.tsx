@@ -14,7 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import { Wifi, VpnKey, LocationOn, Phone, ContentCopy, OpenInNew, CalendarMonth, Info } from '../../icons';
-import { Send } from 'lucide-react';
+import { Send, MessageCircle, X } from 'lucide-react';
 import {
   parseSections,
   type GuestbookEntry,
@@ -36,6 +36,9 @@ const LABELS: Record<Lang, Record<string, string>> = {
     guestbookRating: 'Note', guestbookSend: 'Envoyer', guestbookThanks: 'Merci pour votre message !',
     activitiesTitle: 'Activités à proximité', book: 'Réserver',
     checkinTitle: 'Check-in en ligne', checkinCta: 'Effectuer mon check-in', checkinDone: 'Check-in déjà effectué ✓',
+    chatTitle: 'Assistant du livret', chatPlaceholder: 'Posez votre question…',
+    chatGreeting: 'Bonjour ! Je réponds à vos questions sur le logement (wifi, accès, infos pratiques…).',
+    chatError: "Désolé, je n'ai pas pu répondre. Réessayez.",
     notFoundTitle: 'Lien indisponible',
     notFoundText: "Ce livret n'est pas disponible. Le lien a peut-être expiré ou le séjour est terminé.",
     errorText: 'Une erreur est survenue. Réessayez plus tard.',
@@ -51,6 +54,9 @@ const LABELS: Record<Lang, Record<string, string>> = {
     guestbookRating: 'Rating', guestbookSend: 'Send', guestbookThanks: 'Thank you for your message!',
     activitiesTitle: 'Activities nearby', book: 'Book',
     checkinTitle: 'Online check-in', checkinCta: 'Complete my check-in', checkinDone: 'Check-in already completed ✓',
+    chatTitle: 'Welcome book assistant', chatPlaceholder: 'Ask a question…',
+    chatGreeting: 'Hi! I can answer questions about the place (wifi, access, practical info…).',
+    chatError: 'Sorry, I could not answer. Please try again.',
     notFoundTitle: 'Link unavailable',
     notFoundText: 'This guide is not available. The link may have expired or the stay is over.',
     errorText: 'Something went wrong. Please try again later.',
@@ -66,6 +72,9 @@ const LABELS: Record<Lang, Record<string, string>> = {
     guestbookRating: 'التقييم', guestbookSend: 'إرسال', guestbookThanks: 'شكرًا على رسالتك!',
     activitiesTitle: 'أنشطة قريبة', book: 'احجز',
     checkinTitle: 'تسجيل الوصول عبر الإنترنت', checkinCta: 'أكمل تسجيل وصولي', checkinDone: 'تم تسجيل الوصول ✓',
+    chatTitle: 'مساعد الدليل', chatPlaceholder: 'اطرح سؤالك…',
+    chatGreeting: 'مرحبًا! أجيب عن أسئلتك حول الإقامة (واي فاي، الدخول، معلومات مفيدة…).',
+    chatError: 'عذرًا، لم أتمكن من الإجابة. حاول مرة أخرى.',
     notFoundTitle: 'الرابط غير متاح',
     notFoundText: 'هذا الدليل غير متاح. ربما انتهت صلاحية الرابط أو انتهت الإقامة.',
     errorText: 'حدث خطأ ما. يرجى المحاولة لاحقًا.',
@@ -112,6 +121,20 @@ async function fetchActivities(token: string): Promise<Activity[]> {
   return response.json();
 }
 
+async function postChat(token: string, message: string): Promise<string | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/public/guide/${token}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+    const data = await response.json().catch(() => null);
+    return data && typeof data.reply === 'string' ? data.reply : null;
+  } catch {
+    return null;
+  }
+}
+
 function formatDate(iso: string | null, lang: Lang): string {
   if (!iso) return '';
   try {
@@ -135,6 +158,10 @@ const PublicGuide: React.FC = () => {
   const [gbSubmitting, setGbSubmitting] = useState(false);
   const [gbDone, setGbDone] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatSending, setChatSending] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -260,6 +287,17 @@ const PublicGuide: React.FC = () => {
       {value}
     </Typography>
   );
+
+  const sendChat = async () => {
+    const msg = chatInput.trim();
+    if (!msg || chatSending || !token) return;
+    setChatMessages((prev) => [...prev, { role: 'user', text: msg }]);
+    setChatInput('');
+    setChatSending(true);
+    const reply = await postChat(token, msg);
+    setChatSending(false);
+    setChatMessages((prev) => [...prev, { role: 'assistant', text: reply ?? L.chatError }]);
+  };
 
   return (
     <Box dir={dir} sx={{ minHeight: '100vh', bgcolor: '#F5F6F7', pb: 6 }}>
@@ -579,6 +617,111 @@ const PublicGuide: React.FC = () => {
           {L.poweredBy} Clenzy
         </Typography>
       </Box>
+
+      {/* Chatbot guest (assistant du livret) */}
+      {chatOpen ? (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: { xs: 0, sm: 16 },
+            right: { xs: 0, sm: 16 },
+            width: { xs: '100%', sm: 360 },
+            height: { xs: '80vh', sm: 480 },
+            maxHeight: '80vh',
+            bgcolor: 'background.paper',
+            boxShadow: 6,
+            borderRadius: { xs: 0, sm: 3 },
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 1300,
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            sx={{
+              bgcolor: color,
+              color: '#fff',
+              px: 2,
+              py: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+              {L.chatTitle}
+            </Typography>
+            <IconButton size="small" onClick={() => setChatOpen(false)} sx={{ color: '#fff' }}>
+              <X size={18} strokeWidth={2} />
+            </IconButton>
+          </Box>
+          <Box sx={{ flex: 1, overflowY: 'auto', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box sx={{ alignSelf: 'flex-start', bgcolor: 'action.hover', px: 1.5, py: 1, borderRadius: 2, maxWidth: '85%' }}>
+              <Typography variant="body2">{L.chatGreeting}</Typography>
+            </Box>
+            {chatMessages.map((m, i) => (
+              <Box
+                key={i}
+                sx={{
+                  alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                  bgcolor: m.role === 'user' ? color : 'action.hover',
+                  color: m.role === 'user' ? '#fff' : 'text.primary',
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: 2,
+                  maxWidth: '85%',
+                }}
+              >
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                  {m.text}
+                </Typography>
+              </Box>
+            ))}
+            {chatSending ? (
+              <Box sx={{ alignSelf: 'flex-start', px: 1.5, py: 1 }}>
+                <CircularProgress size={16} />
+              </Box>
+            ) : null}
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1, p: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder={L.chatPlaceholder}
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  void sendChat();
+                }
+              }}
+            />
+            <IconButton onClick={() => void sendChat()} disabled={chatSending || !chatInput.trim()} sx={{ color }}>
+              <Send size={18} strokeWidth={1.75} />
+            </IconButton>
+          </Box>
+        </Box>
+      ) : (
+        <IconButton
+          onClick={() => setChatOpen(true)}
+          aria-label={L.chatTitle}
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            bgcolor: color,
+            color: '#fff',
+            width: 56,
+            height: 56,
+            boxShadow: 4,
+            zIndex: 1300,
+            '&:hover': { bgcolor: color, filter: 'brightness(0.95)' },
+          }}
+        >
+          <MessageCircle size={24} strokeWidth={1.75} />
+        </IconButton>
+      )}
     </Box>
   );
 };
