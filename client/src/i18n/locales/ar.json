@@ -1,4 +1,87 @@
 {
+  "guestExperience": {
+    "navLabel": "الحجز والاستقبال",
+    "title": "الحجز والاستقبال",
+    "subtitleWelcomeGuide": "دليل الاستقبال الرقمي لضيوفك",
+    "subtitleBookingEngine": "إعداد محرك الحجز المباشر",
+    "tabs": {
+      "welcomeGuide": "دليل الاستقبال",
+      "bookingEngine": "محرك الحجز"
+    }
+  },
+  "welcomeGuide": {
+    "actions": {
+      "new": "دليل جديد",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "generateLink": "إنشاء رابط",
+      "addSection": "إضافة قسم",
+      "guestbook": "سجل الزوار",
+      "close": "إغلاق",
+      "activities": "الأنشطة"
+    },
+    "fields": {
+      "property": "العقار",
+      "propertyLocked": "لا يمكن تغيير العقار بعد الإنشاء",
+      "title": "عنوان الدليل",
+      "titlePlaceholder": "مرحبًا بك في شقة الميناء القديم",
+      "language": "اللغة",
+      "brandingColor": "اللون",
+      "logoUrl": "رابط الشعار",
+      "published": "نشر الدليل (متاح للضيوف)",
+      "sectionTitle": "عنوان القسم",
+      "sectionBody": "المحتوى"
+    },
+    "form": {
+      "autofillHint": "تتم تعبئة الواي فاي ورمز الدخول وقواعد المنزل والأرقام المفيدة تلقائيًا من بطاقة العقار (تعليمات تسجيل الوصول). هنا أضف رسالة الترحيب وتوصياتك المحلية.",
+      "sectionsTitle": "أقسام الدليل",
+      "noSection": "لا يوجد قسم بعد. أضف رسالة ترحيب أو توصيات."
+    },
+    "list": {
+      "emptyTitle": "لا يوجد دليل بعد",
+      "emptyDescription": "أنشئ دليل استقبال لمشاركة الواي فاي ورمز الدخول ونصائحك المحلية مع ضيوفك."
+    },
+    "status": {
+      "published": "منشور",
+      "draft": "مسودة"
+    },
+    "languages": {
+      "fr": "الفرنسية",
+      "en": "الإنجليزية",
+      "ar": "العربية"
+    },
+    "link": {
+      "dialogTitle": "رابط دليل الاستقبال",
+      "note": "رابط مشاركة يدوي (معاينة). سيتوفر قريبًا الإرسال التلقائي لرابط خاص بكل حجز، صالح فقط طوال مدة الإقامة.",
+      "open": "فتح",
+      "copy": "نسخ",
+      "copied": "تم النسخ!",
+      "downloadQr": "تحميل رمز QR"
+    },
+    "guestbook": {
+      "title": "سجل الزوار",
+      "empty": "لا توجد رسائل بعد."
+    },
+    "activities": {
+      "title": "الأنشطة (الإحالة)",
+      "note": "اربط خدمة أنشطة لاقتراح رحلات على ضيوفك (واكسب عمولة). أدخل مفتاح API الخاص بشريكك.",
+      "enabled": "مفعّل",
+      "apiKey": "مفتاح API",
+      "apiKeySet": "مفتاح API (مضبوط بالفعل)",
+      "affiliateId": "معرّف الإحالة"
+    },
+    "messages": {
+      "created": "تم إنشاء الدليل",
+      "updated": "تم تحديث الدليل",
+      "deleted": "تم حذف الدليل",
+      "error": "حدث خطأ ما",
+      "titleRequired": "العنوان مطلوب",
+      "propertyRequired": "اختر عقارًا",
+      "confirmDelete": "حذف هذا الدليل؟"
+    }
+  },
   "appUpdate": {
     "message": "إصدار جديد من Baitly متاح.",
     "reload": "إعادة التحميل الآن",
@@ -1835,7 +1918,12 @@
     "unread": "غير مقروء",
     "markAsRead": "تحديد كمقروء",
     "viewMessages": "عرض الرسائل",
-    "lastMessage": "آخر رسالة"
+    "lastMessage": "آخر رسالة",
+    "noMessages": "لا توجد رسائل في هذه المحادثة",
+    "selectConversation": "اختر محادثة",
+    "selectConversationHint": "اختر محادثة لعرض الرسائل والرد عليها.",
+    "search": "ابحث عن محادثة…",
+    "noSearchResults": "لا توجد نتائج"
   },
   "users": {
     "title": "المستخدمون",
@@ -2945,6 +3033,14 @@
     }
   },
   "messaging": {
+    "whatsappStatus": {
+      "notConfiguredTitle": "واتساب غير مُهيّأ",
+      "notConfiguredBody": "لم يتم إعداد المراسلة عبر واتساب لمؤسستك بعد. تواصل مع مدير المنصّة لتفعيلها.",
+      "disabledTitle": "واتساب معطّل",
+      "disabledBody": "تتم إدارة المراسلة عبر واتساب من قِبل منصّتك وهي غير مفعّلة حاليًا. لن تُرسَل رسائل النزلاء عبر هذه القناة.",
+      "activeTitle": "واتساب مفعّل",
+      "activeBody": "المراسلة عبر واتساب مفعّلة عبر {{provider}}، وتتم إدارتها من قِبل منصّتك."
+    },
     "automation": {
       "loadError": "خطأ أثناء تحميل الإعدادات",
       "saveError": "خطأ أثناء الحفظ",

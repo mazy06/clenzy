@@ -660,6 +660,11 @@ export const reservationsApi = {
     return apiClient.get<Reservation>(`/reservations/${id}`);
   },
 
+  /** Recherche réservations par nom de guest ou de logement (autocomplete rattachement « à trier »). */
+  async search(q: string): Promise<Reservation[]> {
+    return apiClient.get<Reservation[]>('/reservations/search', { params: { q } });
+  },
+
   async create(data: CreateReservationData): Promise<Reservation> {
     return apiClient.post<Reservation>('/reservations', data);
   },

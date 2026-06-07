@@ -162,6 +162,22 @@ public class ReservationController {
         return ResponseEntity.ok(result);
     }
 
+    // ── GET : recherche (autocomplete rattachement « à trier ») ──────────────
+
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    @Operation(summary = "Rechercher des réservations par nom de guest ou de logement")
+    public ResponseEntity<List<ReservationDto>> search(@RequestParam String q) {
+        if (q == null || q.trim().length() < 2) {
+            return ResponseEntity.ok(List.of());
+        }
+        List<ReservationDto> result = reservationRepository
+                .searchByGuestOrProperty(q.trim(), org.springframework.data.domain.PageRequest.of(0, 15)).stream()
+                .map(reservationMapper::toDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
     // ── GET : detail ────────────────────────────────────────────────────────
 
     @GetMapping("/{id}")

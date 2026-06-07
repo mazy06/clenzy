@@ -1868,3 +1868,64 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Config WhatsApp : par-org -> GLOBALE unique (singleton plateforme).
+  - changeSet:
+      id: "0192-whatsapp-config-global-singleton"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0192__whatsapp_config_global_singleton.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Relais WhatsApp : phone_hash sur guests (lookup d'un guest par numero entrant).
+  - changeSet:
+      id: "0193-add-guest-phone-hash"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0193__add_guest_phone_hash.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Relais WhatsApp entrant OpenWA : secret HMAC du webhook entrant (chiffre).
+  - changeSet:
+      id: "0194-add-openwa-webhook-secret"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0194__add_openwa_webhook_secret.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Livret d'accueil numerique : tables welcome_guides + welcome_guide_tokens
+  # (socle WelcomeGuide existant en JPA mais sans changeset => bloquant prod).
+  - changeSet:
+      id: "0195-create-welcome-guide-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0195__create_welcome_guide_tables.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Livre d'or du livret d'accueil (welcome_guide_entries).
+  - changeSet:
+      id: "0196-create-welcome-guide-entries"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0196__create_welcome_guide_entries.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Config affiliation activites (Viator/GetYourGuide/Klook) par org.
+  - changeSet:
+      id: "0197-create-activity-affiliate-configs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0197__create_activity_affiliate_configs.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

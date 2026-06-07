@@ -19,6 +19,7 @@ import Cgu from './legal/Cgu';
 import Privacy from './legal/Privacy';
 import AcceptInvitationPage from './invitations/AcceptInvitationPage';
 import PublicKeyVerification from '../pages/PublicKeyVerification';
+import PublicGuide from './welcome-guide/PublicGuide';
 import MainLayoutFull from './layout/MainLayoutFull';
 import AuthenticatedApp from './AuthenticatedApp';
 import { clearTokens } from '../services/storageService';
@@ -74,7 +75,7 @@ function HardRedirectToLogin(): null {
 const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/support', '/accept-invitation'];
 
 // Routes publiques avec paramètres (prefix match)
-const PUBLIC_ROUTE_PREFIXES = ['/verify-key/'];
+const PUBLIC_ROUTE_PREFIXES = ['/verify-key/', '/guide/'];
 
 const App: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -333,6 +334,9 @@ const App: React.FC = () => {
 
           {/* Route publique pour la verification de code par les commercants */}
           <Route path="/verify-key/:token" element={<PublicKeyVerification />} />
+
+          {/* Route publique pour le livret d'accueil numerique (guest) */}
+          <Route path="/guide/:token" element={<PublicGuide />} />
         
         {/* Routes protégées */}
         <Route

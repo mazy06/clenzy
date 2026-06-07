@@ -18,16 +18,14 @@ import java.util.Map;
  * (entries -> changes -> value -> messages/statuses) et la verification
  * (mode=subscribe + verify_token) sont specifiques au format Meta.
  *
- * <p>Pour OpenWA, un webhook distinct sera necessaire (format different :
- * message.received avec signature HMAC). Pour l'instant, les orgs en
- * provider=OPENWA ne recoivent PAS les messages entrants via Clenzy —
- * ils restent sur le telephone du host. C'est documenté dans l'UI de
- * configuration (mode "send-only" pour OpenWA en MVP).</p>
+ * <p>OpenWA a desormais son propre webhook entrant
+ * ({@link OpenWaWebhookService}, format {@code message.received} + signature
+ * HMAC {@code X-OpenWA-Signature}). Les deux partagent le meme routage metier
+ * via {@link WhatsAppInboundRouter} (guest / reservation / host / file a trier).</p>
  *
  * <p>Le {@code markAsRead} est route via {@link WhatsAppProviderResolver}
  * pour qu'il s'execute sur le bon provider — en pratique toujours Meta
- * puisque seul Meta declenche ce webhook, mais on garde la generalisation
- * pour quand OpenWA aura son propre webhook.</p>
+ * puisque seul ce webhook (Meta) le declenche.</p>
  */
 @Service
 public class WhatsAppWebhookService {
@@ -35,23 +33,24 @@ public class WhatsAppWebhookService {
     private static final Logger log = LoggerFactory.getLogger(WhatsAppWebhookService.class);
 
     private final WhatsAppConfigRepository configRepository;
-    private final ConversationService conversationService;
+    private final WhatsAppInboundRouter inboundRouter;
     private final WhatsAppProviderResolver providerResolver;
     private final ObjectMapper objectMapper;
 
     public WhatsAppWebhookService(WhatsAppConfigRepository configRepository,
-                                   ConversationService conversationService,
+                                   WhatsAppInboundRouter inboundRouter,
                                    WhatsAppProviderResolver providerResolver,
                                    ObjectMapper objectMapper) {
         this.configRepository = configRepository;
-        this.conversationService = conversationService;
+        this.inboundRouter = inboundRouter;
         this.providerResolver = providerResolver;
         this.objectMapper = objectMapper;
     }
 
-    public boolean verifyWebhook(String mode, String token, String challenge, Long orgId) {
+    public boolean verifyWebhook(String mode, String token, String challenge) {
         if (!"subscribe".equals(mode)) return false;
-        return configRepository.findByOrganizationId(orgId)
+        // Compte WhatsApp GLOBAL : un seul webhook_verify_token (config singleton).
+        return configRepository.findFirstByOrganizationIdIsNull()
             .map(config -> constantTimeEquals(token, config.getWebhookVerifyToken()))
             .orElse(false);
     }
@@ -90,13 +89,13 @@ public class WhatsAppWebhookService {
         JsonNode messages = value.path("messages");
         if (!messages.isArray()) return;
 
-        String phoneNumberId = value.path("metadata").path("phone_number_id").asText(null);
-        if (phoneNumberId == null) return;
+        // Compte WhatsApp GLOBAL : une seule config (le numero central Baitly).
+        WhatsAppConfig config = configRepository.findFirstByOrganizationIdIsNull().orElse(null);
+        if (config == null) return;
 
         for (JsonNode msg : messages) {
             String from = msg.path("from").asText();
             String messageId = msg.path("id").asText();
-            String type = msg.path("type").asText();
             String text = msg.path("text").path("body").asText("");
             JsonNode contacts = value.path("contacts");
             final String senderName = (contacts.isArray() && !contacts.isEmpty())
@@ -106,23 +105,16 @@ public class WhatsAppWebhookService {
             log.info("WhatsApp message recu de {} ({}): {}", senderName, from,
                 text.length() > 50 ? text.substring(0, 50) + "..." : text);
 
-            // Trouver l'org par phoneNumberId
-            configRepository.findAll().stream()
-                .filter(c -> phoneNumberId.equals(c.getPhoneNumberId()))
-                .findFirst()
-                .ifPresent(config -> {
-                    Conversation conv = conversationService.getOrCreate(
-                        config.getOrganizationId(), ConversationChannel.WHATSAPP,
-                        from, null, null, null, "WhatsApp: " + senderName);
+            // Relais : identifie le guest par son numero, rattache la conversation a
+            // la reservation/host (ou file "a trier" si numero inconnu).
+            try {
+                inboundRouter.route(from, senderName, text, messageId);
+            } catch (Exception e) {
+                log.error("Echec routage message WhatsApp entrant de {}: {}", from, e.getMessage());
+            }
 
-                    conversationService.addInboundMessage(conv, senderName, from, text, null, messageId);
-
-                    // Mark as read — route via le resolver pour utiliser le bon
-                    // provider (toujours Meta en pratique vu que ce webhook est
-                    // Meta-only, mais on garde l'abstraction pour quand OpenWA
-                    // aura son propre webhook).
-                    try { providerResolver.resolve(config).markAsRead(config, messageId); } catch (Exception ignored) {}
-                });
+            // Accuse reception cote Meta.
+            try { providerResolver.resolve(config).markAsRead(config, messageId); } catch (Exception ignored) {}
         }
     }
 

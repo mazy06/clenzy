@@ -18,6 +18,11 @@ export interface ConversationDto {
   unread: boolean;
   messageCount: number;
   createdAt: string;
+  /** Dates de séjour si rattachée à une réservation (titre « Logement · Dates · Guest »). */
+  checkIn: string | null;
+  checkOut: string | null;
+  /** Identifiant externe : numéro brut pour WhatsApp (formaté à l'affichage). */
+  externalConversationId: string | null;
 }
 
 export interface ConversationMessageDto {
@@ -94,4 +99,20 @@ export const conversationApi = {
     data: { content: string; contentHtml?: string },
   ): Promise<ConversationMessageDto> =>
     apiClient.post(`${BASE}/${conversationId}/messages`, data),
+
+  /** Rattache une conversation « à trier » à une réservation (+ mémorise le numéro WhatsApp sur le guest). */
+  attachToReservation: (
+    conversationId: number,
+    reservationId: number,
+    memorizePhone = true,
+  ): Promise<ConversationDto> =>
+    apiClient.put(`${BASE}/${conversationId}/attach`, { reservationId, memorizePhone }),
+
+  /** Envoie un template WhatsApp (rendu) sur la conversation — fonctionne dans et hors 24h. */
+  sendTemplate: (conversationId: number, templateKey: string): Promise<ConversationDto> =>
+    apiClient.post(`${BASE}/${conversationId}/send-template`, { templateKey }),
+
+  /** Envoi proactif d'un template WhatsApp depuis une réservation (crée la conversation au besoin). */
+  sendTemplateForReservation: (reservationId: number, templateKey: string): Promise<ConversationDto> =>
+    apiClient.post(`${BASE}/reservation/${reservationId}/send-template`, { templateKey }),
 };

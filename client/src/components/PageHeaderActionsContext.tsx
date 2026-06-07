@@ -40,17 +40,20 @@ import { createPortal } from 'react-dom';
 
 interface PageHeaderActionsApi {
   slot: HTMLElement | null;
+  filtersSlot: HTMLElement | null;
 }
 
-const PageHeaderActionsContext = createContext<PageHeaderActionsApi>({ slot: null });
+const PageHeaderActionsContext = createContext<PageHeaderActionsApi>({ slot: null, filtersSlot: null });
 
 interface PageHeaderActionsProviderProps {
   children: ReactNode;
   slot: HTMLElement | null;
+  /** Slot DOM de la barre filtres (sous le titre). Optionnel : null = pas de barre filtres. */
+  filtersSlot?: HTMLElement | null;
 }
 
-export function PageHeaderActionsProvider({ children, slot }: PageHeaderActionsProviderProps) {
-  const value = useMemo(() => ({ slot }), [slot]);
+export function PageHeaderActionsProvider({ children, slot, filtersSlot = null }: PageHeaderActionsProviderProps) {
+  const value = useMemo(() => ({ slot, filtersSlot }), [slot, filtersSlot]);
   return (
     <PageHeaderActionsContext.Provider value={value}>{children}</PageHeaderActionsContext.Provider>
   );
@@ -86,6 +89,33 @@ export function usePageHeaderActionsSlot(): {
     />
   );
   return { slot: slotEl, portalContainer };
+}
+
+/**
+ * Hook cote consumer (tab) : portale `filters` (recherche + filtres) dans la
+ * barre filtres dediee du PageHeader (sous le titre). Retourne un ReactNode a
+ * inclure dans le JSX. Null au premier render (slot pas encore monte).
+ */
+export function usePageHeaderFilters(filters: ReactNode): ReactNode {
+  const { filtersSlot } = useContext(PageHeaderActionsContext);
+  if (!filtersSlot) return null;
+  return createPortal(filters, filtersSlot);
+}
+
+/**
+ * Hook cote provider (page racine) : cree le slot DOM de la barre filtres.
+ * `filtersContainer` est destine a la prop `filtersBar` de PageHeader.
+ * <p>/!\ Rules of Hooks : appeler AVANT tout early return.</p>
+ */
+export function usePageHeaderFiltersSlot(): {
+  filtersSlot: HTMLElement | null;
+  filtersContainer: ReactNode;
+} {
+  const [slotEl, setSlotEl] = useState<HTMLElement | null>(null);
+  const filtersContainer = (
+    <div ref={setSlotEl} style={{ display: 'flex', alignItems: 'center', gap: 8 }} />
+  );
+  return { filtersSlot: slotEl, filtersContainer };
 }
 
 // ─── Tab meta resolution helper ─────────────────────────────────────────────

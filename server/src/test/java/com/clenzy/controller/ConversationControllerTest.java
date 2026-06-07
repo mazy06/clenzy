@@ -41,6 +41,7 @@ import static org.mockito.Mockito.when;
 class ConversationControllerTest {
 
     @Mock private ConversationService conversationService;
+    @Mock private com.clenzy.service.messaging.WhatsAppTemplateSender whatsAppTemplateSender;
     @Mock private TenantContext tenantContext;
 
     private ConversationController controller;
@@ -51,7 +52,7 @@ class ConversationControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new ConversationController(conversationService, tenantContext);
+        controller = new ConversationController(conversationService, whatsAppTemplateSender, tenantContext);
         jwt = Jwt.withTokenValue("token")
             .header("alg", "RS256")
             .claim("sub", KEYCLOAK_ID)

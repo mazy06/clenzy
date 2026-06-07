@@ -43,6 +43,14 @@ public class Guest {
     @Column(length = 500)
     private String phone;
 
+    /**
+     * SHA-256 du numero normalise E.164 (le phone lui-meme est chiffre AES, donc
+     * non recherchable). Permet de retrouver un guest depuis un numero entrant
+     * (relais WhatsApp). Calcule par GuestService via StringUtils.computePhoneHash.
+     */
+    @Column(name = "phone_hash", length = 64)
+    private String phoneHash;
+
     @Convert(converter = EncryptedFieldConverter.class)
     @Column(name = "first_name", length = 500, nullable = false)
     private String firstName;
@@ -104,6 +112,9 @@ public class Guest {
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+
+    public String getPhoneHash() { return phoneHash; }
+    public void setPhoneHash(String phoneHash) { this.phoneHash = phoneHash; }
 
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
