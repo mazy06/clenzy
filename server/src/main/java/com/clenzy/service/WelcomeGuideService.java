@@ -9,6 +9,7 @@ import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.WelcomeGuideRepository;
 import com.clenzy.repository.WelcomeGuideTokenRepository;
+import org.hibernate.Hibernate;
 import org.springframework.data.domain.Sort;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
@@ -84,7 +85,9 @@ public class WelcomeGuideService {
         if (req.guestbookEnabled() != null) guide.setGuestbookEnabled(req.guestbookEnabled());
         if (req.activitiesEnabled() != null) guide.setActivitiesEnabled(req.activitiesEnabled());
 
-        return guideRepository.save(guide);
+        WelcomeGuide saved = guideRepository.save(guide);
+        Hibernate.initialize(saved.getProperty()); // mapping DTO hors session (open-in-view=false)
+        return saved;
     }
 
     /** Met a jour un livret. Le logement et la langue ne sont pas modifiables apres creation (ignores). */
@@ -103,21 +106,32 @@ public class WelcomeGuideService {
         if (req.guestbookEnabled() != null) guide.setGuestbookEnabled(req.guestbookEnabled());
         if (req.activitiesEnabled() != null) guide.setActivitiesEnabled(req.activitiesEnabled());
 
-        return guideRepository.save(guide);
+        WelcomeGuide saved = guideRepository.save(guide);
+        Hibernate.initialize(saved.getProperty()); // mapping DTO hors session (open-in-view=false)
+        return saved;
     }
 
+    @Transactional(readOnly = true)
     public Optional<WelcomeGuide> getById(Long id, Long orgId) {
         // Staff plateforme (org de contexte null) : accès cross-org par id.
-        return orgId != null
+        Optional<WelcomeGuide> guide = orgId != null
             ? guideRepository.findByIdAndOrganizationId(id, orgId)
             : guideRepository.findById(id);
+        // Initialise property dans la session : le DTO l'utilise et open-in-view=false
+        // (sinon LazyInitializationException lors du mapping dans le controller).
+        guide.ifPresent(g -> Hibernate.initialize(g.getProperty()));
+        return guide;
     }
 
+    @Transactional(readOnly = true)
     public List<WelcomeGuide> getAll(Long orgId) {
         // Staff plateforme (org de contexte null) : vue cross-org de tous les livrets.
-        return orgId != null
+        List<WelcomeGuide> guides = orgId != null
             ? guideRepository.findByOrganizationIdOrderByCreatedAtDesc(orgId)
             : guideRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+        // Initialise property dans la session (open-in-view=false) pour le mapping DTO.
+        guides.forEach(g -> Hibernate.initialize(g.getProperty()));
+        return guides;
     }
 
     /**
