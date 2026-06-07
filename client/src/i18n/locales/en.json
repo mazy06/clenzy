@@ -2116,6 +2116,12 @@
       "error": "Error loading commissions",
       "empty": "No booking channel configured"
     },
+    "monetization": {
+      "title": "Upsell & activity commissions",
+      "subtitle": "Platform share on paid services (upsells) and host share on activity commissions.",
+      "upsellFee": "Platform share (upsells)",
+      "hostShare": "Host share (activity commissions)"
+    },
     "payoutSchedule": {
       "title": "Payout schedule",
       "subtitle": "Configure the automatic generation frequency for owner payouts.",

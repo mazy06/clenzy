@@ -1,6 +1,5 @@
 package com.clenzy.service;
 
-import com.clenzy.config.ActivityCommissionConfig;
 import com.clenzy.dto.ActivityCommissionDto;
 import com.clenzy.dto.ActivityCommissionSummaryDto;
 import com.clenzy.model.*;
@@ -28,18 +27,18 @@ public class ActivityCommissionService {
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
     private final ActivityCommissionRepository commissionRepository;
-    private final ActivityCommissionConfig commissionConfig;
+    private final MonetizationConfigService monetizationConfigService;
     private final ReservationRepository reservationRepository;
     private final WalletService walletService;
     private final LedgerService ledgerService;
 
     public ActivityCommissionService(ActivityCommissionRepository commissionRepository,
-                                     ActivityCommissionConfig commissionConfig,
+                                     MonetizationConfigService monetizationConfigService,
                                      ReservationRepository reservationRepository,
                                      WalletService walletService,
                                      LedgerService ledgerService) {
         this.commissionRepository = commissionRepository;
-        this.commissionConfig = commissionConfig;
+        this.monetizationConfigService = monetizationConfigService;
         this.reservationRepository = reservationRepository;
         this.walletService = walletService;
         this.ledgerService = ledgerService;
@@ -54,8 +53,7 @@ public class ActivityCommissionService {
                                         ActivityProvider provider, String externalBookingId,
                                         BigDecimal grossCommission, String currency) {
         BigDecimal gross = grossCommission != null ? grossCommission : BigDecimal.ZERO;
-        BigDecimal hostPct = commissionConfig.getHostSharePct() != null
-            ? commissionConfig.getHostSharePct() : new BigDecimal("70");
+        BigDecimal hostPct = monetizationConfigService.getEffectiveActivityHostSharePct(orgId);
         BigDecimal hostShare = gross.multiply(hostPct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
         BigDecimal platformShare = gross.subtract(hostShare);
         String cur = (currency != null && !currency.isBlank()) ? currency.toUpperCase() : "EUR";

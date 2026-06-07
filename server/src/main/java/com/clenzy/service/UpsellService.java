@@ -1,6 +1,5 @@
 package com.clenzy.service;
 
-import com.clenzy.config.UpsellConfig;
 import com.clenzy.dto.PublicUpsellDto;
 import com.clenzy.dto.UpsellCheckoutDto;
 import com.clenzy.dto.UpsellOfferDto;
@@ -45,7 +44,7 @@ public class UpsellService {
     private final StripeService stripeService;
     private final WalletService walletService;
     private final LedgerService ledgerService;
-    private final UpsellConfig upsellConfig;
+    private final MonetizationConfigService monetizationConfigService;
 
     public UpsellService(UpsellOfferRepository offerRepository,
                          UpsellOrderRepository orderRepository,
@@ -54,7 +53,7 @@ public class UpsellService {
                          StripeService stripeService,
                          WalletService walletService,
                          LedgerService ledgerService,
-                         UpsellConfig upsellConfig) {
+                         MonetizationConfigService monetizationConfigService) {
         this.offerRepository = offerRepository;
         this.orderRepository = orderRepository;
         this.tokenRepository = tokenRepository;
@@ -62,7 +61,7 @@ public class UpsellService {
         this.stripeService = stripeService;
         this.walletService = walletService;
         this.ledgerService = ledgerService;
-        this.upsellConfig = upsellConfig;
+        this.monetizationConfigService = monetizationConfigService;
     }
 
     // ─── Admin (hôte) ──────────────────────────────────────────────────────────
@@ -226,7 +225,7 @@ public class UpsellService {
         }
 
         BigDecimal amount = order.getAmount();
-        BigDecimal feePct = upsellConfig.getPlatformFeePct() != null ? upsellConfig.getPlatformFeePct() : BigDecimal.TEN;
+        BigDecimal feePct = monetizationConfigService.getEffectiveUpsellFeePct(order.getOrganizationId());
         BigDecimal platformFee = amount.multiply(feePct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
         BigDecimal hostAmount = amount.subtract(platformFee);
 
