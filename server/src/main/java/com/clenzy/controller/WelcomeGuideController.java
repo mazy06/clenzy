@@ -74,11 +74,7 @@ public class WelcomeGuideController {
     @PostMapping
     public ResponseEntity<WelcomeGuideDto> create(@Valid @RequestBody WelcomeGuideRequest request) {
         Long orgId = tenantContext.getOrganizationId();
-        WelcomeGuide guide = guideService.createGuide(orgId, request.propertyId(),
-            request.title(), request.language(), request.sections(),
-            request.brandingColor(), request.logoUrl(),
-            request.chatbotEnabled(), request.guestbookEnabled(), request.activitiesEnabled(),
-            request.pois());
+        WelcomeGuide guide = guideService.createGuide(orgId, request);
         return ResponseEntity.ok(WelcomeGuideDto.from(guide));
     }
 
@@ -86,10 +82,7 @@ public class WelcomeGuideController {
     public ResponseEntity<WelcomeGuideDto> update(@PathVariable Long id,
                                                     @Valid @RequestBody WelcomeGuideRequest request) {
         Long orgId = tenantContext.getOrganizationId();
-        WelcomeGuide guide = guideService.updateGuide(id, orgId, request.title(),
-            request.sections(), request.brandingColor(), request.logoUrl(), request.published(),
-            request.chatbotEnabled(), request.guestbookEnabled(), request.activitiesEnabled(),
-            request.pois());
+        WelcomeGuide guide = guideService.updateGuide(id, orgId, request);
         return ResponseEntity.ok(WelcomeGuideDto.from(guide));
     }
 

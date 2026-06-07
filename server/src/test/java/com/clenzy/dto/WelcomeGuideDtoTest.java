@@ -14,7 +14,7 @@ class WelcomeGuideDtoTest {
     void canonicalConstructor_exposesAllAccessors() {
         LocalDateTime createdAt = LocalDateTime.of(2026, 5, 1, 10, 0);
         WelcomeGuideDto dto = new WelcomeGuideDto(
-            1L, 42L, "Le Chalet", "fr", "Bienvenue", "[]", "[]",
+            1L, 42L, "Le Chalet", "fr", "Bienvenue", "[]", "[]", "[]",
             "#FF0000", "https://cdn/logo.png", true, true, true, true, createdAt
         );
 
@@ -25,6 +25,7 @@ class WelcomeGuideDtoTest {
         assertEquals("Bienvenue", dto.title());
         assertEquals("[]", dto.sections());
         assertEquals("[]", dto.pois());
+        assertEquals("[]", dto.curatedActivities());
         assertEquals("#FF0000", dto.brandingColor());
         assertEquals("https://cdn/logo.png", dto.logoUrl());
         assertTrue(dto.published());
@@ -84,9 +85,9 @@ class WelcomeGuideDtoTest {
     @Test
     void record_equalityByValue() {
         WelcomeGuideDto a = new WelcomeGuideDto(
-            1L, 1L, "P", "fr", "T", "[]", "[]", "#000000", null, false, false, false, false, null);
+            1L, 1L, "P", "fr", "T", "[]", "[]", "[]", "#000000", null, false, false, false, false, null);
         WelcomeGuideDto b = new WelcomeGuideDto(
-            1L, 1L, "P", "fr", "T", "[]", "[]", "#000000", null, false, false, false, false, null);
+            1L, 1L, "P", "fr", "T", "[]", "[]", "[]", "#000000", null, false, false, false, false, null);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
     }
