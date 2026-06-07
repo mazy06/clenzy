@@ -59,7 +59,7 @@ public class ActivityService {
     private List<ActivityDto> searchForToken(WelcomeGuideToken t, int limit) {
         WelcomeGuide guide = t.getGuide();
         Property property = guide != null ? guide.getProperty() : null;
-        if (guide == null || property == null) {
+        if (guide == null || property == null || !guide.isActivitiesEnabled()) {
             return List.of();
         }
         ActivitySearchQuery query = new ActivitySearchQuery(

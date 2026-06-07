@@ -1929,3 +1929,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Toggles par livret (chatbot / livre d'or / activités).
+  - changeSet:
+      id: "0198-add-welcome-guide-toggles"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0198__add_welcome_guide_toggles.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

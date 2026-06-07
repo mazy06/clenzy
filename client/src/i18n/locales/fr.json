@@ -31,6 +31,9 @@
       "brandingColor": "Couleur",
       "logoUrl": "URL du logo",
       "published": "Publier le livret (accessible aux voyageurs)",
+      "chatbotEnabled": "Chatbot assistant",
+      "guestbookEnabled": "Livre d'or",
+      "activitiesEnabled": "Activités",
       "sectionTitle": "Titre de la section",
       "sectionBody": "Contenu"
     },
