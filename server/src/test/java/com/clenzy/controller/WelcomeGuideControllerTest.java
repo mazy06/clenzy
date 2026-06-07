@@ -79,6 +79,20 @@ class WelcomeGuideControllerTest {
         assertThat(response.getBody()).hasSize(2);
     }
 
+    @Test
+    void getAll_staffSuperAdmin_usesCrossOrgScope() {
+        // Staff plateforme : scope cross-org (null) même s'il a une org « maison » non-null.
+        when(tenantContext.isSuperAdmin()).thenReturn(true);
+        when(guideService.getAll(null)).thenReturn(List.of(guide(1L)));
+
+        ResponseEntity<List<WelcomeGuideDto>> response = controller.getAll();
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).hasSize(1);
+        verify(guideService).getAll(null);
+        verify(tenantContext, never()).getOrganizationId();
+    }
+
     @Nested
     @DisplayName("getById")
     class GetById {
