@@ -3,10 +3,11 @@ package com.clenzy.dto;
 import java.math.BigDecimal;
 
 /**
- * Taux de monétisation effectifs d'une org (valeurs résolues : override org ou
- * défaut global). {@code upsellPlatformFeePct} = part plateforme sur les upsells ;
- * {@code activityHostSharePct} = part hôte sur les commissions d'activités.
+ * Taux de monétisation effectifs d'une org (résolus : override org ou défaut global).
+ * Deux niveaux : commission plateforme (staff-only) et commission org/conciergerie (org-editable).
  */
 public record MonetizationConfigDto(
         BigDecimal upsellPlatformFeePct,
-        BigDecimal activityHostSharePct) {}
+        BigDecimal activityPlatformCommissionPct,
+        BigDecimal upsellOrgCommissionPct,
+        BigDecimal activityOrgCommissionPct) {}

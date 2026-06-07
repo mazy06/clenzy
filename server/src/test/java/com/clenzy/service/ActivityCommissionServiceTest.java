@@ -37,7 +37,8 @@ class ActivityCommissionServiceTest {
 
     @Test
     void record_computesSplit_andCreditsHostShare() {
-        when(monetizationConfigService.getEffectiveActivityHostSharePct(1L)).thenReturn(new BigDecimal("70"));
+        when(monetizationConfigService.getEffectiveActivityPlatformCommissionPct(1L)).thenReturn(new BigDecimal("30"));
+        when(monetizationConfigService.getEffectiveActivityOrgCommissionPct(1L)).thenReturn(BigDecimal.ZERO);
         when(commissionRepository.save(any())).thenAnswer(inv -> {
             ActivityCommission c = inv.getArgument(0);
             c.setId(1L);

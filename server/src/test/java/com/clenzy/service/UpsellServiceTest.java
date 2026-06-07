@@ -111,7 +111,8 @@ class UpsellServiceTest {
         order.setCurrency("EUR");
         order.setStatus(UpsellOrderStatus.PENDING);
         when(orderRepository.findByStripeSessionId("sess_1")).thenReturn(Optional.of(order));
-        when(monetizationConfigService.getEffectiveUpsellFeePct(1L)).thenReturn(new BigDecimal("10"));
+        when(monetizationConfigService.getEffectiveUpsellPlatformFeePct(1L)).thenReturn(new BigDecimal("10"));
+        when(monetizationConfigService.getEffectiveUpsellOrgCommissionPct(1L)).thenReturn(BigDecimal.ZERO);
 
         User owner = new User();
         owner.setId(5L);

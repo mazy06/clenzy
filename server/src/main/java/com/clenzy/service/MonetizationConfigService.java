@@ -11,17 +11,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 
 /**
- * Taux de monétisation effectifs par org : override en base ({@link OrgMonetizationConfig})
- * ou défaut global ({@link UpsellConfig} / {@link ActivityCommissionConfig}).
- * Consommé par {@code UpsellService} (fee plateforme) et {@code ActivityCommissionService}
- * (part hôte), édité dans Paramètres › Paiement.
+ * Taux de monétisation effectifs par org, sur deux niveaux :
+ * <ul>
+ *   <li><b>Commission plateforme</b> (fee upsell / commission activités) — défaut global
+ *       {@link UpsellConfig} / {@link ActivityCommissionConfig}, réglée par le staff.</li>
+ *   <li><b>Commission org/conciergerie</b> sur le reste après plateforme — défaut 0, réglée par l'org.</li>
+ * </ul>
+ * Consommé par {@code UpsellService} et {@code ActivityCommissionService}.
  */
 @Service
 public class MonetizationConfigService {
 
     private static final BigDecimal HUNDRED = new BigDecimal("100");
     private static final BigDecimal DEFAULT_UPSELL_FEE = new BigDecimal("10");
-    private static final BigDecimal DEFAULT_HOST_SHARE = new BigDecimal("70");
+    private static final BigDecimal DEFAULT_ACTIVITY_PLATFORM = new BigDecimal("30");
 
     private final OrgMonetizationConfigRepository repository;
     private final UpsellConfig upsellConfig;
@@ -35,52 +38,90 @@ public class MonetizationConfigService {
         this.commissionConfig = commissionConfig;
     }
 
-    /** Part plateforme (%) sur les upsells pour cette org (override ou défaut global). */
+    // ─── Niveau plateforme ────────────────────────────────────────────────────
+
     @Transactional(readOnly = true)
-    public BigDecimal getEffectiveUpsellFeePct(Long orgId) {
+    public BigDecimal getEffectiveUpsellPlatformFeePct(Long orgId) {
         return repository.findByOrganizationId(orgId)
             .map(OrgMonetizationConfig::getUpsellPlatformFeePct)
             .filter(v -> v != null)
             .orElseGet(this::defaultUpsellFee);
     }
 
-    /** Part hôte (%) sur les commissions d'activités pour cette org (override ou défaut global). */
     @Transactional(readOnly = true)
-    public BigDecimal getEffectiveActivityHostSharePct(Long orgId) {
+    public BigDecimal getEffectiveActivityPlatformCommissionPct(Long orgId) {
         return repository.findByOrganizationId(orgId)
-            .map(OrgMonetizationConfig::getActivityHostSharePct)
+            .map(OrgMonetizationConfig::getActivityPlatformCommissionPct)
             .filter(v -> v != null)
-            .orElseGet(this::defaultHostShare);
+            .orElseGet(this::defaultActivityPlatformCommission);
+    }
+
+    // ─── Niveau org / conciergerie (sur le reste après plateforme) ─────────────
+
+    @Transactional(readOnly = true)
+    public BigDecimal getEffectiveUpsellOrgCommissionPct(Long orgId) {
+        return repository.findByOrganizationId(orgId)
+            .map(OrgMonetizationConfig::getUpsellOrgCommissionPct)
+            .filter(v -> v != null)
+            .orElse(BigDecimal.ZERO);
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal getEffectiveActivityOrgCommissionPct(Long orgId) {
+        return repository.findByOrganizationId(orgId)
+            .map(OrgMonetizationConfig::getActivityOrgCommissionPct)
+            .filter(v -> v != null)
+            .orElse(BigDecimal.ZERO);
     }
 
     @Transactional(readOnly = true)
     public MonetizationConfigDto getSettings(Long orgId) {
-        return new MonetizationConfigDto(getEffectiveUpsellFeePct(orgId), getEffectiveActivityHostSharePct(orgId));
+        return new MonetizationConfigDto(
+            getEffectiveUpsellPlatformFeePct(orgId),
+            getEffectiveActivityPlatformCommissionPct(orgId),
+            getEffectiveUpsellOrgCommissionPct(orgId),
+            getEffectiveActivityOrgCommissionPct(orgId));
     }
 
+    /** Met à jour la commission PLATEFORME (staff-only). */
     @Transactional
-    public MonetizationConfigDto updateSettings(Long orgId, BigDecimal upsellFeePct, BigDecimal activityHostSharePct) {
-        OrgMonetizationConfig config = repository.findByOrganizationId(orgId)
-            .orElseGet(() -> {
-                OrgMonetizationConfig created = new OrgMonetizationConfig();
-                created.setOrganizationId(orgId);
-                return created;
-            });
+    public MonetizationConfigDto updatePlatform(Long orgId, BigDecimal upsellFeePct, BigDecimal activityCommissionPct) {
+        OrgMonetizationConfig config = getOrCreate(orgId);
         config.setUpsellPlatformFeePct(clamp(upsellFeePct));
-        config.setActivityHostSharePct(clamp(activityHostSharePct));
+        config.setActivityPlatformCommissionPct(clamp(activityCommissionPct));
         repository.save(config);
         return getSettings(orgId);
+    }
+
+    /** Met à jour la commission ORG/conciergerie (org-editable). */
+    @Transactional
+    public MonetizationConfigDto updateOrg(Long orgId, BigDecimal upsellOrgPct, BigDecimal activityOrgPct) {
+        OrgMonetizationConfig config = getOrCreate(orgId);
+        config.setUpsellOrgCommissionPct(clamp(upsellOrgPct));
+        config.setActivityOrgCommissionPct(clamp(activityOrgPct));
+        repository.save(config);
+        return getSettings(orgId);
+    }
+
+    private OrgMonetizationConfig getOrCreate(Long orgId) {
+        return repository.findByOrganizationId(orgId).orElseGet(() -> {
+            OrgMonetizationConfig created = new OrgMonetizationConfig();
+            created.setOrganizationId(orgId);
+            return created;
+        });
     }
 
     private BigDecimal defaultUpsellFee() {
         return upsellConfig.getPlatformFeePct() != null ? upsellConfig.getPlatformFeePct() : DEFAULT_UPSELL_FEE;
     }
 
-    private BigDecimal defaultHostShare() {
-        return commissionConfig.getHostSharePct() != null ? commissionConfig.getHostSharePct() : DEFAULT_HOST_SHARE;
+    private BigDecimal defaultActivityPlatformCommission() {
+        // Défaut global : complément de la part hôte (70% hôte → 30% plateforme).
+        BigDecimal hostShare = commissionConfig.getHostSharePct();
+        return hostShare != null ? HUNDRED.subtract(hostShare) : DEFAULT_ACTIVITY_PLATFORM;
     }
 
-    /** Borne 0..100 ; null reste null (= défaut global). */
+    /** Borne 0..100 ; null reste null (= défaut). */
     private static BigDecimal clamp(BigDecimal v) {
         if (v == null) return null;
         if (v.compareTo(BigDecimal.ZERO) < 0) return BigDecimal.ZERO;
