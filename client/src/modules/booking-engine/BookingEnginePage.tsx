@@ -16,7 +16,7 @@ import BookingEngineConfigTab from './BookingEngineConfigTab';
 import type { BookingEngineConfigTabHandle } from './BookingEngineConfigTab';
 import { semanticToHex, softChipSx } from '../../utils/statusUtils';
 
-const BookingEnginePage: React.FC = () => {
+const BookingEnginePage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { t } = useTranslation();
   const [editConfig, setEditConfig] = useState<BookingEngineConfig | null>(null);
   const [isCreateMode, setIsCreateMode] = useState(false);
@@ -103,6 +103,46 @@ const BookingEnginePage: React.FC = () => {
     </Box>
   ) : undefined;
 
+  const body = isEditing ? (
+    <BookingEngineConfigTab
+      ref={configTabRef}
+      config={isCreateMode ? null : editConfig}
+      onBack={handleBackToList}
+      onSavingChange={setIsSaving}
+    />
+  ) : (
+    <BookingEngineListTab
+      onEdit={handleEdit}
+      onCreate={handleCreate}
+      search={search}
+      onTotalCountChange={setTotalCount}
+      onFilteredCountChange={setFilteredCount}
+    />
+  );
+
+  // Mode embarque (onglet du parent "Réservation & accueil") : pas de PageHeader
+  // propre (le parent le fournit), les actions vivent dans une barre locale.
+  if (embedded) {
+    return (
+      <Box>
+        <Box
+          sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}
+        >
+          <Box sx={{ flex: 1 }}>{listFilters}</Box>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {isEditing ? (
+              <Button variant="text" size="small" onClick={handleBackToList}>
+                {t('bookingEngine.actions.backToList', 'Retour')}
+              </Button>
+            ) : null}
+            {headerActions}
+          </Box>
+        </Box>
+        {body}
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <PageHeader
@@ -115,23 +155,7 @@ const BookingEnginePage: React.FC = () => {
         filters={listFilters}
         actions={headerActions}
       />
-
-      {isEditing ? (
-        <BookingEngineConfigTab
-          ref={configTabRef}
-          config={isCreateMode ? null : editConfig}
-          onBack={handleBackToList}
-          onSavingChange={setIsSaving}
-        />
-      ) : (
-        <BookingEngineListTab
-          onEdit={handleEdit}
-          onCreate={handleCreate}
-          search={search}
-          onTotalCountChange={setTotalCount}
-          onFilteredCountChange={setFilteredCount}
-        />
-      )}
+      {body}
     </Box>
   );
 };

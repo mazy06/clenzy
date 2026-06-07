@@ -3,6 +3,7 @@ package com.clenzy.service.messaging;
 import com.clenzy.model.*;
 import com.clenzy.repository.AutomationExecutionRepository;
 import com.clenzy.repository.AutomationRuleRepository;
+import com.clenzy.service.WelcomeGuideService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,15 +22,18 @@ public class AutomationEvaluationService {
     private final AutomationExecutionRepository executionRepository;
     private final GuestMessagingService messagingService;
     private final AutomationConditionEvaluator conditionEvaluator;
+    private final WelcomeGuideService welcomeGuideService;
 
     public AutomationEvaluationService(AutomationRuleRepository ruleRepository,
                                         AutomationExecutionRepository executionRepository,
                                         GuestMessagingService messagingService,
-                                        AutomationConditionEvaluator conditionEvaluator) {
+                                        AutomationConditionEvaluator conditionEvaluator,
+                                        WelcomeGuideService welcomeGuideService) {
         this.ruleRepository = ruleRepository;
         this.executionRepository = executionRepository;
         this.messagingService = messagingService;
         this.conditionEvaluator = conditionEvaluator;
+        this.welcomeGuideService = welcomeGuideService;
     }
 
     /**
@@ -99,11 +103,29 @@ public class AutomationEvaluationService {
     private void executeAction(AutomationExecution execution, AutomationRule rule,
                                 Reservation reservation, Long orgId) {
         try {
-            if (rule.getTemplate() != null && rule.getActionType() == AutomationAction.SEND_MESSAGE) {
+            AutomationAction action = rule.getActionType();
+            if (rule.getTemplate() != null && action == AutomationAction.SEND_MESSAGE) {
                 MessageChannelType channel = rule.getDeliveryChannel() != null
                     ? rule.getDeliveryChannel() : MessageChannelType.EMAIL;
                 messagingService.sendForReservationViaChannel(
                     reservation, rule.getTemplate(), orgId, channel, Map.of());
+            } else if (rule.getTemplate() != null && action == AutomationAction.SEND_GUIDE) {
+                String guideLink = welcomeGuideService.linkForReservation(reservation)
+                    .orElseThrow(() -> new IllegalStateException(
+                        "Aucun livret d'accueil publié pour le logement de la réservation " + reservation.getId()));
+                MessageChannelType channel = rule.getDeliveryChannel() != null
+                    ? rule.getDeliveryChannel() : MessageChannelType.EMAIL;
+                messagingService.sendForReservationViaChannel(
+                    reservation, rule.getTemplate(), orgId, channel, Map.of("guideLink", guideLink));
+            } else if (rule.getTemplate() != null && action == AutomationAction.SEND_REVIEW_REQUEST) {
+                String reviewLink = welcomeGuideService.reviewLinkForReservation(reservation)
+                    .orElseThrow(() -> new IllegalStateException(
+                        "Aucun livret d'accueil publié pour la demande d'avis (réservation " + reservation.getId() + ")"));
+                MessageChannelType channel = rule.getDeliveryChannel() != null
+                    ? rule.getDeliveryChannel() : MessageChannelType.EMAIL;
+                messagingService.sendForReservationViaChannel(
+                    reservation, rule.getTemplate(), orgId, channel,
+                    Map.of("guideLink", reviewLink, "reviewLink", reviewLink));
             }
             execution.setStatus(AutomationExecutionStatus.EXECUTED);
             execution.setExecutedAt(LocalDateTime.now());

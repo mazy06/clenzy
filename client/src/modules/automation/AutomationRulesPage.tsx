@@ -58,6 +58,13 @@ const CHANNEL_OPTIONS: { value: MessageChannelType; label: string; icon: React.R
   { value: 'WHATSAPP', label: 'WhatsApp', icon: <WhatsAppIcon size={'0.875rem'} strokeWidth={1.75} /> },
 ];
 
+const ACTION_OPTIONS: { value: AutomationAction; label: string }[] = [
+  { value: 'SEND_MESSAGE', label: 'Envoyer un message' },
+  { value: 'SEND_GUIDE', label: "Envoyer le livret d'accueil" },
+  { value: 'SEND_REVIEW_REQUEST', label: 'Demander un avis' },
+  { value: 'SEND_CHECKIN_LINK', label: 'Envoyer le lien de check-in' },
+];
+
 const CARD_SX = {
   border: '1px solid',
   borderColor: 'divider',
@@ -333,6 +340,22 @@ const AutomationRulesPage: React.FC = () => {
               sx={{ fontSize: '0.8125rem' }}
             >
               {TRIGGER_OPTIONS.map((o) => (
+                <MenuItem key={o.value} value={o.value} sx={{ fontSize: '0.8125rem' }}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" fullWidth>
+            <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('automation.form.action', 'Action')}</InputLabel>
+            <Select
+              value={formData.actionType}
+              onChange={(e) => setFormData({ ...formData, actionType: e.target.value as AutomationAction })}
+              label={t('automation.form.action', 'Action')}
+              sx={{ fontSize: '0.8125rem' }}
+            >
+              {ACTION_OPTIONS.map((o) => (
                 <MenuItem key={o.value} value={o.value} sx={{ fontSize: '0.8125rem' }}>
                   {o.label}
                 </MenuItem>

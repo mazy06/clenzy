@@ -1898,3 +1898,34 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Livret d'accueil numerique : tables welcome_guides + welcome_guide_tokens
+  # (socle WelcomeGuide existant en JPA mais sans changeset => bloquant prod).
+  - changeSet:
+      id: "0195-create-welcome-guide-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0195__create_welcome_guide_tables.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Livre d'or du livret d'accueil (welcome_guide_entries).
+  - changeSet:
+      id: "0196-create-welcome-guide-entries"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0196__create_welcome_guide_entries.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Config affiliation activites (Viator/GetYourGuide/Klook) par org.
+  - changeSet:
+      id: "0197-create-activity-affiliate-configs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0197__create_activity_affiliate_configs.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

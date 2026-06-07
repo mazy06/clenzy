@@ -1,5 +1,6 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.GuestbookEntryDto;
 import com.clenzy.dto.WelcomeGuideDto;
 import com.clenzy.dto.WelcomeGuideRequest;
 import com.clenzy.model.Property;
@@ -33,13 +34,14 @@ import static org.mockito.Mockito.*;
 class WelcomeGuideControllerTest {
 
     @Mock private WelcomeGuideService guideService;
+    @Mock private com.clenzy.service.WelcomeGuideEntryService entryService;
     @Mock private TenantContext tenantContext;
 
     private WelcomeGuideController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new WelcomeGuideController(guideService, tenantContext);
+        controller = new WelcomeGuideController(guideService, entryService, tenantContext);
     }
 
     private WelcomeGuide guide(Long id) {
@@ -164,5 +166,32 @@ class WelcomeGuideControllerTest {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.IMAGE_PNG);
         assertThat(response.getBody()).isEqualTo(png);
+    }
+
+    @Test
+    void getGuestbook_returnsEntries() {
+        when(tenantContext.getOrganizationId()).thenReturn(7L);
+        when(entryService.listForGuide(1L, 7L)).thenReturn(List.of(
+            new GuestbookEntryDto(1L, "Alice", "Merci pour le séjour !", 5, null)));
+
+        ResponseEntity<List<GuestbookEntryDto>> response = controller.getGuestbook(1L);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).hasSize(1);
+    }
+
+    @Test
+    void share_returnsLinkAndQrCode() {
+        when(tenantContext.getOrganizationId()).thenReturn(7L);
+        WelcomeGuideToken tok = token(1L);
+        when(guideService.generateToken(1L, 7L, null)).thenReturn(tok);
+        when(guideService.generateGuideLink(tok)).thenReturn("https://app.clenzy.fr/guide/abc");
+        when(guideService.generateQrCode(anyString(), anyInt(), anyInt())).thenReturn(new byte[]{1, 2, 3});
+
+        ResponseEntity<Map<String, String>> response = controller.share(1L);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).containsEntry("link", "https://app.clenzy.fr/guide/abc");
+        assertThat(response.getBody().get("qrCode")).startsWith("data:image/png;base64,");
     }
 }

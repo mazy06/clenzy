@@ -346,8 +346,9 @@ export const CATALOG_SERVICES: CatalogService[] = [
       'Filiale TripAdvisor. Catalogue ultra-large d\'activités et expériences. Commission affiliée 8 %. Présence forte FR/EU/Global.',
     websiteUrl: 'https://www.viatorpartners.com/',
     accessModality: 'Partner program (signup gratuit) → API key. Bibliothèques officielles JavaScript/Python disponibles.',
-    available: false,
+    available: true,
     region: 'Global',
+    internalRoute: '/booking-engine',
   },
 
   // ─── Reviews & Reputation ────────────────────────────────────────────────

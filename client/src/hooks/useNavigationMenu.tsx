@@ -196,9 +196,9 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
     icon: <Public />,
     path: '/booking-engine',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
-    permission: 'settings:view',
-    translationKey: 'navigation.bookingEngine',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
+    permission: 'properties:view',
+    translationKey: 'guestExperience.navLabel',
     group: 'management',
   },
   {

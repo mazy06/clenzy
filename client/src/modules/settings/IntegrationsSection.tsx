@@ -1384,7 +1384,6 @@ export default function IntegrationsSection({
       {showSection('activities_affiliate') && (
         <Box id="section-activities" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
-            disabled
             serviceFilter={selectedServiceId}
             category="activities_affiliate"
             title="Activités & affiliation"
