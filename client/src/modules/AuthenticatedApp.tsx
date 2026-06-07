@@ -105,7 +105,7 @@ import ExchangeRateHistoryPage from './admin/ExchangeRateHistoryPage';
 // Channels & Integrations
 import ChannelsPage from './channels/ChannelsPage';
 import ReviewsPage from './channels/ReviewsPage';
-import BookingEnginePage from './booking-engine/BookingEnginePage';
+import GuestExperiencePage from './guest-experience/GuestExperiencePage';
 
 // Messaging — pages now merged into Documents module (redirected via Navigate)
 // import MessageTemplatesPage from './messaging/MessageTemplatesPage';
@@ -478,11 +478,11 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        {/* Booking Engine Configuration */}
+        {/* Réservation & accueil : Livret d'accueil + Booking Engine */}
         <Route path="/booking-engine" element={
-          <ProtectedRoute requiredPermission="settings:view">
+          <ProtectedRoute requiredPermission="properties:view">
             <ErrorBoundary>
-              <BookingEnginePage />
+              <GuestExperiencePage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />

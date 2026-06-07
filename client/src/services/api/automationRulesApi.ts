@@ -10,7 +10,7 @@ export type AutomationTrigger =
   | 'CHECK_OUT_PASSED'
   | 'REVIEW_REMINDER';
 
-export type AutomationAction = 'SEND_MESSAGE';
+export type AutomationAction = 'SEND_MESSAGE' | 'SEND_GUIDE' | 'SEND_REVIEW_REQUEST' | 'SEND_CHECKIN_LINK';
 
 export type MessageChannelType = 'EMAIL' | 'SMS' | 'WHATSAPP';
 
