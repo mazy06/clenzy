@@ -65,6 +65,12 @@ interface ServiceCatalogSectionProps {
    * restent disponibles.
    */
   disabled?: boolean;
+  /**
+   * Optionnel : rend un formulaire de configuration propre au service DANS son
+   * modal de detail (ex: clé API d'un fournisseur d'activités). Retourner {@code null}
+   * pour un service non configurable (le modal garde le comportement par defaut).
+   */
+  configForService?: (service: CatalogService) => React.ReactNode;
 }
 
 export default function ServiceCatalogSection({
@@ -73,6 +79,7 @@ export default function ServiceCatalogSection({
   description,
   serviceFilter = null,
   disabled = false,
+  configForService,
 }: ServiceCatalogSectionProps) {
   const allServices = getServicesByCategory(category);
   const services = serviceFilter
@@ -80,6 +87,7 @@ export default function ServiceCatalogSection({
     : allServices;
   const navigate = useNavigate();
   const [openService, setOpenService] = useState<CatalogService | null>(null);
+  const configNode = openService && configForService ? configForService(openService) : null;
 
   const handleAction = (service: CatalogService) => {
     if (service.internalRoute) {
@@ -246,6 +254,34 @@ export default function ServiceCatalogSection({
                 <strong>Modalités d'accès :</strong> {openService.accessModality}
               </Alert>
 
+              {configNode ? (
+                <Box sx={{ mb: 1.5 }}>
+                  {configNode}
+                  {openService.websiteUrl && (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      endIcon={<ExternalLinkIcon size={14} strokeWidth={2} />}
+                      component="a"
+                      href={openService.websiteUrl}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      sx={{
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        fontSize: '0.78rem',
+                        borderRadius: '8px',
+                        borderColor: 'divider',
+                        color: 'text.primary',
+                        '&:hover': { borderColor: `${ACCENT}66`, backgroundColor: `${ACCENT}0F`, color: ACCENT },
+                      }}
+                    >
+                      En savoir plus
+                    </Button>
+                  )}
+                </Box>
+              ) : (
+              <>
               {!openService.available && !openService.internalRoute && (
                 <Alert
                   severity="warning"
@@ -307,6 +343,8 @@ export default function ServiceCatalogSection({
                   </Button>
                 )}
               </Box>
+              </>
+              )}
             </Box>
           </Paper>
         )}

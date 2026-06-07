@@ -4,6 +4,7 @@ import com.clenzy.model.*;
 import com.clenzy.repository.*;
 import com.clenzy.service.MapboxStaticImageService;
 import com.clenzy.service.NotificationService;
+import com.clenzy.service.WelcomeGuideService;
 import com.clenzy.service.access.AccessCodeResolverService;
 import com.clenzy.service.access.AccessCodeResult;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +34,7 @@ class GuestMessagingServiceTest {
     @Mock private NotificationService notificationService;
     @Mock private AccessCodeResolverService accessCodeResolverService;
     @Mock private MapboxStaticImageService mapboxStaticImageService;
+    @Mock private WelcomeGuideService welcomeGuideService;
 
     private GuestMessagingService service;
 
@@ -41,7 +43,7 @@ class GuestMessagingServiceTest {
         List<MessageChannel> channels = List.of(emailChannel, whatsAppChannel);
         service = new GuestMessagingService(channels, interpolationService, messageLogRepository,
             instructionsRepository, templateRepository, reservationRepository, notificationService,
-            accessCodeResolverService, mapboxStaticImageService);
+            accessCodeResolverService, mapboxStaticImageService, welcomeGuideService);
 
         // Default : resolution manuelle (pas de code dynamique)
         lenient().when(accessCodeResolverService.resolveForReservation(any(), any(), any()))

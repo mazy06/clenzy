@@ -19,6 +19,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import {
   guestMessagingApi,
   type MessageTemplate,
+  type MessageChannel,
 } from '../../services/api/guestMessagingApi';
 
 interface SendMessageDialogProps {
@@ -39,6 +40,7 @@ export default function SendMessageDialog({
   const { t } = useTranslation();
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | ''>('');
+  const [channel, setChannel] = useState<MessageChannel>('EMAIL');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +50,7 @@ export default function SendMessageDialog({
     if (open) {
       loadTemplates();
       setSelectedTemplateId('');
+      setChannel('EMAIL');
       setError(null);
       setSuccess(false);
     }
@@ -76,12 +79,15 @@ export default function SendMessageDialog({
       await guestMessagingApi.sendMessage({
         reservationId,
         templateId: Number(selectedTemplateId),
+        channel,
       });
       setSuccess(true);
       onSent?.();
       setTimeout(() => onClose(), 1500);
     } catch (err) {
-      setError(t('messaging.send.error'));
+      // Surface le message precis du backend (ex: voyageur sans email/telephone) si present.
+      const message = (err as { message?: string })?.message;
+      setError(message || t('messaging.send.error'));
     } finally {
       setSending(false);
     }
@@ -115,6 +121,28 @@ export default function SendMessageDialog({
           </Box>
         ) : (
           <>
+            <TextField
+              select
+              fullWidth
+              label={t('messaging.send.channel', 'Canal')}
+              value={channel}
+              onChange={(e) => setChannel(e.target.value as MessageChannel)}
+              size="small"
+              sx={{ mb: 2 }}
+            >
+              <MenuItem value="EMAIL">{t('messaging.send.channelEmail', 'Email')}</MenuItem>
+              <MenuItem value="WHATSAPP">{t('messaging.send.channelWhatsapp', 'WhatsApp')}</MenuItem>
+            </TextField>
+
+            {channel === 'WHATSAPP' && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                {t(
+                  'messaging.send.whatsappHint',
+                  "WhatsApp en texte libre : le message n'est délivré que si le voyageur a écrit au numéro Baitly dans les dernières 24h (fenêtre Meta). Sinon, privilégiez l'email.",
+                )}
+              </Alert>
+            )}
+
             <TextField
               select
               fullWidth

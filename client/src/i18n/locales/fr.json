@@ -3326,7 +3326,11 @@
       "send": "Envoyer",
       "success": "Message envoye avec succes",
       "error": "Erreur lors de l'envoi du message",
-      "loadError": "Erreur lors du chargement des templates"
+      "loadError": "Erreur lors du chargement des templates",
+      "channel": "Canal",
+      "channelEmail": "Email",
+      "channelWhatsapp": "WhatsApp",
+      "whatsappHint": "WhatsApp en texte libre : le message n'est délivré que si le voyageur a écrit au numéro Baitly dans les dernières 24h (fenêtre Meta). Sinon, privilégiez l'email."
     }
   },
   "invoices": {
