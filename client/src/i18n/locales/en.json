@@ -1837,7 +1837,12 @@
     "unread": "Unread",
     "markAsRead": "Mark as read",
     "viewMessages": "View messages",
-    "lastMessage": "Last message"
+    "lastMessage": "Last message",
+    "noMessages": "No messages in this conversation",
+    "selectConversation": "Select a conversation",
+    "selectConversationHint": "Pick a thread on the left to view messages and reply.",
+    "search": "Search a conversation…",
+    "noSearchResults": "No results"
   },
   "users": {
     "title": "Users",
@@ -2981,6 +2986,14 @@
     }
   },
   "messaging": {
+    "whatsappStatus": {
+      "notConfiguredTitle": "WhatsApp not configured",
+      "notConfiguredBody": "WhatsApp messaging isn't set up for your organization yet. Contact your platform manager to enable it.",
+      "disabledTitle": "WhatsApp disabled",
+      "disabledBody": "WhatsApp messaging is managed by your platform and is currently inactive. Your guest messages won't be sent on this channel.",
+      "activeTitle": "WhatsApp active",
+      "activeBody": "WhatsApp messaging is active via {{provider}}, managed by your platform."
+    },
     "automation": {
       "loadError": "Failed to load configuration",
       "saveError": "Failed to save",

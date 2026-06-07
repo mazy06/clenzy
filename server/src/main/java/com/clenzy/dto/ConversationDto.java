@@ -1,6 +1,7 @@
 package com.clenzy.dto;
 
 import com.clenzy.model.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public record ConversationDto(
@@ -18,7 +19,12 @@ public record ConversationDto(
     String assignedToKeycloakId,
     boolean unread,
     int messageCount,
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    // Relais WhatsApp : dates de séjour (titre « Logement · Dates · Guest ») +
+    // identifiant externe (numéro brut pour WhatsApp, formaté côté front).
+    LocalDate checkIn,
+    LocalDate checkOut,
+    String externalConversationId
 ) {
     public static ConversationDto from(Conversation c) {
         return new ConversationDto(
@@ -36,7 +42,10 @@ public record ConversationDto(
             c.getAssignedToKeycloakId(),
             c.isUnread(),
             c.getMessageCount(),
-            c.getCreatedAt()
+            c.getCreatedAt(),
+            c.getReservation() != null ? c.getReservation().getCheckIn() : null,
+            c.getReservation() != null ? c.getReservation().getCheckOut() : null,
+            c.getExternalConversationId()
         );
     }
 }

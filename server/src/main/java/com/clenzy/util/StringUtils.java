@@ -1,5 +1,9 @@
 package com.clenzy.util;
 
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -79,6 +83,62 @@ public final class StringUtils {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hashBytes = digest.digest(email.toLowerCase().trim().getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hashBytes) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 non disponible", e);
+        }
+    }
+
+    /**
+     * Normalise un numero de telephone au format E.164 (ex: +33612345678) via
+     * libphonenumber. {@code defaultRegion} (code ISO pays, ex "FR") resout les
+     * numeros nationaux (ex "0612..."). Les numeros prefixes "+" sont parses
+     * sans region. Pour un numero international sans "+" (cas webhook Meta :
+     * "33612..."), passer defaultRegion=null : on tente "+"+numero.
+     *
+     * @return le numero au format E.164, ou null si invalide/non parsable.
+     */
+    public static String normalizePhoneE164(String rawPhone, String defaultRegion) {
+        if (rawPhone == null || rawPhone.isBlank()) return null;
+        PhoneNumberUtil util = PhoneNumberUtil.getInstance();
+        String input = rawPhone.trim();
+        String region = (defaultRegion != null && !defaultRegion.isBlank())
+            ? defaultRegion.trim().toUpperCase() : null;
+        try {
+            Phonenumber.PhoneNumber parsed;
+            if (input.startsWith("+")) {
+                parsed = util.parse(input, null);
+            } else if (region != null) {
+                parsed = util.parse(input, region);
+            } else {
+                parsed = util.parse("+" + input, null);
+            }
+            if (!util.isValidNumber(parsed)) return null;
+            return util.format(parsed, PhoneNumberUtil.PhoneNumberFormat.E164);
+        } catch (NumberParseException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Hash SHA-256 deterministe d'un numero de telephone, apres normalisation
+     * E.164. Sert a retrouver un guest par son numero (chiffre en base, donc
+     * non recherchable directement). Retourne null si le numero est invalide.
+     */
+    public static String computePhoneHash(String rawPhone, String defaultRegion) {
+        String e164 = normalizePhoneE164(rawPhone, defaultRegion);
+        if (e164 == null) return null;
+        return sha256Hex(e164);
+    }
+
+    private static String sha256Hex(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(value.getBytes(StandardCharsets.UTF_8));
             StringBuilder hex = new StringBuilder();
             for (byte b : hashBytes) {
                 hex.append(String.format("%02x", b));

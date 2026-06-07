@@ -24,6 +24,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Tests du controller de config WhatsApp GLOBALE (singleton plateforme).
+ * La config = la ligne organization_id IS NULL (findFirstByOrganizationIdIsNull).
+ * Les templates restent par-org (resolus via TenantContext).
+ */
 @ExtendWith(MockitoExtension.class)
 class WhatsAppConfigControllerTest {
 
@@ -36,13 +41,14 @@ class WhatsAppConfigControllerTest {
     @BeforeEach
     void setUp() {
         controller = new WhatsAppConfigController(configRepository, templateRepository, tenantContext);
+        // Utilise uniquement par getTemplates (les templates restent par-org).
         lenient().when(tenantContext.getOrganizationId()).thenReturn(11L);
     }
 
-    private WhatsAppConfig existingConfig() {
+    private WhatsAppConfig globalConfig() {
         WhatsAppConfig c = new WhatsAppConfig();
         c.setId(5L);
-        c.setOrganizationId(11L);
+        c.setOrganizationId(null); // ligne globale (singleton plateforme)
         c.setProvider(WhatsAppProviderType.META);
         c.setApiToken("old-token");
         c.setPhoneNumberId("100");
@@ -53,7 +59,7 @@ class WhatsAppConfigControllerTest {
 
     @Test
     void getConfig_whenExists_returnsDto() {
-        when(configRepository.findByOrganizationId(11L)).thenReturn(Optional.of(existingConfig()));
+        when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.of(globalConfig()));
 
         ResponseEntity<WhatsAppConfigDto> resp = controller.getConfig();
 
@@ -67,16 +73,16 @@ class WhatsAppConfigControllerTest {
 
     @Test
     void getConfig_whenAbsent_returns404() {
-        when(configRepository.findByOrganizationId(11L)).thenReturn(Optional.empty());
+        when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.empty());
 
         ResponseEntity<WhatsAppConfigDto> resp = controller.getConfig();
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
-    void updateConfig_existingOrg_mergesAndSaves() {
-        WhatsAppConfig existing = existingConfig();
-        when(configRepository.findByOrganizationId(11L)).thenReturn(Optional.of(existing));
+    void updateConfig_existing_mergesAndSaves() {
+        WhatsAppConfig existing = globalConfig();
+        when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.of(existing));
         when(configRepository.save(any(WhatsAppConfig.class))).thenAnswer(inv -> inv.getArgument(0));
 
         UpdateWhatsAppConfigRequest req = new UpdateWhatsAppConfigRequest(
@@ -96,8 +102,8 @@ class WhatsAppConfigControllerTest {
     }
 
     @Test
-    void updateConfig_newOrg_createsNewConfig() {
-        when(configRepository.findByOrganizationId(11L)).thenReturn(Optional.empty());
+    void updateConfig_whenAbsent_createsGlobalConfig() {
+        when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.empty());
         when(configRepository.save(any(WhatsAppConfig.class))).thenAnswer(inv -> {
             WhatsAppConfig c = inv.getArgument(0);
             c.setId(99L);
@@ -116,8 +122,8 @@ class WhatsAppConfigControllerTest {
 
     @Test
     void updateConfig_nullFields_doNotOverwriteExisting() {
-        WhatsAppConfig existing = existingConfig();
-        when(configRepository.findByOrganizationId(11L)).thenReturn(Optional.of(existing));
+        WhatsAppConfig existing = globalConfig();
+        when(configRepository.findFirstByOrganizationIdIsNull()).thenReturn(Optional.of(existing));
         when(configRepository.save(any(WhatsAppConfig.class))).thenAnswer(inv -> inv.getArgument(0));
 
         UpdateWhatsAppConfigRequest req = new UpdateWhatsAppConfigRequest(

@@ -32,6 +32,7 @@ import {
   Send,
   MarkEmailRead,
   Email,
+  WhatsApp,
 } from '../../../icons';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import { reservationsApi, RESERVATION_STATUS_COLORS, RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
@@ -42,6 +43,8 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle, AccessTime, Settings, Bolt } from '../../../icons';
 import GuestCardDialog from './GuestCardDialog';
 import ChangePropertyDialog from './ChangePropertyDialog';
+import SendWhatsAppTemplateDialog from '../../channels/SendWhatsAppTemplateDialog';
+import { useSendTemplateForReservation } from '../../../hooks/useConversations';
 
 interface PanelReservationInfoProps {
   event: PlanningEvent;
@@ -65,6 +68,8 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
   const [guestCardOpen, setGuestCardOpen] = useState(false);
   const [changePropertyOpen, setChangePropertyOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const sendTemplateForReservation = useSendTemplateForReservation();
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
@@ -294,6 +299,15 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
           >
             Fiche client
           </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<WhatsApp size={14} strokeWidth={1.75} />}
+            sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
+            onClick={() => setTemplateOpen(true)}
+          >
+            Template WhatsApp
+          </Button>
         </Box>
       </Box>
 
@@ -304,6 +318,17 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
         reservation={reservation}
         allEvents={allEvents}
         onUpdateGuestInfo={onUpdateGuestInfo}
+      />
+
+      <SendWhatsAppTemplateDialog
+        open={templateOpen}
+        onClose={() => setTemplateOpen(false)}
+        onSend={(key) => sendTemplateForReservation.mutate(
+          { reservationId: reservation.id, templateKey: key },
+          { onSuccess: () => setTemplateOpen(false) },
+        )}
+        sending={sendTemplateForReservation.isPending}
+        error={sendTemplateForReservation.isError}
       />
 
       {/* Change Property Dialog */}

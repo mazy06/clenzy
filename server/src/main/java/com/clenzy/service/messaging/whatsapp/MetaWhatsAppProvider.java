@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -21,7 +22,8 @@ import java.util.Map;
 
 /**
  * Implementation {@link WhatsAppProvider} pour Meta Cloud API officielle
- * (graph.facebook.com v18.0). Default historique de Clenzy depuis l'origine.
+ * (graph.facebook.com). La version d'API est configurable via
+ * {@code clenzy.whatsapp.meta.graph-api-base} (defaut : version stable courante).
  *
  * <p><b>Origine</b> : code extrait de l'ancien {@code WhatsAppApiService}
  * (supprime au commit refactor provider strategy), garde a l'identique le
@@ -35,14 +37,17 @@ import java.util.Map;
 public class MetaWhatsAppProvider implements WhatsAppProvider {
 
     private static final Logger log = LoggerFactory.getLogger(MetaWhatsAppProvider.class);
-    private static final String GRAPH_API_BASE = "https://graph.facebook.com/v18.0";
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final String graphApiBase;
 
-    public MetaWhatsAppProvider(ObjectMapper objectMapper) {
+    public MetaWhatsAppProvider(
+            ObjectMapper objectMapper,
+            @Value("${clenzy.whatsapp.meta.graph-api-base:https://graph.facebook.com/v23.0}") String graphApiBase) {
         this.restTemplate = new RestTemplate();
         this.objectMapper = objectMapper;
+        this.graphApiBase = graphApiBase;
     }
 
     @Override
@@ -53,7 +58,7 @@ public class MetaWhatsAppProvider implements WhatsAppProvider {
     @Override
     @CircuitBreaker(name = "whatsapp", fallbackMethod = "sendTextFallback")
     public String sendTextMessage(WhatsAppConfig config, String phoneNumber, String text) {
-        String url = GRAPH_API_BASE + "/" + config.getPhoneNumberId() + "/messages";
+        String url = graphApiBase + "/" + config.getPhoneNumberId() + "/messages";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -87,7 +92,7 @@ public class MetaWhatsAppProvider implements WhatsAppProvider {
     @CircuitBreaker(name = "whatsapp", fallbackMethod = "sendTemplateFallback")
     public String sendTemplateMessage(WhatsAppConfig config, String phoneNumber,
                                         String templateName, String language) {
-        String url = GRAPH_API_BASE + "/" + config.getPhoneNumberId() + "/messages";
+        String url = graphApiBase + "/" + config.getPhoneNumberId() + "/messages";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -117,7 +122,7 @@ public class MetaWhatsAppProvider implements WhatsAppProvider {
     @CircuitBreaker(name = "whatsapp", fallbackMethod = "sendTemplateParamsFallback")
     public String sendTemplateMessage(WhatsAppConfig config, String phoneNumber,
                                         String templateName, String language, List<String> parameters) {
-        String url = GRAPH_API_BASE + "/" + config.getPhoneNumberId() + "/messages";
+        String url = graphApiBase + "/" + config.getPhoneNumberId() + "/messages";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -168,7 +173,7 @@ public class MetaWhatsAppProvider implements WhatsAppProvider {
     @Override
     public void markAsRead(WhatsAppConfig config, String messageId) {
         try {
-            String url = GRAPH_API_BASE + "/" + config.getPhoneNumberId() + "/messages";
+            String url = graphApiBase + "/" + config.getPhoneNumberId() + "/messages";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);

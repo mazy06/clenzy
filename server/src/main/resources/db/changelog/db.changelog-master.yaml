@@ -1868,3 +1868,33 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Config WhatsApp : par-org -> GLOBALE unique (singleton plateforme).
+  - changeSet:
+      id: "0192-whatsapp-config-global-singleton"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0192__whatsapp_config_global_singleton.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Relais WhatsApp : phone_hash sur guests (lookup d'un guest par numero entrant).
+  - changeSet:
+      id: "0193-add-guest-phone-hash"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0193__add_guest_phone_hash.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Relais WhatsApp entrant OpenWA : secret HMAC du webhook entrant (chiffre).
+  - changeSet:
+      id: "0194-add-openwa-webhook-secret"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0194__add_openwa_webhook_secret.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

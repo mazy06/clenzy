@@ -1861,7 +1861,12 @@
     "unread": "Non lu",
     "markAsRead": "Marquer comme lu",
     "viewMessages": "Voir les messages",
-    "lastMessage": "Dernier message"
+    "lastMessage": "Dernier message",
+    "noMessages": "Aucun message dans cette conversation",
+    "selectConversation": "Sélectionnez une conversation",
+    "selectConversationHint": "Choisissez un échange à gauche pour afficher les messages et répondre.",
+    "search": "Rechercher une conversation…",
+    "noSearchResults": "Aucun résultat"
   },
   "users": {
     "title": "Utilisateurs",
@@ -3005,6 +3010,14 @@
     }
   },
   "messaging": {
+    "whatsappStatus": {
+      "notConfiguredTitle": "WhatsApp non configuré",
+      "notConfiguredBody": "L'envoi WhatsApp n'est pas encore configuré pour votre organisation. Contactez votre gestionnaire de plateforme pour l'activer.",
+      "disabledTitle": "WhatsApp désactivé",
+      "disabledBody": "L'envoi WhatsApp est géré par votre plateforme et n'est pas actif actuellement. Vos messages voyageurs ne partiront pas sur ce canal.",
+      "activeTitle": "WhatsApp actif",
+      "activeBody": "L'envoi WhatsApp est actif via {{provider}}, géré par votre plateforme."
+    },
     "automation": {
       "loadError": "Erreur lors du chargement de la configuration",
       "saveError": "Erreur lors de la sauvegarde",

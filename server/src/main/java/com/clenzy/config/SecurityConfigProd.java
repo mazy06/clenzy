@@ -138,6 +138,7 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/webhooks/stripe").permitAll()
                         .requestMatchers("/api/webhooks/expedia").permitAll()
                         .requestMatchers("/api/webhooks/whatsapp").permitAll()
+                        .requestMatchers("/api/webhooks/whatsapp/openwa").permitAll()
                         .requestMatchers("/api/webhooks/keynest").permitAll()
                         .requestMatchers("/api/webhooks/nuki/**").permitAll()
                         .requestMatchers("/api/webhooks/hubspot/**").permitAll()
