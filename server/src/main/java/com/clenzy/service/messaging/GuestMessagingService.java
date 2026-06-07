@@ -4,6 +4,7 @@ import com.clenzy.model.*;
 import com.clenzy.repository.*;
 import com.clenzy.service.MapboxStaticImageService;
 import com.clenzy.service.NotificationService;
+import com.clenzy.service.WelcomeGuideService;
 import com.clenzy.service.access.AccessCodeResolverService;
 import com.clenzy.service.access.AccessCodeResult;
 import org.slf4j.Logger;
@@ -37,6 +38,7 @@ public class GuestMessagingService {
     private final NotificationService notificationService;
     private final AccessCodeResolverService accessCodeResolverService;
     private final MapboxStaticImageService mapboxStaticImageService;
+    private final WelcomeGuideService welcomeGuideService;
 
     public GuestMessagingService(
             List<MessageChannel> channels,
@@ -47,7 +49,8 @@ public class GuestMessagingService {
             ReservationRepository reservationRepository,
             NotificationService notificationService,
             AccessCodeResolverService accessCodeResolverService,
-            MapboxStaticImageService mapboxStaticImageService
+            MapboxStaticImageService mapboxStaticImageService,
+            WelcomeGuideService welcomeGuideService
     ) {
         this.channels = channels;
         this.interpolationService = interpolationService;
@@ -58,6 +61,7 @@ public class GuestMessagingService {
         this.notificationService = notificationService;
         this.accessCodeResolverService = accessCodeResolverService;
         this.mapboxStaticImageService = mapboxStaticImageService;
+        this.welcomeGuideService = welcomeGuideService;
     }
 
     /**
@@ -183,6 +187,21 @@ public class GuestMessagingService {
             // Continue sans code dynamique — le code statique de CheckInInstructions sera utilise
         }
 
+        // Resoudre le lien du livret d'accueil ({guideLink}) uniquement si le template
+        // y fait reference et qu'il n'a pas deja ete fourni (l'action SEND_GUIDE le passe
+        // deja via extraVars). On evite ainsi de creer un token de livret inutile pour les
+        // messages qui ne l'utilisent pas (check-in, check-out, etc.). Best-effort : un
+        // echec ne doit pas bloquer l'envoi du message.
+        if (!resolvedVars.containsKey("guideLink") && templateReferencesGuideLink(template)) {
+            try {
+                welcomeGuideService.linkForReservation(reservation)
+                        .ifPresent(link -> resolvedVars.put("guideLink", link));
+            } catch (Exception e) {
+                log.warn("Resolution du lien livret echouee pour reservation={}: {}",
+                        reservation.getId(), e.getMessage());
+            }
+        }
+
         // Generer la carte de localisation Mapbox (propriete + point d'echange si applicable)
         try {
             Double storeLat = parseDoubleOrNull(resolvedVars.get("keyExchangeStoreLat"));
@@ -301,6 +320,15 @@ public class GuestMessagingService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /** Vrai si le sujet ou le corps du template reference la variable {@code {guideLink}}. */
+    private static boolean templateReferencesGuideLink(MessageTemplate template) {
+        return referencesGuideLink(template.getSubject()) || referencesGuideLink(template.getBody());
+    }
+
+    private static boolean referencesGuideLink(String text) {
+        return text != null && text.contains("{guideLink}");
     }
 
     private GuestMessageLog createLog(
