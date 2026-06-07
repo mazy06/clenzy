@@ -1,12 +1,23 @@
 import apiClient from '../apiClient';
 
-/** Taux de monétisation par org (part plateforme upsells / part hôte commissions activités), en %. */
+/**
+ * Taux de monétisation par org (en %), sur deux niveaux :
+ * - Commission PLATEFORME (staff-only) : upsell + activités.
+ * - Commission ORG/conciergerie (org-editable) sur le reste après plateforme.
+ */
 export interface MonetizationConfig {
   upsellPlatformFeePct: number;
-  activityHostSharePct: number;
+  activityPlatformCommissionPct: number;
+  upsellOrgCommissionPct: number;
+  activityOrgCommissionPct: number;
 }
 
 export const monetizationConfigApi = {
   get: () => apiClient.get<MonetizationConfig>('/monetization-config'),
-  update: (data: MonetizationConfig) => apiClient.put<MonetizationConfig>('/monetization-config', data),
+  /** Commission plateforme — staff uniquement. */
+  updatePlatform: (data: { upsellPlatformFeePct: number; activityPlatformCommissionPct: number }) =>
+    apiClient.put<MonetizationConfig>('/monetization-config/platform', data),
+  /** Commission org/conciergerie — éditable par l'org/host. */
+  updateOrg: (data: { upsellOrgCommissionPct: number; activityOrgCommissionPct: number }) =>
+    apiClient.put<MonetizationConfig>('/monetization-config/org', data),
 };

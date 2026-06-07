@@ -864,7 +864,7 @@ function ChannelCommissionsSection() {
 function MonetizationSection() {
   const { t } = useTranslation();
   const [upsellFee, setUpsellFee] = useState('');
-  const [hostShare, setHostShare] = useState('');
+  const [activityCommission, setActivityCommission] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -876,7 +876,7 @@ function MonetizationSection() {
       .then((c) => {
         if (!active) return;
         setUpsellFee(String(c.upsellPlatformFeePct ?? ''));
-        setHostShare(String(c.activityHostSharePct ?? ''));
+        setActivityCommission(String(c.activityPlatformCommissionPct ?? ''));
       })
       .catch(() => {})
       .finally(() => {
@@ -890,12 +890,12 @@ function MonetizationSection() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updated = await monetizationConfigApi.update({
+      const updated = await monetizationConfigApi.updatePlatform({
         upsellPlatformFeePct: parseFloat(upsellFee) || 0,
-        activityHostSharePct: parseFloat(hostShare) || 0,
+        activityPlatformCommissionPct: parseFloat(activityCommission) || 0,
       });
       setUpsellFee(String(updated.upsellPlatformFeePct));
-      setHostShare(String(updated.activityHostSharePct));
+      setActivityCommission(String(updated.activityPlatformCommissionPct));
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
@@ -907,12 +907,12 @@ function MonetizationSection() {
 
   return (
     <SettingsSection
-      title={t('settings.monetization.title', 'Commissions upsells & activités')}
+      title={t('settings.monetization.title', 'Commission plateforme (upsells & activités)')}
       icon={Payment}
       accent="primary"
       description={t(
         'settings.monetization.subtitle',
-        "Part prélevée par la plateforme sur les services payants (upsells) et part reversée à l'hôte sur les commissions d'activités.",
+        "Part prélevée par la plateforme sur les services payants (upsells) et sur les commissions d'activités. Réglable uniquement par la plateforme.",
       )}
     >
       {loading ? (
@@ -929,10 +929,10 @@ function MonetizationSection() {
               color={SHARE_PLATFORM}
             />
             <ShareInput
-              label={t('settings.monetization.hostShare', "Part hôte (commissions activités)")}
-              value={hostShare}
-              onChange={setHostShare}
-              color={SHARE_OWNER}
+              label={t('settings.monetization.activityCommission', 'Commission plateforme (activités)')}
+              value={activityCommission}
+              onChange={setActivityCommission}
+              color={SHARE_PLATFORM}
             />
           </Stack>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>

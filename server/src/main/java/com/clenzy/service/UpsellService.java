@@ -224,28 +224,45 @@ public class UpsellService {
             return; // idempotent
         }
 
+        Long orgId = order.getOrganizationId();
         BigDecimal amount = order.getAmount();
-        BigDecimal feePct = monetizationConfigService.getEffectiveUpsellFeePct(order.getOrganizationId());
-        BigDecimal platformFee = amount.multiply(feePct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
-        BigDecimal hostAmount = amount.subtract(platformFee);
+        // 1) Commission plateforme. 2) Sur le reste, commission org/conciergerie. 3) Solde = hôte.
+        BigDecimal platformFeePct = monetizationConfigService.getEffectiveUpsellPlatformFeePct(orgId);
+        BigDecimal platformFee = amount.multiply(platformFeePct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
+        BigDecimal remainder = amount.subtract(platformFee);
+        BigDecimal orgPct = monetizationConfigService.getEffectiveUpsellOrgCommissionPct(orgId);
+        BigDecimal orgShare = remainder.multiply(orgPct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
+        BigDecimal hostShare = remainder.subtract(orgShare);
 
         order.setStatus(UpsellOrderStatus.PAID);
         order.setPaidAt(LocalDateTime.now());
         order.setPlatformFeeAmount(platformFee);
-        order.setHostAmount(hostAmount);
+        order.setHostAmount(hostShare);
         orderRepository.save(order);
 
-        recordHostShare(order, hostAmount);
-        log.info("Upsell payé order={} montant={} {} → hôte={} plateforme={}",
-            order.getId(), amount, order.getCurrency(), hostAmount, platformFee);
+        recordSplit(order, hostShare, orgShare);
+        log.info("Upsell payé order={} montant={} {} → hôte={} conciergerie={} plateforme={}",
+            order.getId(), amount, order.getCurrency(), hostShare, orgShare, platformFee);
     }
 
-    /** Crédite la part hôte (plateforme → wallet OWNER) via le ledger. Best-effort. */
-    private void recordHostShare(UpsellOrder order, BigDecimal hostAmount) {
-        if (hostAmount == null || hostAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            return;
-        }
+    /** Crédite part hôte (wallet OWNER) + part conciergerie (wallet CONCIERGE) via le ledger. Best-effort. */
+    private void recordSplit(UpsellOrder order, BigDecimal hostShare, BigDecimal orgShare) {
         try {
+            Long orgId = order.getOrganizationId();
+            String currency = order.getCurrency();
+            Wallet platformWallet = walletService.getOrCreatePlatformWallet(orgId, currency);
+            String ref = "UPSELL-" + order.getId();
+
+            if (orgShare != null && orgShare.compareTo(BigDecimal.ZERO) > 0) {
+                Wallet conciergeWallet = walletService.getOrCreateWallet(orgId, WalletType.CONCIERGE, null, currency);
+                ledgerService.recordTransfer(platformWallet, conciergeWallet, orgShare,
+                    LedgerReferenceType.UPSELL, ref,
+                    "Part conciergerie upsell « " + order.getTitle() + " » (commande #" + order.getId() + ")");
+            }
+
+            if (hostShare == null || hostShare.compareTo(BigDecimal.ZERO) <= 0) {
+                return;
+            }
             Long ownerId = reservationRepository.findById(order.getReservationId())
                 .map(Reservation::getProperty)
                 .map(p -> p.getOwner() != null ? p.getOwner().getId() : null)
@@ -254,14 +271,12 @@ public class UpsellService {
                 log.warn("Upsell order={} : pas d'owner, part hôte non créditée au ledger", order.getId());
                 return;
             }
-            Wallet platformWallet = walletService.getOrCreatePlatformWallet(order.getOrganizationId(), order.getCurrency());
-            Wallet ownerWallet = walletService.getOrCreateWallet(
-                order.getOrganizationId(), WalletType.OWNER, ownerId, order.getCurrency());
-            ledgerService.recordTransfer(platformWallet, ownerWallet, hostAmount,
-                LedgerReferenceType.UPSELL, "UPSELL-" + order.getId(),
+            Wallet ownerWallet = walletService.getOrCreateWallet(orgId, WalletType.OWNER, ownerId, currency);
+            ledgerService.recordTransfer(platformWallet, ownerWallet, hostShare,
+                LedgerReferenceType.UPSELL, ref,
                 "Part hôte upsell « " + order.getTitle() + " » (commande #" + order.getId() + ")");
         } catch (Exception e) {
-            log.error("Echec crédit ledger part hôte upsell order={}: {}", order.getId(), e.getMessage());
+            log.error("Echec crédit ledger split upsell order={}: {}", order.getId(), e.getMessage());
         }
     }
 

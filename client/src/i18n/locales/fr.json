@@ -78,6 +78,14 @@
       "title": "Commissions activités",
       "note": "Votre part sur les réservations d'activités, reversée via vos paiements. Active dès qu'un fournisseur d'activités est connecté.",
       "bookings": "réservation(s)"
+    },
+    "orgCommission": {
+      "title": "Ma commission (conciergerie)",
+      "note": "Votre part sur le reste après la commission plateforme. Le propriétaire reçoit le solde.",
+      "platformInfo": "Commission plateforme (fixée par la plateforme)",
+      "upsell": "Ma part (upsells)",
+      "activity": "Ma part (activités)",
+      "saved": "Commission enregistrée"
     }
   },
   "welcomeGuide": {
@@ -2141,10 +2149,10 @@
       "empty": "Aucun canal de réservation configuré"
     },
     "monetization": {
-      "title": "Commissions upsells & activités",
-      "subtitle": "Part prélevée par la plateforme sur les services payants (upsells) et part reversée à l'hôte sur les commissions d'activités.",
+      "title": "Commission plateforme (upsells & activités)",
+      "subtitle": "Part prélevée par la plateforme sur les services payants (upsells) et sur les commissions d'activités. Réglable uniquement par la plateforme.",
       "upsellFee": "Part plateforme (upsells)",
-      "hostShare": "Part hôte (commissions activités)"
+      "activityCommission": "Commission plateforme (activités)"
     },
     "payoutSchedule": {
       "title": "Calendrier de reversement",
