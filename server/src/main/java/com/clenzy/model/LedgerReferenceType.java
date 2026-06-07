@@ -7,5 +7,7 @@ public enum LedgerReferenceType {
     SPLIT,
     REFUND,
     PAYOUT,
-    ADJUSTMENT
+    ADJUSTMENT,
+    UPSELL,
+    COMMISSION
 }

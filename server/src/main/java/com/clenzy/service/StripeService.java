@@ -248,6 +248,67 @@ public class StripeService {
         return Session.create(params);
     }
 
+    /**
+     * Cree une session Stripe EMBEDDED pour un upsell guest (clientSecret cote livret).
+     * Chargee sur le compte plateforme comme les reservations ; la repartition part
+     * hote / part plateforme est creditee au ledger a la confirmation du paiement
+     * (cf. UpsellService.markPaidBySession via le webhook checkout.session.completed).
+     */
+    @CircuitBreaker(name = "stripe-api")
+    public Session createUpsellCheckoutSession(Long upsellOrderId, BigDecimal amount, String currencyCode,
+                                               String title, String customerEmail) throws StripeException {
+        Stripe.apiKey = stripeSecretKey;
+
+        long amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
+        String cur = (currencyCode != null && !currencyCode.isBlank()) ? currencyCode : currency;
+
+        SessionCreateParams.Builder builder = SessionCreateParams.builder()
+            .setMode(SessionCreateParams.Mode.PAYMENT)
+            .setUiMode(SessionCreateParams.UiMode.EMBEDDED)
+            .setRedirectOnCompletion(SessionCreateParams.RedirectOnCompletion.NEVER)
+            .addPaymentMethodType(SessionCreateParams.PaymentMethodType.CARD)
+            .addLineItem(
+                SessionCreateParams.LineItem.builder()
+                    .setQuantity(1L)
+                    .setPriceData(
+                        SessionCreateParams.LineItem.PriceData.builder()
+                            .setCurrency(cur.toLowerCase())
+                            .setUnitAmount(amountInCents)
+                            .setProductData(
+                                SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                    .setName(title)
+                                    .build())
+                            .build())
+                    .build())
+            .putMetadata("type", "upsell")
+            .putMetadata("upsell_order_id", upsellOrderId.toString());
+
+        if (customerEmail != null && !customerEmail.isBlank()) {
+            builder.setCustomerEmail(customerEmail);
+        }
+
+        return Session.create(builder.build());
+    }
+
+    /**
+     * Re-verifie cote serveur si une session Checkout est payee (filet de secours
+     * quand le webhook tarde/echoue). Interroge directement l'API Stripe.
+     */
+    @CircuitBreaker(name = "stripe-api")
+    public boolean isCheckoutSessionPaid(String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return false;
+        }
+        try {
+            Stripe.apiKey = stripeSecretKey;
+            Session session = Session.retrieve(sessionId);
+            return session != null && "paid".equals(session.getPaymentStatus());
+        } catch (Exception e) {
+            log.warn("Stripe session retrieve failed for {}: {}", sessionId, e.getMessage());
+            return false;
+        }
+    }
+
     // ════════════════════════════════════════════════════════════════════════
     // Wallet creation on payment confirmation
     // ════════════════════════════════════════════════════════════════════════

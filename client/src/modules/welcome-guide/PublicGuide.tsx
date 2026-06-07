@@ -6,6 +6,9 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Rating,
   Stack,
@@ -13,8 +16,11 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { loadStripe } from '@stripe/stripe-js';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { Wifi, VpnKey, LocationOn, Phone, ContentCopy, OpenInNew, CalendarMonth, Info } from '../../icons';
 import { Send, MessageCircle, X, Star } from 'lucide-react';
+import { type PublicUpsell } from '../../services/api/upsellApi';
 import {
   parseSections,
   parsePois,
@@ -40,6 +46,9 @@ const LABELS: Record<Lang, Record<string, string>> = {
     guestbookTitle: "Livre d'or", guestbookName: 'Votre nom', guestbookMessage: 'Votre message',
     guestbookRating: 'Note', guestbookSend: 'Envoyer', guestbookThanks: 'Merci pour votre message !',
     activitiesTitle: 'Activités à proximité', book: 'Réserver', aroundMe: 'Autour de moi',
+    upsellsTitle: 'Services à réserver', payCta: 'Réserver',
+    paySuccess: 'Paiement réussi ! Votre demande a été transmise à votre hôte.',
+    payError: "Le paiement n'a pas pu démarrer. Réessayez.",
     checkinTitle: 'Check-in en ligne', checkinCta: 'Effectuer mon check-in', checkinDone: 'Check-in déjà effectué ✓',
     chatTitle: 'Assistant du livret', chatPlaceholder: 'Posez votre question…',
     chatGreeting: 'Bonjour ! Je réponds à vos questions sur le logement (wifi, accès, infos pratiques…).',
@@ -58,6 +67,9 @@ const LABELS: Record<Lang, Record<string, string>> = {
     guestbookTitle: 'Guestbook', guestbookName: 'Your name', guestbookMessage: 'Your message',
     guestbookRating: 'Rating', guestbookSend: 'Send', guestbookThanks: 'Thank you for your message!',
     activitiesTitle: 'Activities nearby', book: 'Book', aroundMe: 'Around me',
+    upsellsTitle: 'Services to book', payCta: 'Book',
+    paySuccess: 'Payment successful! Your request has been sent to your host.',
+    payError: 'Payment could not start. Please try again.',
     checkinTitle: 'Online check-in', checkinCta: 'Complete my check-in', checkinDone: 'Check-in already completed ✓',
     chatTitle: 'Welcome book assistant', chatPlaceholder: 'Ask a question…',
     chatGreeting: 'Hi! I can answer questions about the place (wifi, access, practical info…).',
@@ -76,6 +88,9 @@ const LABELS: Record<Lang, Record<string, string>> = {
     guestbookTitle: 'سجل الزوار', guestbookName: 'اسمك', guestbookMessage: 'رسالتك',
     guestbookRating: 'التقييم', guestbookSend: 'إرسال', guestbookThanks: 'شكرًا على رسالتك!',
     activitiesTitle: 'أنشطة قريبة', book: 'احجز', aroundMe: 'حولي',
+    upsellsTitle: 'خدمات للحجز', payCta: 'احجز',
+    paySuccess: 'تم الدفع بنجاح! تم إرسال طلبك إلى مضيفك.',
+    payError: 'تعذّر بدء الدفع. حاول مرة أخرى.',
     checkinTitle: 'تسجيل الوصول عبر الإنترنت', checkinCta: 'أكمل تسجيل وصولي', checkinDone: 'تم تسجيل الوصول ✓',
     chatTitle: 'مساعد الدليل', chatPlaceholder: 'اطرح سؤالك…',
     chatGreeting: 'مرحبًا! أجيب عن أسئلتك حول الإقامة (واي فاي، الدخول، معلومات مفيدة…).',
@@ -87,6 +102,11 @@ const LABELS: Record<Lang, Record<string, string>> = {
 };
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) || '';
+
+// Clé publishable Stripe (build-time, dispo aussi sur la page publique). Null si non configurée.
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string)
+  : null;
 
 async function fetchPublicGuide(token: string): Promise<PublicGuideData | null> {
   const response = await fetch(`${API_BASE}/api/public/guide/${token}`, {
@@ -124,6 +144,42 @@ async function fetchActivities(token: string): Promise<Activity[]> {
   });
   if (!response.ok) return [];
   return response.json();
+}
+
+async function fetchUpsells(token: string): Promise<PublicUpsell[]> {
+  const response = await fetch(`${API_BASE}/api/public/guide/${token}/upsells`, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) return [];
+  return response.json();
+}
+
+async function startUpsellCheckout(
+  token: string,
+  offerId: number,
+): Promise<{ clientSecret: string; orderId: number } | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/public/guide/${token}/upsells/${offerId}/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) return null;
+    const data = await response.json().catch(() => null);
+    return data && typeof data.clientSecret === 'string' && typeof data.orderId === 'number'
+      ? { clientSecret: data.clientSecret, orderId: data.orderId }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Filet de secours : re-vérifie le paiement côté serveur (au cas où le webhook tarde). Best-effort. */
+function confirmUpsellPayment(token: string, orderId: number): void {
+  void fetch(`${API_BASE}/api/public/guide/${token}/upsells/orders/${orderId}/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    keepalive: true,
+  }).catch(() => {});
 }
 
 async function postChat(token: string, message: string): Promise<string | null> {
@@ -184,6 +240,12 @@ const PublicGuide: React.FC = () => {
   const [gbSubmitting, setGbSubmitting] = useState(false);
   const [gbDone, setGbDone] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [upsells, setUpsells] = useState<PublicUpsell[]>([]);
+  const [payingUpsell, setPayingUpsell] = useState<PublicUpsell | null>(null);
+  const [payClientSecret, setPayClientSecret] = useState<string | null>(null);
+  const [payOrderId, setPayOrderId] = useState<number | null>(null);
+  const [paySuccess, setPaySuccess] = useState(false);
+  const [payError, setPayError] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -215,6 +277,7 @@ const PublicGuide: React.FC = () => {
     if (status === 'ready' && token) {
       fetchGuestbook(token).then(setEntries).catch(() => {});
       fetchActivities(token).then(setActivities).catch(() => {});
+      fetchUpsells(token).then(setUpsells).catch(() => {});
       // Ouverture : une seule fois par session guest (dedup sessionStorage, tolere le mode prive).
       let firstOpen = true;
       try {
@@ -360,6 +423,35 @@ const PublicGuide: React.FC = () => {
     const reply = await postChat(token, msg);
     setChatSending(false);
     setChatMessages((prev) => [...prev, { role: 'assistant', text: reply ?? L.chatError }]);
+  };
+
+  const payUpsell = async (u: PublicUpsell) => {
+    if (!token) return;
+    setPayingUpsell(u);
+    setPayClientSecret(null);
+    setPayOrderId(null);
+    setPaySuccess(false);
+    setPayError(false);
+    const res = await startUpsellCheckout(token, u.offerId);
+    if (res) {
+      setPayClientSecret(res.clientSecret);
+      setPayOrderId(res.orderId);
+    } else {
+      setPayError(true);
+    }
+  };
+
+  const onPayComplete = () => {
+    setPaySuccess(true);
+    if (token && payOrderId != null) confirmUpsellPayment(token, payOrderId);
+  };
+
+  const closePay = () => {
+    setPayingUpsell(null);
+    setPayClientSecret(null);
+    setPayOrderId(null);
+    setPaySuccess(false);
+    setPayError(false);
   };
 
   return (
@@ -743,6 +835,48 @@ const PublicGuide: React.FC = () => {
             )
           : null}
 
+        {/* Services payants (upsells) */}
+        {upsells.length > 0
+          ? block(
+              L.upsellsTitle,
+              <Stack spacing={1.25}>
+                {upsells.map((u) => (
+                  <Box key={u.offerId} sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                    {u.imageUrl ? (
+                      <Box
+                        component="img"
+                        src={u.imageUrl}
+                        alt=""
+                        sx={{ width: 56, height: 56, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }}
+                      />
+                    ) : null}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {u.title}
+                      </Typography>
+                      {u.description ? (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          {u.description}
+                        </Typography>
+                      ) : null}
+                      <Typography variant="caption" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                        {u.price.toFixed(2)} {u.currency}
+                      </Typography>
+                    </Box>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => payUpsell(u)}
+                      sx={{ bgcolor: color, flexShrink: 0, '&:hover': { bgcolor: color, filter: 'brightness(0.95)' } }}
+                    >
+                      {L.payCta}
+                    </Button>
+                  </Box>
+                ))}
+              </Stack>,
+            )
+          : null}
+
         {/* Livre d'or */}
         {guide.guestbookEnabled ? block(
           L.guestbookTitle,
@@ -813,6 +947,39 @@ const PublicGuide: React.FC = () => {
           {L.poweredBy} Clenzy
         </Typography>
       </Box>
+
+      {/* Paiement d'un service additionnel (upsell) — Stripe embedded */}
+      <Dialog open={!!payingUpsell} onClose={closePay} maxWidth="sm" fullWidth>
+        <DialogTitle>{payingUpsell?.title}</DialogTitle>
+        <DialogContent dividers sx={{ p: payClientSecret && !paySuccess && !payError ? 0 : 3 }}>
+          {paySuccess ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="subtitle1" sx={{ color, fontWeight: 700, mb: 1.5 }}>
+                {L.paySuccess}
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={closePay}
+                sx={{ bgcolor: color, '&:hover': { bgcolor: color, filter: 'brightness(0.95)' } }}
+              >
+                OK
+              </Button>
+            </Box>
+          ) : payError ? (
+            <Typography variant="body2" color="error">
+              {L.payError}
+            </Typography>
+          ) : payClientSecret && stripePromise ? (
+            <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret: payClientSecret, onComplete: onPayComplete }}>
+              <EmbeddedCheckout />
+            </EmbeddedCheckoutProvider>
+          ) : (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Chatbot guest (assistant du livret) */}
       {guide.chatbotEnabled && (chatOpen ? (

@@ -1,0 +1,284 @@
+package com.clenzy.service;
+
+import com.clenzy.config.UpsellConfig;
+import com.clenzy.dto.PublicUpsellDto;
+import com.clenzy.dto.UpsellCheckoutDto;
+import com.clenzy.dto.UpsellOfferDto;
+import com.clenzy.dto.UpsellOfferRequest;
+import com.clenzy.dto.UpsellOrderDto;
+import com.clenzy.model.*;
+import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.UpsellOfferRepository;
+import com.clenzy.repository.UpsellOrderRepository;
+import com.clenzy.repository.WelcomeGuideTokenRepository;
+import com.stripe.model.checkout.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Upsells payants du livret : catalogue côté hôte + achat guest via Stripe.
+ *
+ * <p>Le paiement est chargé sur le compte plateforme (comme les réservations). À la
+ * confirmation (webhook), la <b>part hôte</b> est créditée via le ledger interne
+ * (plateforme → wallet OWNER) et la <b>part plateforme</b> ({@link UpsellConfig#getPlatformFeePct()})
+ * reste sur le wallet plateforme — versée à l'hôte par le pipeline de payout existant.</p>
+ */
+@Service
+public class UpsellService {
+
+    private static final Logger log = LoggerFactory.getLogger(UpsellService.class);
+    private static final BigDecimal HUNDRED = new BigDecimal("100");
+
+    private final UpsellOfferRepository offerRepository;
+    private final UpsellOrderRepository orderRepository;
+    private final WelcomeGuideTokenRepository tokenRepository;
+    private final ReservationRepository reservationRepository;
+    private final StripeService stripeService;
+    private final WalletService walletService;
+    private final LedgerService ledgerService;
+    private final UpsellConfig upsellConfig;
+
+    public UpsellService(UpsellOfferRepository offerRepository,
+                         UpsellOrderRepository orderRepository,
+                         WelcomeGuideTokenRepository tokenRepository,
+                         ReservationRepository reservationRepository,
+                         StripeService stripeService,
+                         WalletService walletService,
+                         LedgerService ledgerService,
+                         UpsellConfig upsellConfig) {
+        this.offerRepository = offerRepository;
+        this.orderRepository = orderRepository;
+        this.tokenRepository = tokenRepository;
+        this.reservationRepository = reservationRepository;
+        this.stripeService = stripeService;
+        this.walletService = walletService;
+        this.ledgerService = ledgerService;
+        this.upsellConfig = upsellConfig;
+    }
+
+    // ─── Admin (hôte) ──────────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public List<UpsellOfferDto> listOffers(Long orgId) {
+        return offerRepository.findByOrganizationIdOrderBySortOrderAscIdAsc(orgId)
+            .stream().map(UpsellOfferDto::from).toList();
+    }
+
+    @Transactional
+    public UpsellOfferDto createOffer(Long orgId, UpsellOfferRequest req) {
+        UpsellOffer offer = new UpsellOffer();
+        offer.setOrganizationId(orgId);
+        apply(offer, req);
+        return UpsellOfferDto.from(offerRepository.save(offer));
+    }
+
+    @Transactional
+    public UpsellOfferDto updateOffer(Long orgId, Long id, UpsellOfferRequest req) {
+        UpsellOffer offer = offerRepository.findByIdAndOrganizationId(id, orgId)
+            .orElseThrow(() -> new IllegalArgumentException("Offre introuvable: " + id));
+        apply(offer, req);
+        return UpsellOfferDto.from(offerRepository.save(offer));
+    }
+
+    @Transactional
+    public void deleteOffer(Long orgId, Long id) {
+        UpsellOffer offer = offerRepository.findByIdAndOrganizationId(id, orgId)
+            .orElseThrow(() -> new IllegalArgumentException("Offre introuvable: " + id));
+        offerRepository.delete(offer);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UpsellOrderDto> listOrders(Long orgId) {
+        return orderRepository.findByOrganizationIdOrderByCreatedAtDesc(orgId)
+            .stream().map(UpsellOrderDto::from).toList();
+    }
+
+    private void apply(UpsellOffer offer, UpsellOfferRequest req) {
+        offer.setPropertyId(req.propertyId());
+        offer.setType(parseType(req.type()));
+        offer.setTitle(req.title());
+        offer.setDescription(req.description());
+        offer.setPrice(req.price());
+        if (req.currency() != null && !req.currency().isBlank()) offer.setCurrency(req.currency().toUpperCase());
+        offer.setImageUrl(req.imageUrl());
+        if (req.active() != null) offer.setActive(req.active());
+        if (req.sortOrder() != null) offer.setSortOrder(req.sortOrder());
+    }
+
+    private static UpsellType parseType(String raw) {
+        if (raw == null || raw.isBlank()) return UpsellType.OTHER;
+        try {
+            return UpsellType.valueOf(raw.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return UpsellType.OTHER;
+        }
+    }
+
+    // ─── Guest ─────────────────────────────────────────────────────────────────
+
+    /** Offres applicables au séjour du token (spécifiques à la propriété + org-wide). Vide si token invalide/sans résa. */
+    @Transactional(readOnly = true)
+    public List<PublicUpsellDto> listForToken(UUID token) {
+        WelcomeGuideToken tok = validTokenWithReservation(token).orElse(null);
+        if (tok == null) {
+            return List.of();
+        }
+        Long propertyId = tok.getReservation().getProperty() != null
+            ? tok.getReservation().getProperty().getId() : null;
+        return offerRepository.findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(tok.getOrganizationId())
+            .stream()
+            .filter(o -> o.getPropertyId() == null || o.getPropertyId().equals(propertyId))
+            .map(PublicUpsellDto::from)
+            .toList();
+    }
+
+    /**
+     * Crée une commande PENDING + une session Stripe embedded. Renvoie le clientSecret.
+     * Échoue si le token est invalide / sans réservation ou l'offre inapplicable.
+     */
+    @Transactional
+    public UpsellCheckoutDto createCheckout(UUID token, Long offerId) {
+        WelcomeGuideToken tok = validTokenWithReservation(token)
+            .orElseThrow(() -> new IllegalArgumentException("Lien invalide ou expiré"));
+        Reservation reservation = tok.getReservation();
+        Long propertyId = reservation.getProperty() != null ? reservation.getProperty().getId() : null;
+
+        UpsellOffer offer = offerRepository.findByIdAndOrganizationId(offerId, tok.getOrganizationId())
+            .filter(UpsellOffer::isActive)
+            .filter(o -> o.getPropertyId() == null || o.getPropertyId().equals(propertyId))
+            .orElseThrow(() -> new IllegalArgumentException("Offre indisponible: " + offerId));
+
+        UpsellOrder order = new UpsellOrder();
+        order.setOrganizationId(tok.getOrganizationId());
+        order.setReservationId(reservation.getId());
+        order.setGuideId(tok.getGuide() != null ? tok.getGuide().getId() : null);
+        order.setOfferId(offer.getId());
+        order.setTitle(offer.getTitle());
+        order.setAmount(offer.getPrice());
+        order.setCurrency(offer.getCurrency());
+        order.setGuestEmail(guestEmail(reservation));
+        order.setStatus(UpsellOrderStatus.PENDING);
+        order = orderRepository.save(order);
+
+        try {
+            Session session = stripeService.createUpsellCheckoutSession(
+                order.getId(), offer.getPrice(), offer.getCurrency(), offer.getTitle(), order.getGuestEmail());
+            order.setStripeSessionId(session.getId());
+            orderRepository.save(order);
+            return new UpsellCheckoutDto(session.getClientSecret(), order.getId());
+        } catch (Exception e) {
+            log.error("Echec creation session Stripe upsell (order={}): {}", order.getId(), e.getMessage());
+            throw new RuntimeException("Paiement indisponible pour le moment", e);
+        }
+    }
+
+    /**
+     * Filet de secours appelé par le guest après paiement : re-vérifie la session
+     * Stripe côté serveur et marque PAID si payé. Vérifie que la commande appartient
+     * bien au token (org + réservation). Idempotent. Retourne le statut final.
+     */
+    @Transactional
+    public String confirmOrder(UUID token, Long orderId) {
+        WelcomeGuideToken tok = validTokenWithReservation(token).orElse(null);
+        UpsellOrder order = orderRepository.findById(orderId).orElse(null);
+        if (tok == null || order == null) {
+            return "INVALID";
+        }
+        if (!order.getOrganizationId().equals(tok.getOrganizationId())
+                || tok.getReservation() == null
+                || !order.getReservationId().equals(tok.getReservation().getId())) {
+            return "INVALID";
+        }
+        if (order.getStatus() == UpsellOrderStatus.PAID) {
+            return "PAID";
+        }
+        if (order.getStripeSessionId() != null && stripeService.isCheckoutSessionPaid(order.getStripeSessionId())) {
+            markPaidBySession(order.getStripeSessionId());
+            return "PAID";
+        }
+        return order.getStatus().name();
+    }
+
+    // ─── Confirmation paiement (webhook) ────────────────────────────────────────
+
+    /**
+     * Confirme une commande à partir de la session Stripe (idempotent) et crédite la
+     * part hôte via le ledger ; la part plateforme reste sur le wallet plateforme.
+     */
+    @Transactional
+    public void markPaidBySession(String sessionId) {
+        UpsellOrder order = orderRepository.findByStripeSessionId(sessionId).orElse(null);
+        if (order == null) {
+            log.warn("Upsell payé : aucune commande pour la session {}", sessionId);
+            return;
+        }
+        if (order.getStatus() == UpsellOrderStatus.PAID) {
+            return; // idempotent
+        }
+
+        BigDecimal amount = order.getAmount();
+        BigDecimal feePct = upsellConfig.getPlatformFeePct() != null ? upsellConfig.getPlatformFeePct() : BigDecimal.TEN;
+        BigDecimal platformFee = amount.multiply(feePct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
+        BigDecimal hostAmount = amount.subtract(platformFee);
+
+        order.setStatus(UpsellOrderStatus.PAID);
+        order.setPaidAt(LocalDateTime.now());
+        order.setPlatformFeeAmount(platformFee);
+        order.setHostAmount(hostAmount);
+        orderRepository.save(order);
+
+        recordHostShare(order, hostAmount);
+        log.info("Upsell payé order={} montant={} {} → hôte={} plateforme={}",
+            order.getId(), amount, order.getCurrency(), hostAmount, platformFee);
+    }
+
+    /** Crédite la part hôte (plateforme → wallet OWNER) via le ledger. Best-effort. */
+    private void recordHostShare(UpsellOrder order, BigDecimal hostAmount) {
+        if (hostAmount == null || hostAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        try {
+            Long ownerId = reservationRepository.findById(order.getReservationId())
+                .map(Reservation::getProperty)
+                .map(p -> p.getOwner() != null ? p.getOwner().getId() : null)
+                .orElse(null);
+            if (ownerId == null) {
+                log.warn("Upsell order={} : pas d'owner, part hôte non créditée au ledger", order.getId());
+                return;
+            }
+            Wallet platformWallet = walletService.getOrCreatePlatformWallet(order.getOrganizationId(), order.getCurrency());
+            Wallet ownerWallet = walletService.getOrCreateWallet(
+                order.getOrganizationId(), WalletType.OWNER, ownerId, order.getCurrency());
+            ledgerService.recordTransfer(platformWallet, ownerWallet, hostAmount,
+                LedgerReferenceType.UPSELL, "UPSELL-" + order.getId(),
+                "Part hôte upsell « " + order.getTitle() + " » (commande #" + order.getId() + ")");
+        } catch (Exception e) {
+            log.error("Echec crédit ledger part hôte upsell order={}: {}", order.getId(), e.getMessage());
+        }
+    }
+
+    // ─── Helpers ────────────────────────────────────────────────────────────────
+
+    private Optional<WelcomeGuideToken> validTokenWithReservation(UUID token) {
+        return tokenRepository.findByToken(token)
+            .filter(WelcomeGuideToken::isCurrentlyValid)
+            .filter(t -> t.getReservation() != null);
+    }
+
+    private static String guestEmail(Reservation reservation) {
+        try {
+            return reservation.getGuest() != null ? reservation.getGuest().getEmail() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+}

@@ -29,8 +29,18 @@ export interface Activity {
   bookingUrl: string | null;
 }
 
+/** Synthèse des commissions d'activités (part hôte / plateforme). */
+export interface ActivityCommissionSummary {
+  totalGross: number;
+  totalHostShare: number;
+  totalPlatformShare: number;
+  count: number;
+  currency: string;
+}
+
 export const activitiesApi = {
   listConfigs: () => apiClient.get<ActivityConfig[]>('/activities/configs'),
   upsertConfig: (provider: ActivityProvider, data: UpsertActivityConfigRequest) =>
     apiClient.put<ActivityConfig>(`/activities/configs/${provider}`, data),
+  commissionSummary: () => apiClient.get<ActivityCommissionSummary>('/activities/commissions/summary'),
 };

@@ -6,6 +6,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { Public } from '../../icons';
 import WelcomeGuideAdmin from '../welcome-guide/WelcomeGuideAdmin';
+import UpsellsAdmin from '../welcome-guide/UpsellsAdmin';
 import BookingEnginePage from '../booking-engine/BookingEnginePage';
 
 /**
@@ -25,17 +26,20 @@ const GuestExperiencePage: React.FC = () => {
 
   const tabs = [
     { value: 0, label: t('guestExperience.tabs.welcomeGuide', "Livret d'accueil") },
+    { value: 1, label: t('guestExperience.tabs.upsells', 'Services payants') },
     {
-      value: 1,
+      value: 2,
       label: t('guestExperience.tabs.bookingEngine', 'Booking Engine'),
       hidden: !isPlatformStaff,
     },
   ];
 
   const subtitle =
-    tab === 1
+    tab === 2
       ? t('guestExperience.subtitleBookingEngine', 'Configurez votre moteur de réservation directe')
-      : t('guestExperience.subtitleWelcomeGuide', "Le livret d'accueil numérique de vos voyageurs");
+      : tab === 1
+        ? t('guestExperience.subtitleUpsells', 'Vendez des services additionnels à vos voyageurs')
+        : t('guestExperience.subtitleWelcomeGuide', "Le livret d'accueil numérique de vos voyageurs");
 
   return (
     <Box>
@@ -46,7 +50,13 @@ const GuestExperiencePage: React.FC = () => {
         backPath="/dashboard"
       />
       <PageTabs options={tabs} value={tab} onChange={setTab} />
-      {tab === 1 && isPlatformStaff ? <BookingEnginePage embedded /> : <WelcomeGuideAdmin />}
+      {tab === 2 && isPlatformStaff ? (
+        <BookingEnginePage embedded />
+      ) : tab === 1 ? (
+        <UpsellsAdmin />
+      ) : (
+        <WelcomeGuideAdmin />
+      )}
     </Box>
   );
 };
