@@ -29,6 +29,15 @@ public class GuideConfig {
     /** Fenetre (jours apres le check-out) ou le lien de demande d'avis reste valide. */
     private int reviewWindowDays = 14;
 
+    /** Chatbot guest : nombre max de messages par fenetre et par token (anti-abus). */
+    private int chatMaxPerWindow = 20;
+    /** Chatbot guest : duree de la fenetre de rate-limit (secondes). */
+    private long chatWindowSeconds = 600;
+    /** Chatbot guest : tokens max de la reponse LLM (cout). */
+    private int chatMaxTokens = 400;
+    /** Chatbot guest : provider IA prefere. */
+    private String chatProvider = "anthropic";
+
     public String getBaseUrl() { return baseUrl; }
     public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
     public int getLeadDays() { return leadDays; }
@@ -39,4 +48,12 @@ public class GuideConfig {
     public void setManualTtlDays(int manualTtlDays) { this.manualTtlDays = manualTtlDays; }
     public int getReviewWindowDays() { return reviewWindowDays; }
     public void setReviewWindowDays(int reviewWindowDays) { this.reviewWindowDays = reviewWindowDays; }
+    public int getChatMaxPerWindow() { return chatMaxPerWindow; }
+    public void setChatMaxPerWindow(int chatMaxPerWindow) { this.chatMaxPerWindow = chatMaxPerWindow; }
+    public long getChatWindowSeconds() { return chatWindowSeconds; }
+    public void setChatWindowSeconds(long chatWindowSeconds) { this.chatWindowSeconds = chatWindowSeconds; }
+    public int getChatMaxTokens() { return chatMaxTokens; }
+    public void setChatMaxTokens(int chatMaxTokens) { this.chatMaxTokens = chatMaxTokens; }
+    public String getChatProvider() { return chatProvider; }
+    public void setChatProvider(String chatProvider) { this.chatProvider = chatProvider; }
 }
