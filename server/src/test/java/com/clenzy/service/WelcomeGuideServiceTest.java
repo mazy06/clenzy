@@ -130,6 +130,21 @@ class WelcomeGuideServiceTest {
     }
 
     @Test
+    void generateToken_staffNullOrg_usesGuideOrganization() {
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(1L);
+        guide.setOrganizationId(3L);
+        when(guideRepository.findById(1L)).thenReturn(Optional.of(guide));
+        when(guideConfig.getManualTtlDays()).thenReturn(60);
+        when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Staff plateforme : orgId de contexte null → le token doit prendre l'org du livret (non-null).
+        WelcomeGuideToken token = service.generateToken(1L, null, null);
+
+        assertThat(token.getOrganizationId()).isEqualTo(3L);
+    }
+
+    @Test
     void updateGuide_updatesFields() {
         WelcomeGuide guide = new WelcomeGuide();
         guide.setId(1L);
