@@ -2,7 +2,9 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.GuestMessageLogDto;
 import com.clenzy.dto.MessagingAutomationConfigDto;
+import com.clenzy.dto.SendManualMessageRequest;
 import com.clenzy.model.GuestMessageLog;
+import com.clenzy.model.MessageChannelType;
 import com.clenzy.model.MessagingAutomationConfig;
 import com.clenzy.repository.GuestMessageLogRepository;
 import com.clenzy.repository.MessagingAutomationConfigRepository;
@@ -76,17 +78,29 @@ public class GuestMessagingController {
     // ── Envoi manuel ──
 
     @PostMapping("/send")
-    public ResponseEntity<GuestMessageLogDto> sendMessage(@RequestBody Map<String, Long> request) {
+    public ResponseEntity<GuestMessageLogDto> sendMessage(@RequestBody SendManualMessageRequest request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        Long reservationId = request.get("reservationId");
-        Long templateId = request.get("templateId");
 
-        if (reservationId == null || templateId == null) {
+        if (request.reservationId() == null || request.templateId() == null) {
             return ResponseEntity.badRequest().build();
         }
 
-        GuestMessageLog logEntry = messagingService.sendMessage(reservationId, templateId, orgId);
+        MessageChannelType channel = parseChannel(request.channel());
+        GuestMessageLog logEntry = messagingService.sendMessage(
+            request.reservationId(), request.templateId(), orgId, channel);
         return ResponseEntity.ok(GuestMessageLogDto.fromEntity(logEntry));
+    }
+
+    /** Canal demande, repli sur EMAIL si absent ou inconnu. */
+    private static MessageChannelType parseChannel(String channel) {
+        if (channel == null || channel.isBlank()) {
+            return MessageChannelType.EMAIL;
+        }
+        try {
+            return MessageChannelType.valueOf(channel.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return MessageChannelType.EMAIL;
+        }
     }
 
     // ── Renvoi d'un message echoue ──
