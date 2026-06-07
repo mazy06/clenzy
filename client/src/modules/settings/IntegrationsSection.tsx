@@ -54,6 +54,7 @@ import ChannelManagerProviderCard from './components/ChannelManagerProviderCard'
 import ChannexMappingDialog from './components/ChannexMappingDialog';
 import OtaShowcaseSection from './components/OtaShowcaseSection';
 import ServiceCatalogSection from './components/ServiceCatalogSection';
+import ActivitiesConfigDialog from './components/ActivitiesConfigDialog';
 import IntegrationsWhatsAppConfig from './IntegrationsWhatsAppConfig';
 import ServiceGridCard from './components/ServiceGridCard';
 import BrevoConfigCard from './components/BrevoConfigCard';
@@ -168,6 +169,9 @@ export default function IntegrationsSection({
   const [openMarketing, setOpenMarketing] = useState(false);
   const { data: marketingData } = useMarketingIntegration();
   const marketingConfigured = !!marketingData?.configured;
+
+  // ─── Activités & affiliation (Viator / GetYourGuide / Klook — connexion org) ──
+  const [activitiesDialogOpen, setActivitiesDialogOpen] = useState(false);
 
   const [status, setStatus] = useState<PennylaneStatus | null>(null);
   const [syncStatus, setSyncStatus] = useState<PennylaneSyncStatus | null>(null);
@@ -1389,8 +1393,20 @@ export default function IntegrationsSection({
             title="Activités & affiliation"
             description="Vendez des activités à vos guests en cross-sell. Commission affiliée 8-20 % par réservation."
           />
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<LinkIcon size={14} strokeWidth={1.75} />}
+              onClick={() => setActivitiesDialogOpen(true)}
+              sx={refinedOutlinedSx(ACCENT)}
+            >
+              {t('welcomeGuide.activities.connect', 'Connecter un fournisseur')}
+            </Button>
+          </Box>
         </Box>
       )}
+      <ActivitiesConfigDialog open={activitiesDialogOpen} onClose={() => setActivitiesDialogOpen(false)} />
       {showSection('reviews_reputation') && (
         <Box id="section-reviews" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection

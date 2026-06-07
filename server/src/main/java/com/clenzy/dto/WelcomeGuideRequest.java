@@ -13,5 +13,6 @@ public record WelcomeGuideRequest(
     Boolean published,
     Boolean chatbotEnabled,
     Boolean guestbookEnabled,
-    Boolean activitiesEnabled
+    Boolean activitiesEnabled,
+    String pois
 ) {}
