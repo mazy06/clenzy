@@ -13,6 +13,9 @@ public record WelcomeGuideDto(
     String brandingColor,
     String logoUrl,
     boolean published,
+    boolean chatbotEnabled,
+    boolean guestbookEnabled,
+    boolean activitiesEnabled,
     LocalDateTime createdAt
 ) {
     public static WelcomeGuideDto from(WelcomeGuide g) {
@@ -21,7 +24,8 @@ public record WelcomeGuideDto(
             g.getProperty() != null ? g.getProperty().getId() : null,
             g.getProperty() != null ? g.getProperty().getName() : null,
             g.getLanguage(), g.getTitle(), g.getSections(),
-            g.getBrandingColor(), g.getLogoUrl(), g.isPublished(), g.getCreatedAt()
+            g.getBrandingColor(), g.getLogoUrl(), g.isPublished(),
+            g.isChatbotEnabled(), g.isGuestbookEnabled(), g.isActivitiesEnabled(), g.getCreatedAt()
         );
     }
 }

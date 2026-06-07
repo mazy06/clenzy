@@ -14,6 +14,9 @@ export interface WelcomeGuide {
   brandingColor: string;
   logoUrl: string | null;
   published: boolean;
+  chatbotEnabled: boolean;
+  guestbookEnabled: boolean;
+  activitiesEnabled: boolean;
   createdAt: string;
 }
 
@@ -26,6 +29,9 @@ export interface WelcomeGuideRequest {
   brandingColor?: string | null;
   logoUrl?: string | null;
   published?: boolean;
+  chatbotEnabled?: boolean;
+  guestbookEnabled?: boolean;
+  activitiesEnabled?: boolean;
 }
 
 /** Resultat de generation d'un lien d'acces (token + URL publique). */
@@ -112,6 +118,9 @@ export interface PublicGuide {
   practical: PublicGuidePractical | null;
   stay: PublicGuideStay | null;
   checkIn: PublicGuideCheckIn | null;
+  chatbotEnabled: boolean;
+  guestbookEnabled: boolean;
+  activitiesEnabled: boolean;
 }
 
 // ─── API admin ────────────────────────────────────────────────────────────────

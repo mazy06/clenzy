@@ -31,6 +31,9 @@
       "brandingColor": "Color",
       "logoUrl": "Logo URL",
       "published": "Publish the guide (visible to guests)",
+      "chatbotEnabled": "Assistant chatbot",
+      "guestbookEnabled": "Guestbook",
+      "activitiesEnabled": "Activities",
       "sectionTitle": "Section title",
       "sectionBody": "Content"
     },
