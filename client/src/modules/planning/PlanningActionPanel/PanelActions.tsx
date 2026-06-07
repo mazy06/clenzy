@@ -36,6 +36,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { PlanningEvent } from '../types';
 import { managersApi } from '../../../services/api';
 import type { PortfolioTeam, OperationalUser } from '../../../services/api';
+import SendMessageDialog from '../../messaging/SendMessageDialog';
 
 interface PanelActionsProps {
   event: PlanningEvent;
@@ -134,6 +135,9 @@ const PanelActions: React.FC<PanelActionsProps> = ({
   const [taskAssignee, setTaskAssignee] = useState('');
   const [taskDueDate, setTaskDueDate] = useState('');
   const [taskLoading, setTaskLoading] = useState(false);
+
+  // Send templated message to guest (email/WhatsApp, incl. welcome guide link via {guideLink})
+  const [guestMessageOpen, setGuestMessageOpen] = useState(false);
 
   // VIP / Attention states (toggled via notes)
   const [vipLoading, setVipLoading] = useState(false);
@@ -408,6 +412,26 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
             >
               Bloquer logement apres depart
+            </Button>
+          </Box>
+        </Box>
+      )}
+
+      {isReservation && reservation && (
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+            Communication voyageur
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<Send size={14} strokeWidth={1.75} />}
+              fullWidth
+              onClick={() => setGuestMessageOpen(true)}
+              sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+            >
+              Envoyer un message au voyageur
             </Button>
           </Box>
         </Box>
@@ -810,6 +834,17 @@ const PanelActions: React.FC<PanelActionsProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Send templated message to guest (email/WhatsApp, incl. welcome guide link) */}
+      {reservation && (
+        <SendMessageDialog
+          open={guestMessageOpen}
+          reservationId={reservation.id}
+          guestName={reservation.guestName}
+          onClose={() => setGuestMessageOpen(false)}
+          onSent={() => showSnackbar('Message envoye au voyageur')}
+        />
+      )}
 
       {/* Snackbar */}
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>

@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.MessagingAutomationConfigDto;
+import com.clenzy.dto.SendManualMessageRequest;
 import com.clenzy.model.*;
 import com.clenzy.repository.GuestMessageLogRepository;
 import com.clenzy.repository.MessagingAutomationConfigRepository;
@@ -14,7 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -111,29 +111,38 @@ class GuestMessagingControllerTest {
     @Test
     void whenSendMessage_validRequest_thenReturnsLogEntry() {
         GuestMessageLog logEntry = buildLogEntry();
-        when(messagingService.sendMessage(100L, 10L, 1L)).thenReturn(logEntry);
+        when(messagingService.sendMessage(100L, 10L, 1L, MessageChannelType.EMAIL)).thenReturn(logEntry);
 
-        var response = controller.sendMessage(Map.of(
-            "reservationId", 100L,
-            "templateId", 10L));
+        var response = controller.sendMessage(new SendManualMessageRequest(100L, 10L, null));
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("SENT", response.getBody().status());
-        verify(messagingService).sendMessage(100L, 10L, 1L);
+        verify(messagingService).sendMessage(100L, 10L, 1L, MessageChannelType.EMAIL);
+    }
+
+    @Test
+    void whenSendMessage_whatsappChannel_thenRoutesToWhatsApp() {
+        GuestMessageLog logEntry = buildLogEntry();
+        when(messagingService.sendMessage(100L, 10L, 1L, MessageChannelType.WHATSAPP)).thenReturn(logEntry);
+
+        var response = controller.sendMessage(new SendManualMessageRequest(100L, 10L, "whatsapp"));
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(messagingService).sendMessage(100L, 10L, 1L, MessageChannelType.WHATSAPP);
     }
 
     @Test
     void whenSendMessage_missingReservationId_thenBadRequest() {
-        var response = controller.sendMessage(Map.of("templateId", 10L));
+        var response = controller.sendMessage(new SendManualMessageRequest(null, 10L, null));
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        verify(messagingService, never()).sendMessage(any(), any(), any());
+        verify(messagingService, never()).sendMessage(any(), any(), any(), any());
     }
 
     @Test
     void whenSendMessage_missingTemplateId_thenBadRequest() {
-        var response = controller.sendMessage(Map.of("reservationId", 100L));
+        var response = controller.sendMessage(new SendManualMessageRequest(100L, null, null));
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }

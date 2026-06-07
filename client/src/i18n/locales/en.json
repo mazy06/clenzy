@@ -3302,7 +3302,11 @@
       "send": "Send",
       "success": "Message sent successfully",
       "error": "Failed to send message",
-      "loadError": "Failed to load templates"
+      "loadError": "Failed to load templates",
+      "channel": "Channel",
+      "channelEmail": "Email",
+      "channelWhatsapp": "WhatsApp",
+      "whatsappHint": "Free-text WhatsApp: the message is only delivered if the guest messaged the Baitly number within the last 24h (Meta window). Otherwise, prefer email."
     }
   },
   "invoices": {

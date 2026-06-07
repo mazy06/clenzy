@@ -48,9 +48,13 @@ export interface MessagingAutomationConfig {
   autoPushPricingEnabled: boolean;
 }
 
+export type MessageChannel = 'EMAIL' | 'WHATSAPP';
+
 export interface SendMessageRequest {
   reservationId: number;
   templateId: number;
+  /** Canal de diffusion. Défaut backend : EMAIL. */
+  channel?: MessageChannel;
 }
 
 export interface TemplateVariable {
