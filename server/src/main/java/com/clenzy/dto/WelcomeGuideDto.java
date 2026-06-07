@@ -10,6 +10,7 @@ public record WelcomeGuideDto(
     String language,
     String title,
     String sections,
+    String pois,
     String brandingColor,
     String logoUrl,
     boolean published,
@@ -23,7 +24,7 @@ public record WelcomeGuideDto(
             g.getId(),
             g.getProperty() != null ? g.getProperty().getId() : null,
             g.getProperty() != null ? g.getProperty().getName() : null,
-            g.getLanguage(), g.getTitle(), g.getSections(),
+            g.getLanguage(), g.getTitle(), g.getSections(), g.getPois(),
             g.getBrandingColor(), g.getLogoUrl(), g.isPublished(),
             g.isChatbotEnabled(), g.isGuestbookEnabled(), g.isActivitiesEnabled(), g.getCreatedAt()
         );

@@ -1939,3 +1939,23 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Analytics du livret : journal d'evenements guest (welcome_guide_events).
+  - changeSet:
+      id: "0199-create-welcome-guide-events"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0199__create_welcome_guide_events.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # "Autour de moi" structure : points d'interet du livret (welcome_guides.pois).
+  - changeSet:
+      id: "0200-add-welcome-guide-pois"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0200__add_welcome_guide_pois.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

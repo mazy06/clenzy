@@ -35,13 +35,14 @@ class WelcomeGuideControllerTest {
 
     @Mock private WelcomeGuideService guideService;
     @Mock private com.clenzy.service.WelcomeGuideEntryService entryService;
+    @Mock private com.clenzy.service.WelcomeGuideAnalyticsService analyticsService;
     @Mock private TenantContext tenantContext;
 
     private WelcomeGuideController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new WelcomeGuideController(guideService, entryService, tenantContext);
+        controller = new WelcomeGuideController(guideService, entryService, analyticsService, tenantContext);
     }
 
     private WelcomeGuide guide(Long id) {
@@ -105,9 +106,9 @@ class WelcomeGuideControllerTest {
     void create_delegatesToService() {
         when(tenantContext.getOrganizationId()).thenReturn(7L);
         WelcomeGuideRequest req = new WelcomeGuideRequest(99L, "Welcome", "fr",
-                "[]", "#000000", "https://logo", false, true, true, true);
+                "[]", "#000000", "https://logo", false, true, true, true, "[]");
         when(guideService.createGuide(eq(7L), eq(99L), eq("Welcome"), eq("fr"), eq("[]"),
-                eq("#000000"), eq("https://logo"), eq(true), eq(true), eq(true))).thenReturn(guide(1L));
+                eq("#000000"), eq("https://logo"), eq(true), eq(true), eq(true), eq("[]"))).thenReturn(guide(1L));
 
         ResponseEntity<WelcomeGuideDto> response = controller.create(req);
 
@@ -119,9 +120,9 @@ class WelcomeGuideControllerTest {
     void update_delegatesToService() {
         when(tenantContext.getOrganizationId()).thenReturn(7L);
         WelcomeGuideRequest req = new WelcomeGuideRequest(99L, "Updated", "fr",
-                "[]", "#ffffff", "https://logo", true, true, true, true);
+                "[]", "#ffffff", "https://logo", true, true, true, true, "[]");
         when(guideService.updateGuide(eq(1L), eq(7L), eq("Updated"), eq("[]"),
-                eq("#ffffff"), eq("https://logo"), eq(true), eq(true), eq(true), eq(true))).thenReturn(guide(1L));
+                eq("#ffffff"), eq("https://logo"), eq(true), eq(true), eq(true), eq(true), eq("[]"))).thenReturn(guide(1L));
 
         ResponseEntity<WelcomeGuideDto> response = controller.update(1L, req);
 
@@ -178,6 +179,28 @@ class WelcomeGuideControllerTest {
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).hasSize(1);
+    }
+
+    @Test
+    void getStats_found_returnsDto() {
+        when(tenantContext.getOrganizationId()).thenReturn(7L);
+        when(analyticsService.getStats(1L, 7L)).thenReturn(Optional.of(
+            new com.clenzy.dto.WelcomeGuideStatsDto(5L, 2L, 1L, 3L, 0L, List.of(), List.of())));
+
+        ResponseEntity<com.clenzy.dto.WelcomeGuideStatsDto> response = controller.getStats(1L);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().totalOpens()).isEqualTo(5L);
+    }
+
+    @Test
+    void getStats_notOwned_returns404() {
+        when(tenantContext.getOrganizationId()).thenReturn(7L);
+        when(analyticsService.getStats(99L, 7L)).thenReturn(Optional.empty());
+
+        ResponseEntity<com.clenzy.dto.WelcomeGuideStatsDto> response = controller.getStats(99L);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(404);
     }
 
     @Test

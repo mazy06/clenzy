@@ -82,6 +82,27 @@ export default defineConfig({
             },
           },
           {
+            // Livret d'accueil public (page guest /guide/:token) : NetworkFirst pour
+            // que le contenu reste consultable HORS-LIGNE une fois le livret ouvert
+            // (voyageurs à l'étranger / sans données mobiles). Ne concerne QUE les GET
+            // publics du livret — les POST (chat, livre d'or, analytics) ne sont jamais
+            // mis en cache ni rejoués (Workbox ne cache que les GET).
+            urlPattern: ({ url, request }) =>
+              request.method === 'GET' && url.pathname.startsWith('/api/public/guide/'),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'guide-public-cache',
+              networkTimeoutSeconds: 4,
+              expiration: {
+                maxEntries: 40,
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 jours (~ durée d'un séjour)
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
