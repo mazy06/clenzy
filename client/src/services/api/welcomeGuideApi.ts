@@ -11,6 +11,8 @@ export interface WelcomeGuide {
   title: string;
   /** JSON string : tableau de {@link GuideSection}. */
   sections: string;
+  /** JSON string : tableau de {@link GuidePoi} ("autour de moi"). */
+  pois: string;
   brandingColor: string;
   logoUrl: string | null;
   published: boolean;
@@ -32,6 +34,7 @@ export interface WelcomeGuideRequest {
   chatbotEnabled?: boolean;
   guestbookEnabled?: boolean;
   activitiesEnabled?: boolean;
+  pois?: string;
 }
 
 /** Resultat de generation d'un lien d'acces (token + URL publique). */
@@ -63,11 +66,49 @@ export interface GuestbookEntryRequest {
   rating?: number | null;
 }
 
-/** Bloc editorial libre (autour de moi, message d'accueil, bons plans…). */
+/** Bloc editorial libre (message d'accueil, bons plans…). */
 export interface GuideSection {
   id: string;
   title: string;
   body: string;
+}
+
+/** Point d'interet "autour de moi" (restaurant, transport, attraction…). */
+export interface GuidePoi {
+  id: string;
+  /** Identifiant de catégorie (cf. catalogue POI front). */
+  category: string;
+  name: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+  note: string;
+}
+
+// ─── Analytics (cote hote) ────────────────────────────────────────────────────
+
+/** Evenements guest captures cote client (chat/livre d'or sont captures cote serveur). */
+export type GuideEventType = 'GUIDE_OPENED' | 'ACTIVITY_CLICK' | 'CHECKIN_CLICK';
+
+export interface GuideStatsDaily {
+  date: string;
+  count: number;
+}
+
+export interface GuideStatsLabeled {
+  label: string;
+  count: number;
+}
+
+/** Statistiques agregees d'un livret (compteurs + tendance + top activites). */
+export interface WelcomeGuideStats {
+  totalOpens: number;
+  chatMessages: number;
+  guestbookEntries: number;
+  activityClicks: number;
+  checkinClicks: number;
+  dailyOpens: GuideStatsDaily[];
+  topActivities: GuideStatsLabeled[];
 }
 
 // ─── Public payload (page guest /guide/:token) ────────────────────────────────
@@ -114,6 +155,7 @@ export interface PublicGuide {
   brandingColor: string | null;
   logoUrl: string | null;
   sections: string;
+  pois: string;
   property: PublicGuideProperty | null;
   practical: PublicGuidePractical | null;
   stay: PublicGuideStay | null;
@@ -143,6 +185,10 @@ export const welcomeGuideApi = {
   /** Liste des entrees de livre d'or d'un livret (cote hote). */
   listGuestbook: (id: number) =>
     apiClient.get<GuestbookEntry[]>(`/welcome-guides/${id}/guestbook`),
+
+  /** Statistiques d'usage d'un livret (cote hote). */
+  getStats: (id: number) =>
+    apiClient.get<WelcomeGuideStats>(`/welcome-guides/${id}/stats`),
 };
 
 // ─── Helpers serialisation des sections editoriales ───────────────────────────
@@ -166,4 +212,31 @@ export function parseSections(json: string | null | undefined): GuideSection[] {
 
 export function serializeSections(sections: GuideSection[]): string {
   return JSON.stringify(sections.map(({ id, title, body }) => ({ id, title, body })));
+}
+
+export function parsePois(json: string | null | undefined): GuidePoi[] {
+  if (!json) return [];
+  try {
+    const arr: unknown = JSON.parse(json);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object')
+      .map((p, i) => ({
+        id: typeof p.id === 'string' ? p.id : `poi-${i}`,
+        category: typeof p.category === 'string' ? p.category : 'OTHER',
+        name: typeof p.name === 'string' ? p.name : '',
+        address: typeof p.address === 'string' ? p.address : '',
+        lat: typeof p.lat === 'number' ? p.lat : null,
+        lng: typeof p.lng === 'number' ? p.lng : null,
+        note: typeof p.note === 'string' ? p.note : '',
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export function serializePois(pois: GuidePoi[]): string {
+  return JSON.stringify(
+    pois.map(({ id, category, name, address, lat, lng, note }) => ({ id, category, name, address, lat, lng, note })),
+  );
 }

@@ -3,8 +3,10 @@ package com.clenzy.controller;
 import com.clenzy.dto.GuestbookEntryDto;
 import com.clenzy.dto.WelcomeGuideDto;
 import com.clenzy.dto.WelcomeGuideRequest;
+import com.clenzy.dto.WelcomeGuideStatsDto;
 import com.clenzy.model.WelcomeGuide;
 import com.clenzy.model.WelcomeGuideToken;
+import com.clenzy.service.WelcomeGuideAnalyticsService;
 import com.clenzy.service.WelcomeGuideEntryService;
 import com.clenzy.service.WelcomeGuideService;
 import com.clenzy.tenant.TenantContext;
@@ -25,13 +27,16 @@ public class WelcomeGuideController {
 
     private final WelcomeGuideService guideService;
     private final WelcomeGuideEntryService entryService;
+    private final WelcomeGuideAnalyticsService analyticsService;
     private final TenantContext tenantContext;
 
     public WelcomeGuideController(WelcomeGuideService guideService,
                                   WelcomeGuideEntryService entryService,
+                                  WelcomeGuideAnalyticsService analyticsService,
                                   TenantContext tenantContext) {
         this.guideService = guideService;
         this.entryService = entryService;
+        this.analyticsService = analyticsService;
         this.tenantContext = tenantContext;
     }
 
@@ -58,13 +63,22 @@ public class WelcomeGuideController {
         return ResponseEntity.ok(entryService.listForGuide(id, orgId));
     }
 
+    @GetMapping("/{id}/stats")
+    public ResponseEntity<WelcomeGuideStatsDto> getStats(@PathVariable Long id) {
+        Long orgId = tenantContext.getOrganizationId();
+        return analyticsService.getStats(id, orgId)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping
     public ResponseEntity<WelcomeGuideDto> create(@Valid @RequestBody WelcomeGuideRequest request) {
         Long orgId = tenantContext.getOrganizationId();
         WelcomeGuide guide = guideService.createGuide(orgId, request.propertyId(),
             request.title(), request.language(), request.sections(),
             request.brandingColor(), request.logoUrl(),
-            request.chatbotEnabled(), request.guestbookEnabled(), request.activitiesEnabled());
+            request.chatbotEnabled(), request.guestbookEnabled(), request.activitiesEnabled(),
+            request.pois());
         return ResponseEntity.ok(WelcomeGuideDto.from(guide));
     }
 
@@ -74,7 +88,8 @@ public class WelcomeGuideController {
         Long orgId = tenantContext.getOrganizationId();
         WelcomeGuide guide = guideService.updateGuide(id, orgId, request.title(),
             request.sections(), request.brandingColor(), request.logoUrl(), request.published(),
-            request.chatbotEnabled(), request.guestbookEnabled(), request.activitiesEnabled());
+            request.chatbotEnabled(), request.guestbookEnabled(), request.activitiesEnabled(),
+            request.pois());
         return ResponseEntity.ok(WelcomeGuideDto.from(guide));
     }
 

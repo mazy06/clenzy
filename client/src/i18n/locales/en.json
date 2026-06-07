@@ -20,7 +20,8 @@
       "addSection": "Add a section",
       "guestbook": "Guestbook",
       "close": "Close",
-      "activities": "Activities"
+      "activities": "Activities",
+      "stats": "Statistics"
     },
     "fields": {
       "property": "Property",
@@ -73,7 +74,8 @@
       "enabled": "Active",
       "apiKey": "API key",
       "apiKeySet": "API key (already set)",
-      "affiliateId": "Affiliate ID"
+      "affiliateId": "Affiliate ID",
+      "connect": "Connect a provider"
     },
     "messages": {
       "created": "Guide created",
@@ -83,6 +85,32 @@
       "titleRequired": "Title is required",
       "propertyRequired": "Select a property",
       "confirmDelete": "Delete this guide?"
+    },
+    "stats": {
+      "title": "Statistics",
+      "empty": "No data yet.",
+      "opens": "Opens",
+      "chat": "Chatbot messages",
+      "guestbook": "Guestbook reviews",
+      "activities": "Activity clicks",
+      "checkin": "Check-in clicks",
+      "trend": "Opens (last 30 days)",
+      "noTrend": "No opens yet.",
+      "topActivities": "Most clicked activities"
+    },
+    "pois": {
+      "title": "Around me",
+      "hint": "Geolocated recommendations shown on a map in the guide.",
+      "add": "Add a place",
+      "empty": "No place yet. Add your restaurants, transport and must-sees.",
+      "category": "Category",
+      "name": "Name",
+      "address": "Address",
+      "geocode": "Locate on the map",
+      "note": "Note (optional)",
+      "located": "Location found",
+      "queryTooShort": "Enter a name or address to locate",
+      "notFound": "Place not found — refine the address"
     }
   },
   "appUpdate": {
