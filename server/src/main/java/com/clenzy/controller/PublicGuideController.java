@@ -1,17 +1,21 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.ActivityDto;
+import com.clenzy.dto.GuestChatRequest;
 import com.clenzy.dto.GuestbookEntryDto;
 import com.clenzy.dto.GuestbookEntryRequest;
 import com.clenzy.dto.WelcomeGuidePublicDto;
 import com.clenzy.service.ActivityService;
+import com.clenzy.service.GuestChatService;
 import com.clenzy.service.WelcomeGuideEntryService;
 import com.clenzy.service.WelcomeGuideService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -21,13 +25,16 @@ public class PublicGuideController {
     private final WelcomeGuideService guideService;
     private final WelcomeGuideEntryService entryService;
     private final ActivityService activityService;
+    private final GuestChatService guestChatService;
 
     public PublicGuideController(WelcomeGuideService guideService,
                                  WelcomeGuideEntryService entryService,
-                                 ActivityService activityService) {
+                                 ActivityService activityService,
+                                 GuestChatService guestChatService) {
         this.guideService = guideService;
         this.entryService = entryService;
         this.activityService = activityService;
+        this.guestChatService = guestChatService;
     }
 
     @GetMapping("/{token}")
@@ -53,5 +60,17 @@ public class PublicGuideController {
     @GetMapping("/{token}/activities")
     public ResponseEntity<List<ActivityDto>> listActivities(@PathVariable UUID token) {
         return ResponseEntity.ok(activityService.searchForGuide(token, 12));
+    }
+
+    @PostMapping("/{token}/chat")
+    public ResponseEntity<Map<String, String>> chat(@PathVariable UUID token,
+                                                    @Valid @RequestBody GuestChatRequest request) {
+        GuestChatService.GuestChatResult result = guestChatService.answer(token, request.message());
+        if (result.status() == GuestChatService.Status.INVALID) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("reply", ""));
+        }
+        HttpStatus code = result.status() == GuestChatService.Status.RATE_LIMITED
+            ? HttpStatus.TOO_MANY_REQUESTS : HttpStatus.OK;
+        return ResponseEntity.status(code).body(Map.of("reply", result.reply() != null ? result.reply() : ""));
     }
 }

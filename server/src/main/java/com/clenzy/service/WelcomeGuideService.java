@@ -229,6 +229,75 @@ public class WelcomeGuideService {
             .flatMap(this::buildPublicPayload);
     }
 
+    /** Contexte du chatbot guest : org (résolution IA), langue, et contenu du livret sérialisé. */
+    @Transactional(readOnly = true)
+    public Optional<GuestChatContext> getChatContext(UUID token) {
+        return tokenRepository.findByToken(token)
+            .filter(WelcomeGuideToken::isCurrentlyValid)
+            .flatMap(t -> {
+                WelcomeGuide guide = t.getGuide();
+                if (guide == null || !guide.isPublished()) {
+                    return Optional.empty();
+                }
+                return buildPublicPayload(t).map(dto ->
+                    new GuestChatContext(guide.getOrganizationId(), guide.getLanguage(), serializeForChat(dto)));
+            });
+    }
+
+    /** Données nécessaires au chatbot guest pour répondre de façon grounded. */
+    public record GuestChatContext(Long orgId, String language, String content) {}
+
+    private String serializeForChat(WelcomeGuidePublicDto d) {
+        StringBuilder sb = new StringBuilder();
+        appendLine(sb, "Titre", d.title());
+        WelcomeGuidePublicDto.PropertyInfo p = d.property();
+        if (p != null) {
+            appendLine(sb, "Logement", joinNonBlank(p.name(), p.address(), p.postalCode(), p.city(), p.country()));
+        }
+        WelcomeGuidePublicDto.StayInfo s = d.stay();
+        if (s != null) {
+            appendLine(sb, "Arrivée", joinNonBlank(asStr(s.checkIn()), s.checkInTime()));
+            appendLine(sb, "Départ", joinNonBlank(asStr(s.checkOut()), s.checkOutTime()));
+        }
+        WelcomeGuidePublicDto.PracticalInfo pr = d.practical();
+        if (pr != null) {
+            appendLine(sb, "Wi-Fi (réseau)", pr.wifiName());
+            appendLine(sb, "Wi-Fi (mot de passe)", pr.wifiPassword());
+            appendLine(sb, "Code d'accès", pr.accessCode());
+            appendLine(sb, "Instructions d'arrivée", pr.arrivalInstructions());
+            appendLine(sb, "Instructions de départ", pr.departureInstructions());
+            appendLine(sb, "Parking", pr.parkingInfo());
+            appendLine(sb, "Règlement intérieur", pr.houseRules());
+            appendLine(sb, "Numéro utile", pr.emergencyContact());
+            appendLine(sb, "Informations complémentaires", pr.additionalNotes());
+        }
+        appendLine(sb, "Sections (JSON)", d.sections());
+        return sb.toString();
+    }
+
+    private static void appendLine(StringBuilder sb, String label, String value) {
+        if (value != null && !value.isBlank()) {
+            sb.append(label).append(" : ").append(value.trim()).append('\n');
+        }
+    }
+
+    private static String asStr(Object o) {
+        return o == null ? "" : o.toString();
+    }
+
+    private static String joinNonBlank(String... parts) {
+        StringBuilder b = new StringBuilder();
+        for (String part : parts) {
+            if (part != null && !part.isBlank()) {
+                if (b.length() > 0) {
+                    b.append(' ');
+                }
+                b.append(part.trim());
+            }
+        }
+        return b.toString();
+    }
+
     private Optional<WelcomeGuidePublicDto> buildPublicPayload(WelcomeGuideToken t) {
         WelcomeGuide guide = t.getGuide();
         if (guide == null || !guide.isPublished()) {
