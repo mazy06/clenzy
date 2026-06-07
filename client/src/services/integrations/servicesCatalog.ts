@@ -348,7 +348,6 @@ export const CATALOG_SERVICES: CatalogService[] = [
     accessModality: 'Partner program (signup gratuit) → API key. Bibliothèques officielles JavaScript/Python disponibles.',
     available: true,
     region: 'Global',
-    internalRoute: '/booking-engine',
   },
 
   // ─── Reviews & Reputation ────────────────────────────────────────────────
