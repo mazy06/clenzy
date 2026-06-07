@@ -154,7 +154,8 @@ public class WelcomeGuideService {
         WelcomeGuide guide = loadGuide(guideId, orgId);
 
         WelcomeGuideToken token = new WelcomeGuideToken();
-        token.setOrganizationId(orgId);
+        // L'org du token = celle du livret (non-null), pas le contexte (null pour le staff plateforme).
+        token.setOrganizationId(guide.getOrganizationId());
         token.setGuide(guide);
         token.setReservation(reservation);
         token.setToken(UUID.randomUUID());
