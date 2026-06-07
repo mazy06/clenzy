@@ -88,6 +88,15 @@ export interface GuidePoi {
   note: string;
 }
 
+/** Suggestion de POI auto-populée (OpenStreetMap) autour du logement. */
+export interface PoiSuggestion {
+  category: string;
+  name: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+}
+
 /** Activité curée par l'hôte sur son livret (manuelle aujourd'hui ; pool fournisseur à terme). */
 export interface GuideActivity {
   id: string;
@@ -208,6 +217,10 @@ export const welcomeGuideApi = {
   /** Statistiques d'usage d'un livret (cote hote). */
   getStats: (id: number) =>
     apiClient.get<WelcomeGuideStats>(`/welcome-guides/${id}/stats`),
+
+  /** Suggestions de POI « autour de moi » auto-populées (OSM) autour du logement. */
+  suggestPois: (id: number) =>
+    apiClient.get<PoiSuggestion[]>(`/welcome-guides/${id}/poi-suggestions`),
 };
 
 // ─── Helpers serialisation des sections editoriales ───────────────────────────

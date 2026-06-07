@@ -8,6 +8,7 @@ import com.clenzy.service.ShopService;
 import com.clenzy.service.StripeConnectService;
 import com.clenzy.service.StripeService;
 import com.clenzy.service.SubscriptionService;
+import com.clenzy.service.UpsellService;
 import com.stripe.model.Account;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
@@ -58,12 +59,13 @@ class StripeWebhookControllerTest {
     @Mock private StripeConnectService stripeConnectService;
     @Mock private ShopService shopService;
     @Mock private PublicBookingService publicBookingService;
+    @Mock private UpsellService upsellService;
 
     private StripeWebhookController controller;
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService);
+        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService);
         setField("webhookSecret", "whsec_test_secret");
         setField("stripeSecretKey", "sk_test_xxx");
     }
