@@ -63,7 +63,8 @@ public class WelcomeGuideController {
         Long orgId = tenantContext.getOrganizationId();
         WelcomeGuide guide = guideService.createGuide(orgId, request.propertyId(),
             request.title(), request.language(), request.sections(),
-            request.brandingColor(), request.logoUrl());
+            request.brandingColor(), request.logoUrl(),
+            request.chatbotEnabled(), request.guestbookEnabled(), request.activitiesEnabled());
         return ResponseEntity.ok(WelcomeGuideDto.from(guide));
     }
 
@@ -72,7 +73,8 @@ public class WelcomeGuideController {
                                                     @Valid @RequestBody WelcomeGuideRequest request) {
         Long orgId = tenantContext.getOrganizationId();
         WelcomeGuide guide = guideService.updateGuide(id, orgId, request.title(),
-            request.sections(), request.brandingColor(), request.logoUrl(), request.published());
+            request.sections(), request.brandingColor(), request.logoUrl(), request.published(),
+            request.chatbotEnabled(), request.guestbookEnabled(), request.activitiesEnabled());
         return ResponseEntity.ok(WelcomeGuideDto.from(guide));
     }
 

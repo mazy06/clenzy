@@ -39,6 +39,7 @@ public class WelcomeGuideEntryService {
     public Optional<GuestbookEntryDto> addEntry(UUID token, GuestbookEntryRequest req) {
         return tokenRepository.findByToken(token)
             .filter(WelcomeGuideToken::isCurrentlyValid)
+            .filter(t -> t.getGuide() != null && t.getGuide().isGuestbookEnabled())
             .map(t -> {
                 WelcomeGuide guide = t.getGuide();
                 WelcomeGuideEntry entry = new WelcomeGuideEntry();
@@ -57,6 +58,7 @@ public class WelcomeGuideEntryService {
     public List<GuestbookEntryDto> listPublic(UUID token) {
         return tokenRepository.findByToken(token)
             .filter(WelcomeGuideToken::isCurrentlyValid)
+            .filter(t -> t.getGuide() != null && t.getGuide().isGuestbookEnabled())
             .map(t -> entryRepository.findTop100ByGuideIdOrderByCreatedAtDesc(t.getGuide().getId())
                 .stream().map(GuestbookEntryDto::from).toList())
             .orElseGet(List::of);

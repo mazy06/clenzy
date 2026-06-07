@@ -41,6 +41,15 @@ public class WelcomeGuide {
     @Column(nullable = false)
     private boolean published = false;
 
+    @Column(name = "chatbot_enabled", nullable = false)
+    private boolean chatbotEnabled = true;
+
+    @Column(name = "guestbook_enabled", nullable = false)
+    private boolean guestbookEnabled = true;
+
+    @Column(name = "activities_enabled", nullable = false)
+    private boolean activitiesEnabled = true;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -67,6 +76,12 @@ public class WelcomeGuide {
     public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
     public boolean isPublished() { return published; }
     public void setPublished(boolean published) { this.published = published; }
+    public boolean isChatbotEnabled() { return chatbotEnabled; }
+    public void setChatbotEnabled(boolean chatbotEnabled) { this.chatbotEnabled = chatbotEnabled; }
+    public boolean isGuestbookEnabled() { return guestbookEnabled; }
+    public void setGuestbookEnabled(boolean guestbookEnabled) { this.guestbookEnabled = guestbookEnabled; }
+    public boolean isActivitiesEnabled() { return activitiesEnabled; }
+    public void setActivitiesEnabled(boolean activitiesEnabled) { this.activitiesEnabled = activitiesEnabled; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

@@ -74,6 +74,9 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [brandingColor, setBrandingColor] = useState<string>(DEFAULT_COLOR);
   const [logoUrl, setLogoUrl] = useState('');
   const [published, setPublished] = useState(false);
+  const [chatbotEnabled, setChatbotEnabled] = useState(true);
+  const [guestbookEnabled, setGuestbookEnabled] = useState(true);
+  const [activitiesEnabled, setActivitiesEnabled] = useState(true);
   const [sections, setSections] = useState<GuideSection[]>([]);
 
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: AlertColor }>({
@@ -110,6 +113,9 @@ const WelcomeGuideAdmin: React.FC = () => {
     setBrandingColor(DEFAULT_COLOR);
     setLogoUrl('');
     setPublished(false);
+    setChatbotEnabled(true);
+    setGuestbookEnabled(true);
+    setActivitiesEnabled(true);
     setSections([]);
     setView('form');
   };
@@ -122,6 +128,9 @@ const WelcomeGuideAdmin: React.FC = () => {
     setBrandingColor(g.brandingColor || DEFAULT_COLOR);
     setLogoUrl(g.logoUrl || '');
     setPublished(g.published);
+    setChatbotEnabled(g.chatbotEnabled);
+    setGuestbookEnabled(g.guestbookEnabled);
+    setActivitiesEnabled(g.activitiesEnabled);
     setSections(parseSections(g.sections));
     setView('form');
   };
@@ -145,6 +154,9 @@ const WelcomeGuideAdmin: React.FC = () => {
         brandingColor,
         logoUrl: logoUrl.trim() || null,
         published,
+        chatbotEnabled,
+        guestbookEnabled,
+        activitiesEnabled,
       };
       if (editingId == null) {
         await welcomeGuideApi.create(payload);
@@ -514,6 +526,18 @@ const WelcomeGuideAdmin: React.FC = () => {
       <FormControlLabel
         control={<Switch checked={published} onChange={(e) => setPublished(e.target.checked)} />}
         label={t('welcomeGuide.fields.published', 'Publier le livret (accessible aux voyageurs)')}
+      />
+      <FormControlLabel
+        control={<Switch checked={chatbotEnabled} onChange={(e) => setChatbotEnabled(e.target.checked)} />}
+        label={t('welcomeGuide.fields.chatbotEnabled', 'Chatbot assistant')}
+      />
+      <FormControlLabel
+        control={<Switch checked={guestbookEnabled} onChange={(e) => setGuestbookEnabled(e.target.checked)} />}
+        label={t('welcomeGuide.fields.guestbookEnabled', "Livre d'or")}
+      />
+      <FormControlLabel
+        control={<Switch checked={activitiesEnabled} onChange={(e) => setActivitiesEnabled(e.target.checked)} />}
+        label={t('welcomeGuide.fields.activitiesEnabled', 'Activités')}
       />
     </Stack>
   );
