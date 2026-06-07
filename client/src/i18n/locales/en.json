@@ -78,6 +78,14 @@
       "title": "Activity commissions",
       "note": "Your share of activity bookings, paid out via your usual payouts. Active once an activity provider is connected.",
       "bookings": "booking(s)"
+    },
+    "orgCommission": {
+      "title": "My commission (management)",
+      "note": "Your share of the remainder after the platform commission. The owner receives the balance.",
+      "platformInfo": "Platform commission (set by the platform)",
+      "upsell": "My share (upsells)",
+      "activity": "My share (activities)",
+      "saved": "Commission saved"
     }
   },
   "welcomeGuide": {
@@ -2115,6 +2123,12 @@
       "rate": "Rate (%)",
       "error": "Error loading commissions",
       "empty": "No booking channel configured"
+    },
+    "monetization": {
+      "title": "Platform commission (upsells & activities)",
+      "subtitle": "Share taken by the platform on paid services (upsells) and on activity commissions. Editable by the platform only.",
+      "upsellFee": "Platform share (upsells)",
+      "activityCommission": "Platform commission (activities)"
     },
     "payoutSchedule": {
       "title": "Payout schedule",

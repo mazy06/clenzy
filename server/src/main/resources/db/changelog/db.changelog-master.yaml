@@ -1989,3 +1989,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Taux de monétisation par org (org_monetization_config).
+  - changeSet:
+      id: "0204-create-org-monetization-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0204__create_org_monetization_config.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

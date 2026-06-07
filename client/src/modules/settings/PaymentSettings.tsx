@@ -29,6 +29,7 @@ import {
 } from '../../icons';
 import { paymentConfigApi } from '../../services/api/paymentConfigApi';
 import { splitConfigApi } from '../../services/api/splitConfigApi';
+import { monetizationConfigApi } from '../../services/api/monetizationConfigApi';
 import type { PaymentMethodConfig, PaymentProviderType, SplitConfiguration } from '../../types/payment';
 import { PAYMENT_PROVIDER_LABELS } from '../../types/payment';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -569,6 +570,9 @@ export default function PaymentSettings() {
 
             {/* ─── Channel Commissions ─── */}
             <ChannelCommissionsSection />
+
+            {/* ─── Monétisation livret (upsells + commissions activités) ─── */}
+            <MonetizationSection />
           </Box>
         </Grid>
       </Grid>
@@ -851,6 +855,114 @@ function ChannelCommissionsSection() {
       )}
     >
       {content}
+    </SettingsSection>
+  );
+}
+
+// ─── Monétisation livret (upsells + commissions activités) ──────────────────
+
+function MonetizationSection() {
+  const { t } = useTranslation();
+  const [upsellFee, setUpsellFee] = useState('');
+  const [activityCommission, setActivityCommission] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    monetizationConfigApi
+      .get()
+      .then((c) => {
+        if (!active) return;
+        setUpsellFee(String(c.upsellPlatformFeePct ?? ''));
+        setActivityCommission(String(c.activityPlatformCommissionPct ?? ''));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updated = await monetizationConfigApi.updatePlatform({
+        upsellPlatformFeePct: parseFloat(upsellFee) || 0,
+        activityPlatformCommissionPct: parseFloat(activityCommission) || 0,
+      });
+      setUpsellFee(String(updated.upsellPlatformFeePct));
+      setActivityCommission(String(updated.activityPlatformCommissionPct));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      /* erreur silencieuse — l'utilisateur réessaiera */
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <SettingsSection
+      title={t('settings.monetization.title', 'Commission plateforme (upsells & activités)')}
+      icon={Payment}
+      accent="primary"
+      description={t(
+        'settings.monetization.subtitle',
+        "Part prélevée par la plateforme sur les services payants (upsells) et sur les commissions d'activités. Réglable uniquement par la plateforme.",
+      )}
+    >
+      {loading ? (
+        <Box display="flex" justifyContent="center" p={3}>
+          <CircularProgress size={24} />
+        </Box>
+      ) : (
+        <Stack spacing={1.5}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+            <ShareInput
+              label={t('settings.monetization.upsellFee', 'Part plateforme (upsells)')}
+              value={upsellFee}
+              onChange={setUpsellFee}
+              color={SHARE_PLATFORM}
+            />
+            <ShareInput
+              label={t('settings.monetization.activityCommission', 'Commission plateforme (activités)')}
+              value={activityCommission}
+              onChange={setActivityCommission}
+              color={SHARE_PLATFORM}
+            />
+          </Stack>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>
+            {saved && (
+              <Chip label={t('common.saved', 'Sauvegardé')} size="small" sx={buildStatusChipSx('#4A9B8E')} />
+            )}
+            <Button
+              variant="contained"
+              disableElevation
+              size="small"
+              startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
+              disabled={saving}
+              onClick={handleSave}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '0.78rem',
+                borderRadius: '8px',
+                py: 0.625,
+                px: 1.5,
+                bgcolor: '#6B8A9A',
+                boxShadow: 'none',
+                '&:hover': { bgcolor: '#6B8A9A', filter: 'brightness(0.94)' },
+              }}
+            >
+              {t('settings.split.save', 'Enregistrer')}
+            </Button>
+          </Box>
+        </Stack>
+      )}
     </SettingsSection>
   );
 }

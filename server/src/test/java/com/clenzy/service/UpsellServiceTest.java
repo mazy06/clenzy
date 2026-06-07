@@ -1,6 +1,5 @@
 package com.clenzy.service;
 
-import com.clenzy.config.UpsellConfig;
 import com.clenzy.dto.PublicUpsellDto;
 import com.clenzy.model.*;
 import com.clenzy.repository.ReservationRepository;
@@ -38,10 +37,11 @@ class UpsellServiceTest {
     @Mock private StripeService stripeService;
     @Mock private WalletService walletService;
     @Mock private LedgerService ledgerService;
+    @Mock private MonetizationConfigService monetizationConfigService;
 
     private UpsellService service() {
         return new UpsellService(offerRepository, orderRepository, tokenRepository, reservationRepository,
-            stripeService, walletService, ledgerService, new UpsellConfig());
+            stripeService, walletService, ledgerService, monetizationConfigService);
     }
 
     private WelcomeGuideToken validToken(Long propertyId) {
@@ -111,6 +111,8 @@ class UpsellServiceTest {
         order.setCurrency("EUR");
         order.setStatus(UpsellOrderStatus.PENDING);
         when(orderRepository.findByStripeSessionId("sess_1")).thenReturn(Optional.of(order));
+        when(monetizationConfigService.getEffectiveUpsellPlatformFeePct(1L)).thenReturn(new BigDecimal("10"));
+        when(monetizationConfigService.getEffectiveUpsellOrgCommissionPct(1L)).thenReturn(BigDecimal.ZERO);
 
         User owner = new User();
         owner.setId(5L);
