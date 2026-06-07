@@ -2140,6 +2140,12 @@
       "error": "Erreur lors du chargement des commissions",
       "empty": "Aucun canal de réservation configuré"
     },
+    "monetization": {
+      "title": "Commissions upsells & activités",
+      "subtitle": "Part prélevée par la plateforme sur les services payants (upsells) et part reversée à l'hôte sur les commissions d'activités.",
+      "upsellFee": "Part plateforme (upsells)",
+      "hostShare": "Part hôte (commissions activités)"
+    },
     "payoutSchedule": {
       "title": "Calendrier de reversement",
       "subtitle": "Configurez la fréquence de génération automatique des reversements aux propriétaires.",
