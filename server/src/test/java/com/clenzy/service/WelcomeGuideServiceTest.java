@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.config.GuideConfig;
 import com.clenzy.dto.WelcomeGuidePublicDto;
+import com.clenzy.dto.WelcomeGuideRequest;
 import com.clenzy.model.*;
 import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyRepository;
@@ -56,8 +57,9 @@ class WelcomeGuideServiceTest {
         saved.setTitle("Guide Riviera");
         when(guideRepository.save(any())).thenReturn(saved);
 
-        WelcomeGuide result = service.createGuide(1L, 10L, "Guide Riviera",
-            "fr", "[{\"type\":\"text\",\"title\":\"WiFi\"}]", "#FF0000", null, true, true, true, null, null);
+        WelcomeGuide result = service.createGuide(1L, new WelcomeGuideRequest(
+            10L, "Guide Riviera", "fr", "[{\"type\":\"text\",\"title\":\"WiFi\"}]",
+            "#FF0000", null, null, true, true, true, null, null));
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getTitle()).isEqualTo("Guide Riviera");
@@ -68,7 +70,8 @@ class WelcomeGuideServiceTest {
     void createGuide_propertyNotFound_throws() {
         when(propertyRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.createGuide(1L, 999L, "Test", null, null, null, null, null, null, null, null, null))
+        assertThatThrownBy(() -> service.createGuide(1L, new WelcomeGuideRequest(
+            999L, "Test", null, null, null, null, null, null, null, null, null, null)))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -82,8 +85,8 @@ class WelcomeGuideServiceTest {
         when(guideRepository.findByIdAndOrganizationId(1L, 1L)).thenReturn(Optional.of(guide));
         when(guideRepository.save(any())).thenReturn(guide);
 
-        WelcomeGuide result = service.updateGuide(1L, 1L, "New Title",
-            "[{\"type\":\"info\"}]", "#0000FF", null, true, null, null, null, null, null);
+        WelcomeGuide result = service.updateGuide(1L, 1L, new WelcomeGuideRequest(
+            null, "New Title", null, "[{\"type\":\"info\"}]", "#0000FF", null, true, null, null, null, null, null));
 
         assertThat(result.getTitle()).isEqualTo("New Title");
         assertThat(result.isPublished()).isTrue();

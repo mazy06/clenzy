@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.config.GuideConfig;
 import com.clenzy.dto.WelcomeGuidePublicDto;
+import com.clenzy.dto.WelcomeGuideRequest;
 import com.clenzy.service.access.AccessCodeResolverService;
 import com.clenzy.model.*;
 import com.clenzy.repository.CheckInInstructionsRepository;
@@ -54,50 +55,43 @@ public class WelcomeGuideService {
     }
 
     @Transactional
-    public WelcomeGuide createGuide(Long orgId, Long propertyId, String title,
-                                      String language, String sections,
-                                      String brandingColor, String logoUrl,
-                                      Boolean chatbotEnabled, Boolean guestbookEnabled, Boolean activitiesEnabled,
-                                      String pois, String curatedActivities) {
-        Property property = propertyRepository.findById(propertyId)
-            .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + propertyId));
+    public WelcomeGuide createGuide(Long orgId, WelcomeGuideRequest req) {
+        Property property = propertyRepository.findById(req.propertyId())
+            .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + req.propertyId()));
 
         WelcomeGuide guide = new WelcomeGuide();
         guide.setOrganizationId(orgId);
         guide.setProperty(property);
-        guide.setTitle(title);
-        guide.setLanguage(language != null ? language : "fr");
-        guide.setSections(sections != null ? sections : "[]");
-        if (pois != null) guide.setPois(pois);
-        if (curatedActivities != null) guide.setCuratedActivities(curatedActivities);
-        if (brandingColor != null) guide.setBrandingColor(brandingColor);
-        if (logoUrl != null) guide.setLogoUrl(logoUrl);
-        if (chatbotEnabled != null) guide.setChatbotEnabled(chatbotEnabled);
-        if (guestbookEnabled != null) guide.setGuestbookEnabled(guestbookEnabled);
-        if (activitiesEnabled != null) guide.setActivitiesEnabled(activitiesEnabled);
+        guide.setTitle(req.title());
+        guide.setLanguage(req.language() != null ? req.language() : "fr");
+        guide.setSections(req.sections() != null ? req.sections() : "[]");
+        if (req.pois() != null) guide.setPois(req.pois());
+        if (req.curatedActivities() != null) guide.setCuratedActivities(req.curatedActivities());
+        if (req.brandingColor() != null) guide.setBrandingColor(req.brandingColor());
+        if (req.logoUrl() != null) guide.setLogoUrl(req.logoUrl());
+        if (req.chatbotEnabled() != null) guide.setChatbotEnabled(req.chatbotEnabled());
+        if (req.guestbookEnabled() != null) guide.setGuestbookEnabled(req.guestbookEnabled());
+        if (req.activitiesEnabled() != null) guide.setActivitiesEnabled(req.activitiesEnabled());
 
         return guideRepository.save(guide);
     }
 
+    /** Met a jour un livret. Le logement et la langue ne sont pas modifiables apres creation (ignores). */
     @Transactional
-    public WelcomeGuide updateGuide(Long guideId, Long orgId, String title,
-                                      String sections, String brandingColor,
-                                      String logoUrl, Boolean published,
-                                      Boolean chatbotEnabled, Boolean guestbookEnabled, Boolean activitiesEnabled,
-                                      String pois, String curatedActivities) {
+    public WelcomeGuide updateGuide(Long guideId, Long orgId, WelcomeGuideRequest req) {
         WelcomeGuide guide = guideRepository.findByIdAndOrganizationId(guideId, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Guide introuvable: " + guideId));
 
-        if (title != null) guide.setTitle(title);
-        if (sections != null) guide.setSections(sections);
-        if (pois != null) guide.setPois(pois);
-        if (curatedActivities != null) guide.setCuratedActivities(curatedActivities);
-        if (brandingColor != null) guide.setBrandingColor(brandingColor);
-        if (logoUrl != null) guide.setLogoUrl(logoUrl);
-        if (published != null) guide.setPublished(published);
-        if (chatbotEnabled != null) guide.setChatbotEnabled(chatbotEnabled);
-        if (guestbookEnabled != null) guide.setGuestbookEnabled(guestbookEnabled);
-        if (activitiesEnabled != null) guide.setActivitiesEnabled(activitiesEnabled);
+        if (req.title() != null) guide.setTitle(req.title());
+        if (req.sections() != null) guide.setSections(req.sections());
+        if (req.pois() != null) guide.setPois(req.pois());
+        if (req.curatedActivities() != null) guide.setCuratedActivities(req.curatedActivities());
+        if (req.brandingColor() != null) guide.setBrandingColor(req.brandingColor());
+        if (req.logoUrl() != null) guide.setLogoUrl(req.logoUrl());
+        if (req.published() != null) guide.setPublished(req.published());
+        if (req.chatbotEnabled() != null) guide.setChatbotEnabled(req.chatbotEnabled());
+        if (req.guestbookEnabled() != null) guide.setGuestbookEnabled(req.guestbookEnabled());
+        if (req.activitiesEnabled() != null) guide.setActivitiesEnabled(req.activitiesEnabled());
 
         return guideRepository.save(guide);
     }
