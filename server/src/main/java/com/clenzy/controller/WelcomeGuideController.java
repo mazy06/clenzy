@@ -78,7 +78,7 @@ public class WelcomeGuideController {
             request.title(), request.language(), request.sections(),
             request.brandingColor(), request.logoUrl(),
             request.chatbotEnabled(), request.guestbookEnabled(), request.activitiesEnabled(),
-            request.pois());
+            request.pois(), request.curatedActivities());
         return ResponseEntity.ok(WelcomeGuideDto.from(guide));
     }
 
@@ -89,7 +89,7 @@ public class WelcomeGuideController {
         WelcomeGuide guide = guideService.updateGuide(id, orgId, request.title(),
             request.sections(), request.brandingColor(), request.logoUrl(), request.published(),
             request.chatbotEnabled(), request.guestbookEnabled(), request.activitiesEnabled(),
-            request.pois());
+            request.pois(), request.curatedActivities());
         return ResponseEntity.ok(WelcomeGuideDto.from(guide));
     }
 

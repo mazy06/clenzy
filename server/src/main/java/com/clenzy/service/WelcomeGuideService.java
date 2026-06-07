@@ -58,7 +58,7 @@ public class WelcomeGuideService {
                                       String language, String sections,
                                       String brandingColor, String logoUrl,
                                       Boolean chatbotEnabled, Boolean guestbookEnabled, Boolean activitiesEnabled,
-                                      String pois) {
+                                      String pois, String curatedActivities) {
         Property property = propertyRepository.findById(propertyId)
             .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + propertyId));
 
@@ -69,6 +69,7 @@ public class WelcomeGuideService {
         guide.setLanguage(language != null ? language : "fr");
         guide.setSections(sections != null ? sections : "[]");
         if (pois != null) guide.setPois(pois);
+        if (curatedActivities != null) guide.setCuratedActivities(curatedActivities);
         if (brandingColor != null) guide.setBrandingColor(brandingColor);
         if (logoUrl != null) guide.setLogoUrl(logoUrl);
         if (chatbotEnabled != null) guide.setChatbotEnabled(chatbotEnabled);
@@ -83,13 +84,14 @@ public class WelcomeGuideService {
                                       String sections, String brandingColor,
                                       String logoUrl, Boolean published,
                                       Boolean chatbotEnabled, Boolean guestbookEnabled, Boolean activitiesEnabled,
-                                      String pois) {
+                                      String pois, String curatedActivities) {
         WelcomeGuide guide = guideRepository.findByIdAndOrganizationId(guideId, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Guide introuvable: " + guideId));
 
         if (title != null) guide.setTitle(title);
         if (sections != null) guide.setSections(sections);
         if (pois != null) guide.setPois(pois);
+        if (curatedActivities != null) guide.setCuratedActivities(curatedActivities);
         if (brandingColor != null) guide.setBrandingColor(brandingColor);
         if (logoUrl != null) guide.setLogoUrl(logoUrl);
         if (published != null) guide.setPublished(published);

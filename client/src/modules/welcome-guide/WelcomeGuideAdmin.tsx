@@ -37,9 +37,12 @@ import {
   serializeSections,
   parsePois,
   serializePois,
+  parseActivities,
+  serializeActivities,
   type WelcomeGuide,
   type GuideSection,
   type GuidePoi,
+  type GuideActivity,
   type GuestbookEntry,
   type WelcomeGuideStats,
 } from '../../services/api/welcomeGuideApi';
@@ -79,6 +82,7 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [sections, setSections] = useState<GuideSection[]>([]);
   const [pois, setPois] = useState<GuidePoi[]>([]);
   const [geocoding, setGeocoding] = useState<string | null>(null);
+  const [curatedActivities, setCuratedActivities] = useState<GuideActivity[]>([]);
 
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: AlertColor }>({
     open: false,
@@ -120,6 +124,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     setActivitiesEnabled(true);
     setSections([]);
     setPois([]);
+    setCuratedActivities([]);
     setView('form');
   };
 
@@ -136,6 +141,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     setActivitiesEnabled(g.activitiesEnabled);
     setSections(parseSections(g.sections));
     setPois(parsePois(g.pois));
+    setCuratedActivities(parseActivities(g.curatedActivities));
     setView('form');
   };
 
@@ -156,6 +162,7 @@ const WelcomeGuideAdmin: React.FC = () => {
         language,
         sections: serializeSections(sections),
         pois: serializePois(pois),
+        curatedActivities: serializeActivities(curatedActivities),
         brandingColor,
         logoUrl: logoUrl.trim() || null,
         published,
@@ -272,6 +279,16 @@ const WelcomeGuideAdmin: React.FC = () => {
       setGeocoding(null);
     }
   };
+
+  // ─── Curation d'activités ("met en avant" = featured) ──────────────────────
+  const addActivity = () =>
+    setCuratedActivities((prev) => [
+      ...prev,
+      { id: `act-${Date.now()}`, source: 'MANUAL', externalId: null, title: '', imageUrl: null, price: null, bookingUrl: '', description: '', featured: false },
+    ]);
+  const updateActivity = (idx: number, patch: Partial<GuideActivity>) =>
+    setCuratedActivities((prev) => prev.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
+  const removeActivity = (idx: number) => setCuratedActivities((prev) => prev.filter((_, i) => i !== idx));
 
   // ─── Render: toolbar ───────────────────────────────────────────────────────
   const toolbar = (
@@ -609,6 +626,101 @@ const WelcomeGuideAdmin: React.FC = () => {
                       ) : null}
                     </Box>
                     <IconButton size="small" color="error" onClick={() => removePoi(idx)} sx={{ mt: 0.5 }}>
+                      <Delete size={16} strokeWidth={1.75} />
+                    </IconButton>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        )}
+      </Box>
+
+      <Divider />
+
+      <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, gap: 1 }}>
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {t('welcomeGuide.curation.title', 'Activités à proposer')}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {t('welcomeGuide.curation.hint', 'Choisissez les activités à afficher sur le livret et mettez-en certaines en avant.')}
+            </Typography>
+          </Box>
+          <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addActivity}>
+            {t('welcomeGuide.curation.add', 'Ajouter une activité')}
+          </Button>
+        </Box>
+
+        {curatedActivities.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">
+            {t('welcomeGuide.curation.empty', 'Aucune activité. Ajoutez vos excursions et bons plans à réserver.')}
+          </Typography>
+        ) : (
+          <Stack spacing={1.5}>
+            {curatedActivities.map((a, idx) => (
+              <Card key={a.id} variant="outlined" sx={a.featured ? { borderColor: '#D4A574' } : undefined}>
+                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+                        <TextField
+                          size="small"
+                          label={t('welcomeGuide.curation.activityTitle', 'Titre')}
+                          value={a.title}
+                          onChange={(e) => updateActivity(idx, { title: e.target.value })}
+                          sx={{ flex: 1, minWidth: 180 }}
+                        />
+                        <TextField
+                          size="small"
+                          label={t('welcomeGuide.curation.price', 'Prix')}
+                          value={a.price ?? ''}
+                          onChange={(e) => updateActivity(idx, { price: e.target.value || null })}
+                          sx={{ width: 120 }}
+                          placeholder="ex : 29 €"
+                        />
+                      </Box>
+                      <TextField
+                        size="small"
+                        label={t('welcomeGuide.curation.bookingUrl', 'Lien de réservation')}
+                        value={a.bookingUrl}
+                        onChange={(e) => updateActivity(idx, { bookingUrl: e.target.value })}
+                        fullWidth
+                        placeholder="https://…"
+                        sx={{ mb: 1 }}
+                      />
+                      <TextField
+                        size="small"
+                        label={t('welcomeGuide.curation.imageUrl', "URL de l'image (optionnel)")}
+                        value={a.imageUrl ?? ''}
+                        onChange={(e) => updateActivity(idx, { imageUrl: e.target.value || null })}
+                        fullWidth
+                        placeholder="https://…"
+                        sx={{ mb: 1 }}
+                      />
+                      <TextField
+                        size="small"
+                        label={t('welcomeGuide.curation.description', 'Description (optionnel)')}
+                        value={a.description}
+                        onChange={(e) => updateActivity(idx, { description: e.target.value })}
+                        fullWidth
+                        multiline
+                        minRows={2}
+                      />
+                      <FormControlLabel
+                        sx={{ mt: 0.5 }}
+                        control={
+                          <Switch
+                            size="small"
+                            checked={a.featured}
+                            onChange={(e) => updateActivity(idx, { featured: e.target.checked })}
+                          />
+                        }
+                        label={t('welcomeGuide.curation.featured', 'Mettre en avant')}
+                      />
+                    </Box>
+                    <IconButton size="small" color="error" onClick={() => removeActivity(idx)} sx={{ mt: 0.5 }}>
                       <Delete size={16} strokeWidth={1.75} />
                     </IconButton>
                   </Box>

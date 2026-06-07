@@ -37,6 +37,11 @@ public class WelcomeGuide {
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String pois = "[]";
 
+    /** Activites curees par l'hote (JSON : [{id, source, externalId, title, imageUrl, price, bookingUrl, description, featured}]). */
+    @Column(name = "curated_activities", columnDefinition = "JSONB", nullable = false)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    private String curatedActivities = "[]";
+
     @Column(name = "branding_color", length = 7)
     private String brandingColor = "#2563EB";
 
@@ -77,6 +82,8 @@ public class WelcomeGuide {
     public void setSections(String sections) { this.sections = sections; }
     public String getPois() { return pois; }
     public void setPois(String pois) { this.pois = pois; }
+    public String getCuratedActivities() { return curatedActivities; }
+    public void setCuratedActivities(String curatedActivities) { this.curatedActivities = curatedActivities; }
     public String getBrandingColor() { return brandingColor; }
     public void setBrandingColor(String brandingColor) { this.brandingColor = brandingColor; }
     public String getLogoUrl() { return logoUrl; }

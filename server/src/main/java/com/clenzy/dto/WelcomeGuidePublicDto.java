@@ -22,6 +22,7 @@ public record WelcomeGuidePublicDto(
     String logoUrl,
     String sections,
     String pois,
+    String curatedActivities,
     PropertyInfo property,
     PracticalInfo practical,
     StayInfo stay,
@@ -99,6 +100,7 @@ public record WelcomeGuidePublicDto(
 
         return new WelcomeGuidePublicDto(
             g.getTitle(), g.getLanguage(), g.getBrandingColor(), g.getLogoUrl(), g.getSections(), g.getPois(),
+            g.getCuratedActivities(),
             propertyInfo, practicalInfo, stayInfo, checkIn,
             g.isChatbotEnabled(), g.isGuestbookEnabled(), g.isActivitiesEnabled()
         );
