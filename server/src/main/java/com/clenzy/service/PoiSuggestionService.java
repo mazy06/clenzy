@@ -29,7 +29,10 @@ public class PoiSuggestionService {
 
     @Transactional(readOnly = true)
     public List<PoiSuggestionDto> suggest(Long guideId, Long orgId) {
-        WelcomeGuide guide = guideRepository.findByIdAndOrganizationId(guideId, orgId).orElse(null);
+        // Staff plateforme (orgId null) : accès cross-org par id.
+        WelcomeGuide guide = (orgId != null
+            ? guideRepository.findByIdAndOrganizationId(guideId, orgId)
+            : guideRepository.findById(guideId)).orElse(null);
         if (guide == null || guide.getProperty() == null) {
             return List.of();
         }
