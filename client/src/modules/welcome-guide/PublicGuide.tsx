@@ -41,6 +41,7 @@ const LABELS: Record<Lang, Record<string, string>> = {
     wifi: 'Wi-Fi', network: 'Réseau', password: 'Mot de passe', accessCode: "Code d'accès",
     arrivalInstr: "Instructions d'arrivée", departureInstr: 'Instructions de départ',
     parking: 'Parking', houseRules: 'Règlement intérieur', notes: 'Bon à savoir',
+    accessPhotos: "Photos d'accès",
     useful: 'Numéro utile', location: 'Adresse', viewMap: 'Voir sur la carte',
     copy: 'Copier', copied: 'Copié', poweredBy: 'Propulsé par',
     guestbookTitle: "Livre d'or", guestbookName: 'Votre nom', guestbookMessage: 'Votre message',
@@ -62,6 +63,7 @@ const LABELS: Record<Lang, Record<string, string>> = {
     wifi: 'Wi-Fi', network: 'Network', password: 'Password', accessCode: 'Access code',
     arrivalInstr: 'Arrival instructions', departureInstr: 'Departure instructions',
     parking: 'Parking', houseRules: 'House rules', notes: 'Good to know',
+    accessPhotos: 'Access photos',
     useful: 'Useful number', location: 'Address', viewMap: 'View on map',
     copy: 'Copy', copied: 'Copied', poweredBy: 'Powered by',
     guestbookTitle: 'Guestbook', guestbookName: 'Your name', guestbookMessage: 'Your message',
@@ -83,6 +85,7 @@ const LABELS: Record<Lang, Record<string, string>> = {
     wifi: 'واي فاي', network: 'الشبكة', password: 'كلمة المرور', accessCode: 'رمز الدخول',
     arrivalInstr: 'تعليمات الوصول', departureInstr: 'تعليمات المغادرة',
     parking: 'موقف السيارات', houseRules: 'قواعد المنزل', notes: 'معلومات مفيدة',
+    accessPhotos: 'صور الوصول',
     useful: 'رقم مفيد', location: 'العنوان', viewMap: 'عرض على الخريطة',
     copy: 'نسخ', copied: 'تم النسخ', poweredBy: 'بدعم من',
     guestbookTitle: 'سجل الزوار', guestbookName: 'اسمك', guestbookMessage: 'رسالتك',
@@ -102,6 +105,21 @@ const LABELS: Record<Lang, Record<string, string>> = {
 };
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) || '';
+
+/** Parse le JSON arrivalPhotos ([{key, caption}]) du payload public. */
+function parseArrivalPhotos(json: string | null | undefined): Array<{ key: string; caption: string }> {
+  if (!json) return [];
+  try {
+    const arr = JSON.parse(json);
+    return Array.isArray(arr)
+      ? arr
+          .filter((p) => p && typeof p.key === 'string')
+          .map((p) => ({ key: p.key as string, caption: typeof p.caption === 'string' ? p.caption : '' }))
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 // Clé publishable Stripe (build-time, dispo aussi sur la page publique). Null si non configurée.
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
@@ -631,6 +649,30 @@ const PublicGuide: React.FC = () => {
 
         {/* Infos pratiques */}
         {practical?.arrivalInstructions ? block(L.arrivalInstr, textRow(practical.arrivalInstructions)) : null}
+        {(() => {
+          const photos = parseArrivalPhotos(practical?.arrivalPhotos);
+          if (photos.length === 0) return null;
+          return block(L.accessPhotos, (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {photos.map((p) => (
+                <Box key={p.key} sx={{ width: 150 }}>
+                  <Box
+                    component="img"
+                    src={`${API_BASE}/api/public/guide/${token}/access-photos?key=${encodeURIComponent(p.key)}`}
+                    alt={p.caption || ''}
+                    loading="lazy"
+                    sx={{ width: '100%', borderRadius: 1.5, display: 'block', border: '1px solid', borderColor: 'divider' }}
+                  />
+                  {p.caption ? (
+                    <Typography variant="caption" sx={{ display: 'block', mt: 0.25, color: 'text.secondary' }}>
+                      {p.caption}
+                    </Typography>
+                  ) : null}
+                </Box>
+              ))}
+            </Box>
+          ));
+        })()}
         {practical?.departureInstructions ? block(L.departureInstr, textRow(practical.departureInstructions)) : null}
         {practical?.parkingInfo ? block(L.parking, textRow(practical.parkingInfo)) : null}
         {practical?.houseRules ? block(L.houseRules, textRow(practical.houseRules)) : null}

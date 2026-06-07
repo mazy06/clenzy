@@ -37,13 +37,15 @@ class WelcomeGuideServiceTest {
     @Mock private GuideConfig guideConfig;
     @Mock private com.clenzy.service.access.AccessCodeResolverService accessCodeResolverService;
     @Mock private OnlineCheckInService onlineCheckInService;
+    @Mock private PhotoStorageService photoStorageService;
 
     private WelcomeGuideService service;
 
     @BeforeEach
     void setUp() {
         service = new WelcomeGuideService(guideRepository, tokenRepository, propertyRepository,
-            checkInInstructionsRepository, guideConfig, accessCodeResolverService, onlineCheckInService);
+            checkInInstructionsRepository, guideConfig, accessCodeResolverService, onlineCheckInService,
+            photoStorageService);
     }
 
     @Test
@@ -142,6 +144,51 @@ class WelcomeGuideServiceTest {
         WelcomeGuideToken token = service.generateToken(1L, null, null);
 
         assertThat(token.getOrganizationId()).isEqualTo(3L);
+    }
+
+    @Test
+    void getAccessPhotoBytes_keyInArrivalPhotos_returnsBytes() {
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setPublished(true);
+        Property prop = new Property();
+        prop.setId(1L);
+        guide.setProperty(prop);
+        WelcomeGuideToken tok = new WelcomeGuideToken();
+        tok.setGuide(guide);
+        tok.setExpiresAt(LocalDateTime.now().plusDays(1)); // valide (non revoque, sans resa)
+        UUID token = UUID.randomUUID();
+        when(tokenRepository.findByToken(token)).thenReturn(Optional.of(tok));
+        CheckInInstructions ci = new CheckInInstructions();
+        ci.setArrivalPhotos("[{\"key\":\"abc\",\"caption\":\"\"}]");
+        when(checkInInstructionsRepository.findByPropertyId(1L)).thenReturn(Optional.of(ci));
+        when(photoStorageService.retrieve("abc")).thenReturn(new byte[]{1, 2, 3});
+
+        Optional<byte[]> result = service.getAccessPhotoBytes(token, "abc");
+
+        assertThat(result).isPresent();
+        assertThat(result.get()).hasSize(3);
+    }
+
+    @Test
+    void getAccessPhotoBytes_keyNotInArrivalPhotos_returnsEmpty() {
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setPublished(true);
+        Property prop = new Property();
+        prop.setId(1L);
+        guide.setProperty(prop);
+        WelcomeGuideToken tok = new WelcomeGuideToken();
+        tok.setGuide(guide);
+        tok.setExpiresAt(LocalDateTime.now().plusDays(1));
+        UUID token = UUID.randomUUID();
+        when(tokenRepository.findByToken(token)).thenReturn(Optional.of(tok));
+        CheckInInstructions ci = new CheckInInstructions();
+        ci.setArrivalPhotos("[]"); // la cle n'appartient pas a ce livret
+        when(checkInInstructionsRepository.findByPropertyId(1L)).thenReturn(Optional.of(ci));
+
+        Optional<byte[]> result = service.getAccessPhotoBytes(token, "abc");
+
+        assertThat(result).isEmpty();
+        verify(photoStorageService, never()).retrieve(any());
     }
 
     @Test

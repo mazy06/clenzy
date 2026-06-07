@@ -115,13 +115,13 @@ class DtoCoverageTest {
             CheckInInstructionsDto dto = new CheckInInstructionsDto(1L, 2L, "code123",
                     "wifi", "pass", "Parking info", "Arrival instructions",
                     "Departure instructions", "House rules", "Emergency contact",
-                    "Additional notes", "2026-01-01T10:00");
+                    "Additional notes", "[]", "2026-01-01T10:00");
             assertThat(dto.propertyId()).isEqualTo(2L);
             assertThat(dto.accessCode()).isEqualTo("code123");
         }
         @Test void updateCheckInInstructionsDto() {
             UpdateCheckInInstructionsDto dto = new UpdateCheckInInstructionsDto("code", "wifi",
-                    "pass", "parking", "arrival", "departure", "rules", "emergency", "notes");
+                    "pass", "parking", "arrival", "departure", "rules", "emergency", "notes", "[]");
             assertThat(dto.accessCode()).isEqualTo("code");
             assertThat(dto.parkingInfo()).isEqualTo("parking");
         }
