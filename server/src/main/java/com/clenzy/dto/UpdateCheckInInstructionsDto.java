@@ -9,5 +9,7 @@ public record UpdateCheckInInstructionsDto(
     String departureInstructions,
     String houseRules,
     String emergencyContact,
-    String additionalNotes
+    String additionalNotes,
+    /** JSON [{key, caption}] — photos d'indication d'accès. Null = inchangé. */
+    String arrivalPhotos
 ) {}

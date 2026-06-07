@@ -30,6 +30,8 @@ import {
   VisibilityOff,
   CheckCircle,
   ContentCopy,
+  AddPhotoAlternate as PhotoIcon,
+  Close as CloseIcon,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { airbnbApi } from '../../services/api/airbnbApi';
@@ -39,6 +41,27 @@ import type { CheckInInstructions, UpdateCheckInInstructions } from '../../servi
 
 interface CheckInInstructionsFormProps {
   propertyId: number;
+}
+
+/** Photo d'indication d'accès. `preview` = dataURL local affiché juste après l'upload. */
+interface AccessPhoto {
+  key: string;
+  caption: string;
+  preview?: string;
+}
+
+function parseAccessPhotos(json: string | null | undefined): AccessPhoto[] {
+  if (!json) return [];
+  try {
+    const arr = JSON.parse(json);
+    return Array.isArray(arr)
+      ? arr
+          .filter((p) => p && typeof p.key === 'string')
+          .map((p) => ({ key: p.key as string, caption: typeof p.caption === 'string' ? p.caption : '' }))
+      : [];
+  } catch {
+    return [];
+  }
 }
 
 // ─── Section card ───────────────────────────────────────────────────────────
@@ -170,6 +193,8 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
     additionalNotes: null,
   });
   const [dirty, setDirty] = useState(false);
+  const [accessPhotos, setAccessPhotos] = useState<AccessPhoto[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Fetch existing instructions
   useEffect(() => {
@@ -189,6 +214,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           emergencyContact: data.emergencyContact,
           additionalNotes: data.additionalNotes,
         });
+        setAccessPhotos(parseAccessPhotos(data.arrivalPhotos));
       })
       .catch(() => {
         // No instructions yet — form stays empty
@@ -207,8 +233,13 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
     setError(null);
     setSuccess(false);
     try {
-      const updated = await airbnbApi.updateCheckInInstructions(propertyId, form);
+      const payload = {
+        ...form,
+        arrivalPhotos: JSON.stringify(accessPhotos.map((p) => ({ key: p.key, caption: p.caption }))),
+      };
+      const updated = await airbnbApi.updateCheckInInstructions(propertyId, payload);
       setInstructions(updated);
+      setAccessPhotos(parseAccessPhotos(updated.arrivalPhotos));
       setSuccess(true);
       setDirty(false);
       queryClient.invalidateQueries({ queryKey: propertyDetailsKeys.detail(String(propertyId)) });
@@ -217,7 +248,47 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
     } finally {
       setSaving(false);
     }
-  }, [propertyId, form, t, queryClient]);
+  }, [propertyId, form, accessPhotos, t, queryClient]);
+
+  const handleAddPhoto = useCallback(async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setError(t('channels.checkIn.photoInvalid', 'Format image requis (jpeg, png, webp, gif)'));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError(t('channels.checkIn.photoTooLarge', 'Image trop volumineuse (max 5 Mo)'));
+      return;
+    }
+    setUploadingPhoto(true);
+    setError(null);
+    try {
+      const { key } = await airbnbApi.uploadAccessPhoto(propertyId, file);
+      const preview = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+      setAccessPhotos((prev) => [...prev, { key, caption: '', preview }]);
+      setDirty(true);
+      setSuccess(false);
+    } catch {
+      setError(t('channels.checkIn.photoUploadError', "Échec de l'envoi de la photo"));
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }, [propertyId, t]);
+
+  const handleRemovePhoto = useCallback((key: string) => {
+    setAccessPhotos((prev) => prev.filter((p) => p.key !== key));
+    setDirty(true);
+    setSuccess(false);
+  }, []);
+
+  const handlePhotoCaption = useCallback((key: string, caption: string) => {
+    setAccessPhotos((prev) => prev.map((p) => (p.key === key ? { ...p, caption } : p)));
+    setDirty(true);
+    setSuccess(false);
+  }, []);
 
   const handleCopy = useCallback((field: string, value: string | null) => {
     if (!value) return;
@@ -463,6 +534,69 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             placeholder={t('channels.checkIn.arrivalPlaceholder')}
           />
         </SectionCard>
+
+        {/* Photos d'accès */}
+        <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+          <SectionCard
+            icon={<PhotoIcon />}
+            accentColor="#8b5cf6"
+            title={t('channels.checkIn.accessPhotosSection', "Photos d'accès")}
+            description={t('channels.checkIn.accessPhotosDesc', 'Aidez le voyageur à trouver et accéder au logement (entrée, parcours, boîte à clés…)')}
+            filledCount={accessPhotos.length > 0 ? 1 : 0}
+            totalCount={1}
+          >
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+              {accessPhotos.map((p) => (
+                <Box key={p.key} sx={{ width: 140 }}>
+                  <Box sx={{ position: 'relative', width: 140, height: 100, borderRadius: 1.5, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
+                    <Box
+                      component="img"
+                      src={p.preview ?? `/api/properties/${propertyId}/check-in-instructions/access-photos?key=${encodeURIComponent(p.key)}`}
+                      alt={p.caption || 'photo'}
+                      sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={() => handleRemovePhoto(p.key)}
+                      aria-label={t('common.delete', 'Supprimer')}
+                      sx={{ position: 'absolute', top: 2, right: 2, p: 0.25, bgcolor: 'rgba(0,0,0,0.55)', color: '#fff', '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' } }}
+                    >
+                      <CloseIcon size={14} strokeWidth={2} />
+                    </IconButton>
+                  </Box>
+                  <TextField
+                    value={p.caption}
+                    onChange={(e) => handlePhotoCaption(p.key, e.target.value)}
+                    size="small"
+                    fullWidth
+                    variant="standard"
+                    placeholder={t('channels.checkIn.photoCaption', 'Légende…')}
+                    sx={{ mt: 0.5, '& .MuiInputBase-input': { fontSize: '0.75rem' } }}
+                  />
+                </Box>
+              ))}
+              <Button
+                component="label"
+                variant="outlined"
+                disabled={uploadingPhoto}
+                sx={{ width: 140, height: 100, flexDirection: 'column', gap: 0.5, textTransform: 'none', fontSize: '0.75rem', borderStyle: 'dashed', color: 'text.secondary' }}
+              >
+                {uploadingPhoto ? <CircularProgress size={18} /> : <PhotoIcon size={20} strokeWidth={1.75} />}
+                {t('channels.checkIn.addPhoto', 'Ajouter')}
+                <input
+                  hidden
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleAddPhoto(file);
+                    e.target.value = '';
+                  }}
+                />
+              </Button>
+            </Box>
+          </SectionCard>
+        </Box>
 
         {/* Départ */}
         <SectionCard

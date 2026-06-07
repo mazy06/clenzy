@@ -1999,3 +1999,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Photos d'indication d'accès (check_in_instructions.arrival_photos).
+  - changeSet:
+      id: "0205-add-arrival-photos-to-checkin-instructions"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0205__add_arrival_photos_to_checkin_instructions.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
