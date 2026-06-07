@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
@@ -14,6 +14,7 @@ import {
   DialogTitle,
   FormControlLabel,
   IconButton,
+  InputAdornment,
   MenuItem,
   Snackbar,
   Stack,
@@ -31,6 +32,7 @@ import { usePropertiesList } from '../../hooks/usePropertiesList';
 import { softChipSx, semanticToHex } from '../../utils/statusUtils';
 import { upsellApi, type UpsellOffer, type UpsellOrder } from '../../services/api/upsellApi';
 import { activitiesApi } from '../../services/api/activitiesApi';
+import { monetizationConfigApi } from '../../services/api/monetizationConfigApi';
 
 const TYPE_FALLBACK: Record<string, string> = {
   EARLY_CHECKIN: 'Arrivée anticipée',
@@ -102,6 +104,36 @@ const UpsellsAdmin: React.FC = () => {
     queryKey: ['activity-commission-summary'],
     queryFn: () => activitiesApi.commissionSummary(),
   });
+
+  // Commission org/conciergerie (éditable par l'org) — la commission plateforme est en lecture seule.
+  const { data: monetConfig, refetch: refetchMonet } = useQuery({
+    queryKey: ['monetization-config'],
+    queryFn: () => monetizationConfigApi.get(),
+  });
+  const [orgUpsellPct, setOrgUpsellPct] = useState('');
+  const [orgActivityPct, setOrgActivityPct] = useState('');
+  const [savingOrg, setSavingOrg] = useState(false);
+  useEffect(() => {
+    if (monetConfig) {
+      setOrgUpsellPct(String(monetConfig.upsellOrgCommissionPct ?? 0));
+      setOrgActivityPct(String(monetConfig.activityOrgCommissionPct ?? 0));
+    }
+  }, [monetConfig]);
+  const saveOrgCommission = async () => {
+    setSavingOrg(true);
+    try {
+      await monetizationConfigApi.updateOrg({
+        upsellOrgCommissionPct: parseFloat(orgUpsellPct) || 0,
+        activityOrgCommissionPct: parseFloat(orgActivityPct) || 0,
+      });
+      await refetchMonet();
+      notify(t('upsells.orgCommission.saved', 'Commission enregistrée'));
+    } catch {
+      notify(t('upsells.messages.error', 'Une erreur est survenue'), 'error');
+    } finally {
+      setSavingOrg(false);
+    }
+  };
 
   const typeLabel = (id: string) => t(`upsells.types.${id}`, TYPE_FALLBACK[id] ?? id);
   const fmtMoney = (amount: number | null, currency: string) =>
@@ -217,6 +249,53 @@ const UpsellsAdmin: React.FC = () => {
               <Typography variant="caption" color="text.secondary">
                 {commissionSummary.count} {t('upsells.commissions.bookings', 'réservation(s)')}
               </Typography>
+            </Box>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {monetConfig ? (
+        <Card variant="outlined" sx={{ mb: 2 }}>
+          <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {t('upsells.orgCommission.title', 'Ma commission (conciergerie)')}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+              {t('upsells.orgCommission.note', 'Votre part sur le reste après la commission plateforme. Le propriétaire reçoit le solde.')}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+              {t('upsells.orgCommission.platformInfo', 'Commission plateforme (fixée par la plateforme)')} : {monetConfig.upsellPlatformFeePct}% · {monetConfig.activityPlatformCommissionPct}%
+            </Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+              <TextField
+                type="number"
+                size="small"
+                fullWidth
+                label={t('upsells.orgCommission.upsell', 'Ma part (upsells)')}
+                value={orgUpsellPct}
+                onChange={(e) => setOrgUpsellPct(e.target.value)}
+                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment>, inputProps: { min: 0, max: 100, step: 0.5 } }}
+              />
+              <TextField
+                type="number"
+                size="small"
+                fullWidth
+                label={t('upsells.orgCommission.activity', 'Ma part (activités)')}
+                value={orgActivityPct}
+                onChange={(e) => setOrgActivityPct(e.target.value)}
+                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment>, inputProps: { min: 0, max: 100, step: 0.5 } }}
+              />
+            </Stack>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.25 }}>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={savingOrg ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
+                disabled={savingOrg}
+                onClick={saveOrgCommission}
+              >
+                {t('upsells.actions.save', 'Enregistrer')}
+              </Button>
             </Box>
           </CardContent>
         </Card>

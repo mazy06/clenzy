@@ -1,6 +1,5 @@
 package com.clenzy.service;
 
-import com.clenzy.config.ActivityCommissionConfig;
 import com.clenzy.dto.ActivityCommissionDto;
 import com.clenzy.dto.ActivityCommissionSummaryDto;
 import com.clenzy.model.*;
@@ -29,14 +28,17 @@ class ActivityCommissionServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private WalletService walletService;
     @Mock private LedgerService ledgerService;
+    @Mock private MonetizationConfigService monetizationConfigService;
 
     private ActivityCommissionService service() {
         return new ActivityCommissionService(
-            commissionRepository, new ActivityCommissionConfig(), reservationRepository, walletService, ledgerService);
+            commissionRepository, monetizationConfigService, reservationRepository, walletService, ledgerService);
     }
 
     @Test
     void record_computesSplit_andCreditsHostShare() {
+        when(monetizationConfigService.getEffectiveActivityPlatformCommissionPct(1L)).thenReturn(new BigDecimal("30"));
+        when(monetizationConfigService.getEffectiveActivityOrgCommissionPct(1L)).thenReturn(BigDecimal.ZERO);
         when(commissionRepository.save(any())).thenAnswer(inv -> {
             ActivityCommission c = inv.getArgument(0);
             c.setId(1L);
