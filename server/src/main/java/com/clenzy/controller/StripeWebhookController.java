@@ -8,6 +8,7 @@ import com.clenzy.service.ShopService;
 import com.clenzy.service.StripeConnectService;
 import com.clenzy.service.StripeService;
 import com.clenzy.service.SubscriptionService;
+import com.clenzy.service.UpsellService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.Stripe;
@@ -45,6 +46,7 @@ public class StripeWebhookController {
     private final StripeConnectService stripeConnectService;
     private final ShopService shopService;
     private final PublicBookingService publicBookingService;
+    private final UpsellService upsellService;
 
     @Value("${stripe.webhook-secret}")
     private String webhookSecret;
@@ -59,7 +61,8 @@ public class StripeWebhookController {
                                    PaymentOrchestrationService orchestrationService,
                                    StripeConnectService stripeConnectService,
                                    ShopService shopService,
-                                   PublicBookingService publicBookingService) {
+                                   PublicBookingService publicBookingService,
+                                   UpsellService upsellService) {
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
         this.subscriptionService = subscriptionService;
@@ -68,6 +71,7 @@ public class StripeWebhookController {
         this.stripeConnectService = stripeConnectService;
         this.shopService = shopService;
         this.publicBookingService = publicBookingService;
+        this.upsellService = upsellService;
     }
 
     /**
@@ -279,6 +283,14 @@ public class StripeWebhookController {
                 stripeService.confirmServiceRequestPayment(sessionId);
             } catch (Exception e) {
                 logger.error("Erreur lors de la confirmation du paiement SR pour session: {}", sessionId, e);
+            }
+        } else if ("upsell".equals(type)) {
+            // Paiement d'un upsell du livret (early check-in, ménage, transfert…)
+            logger.info("Paiement upsell reussi pour session: {}", sessionId);
+            try {
+                upsellService.markPaidBySession(sessionId);
+            } catch (Exception e) {
+                logger.error("Erreur lors de la confirmation du paiement upsell pour session: {}", sessionId, e);
             }
         } else {
             // Paiement d'intervention — paiement unique (flux existant)

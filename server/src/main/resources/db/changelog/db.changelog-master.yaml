@@ -1969,3 +1969,23 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Upsells payants du livret (upsell_offers + upsell_orders).
+  - changeSet:
+      id: "0202-create-upsell-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0202__create_upsell_tables.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Commissions d'activités affiliées (activity_commissions).
+  - changeSet:
+      id: "0203-create-activity-commissions"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0203__create_activity_commissions.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

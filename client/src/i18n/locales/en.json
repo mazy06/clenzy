@@ -4,9 +4,80 @@
     "title": "Booking & welcome",
     "subtitleWelcomeGuide": "The digital welcome guide for your guests",
     "subtitleBookingEngine": "Configure your direct booking engine",
+    "subtitleUpsells": "Sell add-on services to your guests",
     "tabs": {
       "welcomeGuide": "Welcome guide",
+      "upsells": "Paid services",
       "bookingEngine": "Booking Engine"
+    }
+  },
+  "upsells": {
+    "intro": "Offer paid services to your guests (early check-in, cleaning, transfer…). Payment happens from the guide; your share is paid out via your usual payouts (the platform takes a commission).",
+    "allProperties": "All properties",
+    "active": "Active",
+    "inactive": "Inactive",
+    "actions": {
+      "new": "New service",
+      "orders": "Sales",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "close": "Close"
+    },
+    "fields": {
+      "type": "Category",
+      "title": "Title",
+      "price": "Price",
+      "currency": "Currency",
+      "property": "Property",
+      "description": "Description (optional)",
+      "imageUrl": "Image URL (optional)",
+      "active": "Service active (shown on the guide)"
+    },
+    "form": {
+      "createTitle": "New service",
+      "editTitle": "Edit service"
+    },
+    "messages": {
+      "titleRequired": "Title is required",
+      "priceRequired": "Price must be greater than 0",
+      "created": "Service created",
+      "updated": "Service updated",
+      "deleted": "Service deleted",
+      "error": "Something went wrong",
+      "confirmDelete": "Delete this service?"
+    },
+    "empty": {
+      "title": "No paid service",
+      "description": "Create your first add-on service to offer to guests."
+    },
+    "orders": {
+      "title": "Service sales",
+      "empty": "No sale yet.",
+      "yourShare": "your share"
+    },
+    "types": {
+      "EARLY_CHECKIN": "Early check-in",
+      "LATE_CHECKOUT": "Late check-out",
+      "CLEANING": "Cleaning",
+      "TRANSFER": "Transfer",
+      "BREAKFAST": "Breakfast",
+      "PARKING": "Parking",
+      "EQUIPMENT": "Equipment",
+      "EXPERIENCE": "Experience",
+      "OTHER": "Other"
+    },
+    "status": {
+      "PENDING": "Pending",
+      "PAID": "Paid",
+      "CANCELLED": "Cancelled",
+      "REFUNDED": "Refunded"
+    },
+    "commissions": {
+      "title": "Activity commissions",
+      "note": "Your share of activity bookings, paid out via your usual payouts. Active once an activity provider is connected.",
+      "bookings": "booking(s)"
     }
   },
   "welcomeGuide": {
@@ -110,7 +181,12 @@
       "note": "Note (optional)",
       "located": "Location found",
       "queryTooShort": "Enter a name or address to locate",
-      "notFound": "Place not found — refine the address"
+      "notFound": "Place not found — refine the address",
+      "suggest": "Suggest",
+      "suggestTitle": "Suggestions around the property",
+      "suggestAdd": "Add",
+      "suggestEmpty": "No suggestion found around the property.",
+      "suggestSaveFirst": "Save the guide first to suggest places"
     },
     "curation": {
       "title": "Activities to offer",

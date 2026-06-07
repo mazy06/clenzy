@@ -36,13 +36,14 @@ class WelcomeGuideControllerTest {
     @Mock private WelcomeGuideService guideService;
     @Mock private com.clenzy.service.WelcomeGuideEntryService entryService;
     @Mock private com.clenzy.service.WelcomeGuideAnalyticsService analyticsService;
+    @Mock private com.clenzy.service.PoiSuggestionService poiSuggestionService;
     @Mock private TenantContext tenantContext;
 
     private WelcomeGuideController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new WelcomeGuideController(guideService, entryService, analyticsService, tenantContext);
+        controller = new WelcomeGuideController(guideService, entryService, analyticsService, poiSuggestionService, tenantContext);
     }
 
     private WelcomeGuide guide(Long id) {

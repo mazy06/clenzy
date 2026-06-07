@@ -4,9 +4,80 @@
     "title": "Réservation & accueil",
     "subtitleWelcomeGuide": "Le livret d'accueil numérique de vos voyageurs",
     "subtitleBookingEngine": "Configurez votre moteur de réservation directe",
+    "subtitleUpsells": "Vendez des services additionnels à vos voyageurs",
     "tabs": {
       "welcomeGuide": "Livret d'accueil",
+      "upsells": "Services payants",
       "bookingEngine": "Booking Engine"
+    }
+  },
+  "upsells": {
+    "intro": "Proposez des services payants à vos voyageurs (arrivée anticipée, ménage, transfert…). Le paiement se fait depuis le livret ; votre part est reversée via vos paiements habituels (la plateforme prélève une commission).",
+    "allProperties": "Toutes les propriétés",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "actions": {
+      "new": "Nouveau service",
+      "orders": "Ventes",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "close": "Fermer"
+    },
+    "fields": {
+      "type": "Catégorie",
+      "title": "Titre",
+      "price": "Prix",
+      "currency": "Devise",
+      "property": "Propriété",
+      "description": "Description (optionnel)",
+      "imageUrl": "URL de l'image (optionnel)",
+      "active": "Service actif (visible sur le livret)"
+    },
+    "form": {
+      "createTitle": "Nouveau service",
+      "editTitle": "Modifier le service"
+    },
+    "messages": {
+      "titleRequired": "Le titre est obligatoire",
+      "priceRequired": "Le prix doit être supérieur à 0",
+      "created": "Service créé",
+      "updated": "Service mis à jour",
+      "deleted": "Service supprimé",
+      "error": "Une erreur est survenue",
+      "confirmDelete": "Supprimer ce service ?"
+    },
+    "empty": {
+      "title": "Aucun service payant",
+      "description": "Créez votre premier service additionnel à proposer aux voyageurs."
+    },
+    "orders": {
+      "title": "Ventes de services",
+      "empty": "Aucune vente pour le moment.",
+      "yourShare": "votre part"
+    },
+    "types": {
+      "EARLY_CHECKIN": "Arrivée anticipée",
+      "LATE_CHECKOUT": "Départ tardif",
+      "CLEANING": "Ménage",
+      "TRANSFER": "Transfert",
+      "BREAKFAST": "Petit-déjeuner",
+      "PARKING": "Parking",
+      "EQUIPMENT": "Équipement",
+      "EXPERIENCE": "Expérience",
+      "OTHER": "Autre"
+    },
+    "status": {
+      "PENDING": "En attente",
+      "PAID": "Payé",
+      "CANCELLED": "Annulé",
+      "REFUNDED": "Remboursé"
+    },
+    "commissions": {
+      "title": "Commissions activités",
+      "note": "Votre part sur les réservations d'activités, reversée via vos paiements. Active dès qu'un fournisseur d'activités est connecté.",
+      "bookings": "réservation(s)"
     }
   },
   "welcomeGuide": {
@@ -110,7 +181,12 @@
       "note": "Note (optionnel)",
       "located": "Position trouvée",
       "queryTooShort": "Renseignez un nom ou une adresse à localiser",
-      "notFound": "Lieu introuvable — précisez l'adresse"
+      "notFound": "Lieu introuvable — précisez l'adresse",
+      "suggest": "Suggérer",
+      "suggestTitle": "Suggestions autour du logement",
+      "suggestAdd": "Ajouter",
+      "suggestEmpty": "Aucune suggestion trouvée autour du logement.",
+      "suggestSaveFirst": "Enregistrez d'abord le livret pour suggérer des lieux"
     },
     "curation": {
       "title": "Activités à proposer",
