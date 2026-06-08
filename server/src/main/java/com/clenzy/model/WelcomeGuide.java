@@ -45,6 +45,33 @@ public class WelcomeGuide {
     @Column(name = "branding_color", length = 7)
     private String brandingColor = "#2563EB";
 
+    /**
+     * Theme visuel du livret cote guest (identite chaude "welcome book") :
+     * atelier (defaut), noir, jardin, azur, corail, brume, minuit. Pilote l'apparence
+     * via un swap de variables CSS — supplante {@code brandingColor} (conserve pour
+     * retro-compat) comme controle visuel principal.
+     */
+    @Column(length = 20, nullable = false)
+    private String theme = "atelier";
+
+    /**
+     * Photos de couverture (hero) du livret : JSON array d'ids de {@link PropertyPhoto}
+     * du logement, choisies par l'hote parmi les photos existantes. Affichees en
+     * carrousel cote guest. Pass-through JSONB (comme pois/sections). Pas de FK (souple).
+     * Vide ('[]') = degrade teinte par le theme.
+     */
+    @Column(name = "hero_photo_ids", columnDefinition = "JSONB", nullable = false)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    private String heroPhotoIds = "[]";
+
+    /** Mot d'accueil personnel de l'hote, affiche en serif italique sous le hero (nullable). */
+    @Column(name = "welcome_message", columnDefinition = "TEXT")
+    private String welcomeMessage;
+
+    /** Signature de la note d'accueil (ex: "Camille & Antoine"), affichee au-dessus du message. */
+    @Column(name = "host_names", length = 200)
+    private String hostNames;
+
     @Column(name = "logo_url", length = 1000)
     private String logoUrl;
 
@@ -86,6 +113,14 @@ public class WelcomeGuide {
     public void setCuratedActivities(String curatedActivities) { this.curatedActivities = curatedActivities; }
     public String getBrandingColor() { return brandingColor; }
     public void setBrandingColor(String brandingColor) { this.brandingColor = brandingColor; }
+    public String getTheme() { return theme; }
+    public void setTheme(String theme) { this.theme = theme; }
+    public String getHeroPhotoIds() { return heroPhotoIds; }
+    public void setHeroPhotoIds(String heroPhotoIds) { this.heroPhotoIds = heroPhotoIds; }
+    public String getWelcomeMessage() { return welcomeMessage; }
+    public void setWelcomeMessage(String welcomeMessage) { this.welcomeMessage = welcomeMessage; }
+    public String getHostNames() { return hostNames; }
+    public void setHostNames(String hostNames) { this.hostNames = hostNames; }
     public String getLogoUrl() { return logoUrl; }
     public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
     public boolean isPublished() { return published; }

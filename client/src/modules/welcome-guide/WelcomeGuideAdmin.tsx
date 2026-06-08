@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Box,
@@ -25,8 +25,23 @@ import {
   Typography,
 } from '@mui/material';
 import type { AlertColor } from '@mui/material';
-import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew, Info } from '../../icons';
-import { MessageSquare, Star, BarChart3, Eye, MapPin, MessageCircle, DoorOpen, Sparkles } from 'lucide-react';
+import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew } from '../../icons';
+import {
+  MessageSquare,
+  Star,
+  BarChart3,
+  Eye,
+  MapPin,
+  MessageCircle,
+  DoorOpen,
+  Sparkles,
+  Check,
+  Image as ImageIcon,
+  FileText,
+  Ticket,
+  Globe,
+  Quote,
+} from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -40,8 +55,11 @@ import {
   serializePois,
   parseActivities,
   serializeActivities,
+  parseHeroPhotoIds,
   type WelcomeGuide,
   type GuideSection,
+  type GuideSectionItem,
+  type GuideSectionLayout,
   type GuidePoi,
   type GuideActivity,
   type GuestbookEntry,
@@ -50,13 +68,67 @@ import {
 } from '../../services/api/welcomeGuideApi';
 import { POI_CATEGORIES, poiCategory, poiLabel } from './poiCatalog';
 import { nominatimApi } from '../../services/nominatimApi';
+import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
+import WelcomeBookView, { type Lang, type WelcomeBookModel } from './WelcomeBookView';
+import { WELCOME_BOOK_THEMES, themeAccent } from './welcomeBookThemes';
+import { GUIDE_LABELS } from './guideLabels';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import { SectionHeading, EmptyHint, ToggleRow } from './formPrimitives';
+import {
+  templateWelcomeMessage,
+  buildTemplateSections,
+  buildTemplatePois,
+  buildTemplateActivities,
+} from './guideTemplate';
+import { guideIcon, GUIDE_ICON_OPTIONS } from './guideIcons';
 
 type View = 'list' | 'form';
 
 const LANGUAGES = ['fr', 'en', 'ar'] as const;
 const DEFAULT_COLOR = '#6B8A9A';
+const DEFAULT_THEME = 'atelier';
 
-const newSection = (): GuideSection => ({ id: `s-${Date.now()}`, title: '', body: '' });
+const SECTION_LAYOUT_OPTIONS: GuideSectionLayout[] = ['text', 'steps', 'rules', 'list'];
+
+const newSection = (): GuideSection => ({
+  id: `s-${Date.now()}`,
+  icon: 'file-text',
+  title: '',
+  subtitle: '',
+  layout: 'text',
+  body: '',
+  items: [],
+});
+
+const newSectionItem = (): GuideSectionItem => ({ id: `it-${Date.now()}`, icon: 'sparkles', label: '', detail: '', steps: [] });
+
+/** Sélecteur d'icône lucide compact (aperçu + nom). */
+const IconSelect: React.FC<{ value: string; onChange: (v: string) => void; label?: string }> = ({ value, onChange, label }) => (
+  <TextField
+    select
+    size="small"
+    label={label}
+    value={GUIDE_ICON_OPTIONS.includes(value) ? value : ''}
+    onChange={(e) => onChange(e.target.value)}
+    sx={{ width: 76, '& .MuiSelect-select': { display: 'flex', alignItems: 'center', justifyContent: 'center', py: 1 } }}
+    SelectProps={{
+      renderValue: (v) => {
+        const Icon = guideIcon(v as string);
+        return <Icon size={18} strokeWidth={1.75} />;
+      },
+      MenuProps: { PaperProps: { sx: { maxHeight: 320 } } },
+    }}
+  >
+    {GUIDE_ICON_OPTIONS.map((name) => {
+      const Icon = guideIcon(name);
+      return (
+        <MenuItem key={name} value={name}>
+          <Icon size={18} strokeWidth={1.75} style={{ marginRight: 10 }} /> {name}
+        </MenuItem>
+      );
+    })}
+  </TextField>
+);
 
 const WelcomeGuideAdmin: React.FC = () => {
   const { t, currentLanguage } = useTranslation();
@@ -76,6 +148,14 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState<string>('fr');
   const [brandingColor, setBrandingColor] = useState<string>(DEFAULT_COLOR);
+  const [theme, setTheme] = useState<string>(DEFAULT_THEME);
+  // Photos de couverture (carrousel) : liste d'ids de PropertyPhoto sélectionnées.
+  const [heroPhotoIds, setHeroPhotoIds] = useState<number[]>([]);
+  // Distingue « choix explicite de l'hôte » de « pas encore choisi » : tant que false,
+  // toutes les photos du logement sont sélectionnées par défaut quand elles arrivent.
+  const [heroTouched, setHeroTouched] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState('');
+  const [hostNames, setHostNames] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [published, setPublished] = useState(false);
   const [chatbotEnabled, setChatbotEnabled] = useState(true);
@@ -85,6 +165,27 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [pois, setPois] = useState<GuidePoi[]>([]);
   const [geocoding, setGeocoding] = useState<string | null>(null);
   const [curatedActivities, setCuratedActivities] = useState<GuideActivity[]>([]);
+
+  // Photos du logement : grille du sélecteur de photo de couverture (hero).
+  const { data: propertyPhotos = [] } = useQuery({
+    queryKey: ['property-photos', propertyId],
+    queryFn: () => propertyPhotosApi.list(Number(propertyId)),
+    enabled: view === 'form' && !!propertyId,
+  });
+
+  // Données réelles du logement (adresse, wifi, digicode, horaires) → aperçu live fidèle.
+  const { data: previewData } = useQuery({
+    queryKey: ['guide-preview-data', propertyId],
+    queryFn: () => welcomeGuideApi.propertyPreview(Number(propertyId)),
+    enabled: view === 'form' && !!propertyId,
+  });
+
+  // Hero par défaut = toutes les photos du logement, tant que l'hôte n'a pas choisi.
+  useEffect(() => {
+    if (!heroTouched && heroPhotoIds.length === 0 && propertyPhotos.length > 0) {
+      setHeroPhotoIds(propertyPhotos.map((ph) => ph.id));
+    }
+  }, [propertyPhotos, heroTouched, heroPhotoIds.length]);
   const [suggest, setSuggest] = useState<{ open: boolean; loading: boolean; items: PoiSuggestion[]; selected: Set<number> }>({
     open: false,
     loading: false,
@@ -120,19 +221,27 @@ const WelcomeGuideAdmin: React.FC = () => {
     setSnackbar({ open: true, message, severity });
 
   const openCreate = () => {
+    // Nouveau livret pré-rempli avec un modèle riche (template Baitly) que l'hôte
+    // personnalise, complète ou supprime ensuite. Langue par défaut = fr.
+    const tplLang = 'fr';
     setEditingId(null);
     setPropertyId('');
     setTitle('');
-    setLanguage('fr');
+    setLanguage(tplLang);
     setBrandingColor(DEFAULT_COLOR);
+    setTheme(DEFAULT_THEME);
+    setHeroPhotoIds([]);
+    setHeroTouched(false);
+    setWelcomeMessage(templateWelcomeMessage(tplLang));
+    setHostNames('');
     setLogoUrl('');
     setPublished(false);
     setChatbotEnabled(true);
     setGuestbookEnabled(true);
     setActivitiesEnabled(true);
-    setSections([]);
-    setPois([]);
-    setCuratedActivities([]);
+    setSections(buildTemplateSections(tplLang));
+    setPois(buildTemplatePois(tplLang));
+    setCuratedActivities(buildTemplateActivities(tplLang));
     setView('form');
   };
 
@@ -142,6 +251,11 @@ const WelcomeGuideAdmin: React.FC = () => {
     setTitle(g.title);
     setLanguage(g.language || 'fr');
     setBrandingColor(g.brandingColor || DEFAULT_COLOR);
+    setTheme(g.theme || DEFAULT_THEME);
+    setHeroPhotoIds(parseHeroPhotoIds(g.heroPhotoIds));
+    setHeroTouched(true); // édition : on respecte la sélection sauvegardée (pas d'auto-défaut)
+    setWelcomeMessage(g.welcomeMessage || '');
+    setHostNames(g.hostNames || '');
     setLogoUrl(g.logoUrl || '');
     setPublished(g.published);
     setChatbotEnabled(g.chatbotEnabled);
@@ -172,6 +286,10 @@ const WelcomeGuideAdmin: React.FC = () => {
         pois: serializePois(pois),
         curatedActivities: serializeActivities(curatedActivities),
         brandingColor,
+        theme,
+        heroPhotoIds: JSON.stringify(heroPhotoIds),
+        welcomeMessage: welcomeMessage.trim() || null,
+        hostNames: hostNames.trim() || null,
         logoUrl: logoUrl.trim() || null,
         published,
         chatbotEnabled,
@@ -249,15 +367,23 @@ const WelcomeGuideAdmin: React.FC = () => {
 
   // ─── Section editor handlers ───────────────────────────────────────────────
   const addSection = () => setSections((prev) => [...prev, newSection()]);
-  const updateSection = (idx: number, field: 'title' | 'body', value: string) =>
-    setSections((prev) => prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s)));
+  const updateSection = (idx: number, patch: Partial<GuideSection>) =>
+    setSections((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
   const removeSection = (idx: number) => setSections((prev) => prev.filter((_, i) => i !== idx));
+  const addSectionItem = (sIdx: number) =>
+    setSections((prev) => prev.map((s, i) => (i === sIdx ? { ...s, items: [...s.items, newSectionItem()] } : s)));
+  const updateSectionItem = (sIdx: number, iIdx: number, patch: Partial<GuideSectionItem>) =>
+    setSections((prev) =>
+      prev.map((s, i) => (i === sIdx ? { ...s, items: s.items.map((it, j) => (j === iIdx ? { ...it, ...patch } : it)) } : s)),
+    );
+  const removeSectionItem = (sIdx: number, iIdx: number) =>
+    setSections((prev) => prev.map((s, i) => (i === sIdx ? { ...s, items: s.items.filter((_, j) => j !== iIdx) } : s)));
 
   // ─── POI editor handlers ("autour de moi") ─────────────────────────────────
   const addPoi = () =>
     setPois((prev) => [
       ...prev,
-      { id: `poi-${Date.now()}`, category: 'RESTAURANT', name: '', address: '', lat: null, lng: null, note: '' },
+      { id: `poi-${Date.now()}`, category: 'RESTAURANT', name: '', type: '', address: '', lat: null, lng: null, note: '', featured: false },
     ]);
   const updatePoi = (idx: number, patch: Partial<GuidePoi>) =>
     setPois((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
@@ -319,10 +445,12 @@ const WelcomeGuideAdmin: React.FC = () => {
           id: `poi-${Date.now()}-${i}`,
           category: sug.category,
           name: sug.name,
+          type: '',
           address: sug.address ?? '',
           lat: sug.lat,
           lng: sug.lng,
           note: '',
+          featured: false,
         })),
     ]);
     setSuggest({ open: false, loading: false, items: [], selected: new Set() });
@@ -338,30 +466,29 @@ const WelcomeGuideAdmin: React.FC = () => {
     setCuratedActivities((prev) => prev.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
   const removeActivity = (idx: number) => setCuratedActivities((prev) => prev.filter((_, i) => i !== idx));
 
-  // ─── Render: toolbar ───────────────────────────────────────────────────────
-  const toolbar = (
-    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 2 }}>
-      {view === 'list' ? (
-        <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={openCreate}>
-          {t('welcomeGuide.actions.new', 'Nouveau livret')}
+  // ─── Actions portées dans le PageHeader (slot multi-tabs partagé) ───────────
+  // Liste → « Nouveau livret » ; formulaire → « Annuler » + « Enregistrer ».
+  const headerActions = usePageHeaderActions(
+    view === 'list' ? (
+      <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={openCreate}>
+        {t('welcomeGuide.actions.new', 'Nouveau livret')}
+      </Button>
+    ) : (
+      <>
+        <Button variant="text" size="small" onClick={() => setView('list')}>
+          {t('welcomeGuide.actions.cancel', 'Annuler')}
         </Button>
-      ) : (
-        <>
-          <Button variant="text" size="small" onClick={() => setView('list')}>
-            {t('welcomeGuide.actions.cancel', 'Annuler')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {t('welcomeGuide.actions.save', 'Enregistrer')}
-          </Button>
-        </>
-      )}
-    </Box>
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {t('welcomeGuide.actions.save', 'Enregistrer')}
+        </Button>
+      </>
+    ),
   );
 
   // ─── Render: list ──────────────────────────────────────────────────────────
@@ -403,7 +530,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                   alignSelf: 'stretch',
                   minHeight: 36,
                   borderRadius: 1,
-                  bgcolor: g.brandingColor || DEFAULT_COLOR,
+                  bgcolor: themeAccent(g.theme),
                 }}
               />
               <Box sx={{ flex: 1, minWidth: 200 }}>
@@ -459,21 +586,57 @@ const WelcomeGuideAdmin: React.FC = () => {
     );
   };
 
+  // ─── Aperçu live : view-model depuis l'état du formulaire ───────────────────
+  // Les champs auto-remplis côté serveur (wifi, digicode, dates) sont représentés
+  // par des échantillons pour donner un aperçu réaliste au voyageur.
+  const previewLang: Lang = (LANGUAGES as readonly string[]).includes(language) ? (language as Lang) : 'fr';
+  const previewProperty = properties.find((p) => String(p.id) === propertyId);
+  const previewHeroImages = propertyId
+    ? heroPhotoIds.map((id) => propertyPhotosApi.getPhotoUrl(Number(propertyId), id))
+    : [];
+  const previewModel: WelcomeBookModel = {
+    title: title.trim() || previewProperty?.name || t('welcomeGuide.preview.sampleTitle', 'Votre logement'),
+    welcomeMessage: welcomeMessage.trim() || null,
+    hostNames: hostNames.trim() || null,
+    logoUrl: logoUrl.trim() || null,
+    // Vraies données du logement sélectionné (adresse, wifi, digicode, horaires par défaut),
+    // chargées via l'API — l'aperçu reflète exactement ce que verra le voyageur.
+    property:
+      previewData?.property ?? {
+        name: previewProperty?.name ?? null,
+        address: null,
+        city: null,
+        postalCode: null,
+        country: null,
+        latitude: null,
+        longitude: null,
+      },
+    practical: previewData?.practical ?? null,
+    stay: previewData?.stay ?? null,
+    checkIn: null,
+    accessPhotos: [],
+    sections,
+    pois,
+    activities: [...curatedActivities].sort((a, b) => Number(b.featured) - Number(a.featured)),
+    upsells: [],
+    guestbookEnabled,
+    activitiesEnabled,
+  };
+
   // ─── Render: form ──────────────────────────────────────────────────────────
   const renderForm = () => (
-    <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
-      <Alert severity="info" icon={<Info size={18} strokeWidth={1.75} />}>
-        {t(
-          'welcomeGuide.form.autofillHint',
-          "Le wifi, le digicode, les règles et les numéros utiles sont remplis automatiquement depuis la fiche du logement (instructions de check-in). Ici, ajoutez le message d'accueil et vos recommandations « autour de moi ».",
-        )}
-      </Alert>
-
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) 392px' }, gap: 3, alignItems: 'start' }}>
+      <Stack spacing={2.5}>
       <TextField
         select
         label={t('welcomeGuide.fields.property', 'Logement')}
         value={propertyId}
-        onChange={(e) => setPropertyId(e.target.value)}
+        onChange={(e) => {
+          setPropertyId(e.target.value);
+          // Nouveau logement → on réinitialise le hero pour reprendre ses photos.
+          setHeroPhotoIds([]);
+          setHeroTouched(false);
+        }}
         disabled={editingId != null}
         fullWidth
         size="small"
@@ -516,15 +679,6 @@ const WelcomeGuideAdmin: React.FC = () => {
         </TextField>
 
         <TextField
-          type="color"
-          label={t('welcomeGuide.fields.brandingColor', 'Couleur')}
-          value={brandingColor}
-          onChange={(e) => setBrandingColor(e.target.value)}
-          size="small"
-          sx={{ width: 120 }}
-        />
-
-        <TextField
           label={t('welcomeGuide.fields.logoUrl', 'URL du logo')}
           value={logoUrl}
           onChange={(e) => setLogoUrl(e.target.value)}
@@ -536,49 +690,302 @@ const WelcomeGuideAdmin: React.FC = () => {
 
       <Divider />
 
+      {/* Message d'accueil de l'hôte : note dédiée (serif italique) affichée sous le hero. */}
       <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            {t('welcomeGuide.form.sectionsTitle', 'Sections du livret')}
-          </Typography>
-          <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addSection}>
-            {t('welcomeGuide.actions.addSection', 'Ajouter une section')}
-          </Button>
+        <SectionHeading
+          icon={<Quote size={17} strokeWidth={1.75} />}
+          title={t('welcomeGuide.welcomeNote.title', "Message d'accueil")}
+        />
+        <Stack spacing={1.5}>
+          <TextField
+            label={t('welcomeGuide.welcomeNote.message', "Mot d'accueil")}
+            value={welcomeMessage}
+            onChange={(e) => setWelcomeMessage(e.target.value)}
+            size="small"
+            fullWidth
+            multiline
+            minRows={2}
+            placeholder={t(
+              'welcomeGuide.welcomeNote.messagePlaceholder',
+              'Bienvenue chez nous. Installez-vous, respirez — tout ce qu’il vous faut pour un séjour parfait est ici.',
+            )}
+          />
+          <TextField
+            label={t('welcomeGuide.welcomeNote.signature', 'Signature (vos noms)')}
+            value={hostNames}
+            onChange={(e) => setHostNames(e.target.value)}
+            size="small"
+            sx={{ maxWidth: 320 }}
+            placeholder={t('welcomeGuide.welcomeNote.signaturePlaceholder', 'ex : Camille & Antoine')}
+          />
+        </Stack>
+      </Box>
+
+      <Divider />
+
+      {/* Thème du livret : carrés de couleur seuls, nom + description en tooltip.
+          Taille fixe → le retour à la ligne s'adapte à la largeur (flex-wrap). */}
+      <Box>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.25 }}>
+          {t('welcomeGuide.themes.sectionTitle', 'Thème du livret')}
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
+          {WELCOME_BOOK_THEMES.map((th) => {
+            const on = theme === th.id;
+            return (
+              <Tooltip
+                key={th.id}
+                arrow
+                title={
+                  <Box sx={{ textAlign: 'center', py: 0.25 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
+                      {t(`welcomeGuide.themes.${th.id}.name`, th.name)}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.85 }}>
+                      {t(`welcomeGuide.themes.${th.id}.desc`, th.desc)}
+                    </Typography>
+                  </Box>
+                }
+              >
+                <Box
+                  role="button"
+                  aria-label={t(`welcomeGuide.themes.${th.id}.name`, th.name)}
+                  onClick={() => setTheme(th.id)}
+                  sx={{
+                    position: 'relative',
+                    flexShrink: 0,
+                    width: 52,
+                    height: 52,
+                    borderRadius: 1.5,
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: on
+                      ? `0 0 0 2px ${DEFAULT_COLOR}, 0 0 0 4px rgba(107,138,154,0.20)`
+                      : 'inset 0 0 0 1px rgba(0,0,0,0.08)',
+                    transition: 'box-shadow .15s',
+                    '&:hover': on ? undefined : { boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.28)' },
+                  }}
+                >
+                  <Box sx={{ flex: 1, bgcolor: th.swatch.bg }} />
+                  <Box sx={{ flex: 1, bgcolor: th.swatch.surface }} />
+                  <Box sx={{ height: 16, bgcolor: th.swatch.accent }} />
+                  {on ? (
+                    <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Box
+                        sx={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: '50%',
+                          bgcolor: 'rgba(255,255,255,0.92)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+                        }}
+                      >
+                        <Check size={14} strokeWidth={2.75} style={{ color: DEFAULT_COLOR }} />
+                      </Box>
+                    </Box>
+                  ) : null}
+                </Box>
+              </Tooltip>
+            );
+          })}
         </Box>
+      </Box>
+
+      <Divider />
+
+      {/* Photo de couverture (hero) : choix parmi les photos du logement */}
+      <Box>
+        <SectionHeading
+          icon={<ImageIcon size={17} strokeWidth={1.75} />}
+          title={t('welcomeGuide.hero.title', 'Photos de couverture')}
+          actions={
+            propertyPhotos.length > 0 ? (
+              <Button
+                size="small"
+                onClick={() => {
+                  setHeroTouched(true);
+                  setHeroPhotoIds(
+                    heroPhotoIds.length === propertyPhotos.length ? [] : propertyPhotos.map((p) => p.id),
+                  );
+                }}
+              >
+                {heroPhotoIds.length === propertyPhotos.length
+                  ? t('welcomeGuide.hero.clearAll', 'Tout retirer')
+                  : t('welcomeGuide.hero.selectAll', 'Tout sélectionner')}
+              </Button>
+            ) : undefined
+          }
+        />
+        {!propertyId ? (
+          <EmptyHint
+            icon={<ImageIcon size={18} strokeWidth={1.75} />}
+            text={t('welcomeGuide.hero.selectPropertyFirst', "Sélectionnez d'abord un logement pour voir ses photos.")}
+          />
+        ) : propertyPhotos.length === 0 ? (
+          <EmptyHint
+            icon={<ImageIcon size={18} strokeWidth={1.75} />}
+            text={t('welcomeGuide.hero.empty', "Ce logement n'a pas encore de photos. Ajoutez-en depuis sa fiche.")}
+          />
+        ) : (
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))', gap: 1 }}>
+            {propertyPhotos.map((ph) => {
+              const on = heroPhotoIds.includes(ph.id);
+              return (
+                <Box
+                  key={ph.id}
+                  onClick={() => {
+                    setHeroTouched(true);
+                    setHeroPhotoIds((prev) =>
+                      prev.includes(ph.id) ? prev.filter((id) => id !== ph.id) : [...prev, ph.id],
+                    );
+                  }}
+                  sx={{
+                    position: 'relative',
+                    aspectRatio: '4 / 3',
+                    borderRadius: 1.5,
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    border: '2px solid',
+                    borderColor: on ? 'primary.main' : 'rgba(0,0,0,0.10)',
+                    transition: 'border-color .15s',
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={propertyPhotosApi.getPhotoUrl(Number(propertyId), ph.id)}
+                    alt={ph.caption || ''}
+                    loading="lazy"
+                    sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                  {on ? (
+                    <Box sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'primary.main', color: '#fff', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Check size={14} strokeWidth={2.5} />
+                    </Box>
+                  ) : null}
+                </Box>
+              );
+            })}
+          </Box>
+        )}
+      </Box>
+
+      <Divider />
+
+      <Box>
+        <SectionHeading
+          icon={<FileText size={17} strokeWidth={1.75} />}
+          title={t('welcomeGuide.form.sectionsTitle', 'Sections du livret')}
+          actions={
+            <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addSection}>
+              {t('welcomeGuide.actions.addSection', 'Ajouter une section')}
+            </Button>
+          }
+        />
 
         {sections.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            {t('welcomeGuide.form.noSection', 'Aucune section. Ajoutez un message d’accueil ou des recommandations.')}
-          </Typography>
+          <EmptyHint
+            icon={<FileText size={18} strokeWidth={1.75} />}
+            text={t('welcomeGuide.form.noSection', 'Aucune section. Ajoutez un message d’accueil ou des recommandations.')}
+          />
         ) : (
           <Stack spacing={1.5}>
             {sections.map((s, idx) => (
               <Card key={s.id} variant="outlined">
                 <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Box sx={{ flex: 1 }}>
-                      <TextField
-                        label={t('welcomeGuide.fields.sectionTitle', 'Titre de la section')}
-                        value={s.title}
-                        onChange={(e) => updateSection(idx, 'title', e.target.value)}
-                        fullWidth
-                        size="small"
-                        sx={{ mb: 1 }}
-                      />
-                      <TextField
-                        label={t('welcomeGuide.fields.sectionBody', 'Contenu')}
-                        value={s.body}
-                        onChange={(e) => updateSection(idx, 'body', e.target.value)}
-                        fullWidth
-                        size="small"
-                        multiline
-                        minRows={2}
-                      />
-                    </Box>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 1, flexWrap: 'wrap' }}>
+                    <IconSelect value={s.icon} onChange={(v) => updateSection(idx, { icon: v })} label={t('welcomeGuide.fields.sectionIcon', 'Icône')} />
+                    <TextField
+                      label={t('welcomeGuide.fields.sectionTitle', 'Titre')}
+                      value={s.title}
+                      onChange={(e) => updateSection(idx, { title: e.target.value })}
+                      size="small"
+                      sx={{ flex: 1, minWidth: 150 }}
+                    />
+                    <TextField
+                      select
+                      label={t('welcomeGuide.fields.sectionLayout', 'Type')}
+                      value={s.layout}
+                      onChange={(e) => updateSection(idx, { layout: e.target.value as GuideSectionLayout })}
+                      size="small"
+                      sx={{ width: 150 }}
+                    >
+                      {SECTION_LAYOUT_OPTIONS.map((l) => (
+                        <MenuItem key={l} value={l}>{t(`welcomeGuide.layouts.${l}`, l)}</MenuItem>
+                      ))}
+                    </TextField>
                     <IconButton size="small" color="error" onClick={() => removeSection(idx)} sx={{ mt: 0.5 }}>
                       <Delete size={16} strokeWidth={1.75} />
                     </IconButton>
                   </Box>
+                  <TextField
+                    label={t('welcomeGuide.fields.sectionSubtitle', 'Sous-titre (liste de navigation)')}
+                    value={s.subtitle}
+                    onChange={(e) => updateSection(idx, { subtitle: e.target.value })}
+                    fullWidth
+                    size="small"
+                    sx={{ mb: 1.25 }}
+                  />
+                  {s.layout === 'text' ? (
+                    <TextField
+                      label={t('welcomeGuide.fields.sectionBody', 'Contenu')}
+                      value={s.body}
+                      onChange={(e) => updateSection(idx, { body: e.target.value })}
+                      fullWidth
+                      size="small"
+                      multiline
+                      minRows={3}
+                    />
+                  ) : (
+                    <Box>
+                      {s.items.map((item, iIdx) => (
+                        <Box key={item.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 1, p: 1, borderRadius: 1.5, bgcolor: 'action.hover' }}>
+                          <IconSelect value={item.icon} onChange={(v) => updateSectionItem(idx, iIdx, { icon: v })} />
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <TextField
+                              label={t('welcomeGuide.sectionItems.label', 'Intitulé')}
+                              value={item.label}
+                              onChange={(e) => updateSectionItem(idx, iIdx, { label: e.target.value })}
+                              fullWidth
+                              size="small"
+                            />
+                            {s.layout === 'list' ? (
+                              <TextField
+                                label={t('welcomeGuide.sectionItems.detail', 'Détail')}
+                                value={item.detail}
+                                onChange={(e) => updateSectionItem(idx, iIdx, { detail: e.target.value })}
+                                fullWidth
+                                size="small"
+                                sx={{ mt: 1 }}
+                              />
+                            ) : null}
+                            {s.layout === 'steps' ? (
+                              <TextField
+                                label={t('welcomeGuide.sectionItems.steps', 'Étapes (une par ligne)')}
+                                value={item.steps.join('\n')}
+                                onChange={(e) => updateSectionItem(idx, iIdx, { steps: e.target.value.split('\n') })}
+                                fullWidth
+                                size="small"
+                                multiline
+                                minRows={2}
+                                sx={{ mt: 1 }}
+                              />
+                            ) : null}
+                          </Box>
+                          <IconButton size="small" color="error" onClick={() => removeSectionItem(idx, iIdx)}>
+                            <Delete size={15} strokeWidth={1.75} />
+                          </IconButton>
+                        </Box>
+                      ))}
+                      <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={() => addSectionItem(idx)}>
+                        {t('welcomeGuide.sectionItems.add', 'Ajouter un élément')}
+                      </Button>
+                    </Box>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -589,29 +996,26 @@ const WelcomeGuideAdmin: React.FC = () => {
       <Divider />
 
       <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, gap: 1 }}>
-          <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              {t('welcomeGuide.pois.title', 'Autour de moi')}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {t('welcomeGuide.pois.hint', 'Recommandations géolocalisées affichées sur une carte dans le livret.')}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
-            <Button size="small" startIcon={<Sparkles size={14} strokeWidth={1.75} />} onClick={openSuggest}>
-              {t('welcomeGuide.pois.suggest', 'Suggérer')}
-            </Button>
-            <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addPoi}>
-              {t('welcomeGuide.pois.add', 'Ajouter un lieu')}
-            </Button>
-          </Box>
-        </Box>
+        <SectionHeading
+          icon={<MapPin size={17} strokeWidth={1.75} />}
+          title={t('welcomeGuide.pois.title', 'Autour de moi')}
+          actions={
+            <>
+              <Button size="small" startIcon={<Sparkles size={14} strokeWidth={1.75} />} onClick={openSuggest}>
+                {t('welcomeGuide.pois.suggest', 'Suggérer')}
+              </Button>
+              <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addPoi}>
+                {t('welcomeGuide.pois.add', 'Ajouter un lieu')}
+              </Button>
+            </>
+          }
+        />
 
         {pois.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            {t('welcomeGuide.pois.empty', 'Aucun lieu. Ajoutez vos restaurants, transports et incontournables.')}
-          </Typography>
+          <EmptyHint
+            icon={<MapPin size={18} strokeWidth={1.75} />}
+            text={t('welcomeGuide.pois.empty', 'Aucun lieu. Ajoutez vos restaurants, transports et incontournables.')}
+          />
         ) : (
           <Stack spacing={1.5}>
             {pois.map((p, idx) => (
@@ -669,6 +1073,19 @@ const WelcomeGuideAdmin: React.FC = () => {
                         onChange={(e) => updatePoi(idx, { note: e.target.value })}
                         fullWidth
                       />
+                      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mt: 1, flexWrap: 'wrap' }}>
+                        <TextField
+                          size="small"
+                          label={t('welcomeGuide.pois.type', 'Type (ex : Bistrot)')}
+                          value={p.type}
+                          onChange={(e) => updatePoi(idx, { type: e.target.value })}
+                          sx={{ flex: 1, minWidth: 160 }}
+                        />
+                        <FormControlLabel
+                          control={<Switch size="small" checked={p.featured} onChange={(e) => updatePoi(idx, { featured: e.target.checked })} />}
+                          label={t('welcomeGuide.pois.featured', 'Coup de cœur')}
+                        />
+                      </Box>
                       {p.lat != null && p.lng != null ? (
                         <Typography
                           variant="caption"
@@ -692,24 +1109,21 @@ const WelcomeGuideAdmin: React.FC = () => {
       <Divider />
 
       <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, gap: 1 }}>
-          <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              {t('welcomeGuide.curation.title', 'Activités à proposer')}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {t('welcomeGuide.curation.hint', 'Choisissez les activités à afficher sur le livret et mettez-en certaines en avant.')}
-            </Typography>
-          </Box>
-          <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addActivity}>
-            {t('welcomeGuide.curation.add', 'Ajouter une activité')}
-          </Button>
-        </Box>
+        <SectionHeading
+          icon={<Ticket size={17} strokeWidth={1.75} />}
+          title={t('welcomeGuide.curation.title', 'Activités à proposer')}
+          actions={
+            <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addActivity}>
+              {t('welcomeGuide.curation.add', 'Ajouter une activité')}
+            </Button>
+          }
+        />
 
         {curatedActivities.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            {t('welcomeGuide.curation.empty', 'Aucune activité. Ajoutez vos excursions et bons plans à réserver.')}
-          </Typography>
+          <EmptyHint
+            icon={<Ticket size={18} strokeWidth={1.75} />}
+            text={t('welcomeGuide.curation.empty', 'Aucune activité. Ajoutez vos excursions et bons plans à réserver.')}
+          />
         ) : (
           <Stack spacing={1.5}>
             {curatedActivities.map((a, idx) => (
@@ -786,28 +1200,105 @@ const WelcomeGuideAdmin: React.FC = () => {
 
       <Divider />
 
-      <FormControlLabel
-        control={<Switch checked={published} onChange={(e) => setPublished(e.target.checked)} />}
-        label={t('welcomeGuide.fields.published', 'Publier le livret (accessible aux voyageurs)')}
-      />
-      <FormControlLabel
-        control={<Switch checked={chatbotEnabled} onChange={(e) => setChatbotEnabled(e.target.checked)} />}
-        label={t('welcomeGuide.fields.chatbotEnabled', 'Chatbot assistant')}
-      />
-      <FormControlLabel
-        control={<Switch checked={guestbookEnabled} onChange={(e) => setGuestbookEnabled(e.target.checked)} />}
-        label={t('welcomeGuide.fields.guestbookEnabled', "Livre d'or")}
-      />
-      <FormControlLabel
-        control={<Switch checked={activitiesEnabled} onChange={(e) => setActivitiesEnabled(e.target.checked)} />}
-        label={t('welcomeGuide.fields.activitiesEnabled', 'Activités')}
-      />
-    </Stack>
+      {/* Visibilité : publication du livret (action principale, mise en avant) */}
+      <Card
+        variant="outlined"
+        sx={{
+          borderColor: published ? 'success.main' : 'divider',
+          bgcolor: published ? 'rgba(74,155,142,0.06)' : 'transparent',
+          transition: 'border-color .15s, background-color .15s',
+        }}
+      >
+        <CardContent sx={{ '&:last-child': { pb: 1.5 }, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box
+            sx={{
+              flexShrink: 0,
+              width: 34,
+              height: 34,
+              borderRadius: 1.25,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: published ? 'success.main' : 'action.hover',
+              color: published ? '#fff' : 'text.secondary',
+            }}
+          >
+            <Globe size={18} strokeWidth={1.75} />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {t('welcomeGuide.fields.publishTitle', 'Publier le livret')}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {t('welcomeGuide.fields.publishHint', 'Rend le livret accessible à vos voyageurs via le lien partagé.')}
+            </Typography>
+          </Box>
+          <Switch checked={published} onChange={(e) => setPublished(e.target.checked)} />
+        </CardContent>
+      </Card>
+
+      {/* Fonctionnalités optionnelles du livret */}
+      <Card variant="outlined">
+        <CardContent sx={{ '&:last-child': { pb: 0.5 }, pt: 1, px: 2 }}>
+          <ToggleRow
+            icon={<MessageCircle size={18} strokeWidth={1.75} />}
+            label={t('welcomeGuide.fields.chatbotEnabled', 'Chatbot assistant')}
+            description={t('welcomeGuide.fields.chatbotHint', 'Répond aux questions du voyageur (IA).')}
+            checked={chatbotEnabled}
+            onChange={setChatbotEnabled}
+          />
+          <Divider />
+          <ToggleRow
+            icon={<Star size={18} strokeWidth={1.75} />}
+            label={t('welcomeGuide.fields.guestbookEnabled', "Livre d'or")}
+            description={t('welcomeGuide.fields.guestbookHint', 'Avis et notes laissés par les voyageurs.')}
+            checked={guestbookEnabled}
+            onChange={setGuestbookEnabled}
+          />
+          <Divider />
+          <ToggleRow
+            icon={<Ticket size={18} strokeWidth={1.75} />}
+            label={t('welcomeGuide.fields.activitiesEnabled', 'Activités')}
+            description={t('welcomeGuide.fields.activitiesHint', 'Section expériences à réserver.')}
+            checked={activitiesEnabled}
+            onChange={setActivitiesEnabled}
+          />
+        </CardContent>
+      </Card>
+      </Stack>
+
+      {/* ── Aperçu téléphone live (reflète l'état du formulaire en temps réel) ── */}
+      <Box sx={{ position: { lg: 'sticky' }, top: 12, justifySelf: { xs: 'center', lg: 'start' }, width: '100%' }}>
+        <Box
+          sx={{
+            width: 360,
+            maxWidth: '100%',
+            height: 720,
+            mx: 'auto',
+            borderRadius: '34px',
+            overflow: 'hidden',
+            border: '10px solid',
+            borderColor: '#1B2A35',
+            boxShadow: '0 28px 70px -28px rgba(27,42,53,0.55)',
+            bgcolor: '#000',
+          }}
+        >
+          <WelcomeBookView
+            model={previewModel}
+            theme={theme}
+            lang={previewLang}
+            labels={GUIDE_LABELS[previewLang]}
+            heroImages={previewHeroImages}
+            interactive={false}
+          />
+        </Box>
+      </Box>
+    </Box>
   );
 
   return (
     <Box>
-      {toolbar}
+      {headerActions}
       {view === 'list' ? renderList() : renderForm()}
 
       <Dialog open={linkDialog.open} onClose={() => setLinkDialog({ open: false, link: '', qrCode: '' })} maxWidth="sm" fullWidth>
