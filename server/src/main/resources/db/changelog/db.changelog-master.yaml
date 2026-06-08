@@ -2049,3 +2049,33 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Toggle d'affichage de la section "Services à la carte" du livret (welcome_guides.upsells_enabled).
+  - changeSet:
+      id: "0210-add-welcome-guide-upsells-enabled"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0210__add_welcome_guide_upsells_enabled.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Sélection des services payants affichés par livret (welcome_guides.upsell_offer_ids).
+  - changeSet:
+      id: "0211-add-welcome-guide-upsell-offer-ids"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0211__add_welcome_guide_upsell_offer_ids.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Commissions upsells & activités au niveau du contrat de gestion (management_contracts).
+  - changeSet:
+      id: "0212-add-contract-upsell-activity-commission"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0212__add_contract_upsell_activity_commission.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

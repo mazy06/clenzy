@@ -15,6 +15,10 @@ export interface ManagementContract {
   startDate: string;
   endDate: string | null;
   commissionRate: number;
+  /** Part conciergerie sur les upsells (fraction) ; null = défaut org. */
+  upsellCommissionRate: number | null;
+  /** Part conciergerie sur les activités/marketplace (fraction) ; null = défaut org. */
+  activityCommissionRate: number | null;
   minimumStayNights: number | null;
   autoRenew: boolean;
   noticePeriodDays: number;
@@ -34,6 +38,8 @@ export interface CreateManagementContractRequest {
   startDate: string;
   endDate?: string | null;
   commissionRate: number;
+  upsellCommissionRate?: number | null;
+  activityCommissionRate?: number | null;
   minimumStayNights?: number | null;
   autoRenew?: boolean;
   noticePeriodDays?: number;

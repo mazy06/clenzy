@@ -60,6 +60,8 @@ const EMPTY_FORM: CreateManagementContractRequest = {
   noticePeriodDays: 30,
   cleaningFeeIncluded: true,
   maintenanceIncluded: true,
+  upsellCommissionRate: null,
+  activityCommissionRate: null,
   notes: '',
 };
 
@@ -175,6 +177,8 @@ const ManagementContractsPage: React.FC = () => {
       noticePeriodDays: contract.noticePeriodDays,
       cleaningFeeIncluded: contract.cleaningFeeIncluded,
       maintenanceIncluded: contract.maintenanceIncluded,
+      upsellCommissionRate: contract.upsellCommissionRate,
+      activityCommissionRate: contract.activityCommissionRate,
       notes: contract.notes ?? '',
     });
     setEditingContract(contract);
@@ -482,6 +486,33 @@ const ManagementContractsPage: React.FC = () => {
               }}
               inputProps={{ min: 1, max: 50, step: 1 }}
             />
+          </FieldGroup>
+
+          {/* ── Commissions services (upsells & marketplace) ── */}
+          <FieldGroup label="Commissions services" span={{ md: 2 }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                label="Upsells" type="number"
+                value={form.upsellCommissionRate != null ? Math.round(form.upsellCommissionRate * 100) : ''}
+                onChange={e => setForm(prev => ({ ...prev, upsellCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
+                size="small" fullWidth
+                placeholder="Défaut org"
+                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+                inputProps={{ min: 0, max: 100, step: 1 }}
+              />
+              <TextField
+                label="Marketplace" type="number"
+                value={form.activityCommissionRate != null ? Math.round(form.activityCommissionRate * 100) : ''}
+                onChange={e => setForm(prev => ({ ...prev, activityCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
+                size="small" fullWidth
+                placeholder="Défaut org"
+                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+                inputProps={{ min: 0, max: 100, step: 1 }}
+              />
+            </Box>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              Part conciergerie. La commission plateforme est fixée par la plateforme ; le propriétaire reçoit le solde. Vide = répartition par défaut de l'organisation.
+            </Typography>
           </FieldGroup>
 
           {/* ── Inclusions ── */}

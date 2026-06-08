@@ -90,6 +90,8 @@ public class ManagementContractService {
         contract.setStartDate(request.startDate());
         contract.setEndDate(request.endDate());
         contract.setCommissionRate(request.commissionRate());
+        contract.setUpsellCommissionRate(request.upsellCommissionRate());
+        contract.setActivityCommissionRate(request.activityCommissionRate());
         contract.setMinimumStayNights(request.minimumStayNights());
         contract.setAutoRenew(request.autoRenew() != null ? request.autoRenew() : false);
         contract.setNoticePeriodDays(request.noticePeriodDays() != null ? request.noticePeriodDays() : 30);
@@ -221,6 +223,8 @@ public class ManagementContractService {
         contract.setStartDate(request.startDate());
         contract.setEndDate(request.endDate());
         contract.setCommissionRate(request.commissionRate());
+        contract.setUpsellCommissionRate(request.upsellCommissionRate());
+        contract.setActivityCommissionRate(request.activityCommissionRate());
         contract.setMinimumStayNights(request.minimumStayNights());
         if (request.autoRenew() != null) contract.setAutoRenew(request.autoRenew());
         if (request.noticePeriodDays() != null) contract.setNoticePeriodDays(request.noticePeriodDays());

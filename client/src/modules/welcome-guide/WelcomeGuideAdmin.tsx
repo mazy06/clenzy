@@ -41,6 +41,7 @@ import {
   Ticket,
   Globe,
   Quote,
+  ConciergeBell,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
@@ -90,6 +91,17 @@ type View = 'list' | 'form';
 const LANGUAGES = ['fr', 'en', 'ar'] as const;
 const DEFAULT_COLOR = '#6B8A9A';
 const DEFAULT_THEME = 'atelier';
+
+/** Parse la sélection de services d'un livret (JSON array d'ids) → number[] | null (null = tous). */
+function parseOfferIdSelection(json: string | null | undefined): number[] | null {
+  if (!json) return null;
+  try {
+    const arr = JSON.parse(json);
+    return Array.isArray(arr) ? arr.map(Number).filter((n) => Number.isFinite(n)) : null;
+  } catch {
+    return null;
+  }
+}
 
 const SECTION_LAYOUT_OPTIONS: GuideSectionLayout[] = ['text', 'steps', 'rules', 'list'];
 
@@ -173,6 +185,9 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [chatbotEnabled, setChatbotEnabled] = useState(true);
   const [guestbookEnabled, setGuestbookEnabled] = useState(true);
   const [activitiesEnabled, setActivitiesEnabled] = useState(true);
+  const [upsellsEnabled, setUpsellsEnabled] = useState(true);
+  // Sélection des services affichés sur ce livret : null = tous (défaut), sinon liste d'ids.
+  const [upsellOfferIds, setUpsellOfferIds] = useState<number[] | null>(null);
   const [sections, setSections] = useState<GuideSection[]>([]);
   const [pois, setPois] = useState<GuidePoi[]>([]);
   const [geocoding, setGeocoding] = useState<string | null>(null);
@@ -251,6 +266,8 @@ const WelcomeGuideAdmin: React.FC = () => {
     setChatbotEnabled(true);
     setGuestbookEnabled(true);
     setActivitiesEnabled(true);
+    setUpsellsEnabled(true);
+    setUpsellOfferIds(null);
     setSections(buildTemplateSections(tplLang));
     setPois(buildTemplatePois(tplLang));
     setCuratedActivities(buildTemplateActivities(tplLang));
@@ -273,6 +290,8 @@ const WelcomeGuideAdmin: React.FC = () => {
     setChatbotEnabled(g.chatbotEnabled);
     setGuestbookEnabled(g.guestbookEnabled);
     setActivitiesEnabled(g.activitiesEnabled);
+    setUpsellsEnabled(g.upsellsEnabled ?? true);
+    setUpsellOfferIds(parseOfferIdSelection(g.upsellOfferIds));
     setSections(parseSections(g.sections));
     setPois(parsePois(g.pois));
     setCuratedActivities(parseActivities(g.curatedActivities));
@@ -307,6 +326,8 @@ const WelcomeGuideAdmin: React.FC = () => {
         chatbotEnabled,
         guestbookEnabled,
         activitiesEnabled,
+        upsellsEnabled,
+        upsellOfferIds: upsellOfferIds === null ? null : JSON.stringify(upsellOfferIds),
       };
       if (editingId == null) {
         await welcomeGuideApi.create(payload);
@@ -689,8 +710,21 @@ const WelcomeGuideAdmin: React.FC = () => {
     : [];
   // Services payants de l'aperçu : actifs + (toute l'org OU logement sélectionné), mappés au
   // format guest. Reflète la logique de listForToken côté serveur (logement du livret).
-  const previewUpsells: PublicUpsell[] = upsellOffers
-    .filter((o) => o.active && (o.propertyId == null || String(o.propertyId) === propertyId))
+  // Services de l'org applicables à ce livret (actifs + toute l'org OU logement sélectionné).
+  const applicableOffers = upsellOffers.filter(
+    (o) => o.active && (o.propertyId == null || String(o.propertyId) === propertyId),
+  );
+  // Sélection par livret : null = tous affichés ; sinon uniquement les ids cochés.
+  const isOfferShown = (id: number) => upsellOfferIds === null || upsellOfferIds.includes(id);
+  const toggleOfferShown = (id: number) => {
+    const base = upsellOfferIds === null ? applicableOffers.map((o) => o.id) : upsellOfferIds;
+    const next = isOfferShown(id) ? base.filter((x) => x !== id) : [...base, id];
+    const allIds = applicableOffers.map((o) => o.id);
+    // Tout coché → null (= « tous », les futurs services apparaissent automatiquement).
+    setUpsellOfferIds(allIds.length === next.length && allIds.every((x) => next.includes(x)) ? null : next);
+  };
+  const previewUpsells: PublicUpsell[] = applicableOffers
+    .filter((o) => isOfferShown(o.id))
     .map((o) => ({
       offerId: o.id,
       type: o.type,
@@ -727,6 +761,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     upsells: previewUpsells,
     guestbookEnabled,
     activitiesEnabled,
+    upsellsEnabled,
   };
 
   // ─── Render: form ──────────────────────────────────────────────────────────
@@ -1369,8 +1404,60 @@ const WelcomeGuideAdmin: React.FC = () => {
             checked={activitiesEnabled}
             onChange={setActivitiesEnabled}
           />
+          <Divider />
+          <ToggleRow
+            icon={<ConciergeBell size={18} strokeWidth={1.75} />}
+            label={t('welcomeGuide.fields.upsellsEnabled', 'Services payants')}
+            description={t('welcomeGuide.fields.upsellsHint', 'Section des services additionnels à réserver.')}
+            checked={upsellsEnabled}
+            onChange={setUpsellsEnabled}
+          />
         </CardContent>
       </Card>
+
+      {/* Sélection des services payants affichés sur CE livret (par défaut : tous) */}
+      {upsellsEnabled && applicableOffers.length > 0 && (
+        <Card variant="outlined">
+          <CardContent sx={{ '&:last-child': { pb: 2 }, pt: 1.5, px: 2 }}>
+            <SectionHeading
+              icon={<ConciergeBell size={16} strokeWidth={1.75} />}
+              title={t('welcomeGuide.fields.upsellSelectionTitle', 'Services affichés sur ce livret')}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+              {t(
+                'welcomeGuide.fields.upsellSelectionHint',
+                'Décochez un service pour le masquer sur ce livret uniquement.',
+              )}
+            </Typography>
+            <Stack spacing={0}>
+              {applicableOffers.map((o) => (
+                <FormControlLabel
+                  key={o.id}
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={isOfferShown(o.id)}
+                      onChange={() => toggleOfferShown(o.id)}
+                    />
+                  }
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                      <Typography variant="body2">{o.title}</Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ fontVariantNumeric: 'tabular-nums' }}
+                      >
+                        {o.price.toFixed(0)} {o.currency}
+                      </Typography>
+                    </Box>
+                  }
+                />
+              ))}
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
       </Stack>
 
       {/* ── Aperçu téléphone live (reflète l'état du formulaire en temps réel) ── */}

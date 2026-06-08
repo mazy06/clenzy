@@ -57,7 +57,9 @@
       "imageType": "Please choose an image file.",
       "imageSize": "Image too large (max 12 MB).",
       "confirmDelete": "Delete this service?",
-      "confirmDeleteHint": "This service and its details will be permanently deleted. This action cannot be undone."
+      "confirmDeleteHint": "This service and its details will be permanently deleted. This action cannot be undone.",
+      "added": "Service added",
+      "alreadyAdded": "This service is already in your list."
     },
     "empty": {
       "title": "No paid service",
@@ -164,6 +166,10 @@
       "chatbotHint": "Answers guest questions (AI).",
       "guestbookHint": "Reviews and ratings left by guests.",
       "activitiesHint": "Experiences-to-book section.",
+      "upsellsEnabled": "Paid services",
+      "upsellsHint": "Add-on services section to book.",
+      "upsellSelectionTitle": "Services shown on this guide",
+      "upsellSelectionHint": "Uncheck a service to hide it on this guide only.",
       "sectionTitle": "Section title",
       "sectionBody": "Content",
       "sectionSubtitle": "Subtitle (navigation list)",

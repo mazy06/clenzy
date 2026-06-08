@@ -104,6 +104,8 @@ public class WelcomeGuideService {
         if (req.chatbotEnabled() != null) guide.setChatbotEnabled(req.chatbotEnabled());
         if (req.guestbookEnabled() != null) guide.setGuestbookEnabled(req.guestbookEnabled());
         if (req.activitiesEnabled() != null) guide.setActivitiesEnabled(req.activitiesEnabled());
+        if (req.upsellsEnabled() != null) guide.setUpsellsEnabled(req.upsellsEnabled());
+        guide.setUpsellOfferIds(req.upsellOfferIds()); // null = afficher tous les services applicables
 
         WelcomeGuide saved = guideRepository.save(guide);
         Hibernate.initialize(saved.getProperty()); // mapping DTO hors session (open-in-view=false)
@@ -129,6 +131,8 @@ public class WelcomeGuideService {
         if (req.chatbotEnabled() != null) guide.setChatbotEnabled(req.chatbotEnabled());
         if (req.guestbookEnabled() != null) guide.setGuestbookEnabled(req.guestbookEnabled());
         if (req.activitiesEnabled() != null) guide.setActivitiesEnabled(req.activitiesEnabled());
+        if (req.upsellsEnabled() != null) guide.setUpsellsEnabled(req.upsellsEnabled());
+        guide.setUpsellOfferIds(req.upsellOfferIds()); // null = afficher tous les services applicables
 
         WelcomeGuide saved = guideRepository.save(guide);
         Hibernate.initialize(saved.getProperty()); // mapping DTO hors session (open-in-view=false)

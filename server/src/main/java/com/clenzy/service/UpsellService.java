@@ -45,6 +45,7 @@ public class UpsellService {
     private final WalletService walletService;
     private final LedgerService ledgerService;
     private final MonetizationConfigService monetizationConfigService;
+    private final ManagementContractService managementContractService;
 
     public UpsellService(UpsellOfferRepository offerRepository,
                          UpsellOrderRepository orderRepository,
@@ -53,7 +54,8 @@ public class UpsellService {
                          StripeService stripeService,
                          WalletService walletService,
                          LedgerService ledgerService,
-                         MonetizationConfigService monetizationConfigService) {
+                         MonetizationConfigService monetizationConfigService,
+                         ManagementContractService managementContractService) {
         this.offerRepository = offerRepository;
         this.orderRepository = orderRepository;
         this.tokenRepository = tokenRepository;
@@ -62,6 +64,7 @@ public class UpsellService {
         this.walletService = walletService;
         this.ledgerService = ledgerService;
         this.monetizationConfigService = monetizationConfigService;
+        this.managementContractService = managementContractService;
     }
 
     // ─── Admin (hôte) ──────────────────────────────────────────────────────────
@@ -137,9 +140,12 @@ public class UpsellService {
             return List.of();
         }
         Long propertyId = resolvePropertyId(tok);
+        // Sélection par livret : null = tous les services applicables ; sinon uniquement ces ids.
+        java.util.Set<Long> selected = parseOfferIds(tok.getGuide().getUpsellOfferIds());
         return offerRepository.findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(tok.getOrganizationId())
             .stream()
             .filter(o -> o.getPropertyId() == null || o.getPropertyId().equals(propertyId))
+            .filter(o -> selected == null || selected.contains(o.getId()))
             .map(PublicUpsellDto::from)
             .toList();
     }
@@ -234,7 +240,8 @@ public class UpsellService {
         BigDecimal platformFeePct = monetizationConfigService.getEffectiveUpsellPlatformFeePct(orgId);
         BigDecimal platformFee = amount.multiply(platformFeePct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
         BigDecimal remainder = amount.subtract(platformFee);
-        BigDecimal orgPct = monetizationConfigService.getEffectiveUpsellOrgCommissionPct(orgId);
+        // Part conciergerie : taux du contrat de gestion du logement s'il existe, sinon défaut org.
+        BigDecimal orgPct = resolveUpsellConciergePct(orgId, order);
         BigDecimal orgShare = remainder.multiply(orgPct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
         BigDecimal hostShare = remainder.subtract(orgShare);
 
@@ -295,6 +302,54 @@ public class UpsellService {
     /** Token valide (fenêtre + non révoqué + résa non annulée) — réservation NON requise (lien manuel). */
     private Optional<WelcomeGuideToken> validToken(UUID token) {
         return tokenRepository.findByToken(token).filter(WelcomeGuideToken::isCurrentlyValid);
+    }
+
+    /**
+     * Parse la sélection de services d'un livret (JSON array d'ids) en Set.
+     * {@code null}/vide → {@code null} (= afficher TOUS les services) ; {@code "[]"} → ensemble
+     * vide (= n'afficher AUCUN service, l'hôte a tout décoché).
+     */
+    private static java.util.Set<Long> parseOfferIds(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        java.util.Set<Long> ids = new java.util.HashSet<>();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\d+").matcher(json);
+        while (m.find()) {
+            ids.add(Long.parseLong(m.group()));
+        }
+        return ids;
+    }
+
+    /** Part conciergerie (%) sur les upsells : taux du contrat de gestion du logement, sinon défaut org. */
+    private BigDecimal resolveUpsellConciergePct(Long orgId, UpsellOrder order) {
+        Long propertyId = propertyIdForOrder(order);
+        if (propertyId != null) {
+            try {
+                Optional<ManagementContract> c = managementContractService.getActiveContract(propertyId, orgId);
+                if (c != null && c.isPresent() && c.get().getUpsellCommissionRate() != null) {
+                    return c.get().getUpsellCommissionRate().multiply(HUNDRED); // fraction (0.17) → pourcentage (17)
+                }
+            } catch (Exception ignored) {
+                // Résolution contrat best-effort → repli sur le défaut org ci-dessous.
+            }
+        }
+        return monetizationConfigService.getEffectiveUpsellOrgCommissionPct(orgId);
+    }
+
+    /** Logement de la commande (via la réservation). Défensif : null si non résoluble → défaut org. */
+    private Long propertyIdForOrder(UpsellOrder order) {
+        try {
+            if (order.getReservationId() == null) {
+                return null;
+            }
+            return reservationRepository.findById(order.getReservationId())
+                .map(Reservation::getProperty)
+                .map(Property::getId)
+                .orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /** Logement applicable aux offres : celui du livret en priorité, sinon celui de la réservation. */

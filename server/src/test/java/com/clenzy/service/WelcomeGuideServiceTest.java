@@ -68,7 +68,7 @@ class WelcomeGuideServiceTest {
 
         WelcomeGuide result = service.createGuide(1L, new WelcomeGuideRequest(
             10L, "Guide Riviera", "fr", "[{\"type\":\"text\",\"title\":\"WiFi\"}]",
-            "#FF0000", null, null, null, null, null, null, true, true, true, null, null));
+            "#FF0000", null, null, null, null, null, null, true, true, true, null, null, null, null));
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getTitle()).isEqualTo("Guide Riviera");
@@ -80,7 +80,7 @@ class WelcomeGuideServiceTest {
         when(propertyRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.createGuide(1L, new WelcomeGuideRequest(
-            999L, "Test", null, null, null, null, null, null, null, null, null, null, null, null, null, null)))
+            999L, "Test", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -94,7 +94,7 @@ class WelcomeGuideServiceTest {
 
         // Staff plateforme : contexte org null → l'org doit etre derivee du logement.
         WelcomeGuide result = service.createGuide(null, new WelcomeGuideRequest(
-            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null, null, null, null, null));
+            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null, null, null, null, null, null, null));
 
         assertThat(result.getOrganizationId()).isEqualTo(7L);
     }
@@ -108,7 +108,7 @@ class WelcomeGuideServiceTest {
         when(guideRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         WelcomeGuide result = service.createGuide(99L, new WelcomeGuideRequest(
-            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null, null, null, null, null));
+            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null, null, null, null, null, null, null));
 
         assertThat(result.getOrganizationId()).isEqualTo(7L);
     }
@@ -250,7 +250,7 @@ class WelcomeGuideServiceTest {
         when(guideRepository.save(any())).thenReturn(guide);
 
         WelcomeGuide result = service.updateGuide(1L, 1L, new WelcomeGuideRequest(
-            null, "New Title", null, "[{\"type\":\"info\"}]", "#0000FF", null, null, null, null, null, true, null, null, null, null, null));
+            null, "New Title", null, "[{\"type\":\"info\"}]", "#0000FF", null, null, null, null, null, true, null, null, null, null, null, null, null));
 
         assertThat(result.getTitle()).isEqualTo("New Title");
         assertThat(result.isPublished()).isTrue();

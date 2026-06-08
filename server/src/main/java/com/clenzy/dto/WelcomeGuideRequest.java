@@ -19,5 +19,7 @@ public record WelcomeGuideRequest(
     Boolean guestbookEnabled,
     Boolean activitiesEnabled,
     String pois,
-    String curatedActivities
+    String curatedActivities,
+    Boolean upsellsEnabled,
+    String upsellOfferIds
 ) {}
