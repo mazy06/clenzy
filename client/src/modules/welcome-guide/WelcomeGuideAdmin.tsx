@@ -163,6 +163,11 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [view, setView] = useState<View>('list');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  // Wizard : étape courante (0–5 = formulaire, 6 = récapitulatif) + étape la plus
+  // loin atteinte (autorise le saut arrière libre, le saut avant uniquement vers
+  // une étape déjà visitée).
+  const [step, setStep] = useState(0);
+  const [maxStep, setMaxStep] = useState(0);
   // Suppression : cible du modal de confirmation (null = fermé) + état en cours.
   const [deleteTarget, setDeleteTarget] = useState<WelcomeGuide | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -271,6 +276,8 @@ const WelcomeGuideAdmin: React.FC = () => {
     setSections(buildTemplateSections(tplLang));
     setPois(buildTemplatePois(tplLang));
     setCuratedActivities(buildTemplateActivities(tplLang));
+    setStep(0);
+    setMaxStep(0);
     setView('form');
   };
 
@@ -295,7 +302,16 @@ const WelcomeGuideAdmin: React.FC = () => {
     setSections(parseSections(g.sections));
     setPois(parsePois(g.pois));
     setCuratedActivities(parseActivities(g.curatedActivities));
+    setStep(0);
+    setMaxStep(0);
     setView('form');
+  };
+
+  // Quitter le formulaire (Annuler) → retour liste + reset de l'assistant.
+  const closeForm = () => {
+    setStep(0);
+    setMaxStep(0);
+    setView('list');
   };
 
   const handleSave = async () => {
@@ -337,7 +353,7 @@ const WelcomeGuideAdmin: React.FC = () => {
         notify(t('welcomeGuide.messages.updated', 'Livret mis à jour'));
       }
       await refetch();
-      setView('list');
+      closeForm();
     } catch {
       notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
     } finally {
@@ -506,27 +522,17 @@ const WelcomeGuideAdmin: React.FC = () => {
   const removeActivity = (idx: number) => setCuratedActivities((prev) => prev.filter((_, i) => i !== idx));
 
   // ─── Actions portées dans le PageHeader (slot multi-tabs partagé) ───────────
-  // Liste → « Nouveau livret » ; formulaire → « Annuler » + « Enregistrer ».
+  // Liste → « Nouveau livret » ; formulaire → « Annuler » seul (l'« Enregistrer »
+  // vit désormais dans le pied du récapitulatif, étape finale de l'assistant).
   const headerActions = usePageHeaderActions(
     view === 'list' ? (
       <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={openCreate}>
         {t('welcomeGuide.actions.new', 'Nouveau livret')}
       </Button>
     ) : (
-      <>
-        <Button variant="text" size="small" onClick={() => setView('list')}>
-          {t('welcomeGuide.actions.cancel', 'Annuler')}
-        </Button>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {t('welcomeGuide.actions.save', 'Enregistrer')}
-        </Button>
-      </>
+      <Button variant="text" size="small" onClick={closeForm}>
+        {t('welcomeGuide.actions.cancel', 'Annuler')}
+      </Button>
     ),
   );
 
@@ -764,10 +770,210 @@ const WelcomeGuideAdmin: React.FC = () => {
     upsellsEnabled,
   };
 
+  // ─── Assistant pas-à-pas : titres des étapes (0–5 = saisie, 6 = récap) ──────
+  const WIZARD_STEPS = [
+    t('welcomeGuide.wizard.step1', 'Logement'),
+    t('welcomeGuide.wizard.step2', 'Apparence'),
+    t('welcomeGuide.wizard.step3', 'Accueil'),
+    t('welcomeGuide.wizard.step4', 'Contenu'),
+    t('welcomeGuide.wizard.step5', 'Expériences & services'),
+    t('welcomeGuide.wizard.step6', 'Options & publication'),
+    t('welcomeGuide.wizard.recap', 'Récapitulatif'),
+  ];
+  const LAST_STEP = WIZARD_STEPS.length - 1; // 6 (récapitulatif)
+
+  // Validation par étape — seule l'étape 0 (Logement) est bloquante.
+  const validateStep = (s: number): boolean => {
+    if (s === 0) {
+      if (editingId == null && !propertyId) {
+        notify(t('welcomeGuide.messages.propertyRequired', 'Sélectionnez un logement'), 'error');
+        return false;
+      }
+      if (!title.trim()) {
+        notify(t('welcomeGuide.messages.titleRequired', 'Le titre est obligatoire'), 'error');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const goToStep = (target: number) => {
+    // Saut arrière libre ; saut avant seulement vers une étape déjà atteinte.
+    if (target <= maxStep && target !== step) setStep(target);
+  };
+
+  const goNext = () => {
+    if (!validateStep(step)) return;
+    const next = Math.min(step + 1, LAST_STEP);
+    setStep(next);
+    setMaxStep((m) => Math.max(m, next));
+  };
+
+  const goBack = () => setStep((s) => Math.max(0, s - 1));
+
+  // ─── Stepper compact (haut de la colonne 1) ─────────────────────────────────
+  const renderStepper = () => (
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
+          {WIZARD_STEPS[step]}
+        </Typography>
+        {step < LAST_STEP ? (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
+          >
+            {t('welcomeGuide.wizard.stepCounter', 'Étape {{current}} / {{total}}', {
+              current: step + 1,
+              total: LAST_STEP,
+            })}
+          </Typography>
+        ) : null}
+      </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+        {WIZARD_STEPS.map((label, i) => {
+          const active = i === step;
+          const done = i < step;
+          const reachable = i <= maxStep;
+          return (
+            <Tooltip key={i} title={label} arrow>
+              <Box
+                role="button"
+                aria-label={label}
+                aria-current={active ? 'step' : undefined}
+                tabIndex={reachable ? 0 : -1}
+                aria-disabled={!reachable}
+                onClick={() => reachable && goToStep(i)}
+                onKeyDown={(e) => {
+                  if (reachable && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    goToStep(i);
+                  }
+                }}
+                sx={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  fontVariantNumeric: 'tabular-nums',
+                  userSelect: 'none',
+                  cursor: reachable ? 'pointer' : 'default',
+                  bgcolor: active ? 'primary.main' : done ? 'rgba(107,138,154,0.16)' : 'action.hover',
+                  color: active ? '#fff' : done ? 'primary.main' : 'text.disabled',
+                  border: '1px solid',
+                  borderColor: active ? 'primary.main' : done ? 'rgba(107,138,154,0.35)' : 'divider',
+                  transition: 'background-color .18s ease, color .18s ease, border-color .18s ease',
+                  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+                  '&:hover': reachable && !active ? { borderColor: 'primary.main', color: 'primary.main' } : undefined,
+                  '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                }}
+              >
+                {done ? <Check size={15} strokeWidth={2.5} /> : i + 1}
+              </Box>
+            </Tooltip>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+
+  // ─── Pied de navigation (bas de la colonne 1) ───────────────────────────────
+  const renderWizardFooter = () => (
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, pt: 0.5 }}>
+      <Button variant="outlined" onClick={goBack} disabled={step === 0}>
+        {t('welcomeGuide.wizard.previous', 'Précédent')}
+      </Button>
+      {step < LAST_STEP ? (
+        <Button variant="contained" onClick={goNext}>
+          {t('welcomeGuide.wizard.next', 'Suivant')}
+        </Button>
+      ) : (
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          disabled={saving}
+          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
+        >
+          {t('welcomeGuide.actions.save', 'Enregistrer')}
+        </Button>
+      )}
+    </Box>
+  );
+
+  // ─── Récapitulatif (étape finale) ───────────────────────────────────────────
+  const renderRecap = () => {
+    const propertyName =
+      properties.find((p) => String(p.id) === propertyId)?.name ??
+      t('welcomeGuide.wizard.notSet', 'Non renseigné');
+    const yes = t('welcomeGuide.wizard.yes', 'Oui');
+    const no = t('welcomeGuide.wizard.no', 'Non');
+    const themeName = t(
+      `welcomeGuide.themes.${theme}.name`,
+      WELCOME_BOOK_THEMES.find((th) => th.id === theme)?.name ?? theme,
+    );
+    const rows: Array<{ label: string; value: React.ReactNode; num?: boolean }> = [
+      { label: t('welcomeGuide.wizard.recapProperty', 'Logement'), value: propertyName },
+      {
+        label: t('welcomeGuide.wizard.recapTitleField', 'Titre'),
+        value: title.trim() || t('welcomeGuide.wizard.notSet', 'Non renseigné'),
+      },
+      { label: t('welcomeGuide.wizard.recapLanguage', 'Langue'), value: t(`welcomeGuide.languages.${language}`, language.toUpperCase()) },
+      { label: t('welcomeGuide.wizard.recapTheme', 'Thème'), value: themeName },
+      { label: t('welcomeGuide.wizard.recapHeroPhotos', 'Photos de couverture'), value: heroPhotoIds.length, num: true },
+      { label: t('welcomeGuide.wizard.recapSections', 'Sections'), value: sections.length, num: true },
+      { label: t('welcomeGuide.wizard.recapPois', 'Lieux autour'), value: pois.length, num: true },
+      { label: t('welcomeGuide.wizard.recapActivities', 'Activités'), value: curatedActivities.length, num: true },
+      { label: t('welcomeGuide.wizard.recapUpsells', 'Services payants'), value: upsellsEnabled ? yes : no },
+      { label: t('welcomeGuide.wizard.recapPublished', 'Publié'), value: published ? yes : no },
+    ];
+    return (
+      <Card variant="outlined" sx={{ borderRadius: 3 }}>
+        <CardContent>
+          <SectionHeading
+            icon={<Check size={17} strokeWidth={1.75} />}
+            title={t('welcomeGuide.wizard.recapTitle', 'Vérifiez votre livret')}
+          />
+          <Typography variant="body2" color="text.secondary" sx={{ mt: -0.5, mb: 1.5 }}>
+            {t('welcomeGuide.wizard.recapSubtitle', "Un dernier coup d'œil avant d'enregistrer.")}
+          </Typography>
+          <Stack divider={<Divider />} spacing={0}>
+            {rows.map((r) => (
+              <Box
+                key={r.label}
+                sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2, py: 0.85 }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  {r.label}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, textAlign: 'right', minWidth: 0, ...(r.num ? { fontVariantNumeric: 'tabular-nums' } : {}) }}
+                >
+                  {r.value}
+                </Typography>
+              </Box>
+            ))}
+          </Stack>
+        </CardContent>
+      </Card>
+    );
+  };
+
   // ─── Render: form ──────────────────────────────────────────────────────────
   const renderForm = () => (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) 392px' }, gap: 3, alignItems: 'start' }}>
       <Stack spacing={2.5}>
+      {renderStepper()}
+
+      {/* ── Étape 0 — Logement ── */}
+      {step === 0 && (
+      <>
       <TextField
         select
         label={t('welcomeGuide.fields.property', 'Logement')}
@@ -828,9 +1034,12 @@ const WelcomeGuideAdmin: React.FC = () => {
           placeholder="https://…"
         />
       </Box>
+      </>
+      )}
 
-      <Divider />
-
+      {/* ── Étape 2 — Accueil ── */}
+      {step === 2 && (
+      <>
       {/* Message d'accueil de l'hôte : note dédiée (serif italique) affichée sous le hero. */}
       <Box>
         <SectionHeading
@@ -861,9 +1070,12 @@ const WelcomeGuideAdmin: React.FC = () => {
           />
         </Stack>
       </Box>
+      </>
+      )}
 
-      <Divider />
-
+      {/* ── Étape 1 — Apparence (thème + photos de couverture) ── */}
+      {step === 1 && (
+      <>
       {/* Thème du livret : carrés de couleur seuls, nom + description en tooltip.
           Taille fixe → le retour à la ligne s'adapte à la largeur (flex-wrap). */}
       <Box>
@@ -936,8 +1148,6 @@ const WelcomeGuideAdmin: React.FC = () => {
           })}
         </Box>
       </Box>
-
-      <Divider />
 
       {/* Photo de couverture (hero) : choix parmi les photos du logement */}
       <Box>
@@ -1014,9 +1224,12 @@ const WelcomeGuideAdmin: React.FC = () => {
           </Box>
         )}
       </Box>
+      </>
+      )}
 
-      <Divider />
-
+      {/* ── Étape 3 — Contenu (sections + autour de moi) ── */}
+      {step === 3 && (
+      <>
       <Box>
         <SectionHeading
           icon={<FileText size={17} strokeWidth={1.75} />}
@@ -1134,8 +1347,6 @@ const WelcomeGuideAdmin: React.FC = () => {
         )}
       </Box>
 
-      <Divider />
-
       <Box>
         <SectionHeading
           icon={<MapPin size={17} strokeWidth={1.75} />}
@@ -1247,8 +1458,12 @@ const WelcomeGuideAdmin: React.FC = () => {
         )}
       </Box>
 
-      <Divider />
+      </>
+      )}
 
+      {/* ── Étape 4 — Expériences & services ── */}
+      {step === 4 && (
+      <>
       <Box>
         <SectionHeading
           icon={<Ticket size={17} strokeWidth={1.75} />}
@@ -1339,7 +1554,108 @@ const WelcomeGuideAdmin: React.FC = () => {
         )}
       </Box>
 
-      <Divider />
+      {/* Activation des sections « Activités » et « Services payants » (split de la carte Fonctionnalités) */}
+      <Card variant="outlined">
+        <CardContent sx={{ '&:last-child': { pb: 0.5 }, pt: 1, px: 2 }}>
+          <ToggleRow
+            icon={<Ticket size={18} strokeWidth={1.75} />}
+            label={t('welcomeGuide.fields.activitiesEnabled', 'Activités')}
+            description={t('welcomeGuide.fields.activitiesHint', 'Section expériences à réserver.')}
+            checked={activitiesEnabled}
+            onChange={setActivitiesEnabled}
+          />
+          <Divider />
+          <ToggleRow
+            icon={<ConciergeBell size={18} strokeWidth={1.75} />}
+            label={t('welcomeGuide.fields.upsellsEnabled', 'Services payants')}
+            description={t('welcomeGuide.fields.upsellsHint', 'Section des services additionnels à réserver.')}
+            checked={upsellsEnabled}
+            onChange={setUpsellsEnabled}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Sélection des services payants affichés sur CE livret (par défaut : tous) */}
+      {upsellsEnabled && (
+        <Card variant="outlined">
+          <CardContent sx={{ '&:last-child': { pb: 2 }, pt: 1.5, px: 2 }}>
+            <SectionHeading
+              icon={<ConciergeBell size={16} strokeWidth={1.75} />}
+              title={t('welcomeGuide.fields.upsellSelectionTitle', 'Services affichés sur ce livret')}
+            />
+            {applicableOffers.length === 0 ? (
+              <EmptyHint
+                icon={<ConciergeBell size={18} strokeWidth={1.5} />}
+                text={t(
+                  'welcomeGuide.fields.upsellSelectionEmpty',
+                  'Aucun service payant pour ce logement. Créez vos services dans l’onglet « Services payants », puis cochez ici ceux à afficher.',
+                )}
+              />
+            ) : (
+              <>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                  {t(
+                    'welcomeGuide.fields.upsellSelectionHint',
+                    'Décochez un service pour le masquer sur ce livret uniquement.',
+                  )}
+                </Typography>
+                <Stack spacing={0}>
+                  {applicableOffers.map((o) => (
+                    <FormControlLabel
+                      key={o.id}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={isOfferShown(o.id)}
+                          onChange={() => toggleOfferShown(o.id)}
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                          <Typography variant="body2">{o.title}</Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
+                          >
+                            {o.price.toFixed(0)} {o.currency}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  ))}
+                </Stack>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+      </>
+      )}
+
+      {/* ── Étape 5 — Options & publication ── */}
+      {step === 5 && (
+      <>
+      {/* Fonctionnalités optionnelles : chatbot + livre d'or (split de la carte Fonctionnalités) */}
+      <Card variant="outlined">
+        <CardContent sx={{ '&:last-child': { pb: 0.5 }, pt: 1, px: 2 }}>
+          <ToggleRow
+            icon={<MessageCircle size={18} strokeWidth={1.75} />}
+            label={t('welcomeGuide.fields.chatbotEnabled', 'Chatbot assistant')}
+            description={t('welcomeGuide.fields.chatbotHint', 'Répond aux questions du voyageur (IA).')}
+            checked={chatbotEnabled}
+            onChange={setChatbotEnabled}
+          />
+          <Divider />
+          <ToggleRow
+            icon={<Star size={18} strokeWidth={1.75} />}
+            label={t('welcomeGuide.fields.guestbookEnabled', "Livre d'or")}
+            description={t('welcomeGuide.fields.guestbookHint', 'Avis et notes laissés par les voyageurs.')}
+            checked={guestbookEnabled}
+            onChange={setGuestbookEnabled}
+          />
+        </CardContent>
+      </Card>
 
       {/* Visibilité : publication du livret (action principale, mise en avant) */}
       <Card
@@ -1377,87 +1693,13 @@ const WelcomeGuideAdmin: React.FC = () => {
           <Switch checked={published} onChange={(e) => setPublished(e.target.checked)} />
         </CardContent>
       </Card>
-
-      {/* Fonctionnalités optionnelles du livret */}
-      <Card variant="outlined">
-        <CardContent sx={{ '&:last-child': { pb: 0.5 }, pt: 1, px: 2 }}>
-          <ToggleRow
-            icon={<MessageCircle size={18} strokeWidth={1.75} />}
-            label={t('welcomeGuide.fields.chatbotEnabled', 'Chatbot assistant')}
-            description={t('welcomeGuide.fields.chatbotHint', 'Répond aux questions du voyageur (IA).')}
-            checked={chatbotEnabled}
-            onChange={setChatbotEnabled}
-          />
-          <Divider />
-          <ToggleRow
-            icon={<Star size={18} strokeWidth={1.75} />}
-            label={t('welcomeGuide.fields.guestbookEnabled', "Livre d'or")}
-            description={t('welcomeGuide.fields.guestbookHint', 'Avis et notes laissés par les voyageurs.')}
-            checked={guestbookEnabled}
-            onChange={setGuestbookEnabled}
-          />
-          <Divider />
-          <ToggleRow
-            icon={<Ticket size={18} strokeWidth={1.75} />}
-            label={t('welcomeGuide.fields.activitiesEnabled', 'Activités')}
-            description={t('welcomeGuide.fields.activitiesHint', 'Section expériences à réserver.')}
-            checked={activitiesEnabled}
-            onChange={setActivitiesEnabled}
-          />
-          <Divider />
-          <ToggleRow
-            icon={<ConciergeBell size={18} strokeWidth={1.75} />}
-            label={t('welcomeGuide.fields.upsellsEnabled', 'Services payants')}
-            description={t('welcomeGuide.fields.upsellsHint', 'Section des services additionnels à réserver.')}
-            checked={upsellsEnabled}
-            onChange={setUpsellsEnabled}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Sélection des services payants affichés sur CE livret (par défaut : tous) */}
-      {upsellsEnabled && applicableOffers.length > 0 && (
-        <Card variant="outlined">
-          <CardContent sx={{ '&:last-child': { pb: 2 }, pt: 1.5, px: 2 }}>
-            <SectionHeading
-              icon={<ConciergeBell size={16} strokeWidth={1.75} />}
-              title={t('welcomeGuide.fields.upsellSelectionTitle', 'Services affichés sur ce livret')}
-            />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-              {t(
-                'welcomeGuide.fields.upsellSelectionHint',
-                'Décochez un service pour le masquer sur ce livret uniquement.',
-              )}
-            </Typography>
-            <Stack spacing={0}>
-              {applicableOffers.map((o) => (
-                <FormControlLabel
-                  key={o.id}
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={isOfferShown(o.id)}
-                      onChange={() => toggleOfferShown(o.id)}
-                    />
-                  }
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                      <Typography variant="body2">{o.title}</Typography>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ fontVariantNumeric: 'tabular-nums' }}
-                      >
-                        {o.price.toFixed(0)} {o.currency}
-                      </Typography>
-                    </Box>
-                  }
-                />
-              ))}
-            </Stack>
-          </CardContent>
-        </Card>
+      </>
       )}
+
+      {/* ── Étape 6 — Récapitulatif ── */}
+      {step === LAST_STEP && renderRecap()}
+
+      {renderWizardFooter()}
       </Stack>
 
       {/* ── Aperçu téléphone live (reflète l'état du formulaire en temps réel) ── */}
@@ -1483,6 +1725,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             labels={GUIDE_LABELS[previewLang]}
             heroImages={previewHeroImages}
             interactive={false}
+            previewFocus={step === 3 ? 'content' : step === 4 ? 'experiences' : 'home'}
           />
         </Box>
       </Box>
