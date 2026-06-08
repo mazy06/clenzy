@@ -283,7 +283,8 @@
       "bookingUrl": "Lien de réservation",
       "imageUrl": "URL de l'image (optionnel)",
       "description": "Description (optionnel)",
-      "featured": "Mettre en avant"
+      "featured": "Mettre en avant",
+      "affiliateHint": "Collez un lien Klook, GetYourGuide ou Viator : si le fournisseur est connecté (onglet Intégrations), votre identifiant d'affiliation est ajouté automatiquement au lien pour toucher votre commission."
     },
     "wizard": {
       "stepCounter": "Étape {{current}} / {{total}}",

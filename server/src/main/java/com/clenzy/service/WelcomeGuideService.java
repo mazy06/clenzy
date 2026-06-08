@@ -3,9 +3,11 @@ package com.clenzy.service;
 import com.clenzy.config.GuideConfig;
 import com.clenzy.dto.WelcomeGuidePublicDto;
 import com.clenzy.dto.WelcomeGuideRequest;
+import com.clenzy.integration.activities.AffiliateLinkDecorator;
 import com.clenzy.service.access.AccessCodeResolverService;
 import com.clenzy.service.PhotoStorageService;
 import com.clenzy.model.*;
+import com.clenzy.repository.ActivityAffiliateConfigRepository;
 import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyPhotoRepository;
 import com.clenzy.repository.PropertyRepository;
@@ -13,6 +15,8 @@ import com.clenzy.repository.WelcomeGuideEntryRepository;
 import com.clenzy.repository.WelcomeGuideEventRepository;
 import com.clenzy.repository.WelcomeGuideRepository;
 import com.clenzy.repository.WelcomeGuideTokenRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hibernate.Hibernate;
 import org.springframework.data.domain.Sort;
 import com.google.zxing.BarcodeFormat;
@@ -27,7 +31,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -35,6 +42,7 @@ import java.util.UUID;
 public class WelcomeGuideService {
 
     private static final Logger log = LoggerFactory.getLogger(WelcomeGuideService.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final WelcomeGuideRepository guideRepository;
     private final WelcomeGuideTokenRepository tokenRepository;
@@ -47,6 +55,8 @@ public class WelcomeGuideService {
     private final OnlineCheckInService onlineCheckInService;
     private final PhotoStorageService photoStorageService;
     private final PropertyPhotoRepository propertyPhotoRepository;
+    private final ActivityAffiliateConfigRepository activityAffiliateConfigRepository;
+    private final Map<ActivityProvider, AffiliateLinkDecorator> linkDecorators;
 
     public WelcomeGuideService(WelcomeGuideRepository guideRepository,
                                 WelcomeGuideTokenRepository tokenRepository,
@@ -58,7 +68,9 @@ public class WelcomeGuideService {
                                 AccessCodeResolverService accessCodeResolverService,
                                 OnlineCheckInService onlineCheckInService,
                                 PhotoStorageService photoStorageService,
-                                PropertyPhotoRepository propertyPhotoRepository) {
+                                PropertyPhotoRepository propertyPhotoRepository,
+                                ActivityAffiliateConfigRepository activityAffiliateConfigRepository,
+                                List<AffiliateLinkDecorator> linkDecorators) {
         this.guideRepository = guideRepository;
         this.tokenRepository = tokenRepository;
         this.entryRepository = entryRepository;
@@ -70,6 +82,11 @@ public class WelcomeGuideService {
         this.onlineCheckInService = onlineCheckInService;
         this.photoStorageService = photoStorageService;
         this.propertyPhotoRepository = propertyPhotoRepository;
+        this.activityAffiliateConfigRepository = activityAffiliateConfigRepository;
+        this.linkDecorators = new EnumMap<>(ActivityProvider.class);
+        for (AffiliateLinkDecorator decorator : linkDecorators) {
+            this.linkDecorators.put(decorator.provider(), decorator);
+        }
     }
 
     @Transactional
@@ -434,8 +451,56 @@ public class WelcomeGuideService {
                 .orElse(null)
             : null;
         List<String> heroImageUrls = resolveHeroImageUrls(guide, t.getToken());
-        return Optional.of(
-            WelcomeGuidePublicDto.from(guide, property, ci, reservation, dynamicAccessCode, checkIn, heroImageUrls));
+        WelcomeGuidePublicDto dto =
+            WelcomeGuidePublicDto.from(guide, property, ci, reservation, dynamicAccessCode, checkIn, heroImageUrls);
+        // Injecte les ID d'affiliation (Klook, GetYourGuide, ...) dans les liens des activites curatees.
+        String decorated = decorateAffiliateLinks(dto.curatedActivities(), guide.getOrganizationId());
+        return Optional.of(decorated.equals(dto.curatedActivities()) ? dto : dto.withCuratedActivities(decorated));
+    }
+
+    /**
+     * Reecrit les {@code bookingUrl} des activites curatees pour y ajouter l'ID d'affiliation de
+     * l'org pour chaque provider connecte+actif (ex. {@code aid} Klook, {@code partner_id}
+     * GetYourGuide), afin que l'hote touche sa commission. Chaque {@link AffiliateLinkDecorator} ne
+     * modifie que les URL de son domaine → les decorateurs s'appliquent en chaine sans interferer.
+     * No-op si aucun provider connecte/avec ID affilie ; defensif si JSON illisible (sert l'original).
+     */
+    private String decorateAffiliateLinks(String curatedActivitiesJson, Long orgId) {
+        if (curatedActivitiesJson == null || curatedActivitiesJson.isBlank() || orgId == null) {
+            return curatedActivitiesJson;
+        }
+        List<Map.Entry<AffiliateLinkDecorator, String>> active = new ArrayList<>();
+        for (ActivityAffiliateConfig config : activityAffiliateConfigRepository.findByOrganizationIdAndEnabledTrue(orgId)) {
+            AffiliateLinkDecorator decorator = linkDecorators.get(config.getProvider());
+            String affiliateId = config.getAffiliateId();
+            if (decorator != null && affiliateId != null && !affiliateId.isBlank()) {
+                active.add(Map.entry(decorator, affiliateId));
+            }
+        }
+        if (active.isEmpty()) {
+            return curatedActivitiesJson; // aucun provider d'affiliation connecte
+        }
+        try {
+            List<Map<String, Object>> activities =
+                MAPPER.readValue(curatedActivitiesJson, new TypeReference<List<Map<String, Object>>>() {});
+            boolean changed = false;
+            for (Map<String, Object> activity : activities) {
+                if (activity.get("bookingUrl") instanceof String url) {
+                    String wrapped = url;
+                    for (Map.Entry<AffiliateLinkDecorator, String> entry : active) {
+                        wrapped = entry.getKey().wrap(wrapped, entry.getValue());
+                    }
+                    if (!wrapped.equals(url)) {
+                        activity.put("bookingUrl", wrapped);
+                        changed = true;
+                    }
+                }
+            }
+            return changed ? MAPPER.writeValueAsString(activities) : curatedActivitiesJson;
+        } catch (Exception e) {
+            log.warn("Affiliate link decoration failed (org={}): {}", orgId, e.getMessage());
+            return curatedActivitiesJson;
+        }
     }
 
     /**
