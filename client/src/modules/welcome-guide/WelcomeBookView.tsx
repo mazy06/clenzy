@@ -390,6 +390,9 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
   const checkInTime = stay?.checkInTime || null;
   const checkOutTime = stay?.checkOutTime || null;
   const doorCode = practical?.accessCode || null;
+  // Accueil personnalisé : prénom du voyageur chargé depuis la réservation (via le token).
+  const guestFirstName = (stay?.guestName || '').trim().split(/\s+/)[0] || '';
+  const heroGreeting = guestFirstName ? `${L.welcome}, ${guestFirstName}` : L.welcome;
   const tiles: Array<{ icon: React.ReactNode; label: string; value: string; mono?: boolean }> = [];
   if (checkInTime) tiles.push({ icon: <LogIn size={17} strokeWidth={1.6} style={{ color: 'var(--terra)' }} />, label: L.arrival, value: checkInTime });
   if (checkOutTime) tiles.push({ icon: <LogOut size={17} strokeWidth={1.6} style={{ color: 'var(--terra)' }} />, label: L.departure, value: checkOutTime });
@@ -438,7 +441,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
         {model.logoUrl ? <img src={model.logoUrl} alt="" style={{ position: 'absolute', top: 22, left: 22, maxHeight: 40, maxWidth: 150, objectFit: 'contain' }} /> : null}
         {langToggle ? <div style={{ position: 'absolute', top: 22, right: 16, pointerEvents: 'auto' }}>{langToggle}</div> : null}
         <div style={{ position: 'absolute', left: 22, right: 22, bottom: 22 }}>
-          <div className="wb-eyebrow wb-rise" style={{ color: '#F4D8C4', marginBottom: 8 }}>{L.welcome}</div>
+          <div className="wb-eyebrow wb-rise" style={{ color: '#F4D8C4', marginBottom: 8 }}>{heroGreeting}</div>
           <div className="wb-h1 wb-rise" style={{ color: '#FFF8F0', fontSize: 36, animationDelay: '.05s' }}>{model.title}</div>
           <div className="wb-rise" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 10, color: '#F3E7D8', fontSize: 13.5, fontWeight: 600, animationDelay: '.1s' }}>
             {property?.city || property?.name ? (

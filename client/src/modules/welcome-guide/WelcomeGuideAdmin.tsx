@@ -754,7 +754,16 @@ const WelcomeGuideAdmin: React.FC = () => {
         longitude: null,
       },
     practical: previewData?.practical ?? null,
-    stay: previewData?.stay ?? null,
+    // En config il n'y a pas de réservation : on injecte un prénom-échantillon pour montrer
+    // que l'accueil affichera automatiquement le prénom du voyageur (chargé depuis la résa).
+    stay: {
+      checkIn: previewData?.stay?.checkIn ?? null,
+      checkOut: previewData?.stay?.checkOut ?? null,
+      checkInTime: previewData?.stay?.checkInTime ?? null,
+      checkOutTime: previewData?.stay?.checkOutTime ?? null,
+      guestName: previewData?.stay?.guestName || t('welcomeGuide.preview.sampleGuest', 'Marie'),
+      guestCount: previewData?.stay?.guestCount ?? null,
+    },
     checkIn: null,
     accessPhotos: [],
     sections,
@@ -1037,6 +1046,12 @@ const WelcomeGuideAdmin: React.FC = () => {
           icon={<Quote size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.welcomeNote.title', "Message d'accueil")}
         />
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+          {t(
+            'welcomeGuide.welcomeNote.guestHint',
+            "Le prénom du voyageur s'affiche automatiquement en haut de l'accueil, chargé depuis la réservation.",
+          )}
+        </Typography>
         <Stack spacing={1.5}>
           <TextField
             label={t('welcomeGuide.welcomeNote.message', "Mot d'accueil")}

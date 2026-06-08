@@ -120,7 +120,8 @@
       "message": "Welcome note",
       "messagePlaceholder": "Welcome to our home. Settle in, breathe — everything you need for a perfect stay is right here.",
       "signature": "Signature (your names)",
-      "signaturePlaceholder": "e.g. Camille & Antoine"
+      "signaturePlaceholder": "e.g. Camille & Antoine",
+      "guestHint": "The guest's first name appears automatically at the top of the home screen, loaded from the reservation."
     },
     "hero": {
       "title": "Cover photos",
@@ -134,7 +135,8 @@
     "preview": {
       "label": "Guest preview · live",
       "note": "Wifi, door code and dates are auto-filled from the property (sample values shown here).",
-      "sampleTitle": "Your place"
+      "sampleTitle": "Your place",
+      "sampleGuest": "Marie"
     },
     "actions": {
       "new": "New guide",
