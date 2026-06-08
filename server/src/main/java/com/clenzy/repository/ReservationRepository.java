@@ -84,6 +84,19 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         @Param("orgId") Long orgId);
 
     /**
+     * Reservation pertinente d'un livret : sejour actif OU prochaine reservation a venir
+     * (checkOut >= date, confirmee), la plus proche en premier. Le premier element = la
+     * reservation a lier au livret d'accueil. Liste vide entre deux sejours.
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
+           "WHERE r.property.id = :propertyId AND r.checkOut >= :date " +
+           "AND r.status = 'confirmed' AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
+    List<Reservation> findCurrentOrNextByPropertyId(
+        @Param("propertyId") Long propertyId,
+        @Param("date") LocalDate date,
+        @Param("orgId") Long orgId);
+
+    /**
      * Reservation active (en cours) pour une propriete a une date donnee.
      * Utilise par NoiseAlertNotificationService pour envoyer un message au voyageur.
      */

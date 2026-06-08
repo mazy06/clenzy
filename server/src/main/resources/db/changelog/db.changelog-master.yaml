@@ -2079,3 +2079,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Livret d'accueil rattaché à une réservation (welcome_guides.reservation_id, 1 livret/réservation).
+  - changeSet:
+      id: "0213-add-welcome-guide-reservation"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0213__add_welcome_guide_reservation.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

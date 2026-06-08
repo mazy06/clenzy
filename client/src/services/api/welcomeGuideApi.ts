@@ -1,6 +1,20 @@
 import apiClient from '../apiClient';
+import type { ApiError } from '../apiClient';
 
 // ─── Admin types ──────────────────────────────────────────────────────────────
+
+/**
+ * Reference legere d'une reservation rattachee a un livret.
+ * Mappe `WelcomeGuidePublicDto.ReservationRef` cote serveur : `checkIn`/`checkOut`
+ * sont des dates ISO (`YYYY-MM-DD`), `status` le statut de la reservation.
+ */
+export interface GuideReservationRef {
+  id: number;
+  guestName: string | null;
+  checkIn: string | null;
+  checkOut: string | null;
+  status: string | null;
+}
 
 /** Livret tel que renvoye par l'API admin (`/welcome-guides`). */
 export interface WelcomeGuide {
@@ -33,6 +47,8 @@ export interface WelcomeGuide {
   /** Sélection des services affichés (JSON array d'ids) ; null = tous. */
   upsellOfferIds: string | null;
   createdAt: string;
+  /** Réservation rattachée au livret (null = orphelin → le voyageur voit « non disponible »). */
+  reservation: GuideReservationRef | null;
 }
 
 /** Payload de creation / mise a jour d'un livret. */
@@ -232,6 +248,8 @@ export interface GuidePreviewData {
   property: PublicGuideProperty | null;
   practical: PublicGuidePractical | null;
   stay: PublicGuideStay | null;
+  /** Réservation active ou à venir du logement = celle à laquelle le livret serait rattaché à la création. */
+  currentReservation: GuideReservationRef | null;
 }
 
 export interface PublicGuide {
@@ -258,14 +276,70 @@ export interface PublicGuide {
   guestbookEnabled: boolean;
   activitiesEnabled: boolean;
   upsellsEnabled: boolean;
+  /** false = livret non disponible (réservation absente ou révolue) → écran guest dédié. */
+  available: boolean;
+  /** Raison d'indisponibilité quand `available=false` : 'NO_RESERVATION' | 'EXPIRED'. */
+  unavailableReason: string | null;
 }
 
 // ─── API admin ────────────────────────────────────────────────────────────────
 
+/** Corps de la réponse 409 lors d'une création de livret en doublon (un livret existe déjà pour la réservation). */
+export interface GuideAlreadyExistsBody {
+  error: 'GUIDE_ALREADY_EXISTS';
+  existingGuideId: number;
+  reservationId: number;
+  message: string;
+}
+
+/**
+ * Erreur typée « un livret existe déjà pour cette réservation » (HTTP 409).
+ * Permet au formulaire de distinguer ce cas (→ confirmation d'écrasement) d'une
+ * erreur générique. {@link isGuideConflict} la reconnaît.
+ */
+export class GuideAlreadyExistsError extends Error {
+  readonly existingGuideId: number;
+  readonly reservationId: number;
+  constructor(body: GuideAlreadyExistsBody) {
+    super(body.message);
+    this.name = 'GuideAlreadyExistsError';
+    this.existingGuideId = body.existingGuideId;
+    this.reservationId = body.reservationId;
+  }
+}
+
+/** Vrai si l'erreur est le conflit 409 « livret déjà existant » (à traiter par confirmation d'écrasement). */
+export function isGuideConflict(err: unknown): err is GuideAlreadyExistsError {
+  return err instanceof GuideAlreadyExistsError;
+}
+
+/** Extrait le corps 409 typé d'une {@link ApiError} (apiClient stocke le JSON parsé dans `details`). */
+function asGuideConflict(err: unknown): GuideAlreadyExistsBody | null {
+  const apiErr = err as ApiError | undefined;
+  if (!apiErr || apiErr.status !== 409) return null;
+  const body = apiErr.details as Partial<GuideAlreadyExistsBody> | undefined;
+  return body && body.error === 'GUIDE_ALREADY_EXISTS' && typeof body.existingGuideId === 'number'
+    ? (body as GuideAlreadyExistsBody)
+    : null;
+}
+
 export const welcomeGuideApi = {
   list: () => apiClient.get<WelcomeGuide[]>('/welcome-guides'),
   getById: (id: number) => apiClient.get<WelcomeGuide>(`/welcome-guides/${id}`),
-  create: (data: WelcomeGuideRequest) => apiClient.post<WelcomeGuide>('/welcome-guides', data),
+  /**
+   * Crée un livret (staff uniquement). Si un livret existe déjà pour la réservation résolue,
+   * le backend répond 409 → on relance une {@link GuideAlreadyExistsError} typée (le formulaire
+   * propose alors d'écraser via `overwrite: true`). Toute autre erreur est repropagée telle quelle.
+   */
+  create: async (data: WelcomeGuideRequest, overwrite = false): Promise<WelcomeGuide> => {
+    try {
+      return await apiClient.post<WelcomeGuide>('/welcome-guides', data, { params: { overwrite } });
+    } catch (err) {
+      const conflict = asGuideConflict(err);
+      if (conflict) throw new GuideAlreadyExistsError(conflict);
+      throw err;
+    }
+  },
   update: (id: number, data: WelcomeGuideRequest) =>
     apiClient.put<WelcomeGuide>(`/welcome-guides/${id}`, data),
   remove: (id: number) => apiClient.delete(`/welcome-guides/${id}`),

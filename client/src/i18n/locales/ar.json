@@ -204,6 +204,19 @@
       "published": "منشور",
       "draft": "مسودة"
     },
+    "reservationLink": {
+      "title": "الحجز الحالي / القادم",
+      "linked": "مرتبط",
+      "notLinked": "غير مرتبط",
+      "none": "لا يوجد حجز مرتبط",
+      "noneCreate": "لا يوجد حجز حالي أو قادم",
+      "guestUnknown": "ضيف",
+      "staffOnly": "إنشاء الدليل مخصص لفريق Clenzy فقط.",
+      "noReservation": "لا يوجد حجز حالي أو قادم لهذا المسكن: لا يمكن إنشاء الدليل.",
+      "overwriteTitle": "يوجد دليل بالفعل",
+      "overwriteMessage": "يوجد دليل بالفعل لهذا الحجز. هل تريد استبدال الدليل القديم؟",
+      "overwriteConfirm": "استبدال"
+    },
     "languages": {
       "fr": "الفرنسية",
       "en": "الإنجليزية",
