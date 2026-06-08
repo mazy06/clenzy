@@ -283,7 +283,8 @@
       "bookingUrl": "Booking link",
       "imageUrl": "Image URL (optional)",
       "description": "Description (optional)",
-      "featured": "Feature"
+      "featured": "Feature",
+      "affiliateHint": "Paste a Klook, GetYourGuide or Viator link: if the provider is connected (Integrations tab), your affiliate ID is added to the link automatically so you earn your commission."
     },
     "wizard": {
       "stepCounter": "Step {{current}} / {{total}}",

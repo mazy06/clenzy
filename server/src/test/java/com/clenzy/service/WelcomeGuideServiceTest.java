@@ -44,6 +44,7 @@ class WelcomeGuideServiceTest {
     @Mock private OnlineCheckInService onlineCheckInService;
     @Mock private PhotoStorageService photoStorageService;
     @Mock private PropertyPhotoRepository propertyPhotoRepository;
+    @Mock private com.clenzy.repository.ActivityAffiliateConfigRepository activityAffiliateConfigRepository;
 
     private WelcomeGuideService service;
 
@@ -51,7 +52,8 @@ class WelcomeGuideServiceTest {
     void setUp() {
         service = new WelcomeGuideService(guideRepository, tokenRepository, entryRepository, eventRepository,
             propertyRepository, checkInInstructionsRepository, guideConfig, accessCodeResolverService,
-            onlineCheckInService, photoStorageService, propertyPhotoRepository);
+            onlineCheckInService, photoStorageService, propertyPhotoRepository, activityAffiliateConfigRepository,
+            java.util.List.of());
     }
 
     @Test

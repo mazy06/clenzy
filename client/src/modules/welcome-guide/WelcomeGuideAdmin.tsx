@@ -1480,6 +1480,12 @@ const WelcomeGuideAdmin: React.FC = () => {
             </Button>
           }
         />
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+          {t(
+            'welcomeGuide.curation.affiliateHint',
+            "Collez un lien Klook, GetYourGuide ou Viator : si le fournisseur est connecté (onglet Intégrations), votre identifiant d'affiliation est ajouté automatiquement au lien pour toucher votre commission.",
+          )}
+        </Typography>
 
         {curatedActivities.length === 0 ? (
           <EmptyHint
