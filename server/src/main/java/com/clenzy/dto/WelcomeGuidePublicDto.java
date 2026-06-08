@@ -35,7 +35,11 @@ public record WelcomeGuidePublicDto(
     boolean chatbotEnabled,
     boolean guestbookEnabled,
     boolean activitiesEnabled,
-    boolean upsellsEnabled
+    boolean upsellsEnabled,
+    /** false = livret non disponible (réservation absente ou révolue) → le guest voit un écran dédié. */
+    boolean available,
+    /** Raison d'indisponibilité quand {@code available=false} : {@code NO_RESERVATION} | {@code EXPIRED}. */
+    String unavailableReason
 ) {
     /**
      * Copie avec un JSON {@code curatedActivities} reecrit (ex : injection des liens
@@ -45,7 +49,21 @@ public record WelcomeGuidePublicDto(
         return new WelcomeGuidePublicDto(
             title, language, brandingColor, theme, heroImageUrls, welcomeMessage, hostNames,
             logoUrl, sections, pois, newCuratedActivities, property, practical, stay, checkIn,
-            chatbotEnabled, guestbookEnabled, activitiesEnabled, upsellsEnabled);
+            chatbotEnabled, guestbookEnabled, activitiesEnabled, upsellsEnabled, available, unavailableReason);
+    }
+
+    /**
+     * Payload « livret non disponible » : titre + thème (pour habiller l'écran guest), aucun contenu
+     * sensible. {@code reason} = {@code NO_RESERVATION} (aucune réservation liée) ou {@code EXPIRED}
+     * (réservation révolue). Le contrôleur le renvoie en 200 ; le front affiche l'écran dédié.
+     */
+    public static WelcomeGuidePublicDto unavailable(WelcomeGuide g, String reason) {
+        return new WelcomeGuidePublicDto(
+            g.getTitle(), g.getLanguage(), g.getBrandingColor(),
+            g.getTheme() != null ? g.getTheme() : "atelier", java.util.List.of(),
+            null, null, g.getLogoUrl(), "[]", "[]", "[]",
+            null, null, null, null,
+            false, false, false, false, false, reason);
     }
 
     /** Localisation du logement (pour la carte "autour de moi" + adresse). */
@@ -93,7 +111,17 @@ public record WelcomeGuidePublicDto(
      * Permet a l'editeur de livret de montrer les vraies infos (adresse, wifi, digicode,
      * horaires par defaut) dans l'apercu telephone en direct.
      */
-    public record PreviewData(PropertyInfo property, PracticalInfo practical, StayInfo stay) {}
+    /** Référence légère d'une réservation (form admin : réservation liée / en cours ou à venir). */
+    public record ReservationRef(Long id, String guestName, java.time.LocalDate checkIn,
+                                 java.time.LocalDate checkOut, String status) {
+        public static ReservationRef from(Reservation r) {
+            return r == null ? null
+                : new ReservationRef(r.getId(), r.getGuestName(), r.getCheckIn(), r.getCheckOut(), r.getStatus());
+        }
+    }
+
+    public record PreviewData(PropertyInfo property, PracticalInfo practical, StayInfo stay,
+                              ReservationRef currentReservation) {}
 
     public static WelcomeGuidePublicDto from(WelcomeGuide g, Property p,
                                              CheckInInstructions ci, Reservation r,
@@ -135,7 +163,7 @@ public record WelcomeGuidePublicDto(
             g.getCuratedActivities(),
             propertyInfo, practicalInfo, stayInfo, checkIn,
             g.isChatbotEnabled(), g.isGuestbookEnabled(), g.isActivitiesEnabled(),
-            g.isUpsellsEnabled()
+            g.isUpsellsEnabled(), true, null
         );
     }
 
@@ -144,7 +172,7 @@ public record WelcomeGuidePublicDto(
      * de check-in, sans token ni reservation. Le sejour expose seulement les horaires par
      * defaut du logement (pas de guest). Memes regles de mapping que {@link #from}.
      */
-    public static PreviewData previewFrom(Property p, CheckInInstructions ci) {
+    public static PreviewData previewFrom(Property p, CheckInInstructions ci, Reservation currentReservation) {
         PropertyInfo propertyInfo = (p == null) ? null : new PropertyInfo(
             p.getName(), p.getAddress(), p.getCity(), p.getPostalCode(), p.getCountry(),
             p.getLatitude() != null ? p.getLatitude().doubleValue() : null,
@@ -161,7 +189,7 @@ public record WelcomeGuidePublicDto(
             p.getDefaultCheckInTime(), p.getDefaultCheckOutTime(),
             null, null
         );
-        return new PreviewData(propertyInfo, practicalInfo, stayInfo);
+        return new PreviewData(propertyInfo, practicalInfo, stayInfo, ReservationRef.from(currentReservation));
     }
 
     private static String resolveEmergency(CheckInInstructions ci, Property p) {

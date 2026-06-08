@@ -204,6 +204,19 @@
       "published": "Publié",
       "draft": "Brouillon"
     },
+    "reservationLink": {
+      "title": "Réservation en cours / à venir",
+      "linked": "Lié",
+      "notLinked": "Non lié",
+      "none": "Aucune réservation liée",
+      "noneCreate": "Aucune réservation en cours ou à venir",
+      "guestUnknown": "Voyageur",
+      "staffOnly": "La création d'un livret est réservée au staff Clenzy.",
+      "noReservation": "Aucune réservation en cours ou à venir pour ce logement : livret non créable.",
+      "overwriteTitle": "Un livret existe déjà",
+      "overwriteMessage": "Un livret existe déjà pour cette réservation. Voulez-vous écraser l'ancien livret ?",
+      "overwriteConfirm": "Écraser"
+    },
     "languages": {
       "fr": "Français",
       "en": "Anglais",

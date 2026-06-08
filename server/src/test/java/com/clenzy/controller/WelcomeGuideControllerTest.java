@@ -122,12 +122,12 @@ class WelcomeGuideControllerTest {
         when(tenantContext.getOrganizationId()).thenReturn(7L);
         WelcomeGuideRequest req = new WelcomeGuideRequest(99L, "Welcome", "fr",
                 "[]", "#000000", "atelier", null, null, null, "https://logo", false, true, true, true, "[]", "[]", true, null);
-        when(guideService.createGuide(eq(7L), any(WelcomeGuideRequest.class))).thenReturn(guide(1L));
+        when(guideService.createGuide(eq(7L), any(WelcomeGuideRequest.class), anyBoolean())).thenReturn(guide(1L));
 
-        ResponseEntity<WelcomeGuideDto> response = controller.create(req);
+        ResponseEntity<?> response = controller.create(req, false);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody().id()).isEqualTo(1L);
+        assertThat(((WelcomeGuideDto) response.getBody()).id()).isEqualTo(1L);
     }
 
     @Test
