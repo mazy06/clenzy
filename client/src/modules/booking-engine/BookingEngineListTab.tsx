@@ -6,7 +6,7 @@ import {
   Tooltip,
   Switch,
   Card,
-  CardContent,
+  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -153,7 +153,7 @@ interface TemplateCardProps {
   toggleDisabled: boolean;
 }
 
-const TemplateCard: React.FC<TemplateCardProps> = ({
+const TemplateRow: React.FC<TemplateCardProps> = ({
   config,
   showOrg,
   onEdit,
@@ -167,200 +167,119 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   const isActive = config.enabled;
 
   return (
-    <Card
-      variant="outlined"
+    <Box
       onClick={onEdit}
       sx={{
-        position: 'relative',
-        borderRadius: 2,
-        borderColor: 'divider',
+        display: 'flex',
+        alignItems: 'center',
+        gap: { xs: 1, sm: 1.5 },
+        flexWrap: 'wrap',
+        px: { xs: 1.5, sm: 2 },
+        py: 1.25,
         cursor: 'pointer',
-        overflow: 'hidden',
-        transition: 'border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease',
+        transition: 'background-color 150ms ease',
         '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-        '&:hover': {
-          borderColor: alpha(accent, 0.5),
-          boxShadow: `0 1px 3px ${alpha(accent, 0.15)}`,
-        },
-        // 1 px accent filet on top — single allowed filet (no side stripe).
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0, left: 0, right: 0,
-          height: '1px',
-          bgcolor: accent,
-        },
+        '&:hover': { bgcolor: 'action.hover' },
       }}
     >
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-        {/* Header: color swatch + name + status */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, mb: 1.5 }}>
-          {/* Color swatch — large enough to read as the template's identity */}
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 1,
-              bgcolor: accent,
-              flexShrink: 0,
-              border: '1px solid',
-              borderColor: alpha(theme.palette.divider, 0.4),
-              boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.common.white, 0.4)}`,
-            }}
-            aria-hidden
-          />
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              sx={{
-                fontSize: '0.9375rem',
-                fontWeight: 700,
-                color: 'text.primary',
-                lineHeight: 1.2,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                textWrap: 'balance',
-              }}
-            >
-              {config.name}
-            </Typography>
-            {showOrg && (
-              <Typography
-                sx={{
-                  fontSize: '0.75rem',
-                  color: 'text.secondary',
-                  mt: 0.125,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {config.organizationName || `Org #${config.organizationId}`}
-              </Typography>
-            )}
-          </Box>
-          <Chip
-            label={isActive
-              ? t('bookingEngine.status.active', 'Actif')
-              : t('bookingEngine.status.inactive', 'Inactif')}
-            size="small"
-            sx={softChipSx(semanticToHex(isActive ? 'success' : 'default'))}
-          />
-        </Box>
+      {/* Identité couleur du template : simple pastille (accent), jamais de side-stripe */}
+      <Box
+        aria-hidden
+        sx={{
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
+          bgcolor: accent,
+          flexShrink: 0,
+          border: '1px solid',
+          borderColor: alpha(theme.palette.divider, 0.5),
+        }}
+      />
 
-        {/* Meta row: color hex + language + font family */}
+      {/* Nom · organisation + langue · devise · police */}
+      <Box sx={{ flex: '1 1 240px', minWidth: 0 }}>
+        <Typography
+          component="div"
+          sx={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            lineHeight: 1.3,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {config.name}
+          {showOrg ? (
+            <Box component="span" sx={{ color: 'text.secondary', fontWeight: 400 }}>
+              {' · '}
+              {config.organizationName || `Org #${config.organizationId}`}
+            </Box>
+          ) : null}
+        </Typography>
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 1.5,
-            flexWrap: 'wrap',
-            mb: 1.5,
+            gap: 1,
+            mt: 0.25,
             color: 'text.secondary',
             fontSize: '0.75rem',
+            flexWrap: 'wrap',
           }}
         >
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontVariantNumeric: 'tabular-nums' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: accent }}>
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: accent }} />
-            </Box>
-            <span>{accent.toUpperCase()}</span>
+          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, fontVariantNumeric: 'tabular-nums' }}>
+            <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: accent }} />
+            {accent.toUpperCase()}
           </Box>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4 }}>
             <Public size={12} strokeWidth={1.75} />
-            <span>{config.defaultLanguage.toUpperCase()}</span>
-            <span>·</span>
-            <span>{config.defaultCurrency}</span>
+            {config.defaultLanguage.toUpperCase()} · {config.defaultCurrency}
           </Box>
-          {config.fontFamily && (
+          {config.fontFamily ? (
             <Box
               component="span"
-              sx={{
-                fontFamily: config.fontFamily,
-                fontSize: '0.75rem',
-                color: 'text.secondary',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                maxWidth: 160,
-              }}
+              sx={{ fontFamily: config.fontFamily, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}
               title={config.fontFamily}
             >
               {config.fontFamily}
             </Box>
-          )}
+          ) : null}
         </Box>
+      </Box>
 
-        {/* API key */}
-        <Box sx={{ mb: 1.5 }}>
-          <Typography
-            variant="caption"
-            sx={{
-              fontSize: '0.625rem',
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: 'text.secondary',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              mb: 0.5,
-            }}
-          >
-            <VpnKey size={11} strokeWidth={1.75} />
-            <span>{t('bookingEngine.fields.apiKey', 'Clé API')}</span>
-          </Typography>
-          <ApiKeyChip apiKey={config.apiKey} />
-        </Box>
+      {/* Clé API (masquée + révéler + copier) — gère son propre stopPropagation */}
+      <ApiKeyChip apiKey={config.apiKey} />
 
-        {/* Footer actions */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            pt: 1.25,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-          }}
-          onClick={(e) => e.stopPropagation()}
+      {/* Statut */}
+      <Chip
+        label={isActive ? t('bookingEngine.status.active', 'Actif') : t('bookingEngine.status.inactive', 'Inactif')}
+        size="small"
+        sx={{ ...softChipSx(semanticToHex(isActive ? 'success' : 'default')), flexShrink: 0 }}
+      />
+
+      {/* Toggle + actions */}
+      <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+        <Tooltip
+          arrow
+          title={isActive
+            ? t('bookingEngine.status.disableTooltip', 'Désactiver ce template')
+            : t('bookingEngine.status.enableTooltip', 'Activer ce template')}
         >
-          <Tooltip
-            arrow
-            title={
-              isActive
-                ? t('bookingEngine.status.disableTooltip', 'Désactiver ce template')
-                : t('bookingEngine.status.enableTooltip', 'Activer ce template')
-            }
-          >
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-              <Switch
-                checked={isActive}
-                onChange={onToggle}
-                size="small"
-                color="success"
-                disabled={toggleDisabled}
-              />
-              <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                {isActive ? t('common.enabled', 'Activé') : t('common.disabled', 'Désactivé')}
-              </Typography>
-            </Box>
-          </Tooltip>
-          <Box sx={{ display: 'flex', gap: 0.25 }}>
-            <Tooltip title={t('bookingEngine.actions.editTemplate', 'Modifier')}>
-              <IconButton size="small" onClick={onEdit} sx={{ color: 'text.secondary' }}>
-                <Edit size={16} strokeWidth={1.75} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={t('bookingEngine.actions.deleteTemplate', 'Supprimer')}>
-              <IconButton size="small" onClick={onDelete} color="error">
-                <Delete size={16} strokeWidth={1.75} />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
+          <Switch checked={isActive} onChange={onToggle} size="small" color="success" disabled={toggleDisabled} />
+        </Tooltip>
+        <Tooltip title={t('bookingEngine.actions.editTemplate', 'Modifier')}>
+          <IconButton size="small" onClick={onEdit} sx={{ color: 'text.secondary' }}>
+            <Edit size={16} strokeWidth={1.75} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={t('bookingEngine.actions.deleteTemplate', 'Supprimer')}>
+          <IconButton size="small" onClick={onDelete} color="error">
+            <Delete size={16} strokeWidth={1.75} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    </Box>
   );
 };
 
@@ -422,18 +341,17 @@ const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
     // ── Loading ──────────────────────────────────────────────────────────────
     if (isLoading) {
       return (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
-            gap: 1.5,
-            pt: 1,
-          }}
-        >
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rounded" height={220} sx={{ borderRadius: 2 }} />
+        <Card variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', mt: 1 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <React.Fragment key={i}>
+              {i > 1 ? <Divider /> : null}
+              <Box sx={{ px: 2, py: 1.25 }}>
+                <Skeleton variant="text" width="38%" height={20} />
+                <Skeleton variant="text" width="22%" height={16} />
+              </Box>
+            </React.Fragment>
           ))}
-        </Box>
+        </Card>
       );
     }
 
@@ -479,26 +397,21 @@ const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
             {t('bookingEngine.list.noResults', 'Aucun template ne correspond à la recherche.')}
           </Alert>
         ) : (
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
-              gap: 1.5,
-              mt: 1,
-            }}
-          >
-            {filteredConfigs.map((config) => (
-              <TemplateCard
-                key={config.id}
-                config={config}
-                showOrg={showAllOrgs}
-                onEdit={() => onEdit(config)}
-                onDelete={() => setDeleteTarget(config)}
-                onToggle={() => handleToggle(config)}
-                toggleDisabled={toggleMutation.isPending}
-              />
+          <Card variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', mt: 1 }}>
+            {filteredConfigs.map((config, i) => (
+              <React.Fragment key={config.id}>
+                {i > 0 ? <Divider /> : null}
+                <TemplateRow
+                  config={config}
+                  showOrg={showAllOrgs}
+                  onEdit={() => onEdit(config)}
+                  onDelete={() => setDeleteTarget(config)}
+                  onToggle={() => handleToggle(config)}
+                  toggleDisabled={toggleMutation.isPending}
+                />
+              </React.Fragment>
             ))}
-          </Box>
+          </Card>
         )}
 
         {/* Delete confirmation dialog */}
