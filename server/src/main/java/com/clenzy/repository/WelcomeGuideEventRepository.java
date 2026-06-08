@@ -4,6 +4,7 @@ import com.clenzy.model.WelcomeGuideEvent;
 import com.clenzy.model.WelcomeGuideEventType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -33,4 +34,9 @@ public interface WelcomeGuideEventRepository extends JpaRepository<WelcomeGuideE
     List<Object[]> topDetailForGuide(@Param("guideId") Long guideId,
                                      @Param("eventType") WelcomeGuideEventType eventType,
                                      Pageable pageable);
+
+    /** Supprime tous les événements analytics d'un livret (nettoyage à la suppression du livret). */
+    @Modifying
+    @Query("delete from WelcomeGuideEvent e where e.guideId = :guideId")
+    int deleteByGuideId(@Param("guideId") Long guideId);
 }

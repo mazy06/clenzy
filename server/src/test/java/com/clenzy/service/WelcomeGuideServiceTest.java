@@ -7,6 +7,8 @@ import com.clenzy.model.*;
 import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyPhotoRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.WelcomeGuideEntryRepository;
+import com.clenzy.repository.WelcomeGuideEventRepository;
 import com.clenzy.repository.WelcomeGuideRepository;
 import com.clenzy.repository.WelcomeGuideTokenRepository;
 import org.springframework.data.domain.Sort;
@@ -33,6 +35,8 @@ class WelcomeGuideServiceTest {
 
     @Mock private WelcomeGuideRepository guideRepository;
     @Mock private WelcomeGuideTokenRepository tokenRepository;
+    @Mock private WelcomeGuideEntryRepository entryRepository;
+    @Mock private WelcomeGuideEventRepository eventRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private CheckInInstructionsRepository checkInInstructionsRepository;
     @Mock private GuideConfig guideConfig;
@@ -45,9 +49,9 @@ class WelcomeGuideServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new WelcomeGuideService(guideRepository, tokenRepository, propertyRepository,
-            checkInInstructionsRepository, guideConfig, accessCodeResolverService, onlineCheckInService,
-            photoStorageService, propertyPhotoRepository);
+        service = new WelcomeGuideService(guideRepository, tokenRepository, entryRepository, eventRepository,
+            propertyRepository, checkInInstructionsRepository, guideConfig, accessCodeResolverService,
+            onlineCheckInService, photoStorageService, propertyPhotoRepository);
     }
 
     @Test
@@ -371,14 +375,20 @@ class WelcomeGuideServiceTest {
     }
 
     @Test
-    void deleteGuide_existingGuide_deletes() {
+    void deleteGuide_existingGuide_deletesChildrenThenGuide() {
         WelcomeGuide guide = new WelcomeGuide();
         guide.setId(1L);
         when(guideRepository.findByIdAndOrganizationId(1L, 1L)).thenReturn(Optional.of(guide));
 
         service.deleteGuide(1L, 1L);
 
-        verify(guideRepository).delete(guide);
+        // Les enfants (tokens, livre d'or, events) doivent etre purges AVANT le livret,
+        // sinon la FK welcome_guide_tokens.guide_id bloque le DELETE (regression prod).
+        var inOrder = inOrder(tokenRepository, entryRepository, eventRepository, guideRepository);
+        inOrder.verify(tokenRepository).deleteByGuideId(1L);
+        inOrder.verify(entryRepository).deleteByGuideId(1L);
+        inOrder.verify(eventRepository).deleteByGuideId(1L);
+        inOrder.verify(guideRepository).delete(guide);
     }
 
     @Test
