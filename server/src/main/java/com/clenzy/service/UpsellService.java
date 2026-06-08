@@ -124,15 +124,19 @@ public class UpsellService {
 
     // ─── Guest ─────────────────────────────────────────────────────────────────
 
-    /** Offres applicables au séjour du token (spécifiques à la propriété + org-wide). Vide si token invalide/sans résa. */
+    /**
+     * Offres applicables au livret du token : org-wide ({@code propertyId == null}) + celles du
+     * logement du livret. Ne nécessite PAS de réservation (vaut pour un lien manuel / le livret par
+     * défaut) — le logement est résolu depuis le livret, avec repli sur la réservation. Vide si
+     * token invalide ou livret non publié.
+     */
     @Transactional(readOnly = true)
     public List<PublicUpsellDto> listForToken(UUID token) {
-        WelcomeGuideToken tok = validTokenWithReservation(token).orElse(null);
-        if (tok == null) {
+        WelcomeGuideToken tok = validToken(token).orElse(null);
+        if (tok == null || tok.getGuide() == null || !tok.getGuide().isPublished()) {
             return List.of();
         }
-        Long propertyId = tok.getReservation().getProperty() != null
-            ? tok.getReservation().getProperty().getId() : null;
+        Long propertyId = resolvePropertyId(tok);
         return offerRepository.findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(tok.getOrganizationId())
             .stream()
             .filter(o -> o.getPropertyId() == null || o.getPropertyId().equals(propertyId))
@@ -286,6 +290,22 @@ public class UpsellService {
         return tokenRepository.findByToken(token)
             .filter(WelcomeGuideToken::isCurrentlyValid)
             .filter(t -> t.getReservation() != null);
+    }
+
+    /** Token valide (fenêtre + non révoqué + résa non annulée) — réservation NON requise (lien manuel). */
+    private Optional<WelcomeGuideToken> validToken(UUID token) {
+        return tokenRepository.findByToken(token).filter(WelcomeGuideToken::isCurrentlyValid);
+    }
+
+    /** Logement applicable aux offres : celui du livret en priorité, sinon celui de la réservation. */
+    private Long resolvePropertyId(WelcomeGuideToken tok) {
+        if (tok.getGuide() != null && tok.getGuide().getProperty() != null) {
+            return tok.getGuide().getProperty().getId();
+        }
+        if (tok.getReservation() != null && tok.getReservation().getProperty() != null) {
+            return tok.getReservation().getProperty().getId();
+        }
+        return null;
     }
 
     private static String guestEmail(Reservation reservation) {

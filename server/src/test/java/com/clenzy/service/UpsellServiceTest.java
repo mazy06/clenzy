@@ -52,10 +52,28 @@ class UpsellServiceTest {
         reservation.setProperty(property);
         WelcomeGuide guide = new WelcomeGuide();
         guide.setId(9L);
+        guide.setPublished(true);
         WelcomeGuideToken token = new WelcomeGuideToken();
         token.setOrganizationId(1L);
         token.setGuide(guide);
         token.setReservation(reservation);
+        token.setValidFrom(LocalDateTime.now().minusDays(1));
+        token.setExpiresAt(LocalDateTime.now().plusDays(1));
+        token.setRevoked(false);
+        return token;
+    }
+
+    /** Token de lien manuel : livret publié AVEC logement, AUCUNE réservation. */
+    private WelcomeGuideToken validTokenNoReservation(Long guidePropertyId) {
+        Property property = new Property();
+        property.setId(guidePropertyId);
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(9L);
+        guide.setPublished(true);
+        guide.setProperty(property);
+        WelcomeGuideToken token = new WelcomeGuideToken();
+        token.setOrganizationId(1L);
+        token.setGuide(guide);
         token.setValidFrom(LocalDateTime.now().minusDays(1));
         token.setExpiresAt(LocalDateTime.now().plusDays(1));
         token.setRevoked(false);
@@ -89,6 +107,35 @@ class UpsellServiceTest {
         assertThat(result).hasSize(2);
         assertThat(result).extracting(PublicUpsellDto::title)
             .containsExactlyInAnyOrder("Spécifique propriété 7", "Org-wide");
+    }
+
+    @Test
+    void listForToken_noReservation_usesGuidePropertyAndOrgWide() {
+        // Lien manuel / livret par défaut (sans réservation) : on affiche quand même les services
+        // (logement résolu depuis le livret), au lieu d'une liste vide.
+        UUID token = UUID.randomUUID();
+        when(tokenRepository.findByToken(token)).thenReturn(Optional.of(validTokenNoReservation(7L)));
+        when(offerRepository.findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(1L))
+            .thenReturn(List.of(
+                offer(1L, 7L, "Spécifique propriété 7"),
+                offer(2L, null, "Org-wide"),
+                offer(3L, 99L, "Autre propriété")));
+
+        List<PublicUpsellDto> result = service().listForToken(token);
+
+        assertThat(result).extracting(PublicUpsellDto::title)
+            .containsExactlyInAnyOrder("Spécifique propriété 7", "Org-wide");
+    }
+
+    @Test
+    void listForToken_unpublishedGuide_returnsEmpty() {
+        UUID token = UUID.randomUUID();
+        WelcomeGuideToken tok = validTokenNoReservation(7L);
+        tok.getGuide().setPublished(false);
+        when(tokenRepository.findByToken(token)).thenReturn(Optional.of(tok));
+
+        assertThat(service().listForToken(token)).isEmpty();
+        verify(offerRepository, never()).findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(any());
     }
 
     @Test
