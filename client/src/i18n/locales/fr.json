@@ -120,7 +120,8 @@
       "message": "Mot d'accueil",
       "messagePlaceholder": "Bienvenue chez nous. Installez-vous, respirez — tout ce qu’il vous faut pour un séjour parfait est ici.",
       "signature": "Signature (vos noms)",
-      "signaturePlaceholder": "ex : Camille & Antoine"
+      "signaturePlaceholder": "ex : Camille & Antoine",
+      "guestHint": "Le prénom du voyageur s'affiche automatiquement en haut de l'accueil, chargé depuis la réservation."
     },
     "hero": {
       "title": "Photos de couverture",
@@ -134,7 +135,8 @@
     "preview": {
       "label": "Aperçu voyageur · temps réel",
       "note": "Le wifi, le digicode et les dates sont remplis automatiquement depuis la fiche du logement (exemples ici).",
-      "sampleTitle": "Votre logement"
+      "sampleTitle": "Votre logement",
+      "sampleGuest": "Marie"
     },
     "actions": {
       "new": "Nouveau livret",
