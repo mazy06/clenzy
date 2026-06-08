@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
+import ConfirmationModal from '../../components/ConfirmationModal';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import { softChipSx, semanticToHex } from '../../utils/statusUtils';
@@ -150,6 +151,9 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [view, setView] = useState<View>('list');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  // Suppression : cible du modal de confirmation (null = fermé) + état en cours.
+  const [deleteTarget, setDeleteTarget] = useState<WelcomeGuide | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Form state
   const [propertyId, setPropertyId] = useState<string>('');
@@ -320,14 +324,20 @@ const WelcomeGuideAdmin: React.FC = () => {
     }
   };
 
-  const handleDelete = async (g: WelcomeGuide) => {
-    if (!window.confirm(t('welcomeGuide.messages.confirmDelete', 'Supprimer ce livret ?'))) return;
+  const handleDelete = (g: WelcomeGuide) => setDeleteTarget(g);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await welcomeGuideApi.remove(g.id);
+      await welcomeGuideApi.remove(deleteTarget.id);
       notify(t('welcomeGuide.messages.deleted', 'Livret supprimé'));
+      setDeleteTarget(null);
       await refetch();
     } catch {
       notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -1440,6 +1450,23 @@ const WelcomeGuideAdmin: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmationModal
+        open={deleteTarget !== null}
+        onClose={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+        onConfirm={confirmDelete}
+        title={t('welcomeGuide.messages.confirmDelete', 'Supprimer ce livret ?')}
+        message={t(
+          'welcomeGuide.messages.confirmDeleteHint',
+          'Ce livret et ses liens de partage seront supprimés définitivement. Cette action est irréversible.',
+        )}
+        confirmText={t('welcomeGuide.actions.delete', 'Supprimer')}
+        cancelText={t('welcomeGuide.actions.cancel', 'Annuler')}
+        severity="error"
+        loading={deleting}
+      />
 
       <Dialog open={guestbook.open} onClose={() => setGuestbook((s) => ({ ...s, open: false }))} maxWidth="sm" fullWidth>
         <DialogTitle>

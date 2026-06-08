@@ -32,6 +32,7 @@ import { softChipSx, semanticToHex } from '../../utils/statusUtils';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import { SectionHeading, EmptyHint } from './formPrimitives';
 import { guideIcon } from './guideIcons';
+import ConfirmationModal from '../../components/ConfirmationModal';
 import { upsellSuggestions, type UpsellSuggestion } from './upsellTemplate';
 import { upsellApi, type UpsellOffer, type UpsellOrder } from '../../services/api/upsellApi';
 import { activitiesApi } from '../../services/api/activitiesApi';
@@ -122,6 +123,9 @@ const UpsellsAdmin: React.FC = () => {
   const [edit, setEdit] = useState<EditState>(emptyEdit);
   const [saving, setSaving] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
+  // Suppression : cible du modal de confirmation (null = fermé) + état en cours.
+  const [deleteTarget, setDeleteTarget] = useState<UpsellOffer | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: AlertColor }>({
     open: false,
     message: '',
@@ -263,14 +267,20 @@ const UpsellsAdmin: React.FC = () => {
     }
   };
 
-  const handleDelete = async (o: UpsellOffer) => {
-    if (!window.confirm(t('upsells.messages.confirmDelete', 'Supprimer ce service ?'))) return;
+  const handleDelete = (o: UpsellOffer) => setDeleteTarget(o);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await upsellApi.removeOffer(o.id);
+      await upsellApi.removeOffer(deleteTarget.id);
       notify(t('upsells.messages.deleted', 'Service supprimé'));
+      setDeleteTarget(null);
       await refetch();
     } catch {
       notify(t('upsells.messages.error', 'Une erreur est survenue'), 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -619,6 +629,23 @@ const UpsellsAdmin: React.FC = () => {
           <Button onClick={() => setOrdersOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmationModal
+        open={deleteTarget !== null}
+        onClose={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+        onConfirm={confirmDelete}
+        title={t('upsells.messages.confirmDelete', 'Supprimer ce service ?')}
+        message={t(
+          'upsells.messages.confirmDeleteHint',
+          'Ce service et ses informations seront supprimés définitivement. Cette action est irréversible.',
+        )}
+        confirmText={t('upsells.actions.delete', 'Supprimer')}
+        cancelText={t('upsells.actions.cancel', 'Annuler')}
+        severity="error"
+        loading={deleting}
+      />
 
       <Snackbar
         open={snackbar.open}
