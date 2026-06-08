@@ -85,12 +85,19 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     /**
      * Reservation pertinente d'un livret : sejour actif OU prochaine reservation a venir
-     * (checkOut >= date, confirmee), la plus proche en premier. Le premier element = la
-     * reservation a lier au livret d'accueil. Liste vide entre deux sejours.
+     * (checkOut >= date), la plus proche en premier. Le premier element = la reservation a
+     * lier au livret d'accueil. Liste vide entre deux sejours.
+     *
+     * Statut : toute reservation NON annulee. Les reservations OTA importees via iCal
+     * (Airbnb, Booking, Vrbo...) ont le statut "pending" par defaut — les OTA ne fournissent
+     * pas de propriete STATUS dans l'iCal (cf. ICalImportService.setStatus). Filtrer sur
+     * "confirmed" excluait donc TOUTES les reservations de channel, rendant le livret non
+     * creable malgre un sejour en cours. Les valeurs de statut sont normalisees en minuscules
+     * (cf. ICalEventParser), donc la comparaison litterale est sure.
      */
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
            "WHERE r.property.id = :propertyId AND r.checkOut >= :date " +
-           "AND r.status = 'confirmed' AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
+           "AND r.status <> 'cancelled' AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findCurrentOrNextByPropertyId(
         @Param("propertyId") Long propertyId,
         @Param("date") LocalDate date,
