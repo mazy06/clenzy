@@ -56,7 +56,8 @@
       "error": "Something went wrong",
       "imageType": "Please choose an image file.",
       "imageSize": "Image too large (max 12 MB).",
-      "confirmDelete": "Delete this service?"
+      "confirmDelete": "Delete this service?",
+      "confirmDeleteHint": "This service and its details will be permanently deleted. This action cannot be undone."
     },
     "empty": {
       "title": "No paid service",
@@ -227,7 +228,8 @@
       "error": "Something went wrong",
       "titleRequired": "Title is required",
       "propertyRequired": "Select a property",
-      "confirmDelete": "Delete this guide?"
+      "confirmDelete": "Delete this guide?",
+      "confirmDeleteHint": "This guide and its shared links will be permanently deleted. This action cannot be undone."
     },
     "stats": {
       "title": "Statistics",

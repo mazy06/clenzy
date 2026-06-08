@@ -56,7 +56,8 @@
       "error": "Une erreur est survenue",
       "imageType": "Veuillez choisir un fichier image.",
       "imageSize": "Image trop lourde (max 12 Mo).",
-      "confirmDelete": "Supprimer ce service ?"
+      "confirmDelete": "Supprimer ce service ?",
+      "confirmDeleteHint": "Ce service et ses informations seront supprimés définitivement. Cette action est irréversible."
     },
     "empty": {
       "title": "Aucun service payant",
@@ -227,7 +228,8 @@
       "error": "Une erreur est survenue",
       "titleRequired": "Le titre est obligatoire",
       "propertyRequired": "Sélectionnez un logement",
-      "confirmDelete": "Supprimer ce livret ?"
+      "confirmDelete": "Supprimer ce livret ?",
+      "confirmDeleteHint": "Ce livret et ses liens de partage seront supprimés définitivement. Cette action est irréversible."
     },
     "stats": {
       "title": "Statistiques",
