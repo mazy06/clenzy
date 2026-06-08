@@ -46,7 +46,9 @@ const GuestExperiencePage: React.FC = () => {
 
   return (
     <PageHeaderActionsProvider slot={slot}>
-      <Box>
+      {/* En-tête + tabs FIXES ; seul le contenu sous les tabs défile (scroll interne,
+          comme les pages à scroll propre du soft) → le PageHeader ne scrolle plus. */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <PageHeader
           title={t('guestExperience.title', 'Réservation & accueil')}
           subtitle={subtitle}
@@ -55,13 +57,15 @@ const GuestExperiencePage: React.FC = () => {
           showBackButton={false}
         />
         <PageTabs options={tabs} value={tab} onChange={setTab} />
-        {tab === 2 && isPlatformStaff ? (
-          <BookingEnginePage embedded />
-        ) : tab === 1 ? (
-          <UpsellsAdmin />
-        ) : (
-          <WelcomeGuideAdmin />
-        )}
+        <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+          {tab === 2 && isPlatformStaff ? (
+            <BookingEnginePage embedded />
+          ) : tab === 1 ? (
+            <UpsellsAdmin />
+          ) : (
+            <WelcomeGuideAdmin />
+          )}
+        </Box>
       </Box>
     </PageHeaderActionsProvider>
   );
