@@ -1,8 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { Box, Typography, Button, TextField, MenuItem, IconButton, alpha } from '@mui/material';
+import {
+  Box, Typography, Button, TextField, MenuItem, IconButton, alpha,
+  Dialog, DialogTitle, DialogContent, DialogActions,
+} from '@mui/material';
 import {
   Css, Code, Delete, UploadFile,
-  BrushRounded, AutoFixHighRounded,
+  BrushRounded, AutoFixHighRounded, Close,
 } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { BookingEngineConfigUpdate, DesignTokens } from '../../../services/api/bookingEngineApi';
@@ -18,6 +21,9 @@ interface StepAppearanceProps {
   form: BookingEngineConfigUpdate;
   designTokens: DesignTokens;
   isDesignAiEnabled: boolean;
+  /** Controls the "Personnaliser le design" modal (triggered from the page header). */
+  designOpen: boolean;
+  onDesignClose: () => void;
   onFormChange: (field: keyof BookingEngineConfigUpdate, value: unknown) => void;
   onDesignTokensChange: (tokens: DesignTokens) => void;
   onTokensExtracted: (tokens: DesignTokens, generatedCss: string) => void;
@@ -31,6 +37,8 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
   form,
   designTokens,
   isDesignAiEnabled,
+  designOpen,
+  onDesignClose,
   onFormChange,
   onDesignTokensChange,
   onTokensExtracted,
@@ -99,7 +107,7 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-      {/* ── Section 1 : Analyse IA ──────────────────────────────────── */}
+      {/* ── Section 1 : Analyse IA (seule section inline) ─────────────── */}
       {isDesignAiEnabled && (
         <SectionPaper icon={<AutoFixHighRounded size={20} strokeWidth={1.75} color='#7C4DFF' />} titleKey="bookingEngine.sections.aiDesign">
           <AiDesignMatcher
@@ -113,9 +121,29 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
         </SectionPaper>
       )}
 
-      {/* ── Section 2 : Templates + Tokens de design (fusionnes) ──── */}
-      {showTemplates && (
-      <SectionPaper icon={<BrushRounded size={20} strokeWidth={1.75} color='#E91E63' />} titleKey="bookingEngine.sections.designPresets">
+      {/* ── Modal : Templates, code personnalisé, couleurs & polices ──── */}
+      {/* Déclenché par le bouton « Personnaliser le design » du page header. */}
+      <Dialog
+        open={designOpen}
+        onClose={onDesignClose}
+        maxWidth="md"
+        fullWidth
+        scroll="paper"
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pr: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: '#E91E63' }}>
+              <BrushRounded size={20} strokeWidth={1.75} />
+            </Box>
+            {t('bookingEngine.design.modalTitle', 'Personnaliser le design')}
+          </Box>
+          <IconButton size="small" onClick={onDesignClose} aria-label={t('bookingEngine.actions.close', 'Fermer')}>
+            <Close size={18} strokeWidth={1.75} />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {showTemplates ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {/* Preset selector row */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
           <TextField
@@ -237,8 +265,19 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
             onChange={onDesignTokensChange}
           />
         </Box>
-      </SectionPaper>
-      )}
+            </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+              {t('bookingEngine.ai.runAnalysisFirst', "Lancez d'abord l'analyse IA ou continuez pour personnaliser le design.")}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onDesignClose}>
+            {t('bookingEngine.actions.close', 'Fermer')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

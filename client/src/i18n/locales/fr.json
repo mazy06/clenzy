@@ -20,6 +20,7 @@
       "new": "Nouveau service",
       "add": "Ajouter",
       "orders": "Ventes",
+      "commissions": "Commissions",
       "edit": "Modifier",
       "delete": "Supprimer",
       "save": "Enregistrer",
@@ -93,7 +94,8 @@
     "commissions": {
       "title": "Commissions activités",
       "note": "Votre part sur les réservations d'activités, reversée via vos paiements. Active dès qu'un fournisseur d'activités est connecté.",
-      "bookings": "réservation(s)"
+      "bookings": "réservation(s)",
+      "dialogTitle": "Commissions & ma part"
     },
     "orgCommission": {
       "title": "Ma commission (conciergerie)",
@@ -3699,7 +3701,12 @@
       "editTemplate": "Modifier",
       "deleteTemplate": "Supprimer le template",
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer le template « {name} » ? Cette action est irréversible.",
-      "backToList": "Retour à la liste"
+      "backToList": "Retour à la liste",
+      "customizeDesign": "Personnaliser le design",
+      "close": "Fermer"
+    },
+    "design": {
+      "modalTitle": "Personnaliser le design"
     },
     "sections": {
       "statusApiKey": "Statut & Clé API",
@@ -3990,6 +3997,7 @@
       "budgetExceededTitle": "Budget mensuel de tokens IA atteint",
       "budgetExceededMessage": "Votre quota mensuel de tokens gratuits est epuise. Connectez votre propre cle API dans les parametres IA pour continuer a utiliser cette fonctionnalite sans limite.",
       "saveFirst": "Sauvegardez d'abord le template avant d'utiliser l'analyse IA",
+      "runAnalysisFirst": "Lancez d'abord l'analyse IA ou continuez pour personnaliser le design.",
       "tokensApplied": "Tokens de design appliqués et CSS généré",
       "additionalInstructions": "Instructions supplémentaires",
       "instructionsPlaceholder": "Ex : coins plus arrondis, style plus minimaliste...",

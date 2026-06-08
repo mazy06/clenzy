@@ -20,6 +20,7 @@
       "new": "New service",
       "add": "Add",
       "orders": "Sales",
+      "commissions": "Commissions",
       "edit": "Edit",
       "delete": "Delete",
       "save": "Save",
@@ -93,7 +94,8 @@
     "commissions": {
       "title": "Activity commissions",
       "note": "Your share of activity bookings, paid out via your usual payouts. Active once an activity provider is connected.",
-      "bookings": "booking(s)"
+      "bookings": "booking(s)",
+      "dialogTitle": "Commissions & my share"
     },
     "orgCommission": {
       "title": "My commission (management)",
@@ -3643,7 +3645,12 @@
       "editTemplate": "Edit",
       "deleteTemplate": "Delete template",
       "deleteConfirm": "Are you sure you want to delete the template \"{name}\"? This action cannot be undone.",
-      "backToList": "Back to list"
+      "backToList": "Back to list",
+      "customizeDesign": "Customize design",
+      "close": "Close"
+    },
+    "design": {
+      "modalTitle": "Customize design"
     },
     "sections": {
       "statusApiKey": "Status & API Key",
@@ -3932,6 +3939,7 @@
       "budgetExceededTitle": "Monthly AI token budget reached",
       "budgetExceededMessage": "Your monthly free token quota is exhausted. Connect your own API key in AI settings to continue using this feature without limits.",
       "saveFirst": "Save the template first before using AI analysis",
+      "runAnalysisFirst": "Run the AI analysis first, or continue to customize the design.",
       "tokensApplied": "Design tokens applied and CSS generated",
       "additionalInstructions": "Additional instructions",
       "instructionsPlaceholder": "E.g. more rounded corners, more minimalist style...",
