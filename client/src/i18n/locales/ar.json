@@ -283,7 +283,8 @@
       "bookingUrl": "رابط الحجز",
       "imageUrl": "رابط الصورة (اختياري)",
       "description": "الوصف (اختياري)",
-      "featured": "إبراز"
+      "featured": "إبراز",
+      "affiliateHint": "ألصق رابط Klook أو GetYourGuide أو Viator: إذا كان المزوّد متصلاً (تبويب التكاملات)، يُضاف معرّف الإحالة الخاص بك إلى الرابط تلقائيًا لتحصل على عمولتك."
     },
     "wizard": {
       "stepCounter": "الخطوة {{current}} / {{total}}",

@@ -37,6 +37,17 @@ public record WelcomeGuidePublicDto(
     boolean activitiesEnabled,
     boolean upsellsEnabled
 ) {
+    /**
+     * Copie avec un JSON {@code curatedActivities} reecrit (ex : injection des liens
+     * d'affiliation Klook au moment de servir le livret). Tous les autres champs inchanges.
+     */
+    public WelcomeGuidePublicDto withCuratedActivities(String newCuratedActivities) {
+        return new WelcomeGuidePublicDto(
+            title, language, brandingColor, theme, heroImageUrls, welcomeMessage, hostNames,
+            logoUrl, sections, pois, newCuratedActivities, property, practical, stay, checkIn,
+            chatbotEnabled, guestbookEnabled, activitiesEnabled, upsellsEnabled);
+    }
+
     /** Localisation du logement (pour la carte "autour de moi" + adresse). */
     public record PropertyInfo(
         String name,
