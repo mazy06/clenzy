@@ -56,6 +56,14 @@ public class ManagementContract {
     @Column(name = "commission_rate", precision = 5, scale = 4, nullable = false)
     private BigDecimal commissionRate;
 
+    /** Part conciergerie sur les upsells (fraction, après commission plateforme). null = défaut org. */
+    @Column(name = "upsell_commission_rate", precision = 5, scale = 4)
+    private BigDecimal upsellCommissionRate;
+
+    /** Part conciergerie sur les activités/marketplace (fraction, après commission plateforme). null = défaut org. */
+    @Column(name = "activity_commission_rate", precision = 5, scale = 4)
+    private BigDecimal activityCommissionRate;
+
     @Column(name = "minimum_stay_nights")
     private Integer minimumStayNights;
 
@@ -124,6 +132,10 @@ public class ManagementContract {
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
     public BigDecimal getCommissionRate() { return commissionRate; }
     public void setCommissionRate(BigDecimal commissionRate) { this.commissionRate = commissionRate; }
+    public BigDecimal getUpsellCommissionRate() { return upsellCommissionRate; }
+    public void setUpsellCommissionRate(BigDecimal upsellCommissionRate) { this.upsellCommissionRate = upsellCommissionRate; }
+    public BigDecimal getActivityCommissionRate() { return activityCommissionRate; }
+    public void setActivityCommissionRate(BigDecimal activityCommissionRate) { this.activityCommissionRate = activityCommissionRate; }
     public Integer getMinimumStayNights() { return minimumStayNights; }
     public void setMinimumStayNights(Integer minimumStayNights) { this.minimumStayNights = minimumStayNights; }
     public Boolean getAutoRenew() { return autoRenew; }

@@ -29,10 +29,12 @@ class ActivityCommissionServiceTest {
     @Mock private WalletService walletService;
     @Mock private LedgerService ledgerService;
     @Mock private MonetizationConfigService monetizationConfigService;
+    @Mock private ManagementContractService managementContractService;
 
     private ActivityCommissionService service() {
         return new ActivityCommissionService(
-            commissionRepository, monetizationConfigService, reservationRepository, walletService, ledgerService);
+            commissionRepository, monetizationConfigService, reservationRepository, walletService, ledgerService,
+            managementContractService);
     }
 
     @Test

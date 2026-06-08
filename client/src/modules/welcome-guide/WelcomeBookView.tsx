@@ -66,6 +66,7 @@ export interface WelcomeBookModel {
   upsells: PublicUpsell[];
   guestbookEnabled: boolean;
   activitiesEnabled: boolean;
+  upsellsEnabled: boolean;
 }
 
 export interface WelcomeBookViewProps {
@@ -399,7 +400,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
   if (hasArrival) navEntries.push({ key: 'arrival', icon: 'key-round', title: `${L.arrival} & ${L.departure}`, subtitle: L.directions, go: () => setView({ name: 'arrival' }) });
   editorialSections.forEach((s) => navEntries.push({ key: s.id, icon: s.icon || 'file-text', title: s.title || '—', subtitle: s.subtitle, go: () => setView({ name: 'section', id: s.id }) }));
   if (pois.length > 0) navEntries.push({ key: 'quartier', icon: 'map', title: L.neighbourhood, subtitle: L.aroundMe, go: () => setView({ name: 'quartier' }) });
-  if (upsells.length > 0) navEntries.push({ key: 'services', icon: 'concierge-bell', title: L.upsellsTitle, subtitle: L.payCta, go: () => setView({ name: 'services' }) });
+  if (model.upsellsEnabled && upsells.length > 0) navEntries.push({ key: 'services', icon: 'concierge-bell', title: L.upsellsTitle, subtitle: L.payCta, go: () => setView({ name: 'services' }) });
 
   const activeSection = view.name === 'section' ? sections.find((s) => s.id === view.id) : undefined;
 

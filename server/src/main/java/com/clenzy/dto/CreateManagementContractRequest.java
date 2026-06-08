@@ -18,5 +18,7 @@ public record CreateManagementContractRequest(
     Integer noticePeriodDays,
     Boolean cleaningFeeIncluded,
     Boolean maintenanceIncluded,
-    String notes
+    String notes,
+    BigDecimal upsellCommissionRate,
+    BigDecimal activityCommissionRate
 ) {}

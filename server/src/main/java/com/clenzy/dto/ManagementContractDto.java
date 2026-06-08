@@ -27,7 +27,9 @@ public record ManagementContractDto(
     Instant signedAt,
     Instant terminatedAt,
     String terminationReason,
-    Instant createdAt
+    Instant createdAt,
+    BigDecimal upsellCommissionRate,
+    BigDecimal activityCommissionRate
 ) {
     public static ManagementContractDto from(ManagementContract c) {
         return new ManagementContractDto(
@@ -37,7 +39,8 @@ public record ManagementContractDto(
             c.getMinimumStayNights(), c.getAutoRenew(), c.getNoticePeriodDays(),
             c.getCleaningFeeIncluded(), c.getMaintenanceIncluded(),
             c.getNotes(), c.getSignedAt(), c.getTerminatedAt(),
-            c.getTerminationReason(), c.getCreatedAt()
+            c.getTerminationReason(), c.getCreatedAt(),
+            c.getUpsellCommissionRate(), c.getActivityCommissionRate()
         );
     }
 }
