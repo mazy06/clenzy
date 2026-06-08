@@ -334,6 +334,7 @@ const PublicGuide: React.FC = () => {
     upsells,
     guestbookEnabled: guide.guestbookEnabled,
     activitiesEnabled: guide.activitiesEnabled,
+    upsellsEnabled: guide.upsellsEnabled,
   };
 
   const payUpsell = async (u: PublicUpsell) => {

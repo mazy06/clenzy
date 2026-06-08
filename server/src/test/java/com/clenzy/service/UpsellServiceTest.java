@@ -38,10 +38,11 @@ class UpsellServiceTest {
     @Mock private WalletService walletService;
     @Mock private LedgerService ledgerService;
     @Mock private MonetizationConfigService monetizationConfigService;
+    @Mock private ManagementContractService managementContractService;
 
     private UpsellService service() {
         return new UpsellService(offerRepository, orderRepository, tokenRepository, reservationRepository,
-            stripeService, walletService, ledgerService, monetizationConfigService);
+            stripeService, walletService, ledgerService, monetizationConfigService, managementContractService);
     }
 
     private WelcomeGuideToken validToken(Long propertyId) {
@@ -136,6 +137,21 @@ class UpsellServiceTest {
 
         assertThat(service().listForToken(token)).isEmpty();
         verify(offerRepository, never()).findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(any());
+    }
+
+    @Test
+    void listForToken_withSelection_showsOnlySelectedOffers() {
+        // Sélection par livret : seul le service 2 est coché → on n'affiche que celui-là.
+        UUID token = UUID.randomUUID();
+        WelcomeGuideToken tok = validTokenNoReservation(7L);
+        tok.getGuide().setUpsellOfferIds("[2]");
+        when(tokenRepository.findByToken(token)).thenReturn(Optional.of(tok));
+        when(offerRepository.findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(1L))
+            .thenReturn(List.of(offer(1L, null, "Org-wide 1"), offer(2L, null, "Org-wide 2")));
+
+        List<PublicUpsellDto> result = service().listForToken(token);
+
+        assertThat(result).extracting(PublicUpsellDto::title).containsExactly("Org-wide 2");
     }
 
     @Test

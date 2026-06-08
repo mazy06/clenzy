@@ -22,7 +22,9 @@ public record WelcomeGuideDto(
     boolean chatbotEnabled,
     boolean guestbookEnabled,
     boolean activitiesEnabled,
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    boolean upsellsEnabled,
+    String upsellOfferIds
 ) {
     public static WelcomeGuideDto from(WelcomeGuide g) {
         return new WelcomeGuideDto(
@@ -32,7 +34,8 @@ public record WelcomeGuideDto(
             g.getLanguage(), g.getTitle(), g.getSections(), g.getPois(), g.getCuratedActivities(),
             g.getBrandingColor(), g.getTheme(), g.getHeroPhotoIds(),
             g.getWelcomeMessage(), g.getHostNames(), g.getLogoUrl(), g.isPublished(),
-            g.isChatbotEnabled(), g.isGuestbookEnabled(), g.isActivitiesEnabled(), g.getCreatedAt()
+            g.isChatbotEnabled(), g.isGuestbookEnabled(), g.isActivitiesEnabled(), g.getCreatedAt(),
+            g.isUpsellsEnabled(), g.getUpsellOfferIds()
         );
     }
 }

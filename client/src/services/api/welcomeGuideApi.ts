@@ -29,6 +29,9 @@ export interface WelcomeGuide {
   chatbotEnabled: boolean;
   guestbookEnabled: boolean;
   activitiesEnabled: boolean;
+  upsellsEnabled: boolean;
+  /** Sélection des services affichés (JSON array d'ids) ; null = tous. */
+  upsellOfferIds: string | null;
   createdAt: string;
 }
 
@@ -49,6 +52,8 @@ export interface WelcomeGuideRequest {
   chatbotEnabled?: boolean;
   guestbookEnabled?: boolean;
   activitiesEnabled?: boolean;
+  upsellsEnabled?: boolean;
+  upsellOfferIds?: string | null;
   pois?: string;
   curatedActivities?: string;
 }
@@ -252,6 +257,7 @@ export interface PublicGuide {
   chatbotEnabled: boolean;
   guestbookEnabled: boolean;
   activitiesEnabled: boolean;
+  upsellsEnabled: boolean;
 }
 
 // ─── API admin ────────────────────────────────────────────────────────────────

@@ -121,7 +121,7 @@ class WelcomeGuideControllerTest {
     void create_delegatesToService() {
         when(tenantContext.getOrganizationId()).thenReturn(7L);
         WelcomeGuideRequest req = new WelcomeGuideRequest(99L, "Welcome", "fr",
-                "[]", "#000000", "atelier", null, null, null, "https://logo", false, true, true, true, "[]", "[]");
+                "[]", "#000000", "atelier", null, null, null, "https://logo", false, true, true, true, "[]", "[]", true, null);
         when(guideService.createGuide(eq(7L), any(WelcomeGuideRequest.class))).thenReturn(guide(1L));
 
         ResponseEntity<WelcomeGuideDto> response = controller.create(req);
@@ -134,7 +134,7 @@ class WelcomeGuideControllerTest {
     void update_delegatesToService() {
         when(tenantContext.getOrganizationId()).thenReturn(7L);
         WelcomeGuideRequest req = new WelcomeGuideRequest(99L, "Updated", "fr",
-                "[]", "#ffffff", "atelier", null, null, null, "https://logo", true, true, true, true, "[]", "[]");
+                "[]", "#ffffff", "atelier", null, null, null, "https://logo", true, true, true, true, "[]", "[]", true, null);
         when(guideService.updateGuide(eq(1L), eq(7L), any(WelcomeGuideRequest.class))).thenReturn(guide(1L));
 
         ResponseEntity<WelcomeGuideDto> response = controller.update(1L, req);

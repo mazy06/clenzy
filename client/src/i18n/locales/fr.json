@@ -57,7 +57,9 @@
       "imageType": "Veuillez choisir un fichier image.",
       "imageSize": "Image trop lourde (max 12 Mo).",
       "confirmDelete": "Supprimer ce service ?",
-      "confirmDeleteHint": "Ce service et ses informations seront supprimés définitivement. Cette action est irréversible."
+      "confirmDeleteHint": "Ce service et ses informations seront supprimés définitivement. Cette action est irréversible.",
+      "added": "Service ajouté",
+      "alreadyAdded": "Ce service est déjà dans votre liste."
     },
     "empty": {
       "title": "Aucun service payant",
@@ -164,6 +166,10 @@
       "chatbotHint": "Répond aux questions du voyageur (IA).",
       "guestbookHint": "Avis et notes laissés par les voyageurs.",
       "activitiesHint": "Section expériences à réserver.",
+      "upsellsEnabled": "Services payants",
+      "upsellsHint": "Section des services additionnels à réserver.",
+      "upsellSelectionTitle": "Services affichés sur ce livret",
+      "upsellSelectionHint": "Décochez un service pour le masquer sur ce livret uniquement.",
       "sectionTitle": "Titre de la section",
       "sectionBody": "Contenu",
       "sectionSubtitle": "Sous-titre (liste de navigation)",
