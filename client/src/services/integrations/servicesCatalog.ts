@@ -317,8 +317,8 @@ export const CATALOG_SERVICES: CatalogService[] = [
     tooltipDescription:
       'Leader européen des activités touristiques (Berlin). +200 destinations, billetterie monuments, expériences guidées. Cross-sell idéal pour vos guests : reverser via affiliation 15-20 % de commission sur chaque réservation activité.',
     websiteUrl: 'https://partner.getyourguide.com/',
-    accessModality: 'Inscription Partner Program (gratuite) → validation manuelle (24-48h) → ID affilié + clé API. Pas de prérequis volume.',
-    available: false,
+    accessModality: 'Inscription Partner Program (gratuite) → ID affilié (Partner ID). Clé API optionnelle (pour l’affichage natif du catalogue). Pas de prérequis volume.',
+    available: true,
     region: 'EU',
   },
   {
@@ -331,8 +331,8 @@ export const CATALOG_SERVICES: CatalogService[] = [
     tooltipDescription:
       'Concurrent direct de GetYourGuide, focus marché asiatique et MENA. Très utilisé par les touristes chinois et saoudiens. Commission affiliée 6-12 %. Couvre Riyadh, Djeddah, Dubaï, Marrakech.',
     websiteUrl: 'https://affiliate.klook.com/',
-    accessModality: 'Programme affilié (signup en ligne) → API ouverte après approbation. Catalogues PHP/REST disponibles.',
-    available: false,
+    accessModality: 'Programme affilié (signup en ligne) → ID affilié (aid). Clé API produit gated (demande Partner API séparée). Pas de prérequis volume.',
+    available: true,
     region: 'MENA',
   },
   {
