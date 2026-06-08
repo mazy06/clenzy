@@ -123,8 +123,13 @@ public class DocumentTemplateSyncService {
             // CRITIQUE : flush() apres deleteAll() avant le saveAll(), sinon Hibernate
             // batch les operations et l'INSERT viole la contrainte UNIQUE
             // (template_id, tag_name) parce que les DELETE ne sont pas encore appliques.
-            List<DocumentTemplateTag> oldTags = tpl.getTags();
-            if (oldTags != null && !oldTags.isEmpty()) {
+            // Source des anciens tags = la BASE (findByTemplateId), PAS tpl.getTags() :
+            // la collection lazy peut remonter vide/incomplète, donc l'ancien deleteAll ne
+            // supprimait pas la ligne existante → violation de contrainte UNIQUE
+            // (template_id, tag_name) au saveAll, qui rollbackait la transaction
+            // REQUIRES_NEW et faisait échouer le sync à CHAQUE redémarrage.
+            List<DocumentTemplateTag> oldTags = tagRepository.findByTemplateId(tpl.getId());
+            if (!oldTags.isEmpty()) {
                 tagRepository.deleteAll(oldTags);
                 tagRepository.flush();
             }
