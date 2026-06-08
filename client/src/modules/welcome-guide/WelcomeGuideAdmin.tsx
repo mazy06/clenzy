@@ -167,7 +167,6 @@ const WelcomeGuideAdmin: React.FC = () => {
   // loin atteinte (autorise le saut arrière libre, le saut avant uniquement vers
   // une étape déjà visitée).
   const [step, setStep] = useState(0);
-  const [maxStep, setMaxStep] = useState(0);
   // Suppression : cible du modal de confirmation (null = fermé) + état en cours.
   const [deleteTarget, setDeleteTarget] = useState<WelcomeGuide | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -277,7 +276,6 @@ const WelcomeGuideAdmin: React.FC = () => {
     setPois(buildTemplatePois(tplLang));
     setCuratedActivities(buildTemplateActivities(tplLang));
     setStep(0);
-    setMaxStep(0);
     setView('form');
   };
 
@@ -303,14 +301,12 @@ const WelcomeGuideAdmin: React.FC = () => {
     setPois(parsePois(g.pois));
     setCuratedActivities(parseActivities(g.curatedActivities));
     setStep(0);
-    setMaxStep(0);
     setView('form');
   };
 
   // Quitter le formulaire (Annuler) → retour liste + reset de l'assistant.
   const closeForm = () => {
     setStep(0);
-    setMaxStep(0);
     setView('list');
   };
 
@@ -798,15 +794,13 @@ const WelcomeGuideAdmin: React.FC = () => {
   };
 
   const goToStep = (target: number) => {
-    // Saut arrière libre ; saut avant seulement vers une étape déjà atteinte.
-    if (target <= maxStep && target !== step) setStep(target);
+    // Navigation libre : saut direct vers n'importe quelle étape.
+    if (target !== step) setStep(target);
   };
 
   const goNext = () => {
     if (!validateStep(step)) return;
-    const next = Math.min(step + 1, LAST_STEP);
-    setStep(next);
-    setMaxStep((m) => Math.max(m, next));
+    setStep((s) => Math.min(s + 1, LAST_STEP));
   };
 
   const goBack = () => setStep((s) => Math.max(0, s - 1));
@@ -831,78 +825,75 @@ const WelcomeGuideAdmin: React.FC = () => {
           </Typography>
         ) : null}
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-        {WIZARD_STEPS.map((label, i) => {
-          const active = i === step;
-          const done = i < step;
-          const reachable = i <= maxStep;
-          return (
-            <Tooltip key={i} title={label} arrow>
-              <Box
-                role="button"
-                aria-label={label}
-                aria-current={active ? 'step' : undefined}
-                tabIndex={reachable ? 0 : -1}
-                aria-disabled={!reachable}
-                onClick={() => reachable && goToStep(i)}
-                onKeyDown={(e) => {
-                  if (reachable && (e.key === 'Enter' || e.key === ' ')) {
-                    e.preventDefault();
-                    goToStep(i);
-                  }
-                }}
-                sx={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  fontVariantNumeric: 'tabular-nums',
-                  userSelect: 'none',
-                  cursor: reachable ? 'pointer' : 'default',
-                  bgcolor: active ? 'primary.main' : done ? 'rgba(107,138,154,0.16)' : 'action.hover',
-                  color: active ? '#fff' : done ? 'primary.main' : 'text.disabled',
-                  border: '1px solid',
-                  borderColor: active ? 'primary.main' : done ? 'rgba(107,138,154,0.35)' : 'divider',
-                  transition: 'background-color .18s ease, color .18s ease, border-color .18s ease',
-                  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                  '&:hover': reachable && !active ? { borderColor: 'primary.main', color: 'primary.main' } : undefined,
-                  '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
-                }}
-              >
-                {done ? <Check size={15} strokeWidth={2.5} /> : i + 1}
-              </Box>
-            </Tooltip>
-          );
-        })}
+      {/* Précédent | numéros d'étape (centrés, cliquables → saut direct) | Suivant/Enregistrer */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Button variant="outlined" size="small" onClick={goBack} disabled={step === 0} sx={{ flexShrink: 0 }}>
+          {t('welcomeGuide.wizard.previous', 'Précédent')}
+        </Button>
+        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+          {WIZARD_STEPS.map((label, i) => {
+            const active = i === step;
+            const done = i < step;
+            return (
+              <Tooltip key={i} title={label} arrow>
+                <Box
+                  role="button"
+                  aria-label={label}
+                  aria-current={active ? 'step' : undefined}
+                  tabIndex={0}
+                  onClick={() => goToStep(i)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      goToStep(i);
+                    }
+                  }}
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    fontVariantNumeric: 'tabular-nums',
+                    userSelect: 'none',
+                    cursor: 'pointer',
+                    bgcolor: active ? 'primary.main' : done ? 'rgba(107,138,154,0.16)' : 'action.hover',
+                    color: active ? '#fff' : done ? 'primary.main' : 'text.secondary',
+                    border: '1px solid',
+                    borderColor: active ? 'primary.main' : done ? 'rgba(107,138,154,0.35)' : 'divider',
+                    transition: 'background-color .18s ease, color .18s ease, border-color .18s ease',
+                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+                    '&:hover': !active ? { borderColor: 'primary.main', color: 'primary.main' } : undefined,
+                    '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                  }}
+                >
+                  {done ? <Check size={15} strokeWidth={2.5} /> : i + 1}
+                </Box>
+              </Tooltip>
+            );
+          })}
+        </Box>
+        {step < LAST_STEP ? (
+          <Button variant="contained" size="small" onClick={goNext} sx={{ flexShrink: 0 }}>
+            {t('welcomeGuide.wizard.next', 'Suivant')}
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleSave}
+            disabled={saving}
+            startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
+            sx={{ flexShrink: 0 }}
+          >
+            {t('welcomeGuide.actions.save', 'Enregistrer')}
+          </Button>
+        )}
       </Box>
-    </Box>
-  );
-
-  // ─── Pied de navigation (bas de la colonne 1) ───────────────────────────────
-  const renderWizardFooter = () => (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, pt: 0.5 }}>
-      <Button variant="outlined" onClick={goBack} disabled={step === 0}>
-        {t('welcomeGuide.wizard.previous', 'Précédent')}
-      </Button>
-      {step < LAST_STEP ? (
-        <Button variant="contained" onClick={goNext}>
-          {t('welcomeGuide.wizard.next', 'Suivant')}
-        </Button>
-      ) : (
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={saving}
-          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
-        >
-          {t('welcomeGuide.actions.save', 'Enregistrer')}
-        </Button>
-      )}
     </Box>
   );
 
@@ -1698,8 +1689,6 @@ const WelcomeGuideAdmin: React.FC = () => {
 
       {/* ── Étape 6 — Récapitulatif ── */}
       {step === LAST_STEP && renderRecap()}
-
-      {renderWizardFooter()}
       </Stack>
 
       {/* ── Aperçu téléphone live (reflète l'état du formulaire en temps réel) ── */}
