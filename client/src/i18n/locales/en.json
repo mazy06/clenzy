@@ -204,6 +204,19 @@
       "published": "Published",
       "draft": "Draft"
     },
+    "reservationLink": {
+      "title": "Current / upcoming reservation",
+      "linked": "Linked",
+      "notLinked": "Not linked",
+      "none": "No reservation linked",
+      "noneCreate": "No current or upcoming reservation",
+      "guestUnknown": "Guest",
+      "staffOnly": "Creating a guide is reserved for Clenzy staff.",
+      "noReservation": "No current or upcoming reservation for this property: guide cannot be created.",
+      "overwriteTitle": "A guide already exists",
+      "overwriteMessage": "A guide already exists for this reservation. Do you want to overwrite the previous one?",
+      "overwriteConfirm": "Overwrite"
+    },
     "languages": {
       "fr": "French",
       "en": "English",

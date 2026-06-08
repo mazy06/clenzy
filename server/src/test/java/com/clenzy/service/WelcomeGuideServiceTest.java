@@ -38,6 +38,7 @@ class WelcomeGuideServiceTest {
     @Mock private WelcomeGuideEntryRepository entryRepository;
     @Mock private WelcomeGuideEventRepository eventRepository;
     @Mock private PropertyRepository propertyRepository;
+    @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
     @Mock private CheckInInstructionsRepository checkInInstructionsRepository;
     @Mock private GuideConfig guideConfig;
     @Mock private com.clenzy.service.access.AccessCodeResolverService accessCodeResolverService;
@@ -51,7 +52,7 @@ class WelcomeGuideServiceTest {
     @BeforeEach
     void setUp() {
         service = new WelcomeGuideService(guideRepository, tokenRepository, entryRepository, eventRepository,
-            propertyRepository, checkInInstructionsRepository, guideConfig, accessCodeResolverService,
+            propertyRepository, reservationRepository, checkInInstructionsRepository, guideConfig, accessCodeResolverService,
             onlineCheckInService, photoStorageService, propertyPhotoRepository, activityAffiliateConfigRepository,
             java.util.List.of());
     }
@@ -67,10 +68,14 @@ class WelcomeGuideServiceTest {
         saved.setProperty(property);
         saved.setTitle("Guide Riviera");
         when(guideRepository.save(any())).thenReturn(saved);
+        com.clenzy.model.Reservation reservation = new com.clenzy.model.Reservation();
+        when(reservationRepository.findCurrentOrNextByPropertyId(any(), any(), any()))
+            .thenReturn(java.util.List.of(reservation));
+        when(guideRepository.findByReservationId(any())).thenReturn(Optional.empty());
 
         WelcomeGuide result = service.createGuide(1L, new WelcomeGuideRequest(
             10L, "Guide Riviera", "fr", "[{\"type\":\"text\",\"title\":\"WiFi\"}]",
-            "#FF0000", null, null, null, null, null, null, true, true, true, null, null, null, null));
+            "#FF0000", null, null, null, null, null, null, true, true, true, null, null, null, null), false);
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getTitle()).isEqualTo("Guide Riviera");
@@ -82,7 +87,7 @@ class WelcomeGuideServiceTest {
         when(propertyRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.createGuide(1L, new WelcomeGuideRequest(
-            999L, "Test", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)))
+            999L, "Test", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null), false))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -94,9 +99,14 @@ class WelcomeGuideServiceTest {
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
         when(guideRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
+        com.clenzy.model.Reservation reservation = new com.clenzy.model.Reservation();
+        when(reservationRepository.findCurrentOrNextByPropertyId(any(), any(), any()))
+            .thenReturn(java.util.List.of(reservation));
+        when(guideRepository.findByReservationId(any())).thenReturn(Optional.empty());
+
         // Staff plateforme : contexte org null → l'org doit etre derivee du logement.
         WelcomeGuide result = service.createGuide(null, new WelcomeGuideRequest(
-            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null, null, null, null, null, null, null));
+            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null, null, null, null, null, null, null), false);
 
         assertThat(result.getOrganizationId()).isEqualTo(7L);
     }
@@ -109,8 +119,12 @@ class WelcomeGuideServiceTest {
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
         when(guideRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
+        com.clenzy.model.Reservation reservation = new com.clenzy.model.Reservation();
+        when(reservationRepository.findCurrentOrNextByPropertyId(any(), any(), any()))
+            .thenReturn(java.util.List.of(reservation));
+        when(guideRepository.findByReservationId(any())).thenReturn(Optional.empty());
         WelcomeGuide result = service.createGuide(99L, new WelcomeGuideRequest(
-            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null, null, null, null, null, null, null));
+            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null, null, null, null, null, null, null), false);
 
         assertThat(result.getOrganizationId()).isEqualTo(7L);
     }
@@ -307,6 +321,9 @@ class WelcomeGuideServiceTest {
         guide.setTitle("Public Guide");
         guide.setProperty(property);
         guide.setPublished(true);
+        Reservation reservation = new Reservation();
+        reservation.setCheckOut(LocalDate.now().plusDays(3)); // séjour à venir → disponible
+        guide.setReservation(reservation);
 
         WelcomeGuideToken token = new WelcomeGuideToken();
         token.setToken(tokenValue);
@@ -468,6 +485,7 @@ class WelcomeGuideServiceTest {
 
         Reservation reservation = new Reservation();
         reservation.setId(500L);
+        guide.setReservation(reservation);
 
         WelcomeGuideToken token = new WelcomeGuideToken();
         token.setToken(tokenValue);

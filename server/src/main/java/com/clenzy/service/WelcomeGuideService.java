@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.config.GuideConfig;
 import com.clenzy.dto.WelcomeGuidePublicDto;
 import com.clenzy.dto.WelcomeGuideRequest;
+import com.clenzy.exception.WelcomeGuideAlreadyExistsException;
 import com.clenzy.integration.activities.AffiliateLinkDecorator;
 import com.clenzy.service.access.AccessCodeResolverService;
 import com.clenzy.service.PhotoStorageService;
@@ -11,6 +12,7 @@ import com.clenzy.repository.ActivityAffiliateConfigRepository;
 import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyPhotoRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.WelcomeGuideEntryRepository;
 import com.clenzy.repository.WelcomeGuideEventRepository;
 import com.clenzy.repository.WelcomeGuideRepository;
@@ -29,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -49,6 +52,7 @@ public class WelcomeGuideService {
     private final WelcomeGuideEntryRepository entryRepository;
     private final WelcomeGuideEventRepository eventRepository;
     private final PropertyRepository propertyRepository;
+    private final ReservationRepository reservationRepository;
     private final CheckInInstructionsRepository checkInInstructionsRepository;
     private final GuideConfig guideConfig;
     private final AccessCodeResolverService accessCodeResolverService;
@@ -63,6 +67,7 @@ public class WelcomeGuideService {
                                 WelcomeGuideEntryRepository entryRepository,
                                 WelcomeGuideEventRepository eventRepository,
                                 PropertyRepository propertyRepository,
+                                ReservationRepository reservationRepository,
                                 CheckInInstructionsRepository checkInInstructionsRepository,
                                 GuideConfig guideConfig,
                                 AccessCodeResolverService accessCodeResolverService,
@@ -76,6 +81,7 @@ public class WelcomeGuideService {
         this.entryRepository = entryRepository;
         this.eventRepository = eventRepository;
         this.propertyRepository = propertyRepository;
+        this.reservationRepository = reservationRepository;
         this.checkInInstructionsRepository = checkInInstructionsRepository;
         this.guideConfig = guideConfig;
         this.accessCodeResolverService = accessCodeResolverService;
@@ -90,7 +96,7 @@ public class WelcomeGuideService {
     }
 
     @Transactional
-    public WelcomeGuide createGuide(Long orgId, WelcomeGuideRequest req) {
+    public WelcomeGuide createGuide(Long orgId, WelcomeGuideRequest req, boolean overwrite) {
         Property property = propertyRepository.findById(req.propertyId())
             .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + req.propertyId()));
 
@@ -104,9 +110,27 @@ public class WelcomeGuideService {
                 + property.getId() + " n'a pas d'organisation.");
         }
 
+        // Le livret est rattaché à une réservation : séjour actif OU prochaine à venir.
+        // Sans réservation pertinente → livret non créable (règle métier).
+        Reservation reservation = reservationRepository
+            .findCurrentOrNextByPropertyId(property.getId(), LocalDate.now(), resolvedOrgId)
+            .stream().findFirst()
+            .orElseThrow(() -> new IllegalStateException(
+                "Aucune réservation en cours ou à venir pour ce logement : livret non créable."));
+
+        // Un seul livret par réservation : sinon, confirmation d'écrasement requise (409).
+        WelcomeGuide existing = guideRepository.findByReservationId(reservation.getId()).orElse(null);
+        if (existing != null) {
+            if (!overwrite) {
+                throw new WelcomeGuideAlreadyExistsException(existing.getId(), reservation.getId());
+            }
+            deleteGuide(existing.getId(), resolvedOrgId); // révoque tokens/enfants + supprime l'ancien
+        }
+
         WelcomeGuide guide = new WelcomeGuide();
         guide.setOrganizationId(resolvedOrgId);
         guide.setProperty(property);
+        guide.setReservation(reservation);
         guide.setTitle(req.title());
         guide.setLanguage(req.language() != null ? req.language() : "fr");
         guide.setSections(req.sections() != null ? req.sections() : "[]");
@@ -126,6 +150,7 @@ public class WelcomeGuideService {
 
         WelcomeGuide saved = guideRepository.save(guide);
         Hibernate.initialize(saved.getProperty()); // mapping DTO hors session (open-in-view=false)
+        Hibernate.initialize(saved.getReservation());
         return saved;
     }
 
@@ -164,7 +189,10 @@ public class WelcomeGuideService {
             : guideRepository.findById(id);
         // Initialise property dans la session : le DTO l'utilise et open-in-view=false
         // (sinon LazyInitializationException lors du mapping dans le controller).
-        guide.ifPresent(g -> Hibernate.initialize(g.getProperty()));
+        guide.ifPresent(g -> {
+            Hibernate.initialize(g.getProperty());
+            Hibernate.initialize(g.getReservation());
+        });
         return guide;
     }
 
@@ -175,7 +203,10 @@ public class WelcomeGuideService {
             ? guideRepository.findByOrganizationIdOrderByCreatedAtDesc(orgId)
             : guideRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
         // Initialise property dans la session (open-in-view=false) pour le mapping DTO.
-        guides.forEach(g -> Hibernate.initialize(g.getProperty()));
+        guides.forEach(g -> {
+            Hibernate.initialize(g.getProperty());
+            Hibernate.initialize(g.getReservation());
+        });
         return guides;
     }
 
@@ -191,7 +222,11 @@ public class WelcomeGuideService {
             .filter(p -> orgId == null || orgId.equals(p.getOrganizationId()))
             .map(p -> {
                 CheckInInstructions ci = checkInInstructionsRepository.findByPropertyId(p.getId()).orElse(null);
-                return WelcomeGuidePublicDto.previewFrom(p, ci);
+                Long resolvedOrgId = p.getOrganizationId() != null ? p.getOrganizationId() : orgId;
+                Reservation current = resolvedOrgId == null ? null
+                    : reservationRepository.findCurrentOrNextByPropertyId(p.getId(), LocalDate.now(), resolvedOrgId)
+                        .stream().findFirst().orElse(null);
+                return WelcomeGuidePublicDto.previewFrom(p, ci, current);
             });
     }
 
@@ -213,14 +248,16 @@ public class WelcomeGuideService {
     @Transactional
     public WelcomeGuideToken generateToken(Long guideId, Long orgId, Reservation reservation) {
         WelcomeGuide guide = loadGuide(guideId, orgId);
+        // Sans réservation explicite, on borne le token sur la réservation rattachée au livret.
+        Reservation boundReservation = reservation != null ? reservation : guide.getReservation();
 
         WelcomeGuideToken token = new WelcomeGuideToken();
         // L'org du token = celle du livret (non-null), pas le contexte (null pour le staff plateforme).
         token.setOrganizationId(guide.getOrganizationId());
         token.setGuide(guide);
-        token.setReservation(reservation);
+        token.setReservation(boundReservation);
         token.setToken(UUID.randomUUID());
-        applyValidityWindow(token, reservation);
+        applyValidityWindow(token, boundReservation);
 
         return tokenRepository.save(token);
     }
@@ -253,8 +290,10 @@ public class WelcomeGuideService {
         if (reservation == null || reservation.getProperty() == null || reservation.getOrganizationId() == null) {
             return Optional.empty();
         }
-        WelcomeGuide guide = resolvePublishedGuide(
-            reservation.getProperty().getId(), reservation.getOrganizationId(), guestLanguage(reservation));
+        WelcomeGuide guide = guideRepository.findByReservationId(reservation.getId())
+            .filter(WelcomeGuide::isPublished)
+            .orElseGet(() -> resolvePublishedGuide(
+                reservation.getProperty().getId(), reservation.getOrganizationId(), guestLanguage(reservation)));
         if (guide == null) {
             return Optional.empty();
         }
@@ -272,8 +311,10 @@ public class WelcomeGuideService {
         if (reservation == null || reservation.getProperty() == null || reservation.getOrganizationId() == null) {
             return Optional.empty();
         }
-        WelcomeGuide guide = resolvePublishedGuide(
-            reservation.getProperty().getId(), reservation.getOrganizationId(), guestLanguage(reservation));
+        WelcomeGuide guide = guideRepository.findByReservationId(reservation.getId())
+            .filter(WelcomeGuide::isPublished)
+            .orElseGet(() -> resolvePublishedGuide(
+                reservation.getProperty().getId(), reservation.getOrganizationId(), guestLanguage(reservation)));
         if (guide == null) {
             return Optional.empty();
         }
@@ -434,11 +475,19 @@ public class WelcomeGuideService {
         if (guide == null || !guide.isPublished()) {
             return Optional.empty();
         }
+        // Disponibilité : le livret est rattaché à une réservation. Orphelin (aucune résa liée) ou
+        // réservation révolue (départ passé) → écran « non disponible » côté voyageur (pas de 404 brut).
+        Reservation reservation = guide.getReservation();
+        if (reservation == null) {
+            return Optional.of(WelcomeGuidePublicDto.unavailable(guide, "NO_RESERVATION"));
+        }
+        if (reservation.getCheckOut() != null && reservation.getCheckOut().isBefore(LocalDate.now())) {
+            return Optional.of(WelcomeGuidePublicDto.unavailable(guide, "EXPIRED"));
+        }
         Property property = guide.getProperty();
         CheckInInstructions ci = (property != null)
             ? checkInInstructionsRepository.findByPropertyId(property.getId()).orElse(null)
             : null;
-        Reservation reservation = t.getReservation();
         // Digicode dynamique (serrure connectee) deja persiste pour ce sejour — sinon code statique.
         String dynamicAccessCode = reservation != null
             ? accessCodeResolverService.existingAccessCode(reservation.getId()).orElse(null)

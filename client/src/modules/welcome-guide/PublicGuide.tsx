@@ -292,6 +292,35 @@ const PublicGuide: React.FC = () => {
     );
   }
 
+  // ── Livret non disponible (réservation absente ou révolue) ──
+  // Le payload reste habillé (title/theme/brandingColor/logoUrl) mais sans contenu :
+  // on affiche un écran dédié, thémé, avec un message selon `unavailableReason`.
+  if (status === 'ready' && guide && guide.available === false) {
+    const lang: Lang = (['fr', 'en', 'ar'] as const).includes(guide.language as Lang) ? (guide.language as Lang) : 'fr';
+    const L = LABELS[lang];
+    const theme = normalizeTheme(guide.theme);
+    const swatch = WELCOME_BOOK_THEMES.find((t) => t.id === theme)?.swatch;
+    const message = guide.unavailableReason === 'EXPIRED' ? L.unavailableExpired : L.unavailableNoReservation;
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', bgcolor: swatch?.bg || '#F2E9D9' }}>
+        <div className="wb" data-theme={theme} style={{ width: '100%', maxWidth: 480, minHeight: '100vh', display: 'flex' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <div className="wb-card" style={{ maxWidth: 420, textAlign: 'center', padding: 28, background: 'var(--raised)' }}>
+              <div style={{ width: 56, height: 56, borderRadius: 999, background: 'var(--terra-bg)', color: 'var(--terra-deep)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                <Info size={26} strokeWidth={1.6} />
+              </div>
+              {guide.title ? (
+                <div className="wb-eyebrow" style={{ marginBottom: 6, color: 'var(--ink-soft)' }}>{guide.title}</div>
+              ) : null}
+              <div className="wb-h2" style={{ marginBottom: 8 }}>{L.unavailableTitle}</div>
+              <div className="wb-lead">{message}</div>
+            </div>
+          </div>
+        </div>
+      </Box>
+    );
+  }
+
   if (status === 'notfound' || status === 'error' || !guide) {
     const L = LABELS.fr;
     const isNotFound = status === 'notfound';

@@ -34,6 +34,9 @@ export const GUIDE_LABELS: Record<Lang, GuideLabels> = {
     suggest1: 'Le code wifi ?', suggest2: "L'heure du check-out ?", suggest3: 'Une bonne table ?',
     notFoundTitle: 'Lien indisponible',
     notFoundText: "Ce livret n'est pas disponible. Le lien a peut-être expiré ou le séjour est terminé.",
+    unavailableTitle: 'Livret non disponible',
+    unavailableExpired: "Cette réservation est révolue — le livret d'accueil n'est plus disponible.",
+    unavailableNoReservation: "Ce livret d'accueil n'est pas disponible : aucune réservation associée.",
     errorText: 'Une erreur est survenue. Réessayez plus tard.',
   },
   en: {
@@ -64,6 +67,9 @@ export const GUIDE_LABELS: Record<Lang, GuideLabels> = {
     suggest1: 'Wifi password?', suggest2: 'Check-out time?', suggest3: 'A good place to eat?',
     notFoundTitle: 'Link unavailable',
     notFoundText: 'This guide is not available. The link may have expired or the stay is over.',
+    unavailableTitle: 'Guide unavailable',
+    unavailableExpired: 'This reservation is over — the welcome guide is no longer available.',
+    unavailableNoReservation: 'This welcome guide is not available: no reservation linked.',
     errorText: 'Something went wrong. Please try again later.',
   },
   ar: {
@@ -94,6 +100,9 @@ export const GUIDE_LABELS: Record<Lang, GuideLabels> = {
     suggest1: 'كلمة سر الواي فاي؟', suggest2: 'وقت المغادرة؟', suggest3: 'مكان جيد للأكل؟',
     notFoundTitle: 'الرابط غير متاح',
     notFoundText: 'هذا الدليل غير متاح. ربما انتهت صلاحية الرابط أو انتهت الإقامة.',
+    unavailableTitle: 'الدليل غير متاح',
+    unavailableExpired: 'انتهت هذه الإقامة — لم يعد دليل الاستقبال متاحًا.',
+    unavailableNoReservation: 'دليل الاستقبال هذا غير متاح: لا يوجد حجز مرتبط.',
     errorText: 'حدث خطأ ما. يرجى المحاولة لاحقًا.',
   },
 };
