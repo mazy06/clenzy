@@ -76,6 +76,8 @@ export interface WelcomeBookViewProps {
   labels: GuideLabels;
   heroImages: string[];
   interactive?: boolean;
+  /** Pilotage de l'aperçu (admin) : la navigation interne suit l'étape du formulaire. */
+  previewFocus?: 'home' | 'content' | 'experiences';
   copiedKey?: string | null;
   onCopy?: (key: string, value: string) => void;
   onActivityClick?: (a: GuideActivity) => void;
@@ -345,7 +347,7 @@ function SectionPage({ section, onBack }: { section: GuideSection; onBack: () =>
 }
 
 const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
-  model, theme, lang, labels: L, heroImages, interactive = true, copiedKey, onCopy,
+  model, theme, lang, labels: L, heroImages, interactive = true, previewFocus, copiedKey, onCopy,
   onActivityClick, onUpsellClick, onCheckinClick, accessPhotoUrl, langToggle, guestbookSlot, children,
 }) => {
   injectWelcomeBookCss();
@@ -356,6 +358,32 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
 
   const welcomeMessage = model.welcomeMessage?.trim() || '';
   const editorialSections = sections.filter((s) => s.title || s.body || s.items.length);
+
+  // Aperçu piloté par l'éditeur : la navigation interne suit l'étape du formulaire.
+  const homeScrollRef = useRef<HTMLDivElement | null>(null);
+  const expRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!previewFocus) return; // mode guest interactif → navigation libre
+    if (previewFocus === 'content') {
+      if (editorialSections.length) setView({ name: 'section', id: editorialSections[0].id });
+      else if (pois.length) setView({ name: 'quartier' });
+      else setView({ name: 'home' });
+      return;
+    }
+    // 'home' / 'experiences' → écran d'accueil, puis défilement vers la bonne zone.
+    setView({ name: 'home' });
+    const timer = setTimeout(() => {
+      const container = homeScrollRef.current;
+      if (!container) return;
+      const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const top = previewFocus === 'experiences' && expRef.current
+        ? Math.max(0, expRef.current.offsetTop - 12)
+        : 0;
+      container.scrollTo({ top, behavior: smooth ? 'smooth' : 'auto' });
+    }, 70);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewFocus, editorialSections.length, pois.length]);
 
   // Essentiels (accueil).
   const hasWifi = !!practical?.wifiName || !!practical?.wifiPassword;
@@ -400,13 +428,12 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
   if (hasArrival) navEntries.push({ key: 'arrival', icon: 'key-round', title: `${L.arrival} & ${L.departure}`, subtitle: L.directions, go: () => setView({ name: 'arrival' }) });
   editorialSections.forEach((s) => navEntries.push({ key: s.id, icon: s.icon || 'file-text', title: s.title || '—', subtitle: s.subtitle, go: () => setView({ name: 'section', id: s.id }) }));
   if (pois.length > 0) navEntries.push({ key: 'quartier', icon: 'map', title: L.neighbourhood, subtitle: L.aroundMe, go: () => setView({ name: 'quartier' }) });
-  if (model.upsellsEnabled && upsells.length > 0) navEntries.push({ key: 'services', icon: 'concierge-bell', title: L.upsellsTitle, subtitle: L.payCta, go: () => setView({ name: 'services' }) });
 
   const activeSection = view.name === 'section' ? sections.find((s) => s.id === view.id) : undefined;
 
   /* ───────── HOME ───────── */
   const home = (
-    <div className="wb__scroll">
+    <div className="wb__scroll" ref={homeScrollRef}>
       <HeroCarousel images={heroImages} interactive={interactive}>
         {model.logoUrl ? <img src={model.logoUrl} alt="" style={{ position: 'absolute', top: 22, left: 22, maxHeight: 40, maxWidth: 150, objectFit: 'contain' }} /> : null}
         {langToggle ? <div style={{ position: 'absolute', top: 22, right: 16, pointerEvents: 'auto' }}>{langToggle}</div> : null}
@@ -506,7 +533,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
 
         {/* Marketplace */}
         {model.activitiesEnabled && activities.length > 0 ? (
-          <div className="wb-rise" style={{ animationDelay: '.15s' }}>
+          <div className="wb-rise" style={{ animationDelay: '.15s' }} ref={expRef}>
             <div style={{ padding: '6px 4px 12px' }}>
               <div className="wb-eyebrow">{L.marketplace}</div>
               <div className="wb-h2" style={{ fontSize: 21, marginTop: 4 }}>{L.activitiesTitle}</div>
@@ -541,6 +568,35 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
                   </div>
                 );
               })}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Services à la carte — inline, présenté comme le marketplace */}
+        {model.upsellsEnabled && upsells.length > 0 ? (
+          <div className="wb-rise" style={{ animationDelay: '.18s' }}>
+            <div style={{ padding: '6px 4px 12px' }}>
+              <div className="wb-eyebrow">{L.marketplace}</div>
+              <div className="wb-h2" style={{ fontSize: 21, marginTop: 4 }}>{L.upsellsTitle}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 13, overflowX: 'auto', padding: '2px 4px 6px', margin: '0 -4px' }}>
+              {upsells.map((u) => (
+                <div key={u.offerId} className="wb-pressable" style={{ flexShrink: 0, width: 210 }}>
+                  <div className="wb-card" style={{ overflow: 'hidden', background: 'var(--raised)', height: '100%' }}>
+                    <div style={{ height: 116, position: 'relative', background: 'linear-gradient(150deg, var(--terra) 0%, var(--terra-deep) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {u.imageUrl ? <img src={u.imageUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /> : <Sparkles size={36} strokeWidth={1.4} style={{ color: 'rgba(255,255,255,.92)' }} />}
+                    </div>
+                    <div style={{ padding: '11px 13px 13px' }}>
+                      <div className="wb-serif" style={{ fontSize: 18, lineHeight: 1.14, marginBottom: 8, color: 'var(--ink)' }}>{u.title}</div>
+                      {u.description ? <div style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginBottom: 9, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{u.description}</div> : null}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ fontWeight: 800, fontSize: 15, fontVariantNumeric: 'tabular-nums' }}>{u.price.toFixed(2)} {u.currency}</div>
+                        <button type="button" className="wb-btn wb-btn--soft wb-pressable" onClick={() => interactive && onUpsellClick?.(u)} style={{ padding: '6px 12px', fontSize: 12.5, borderRadius: 12, cursor: interactive ? 'pointer' : 'default' }}>{L.payCta}</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ) : null}
@@ -684,28 +740,6 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
     </div>
   );
 
-  /* ───────── SERVICES ───────── */
-  const services = (
-    <div className="wb__scroll">
-      <DetailHeader title={L.upsellsTitle} onBack={goHome} />
-      <div style={{ padding: '16px 18px 130px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {upsells.map((u) => (
-          <div key={u.offerId} className="wb-card" style={{ padding: 15, display: 'flex', gap: 13, alignItems: 'center', background: 'var(--raised)' }}>
-            {u.imageUrl ? <img src={u.imageUrl} alt="" style={{ width: 44, height: 44, borderRadius: 14, objectFit: 'cover', flexShrink: 0 }} /> : <div style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 14, background: 'var(--terra-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--terra-deep)' }}><Sparkles size={20} strokeWidth={1.6} /></div>}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 14.5 }}>{u.title}</div>
-              {u.description ? <div style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginTop: 2 }}>{u.description}</div> : null}
-            </div>
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6, fontVariantNumeric: 'tabular-nums' }}>{u.price.toFixed(2)} {u.currency}</div>
-              <button type="button" className="wb-btn wb-btn--soft wb-pressable" onClick={() => interactive && onUpsellClick?.(u)} style={{ padding: '7px 13px', fontSize: 12.5, borderRadius: 12, cursor: interactive ? 'pointer' : 'default' }}>{L.payCta}</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
   /* ───────── REVIEW ───────── */
   const review = (
     <div className="wb__scroll">
@@ -728,7 +762,6 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
       {view.name === 'section' && !activeSection ? home : null}
       {view.name === 'arrival' && arrival}
       {view.name === 'quartier' && quartier}
-      {view.name === 'services' && services}
       {view.name === 'review' && review}
       {children}
     </div>
