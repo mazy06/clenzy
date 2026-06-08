@@ -16,6 +16,14 @@ export interface WelcomeGuide {
   /** JSON string : tableau de {@link GuideActivity} (activités curées par l'hôte). */
   curatedActivities: string;
   brandingColor: string;
+  /** Thème visuel du livret côté guest (atelier | noir | jardin | azur | corail | brume | minuit). */
+  theme: string;
+  /** Photos de couverture (hero) : JSON array d'ids de PropertyPhoto (carrousel). */
+  heroPhotoIds: string;
+  /** Mot d'accueil personnel de l'hôte (affiché en serif italique sous le hero). */
+  welcomeMessage: string | null;
+  /** Signature de la note d'accueil (ex: « Camille & Antoine »). */
+  hostNames: string | null;
   logoUrl: string | null;
   published: boolean;
   chatbotEnabled: boolean;
@@ -31,6 +39,11 @@ export interface WelcomeGuideRequest {
   language?: string;
   sections?: string;
   brandingColor?: string | null;
+  theme?: string;
+  /** JSON array d'ids de PropertyPhoto (carrousel hero). */
+  heroPhotoIds?: string;
+  welcomeMessage?: string | null;
+  hostNames?: string | null;
   logoUrl?: string | null;
   published?: boolean;
   chatbotEnabled?: boolean;
@@ -69,11 +82,38 @@ export interface GuestbookEntryRequest {
   rating?: number | null;
 }
 
-/** Bloc editorial libre (message d'accueil, bons plans…). */
+/** Mise en page d'une section (sous-page guest). */
+export type GuideSectionLayout = 'text' | 'steps' | 'rules' | 'list';
+
+/** Élément structuré d'une section (équipement how-to, règle, ligne transport…). */
+export interface GuideSectionItem {
+  id: string;
+  /** Nom d'icône lucide (cf. guideIcons). */
+  icon: string;
+  label: string;
+  /** Détail (layout 'list' — ex: « Lignes 6 & 9 · 3 min »). */
+  detail: string;
+  /** Étapes how-to (layout 'steps' — accordéon). */
+  steps: string[];
+}
+
+/**
+ * Section du livret = une entrée de navigation « Explorer le livret » → sous-page.
+ * Le `layout` détermine le rendu : texte, accordéons (steps), liste d'icônes (rules),
+ * ou liste icône+détail (list). Stocké en JSONB pass-through (pas de validation backend).
+ */
 export interface GuideSection {
   id: string;
+  /** Nom d'icône lucide du badge de navigation. */
+  icon: string;
   title: string;
+  /** Sous-titre affiché dans la liste de navigation. */
+  subtitle: string;
+  layout: GuideSectionLayout;
+  /** Contenu texte (layout 'text'). */
   body: string;
+  /** Éléments structurés (layouts 'steps' | 'rules' | 'list'). */
+  items: GuideSectionItem[];
 }
 
 /** Point d'interet "autour de moi" (restaurant, transport, attraction…). */
@@ -82,10 +122,14 @@ export interface GuidePoi {
   /** Identifiant de catégorie (cf. catalogue POI front). */
   category: string;
   name: string;
+  /** Sous-titre / type (ex: « Bistrot français »). */
+  type: string;
   address: string;
   lat: number | null;
   lng: number | null;
   note: string;
+  /** Mis en avant (badge « Coup de cœur »). */
+  featured: boolean;
 }
 
 /** Suggestion de POI auto-populée (OpenStreetMap) autour du logement. */
@@ -178,10 +222,25 @@ export interface PublicGuideCheckIn {
   status: string;
 }
 
+/** Données auto-remplies d'un logement pour l'aperçu live de la config (sans token). */
+export interface GuidePreviewData {
+  property: PublicGuideProperty | null;
+  practical: PublicGuidePractical | null;
+  stay: PublicGuideStay | null;
+}
+
 export interface PublicGuide {
   title: string;
   language: string;
   brandingColor: string | null;
+  /** Thème visuel du livret (atelier | noir | jardin | azur | corail | brume | minuit). */
+  theme: string;
+  /** URLs des photos de couverture (carrousel) : absolues si externes, sinon passthrough token-scopé. */
+  heroImageUrls: string[];
+  /** Mot d'accueil personnel de l'hôte. */
+  welcomeMessage: string | null;
+  /** Signature de la note d'accueil. */
+  hostNames: string | null;
   logoUrl: string | null;
   sections: string;
   pois: string;
@@ -223,9 +282,28 @@ export const welcomeGuideApi = {
   /** Suggestions de POI « autour de moi » auto-populées (OSM) autour du logement. */
   suggestPois: (id: number) =>
     apiClient.get<PoiSuggestion[]>(`/welcome-guides/${id}/poi-suggestions`),
+
+  /** Données auto-remplies d'un logement (adresse, wifi, digicode, horaires) pour l'aperçu live. */
+  propertyPreview: (propertyId: number) =>
+    apiClient.get<GuidePreviewData>(`/welcome-guides/property-preview/${propertyId}`),
 };
 
 // ─── Helpers serialisation des sections editoriales ───────────────────────────
+
+const SECTION_LAYOUTS: readonly GuideSectionLayout[] = ['text', 'steps', 'rules', 'list'];
+
+function parseSectionItems(raw: unknown): GuideSectionItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((it): it is Record<string, unknown> => !!it && typeof it === 'object')
+    .map((it, i) => ({
+      id: typeof it.id === 'string' ? it.id : `it-${i}`,
+      icon: typeof it.icon === 'string' ? it.icon : '',
+      label: typeof it.label === 'string' ? it.label : '',
+      detail: typeof it.detail === 'string' ? it.detail : '',
+      steps: Array.isArray(it.steps) ? it.steps.filter((x): x is string => typeof x === 'string') : [],
+    }));
+}
 
 export function parseSections(json: string | null | undefined): GuideSection[] {
   if (!json) return [];
@@ -236,8 +314,12 @@ export function parseSections(json: string | null | undefined): GuideSection[] {
       .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object')
       .map((s, i) => ({
         id: typeof s.id === 'string' ? s.id : `s-${i}`,
+        icon: typeof s.icon === 'string' ? s.icon : '',
         title: typeof s.title === 'string' ? s.title : '',
+        subtitle: typeof s.subtitle === 'string' ? s.subtitle : '',
+        layout: SECTION_LAYOUTS.includes(s.layout as GuideSectionLayout) ? (s.layout as GuideSectionLayout) : 'text',
         body: typeof s.body === 'string' ? s.body : '',
+        items: parseSectionItems(s.items),
       }));
   } catch {
     return [];
@@ -245,7 +327,34 @@ export function parseSections(json: string | null | undefined): GuideSection[] {
 }
 
 export function serializeSections(sections: GuideSection[]): string {
-  return JSON.stringify(sections.map(({ id, title, body }) => ({ id, title, body })));
+  return JSON.stringify(
+    sections.map(({ id, icon, title, subtitle, layout, body, items }) => ({
+      id,
+      icon,
+      title,
+      subtitle,
+      layout,
+      body,
+      items: items.map(({ id: itemId, icon: itemIcon, label, detail, steps }) => ({
+        id: itemId,
+        icon: itemIcon,
+        label,
+        detail,
+        steps,
+      })),
+    })),
+  );
+}
+
+/** Parse le JSON array d'ids de photos de couverture ('[1,2,3]') en number[]. */
+export function parseHeroPhotoIds(json: string | null | undefined): number[] {
+  if (!json) return [];
+  try {
+    const arr: unknown = JSON.parse(json);
+    return Array.isArray(arr) ? arr.filter((x): x is number => typeof x === 'number') : [];
+  } catch {
+    return [];
+  }
 }
 
 export function parsePois(json: string | null | undefined): GuidePoi[] {
@@ -259,10 +368,12 @@ export function parsePois(json: string | null | undefined): GuidePoi[] {
         id: typeof p.id === 'string' ? p.id : `poi-${i}`,
         category: typeof p.category === 'string' ? p.category : 'OTHER',
         name: typeof p.name === 'string' ? p.name : '',
+        type: typeof p.type === 'string' ? p.type : '',
         address: typeof p.address === 'string' ? p.address : '',
         lat: typeof p.lat === 'number' ? p.lat : null,
         lng: typeof p.lng === 'number' ? p.lng : null,
         note: typeof p.note === 'string' ? p.note : '',
+        featured: p.featured === true,
       }));
   } catch {
     return [];
@@ -271,7 +382,17 @@ export function parsePois(json: string | null | undefined): GuidePoi[] {
 
 export function serializePois(pois: GuidePoi[]): string {
   return JSON.stringify(
-    pois.map(({ id, category, name, address, lat, lng, note }) => ({ id, category, name, address, lat, lng, note })),
+    pois.map(({ id, category, name, type, address, lat, lng, note, featured }) => ({
+      id,
+      category,
+      name,
+      type,
+      address,
+      lat,
+      lng,
+      note,
+      featured,
+    })),
   );
 }
 

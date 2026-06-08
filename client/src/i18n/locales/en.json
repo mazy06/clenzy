@@ -18,12 +18,16 @@
     "inactive": "Inactive",
     "actions": {
       "new": "New service",
+      "add": "Add",
       "orders": "Sales",
       "edit": "Edit",
       "delete": "Delete",
       "save": "Save",
       "cancel": "Cancel",
       "close": "Close"
+    },
+    "suggestions": {
+      "title": "Suggested services"
     },
     "fields": {
       "type": "Category",
@@ -33,6 +37,10 @@
       "property": "Property",
       "description": "Description (optional)",
       "imageUrl": "Image URL (optional)",
+      "image": "Image (optional)",
+      "imageUpload": "Choose an image",
+      "imageChange": "Change",
+      "imageRemove": "Remove",
       "active": "Service active (shown on the guide)"
     },
     "form": {
@@ -46,11 +54,16 @@
       "updated": "Service updated",
       "deleted": "Service deleted",
       "error": "Something went wrong",
+      "imageType": "Please choose an image file.",
+      "imageSize": "Image too large (max 12 MB).",
       "confirmDelete": "Delete this service?"
     },
     "empty": {
       "title": "No paid service",
       "description": "Create your first add-on service to offer to guests."
+    },
+    "section": {
+      "title": "Your services"
     },
     "orders": {
       "title": "Service sales",
@@ -89,6 +102,37 @@
     }
   },
   "welcomeGuide": {
+    "themes": {
+      "sectionTitle": "Guide theme",
+      "atelier": { "name": "Atelier", "desc": "Cream & terracotta · boutique hotel" },
+      "noir": { "name": "Noir", "desc": "Dark & gold · quiet luxury" },
+      "jardin": { "name": "Jardin", "desc": "Natural greens · country house" },
+      "azur": { "name": "Azur", "desc": "Mineral blue · seaside" },
+      "corail": { "name": "Corail", "desc": "Bright peach · contemporary" },
+      "brume": { "name": "Brume", "desc": "Soft mauve · calm minimal" },
+      "minuit": { "name": "Minuit", "desc": "Midnight & sky · refined dark" }
+    },
+    "welcomeNote": {
+      "title": "Welcome message",
+      "message": "Welcome note",
+      "messagePlaceholder": "Welcome to our home. Settle in, breathe — everything you need for a perfect stay is right here.",
+      "signature": "Signature (your names)",
+      "signaturePlaceholder": "e.g. Camille & Antoine"
+    },
+    "hero": {
+      "title": "Cover photos",
+      "hint": "Pick the property's photos to show on the cover (carousel).",
+      "clear": "Remove",
+      "selectAll": "Select all",
+      "clearAll": "Clear all",
+      "selectPropertyFirst": "Select a property first to see its photos.",
+      "empty": "This property has no photos yet. Add some from its page."
+    },
+    "preview": {
+      "label": "Guest preview · live",
+      "note": "Wifi, door code and dates are auto-filled from the property (sample values shown here).",
+      "sampleTitle": "Your place"
+    },
     "actions": {
       "new": "New guide",
       "edit": "Edit",
@@ -114,8 +158,28 @@
       "chatbotEnabled": "Assistant chatbot",
       "guestbookEnabled": "Guestbook",
       "activitiesEnabled": "Activities",
+      "publishTitle": "Publish the guide",
+      "publishHint": "Makes the guide accessible to your guests via the shared link.",
+      "chatbotHint": "Answers guest questions (AI).",
+      "guestbookHint": "Reviews and ratings left by guests.",
+      "activitiesHint": "Experiences-to-book section.",
       "sectionTitle": "Section title",
-      "sectionBody": "Content"
+      "sectionBody": "Content",
+      "sectionSubtitle": "Subtitle (navigation list)",
+      "sectionIcon": "Icon",
+      "sectionLayout": "Type"
+    },
+    "layouts": {
+      "text": "Text",
+      "steps": "Steps (accordion)",
+      "rules": "Rules list",
+      "list": "Icon + detail list"
+    },
+    "sectionItems": {
+      "label": "Label",
+      "detail": "Detail",
+      "steps": "Steps (one per line)",
+      "add": "Add an item"
     },
     "form": {
       "autofillHint": "Wi-Fi, access code, house rules and useful numbers are filled automatically from the property's check-in instructions. Here, add your welcome message and your local recommendations.",
@@ -187,6 +251,8 @@
       "address": "Address",
       "geocode": "Locate on the map",
       "note": "Note (optional)",
+      "type": "Type (e.g. Bistro)",
+      "featured": "Favourite",
       "located": "Location found",
       "queryTooShort": "Enter a name or address to locate",
       "notFound": "Place not found — refine the address",

@@ -94,6 +94,17 @@ public class WelcomeGuideController {
         return ResponseEntity.ok(poiSuggestionService.suggest(id, orgId));
     }
 
+    /**
+     * Donnees auto-remplies d'un logement pour l'apercu live de l'editeur (adresse, wifi,
+     * digicode, horaires par defaut) — memes sources que le payload guest, sans token.
+     */
+    @GetMapping("/property-preview/{propertyId}")
+    public ResponseEntity<com.clenzy.dto.WelcomeGuidePublicDto.PreviewData> propertyPreview(@PathVariable Long propertyId) {
+        return guideService.getPropertyPreviewData(propertyId, scopeOrgId())
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping
     public ResponseEntity<WelcomeGuideDto> create(@Valid @RequestBody WelcomeGuideRequest request) {
         Long orgId = scopeOrgId();

@@ -18,12 +18,16 @@
     "inactive": "Inactif",
     "actions": {
       "new": "Nouveau service",
+      "add": "Ajouter",
       "orders": "Ventes",
       "edit": "Modifier",
       "delete": "Supprimer",
       "save": "Enregistrer",
       "cancel": "Annuler",
       "close": "Fermer"
+    },
+    "suggestions": {
+      "title": "Services suggérés"
     },
     "fields": {
       "type": "Catégorie",
@@ -33,6 +37,10 @@
       "property": "Propriété",
       "description": "Description (optionnel)",
       "imageUrl": "URL de l'image (optionnel)",
+      "image": "Image (optionnel)",
+      "imageUpload": "Choisir une image",
+      "imageChange": "Changer",
+      "imageRemove": "Retirer",
       "active": "Service actif (visible sur le livret)"
     },
     "form": {
@@ -46,11 +54,16 @@
       "updated": "Service mis à jour",
       "deleted": "Service supprimé",
       "error": "Une erreur est survenue",
+      "imageType": "Veuillez choisir un fichier image.",
+      "imageSize": "Image trop lourde (max 12 Mo).",
       "confirmDelete": "Supprimer ce service ?"
     },
     "empty": {
       "title": "Aucun service payant",
       "description": "Créez votre premier service additionnel à proposer aux voyageurs."
+    },
+    "section": {
+      "title": "Services proposés"
     },
     "orders": {
       "title": "Ventes de services",
@@ -89,6 +102,37 @@
     }
   },
   "welcomeGuide": {
+    "themes": {
+      "sectionTitle": "Thème du livret",
+      "atelier": { "name": "Atelier", "desc": "Crème & terracotta · hôtel-boutique" },
+      "noir": { "name": "Noir", "desc": "Sombre & or · luxe discret" },
+      "jardin": { "name": "Jardin", "desc": "Verts naturels · maison de campagne" },
+      "azur": { "name": "Azur", "desc": "Bleu minéral · bord de mer" },
+      "corail": { "name": "Corail", "desc": "Pêche vif · lumineux & contemporain" },
+      "brume": { "name": "Brume", "desc": "Mauve doux · minimal apaisé" },
+      "minuit": { "name": "Minuit", "desc": "Bleu nuit & ciel · sombre raffiné" }
+    },
+    "welcomeNote": {
+      "title": "Message d'accueil",
+      "message": "Mot d'accueil",
+      "messagePlaceholder": "Bienvenue chez nous. Installez-vous, respirez — tout ce qu’il vous faut pour un séjour parfait est ici.",
+      "signature": "Signature (vos noms)",
+      "signaturePlaceholder": "ex : Camille & Antoine"
+    },
+    "hero": {
+      "title": "Photos de couverture",
+      "hint": "Choisissez les photos du logement à afficher en couverture (carrousel).",
+      "clear": "Retirer",
+      "selectAll": "Tout sélectionner",
+      "clearAll": "Tout retirer",
+      "selectPropertyFirst": "Sélectionnez d'abord un logement pour voir ses photos.",
+      "empty": "Ce logement n'a pas encore de photos. Ajoutez-en depuis sa fiche."
+    },
+    "preview": {
+      "label": "Aperçu voyageur · temps réel",
+      "note": "Le wifi, le digicode et les dates sont remplis automatiquement depuis la fiche du logement (exemples ici).",
+      "sampleTitle": "Votre logement"
+    },
     "actions": {
       "new": "Nouveau livret",
       "edit": "Modifier",
@@ -114,8 +158,28 @@
       "chatbotEnabled": "Chatbot assistant",
       "guestbookEnabled": "Livre d'or",
       "activitiesEnabled": "Activités",
+      "publishTitle": "Publier le livret",
+      "publishHint": "Rend le livret accessible à vos voyageurs via le lien partagé.",
+      "chatbotHint": "Répond aux questions du voyageur (IA).",
+      "guestbookHint": "Avis et notes laissés par les voyageurs.",
+      "activitiesHint": "Section expériences à réserver.",
       "sectionTitle": "Titre de la section",
-      "sectionBody": "Contenu"
+      "sectionBody": "Contenu",
+      "sectionSubtitle": "Sous-titre (liste de navigation)",
+      "sectionIcon": "Icône",
+      "sectionLayout": "Type"
+    },
+    "layouts": {
+      "text": "Texte",
+      "steps": "Étapes (accordéon)",
+      "rules": "Liste de règles",
+      "list": "Liste icône + détail"
+    },
+    "sectionItems": {
+      "label": "Intitulé",
+      "detail": "Détail",
+      "steps": "Étapes (une par ligne)",
+      "add": "Ajouter un élément"
     },
     "form": {
       "autofillHint": "Le wifi, le digicode, les règles et les numéros utiles sont remplis automatiquement depuis la fiche du logement (instructions de check-in). Ici, ajoutez le message d'accueil et vos recommandations « autour de moi ».",
@@ -187,6 +251,8 @@
       "address": "Adresse",
       "geocode": "Localiser sur la carte",
       "note": "Note (optionnel)",
+      "type": "Type (ex : Bistrot)",
+      "featured": "Coup de cœur",
       "located": "Position trouvée",
       "queryTooShort": "Renseignez un nom ou une adresse à localiser",
       "notFound": "Lieu introuvable — précisez l'adresse",

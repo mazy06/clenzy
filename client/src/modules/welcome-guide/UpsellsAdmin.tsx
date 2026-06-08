@@ -25,11 +25,14 @@ import {
 } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { Add, Save, Edit, Delete } from '../../icons';
-import { Receipt, Percent } from 'lucide-react';
-import EmptyState from '../../components/EmptyState';
+import { Receipt, Percent, Wallet, Tag, Sparkles, ImagePlus } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import { softChipSx, semanticToHex } from '../../utils/statusUtils';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import { SectionHeading, EmptyHint } from './formPrimitives';
+import { guideIcon } from './guideIcons';
+import { upsellSuggestions, type UpsellSuggestion } from './upsellTemplate';
 import { upsellApi, type UpsellOffer, type UpsellOrder } from '../../services/api/upsellApi';
 import { activitiesApi } from '../../services/api/activitiesApi';
 import { monetizationConfigApi } from '../../services/api/monetizationConfigApi';
@@ -74,8 +77,41 @@ const emptyEdit: EditState = {
   active: true,
 };
 
+/**
+ * Compresse une image (fichier) en data URL JPEG base64, redimensionnée à `maxSize`px.
+ * L'image des services est stockée en base (data URL) — pas d'URL externe. La vignette
+ * est petite côté guest, donc on compresse fort pour garder un poids raisonnable.
+ */
+function compressImageToDataUrl(file: File, maxSize: number, quality: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read_failed'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('decode_failed'));
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('no_ctx'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 const UpsellsAdmin: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const { properties } = usePropertiesList();
 
   const { data: offers = [], isLoading, refetch } = useQuery({
@@ -140,6 +176,20 @@ const UpsellsAdmin: React.FC = () => {
     amount == null ? '—' : `${amount.toFixed(2)} ${currency}`;
 
   const openCreate = () => setEdit({ ...emptyEdit, open: true });
+  // Pré-remplit l'éditeur depuis un service suggéré (l'hôte modifie/complète puis enregistre).
+  const openFromSuggestion = (s: UpsellSuggestion) =>
+    setEdit({
+      open: true,
+      id: null,
+      type: s.type,
+      title: s.title,
+      description: s.description,
+      price: String(s.price),
+      currency: s.currency,
+      imageUrl: '',
+      propertyId: '',
+      active: true,
+    });
   const openEdit = (o: UpsellOffer) =>
     setEdit({
       open: true,
@@ -153,6 +203,27 @@ const UpsellsAdmin: React.FC = () => {
       propertyId: o.propertyId != null ? String(o.propertyId) : '',
       active: o.active,
     });
+
+  // Upload d'une image → compressée en data URL base64, stockée en base (pas d'URL externe).
+  const onImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      notify(t('upsells.messages.imageType', 'Veuillez choisir un fichier image.'), 'error');
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      notify(t('upsells.messages.imageSize', 'Image trop lourde (max 12 Mo).'), 'error');
+      return;
+    }
+    try {
+      const dataUrl = await compressImageToDataUrl(file, 800, 0.78);
+      setEdit((s) => ({ ...s, imageUrl: dataUrl }));
+    } catch {
+      notify(t('upsells.messages.error', 'Une erreur est survenue'), 'error');
+    }
+  };
 
   const handleSave = async () => {
     const priceNum = Number(edit.price);
@@ -210,46 +281,42 @@ const UpsellsAdmin: React.FC = () => {
 
   const orderStatusLabel = (status: string) => t(`upsells.status.${status}`, status);
 
+  // Actions portées dans le PageHeader (slot multi-tabs partagé) — comme l'onglet Livret.
+  const headerActions = usePageHeaderActions(
+    <>
+      <Button variant="outlined" size="small" startIcon={<Receipt size={14} strokeWidth={1.75} />} onClick={() => setOrdersOpen(true)}>
+        {t('upsells.actions.orders', 'Ventes')}
+      </Button>
+      <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={openCreate}>
+        {t('upsells.actions.new', 'Nouveau service')}
+      </Button>
+    </>,
+  );
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 2 }}>
-        <Button variant="outlined" size="small" startIcon={<Receipt size={14} strokeWidth={1.75} />} onClick={() => setOrdersOpen(true)}>
-          {t('upsells.actions.orders', 'Ventes')}
-        </Button>
-        <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={openCreate}>
-          {t('upsells.actions.new', 'Nouveau service')}
-        </Button>
-      </Box>
-
-      <Alert severity="info" sx={{ mb: 2 }}>
-        {t(
-          'upsells.intro',
-          "Proposez des services payants à vos voyageurs (arrivée anticipée, ménage, transfert…). Le paiement se fait depuis le livret ; votre part est reversée via vos paiements habituels (la plateforme prélève une commission).",
-        )}
-      </Alert>
+      {headerActions}
 
       {commissionSummary ? (
         <Card variant="outlined" sx={{ mb: 2 }}>
-          <CardContent
-            sx={{ display: 'flex', alignItems: 'center', gap: 2, '&:last-child': { pb: 2 }, flexWrap: 'wrap' }}
-          >
-            <Percent size={20} strokeWidth={1.75} style={{ color: '#4A9B8E', flexShrink: 0 }} />
-            <Box sx={{ flex: 1, minWidth: 200 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                {t('upsells.commissions.title', 'Commissions activités')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {t('upsells.commissions.note', "Votre part sur les réservations d'activités, reversée via vos paiements. Active dès qu'un fournisseur d'activités est connecté.")}
-              </Typography>
-            </Box>
-            <Box sx={{ textAlign: 'right' }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#4A9B8E' }}>
-                {commissionSummary.totalHostShare.toFixed(2)} {commissionSummary.currency}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {commissionSummary.count} {t('upsells.commissions.bookings', 'réservation(s)')}
-              </Typography>
-            </Box>
+          <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+            <SectionHeading
+              icon={<Percent size={17} strokeWidth={1.75} />}
+              title={t('upsells.commissions.title', 'Commissions activités')}
+              actions={
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#4A9B8E', lineHeight: 1.15 }}>
+                    {commissionSummary.totalHostShare.toFixed(2)} {commissionSummary.currency}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    {commissionSummary.count} {t('upsells.commissions.bookings', 'réservation(s)')}
+                  </Typography>
+                </Box>
+              }
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+              {t('upsells.commissions.note', "Votre part sur les réservations d'activités, reversée via vos paiements. Active dès qu'un fournisseur d'activités est connecté.")}
+            </Typography>
           </CardContent>
         </Card>
       ) : null}
@@ -257,9 +324,10 @@ const UpsellsAdmin: React.FC = () => {
       {monetConfig ? (
         <Card variant="outlined" sx={{ mb: 2 }}>
           <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              {t('upsells.orgCommission.title', 'Ma commission (conciergerie)')}
-            </Typography>
+            <SectionHeading
+              icon={<Wallet size={17} strokeWidth={1.75} />}
+              title={t('upsells.orgCommission.title', 'Ma commission (conciergerie)')}
+            />
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
               {t('upsells.orgCommission.note', 'Votre part sur le reste après la commission plateforme. Le propriétaire reçoit le solde.')}
             </Typography>
@@ -301,20 +369,18 @@ const UpsellsAdmin: React.FC = () => {
         </Card>
       ) : null}
 
+      <SectionHeading
+        icon={<Tag size={17} strokeWidth={1.75} />}
+        title={t('upsells.section.title', 'Services proposés')}
+      />
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress />
         </Box>
       ) : offers.length === 0 ? (
-        <EmptyState
-          icon={<Receipt />}
-          title={t('upsells.empty.title', 'Aucun service payant')}
-          description={t('upsells.empty.description', 'Créez votre premier service additionnel à proposer aux voyageurs.')}
-          action={
-            <Button variant="contained" startIcon={<Add size={16} strokeWidth={1.75} />} onClick={openCreate}>
-              {t('upsells.actions.new', 'Nouveau service')}
-            </Button>
-          }
+        <EmptyHint
+          icon={<Tag size={18} strokeWidth={1.75} />}
+          text={t('upsells.empty.description', 'Créez votre premier service additionnel à proposer aux voyageurs.')}
         />
       ) : (
         <Stack spacing={1.5}>
@@ -357,6 +423,38 @@ const UpsellsAdmin: React.FC = () => {
           ))}
         </Stack>
       )}
+
+      {/* Services suggérés : catalogue de base, un clic pré-remplit l'éditeur */}
+      <Box sx={{ mt: 2.5 }}>
+        <SectionHeading
+          icon={<Sparkles size={17} strokeWidth={1.75} />}
+          title={t('upsells.suggestions.title', 'Services suggérés')}
+        />
+        <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1 }}>
+          {upsellSuggestions(currentLanguage).map((s, i) => {
+            const Icon = guideIcon(s.icon);
+            return (
+              <Card key={i} variant="outlined" sx={{ flexShrink: 0, width: 224 }}>
+                <CardContent sx={{ '&:last-child': { pb: 1.5 }, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                    <Box sx={{ flexShrink: 0, width: 34, height: 34, borderRadius: 1.5, bgcolor: 'action.hover', color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={18} strokeWidth={1.75} />
+                    </Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>{s.title}</Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ minHeight: 32 }}>{s.description}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{s.price.toFixed(0)} {s.currency}</Typography>
+                    <Button size="small" variant="outlined" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={() => openFromSuggestion(s)}>
+                      {t('upsells.actions.add', 'Ajouter')}
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </Box>
+      </Box>
 
       {/* Éditeur d'offre */}
       <Dialog open={edit.open} onClose={() => setEdit(emptyEdit)} maxWidth="sm" fullWidth>
@@ -431,14 +529,30 @@ const UpsellsAdmin: React.FC = () => {
               multiline
               minRows={2}
             />
-            <TextField
-              label={t('upsells.fields.imageUrl', "URL de l'image (optionnel)")}
-              value={edit.imageUrl}
-              onChange={(e) => setEdit((s) => ({ ...s, imageUrl: e.target.value }))}
-              size="small"
-              fullWidth
-              placeholder="https://…"
-            />
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
+                {t('upsells.fields.image', 'Image (optionnel)')}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                {edit.imageUrl ? (
+                  <Box
+                    component="img"
+                    src={edit.imageUrl}
+                    alt=""
+                    sx={{ width: 72, height: 72, borderRadius: 1.5, objectFit: 'cover', display: 'block', border: '1px solid', borderColor: 'divider' }}
+                  />
+                ) : null}
+                <Button component="label" variant="outlined" size="small" startIcon={<ImagePlus size={15} strokeWidth={1.75} />}>
+                  {edit.imageUrl ? t('upsells.fields.imageChange', 'Changer') : t('upsells.fields.imageUpload', 'Choisir une image')}
+                  <input type="file" accept="image/*" hidden onChange={onImageFile} />
+                </Button>
+                {edit.imageUrl ? (
+                  <Button size="small" color="error" onClick={() => setEdit((s) => ({ ...s, imageUrl: '' }))}>
+                    {t('upsells.fields.imageRemove', 'Retirer')}
+                  </Button>
+                ) : null}
+              </Box>
+            </Box>
             <FormControlLabel
               control={<Switch checked={edit.active} onChange={(e) => setEdit((s) => ({ ...s, active: e.target.checked }))} />}
               label={t('upsells.fields.active', 'Service actif (visible sur le livret)')}

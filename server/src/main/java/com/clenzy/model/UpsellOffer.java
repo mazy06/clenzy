@@ -46,7 +46,8 @@ public class UpsellOffer {
     @Column(nullable = false, length = 3)
     private String currency = "EUR";
 
-    @Column(name = "image_url", length = 1000)
+    /** Image du service : data URL base64 (stockée en base) ou URL legacy. */
+    @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
     @Column(nullable = false)
