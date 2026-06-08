@@ -180,20 +180,29 @@ const UpsellsAdmin: React.FC = () => {
     amount == null ? '—' : `${amount.toFixed(2)} ${currency}`;
 
   const openCreate = () => setEdit({ ...emptyEdit, open: true });
-  // Pré-remplit l'éditeur depuis un service suggéré (l'hôte modifie/complète puis enregistre).
-  const openFromSuggestion = (s: UpsellSuggestion) =>
-    setEdit({
-      open: true,
-      id: null,
-      type: s.type,
-      title: s.title,
-      description: s.description,
-      price: String(s.price),
-      currency: s.currency,
-      imageUrl: '',
-      propertyId: '',
-      active: true,
-    });
+  // Crée directement un service depuis une suggestion (1 clic), actif et pour toute l'org.
+  // Modifiable ensuite via la liste. Évite les doublons par titre.
+  const addSuggestion = async (s: UpsellSuggestion) => {
+    if (offers.some((o) => o.title.trim().toLowerCase() === s.title.trim().toLowerCase())) {
+      notify(t('upsells.messages.alreadyAdded', 'Ce service est déjà dans votre liste.'), 'info');
+      return;
+    }
+    try {
+      await upsellApi.createOffer({
+        type: s.type,
+        title: s.title,
+        description: s.description,
+        price: s.price,
+        currency: s.currency,
+        propertyId: null,
+        active: true,
+      });
+      notify(t('upsells.messages.added', 'Service ajouté'));
+      await refetch();
+    } catch {
+      notify(t('upsells.messages.error', 'Une erreur est survenue'), 'error');
+    }
+  };
   const openEdit = (o: UpsellOffer) =>
     setEdit({
       open: true,
@@ -455,7 +464,7 @@ const UpsellsAdmin: React.FC = () => {
                   <Typography variant="caption" color="text.secondary" sx={{ minHeight: 32 }}>{s.description}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{s.price.toFixed(0)} {s.currency}</Typography>
-                    <Button size="small" variant="outlined" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={() => openFromSuggestion(s)}>
+                    <Button size="small" variant="outlined" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={() => addSuggestion(s)}>
                       {t('upsells.actions.add', 'Ajouter')}
                     </Button>
                   </Box>

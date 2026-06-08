@@ -31,17 +31,20 @@ public class ActivityCommissionService {
     private final ReservationRepository reservationRepository;
     private final WalletService walletService;
     private final LedgerService ledgerService;
+    private final ManagementContractService managementContractService;
 
     public ActivityCommissionService(ActivityCommissionRepository commissionRepository,
                                      MonetizationConfigService monetizationConfigService,
                                      ReservationRepository reservationRepository,
                                      WalletService walletService,
-                                     LedgerService ledgerService) {
+                                     LedgerService ledgerService,
+                                     ManagementContractService managementContractService) {
         this.commissionRepository = commissionRepository;
         this.monetizationConfigService = monetizationConfigService;
         this.reservationRepository = reservationRepository;
         this.walletService = walletService;
         this.ledgerService = ledgerService;
+        this.managementContractService = managementContractService;
     }
 
     /**
@@ -57,7 +60,8 @@ public class ActivityCommissionService {
         BigDecimal platformPct = monetizationConfigService.getEffectiveActivityPlatformCommissionPct(orgId);
         BigDecimal platformShare = gross.multiply(platformPct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
         BigDecimal remainder = gross.subtract(platformShare);
-        BigDecimal orgPct = monetizationConfigService.getEffectiveActivityOrgCommissionPct(orgId);
+        // Part conciergerie : taux du contrat de gestion du logement s'il existe, sinon défaut org.
+        BigDecimal orgPct = resolveActivityConciergePct(orgId, reservationId);
         BigDecimal orgShare = remainder.multiply(orgPct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
         BigDecimal hostShare = remainder.subtract(orgShare);
         String cur = (currency != null && !currency.isBlank()) ? currency.toUpperCase() : "EUR";
@@ -99,6 +103,37 @@ public class ActivityCommissionService {
             if (c.getCurrency() != null) currency = c.getCurrency();
         }
         return new ActivityCommissionSummaryDto(gross, host, platform, all.size(), currency);
+    }
+
+    /** Part conciergerie (%) sur les activités : taux du contrat de gestion du logement, sinon défaut org. */
+    private BigDecimal resolveActivityConciergePct(Long orgId, Long reservationId) {
+        Long propertyId = propertyIdForReservation(reservationId);
+        if (propertyId != null) {
+            try {
+                var c = managementContractService.getActiveContract(propertyId, orgId);
+                if (c != null && c.isPresent() && c.get().getActivityCommissionRate() != null) {
+                    return c.get().getActivityCommissionRate().multiply(HUNDRED); // fraction (0.30) → pourcentage (30)
+                }
+            } catch (Exception ignored) {
+                // Résolution contrat best-effort → repli sur le défaut org ci-dessous.
+            }
+        }
+        return monetizationConfigService.getEffectiveActivityOrgCommissionPct(orgId);
+    }
+
+    /** Logement de la réservation. Défensif : null si non résoluble → défaut org. */
+    private Long propertyIdForReservation(Long reservationId) {
+        try {
+            if (reservationId == null) {
+                return null;
+            }
+            return reservationRepository.findById(reservationId)
+                .map(Reservation::getProperty)
+                .map(Property::getId)
+                .orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void creditShares(Long orgId, Long reservationId, BigDecimal hostShare, BigDecimal orgShare,

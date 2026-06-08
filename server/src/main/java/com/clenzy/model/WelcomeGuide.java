@@ -87,6 +87,19 @@ public class WelcomeGuide {
     @Column(name = "activities_enabled", nullable = false)
     private boolean activitiesEnabled = true;
 
+    /** Affiche ou masque la section « Services à la carte » (upsells) dans le livret. */
+    @Column(name = "upsells_enabled", nullable = false)
+    private boolean upsellsEnabled = true;
+
+    /**
+     * Sélection des services payants affichés sur CE livret (JSON array d'ids d'UpsellOffer).
+     * {@code null} = afficher tous les services applicables (défaut) ; sinon, uniquement ces ids.
+     * Pass-through JSONB (comme heroPhotoIds).
+     */
+    @Column(name = "upsell_offer_ids", columnDefinition = "JSONB")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    private String upsellOfferIds;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -131,6 +144,10 @@ public class WelcomeGuide {
     public void setGuestbookEnabled(boolean guestbookEnabled) { this.guestbookEnabled = guestbookEnabled; }
     public boolean isActivitiesEnabled() { return activitiesEnabled; }
     public void setActivitiesEnabled(boolean activitiesEnabled) { this.activitiesEnabled = activitiesEnabled; }
+    public boolean isUpsellsEnabled() { return upsellsEnabled; }
+    public void setUpsellsEnabled(boolean upsellsEnabled) { this.upsellsEnabled = upsellsEnabled; }
+    public String getUpsellOfferIds() { return upsellOfferIds; }
+    public void setUpsellOfferIds(String upsellOfferIds) { this.upsellOfferIds = upsellOfferIds; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

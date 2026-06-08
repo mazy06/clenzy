@@ -16,7 +16,8 @@ class WelcomeGuideDtoTest {
         WelcomeGuideDto dto = new WelcomeGuideDto(
             1L, 42L, "Le Chalet", "fr", "Bienvenue", "[]", "[]", "[]",
             "#FF0000", "noir", "[7]", "Bienvenue chez nous", "Camille & Antoine",
-            "https://cdn/logo.png", true, true, true, true, createdAt
+            "https://cdn/logo.png", true, true, true, true, createdAt,
+            true, null
         );
 
         assertEquals(1L, dto.id());
@@ -100,9 +101,9 @@ class WelcomeGuideDtoTest {
     @Test
     void record_equalityByValue() {
         WelcomeGuideDto a = new WelcomeGuideDto(
-            1L, 1L, "P", "fr", "T", "[]", "[]", "[]", "#000000", "atelier", null, null, null, null, false, false, false, false, null);
+            1L, 1L, "P", "fr", "T", "[]", "[]", "[]", "#000000", "atelier", null, null, null, null, false, false, false, false, null, false, null);
         WelcomeGuideDto b = new WelcomeGuideDto(
-            1L, 1L, "P", "fr", "T", "[]", "[]", "[]", "#000000", "atelier", null, null, null, null, false, false, false, false, null);
+            1L, 1L, "P", "fr", "T", "[]", "[]", "[]", "#000000", "atelier", null, null, null, null, false, false, false, false, null, false, null);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
     }

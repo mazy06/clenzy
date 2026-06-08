@@ -34,7 +34,8 @@ public record WelcomeGuidePublicDto(
     CheckInInfo checkIn,
     boolean chatbotEnabled,
     boolean guestbookEnabled,
-    boolean activitiesEnabled
+    boolean activitiesEnabled,
+    boolean upsellsEnabled
 ) {
     /** Localisation du logement (pour la carte "autour de moi" + adresse). */
     public record PropertyInfo(
@@ -122,7 +123,8 @@ public record WelcomeGuidePublicDto(
             g.getLogoUrl(), g.getSections(), g.getPois(),
             g.getCuratedActivities(),
             propertyInfo, practicalInfo, stayInfo, checkIn,
-            g.isChatbotEnabled(), g.isGuestbookEnabled(), g.isActivitiesEnabled()
+            g.isChatbotEnabled(), g.isGuestbookEnabled(), g.isActivitiesEnabled(),
+            g.isUpsellsEnabled()
         );
     }
 
