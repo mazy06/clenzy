@@ -7,13 +7,14 @@ import {
   TextField,
   CircularProgress,
 } from '@mui/material';
-import { Add, Save, Visibility, EventNote, Search as SearchIcon } from '../../icons';
+import { Add, Save, Visibility, EventNote, Search as SearchIcon, PaletteRounded } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { BookingEngineConfig } from '../../services/api/bookingEngineApi';
 import BookingEngineListTab from './BookingEngineListTab';
 import BookingEngineConfigTab from './BookingEngineConfigTab';
 import type { BookingEngineConfigTabHandle } from './BookingEngineConfigTab';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import { semanticToHex, softChipSx } from '../../utils/statusUtils';
 
 const BookingEnginePage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
@@ -21,6 +22,8 @@ const BookingEnginePage: React.FC<{ embedded?: boolean }> = ({ embedded = false 
   const [editConfig, setEditConfig] = useState<BookingEngineConfig | null>(null);
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  // Active step of the config editor — drives header-action gating (design button on Appearance only).
+  const [editStep, setEditStep] = useState(0);
   const configTabRef = useRef<BookingEngineConfigTabHandle>(null);
 
   const isEditing = editConfig !== null || isCreateMode;
@@ -36,11 +39,13 @@ const BookingEnginePage: React.FC<{ embedded?: boolean }> = ({ embedded = false 
   const handleEdit = useCallback((config: BookingEngineConfig) => {
     setEditConfig(config);
     setIsCreateMode(false);
+    setEditStep(0);
   }, []);
 
   const handleCreate = useCallback(() => {
     setEditConfig(null);
     setIsCreateMode(true);
+    setEditStep(0);
   }, []);
 
   const handleBackToList = useCallback(() => {
@@ -50,6 +55,16 @@ const BookingEnginePage: React.FC<{ embedded?: boolean }> = ({ embedded = false 
 
   const headerActions = isEditing ? (
     <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+      {editStep === 0 && (
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<PaletteRounded size={14} strokeWidth={1.75} />}
+          onClick={() => configTabRef.current?.openDesign()}
+        >
+          {t('bookingEngine.actions.customizeDesign', 'Personnaliser le design')}
+        </Button>
+      )}
       <Button
         variant="outlined"
         size="small"
@@ -103,12 +118,31 @@ const BookingEnginePage: React.FC<{ embedded?: boolean }> = ({ embedded = false 
     </Box>
   ) : undefined;
 
+  // Mode embarqué (onglet) : on porte le search + le bouton dans le PageHeader PARTAGÉ du parent
+  // (slot via PageHeaderActionsContext), comme les onglets Livret & Services — au lieu d'une barre
+  // locale sous les tabs. Hook appelé inconditionnellement (Rules of Hooks) ; sans provider (mode
+  // autonome) il ne porte rien.
+  const embeddedHeaderPortal = usePageHeaderActions(
+    embedded ? (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        {listFilters}
+        {isEditing ? (
+          <Button variant="text" size="small" onClick={handleBackToList}>
+            {t('bookingEngine.actions.backToList', 'Retour')}
+          </Button>
+        ) : null}
+        {headerActions}
+      </Box>
+    ) : null,
+  );
+
   const body = isEditing ? (
     <BookingEngineConfigTab
       ref={configTabRef}
       config={isCreateMode ? null : editConfig}
       onBack={handleBackToList}
       onSavingChange={setIsSaving}
+      onActiveStepChange={setEditStep}
     />
   ) : (
     <BookingEngineListTab
@@ -125,19 +159,7 @@ const BookingEnginePage: React.FC<{ embedded?: boolean }> = ({ embedded = false 
   if (embedded) {
     return (
       <Box>
-        <Box
-          sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}
-        >
-          <Box sx={{ flex: 1 }}>{listFilters}</Box>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            {isEditing ? (
-              <Button variant="text" size="small" onClick={handleBackToList}>
-                {t('bookingEngine.actions.backToList', 'Retour')}
-              </Button>
-            ) : null}
-            {headerActions}
-          </Box>
-        </Box>
+        {embeddedHeaderPortal}
         {body}
       </Box>
     );

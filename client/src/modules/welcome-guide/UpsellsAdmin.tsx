@@ -123,6 +123,7 @@ const UpsellsAdmin: React.FC = () => {
   const [edit, setEdit] = useState<EditState>(emptyEdit);
   const [saving, setSaving] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
+  const [commissionsOpen, setCommissionsOpen] = useState(false);
   // Suppression : cible du modal de confirmation (null = fermé) + état en cours.
   const [deleteTarget, setDeleteTarget] = useState<UpsellOffer | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -303,6 +304,9 @@ const UpsellsAdmin: React.FC = () => {
   // Actions portées dans le PageHeader (slot multi-tabs partagé) — comme l'onglet Livret.
   const headerActions = usePageHeaderActions(
     <>
+      <Button variant="outlined" size="small" startIcon={<Percent size={14} strokeWidth={1.75} />} onClick={() => setCommissionsOpen(true)}>
+        {t('upsells.actions.commissions', 'Commissions')}
+      </Button>
       <Button variant="outlined" size="small" startIcon={<Receipt size={14} strokeWidth={1.75} />} onClick={() => setOrdersOpen(true)}>
         {t('upsells.actions.orders', 'Ventes')}
       </Button>
@@ -316,6 +320,10 @@ const UpsellsAdmin: React.FC = () => {
     <Box>
       {headerActions}
 
+      {/* Commissions (résumé activités + ma part conciergerie) — dans un dialog pour libérer l'écran. */}
+      <Dialog open={commissionsOpen} onClose={() => setCommissionsOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('upsells.commissions.dialogTitle', 'Commissions & ma part')}</DialogTitle>
+        <DialogContent dividers>
       {commissionSummary ? (
         <Card variant="outlined" sx={{ mb: 2 }}>
           <CardContent sx={{ '&:last-child': { pb: 2 } }}>
@@ -387,6 +395,11 @@ const UpsellsAdmin: React.FC = () => {
           </CardContent>
         </Card>
       ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCommissionsOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
+        </DialogActions>
+      </Dialog>
 
       <SectionHeading
         icon={<Tag size={17} strokeWidth={1.75} />}
@@ -402,45 +415,49 @@ const UpsellsAdmin: React.FC = () => {
           text={t('upsells.empty.description', 'Créez votre premier service additionnel à proposer aux voyageurs.')}
         />
       ) : (
-        <Stack spacing={1.5}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', xl: 'repeat(3, 1fr)' }, gap: 1.25 }}>
           {offers.map((o) => (
             <Card key={o.id} variant="outlined">
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, '&:last-child': { pb: 2 }, flexWrap: 'wrap' }}>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: 1.25, '&:last-child': { pb: 1.25 } }}>
                 {o.imageUrl ? (
-                  <Box component="img" src={o.imageUrl} alt="" sx={{ width: 48, height: 48, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }} />
-                ) : null}
-                <Box sx={{ flex: 1, minWidth: 200 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  <Box component="img" src={o.imageUrl} alt="" sx={{ width: 40, height: 40, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }} />
+                ) : (
+                  <Box sx={{ width: 40, height: 40, borderRadius: 1.5, bgcolor: 'action.hover', color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Tag size={18} strokeWidth={1.75} />
+                  </Box>
+                )}
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }} title={o.title}>
                     {o.title}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
                     {typeLabel(o.type)} · {propertyName(o.propertyId)}
                   </Typography>
                 </Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
                   {o.price.toFixed(2)} {o.currency}
                 </Typography>
                 <Chip
                   size="small"
                   label={o.active ? t('upsells.active', 'Actif') : t('upsells.inactive', 'Inactif')}
-                  sx={softChipSx(semanticToHex(o.active ? 'success' : 'default'))}
+                  sx={{ ...softChipSx(semanticToHex(o.active ? 'success' : 'default')), flexShrink: 0 }}
                 />
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                <Box sx={{ display: 'flex', flexShrink: 0 }}>
                   <Tooltip title={t('upsells.actions.edit', 'Modifier')}>
                     <IconButton size="small" onClick={() => openEdit(o)}>
-                      <Edit size={16} strokeWidth={1.75} />
+                      <Edit size={15} strokeWidth={1.75} />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title={t('upsells.actions.delete', 'Supprimer')}>
                     <IconButton size="small" color="error" onClick={() => handleDelete(o)}>
-                      <Delete size={16} strokeWidth={1.75} />
+                      <Delete size={15} strokeWidth={1.75} />
                     </IconButton>
                   </Tooltip>
                 </Box>
               </CardContent>
             </Card>
           ))}
-        </Stack>
+        </Box>
       )}
 
       {/* Services suggérés : catalogue de base, un clic pré-remplit l'éditeur */}

@@ -51,17 +51,19 @@ interface BookingEngineConfigTabProps {
   config: BookingEngineConfig | null; // null = create mode
   onBack: () => void;
   onSavingChange?: (saving: boolean) => void;
+  onActiveStepChange?: (step: number) => void;
 }
 
 export interface BookingEngineConfigTabHandle {
   save: () => Promise<void>;
   openPreview: () => void;
+  openDesign: () => void;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const BookingEngineConfigTab = forwardRef<BookingEngineConfigTabHandle, BookingEngineConfigTabProps>(
-  ({ config, onBack, onSavingChange }, ref) => {
+  ({ config, onBack, onSavingChange, onActiveStepChange }, ref) => {
   const { t } = useTranslation();
   const isCreate = config === null;
   const isDesignAiEnabled = useIsAiFeatureEnabled('DESIGN');
@@ -83,9 +85,14 @@ const BookingEngineConfigTab = forwardRef<BookingEngineConfigTabHandle, BookingE
   // ─── Wizard state ───────────────────────────────────────────────────
   const [activeStep, setActiveStep] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
+  // "Personnaliser le design" modal (rendered inside StepAppearance, opened from the page header)
+  const [designOpen, setDesignOpen] = useState(false);
 
   // Reset step when config changes
   useEffect(() => { setActiveStep(0); }, [config]);
+
+  // Notify parent which step is active (so the header can gate its actions)
+  useEffect(() => { onActiveStepChange?.(activeStep); }, [activeStep, onActiveStepChange]);
 
   // ─── Preview data (extracted hook) ──────────────────────────────────
   const { previewProperties, reviewStats } = usePreviewProperties();
@@ -224,6 +231,7 @@ const BookingEngineConfigTab = forwardRef<BookingEngineConfigTabHandle, BookingE
   useImperativeHandle(ref, () => ({
     save: handleSave,
     openPreview: () => setPreviewOpen(true),
+    openDesign: () => setDesignOpen(true),
   }), [handleSave]);
 
   // Notify parent of saving state changes
@@ -254,6 +262,8 @@ const BookingEngineConfigTab = forwardRef<BookingEngineConfigTabHandle, BookingE
             form={form}
             designTokens={designTokens}
             isDesignAiEnabled={isDesignAiEnabled}
+            designOpen={designOpen}
+            onDesignClose={() => setDesignOpen(false)}
             onFormChange={handleChange}
             onDesignTokensChange={handleDesignTokensChange}
             onTokensExtracted={handleTokensExtracted}
