@@ -216,6 +216,7 @@ class DocumentTemplateSyncServiceTest {
             List<DocumentTemplateTag> oldTags = List.of(buildTag("old.tag"));
             existing.setTags(new ArrayList<>(oldTags));
             when(templateRepository.findAll()).thenReturn(List.of(existing));
+            when(tagRepository.findByTemplateId(1L)).thenReturn(oldTags);
             when(templateParserService.parseTemplate(any(byte[].class))).thenReturn(List.of());
 
             service.syncOne("template_devis.odt", "DEVIS");
