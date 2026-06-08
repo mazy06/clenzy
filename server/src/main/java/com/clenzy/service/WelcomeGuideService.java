@@ -9,6 +9,8 @@ import com.clenzy.model.*;
 import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyPhotoRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.WelcomeGuideEntryRepository;
+import com.clenzy.repository.WelcomeGuideEventRepository;
 import com.clenzy.repository.WelcomeGuideRepository;
 import com.clenzy.repository.WelcomeGuideTokenRepository;
 import org.hibernate.Hibernate;
@@ -36,6 +38,8 @@ public class WelcomeGuideService {
 
     private final WelcomeGuideRepository guideRepository;
     private final WelcomeGuideTokenRepository tokenRepository;
+    private final WelcomeGuideEntryRepository entryRepository;
+    private final WelcomeGuideEventRepository eventRepository;
     private final PropertyRepository propertyRepository;
     private final CheckInInstructionsRepository checkInInstructionsRepository;
     private final GuideConfig guideConfig;
@@ -46,6 +50,8 @@ public class WelcomeGuideService {
 
     public WelcomeGuideService(WelcomeGuideRepository guideRepository,
                                 WelcomeGuideTokenRepository tokenRepository,
+                                WelcomeGuideEntryRepository entryRepository,
+                                WelcomeGuideEventRepository eventRepository,
                                 PropertyRepository propertyRepository,
                                 CheckInInstructionsRepository checkInInstructionsRepository,
                                 GuideConfig guideConfig,
@@ -55,6 +61,8 @@ public class WelcomeGuideService {
                                 PropertyPhotoRepository propertyPhotoRepository) {
         this.guideRepository = guideRepository;
         this.tokenRepository = tokenRepository;
+        this.entryRepository = entryRepository;
+        this.eventRepository = eventRepository;
         this.propertyRepository = propertyRepository;
         this.checkInInstructionsRepository = checkInInstructionsRepository;
         this.guideConfig = guideConfig;
@@ -511,6 +519,15 @@ public class WelcomeGuideService {
     @Transactional
     public void deleteGuide(Long guideId, Long orgId) {
         WelcomeGuide guide = loadGuide(guideId, orgId);
+        // Suppression en cascade applicative : les FK enfants (créées par Hibernate, sans
+        // ON DELETE CASCADE) bloquent le DELETE du livret tant que des tokens / entrées de
+        // livre d'or subsistent. On purge d'abord les enfants, puis le livret. Les events
+        // analytics (pas de FK) sont nettoyés pour ne pas laisser d'orphelins. Les commandes
+        // d'upsell et commissions (guide_id dénormalisé, sans FK) sont des données financières
+        // conservées telles quelles.
+        tokenRepository.deleteByGuideId(guideId);
+        entryRepository.deleteByGuideId(guideId);
+        eventRepository.deleteByGuideId(guideId);
         guideRepository.delete(guide);
     }
 }
