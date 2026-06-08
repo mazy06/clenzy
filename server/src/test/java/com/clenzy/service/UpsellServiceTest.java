@@ -33,6 +33,7 @@ class UpsellServiceTest {
     @Mock private UpsellOfferRepository offerRepository;
     @Mock private UpsellOrderRepository orderRepository;
     @Mock private WelcomeGuideTokenRepository tokenRepository;
+    @Mock private com.clenzy.repository.WelcomeGuideRepository guideRepository;
     @Mock private ReservationRepository reservationRepository;
     @Mock private StripeService stripeService;
     @Mock private WalletService walletService;
@@ -41,7 +42,7 @@ class UpsellServiceTest {
     @Mock private ManagementContractService managementContractService;
 
     private UpsellService service() {
-        return new UpsellService(offerRepository, orderRepository, tokenRepository, reservationRepository,
+        return new UpsellService(offerRepository, orderRepository, tokenRepository, guideRepository, reservationRepository,
             stripeService, walletService, ledgerService, monetizationConfigService, managementContractService);
     }
 
