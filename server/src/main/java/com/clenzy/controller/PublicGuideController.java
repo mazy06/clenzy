@@ -99,6 +99,17 @@ public class PublicGuideController {
             .orElse(ResponseEntity.notFound().build());
     }
 
+    /** Sert une photo de couverture (hero) du carrousel (token-scopé, id listé dans le livret). */
+    @GetMapping("/{token}/hero-photo")
+    public ResponseEntity<byte[]> getHeroPhoto(@PathVariable UUID token, @RequestParam("photoId") Long photoId) {
+        return guideService.getHeroPhotoBytes(token, photoId)
+            .map(data -> ResponseEntity.ok()
+                .contentType(sniffImageType(data))
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())
+                .body(data))
+            .orElse(ResponseEntity.notFound().build());
+    }
+
     private static MediaType sniffImageType(byte[] d) {
         if (d.length >= 2 && (d[0] & 0xFF) == 0xFF && (d[1] & 0xFF) == 0xD8) return MediaType.IMAGE_JPEG;
         if (d.length >= 4 && (d[0] & 0xFF) == 0x89 && d[1] == 'P' && d[2] == 'N' && d[3] == 'G') return MediaType.IMAGE_PNG;

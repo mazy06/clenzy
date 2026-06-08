@@ -5,6 +5,7 @@ import com.clenzy.dto.WelcomeGuidePublicDto;
 import com.clenzy.dto.WelcomeGuideRequest;
 import com.clenzy.model.*;
 import com.clenzy.repository.CheckInInstructionsRepository;
+import com.clenzy.repository.PropertyPhotoRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.WelcomeGuideRepository;
 import com.clenzy.repository.WelcomeGuideTokenRepository;
@@ -38,6 +39,7 @@ class WelcomeGuideServiceTest {
     @Mock private com.clenzy.service.access.AccessCodeResolverService accessCodeResolverService;
     @Mock private OnlineCheckInService onlineCheckInService;
     @Mock private PhotoStorageService photoStorageService;
+    @Mock private PropertyPhotoRepository propertyPhotoRepository;
 
     private WelcomeGuideService service;
 
@@ -45,7 +47,7 @@ class WelcomeGuideServiceTest {
     void setUp() {
         service = new WelcomeGuideService(guideRepository, tokenRepository, propertyRepository,
             checkInInstructionsRepository, guideConfig, accessCodeResolverService, onlineCheckInService,
-            photoStorageService);
+            photoStorageService, propertyPhotoRepository);
     }
 
     @Test
@@ -62,7 +64,7 @@ class WelcomeGuideServiceTest {
 
         WelcomeGuide result = service.createGuide(1L, new WelcomeGuideRequest(
             10L, "Guide Riviera", "fr", "[{\"type\":\"text\",\"title\":\"WiFi\"}]",
-            "#FF0000", null, null, true, true, true, null, null));
+            "#FF0000", null, null, null, null, null, null, true, true, true, null, null));
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getTitle()).isEqualTo("Guide Riviera");
@@ -74,7 +76,7 @@ class WelcomeGuideServiceTest {
         when(propertyRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.createGuide(1L, new WelcomeGuideRequest(
-            999L, "Test", null, null, null, null, null, null, null, null, null, null)))
+            999L, "Test", null, null, null, null, null, null, null, null, null, null, null, null, null, null)))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -88,7 +90,7 @@ class WelcomeGuideServiceTest {
 
         // Staff plateforme : contexte org null → l'org doit etre derivee du logement.
         WelcomeGuide result = service.createGuide(null, new WelcomeGuideRequest(
-            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null));
+            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null, null, null, null, null));
 
         assertThat(result.getOrganizationId()).isEqualTo(7L);
     }
@@ -102,9 +104,51 @@ class WelcomeGuideServiceTest {
         when(guideRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         WelcomeGuide result = service.createGuide(99L, new WelcomeGuideRequest(
-            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null));
+            10L, "Guide", "fr", "[]", null, null, null, null, null, null, null, null, null, null, null, null));
 
         assertThat(result.getOrganizationId()).isEqualTo(7L);
+    }
+
+    @Test
+    void getPropertyPreviewData_hostOrgMatches_returnsData() {
+        Property property = new Property();
+        property.setId(10L);
+        property.setOrganizationId(7L);
+        property.setName("Le Loft");
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+        when(checkInInstructionsRepository.findByPropertyId(10L)).thenReturn(Optional.empty());
+
+        var result = service.getPropertyPreviewData(10L, 7L);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().property().name()).isEqualTo("Le Loft");
+    }
+
+    @Test
+    void getPropertyPreviewData_hostOrgMismatch_returnsEmpty() {
+        // Sécurité : un hôte ne doit jamais voir le logement (wifi/digicode) d'une autre org.
+        Property property = new Property();
+        property.setId(10L);
+        property.setOrganizationId(7L);
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+
+        var result = service.getPropertyPreviewData(10L, 99L);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getPropertyPreviewData_staffNullOrg_returnsCrossOrg() {
+        Property property = new Property();
+        property.setId(10L);
+        property.setOrganizationId(7L);
+        property.setName("Le Loft");
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+        when(checkInInstructionsRepository.findByPropertyId(10L)).thenReturn(Optional.empty());
+
+        var result = service.getPropertyPreviewData(10L, null);
+
+        assertThat(result).isPresent();
     }
 
     @Test
@@ -202,7 +246,7 @@ class WelcomeGuideServiceTest {
         when(guideRepository.save(any())).thenReturn(guide);
 
         WelcomeGuide result = service.updateGuide(1L, 1L, new WelcomeGuideRequest(
-            null, "New Title", null, "[{\"type\":\"info\"}]", "#0000FF", null, true, null, null, null, null, null));
+            null, "New Title", null, "[{\"type\":\"info\"}]", "#0000FF", null, null, null, null, null, true, null, null, null, null, null));
 
         assertThat(result.getTitle()).isEqualTo("New Title");
         assertThat(result.isPublished()).isTrue();
