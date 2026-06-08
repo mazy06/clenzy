@@ -7,6 +7,7 @@ import com.clenzy.service.access.AccessCodeResolverService;
 import com.clenzy.service.PhotoStorageService;
 import com.clenzy.model.*;
 import com.clenzy.repository.CheckInInstructionsRepository;
+import com.clenzy.repository.PropertyPhotoRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.WelcomeGuideRepository;
 import com.clenzy.repository.WelcomeGuideTokenRepository;
@@ -41,6 +42,7 @@ public class WelcomeGuideService {
     private final AccessCodeResolverService accessCodeResolverService;
     private final OnlineCheckInService onlineCheckInService;
     private final PhotoStorageService photoStorageService;
+    private final PropertyPhotoRepository propertyPhotoRepository;
 
     public WelcomeGuideService(WelcomeGuideRepository guideRepository,
                                 WelcomeGuideTokenRepository tokenRepository,
@@ -49,7 +51,8 @@ public class WelcomeGuideService {
                                 GuideConfig guideConfig,
                                 AccessCodeResolverService accessCodeResolverService,
                                 OnlineCheckInService onlineCheckInService,
-                                PhotoStorageService photoStorageService) {
+                                PhotoStorageService photoStorageService,
+                                PropertyPhotoRepository propertyPhotoRepository) {
         this.guideRepository = guideRepository;
         this.tokenRepository = tokenRepository;
         this.propertyRepository = propertyRepository;
@@ -58,6 +61,7 @@ public class WelcomeGuideService {
         this.accessCodeResolverService = accessCodeResolverService;
         this.onlineCheckInService = onlineCheckInService;
         this.photoStorageService = photoStorageService;
+        this.propertyPhotoRepository = propertyPhotoRepository;
     }
 
     @Transactional
@@ -84,6 +88,10 @@ public class WelcomeGuideService {
         if (req.pois() != null) guide.setPois(req.pois());
         if (req.curatedActivities() != null) guide.setCuratedActivities(req.curatedActivities());
         if (req.brandingColor() != null) guide.setBrandingColor(req.brandingColor());
+        if (req.theme() != null && !req.theme().isBlank()) guide.setTheme(req.theme());
+        if (req.heroPhotoIds() != null) guide.setHeroPhotoIds(req.heroPhotoIds()); // '[]' = pas de hero
+        if (req.welcomeMessage() != null) guide.setWelcomeMessage(req.welcomeMessage().isBlank() ? null : req.welcomeMessage());
+        if (req.hostNames() != null) guide.setHostNames(req.hostNames().isBlank() ? null : req.hostNames());
         if (req.logoUrl() != null) guide.setLogoUrl(req.logoUrl());
         if (req.chatbotEnabled() != null) guide.setChatbotEnabled(req.chatbotEnabled());
         if (req.guestbookEnabled() != null) guide.setGuestbookEnabled(req.guestbookEnabled());
@@ -104,6 +112,10 @@ public class WelcomeGuideService {
         if (req.pois() != null) guide.setPois(req.pois());
         if (req.curatedActivities() != null) guide.setCuratedActivities(req.curatedActivities());
         if (req.brandingColor() != null) guide.setBrandingColor(req.brandingColor());
+        if (req.theme() != null && !req.theme().isBlank()) guide.setTheme(req.theme());
+        if (req.heroPhotoIds() != null) guide.setHeroPhotoIds(req.heroPhotoIds()); // '[]' = pas de hero
+        if (req.welcomeMessage() != null) guide.setWelcomeMessage(req.welcomeMessage().isBlank() ? null : req.welcomeMessage());
+        if (req.hostNames() != null) guide.setHostNames(req.hostNames().isBlank() ? null : req.hostNames());
         if (req.logoUrl() != null) guide.setLogoUrl(req.logoUrl());
         if (req.published() != null) guide.setPublished(req.published());
         if (req.chatbotEnabled() != null) guide.setChatbotEnabled(req.chatbotEnabled());
@@ -136,6 +148,22 @@ public class WelcomeGuideService {
         // Initialise property dans la session (open-in-view=false) pour le mapping DTO.
         guides.forEach(g -> Hibernate.initialize(g.getProperty()));
         return guides;
+    }
+
+    /**
+     * Donnees auto-remplies d'un logement pour l'apercu cote hote (editeur de livret) :
+     * memes sources que le payload guest (Property + CheckInInstructions), sans token.
+     * HOST : strictement son org ; staff plateforme (orgId null) : cross-org. Vide si
+     * logement introuvable ou hors org.
+     */
+    @Transactional(readOnly = true)
+    public Optional<WelcomeGuidePublicDto.PreviewData> getPropertyPreviewData(Long propertyId, Long orgId) {
+        return propertyRepository.findById(propertyId)
+            .filter(p -> orgId == null || orgId.equals(p.getOrganizationId()))
+            .map(p -> {
+                CheckInInstructions ci = checkInInstructionsRepository.findByPropertyId(p.getId()).orElse(null);
+                return WelcomeGuidePublicDto.previewFrom(p, ci);
+            });
     }
 
     /**
@@ -393,8 +421,65 @@ public class WelcomeGuideService {
                     onlineCheckInService.generateCheckInLink(c), c.getStatus().name()))
                 .orElse(null)
             : null;
+        List<String> heroImageUrls = resolveHeroImageUrls(guide, t.getToken());
         return Optional.of(
-            WelcomeGuidePublicDto.from(guide, property, ci, reservation, dynamicAccessCode, checkIn));
+            WelcomeGuidePublicDto.from(guide, property, ci, reservation, dynamicAccessCode, checkIn, heroImageUrls));
+    }
+
+    /**
+     * Resout les URLs des photos de couverture (hero) pour le carrousel guest. Pour chaque
+     * id de {@code hero_photo_ids} : {@code externalUrl} direct (photo importee Channex/Airbnb)
+     * sinon chemin passthrough token-scope {@code /hero-photo?photoId=ID} (binaire local servi
+     * par {@link #getHeroPhotoBytes}). Liste vide si aucune photo (le front affiche un degrade).
+     */
+    private List<String> resolveHeroImageUrls(WelcomeGuide guide, UUID token) {
+        if (guide.getProperty() == null) {
+            return List.of();
+        }
+        Long propertyId = guide.getProperty().getId();
+        return parsePhotoIds(guide.getHeroPhotoIds()).stream()
+            .map(id -> propertyPhotoRepository.findByIdAndPropertyId(id, propertyId)
+                .map(photo -> (photo.getExternalUrl() != null && !photo.getExternalUrl().isBlank())
+                    ? photo.getExternalUrl()
+                    : "/api/public/guide/" + token + "/hero-photo?photoId=" + id)
+                .orElse(null))
+            .filter(java.util.Objects::nonNull)
+            .toList();
+    }
+
+    /**
+     * Sert le binaire d'une photo de couverture (hero) pour un token guest valide.
+     * Token-scope : la photo doit etre listee dans {@code hero_photo_ids} du livret ET
+     * appartenir a son logement. Vide si token invalide / non publie / id non autorise /
+     * photo externe (servie via son URL).
+     */
+    @Transactional(readOnly = true)
+    public Optional<byte[]> getHeroPhotoBytes(UUID token, Long photoId) {
+        if (photoId == null) {
+            return Optional.empty();
+        }
+        return tokenRepository.findByToken(token)
+            .filter(WelcomeGuideToken::isCurrentlyValid)
+            .map(WelcomeGuideToken::getGuide)
+            .filter(g -> g != null && g.isPublished() && g.getProperty() != null
+                && parsePhotoIds(g.getHeroPhotoIds()).contains(photoId))
+            .flatMap(g -> propertyPhotoRepository.findByIdAndPropertyId(photoId, g.getProperty().getId()))
+            .map(photo -> photo.getStorageKey() != null
+                ? photoStorageService.retrieve(photo.getStorageKey())
+                : photo.getData());
+    }
+
+    /** Parse un JSON array d'ids ('[1,2,3]') en liste de Long (extrait les entiers, robuste). */
+    private static List<Long> parsePhotoIds(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        List<Long> ids = new java.util.ArrayList<>();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\d+").matcher(json);
+        while (m.find()) {
+            ids.add(Long.parseLong(m.group()));
+        }
+        return ids;
     }
 
     /** Revoque tous les tokens lies a une reservation (ex: annulation). */

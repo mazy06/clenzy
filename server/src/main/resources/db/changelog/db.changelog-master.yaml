@@ -2009,3 +2009,43 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Redesign "welcome book" : theme visuel + photo hero du livret (welcome_guides).
+  - changeSet:
+      id: "0206-add-welcome-guide-theme-and-hero"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0206__add_welcome_guide_theme_and_hero.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Hero du livret : photo unique → carrousel multi-photos (welcome_guides.hero_photo_ids).
+  - changeSet:
+      id: "0207-welcome-guide-hero-photos-multi"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0207__welcome_guide_hero_photos_multi.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Message d'accueil dédié du livret (welcome_guides.welcome_message + host_names).
+  - changeSet:
+      id: "0208-add-welcome-guide-welcome-message"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0208__add_welcome_guide_welcome_message.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Image des services payants en base (data URL base64) : image_url → TEXT.
+  - changeSet:
+      id: "0209-upsell-image-url-to-text"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0209__upsell_image_url_to_text.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

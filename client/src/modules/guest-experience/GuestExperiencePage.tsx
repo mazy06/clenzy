@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box } from '@mui/material';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import { PageHeaderActionsProvider, usePageHeaderActionsSlot } from '../../components/PageHeaderActionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { Public } from '../../icons';
@@ -23,6 +24,8 @@ const GuestExperiencePage: React.FC = () => {
     user?.platformRole === 'SUPER_ADMIN' || user?.platformRole === 'SUPER_MANAGER';
 
   const [tab, setTab] = useState(0);
+  // Slot DOM partagé : chaque onglet porte ses propres actions dans le PageHeader.
+  const { slot, portalContainer } = usePageHeaderActionsSlot();
 
   const tabs = [
     { value: 0, label: t('guestExperience.tabs.welcomeGuide', "Livret d'accueil") },
@@ -42,22 +45,25 @@ const GuestExperiencePage: React.FC = () => {
         : t('guestExperience.subtitleWelcomeGuide', "Le livret d'accueil numérique de vos voyageurs");
 
   return (
-    <Box>
-      <PageHeader
-        title={t('guestExperience.title', 'Réservation & accueil')}
-        subtitle={subtitle}
-        iconBadge={<Public />}
-        backPath="/dashboard"
-      />
-      <PageTabs options={tabs} value={tab} onChange={setTab} />
-      {tab === 2 && isPlatformStaff ? (
-        <BookingEnginePage embedded />
-      ) : tab === 1 ? (
-        <UpsellsAdmin />
-      ) : (
-        <WelcomeGuideAdmin />
-      )}
-    </Box>
+    <PageHeaderActionsProvider slot={slot}>
+      <Box>
+        <PageHeader
+          title={t('guestExperience.title', 'Réservation & accueil')}
+          subtitle={subtitle}
+          iconBadge={<Public />}
+          actions={portalContainer}
+          showBackButton={false}
+        />
+        <PageTabs options={tabs} value={tab} onChange={setTab} />
+        {tab === 2 && isPlatformStaff ? (
+          <BookingEnginePage embedded />
+        ) : tab === 1 ? (
+          <UpsellsAdmin />
+        ) : (
+          <WelcomeGuideAdmin />
+        )}
+      </Box>
+    </PageHeaderActionsProvider>
   );
 };
 

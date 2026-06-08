@@ -1,0 +1,133 @@
+import type { LucideIcon } from 'lucide-react';
+import {
+  Coffee,
+  ThermometerSun,
+  WashingMachine,
+  Tv,
+  Flame,
+  ShowerHead,
+  CigaretteOff,
+  PartyPopper,
+  Moon,
+  Users,
+  PawPrint,
+  Recycle,
+  KeyRound,
+  Sofa,
+  ScrollText,
+  Map,
+  TrainFront,
+  ConciergeBell,
+  Bike,
+  CarFront,
+  Plane,
+  Clock,
+  Sparkles,
+  Croissant,
+  Wifi,
+  LockKeyhole,
+  DoorOpen,
+  LifeBuoy,
+  Utensils,
+  Wine,
+  Camera,
+  Building,
+  ArrowUp,
+  MapPin,
+  FileText,
+  Bed,
+  Bath,
+  ShoppingCart,
+  Info,
+  Phone,
+  Ticket,
+  Star,
+  Snowflake,
+  Wind,
+  Refrigerator,
+  Microwave,
+  Lightbulb,
+  Trash2,
+  Dog,
+  Volume2,
+  ParkingCircle,
+  Landmark,
+  Waves,
+  Cross,
+} from 'lucide-react';
+
+/**
+ * Registre d'icônes lucide du livret (sections, équipements, règles, transports…).
+ * Repris des noms du design handoff Baitly (`wb-data.jsx`). Clés en kebab-case
+ * (stockées dans le JSON des sections), valeurs = composant lucide. Curé pour
+ * éviter d'importer toute la librairie (bundle). Fallback = FileText.
+ */
+const GUIDE_ICONS: Record<string, LucideIcon> = {
+  // Équipements / logement
+  coffee: Coffee,
+  'thermometer-sun': ThermometerSun,
+  snowflake: Snowflake,
+  wind: Wind,
+  'washing-machine': WashingMachine,
+  tv: Tv,
+  flame: Flame,
+  'shower-head': ShowerHead,
+  bath: Bath,
+  bed: Bed,
+  refrigerator: Refrigerator,
+  microwave: Microwave,
+  lightbulb: Lightbulb,
+  // Règlement
+  'cigarette-off': CigaretteOff,
+  'party-popper': PartyPopper,
+  moon: Moon,
+  users: Users,
+  'paw-print': PawPrint,
+  dog: Dog,
+  recycle: Recycle,
+  'trash-2': Trash2,
+  'volume-2': Volume2,
+  // Sections / navigation
+  'key-round': KeyRound,
+  sofa: Sofa,
+  'scroll-text': ScrollText,
+  map: Map,
+  'concierge-bell': ConciergeBell,
+  'file-text': FileText,
+  info: Info,
+  // Transports
+  'train-front': TrainFront,
+  bike: Bike,
+  'car-front': CarFront,
+  plane: Plane,
+  'parking-circle': ParkingCircle,
+  // Services / divers
+  clock: Clock,
+  sparkles: Sparkles,
+  croissant: Croissant,
+  wifi: Wifi,
+  'lock-keyhole': LockKeyhole,
+  'door-open': DoorOpen,
+  'life-buoy': LifeBuoy,
+  utensils: Utensils,
+  wine: Wine,
+  camera: Camera,
+  building: Building,
+  'arrow-up': ArrowUp,
+  'map-pin': MapPin,
+  'shopping-cart': ShoppingCart,
+  phone: Phone,
+  ticket: Ticket,
+  star: Star,
+  landmark: Landmark,
+  waves: Waves,
+  cross: Cross,
+};
+
+/** Composant lucide pour un nom d'icône (fallback FileText). */
+export function guideIcon(name?: string | null): LucideIcon {
+  return (name && GUIDE_ICONS[name]) || FileText;
+}
+
+/** Noms d'icônes disponibles dans le sélecteur de la config. */
+export const GUIDE_ICON_OPTIONS: string[] = Object.keys(GUIDE_ICONS);
