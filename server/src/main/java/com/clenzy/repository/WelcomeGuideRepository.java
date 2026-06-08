@@ -17,4 +17,7 @@ public interface WelcomeGuideRepository extends JpaRepository<WelcomeGuide, Long
     Optional<WelcomeGuide> findByPropertyIdAndLanguage(Long propertyId, String language);
 
     Optional<WelcomeGuide> findByIdAndOrganizationId(Long id, Long organizationId);
+
+    /** Livret rattaché à une réservation (1 livret/réservation, garanti par index unique). */
+    Optional<WelcomeGuide> findByReservationId(Long reservationId);
 }

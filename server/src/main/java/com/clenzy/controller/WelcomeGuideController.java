@@ -5,6 +5,7 @@ import com.clenzy.dto.PoiSuggestionDto;
 import com.clenzy.dto.WelcomeGuideDto;
 import com.clenzy.dto.WelcomeGuideRequest;
 import com.clenzy.dto.WelcomeGuideStatsDto;
+import com.clenzy.exception.WelcomeGuideAlreadyExistsException;
 import com.clenzy.model.WelcomeGuide;
 import com.clenzy.model.WelcomeGuideToken;
 import com.clenzy.service.PoiSuggestionService;
@@ -13,6 +14,7 @@ import com.clenzy.service.WelcomeGuideEntryService;
 import com.clenzy.service.WelcomeGuideService;
 import com.clenzy.tenant.TenantContext;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -105,11 +107,26 @@ public class WelcomeGuideController {
             .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Création manuelle d'un livret rattaché à une réservation — réservée au staff plateforme.
+     * Un seul livret par réservation : si un livret existe déjà → 409 (le front demande confirmation,
+     * puis re-POST avec {@code overwrite=true} pour écraser l'ancien).
+     */
     @PostMapping
-    public ResponseEntity<WelcomeGuideDto> create(@Valid @RequestBody WelcomeGuideRequest request) {
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    public ResponseEntity<?> create(@Valid @RequestBody WelcomeGuideRequest request,
+                                    @RequestParam(defaultValue = "false") boolean overwrite) {
         Long orgId = scopeOrgId();
-        WelcomeGuide guide = guideService.createGuide(orgId, request);
-        return ResponseEntity.ok(WelcomeGuideDto.from(guide));
+        try {
+            WelcomeGuide guide = guideService.createGuide(orgId, request, overwrite);
+            return ResponseEntity.ok(WelcomeGuideDto.from(guide));
+        } catch (WelcomeGuideAlreadyExistsException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "error", "GUIDE_ALREADY_EXISTS",
+                "existingGuideId", e.getExistingGuideId(),
+                "reservationId", e.getReservationId(),
+                "message", e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")
@@ -121,6 +138,7 @@ public class WelcomeGuideController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         Long orgId = scopeOrgId();
         guideService.deleteGuide(id, orgId);

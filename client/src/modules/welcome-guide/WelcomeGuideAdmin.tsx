@@ -42,11 +42,16 @@ import {
   Globe,
   Quote,
   ConciergeBell,
+  CalendarDays,
+  Link2,
+  Unlink,
+  Lock,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useAuth } from '../../hooks/useAuth';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import { softChipSx, semanticToHex } from '../../utils/statusUtils';
 import {
@@ -67,6 +72,8 @@ import {
   type GuestbookEntry,
   type WelcomeGuideStats,
   type PoiSuggestion,
+  type GuideReservationRef,
+  isGuideConflict,
 } from '../../services/api/welcomeGuideApi';
 import { POI_CATEGORIES, poiCategory, poiLabel } from './poiCatalog';
 import { nominatimApi } from '../../services/nominatimApi';
@@ -145,8 +152,25 @@ const IconSelect: React.FC<{ value: string; onChange: (v: string) => void; label
   </TextField>
 );
 
+/** Formate une plage de dates d'une réservation (ex : « 12 juin → 15 juin »). Dates ISO en entrée. */
+function formatReservationRange(r: GuideReservationRef, locale: string): string {
+  const fmt = (iso: string | null) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+  };
+  const ci = fmt(r.checkIn);
+  const co = fmt(r.checkOut);
+  if (ci && co) return `${ci} → ${co}`;
+  return ci || co || '';
+}
+
 const WelcomeGuideAdmin: React.FC = () => {
   const { t, currentLanguage } = useTranslation();
+  const { isPlatformStaff } = useAuth();
+  // Création réservée au staff plateforme (cf. POST /welcome-guides côté backend).
+  // L'édition d'un livret existant reste ouverte à tous les rôles métier.
+  const isStaff = isPlatformStaff();
   const { properties } = usePropertiesList();
 
   const { data: guides = [], isLoading, refetch } = useQuery({
@@ -163,6 +187,9 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [view, setView] = useState<View>('list');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  // Conflit 409 « un livret existe déjà pour cette réservation » : ouvre un modal de
+  // confirmation d'écrasement (re-POST avec overwrite=true). null = fermé.
+  const [overwriteConfirm, setOverwriteConfirm] = useState(false);
   // Wizard : étape courante (0–5 = formulaire, 6 = récapitulatif) + étape la plus
   // loin atteinte (autorise le saut arrière libre, le saut avant uniquement vers
   // une étape déjà visitée).
@@ -210,6 +237,15 @@ const WelcomeGuideAdmin: React.FC = () => {
     queryFn: () => welcomeGuideApi.propertyPreview(Number(propertyId)),
     enabled: view === 'form' && !!propertyId,
   });
+
+  // ─── Réservation rattachée (affichage + gating de création) ─────────────────
+  // Édition : la réservation déjà liée au livret. Création : la réservation en cours
+  // ou à venir du logement (celle à laquelle le livret serait rattaché), via l'aperçu.
+  const editingGuide = editingId != null ? guides.find((g) => g.id === editingId) ?? null : null;
+  const linkedReservation: GuideReservationRef | null =
+    editingId != null ? editingGuide?.reservation ?? null : previewData?.currentReservation ?? null;
+  // En création, il faut une réservation en cours/à venir pour que le livret soit créable.
+  const canCreate = editingId == null ? isStaff && linkedReservation != null : true;
 
   // Hero par défaut = toutes les photos du logement, tant que l'hôte n'a pas choisi.
   useEffect(() => {
@@ -310,7 +346,8 @@ const WelcomeGuideAdmin: React.FC = () => {
     setView('list');
   };
 
-  const handleSave = async () => {
+  // overwrite=true : relance après confirmation du conflit 409 (écrase l'ancien livret de la réservation).
+  const handleSave = async (overwrite = false) => {
     if (!title.trim()) {
       notify(t('welcomeGuide.messages.titleRequired', 'Le titre est obligatoire'), 'error');
       return;
@@ -342,16 +379,22 @@ const WelcomeGuideAdmin: React.FC = () => {
         upsellOfferIds: upsellOfferIds === null ? null : JSON.stringify(upsellOfferIds),
       };
       if (editingId == null) {
-        await welcomeGuideApi.create(payload);
+        await welcomeGuideApi.create(payload, overwrite);
         notify(t('welcomeGuide.messages.created', 'Livret créé'));
       } else {
         await welcomeGuideApi.update(editingId, payload);
         notify(t('welcomeGuide.messages.updated', 'Livret mis à jour'));
       }
+      setOverwriteConfirm(false);
       await refetch();
       closeForm();
-    } catch {
-      notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
+    } catch (err) {
+      // Conflit : un livret existe déjà pour cette réservation → on propose l'écrasement.
+      if (isGuideConflict(err)) {
+        setOverwriteConfirm(true);
+      } else {
+        notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
+      }
     } finally {
       setSaving(false);
     }
@@ -522,9 +565,11 @@ const WelcomeGuideAdmin: React.FC = () => {
   // vit désormais dans le pied du récapitulatif, étape finale de l'assistant).
   const headerActions = usePageHeaderActions(
     view === 'list' ? (
-      <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={openCreate}>
-        {t('welcomeGuide.actions.new', 'Nouveau livret')}
-      </Button>
+      isStaff ? (
+        <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={openCreate}>
+          {t('welcomeGuide.actions.new', 'Nouveau livret')}
+        </Button>
+      ) : null
     ) : (
       <Button variant="text" size="small" onClick={closeForm}>
         {t('welcomeGuide.actions.cancel', 'Annuler')}
@@ -551,9 +596,11 @@ const WelcomeGuideAdmin: React.FC = () => {
             "Créez un livret d'accueil pour partager le wifi, le digicode et vos bons plans avec vos voyageurs.",
           )}
           action={
-            <Button variant="contained" startIcon={<Add size={16} strokeWidth={1.75} />} onClick={openCreate}>
-              {t('welcomeGuide.actions.new', 'Nouveau livret')}
-            </Button>
+            isStaff ? (
+              <Button variant="contained" startIcon={<Add size={16} strokeWidth={1.75} />} onClick={openCreate}>
+                {t('welcomeGuide.actions.new', 'Nouveau livret')}
+              </Button>
+            ) : undefined
           }
         />
       );
@@ -688,11 +735,13 @@ const WelcomeGuideAdmin: React.FC = () => {
                       <Edit size={16} strokeWidth={1.75} />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title={t('welcomeGuide.actions.delete', 'Supprimer')}>
-                    <IconButton size="small" color="error" onClick={() => handleDelete(g)}>
-                      <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
-                  </Tooltip>
+                  {isStaff && (
+                    <Tooltip title={t('welcomeGuide.actions.delete', 'Supprimer')}>
+                      <IconButton size="small" color="error" onClick={() => handleDelete(g)}>
+                        <Delete size={16} strokeWidth={1.75} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 </Box>
               </Box>
             </Card>
@@ -891,16 +940,33 @@ const WelcomeGuideAdmin: React.FC = () => {
             {t('welcomeGuide.wizard.next', 'Suivant')}
           </Button>
         ) : (
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleSave}
-            disabled={saving}
-            startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
-            sx={{ flexShrink: 0 }}
+          // Création réservée au staff + nécessite une réservation en cours/à venir.
+          // Tooltip explicatif quand l'action est bloquée (édition jamais bloquée).
+          <Tooltip
+            arrow
+            title={
+              canCreate
+                ? ''
+                : !isStaff
+                  ? t('welcomeGuide.reservationLink.staffOnly', 'La création d’un livret est réservée au staff Clenzy.')
+                  : t(
+                      'welcomeGuide.reservationLink.noReservation',
+                      'Aucune réservation en cours ou à venir pour ce logement : livret non créable.',
+                    )
+            }
           >
-            {t('welcomeGuide.actions.save', 'Enregistrer')}
-          </Button>
+            <span style={{ flexShrink: 0 }}>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => handleSave()}
+                disabled={saving || !canCreate}
+                startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
+              >
+                {t('welcomeGuide.actions.save', 'Enregistrer')}
+              </Button>
+            </span>
+          </Tooltip>
         )}
       </Box>
     </Box>
@@ -962,6 +1028,76 @@ const WelcomeGuideAdmin: React.FC = () => {
           </Stack>
         </CardContent>
       </Card>
+    );
+  };
+
+  // ─── Réservation rattachée (étape Logement) ─────────────────────────────────
+  // Édition : réservation déjà liée. Création : réservation en cours/à venir du
+  // logement (ce à quoi le livret sera rattaché). Badge « Lié » / « Non lié ».
+  const renderReservationLink = () => {
+    const isCreate = editingId == null;
+    const linked = linkedReservation != null;
+    const dates = linkedReservation ? formatReservationRange(linkedReservation, currentLanguage) : '';
+    // Message d'absence : selon le mode (édition d'un orphelin vs création sans résa courante).
+    const emptyText = isCreate
+      ? t('welcomeGuide.reservationLink.noneCreate', 'Aucune réservation en cours ou à venir')
+      : t('welcomeGuide.reservationLink.none', 'Aucune réservation liée');
+    return (
+      <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+            {t('welcomeGuide.reservationLink.title', 'Réservation en cours / à venir')}
+          </Typography>
+          <Chip
+            size="small"
+            icon={linked ? <Link2 size={13} strokeWidth={1.9} /> : <Unlink size={13} strokeWidth={1.9} />}
+            label={
+              linked
+                ? t('welcomeGuide.reservationLink.linked', 'Lié')
+                : t('welcomeGuide.reservationLink.notLinked', 'Non lié')
+            }
+            sx={softChipSx(semanticToHex(linked ? 'success' : 'default'))}
+          />
+        </Box>
+        {linked && linkedReservation ? (
+          <Card variant="outlined" sx={{ borderRadius: 2 }}>
+            <CardContent sx={{ py: 1.25, '&:last-child': { pb: 1.25 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CalendarDays size={18} strokeWidth={1.75} style={{ color: DEFAULT_COLOR, flexShrink: 0 }} />
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                    {linkedReservation.guestName || t('welcomeGuide.reservationLink.guestUnknown', 'Voyageur')}
+                  </Typography>
+                  {dates ? (
+                    <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {dates}
+                    </Typography>
+                  ) : null}
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        ) : (
+          <EmptyHint icon={<CalendarDays size={18} strokeWidth={1.75} />} text={emptyText} />
+        )}
+        {/* Garde-fous de création (étape Logement uniquement) */}
+        {isCreate && !isStaff ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1, color: 'text.secondary' }}>
+            <Lock size={14} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+            <Typography variant="caption">
+              {t('welcomeGuide.reservationLink.staffOnly', 'La création d’un livret est réservée au staff Clenzy.')}
+            </Typography>
+          </Box>
+        ) : null}
+        {isCreate && isStaff && propertyId && !linked ? (
+          <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 1 }}>
+            {t(
+              'welcomeGuide.reservationLink.noReservation',
+              'Aucune réservation en cours ou à venir pour ce logement : livret non créable.',
+            )}
+          </Typography>
+        ) : null}
+      </Box>
     );
   };
 
@@ -1034,6 +1170,9 @@ const WelcomeGuideAdmin: React.FC = () => {
           placeholder="https://…"
         />
       </Box>
+
+      {/* Réservation rattachée (lecture seule) + badge Lié/Non lié */}
+      {renderReservationLink()}
       </>
       )}
 
@@ -1806,6 +1945,26 @@ const WelcomeGuideAdmin: React.FC = () => {
         cancelText={t('welcomeGuide.actions.cancel', 'Annuler')}
         severity="error"
         loading={deleting}
+      />
+
+      {/* Conflit 409 : un livret existe déjà pour la réservation → confirmation d'écrasement. */}
+      <ConfirmationModal
+        open={overwriteConfirm}
+        onClose={() => {
+          if (!saving) setOverwriteConfirm(false);
+        }}
+        onConfirm={() => handleSave(true)}
+        title={t('welcomeGuide.reservationLink.overwriteTitle', 'Un livret existe déjà')}
+        message={t(
+          'welcomeGuide.reservationLink.overwriteMessage',
+          'Un livret existe déjà pour cette réservation. Voulez-vous écraser l’ancien livret ?',
+        )}
+        confirmText={t('welcomeGuide.reservationLink.overwriteConfirm', 'Écraser')}
+        cancelText={t('welcomeGuide.actions.cancel', 'Annuler')}
+        severity="warning"
+        confirmColor="warning"
+        confirmIcon={<Save size={18} strokeWidth={1.75} />}
+        loading={saving}
       />
 
       <Dialog open={guestbook.open} onClose={() => setGuestbook((s) => ({ ...s, open: false }))} maxWidth="sm" fullWidth>

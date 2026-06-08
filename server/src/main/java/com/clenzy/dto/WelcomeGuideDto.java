@@ -24,7 +24,9 @@ public record WelcomeGuideDto(
     boolean activitiesEnabled,
     LocalDateTime createdAt,
     boolean upsellsEnabled,
-    String upsellOfferIds
+    String upsellOfferIds,
+    /** Réservation rattachée au livret (null = orphelin → non disponible côté voyageur). */
+    WelcomeGuidePublicDto.ReservationRef reservation
 ) {
     public static WelcomeGuideDto from(WelcomeGuide g) {
         return new WelcomeGuideDto(
@@ -35,7 +37,8 @@ public record WelcomeGuideDto(
             g.getBrandingColor(), g.getTheme(), g.getHeroPhotoIds(),
             g.getWelcomeMessage(), g.getHostNames(), g.getLogoUrl(), g.isPublished(),
             g.isChatbotEnabled(), g.isGuestbookEnabled(), g.isActivitiesEnabled(), g.getCreatedAt(),
-            g.isUpsellsEnabled(), g.getUpsellOfferIds()
+            g.isUpsellsEnabled(), g.getUpsellOfferIds(),
+            WelcomeGuidePublicDto.ReservationRef.from(g.getReservation())
         );
     }
 }

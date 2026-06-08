@@ -22,6 +22,11 @@ public class WelcomeGuide {
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
 
+    /** Réservation à laquelle ce livret est rattaché (1 livret/réservation). Null = orphelin → non disponible. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reservation_id")
+    private Reservation reservation;
+
     @Column(nullable = false, length = 5)
     private String language = "fr";
 
@@ -114,6 +119,8 @@ public class WelcomeGuide {
     public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
     public Property getProperty() { return property; }
     public void setProperty(Property property) { this.property = property; }
+    public Reservation getReservation() { return reservation; }
+    public void setReservation(Reservation reservation) { this.reservation = reservation; }
     public String getLanguage() { return language; }
     public void setLanguage(String language) { this.language = language; }
     public String getTitle() { return title; }
