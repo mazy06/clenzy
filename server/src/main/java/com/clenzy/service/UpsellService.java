@@ -9,6 +9,7 @@ import com.clenzy.model.*;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UpsellOfferRepository;
 import com.clenzy.repository.UpsellOrderRepository;
+import com.clenzy.repository.WelcomeGuideRepository;
 import com.clenzy.repository.WelcomeGuideTokenRepository;
 import com.stripe.model.checkout.Session;
 import org.slf4j.Logger;
@@ -40,6 +41,7 @@ public class UpsellService {
     private final UpsellOfferRepository offerRepository;
     private final UpsellOrderRepository orderRepository;
     private final WelcomeGuideTokenRepository tokenRepository;
+    private final WelcomeGuideRepository guideRepository;
     private final ReservationRepository reservationRepository;
     private final StripeService stripeService;
     private final WalletService walletService;
@@ -50,6 +52,7 @@ public class UpsellService {
     public UpsellService(UpsellOfferRepository offerRepository,
                          UpsellOrderRepository orderRepository,
                          WelcomeGuideTokenRepository tokenRepository,
+                         WelcomeGuideRepository guideRepository,
                          ReservationRepository reservationRepository,
                          StripeService stripeService,
                          WalletService walletService,
@@ -59,6 +62,7 @@ public class UpsellService {
         this.offerRepository = offerRepository;
         this.orderRepository = orderRepository;
         this.tokenRepository = tokenRepository;
+        this.guideRepository = guideRepository;
         this.reservationRepository = reservationRepository;
         this.stripeService = stripeService;
         this.walletService = walletService;
@@ -156,10 +160,12 @@ public class UpsellService {
      */
     @Transactional
     public UpsellCheckoutDto createCheckout(UUID token, Long offerId) {
-        WelcomeGuideToken tok = validTokenWithReservation(token)
+        WelcomeGuideToken tok = validToken(token)
             .orElseThrow(() -> new IllegalArgumentException("Lien invalide ou expiré"));
+        // Réservation optionnelle : un livret sans réservation (lien « par défaut ») peut vendre des
+        // services — le logement est résolu via le livret (comme listForToken).
         Reservation reservation = tok.getReservation();
-        Long propertyId = reservation.getProperty() != null ? reservation.getProperty().getId() : null;
+        Long propertyId = resolvePropertyId(tok);
 
         UpsellOffer offer = offerRepository.findByIdAndOrganizationId(offerId, tok.getOrganizationId())
             .filter(UpsellOffer::isActive)
@@ -168,13 +174,13 @@ public class UpsellService {
 
         UpsellOrder order = new UpsellOrder();
         order.setOrganizationId(tok.getOrganizationId());
-        order.setReservationId(reservation.getId());
+        order.setReservationId(reservation != null ? reservation.getId() : null);
         order.setGuideId(tok.getGuide() != null ? tok.getGuide().getId() : null);
         order.setOfferId(offer.getId());
         order.setTitle(offer.getTitle());
         order.setAmount(offer.getPrice());
         order.setCurrency(offer.getCurrency());
-        order.setGuestEmail(guestEmail(reservation));
+        order.setGuestEmail(reservation != null ? guestEmail(reservation) : null);
         order.setStatus(UpsellOrderStatus.PENDING);
         order = orderRepository.save(order);
 
@@ -197,14 +203,12 @@ public class UpsellService {
      */
     @Transactional
     public String confirmOrder(UUID token, Long orderId) {
-        WelcomeGuideToken tok = validTokenWithReservation(token).orElse(null);
+        WelcomeGuideToken tok = validToken(token).orElse(null);
         UpsellOrder order = orderRepository.findById(orderId).orElse(null);
         if (tok == null || order == null) {
             return "INVALID";
         }
-        if (!order.getOrganizationId().equals(tok.getOrganizationId())
-                || tok.getReservation() == null
-                || !order.getReservationId().equals(tok.getReservation().getId())) {
+        if (!order.getOrganizationId().equals(tok.getOrganizationId()) || !orderBelongsToToken(order, tok)) {
             return "INVALID";
         }
         if (order.getStatus() == UpsellOrderStatus.PAID) {
@@ -274,10 +278,7 @@ public class UpsellService {
             if (hostShare == null || hostShare.compareTo(BigDecimal.ZERO) <= 0) {
                 return;
             }
-            Long ownerId = reservationRepository.findById(order.getReservationId())
-                .map(Reservation::getProperty)
-                .map(p -> p.getOwner() != null ? p.getOwner().getId() : null)
-                .orElse(null);
+            Long ownerId = ownerIdForOrder(order);
             if (ownerId == null) {
                 log.warn("Upsell order={} : pas d'owner, part hôte non créditée au ledger", order.getId());
                 return;
@@ -292,12 +293,6 @@ public class UpsellService {
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────────
-
-    private Optional<WelcomeGuideToken> validTokenWithReservation(UUID token) {
-        return tokenRepository.findByToken(token)
-            .filter(WelcomeGuideToken::isCurrentlyValid)
-            .filter(t -> t.getReservation() != null);
-    }
 
     /** Token valide (fenêtre + non révoqué + résa non annulée) — réservation NON requise (lien manuel). */
     private Optional<WelcomeGuideToken> validToken(UUID token) {
@@ -337,19 +332,60 @@ public class UpsellService {
         return monetizationConfigService.getEffectiveUpsellOrgCommissionPct(orgId);
     }
 
-    /** Logement de la commande (via la réservation). Défensif : null si non résoluble → défaut org. */
+    /** Logement de la commande : via la réservation, sinon via le livret. Défensif : null → défaut org. */
     private Long propertyIdForOrder(UpsellOrder order) {
         try {
-            if (order.getReservationId() == null) {
-                return null;
+            if (order.getReservationId() != null) {
+                Long viaResa = reservationRepository.findById(order.getReservationId())
+                    .map(Reservation::getProperty).map(Property::getId).orElse(null);
+                if (viaResa != null) {
+                    return viaResa;
+                }
             }
-            return reservationRepository.findById(order.getReservationId())
-                .map(Reservation::getProperty)
-                .map(Property::getId)
-                .orElse(null);
+            if (order.getGuideId() != null) {
+                return guideRepository.findById(order.getGuideId())
+                    .map(WelcomeGuide::getProperty).map(Property::getId).orElse(null);
+            }
+            return null;
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** Propriétaire du logement de la commande : via la réservation, sinon via le livret. Null si non résoluble. */
+    private Long ownerIdForOrder(UpsellOrder order) {
+        try {
+            if (order.getReservationId() != null) {
+                Long viaResa = reservationRepository.findById(order.getReservationId())
+                    .map(Reservation::getProperty)
+                    .map(p -> p.getOwner() != null ? p.getOwner().getId() : null)
+                    .orElse(null);
+                if (viaResa != null) {
+                    return viaResa;
+                }
+            }
+            if (order.getGuideId() != null) {
+                return guideRepository.findById(order.getGuideId())
+                    .map(WelcomeGuide::getProperty)
+                    .map(p -> p.getOwner() != null ? p.getOwner().getId() : null)
+                    .orElse(null);
+            }
+        } catch (Exception e) {
+            // best-effort → null
+        }
+        return null;
+    }
+
+    /**
+     * Vérifie qu'une commande appartient bien au token : par réservation si la commande en a une,
+     * sinon par livret (guideId). Empêche de confirmer la commande d'autrui.
+     */
+    private boolean orderBelongsToToken(UpsellOrder order, WelcomeGuideToken tok) {
+        if (order.getReservationId() != null) {
+            return tok.getReservation() != null && order.getReservationId().equals(tok.getReservation().getId());
+        }
+        return tok.getGuide() != null && order.getGuideId() != null
+            && order.getGuideId().equals(tok.getGuide().getId());
     }
 
     /** Logement applicable aux offres : celui du livret en priorité, sinon celui de la réservation. */
