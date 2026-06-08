@@ -69,7 +69,9 @@ import {
 import { POI_CATEGORIES, poiCategory, poiLabel } from './poiCatalog';
 import { nominatimApi } from '../../services/nominatimApi';
 import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
+import { upsellApi, type PublicUpsell } from '../../services/api/upsellApi';
 import WelcomeBookView, { type Lang, type WelcomeBookModel } from './WelcomeBookView';
+import GuidePhotoCarousel from './GuidePhotoCarousel';
 import { WELCOME_BOOK_THEMES, themeAccent } from './welcomeBookThemes';
 import { GUIDE_LABELS } from './guideLabels';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
@@ -137,6 +139,12 @@ const WelcomeGuideAdmin: React.FC = () => {
   const { data: guides = [], isLoading, refetch } = useQuery({
     queryKey: ['welcome-guides'],
     queryFn: () => welcomeGuideApi.list(),
+  });
+
+  // Services payants de l'org : alimentent l'aperçu (mêmes données que l'onglet « Services payants »).
+  const { data: upsellOffers = [] } = useQuery({
+    queryKey: ['upsell-offers'],
+    queryFn: () => upsellApi.listOffers(),
   });
 
   const [view, setView] = useState<View>('list');
@@ -519,69 +527,144 @@ const WelcomeGuideAdmin: React.FC = () => {
     }
     return (
       <Stack spacing={1.5}>
-        {guides.map((g) => (
-          <Card key={g.id} variant="outlined">
-            <CardContent
-              sx={{ display: 'flex', alignItems: 'center', gap: 2, '&:last-child': { pb: 2 }, flexWrap: 'wrap' }}
+        {guides.map((g) => {
+          const prop = properties.find((p) => p.id === String(g.propertyId));
+          const heroIds = parseHeroPhotoIds(g.heroPhotoIds);
+          const statusLabel = g.published
+            ? t('welcomeGuide.status.published', 'Publié')
+            : t('welcomeGuide.status.draft', 'Brouillon');
+          return (
+            <Card
+              key={g.id}
+              variant="outlined"
+              sx={{
+                borderRadius: 3,
+                overflow: 'hidden',
+                transition: 'border-color .2s ease, box-shadow .2s ease',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  boxShadow: '0 8px 24px -12px rgba(107,138,154,0.45)',
+                },
+              }}
             >
-              <Box
-                sx={{
-                  width: 8,
-                  alignSelf: 'stretch',
-                  minHeight: 36,
-                  borderRadius: 1,
-                  bgcolor: themeAccent(g.theme),
-                }}
-              />
-              <Box sx={{ flex: 1, minWidth: 200 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  {g.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {g.propertyName || '—'} · {g.language.toUpperCase()}
-                </Typography>
-              </Box>
-              <Chip
-                size="small"
-                label={
-                  g.published
-                    ? t('welcomeGuide.status.published', 'Publié')
-                    : t('welcomeGuide.status.draft', 'Brouillon')
-                }
-                sx={softChipSx(semanticToHex(g.published ? 'success' : 'default'))}
-              />
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
-                <Tooltip title={t('welcomeGuide.actions.generateLink', 'Générer le lien')}>
-                  <span>
-                    <IconButton size="small" onClick={() => handleGenerateLink(g)} disabled={!g.published}>
-                      <LinkIcon size={16} strokeWidth={1.75} />
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' } }}>
+                {/* Zone cliquable : ouvre l'éditeur du livret */}
+                <Box
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t('welcomeGuide.actions.edit', 'Modifier') + ' — ' + g.title}
+                  onClick={() => openEdit(g)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openEdit(g);
+                    }
+                  }}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: { xs: 1.5, sm: 2 },
+                    alignItems: { sm: 'center' },
+                    p: 1.5,
+                    flex: 1,
+                    minWidth: 0,
+                    cursor: 'pointer',
+                    '&:focus-visible': {
+                      outline: '2px solid',
+                      outlineColor: 'primary.main',
+                      outlineOffset: '-2px',
+                    },
+                  }}
+                >
+                  <Box sx={{ width: { xs: '100%', sm: 188 }, flexShrink: 0 }}>
+                    <GuidePhotoCarousel
+                      propertyId={g.propertyId}
+                      theme={g.theme}
+                      alt={g.propertyName || g.title}
+                      priorityIds={heroIds}
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 9,
+                          height: 9,
+                          borderRadius: '50%',
+                          bgcolor: themeAccent(g.theme),
+                          flexShrink: 0,
+                        }}
+                      />
+                      <Typography variant="subtitle1" noWrap sx={{ fontWeight: 600, minWidth: 0 }}>
+                        {g.title}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" noWrap sx={{ mt: 0.25 }}>
+                      {g.propertyName || '—'}
+                      {prop?.city ? ` · ${prop.city}` : ''}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1, flexWrap: 'wrap' }}>
+                      <Chip
+                        size="small"
+                        label={statusLabel}
+                        sx={softChipSx(semanticToHex(g.published ? 'success' : 'default'))}
+                      />
+                      <Chip
+                        size="small"
+                        variant="outlined"
+                        icon={<Globe size={13} strokeWidth={1.75} />}
+                        label={g.language.toUpperCase()}
+                        sx={{ height: 24, '& .MuiChip-label': { px: 0.75, fontSize: 12, letterSpacing: 0.3 } }}
+                      />
+                    </Box>
+                  </Box>
+                </Box>
+                {/* Actions du livret */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    gap: 0.25,
+                    px: 1,
+                    py: { xs: 0.5, sm: 1.5 },
+                    borderTop: { xs: '1px solid', sm: 'none' },
+                    borderLeft: { sm: '1px solid' },
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Tooltip title={t('welcomeGuide.actions.generateLink', 'Générer le lien')}>
+                    <span>
+                      <IconButton size="small" onClick={() => handleGenerateLink(g)} disabled={!g.published}>
+                        <LinkIcon size={16} strokeWidth={1.75} />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                  <Tooltip title={t('welcomeGuide.actions.guestbook', "Livre d'or")}>
+                    <IconButton size="small" onClick={() => handleOpenGuestbook(g)}>
+                      <MessageSquare size={16} strokeWidth={1.75} />
                     </IconButton>
-                  </span>
-                </Tooltip>
-                <Tooltip title={t('welcomeGuide.actions.guestbook', "Livre d'or")}>
-                  <IconButton size="small" onClick={() => handleOpenGuestbook(g)}>
-                    <MessageSquare size={16} strokeWidth={1.75} />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={t('welcomeGuide.actions.stats', 'Statistiques')}>
-                  <IconButton size="small" onClick={() => handleOpenStats(g)}>
-                    <BarChart3 size={16} strokeWidth={1.75} />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={t('welcomeGuide.actions.edit', 'Modifier')}>
-                  <IconButton size="small" onClick={() => openEdit(g)}>
-                    <Edit size={16} strokeWidth={1.75} />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={t('welcomeGuide.actions.delete', 'Supprimer')}>
-                  <IconButton size="small" color="error" onClick={() => handleDelete(g)}>
-                    <Delete size={16} strokeWidth={1.75} />
-                  </IconButton>
-                </Tooltip>
+                  </Tooltip>
+                  <Tooltip title={t('welcomeGuide.actions.stats', 'Statistiques')}>
+                    <IconButton size="small" onClick={() => handleOpenStats(g)}>
+                      <BarChart3 size={16} strokeWidth={1.75} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title={t('welcomeGuide.actions.edit', 'Modifier')}>
+                    <IconButton size="small" onClick={() => openEdit(g)}>
+                      <Edit size={16} strokeWidth={1.75} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title={t('welcomeGuide.actions.delete', 'Supprimer')}>
+                    <IconButton size="small" color="error" onClick={() => handleDelete(g)}>
+                      <Delete size={16} strokeWidth={1.75} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
               </Box>
-            </CardContent>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </Stack>
     );
   };
@@ -594,6 +677,19 @@ const WelcomeGuideAdmin: React.FC = () => {
   const previewHeroImages = propertyId
     ? heroPhotoIds.map((id) => propertyPhotosApi.getPhotoUrl(Number(propertyId), id))
     : [];
+  // Services payants de l'aperçu : actifs + (toute l'org OU logement sélectionné), mappés au
+  // format guest. Reflète la logique de listForToken côté serveur (logement du livret).
+  const previewUpsells: PublicUpsell[] = upsellOffers
+    .filter((o) => o.active && (o.propertyId == null || String(o.propertyId) === propertyId))
+    .map((o) => ({
+      offerId: o.id,
+      type: o.type,
+      title: o.title,
+      description: o.description,
+      price: o.price,
+      currency: o.currency,
+      imageUrl: o.imageUrl,
+    }));
   const previewModel: WelcomeBookModel = {
     title: title.trim() || previewProperty?.name || t('welcomeGuide.preview.sampleTitle', 'Votre logement'),
     welcomeMessage: welcomeMessage.trim() || null,
@@ -618,7 +714,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     sections,
     pois,
     activities: [...curatedActivities].sort((a, b) => Number(b.featured) - Number(a.featured)),
-    upsells: [],
+    upsells: previewUpsells,
     guestbookEnabled,
     activitiesEnabled,
   };
