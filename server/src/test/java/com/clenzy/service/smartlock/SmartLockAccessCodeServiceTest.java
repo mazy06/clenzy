@@ -10,6 +10,7 @@ import com.clenzy.model.SmartLockAccessCode.CodeStatus;
 import com.clenzy.model.SmartLockAccessCodeEvent;
 import com.clenzy.model.SmartLockAccessCodeEvent.EventType;
 import com.clenzy.model.SmartLockDevice;
+import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.MessageTemplateRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.SmartLockAccessCodeEventRepository;
@@ -45,13 +46,16 @@ class SmartLockAccessCodeServiceTest {
     @Mock private GuestMessagingService guestMessagingService;
     @Mock private MessageTemplateRepository templateRepository;
     @Mock private PropertyRepository propertyRepository;
+    @Mock private CheckInInstructionsRepository checkInInstructionsRepository;
 
     private SmartLockAccessCodeService service;
 
     @BeforeEach
     void setUp() {
         service = new SmartLockAccessCodeService(codeRepo, eventRepo, deviceRepo, tuyaApiService,
-                outboxPublisher, guestMessagingService, templateRepository, new ObjectMapper(), propertyRepository);
+                outboxPublisher, guestMessagingService, templateRepository, new ObjectMapper(), propertyRepository,
+                checkInInstructionsRepository, new com.clenzy.service.access.AccessCodeGenerator(),
+                org.mockito.Mockito.mock(com.clenzy.service.smartlock.SmartLockProviderRegistry.class));
     }
 
     private SmartLockDevice device() {
@@ -83,7 +87,7 @@ class SmartLockAccessCodeServiceTest {
     @Test
     void generateForReservation_success_persistsActiveCodeAndNotifiesGuest() {
         persistReturnsWithId();
-        when(tuyaApiService.createTemporaryPassword(eq("dev123"), anyLong(), anyLong(), anyString()))
+        when(tuyaApiService.createTemporaryPassword(eq("dev123"), anyLong(), anyLong(), anyString(), anyString()))
                 .thenReturn(Map.of("password", "123456", "tuyaPasswordId", "tp1"));
         when(templateRepository.findByOrganizationIdAndTypeAndIsActiveTrue(99L, MessageTemplateType.ACCESS_CODE))
                 .thenReturn(List.of(new MessageTemplate()));
@@ -103,7 +107,7 @@ class SmartLockAccessCodeServiceTest {
 
     @Test
     void generateForReservation_tuyaFails_recordsFailureAndDoesNotThrow() {
-        when(tuyaApiService.createTemporaryPassword(anyString(), anyLong(), anyLong(), anyString()))
+        when(tuyaApiService.createTemporaryPassword(anyString(), anyLong(), anyLong(), anyString(), anyString()))
                 .thenThrow(new RuntimeException("Tuya down"));
 
         SmartLockAccessCode result = service.generateForReservation(reservation(), device(), CodeSource.AUTO_RESERVATION);
@@ -117,7 +121,7 @@ class SmartLockAccessCodeServiceTest {
     @Test
     void generateForReservation_noTemplate_persistsButDeliveryFails() {
         persistReturnsWithId();
-        when(tuyaApiService.createTemporaryPassword(anyString(), anyLong(), anyLong(), anyString()))
+        when(tuyaApiService.createTemporaryPassword(anyString(), anyLong(), anyLong(), anyString(), anyString()))
                 .thenReturn(Map.of("password", "654321", "tuyaPasswordId", "tp2"));
         when(templateRepository.findByOrganizationIdAndTypeAndIsActiveTrue(99L, MessageTemplateType.ACCESS_CODE))
                 .thenReturn(List.of());

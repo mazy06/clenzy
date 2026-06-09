@@ -227,6 +227,12 @@ export interface PublicGuidePractical {
   additionalNotes: string | null;
   /** JSON [{key, caption}] — photos d'indication d'accès (servies via le token). */
   arrivalPhotos: string | null;
+  /** JSON [{label, code}] — codes additionnels libres (résidence, immeuble, parking…). */
+  extraCodes: string | null;
+  /** true = code d'accès masqué (avant l'heure de check-in) → afficher un cadenas, pas le code. */
+  accessCodeLocked: boolean;
+  /** true = bouton « Ouvrir la porte » disponible (opt-in + serrure pilotable + séjour commencé). */
+  guestUnlockAvailable: boolean;
 }
 
 export interface PublicGuideStay {

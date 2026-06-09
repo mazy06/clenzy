@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Box, Typography, IconButton, Button, Tooltip, CircularProgress, Divider,
+  Box, Typography, IconButton, Button, Tooltip, CircularProgress, Divider, TextField, MenuItem,
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert,
 } from '@mui/material';
 import { VpnKey, ContentCopy, Visibility, VisibilityOff, Refresh } from '../../../icons';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { useLockAccessCode } from '../useLockAccessCode';
-import { smartLockApi } from '../../../services/api/smartLockApi';
+import { smartLockApi, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
 
 interface AccessCodeSectionProps {
   deviceId: number;
@@ -29,14 +30,33 @@ function formatUntil(iso: string): string {
  * icônes lucide, code en tabular-nums.
  */
 export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { data: code, isLoading } = useLockAccessCode(deviceId, true);
   const [revealed, setRevealed] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [snack, setSnack] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
+  const [savingMode, setSavingMode] = useState(false);
+
+  // Origine du code (PMS pousse / serrure génère) — lue depuis la liste des serrures.
+  const { data: lockDevices } = useQuery({ queryKey: ['smart-lock-devices'], queryFn: () => smartLockApi.getAll() });
+  const lockDevice = lockDevices?.find((d) => d.id === deviceId);
 
   const hasCode = !!code?.code;
+
+  const handleModeChange = async (mode: SmartLockAccessCodeMode) => {
+    setSavingMode(true);
+    try {
+      await smartLockApi.updateAccessCodeMode(deviceId, mode);
+      await qc.invalidateQueries({ queryKey: ['smart-lock-devices'] });
+      setSnack({ msg: t('connectedObjects.codeMode.saved', 'Origine du code mise à jour (appliquée à la prochaine réservation)'), severity: 'success' });
+    } catch {
+      setSnack({ msg: t('connectedObjects.codeMode.error', 'Échec du changement de mode'), severity: 'error' });
+    } finally {
+      setSavingMode(false);
+    }
+  };
 
   const handleCopy = async () => {
     if (!code?.code) return;
@@ -119,6 +139,23 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
           Valide jusqu'au {formatUntil(code!.validUntil)}
         </Typography>
       )}
+
+      {lockDevice ? (
+        <TextField
+          select
+          fullWidth
+          size="small"
+          label={t('connectedObjects.codeMode.label', "Origine du code d'accès")}
+          value={lockDevice.accessCodeMode || 'PMS_GENERATED'}
+          onChange={(e) => { void handleModeChange(e.target.value as SmartLockAccessCodeMode); }}
+          disabled={savingMode}
+          helperText={t('connectedObjects.codeMode.applied', 'Appliqué aux prochains codes générés (réservations à venir).')}
+          sx={{ mt: 1 }}
+        >
+          <MenuItem value="PMS_GENERATED">{t('connectedObjects.codeMode.pms', 'Le PMS génère et pousse le code')}</MenuItem>
+          <MenuItem value="LOCK_GENERATED">{t('connectedObjects.codeMode.lock', 'La serrure génère le code')}</MenuItem>
+        </TextField>
+      ) : null}
 
       <Dialog open={confirmOpen} onClose={() => { if (!rotating) setConfirmOpen(false); }} maxWidth="xs" fullWidth>
         <DialogTitle>{hasCode ? 'Régénérer le code ?' : 'Générer un code ?'}</DialogTitle>

@@ -104,6 +104,19 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         @Param("orgId") Long orgId);
 
     /**
+     * Réservations d'une propriété dont la date de départ tombe dans [from, to] (non annulées),
+     * la plus récente d'abord. Utilisé par la rotation auto du code d'accès après checkout.
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property " +
+           "WHERE r.property.id = :propertyId AND r.checkOut >= :from AND r.checkOut <= :to " +
+           "AND r.status <> 'cancelled' AND r.organizationId = :orgId ORDER BY r.checkOut DESC")
+    List<Reservation> findRecentCheckoutsByProperty(
+        @Param("propertyId") Long propertyId,
+        @Param("from") LocalDate from,
+        @Param("to") LocalDate to,
+        @Param("orgId") Long orgId);
+
+    /**
      * Reservation active (en cours) pour une propriete a une date donnee.
      * Utilise par NoiseAlertNotificationService pour envoyer un message au voyageur.
      */

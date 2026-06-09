@@ -21,12 +21,15 @@ public class EmailChannel implements MessageChannel {
     private static final Logger log = LoggerFactory.getLogger(EmailChannel.class);
 
     private final JavaMailSender mailSender;
+    private final EmailWrapperService emailWrapperService;
 
     @Value("${clenzy.mail.from:info@clenzy.fr}")
     private String fromAddress;
 
-    public EmailChannel(ObjectProvider<JavaMailSender> mailSenderProvider) {
+    public EmailChannel(ObjectProvider<JavaMailSender> mailSenderProvider,
+                        EmailWrapperService emailWrapperService) {
         this.mailSender = mailSenderProvider.getIfAvailable();
+        this.emailWrapperService = emailWrapperService;
         if (this.mailSender == null) {
             log.warn("EmailChannel: JavaMailSender non configure, canal email desactive");
         }
@@ -58,7 +61,17 @@ public class EmailChannel implements MessageChannel {
             helper.setFrom(fromAddress);
             helper.setTo(request.recipientEmail());
             helper.setSubject(sanitizeHeaderValue(request.subject()));
-            helper.setText(request.htmlBody(), true);
+            // Le corps interpole arrive en texte/markdown (sauts de ligne, **gras**,
+            // listes a puces). On l'habille dans le template HTML guest (header Baitly,
+            // paragraphes, listes, footer) pour un rendu email professionnel.
+            // Exception : un document HTML COMPLET (ex. briefing deja rendu par son propre
+            // template) est envoye tel quel — le wrapper le corromprait (double-wrap).
+            String body = request.htmlBody() != null ? request.htmlBody() : "";
+            String trimmed = body.stripLeading().toLowerCase();
+            String html = (trimmed.startsWith("<!doctype") || trimmed.startsWith("<html"))
+                    ? body
+                    : emailWrapperService.wrap("NOTIFICATION_GUEST", body);
+            helper.setText(html, true);
 
             mailSender.send(message);
 

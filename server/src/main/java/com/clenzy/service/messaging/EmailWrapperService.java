@@ -106,10 +106,13 @@ public class EmailWrapperService {
             });
         }
 
-        // Markdown leger : *gras*, _italique_
-        // Pattern non-greedy, evite de matcher a travers les newlines.
-        html = html.replaceAll("\\*([^*\\n]+)\\*", "<strong>$1</strong>");
-        html = html.replaceAll("_([^_\\n]+)_", "<em>$1</em>");
+        // Markdown leger : **gras** (standard) puis *gras* (legacy), _italique_.
+        // Le double-asterisque est traite EN PREMIER pour que "**texte**" rende
+        // <strong>texte</strong> et non "*<strong>texte</strong>*".
+        // Patterns non-greedy, sans newline ni asterisque interne.
+        html = html.replaceAll("\\*\\*([^*\\n]+?)\\*\\*", "<strong>$1</strong>");
+        html = html.replaceAll("\\*([^*\\n]+?)\\*", "<strong>$1</strong>");
+        html = html.replaceAll("_([^_\\n]+?)_", "<em>$1</em>");
 
         // Decoupage en paragraphes : double-newline = nouveau <p>
         // Single newline = <br>. On preserve les blocs HTML deja presents.
@@ -125,13 +128,68 @@ public class EmailWrapperService {
             if (isHtmlBlock(trimmed)) {
                 out.append(trimmed).append('\n');
             } else {
-                String withBr = trimmed.replace("\n", "<br>");
-                out.append("<p style=\"margin:0 0 12px 0;line-height:1.5;color:#334155;\">")
-                   .append(withBr)
-                   .append("</p>\n");
+                out.append(renderParagraph(trimmed));
             }
         }
         return out.toString();
+    }
+
+    /**
+     * Rend un paragraphe plain text en HTML. Detecte les listes a puces (lignes
+     * commencant par "• ", "- " ou "– ") et les regroupe en {@code <ul><li>} ; le
+     * reste devient un {@code <p>} avec {@code <br>} pour les retours simples.
+     * Permet d'avoir des vraies listes a puces dans les emails (instructions,
+     * regles de la maison, checklist de depart) plutot qu'un bloc "<br>•".
+     */
+    private String renderParagraph(String paragraph) {
+        String[] lines = paragraph.split("\n");
+        StringBuilder out = new StringBuilder();
+        StringBuilder text = new StringBuilder();   // lignes de texte accumulees
+        StringBuilder items = new StringBuilder();  // <li> accumules
+
+        for (String rawLine : lines) {
+            String line = rawLine.trim();
+            String bullet = stripBulletMarker(line);
+            if (bullet != null) {
+                flushText(out, text);
+                items.append("<li style=\"margin:0 0 4px 0;\">").append(bullet).append("</li>");
+            } else {
+                flushList(out, items);
+                if (line.isEmpty()) continue;
+                if (text.length() > 0) text.append("<br>");
+                text.append(line);
+            }
+        }
+        flushText(out, text);
+        flushList(out, items);
+        return out.toString();
+    }
+
+    private void flushText(StringBuilder out, StringBuilder text) {
+        if (text.length() == 0) return;
+        out.append("<p style=\"margin:0 0 12px 0;line-height:1.6;color:#334155;\">")
+           .append(text).append("</p>\n");
+        text.setLength(0);
+    }
+
+    private void flushList(StringBuilder out, StringBuilder items) {
+        if (items.length() == 0) return;
+        out.append("<ul style=\"margin:0 0 14px 0;padding-left:22px;line-height:1.6;color:#334155;\">")
+           .append(items).append("</ul>\n");
+        items.setLength(0);
+    }
+
+    /**
+     * Retourne le contenu d'une ligne de liste sans son marqueur ("• ", "‣ ",
+     * "- ", "– "), ou {@code null} si la ligne n'est pas une puce.
+     */
+    private String stripBulletMarker(String line) {
+        if (line.startsWith("• ")) return line.substring(2).trim();
+        if (line.startsWith("‣ ")) return line.substring(2).trim();
+        if (line.startsWith("- ")) return line.substring(2).trim();
+        if (line.startsWith("– ")) return line.substring(2).trim();
+        if (line.startsWith("•"))  return line.substring(1).trim();
+        return null;
     }
 
     private boolean isHtmlBlock(String s) {

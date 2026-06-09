@@ -2149,3 +2149,53 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # Rotation auto du code d'accès statique après checkout (opt-in par logement).
+  - changeSet:
+      id: "0220-add-access-code-auto-rotate"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0220__add_access_code_auto_rotate.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  # Origine du code d'une serrure connectée (PMS pousse / serrure génère), choisie à l'ajout.
+  - changeSet:
+      id: "0221-add-smart-lock-access-code-mode"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0221__add_smart_lock_access_code_mode.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  # Codes d'accès additionnels libres (résidence, immeuble, parking…) par logement.
+  - changeSet:
+      id: "0222-add-check-in-extra-access-codes"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0222__add_check_in_extra_access_codes.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  # Bouton « Ouvrir la porte » depuis le livret guest (opt-in par logement).
+  - changeSet:
+      id: "0223-add-guest-unlock-enabled"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0223__add_guest_unlock_enabled.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  # Contraintes CHECK notifications réalignées sur les enums (clés post-0099 + nouvelles clés accès).
+  - changeSet:
+      id: "0224-realign-notifications-check-constraints"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0224__realign_notifications_check_constraints.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

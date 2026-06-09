@@ -2,6 +2,7 @@ package com.clenzy.service.smartlock;
 
 import com.clenzy.config.KafkaConfig;
 import com.clenzy.integration.tuya.service.TuyaApiService;
+import com.clenzy.model.CheckInInstructions;
 import com.clenzy.model.MessageChannelType;
 import com.clenzy.model.MessageTemplate;
 import com.clenzy.model.MessageTemplateType;
@@ -13,12 +14,14 @@ import com.clenzy.model.SmartLockAccessCode.CodeStatus;
 import com.clenzy.model.SmartLockAccessCodeEvent;
 import com.clenzy.model.SmartLockAccessCodeEvent.EventType;
 import com.clenzy.model.SmartLockDevice;
+import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.MessageTemplateRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.SmartLockAccessCodeEventRepository;
 import com.clenzy.repository.SmartLockAccessCodeRepository;
 import com.clenzy.repository.SmartLockDeviceRepository;
 import com.clenzy.service.OutboxPublisher;
+import com.clenzy.service.access.AccessCodeGenerator;
 import com.clenzy.service.messaging.GuestMessagingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -65,6 +68,9 @@ public class SmartLockAccessCodeService {
     private final MessageTemplateRepository templateRepository;
     private final ObjectMapper objectMapper;
     private final PropertyRepository propertyRepository;
+    private final CheckInInstructionsRepository checkInInstructionsRepository;
+    private final AccessCodeGenerator accessCodeGenerator;
+    private final SmartLockProviderRegistry providerRegistry;
 
     public SmartLockAccessCodeService(SmartLockAccessCodeRepository codeRepo,
                                       SmartLockAccessCodeEventRepository eventRepo,
@@ -74,7 +80,10 @@ public class SmartLockAccessCodeService {
                                       GuestMessagingService guestMessagingService,
                                       MessageTemplateRepository templateRepository,
                                       ObjectMapper objectMapper,
-                                      PropertyRepository propertyRepository) {
+                                      PropertyRepository propertyRepository,
+                                      CheckInInstructionsRepository checkInInstructionsRepository,
+                                      AccessCodeGenerator accessCodeGenerator,
+                                      SmartLockProviderRegistry providerRegistry) {
         this.codeRepo = codeRepo;
         this.eventRepo = eventRepo;
         this.deviceRepo = deviceRepo;
@@ -84,6 +93,9 @@ public class SmartLockAccessCodeService {
         this.templateRepository = templateRepository;
         this.objectMapper = objectMapper;
         this.propertyRepository = propertyRepository;
+        this.checkInInstructionsRepository = checkInInstructionsRepository;
+        this.accessCodeGenerator = accessCodeGenerator;
+        this.providerRegistry = providerRegistry;
     }
 
     // ─── Generation par reservation (auto) ──────────────────────
@@ -161,10 +173,17 @@ public class SmartLockAccessCodeService {
         if (device != null && code.getTuyaPasswordId() != null
                 && device.getExternalDeviceId() != null && !device.getExternalDeviceId().isBlank()) {
             try {
-                tuyaApiService.deleteTemporaryPassword(device.getExternalDeviceId(), code.getTuyaPasswordId());
+                SmartLockBrand brand = device.getBrand() != null ? device.getBrand() : SmartLockBrand.TUYA;
+                if (brand == SmartLockBrand.TUYA) {
+                    tuyaApiService.deleteTemporaryPassword(device.getExternalDeviceId(), code.getTuyaPasswordId());
+                } else {
+                    providerRegistry.getRequiredProvider(brand)
+                            .revokeAccessCode(device.getExternalDeviceId(), code.getTuyaPasswordId(),
+                                    device.getOrganizationId());
+                }
             } catch (Exception e) {
-                // Echec Tuya → on conserve la revocation locale (le code expire de toute facon).
-                log.warn("Revocation Tuya echouee pour code={} (revocation locale conservee): {}",
+                // Echec provider → on conserve la revocation locale (le code expire de toute facon).
+                log.warn("Revocation provider echouee pour code={} (revocation locale conservee): {}",
                         code.getId(), e.getMessage());
             }
         }
@@ -202,11 +221,47 @@ public class SmartLockAccessCodeService {
             return null;
         }
         try {
-            ZoneId zone = resolveZone(device.getPropertyId());
-            Map<String, Object> result = tuyaApiService.createTemporaryPassword(
-                    device.getExternalDeviceId(), epoch(validFrom, zone), epoch(validUntil, zone), name);
-            Object pin = result.get("password");
-            Object tuyaId = result.get("tuyaPasswordId");
+            SmartLockBrand brand = device.getBrand() != null ? device.getBrand() : SmartLockBrand.TUYA;
+            // Mode PMS_GENERATED : PIN généré selon le format du logement (chiffres) et poussé à la serrure.
+            // Mode LOCK_GENERATED : requestedPin null → la serrure génère elle-même (Tuya uniquement —
+            // les providers Web API comme Nuki exigent un code fourni, on en génère alors un aléatoire).
+            String requestedPin = null;
+            if (device.getAccessCodeMode() == SmartLockDevice.AccessCodeMode.PMS_GENERATED) {
+                String formatJson = checkInInstructionsRepository
+                        .findByPropertyIdAndOrganizationId(device.getPropertyId(), orgId)
+                        .map(CheckInInstructions::getAccessCodeFormat).orElse(null);
+                requestedPin = accessCodeGenerator.generateNumeric(formatJson, 6);
+            }
+
+            String pinValue;
+            String externalCodeId;
+            if (brand == SmartLockBrand.TUYA) {
+                ZoneId zone = resolveZone(device.getPropertyId());
+                Map<String, Object> result = tuyaApiService.createTemporaryPassword(
+                        device.getExternalDeviceId(), epoch(validFrom, zone), epoch(validUntil, zone), name, requestedPin);
+                Object pin = result.get("password");
+                Object tuyaId = result.get("tuyaPasswordId");
+                pinValue = pin != null ? pin.toString() : null;
+                externalCodeId = tuyaId != null ? tuyaId.toString() : null;
+            } else {
+                // Web API (Nuki...) : le code est toujours défini par l'appelant.
+                // Keypad Nuki : exactement 6 chiffres, sans 0 → on ignore la longueur du format.
+                String pin;
+                if (brand == SmartLockBrand.NUKI) {
+                    pin = accessCodeGenerator.withoutZeros(accessCodeGenerator.generateNumeric(null, 6));
+                } else {
+                    pin = requestedPin != null ? requestedPin : accessCodeGenerator.generateNumeric(null, 6);
+                }
+                SmartLockCommandResult result = providerRegistry.getRequiredProvider(brand).generateAccessCode(
+                        device.getExternalDeviceId(),
+                        new AccessCodeParams(pin, name, validFrom, validUntil, AccessCodeParams.AccessCodeType.TEMPORARY),
+                        orgId);
+                if (!result.success()) {
+                    throw new IllegalStateException(result.message());
+                }
+                pinValue = pin;
+                externalCodeId = result.externalId();
+            }
 
             SmartLockAccessCode code = new SmartLockAccessCode();
             code.setOrganizationId(orgId);
@@ -214,8 +269,9 @@ public class SmartLockAccessCodeService {
             code.setReservationId(reservationId);
             code.setPropertyId(device.getPropertyId());
             code.setName(name);
-            code.setCode(pin != null ? pin.toString() : null);
-            code.setTuyaPasswordId(tuyaId != null ? tuyaId.toString() : null);
+            code.setCode(pinValue);
+            // Id externe du code chez le provider (mot de passe Tuya OU code Web API Nuki) — requis pour la révocation.
+            code.setTuyaPasswordId(externalCodeId);
             code.setValidFrom(validFrom);
             code.setValidUntil(validUntil);
             code.setStatus(CodeStatus.ACTIVE);
@@ -229,10 +285,10 @@ public class SmartLockAccessCodeService {
                     saved.getId(), device.getId(), reservationId, source);
             return saved;
         } catch (Exception e) {
-            log.error("Echec generation code Tuya device={} reservation={}: {}",
+            log.error("Echec generation code serrure device={} reservation={}: {}",
                     device.getId(), reservationId, e.getMessage());
             recordFailure(orgId, device.getId(), reservationId, device.getPropertyId(),
-                    eventSource(source), "Echec Tuya: " + e.getMessage());
+                    eventSource(source), "Echec provider: " + e.getMessage());
             return null;
         }
     }

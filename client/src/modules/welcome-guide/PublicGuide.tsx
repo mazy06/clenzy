@@ -121,6 +121,16 @@ async function postChat(token: string, message: string): Promise<string | null> 
   }
 }
 
+/** Ouvre la porte (serrure connectée) — true si le déverrouillage a réussi. */
+async function postUnlock(token: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE}/api/public/guide/${token}/unlock`, { method: 'POST' });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 /** Capture best-effort d'un evenement guest (analytics hote). N'affecte jamais l'UI. */
 function recordEvent(token: string, eventType: GuideEventType, detail?: string): void {
   void fetch(`${API_BASE}/api/public/guide/${token}/event`, {
@@ -460,6 +470,7 @@ const PublicGuide: React.FC = () => {
             onActivityClick={(a) => token && recordEvent(token, 'ACTIVITY_CLICK', a.title || undefined)}
             onUpsellClick={payUpsell}
             onCheckinClick={() => token && recordEvent(token, 'CHECKIN_CLICK')}
+            onUnlock={token ? () => postUnlock(token) : undefined}
             accessPhotoUrl={(key) => `${API_BASE}/api/public/guide/${token}/access-photos?key=${encodeURIComponent(key)}`}
             guestbookSlot={guestbookSlot}
           >

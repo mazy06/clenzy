@@ -17,7 +17,11 @@ public class GuideConfig {
     /** Base URL de la page guest publique (le token est concatene en suffixe). */
     private String baseUrl = "https://app.clenzy.fr/guide";
 
-    /** Nombre de jours avant le check-in ou le livret devient accessible. */
+    /**
+     * Nombre de jours avant le check-in ou le livret devient accessible.
+     * 7 j pour que les liens envoyes en avance (confirmation, J-3…) ne soient pas morts ;
+     * le code d'acces, lui, reste masque jusqu'a l'HEURE de check-in (accessCodeLocked).
+     */
     private int leadDays = 7;
 
     /** Nombre de jours apres le check-out ou le livret reste accessible. */
@@ -38,6 +42,11 @@ public class GuideConfig {
     /** Chatbot guest : provider IA prefere. */
     private String chatProvider = "anthropic";
 
+    /** Ouverture guest : nombre max d'ouvertures par fenetre et par token (anti-abus). */
+    private int unlockMaxPerWindow = 5;
+    /** Ouverture guest : duree de la fenetre de rate-limit (secondes). */
+    private long unlockWindowSeconds = 600;
+
     public String getBaseUrl() { return baseUrl; }
     public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
     public int getLeadDays() { return leadDays; }
@@ -54,6 +63,10 @@ public class GuideConfig {
     public void setChatWindowSeconds(long chatWindowSeconds) { this.chatWindowSeconds = chatWindowSeconds; }
     public int getChatMaxTokens() { return chatMaxTokens; }
     public void setChatMaxTokens(int chatMaxTokens) { this.chatMaxTokens = chatMaxTokens; }
+    public int getUnlockMaxPerWindow() { return unlockMaxPerWindow; }
+    public void setUnlockMaxPerWindow(int unlockMaxPerWindow) { this.unlockMaxPerWindow = unlockMaxPerWindow; }
+    public long getUnlockWindowSeconds() { return unlockWindowSeconds; }
+    public void setUnlockWindowSeconds(long unlockWindowSeconds) { this.unlockWindowSeconds = unlockWindowSeconds; }
     public String getChatProvider() { return chatProvider; }
     public void setChatProvider(String chatProvider) { this.chatProvider = chatProvider; }
 }
