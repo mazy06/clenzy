@@ -2089,3 +2089,13 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Backfill : réservations OTA importées via iCal passées à tort en "pending" → "confirmed".
+  - changeSet:
+      id: "0214-backfill-ical-reservation-status-confirmed"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0214__backfill_ical_reservation_status_confirmed.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
