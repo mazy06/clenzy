@@ -63,6 +63,7 @@ public class ICalImportService {
     private final GuestService guestService;
     private final TenantContext tenantContext;
     private final ServiceRequestService serviceRequestService;
+    private final AutoInvoiceService autoInvoiceService;
     private final HttpClient httpClient;
 
     public ICalImportService(ICalFeedRepository icalFeedRepository,
@@ -79,7 +80,8 @@ public class ICalImportService {
                              CalendarEngine calendarEngine,
                              GuestService guestService,
                              TenantContext tenantContext,
-                             @org.springframework.context.annotation.Lazy ServiceRequestService serviceRequestService) {
+                             @org.springframework.context.annotation.Lazy ServiceRequestService serviceRequestService,
+                             AutoInvoiceService autoInvoiceService) {
         this.icalFeedRepository = icalFeedRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.reservationRepository2 = reservationRepository2;
@@ -95,6 +97,7 @@ public class ICalImportService {
         this.guestService = guestService;
         this.tenantContext = tenantContext;
         this.serviceRequestService = serviceRequestService;
+        this.autoInvoiceService = autoInvoiceService;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(15))
                 .followRedirects(HttpClient.Redirect.NEVER) // SSRF: disable redirects to prevent bypass
@@ -213,6 +216,8 @@ public class ICalImportService {
         // En differant l'auto-assign en afterCommit, chaque appel tourne dans sa propre
         // transaction et ne peut plus polluer l'import.
         final List<Long> srsToAutoAssignAfterCommit = new ArrayList<>();
+        // Reservations OTA nouvellement creees, facturees apres le commit (auto-facture OTA).
+        final List<Long> reservationsToInvoiceAfterCommit = new ArrayList<>();
 
         // Compteur local pour les noms generiques (ex: "Reserved" → #1, #2, #3...)
         // Cle = propertyId + "_" + nomGenerique (lowercase)
@@ -220,6 +225,10 @@ public class ICalImportService {
 
         // Determiner la source a partir du nom
         String sourceKey = detectSource(request.getSourceName());
+        // Source OTA "deja payee" (regle alignee sur PanelFinancial / PaymentController) : ces
+        // reservations sont reglees sur le canal externe -> auto-facturees a l'import (pas via Stripe).
+        final boolean isOtaPaidSource = "airbnb".equals(sourceKey)
+                || "booking".equals(sourceKey) || "other".equals(sourceKey);
 
         for (ICalEventPreview event : reservations) {
             try {
@@ -292,6 +301,14 @@ public class ICalImportService {
 
                     reservation = reservationRepository2.save(reservation);
                     reservationId = reservation.getId();
+
+                    // Auto-facture OTA : reservation de canal externe (deja payee). Facturee APRES
+                    // le commit (date facture = maintenant ≈ date d'import). Pas de backfill : seules
+                    // les reservations nouvellement creees ici sont concernees (dedup par UID au-dessus).
+                    if (isOtaPaidSource && reservation.getTotalPrice() != null
+                            && reservation.getTotalPrice().compareTo(BigDecimal.ZERO) > 0) {
+                        reservationsToInvoiceAfterCommit.add(reservationId);
+                    }
 
                     // Creer/lier le Guest des l'import pour que guestEmail soit persistable via PUT
                     if (reservation.getGuest() == null && guestName != null && !guestName.isBlank()) {
@@ -466,6 +483,8 @@ public class ICalImportService {
         // Auto-assignation differee : tournee apres le commit dans des transactions
         // independantes, pour qu'une defaillance ne casse pas l'import.
         scheduleAutoAssignAfterCommit(srsToAutoAssignAfterCommit, orgId);
+        // Auto-facture OTA differee : apres le commit, dans des transactions independantes.
+        scheduleReservationInvoicesAfterCommit(reservationsToInvoiceAfterCommit);
 
         return response;
     }
@@ -508,6 +527,43 @@ public class ICalImportService {
                 }
             } catch (Exception e) {
                 log.warn("iCal sync (post-commit): erreur auto-assign SR #{}: {}", srId, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Enregistre une synchronisation qui auto-facture les reservations OTA APRES le commit de
+     * l'import. Chaque facture est generee dans sa propre transaction (AutoInvoiceService est
+     * @Transactional), donc une defaillance n'affecte ni l'import ni les autres factures.
+     * Reservations OTA = deja reglees sur le canal externe (pas de paiement Stripe -> pas de
+     * facture via les webhooks). Date facture = maintenant (≈ date d'import). Pas de backfill.
+     */
+    private void scheduleReservationInvoicesAfterCommit(List<Long> reservationIds) {
+        if (reservationIds == null || reservationIds.isEmpty()) {
+            return;
+        }
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            runDeferredReservationInvoices(reservationIds);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                runDeferredReservationInvoices(reservationIds);
+            }
+        });
+    }
+
+    private void runDeferredReservationInvoices(List<Long> reservationIds) {
+        for (Long resId : reservationIds) {
+            try {
+                Reservation reservation = reservationRepository2.findById(resId).orElse(null);
+                if (reservation != null) {
+                    // Idempotent : AutoInvoiceService skip si une facture existe deja pour la resa.
+                    autoInvoiceService.generateForReservation(reservation);
+                }
+            } catch (Exception e) {
+                log.warn("Auto-facture OTA (post-commit) echouee pour reservation #{}: {}", resId, e.getMessage());
             }
         }
     }

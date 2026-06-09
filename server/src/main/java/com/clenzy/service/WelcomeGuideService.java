@@ -178,6 +178,7 @@ public class WelcomeGuideService {
 
         WelcomeGuide saved = guideRepository.save(guide);
         Hibernate.initialize(saved.getProperty()); // mapping DTO hors session (open-in-view=false)
+        Hibernate.initialize(saved.getReservation()); // idem : le DTO serialise la reservation rattachee (ReservationRef)
         return saved;
     }
 
