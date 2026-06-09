@@ -123,7 +123,11 @@
       "messagePlaceholder": "Welcome to our home. Settle in, breathe — everything you need for a perfect stay is right here.",
       "signature": "Signature (your names)",
       "signaturePlaceholder": "e.g. Camille & Antoine",
-      "guestHint": "The guest's first name appears automatically at the top of the home screen, loaded from the reservation."
+      "guestHint": "The guest's first name appears automatically at the top of the home screen, loaded from the reservation.",
+      "guestLabel": "Guest (loaded from the reservation)",
+      "guestPending": "loaded at arrival",
+      "insertFirstName": "Insert first name into message",
+      "tagHint": "The {prénom} tag will be replaced by the guest's first name."
     },
     "hero": {
       "title": "Cover photos",
@@ -151,7 +155,12 @@
       "guestbook": "Guestbook",
       "close": "Close",
       "activities": "Activities",
-      "stats": "Statistics"
+      "stats": "Statistics",
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "publishOk": "Guide published",
+      "unpublishOk": "Guide unpublished",
+      "publishFromListHint": "Publishing is done from the guide list, via the button on each card."
     },
     "fields": {
       "property": "Property",

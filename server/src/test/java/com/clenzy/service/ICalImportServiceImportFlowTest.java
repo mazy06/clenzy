@@ -89,6 +89,7 @@ class ICalImportServiceImportFlowTest {
     @Mock private CalendarEngine calendarEngine;
     @Mock private GuestService guestService;
     @Mock private ServiceRequestService serviceRequestService;
+    @Mock private AutoInvoiceService autoInvoiceService;
 
     private TenantContext tenantContext;
     private ICalImportService service;
@@ -107,7 +108,7 @@ class ICalImportServiceImportFlowTest {
             propertyRepository, userRepository,
             auditLogService, notificationService, pricingConfigService,
             priceEngine, calendarEngine, guestService, tenantContext,
-            serviceRequestService);
+            serviceRequestService, autoInvoiceService);
 
         // Pricing config defaults (used by createCleaningServiceRequest)
         when(pricingConfigService.getBasePrices()).thenReturn(Map.of(

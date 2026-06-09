@@ -386,8 +386,12 @@ public class PaymentController {
             }
 
             // ── 2) Charger les reservations ─────────────────────────────────────
+            // On charge TOUTES les reservations (paymentStatus=null) puis on filtre sur le statut
+            // EFFECTIF du DTO : une reservation OTA s'affiche "PAID" alors que son paymentStatus en
+            // base reste PENDING (cf. toReservationPaymentDto / isOtaPaidReservation). Filtrer en
+            // base sur paymentStatus rendrait le filtre incoherent avec le statut affiche.
             Page<Reservation> reservationPage = reservationRepository.findPaymentHistory(
-                    paymentStatus, largePage, orgId);
+                    null, largePage, orgId);
 
             // ── 2b) Charger les SR AWAITING_PAYMENT ──────────────────────────────
             Page<ServiceRequest> srPage;
@@ -403,7 +407,16 @@ public class PaymentController {
             // ── 3) Fusionner en DTOs, trier par date desc, paginer ─────────────
             List<PaymentHistoryDto> merged = new ArrayList<>();
             interventionPage.getContent().forEach(i -> merged.add(toPaymentHistoryDto(i)));
-            reservationPage.getContent().forEach(r -> merged.add(toReservationPaymentDto(r)));
+            // Filtre sur le statut EFFECTIF (OTA-aware) : on a charge toutes les reservations,
+            // on ne garde que celles dont le statut affiche correspond au filtre demande.
+            // (copie final car paymentStatus n'est pas effectively-final → requis dans le lambda)
+            final PaymentStatus reservationFilter = paymentStatus;
+            reservationPage.getContent().forEach(r -> {
+                PaymentHistoryDto dto = toReservationPaymentDto(r);
+                if (reservationFilter == null || reservationFilter.name().equals(dto.status)) {
+                    merged.add(dto);
+                }
+            });
             srPage.getContent().forEach(sr -> merged.add(toServiceRequestPaymentDto(sr)));
 
             // Trier par transactionDate DESC
@@ -480,7 +493,10 @@ public class PaymentController {
             for (Reservation r : reservations) {
                 BigDecimal cost = r.getTotalPrice() != null ? r.getTotalPrice() : BigDecimal.ZERO;
                 PaymentStatus ps = r.getPaymentStatus();
-                if (ps == PaymentStatus.PAID) {
+                // Réservation OTA : déjà réglée sur le canal externe → comptée comme payée
+                // (cohérent avec le statut "PAID" renvoyé par toReservationPaymentDto). Les résas
+                // OTA ont paymentStatus=PENDING (le PMS n'encaisse pas) donc jamais REFUNDED ici.
+                if (ps == PaymentStatus.PAID || isOtaPaidReservation(r)) {
                     summary.totalPaid = summary.totalPaid.add(cost);
                 } else if (ps == PaymentStatus.REFUNDED) {
                     summary.totalRefunded = summary.totalRefunded.add(cost);
@@ -678,6 +694,17 @@ public class PaymentController {
         return dto;
     }
 
+    /**
+     * Réservation OTA (Airbnb, Booking, autres canaux iCal) : déjà réglée sur le canal externe,
+     * le PMS n'encaisse rien. Elle doit donc compter comme "payée" dans la facturation et les KPI,
+     * en cohérence avec le panneau réservation (PanelFinancial.isOTABooking → reste à payer 0) et
+     * la pastille du planning (usePlanningData). Mêmes sources que detectSource (ICalImportService).
+     */
+    private static boolean isOtaPaidReservation(Reservation r) {
+        String src = r.getSource();
+        return "airbnb".equals(src) || "booking".equals(src) || "other".equals(src);
+    }
+
     private PaymentHistoryDto toReservationPaymentDto(Reservation r) {
         PaymentHistoryDto dto = new PaymentHistoryDto();
         dto.id = r.getId();
@@ -692,7 +719,10 @@ public class PaymentController {
         dto.propertyName = r.getProperty() != null ? r.getProperty().getName() : "N/A";
         dto.amount = r.getTotalPrice();
         dto.currency = r.getCurrency() != null ? r.getCurrency() : "EUR";
-        dto.status = r.getPaymentStatus() != null ? r.getPaymentStatus().name() : "PENDING";
+        // Réservation OTA (Airbnb/Booking/iCal) : déjà payée sur le canal → "PAID" (sinon le statut
+        // brut resterait "PENDING" alors que le PMS n'a rien à encaisser).
+        dto.status = isOtaPaidReservation(r) ? "PAID"
+                : (r.getPaymentStatus() != null ? r.getPaymentStatus().name() : "PENDING");
         dto.type = "RESERVATION";
         dto.stripeSessionId = r.getStripeSessionId();
         // transactionDate : paidAt si PAID, sinon createdAt
