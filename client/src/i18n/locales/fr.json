@@ -123,7 +123,11 @@
       "messagePlaceholder": "Bienvenue chez nous. Installez-vous, respirez — tout ce qu’il vous faut pour un séjour parfait est ici.",
       "signature": "Signature (vos noms)",
       "signaturePlaceholder": "ex : Camille & Antoine",
-      "guestHint": "Le prénom du voyageur s'affiche automatiquement en haut de l'accueil, chargé depuis la réservation."
+      "guestHint": "Le prénom du voyageur s'affiche automatiquement en haut de l'accueil, chargé depuis la réservation.",
+      "guestLabel": "Voyageur (chargé depuis la réservation)",
+      "guestPending": "chargé à l’arrivée",
+      "insertFirstName": "Insérer le prénom dans le message",
+      "tagHint": "Le tag {prénom} sera remplacé par le prénom du voyageur."
     },
     "hero": {
       "title": "Photos de couverture",
@@ -151,7 +155,12 @@
       "guestbook": "Livre d'or",
       "close": "Fermer",
       "activities": "Activités",
-      "stats": "Statistiques"
+      "stats": "Statistiques",
+      "publish": "Publier",
+      "unpublish": "Dépublier",
+      "publishOk": "Livret publié",
+      "unpublishOk": "Livret dépublié",
+      "publishFromListHint": "La publication se fait depuis la liste des livrets, via le bouton sur chaque carte."
     },
     "fields": {
       "property": "Logement",
