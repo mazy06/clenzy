@@ -597,7 +597,9 @@ class PaymentControllerTest {
 
             when(interventionRepository.findPaymentHistory(eq(PaymentStatus.PAID), isNull(), any(), eq(1L)))
                     .thenReturn(new PageImpl<>(List.of()));
-            when(reservationRepository.findPaymentHistory(eq(PaymentStatus.PAID), any(), eq(1L)))
+            // OTA-aware : le contrôleur charge TOUTES les réservations (paymentStatus=null) puis
+            // filtre sur le statut effectif du DTO → le stub réservation doit matcher null.
+            when(reservationRepository.findPaymentHistory(isNull(), any(), eq(1L)))
                     .thenReturn(new PageImpl<>(List.of()));
             when(serviceRequestRepository.findPaymentHistory(eq(PaymentStatus.PAID), isNull(), any(), eq(1L)))
                     .thenReturn(new PageImpl<>(List.of()));
