@@ -17,7 +17,7 @@ import {
 import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
 import type { ChannelId, ChannelConnectionStatus } from '../../services/api/channelConnectionApi';
-import { OTA_CHANNELS, type OtaChannel } from '../../services/channels/otaChannels';
+import { type OtaChannel } from '../../services/channels/otaChannels';
 import { CARD_SX } from './channelsPageConstants';
 
 interface ChannelsListViewProps {
@@ -27,6 +27,7 @@ interface ChannelsListViewProps {
   otaConnectionsLoading: boolean;
   isOtaConnected: (id: ChannelId) => boolean;
   getOtaStatus: (id: ChannelId) => ChannelConnectionStatus | undefined;
+  channels: OtaChannel[];
   connectPending: boolean;
   disconnectPending: boolean;
   disconnectingChannelId: string | null;
@@ -45,6 +46,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
   otaConnectionsLoading,
   isOtaConnected,
   getOtaStatus,
+  channels,
   connectPending,
   disconnectPending,
   disconnectingChannelId,
@@ -84,7 +86,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
     </Box>
 
     {/* Rows */}
-    {OTA_CHANNELS.map((ota, idx) => {
+    {channels.map((ota, idx) => {
       const isAirbnb = ota.id === 'airbnb';
       const isOtaChannel = (ota.id as string) in CHANNEL_BACKEND_MAP;
       const otaStatus = isOtaChannel ? getOtaStatus(ota.id as ChannelId) : undefined;
@@ -101,7 +103,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
             px: 2,
             py: 1.5,
             alignItems: 'center',
-            borderBottom: idx < OTA_CHANNELS.length - 1 ? '1px solid' : 'none',
+            borderBottom: idx < channels.length - 1 ? '1px solid' : 'none',
             borderColor: 'divider',
             opacity: ota.available ? 1 : 0.6,
             transition: 'background 0.15s',
