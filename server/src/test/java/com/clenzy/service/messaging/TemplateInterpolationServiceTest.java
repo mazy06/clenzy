@@ -236,4 +236,28 @@ class TemplateInterpolationServiceTest {
         assertTrue(result.plainBody().contains("+33 1 42 00 00 00"));
         assertTrue(result.plainBody().contains("Lun-Sam 8h-20h"));
     }
+
+    // ─── Codes additionnels libres (un tag par code) ─────────
+
+    @Test
+    void slugify_normalizesLabelToStableTagKey() {
+        assertEquals("parking_residence", TemplateInterpolationService.slugify("Parking résidence"));
+        assertEquals("immeuble", TemplateInterpolationService.slugify("Immeuble"));
+        assertEquals("porte_d_entree", TemplateInterpolationService.slugify("Porte d'entrée"));
+        assertEquals("", TemplateInterpolationService.slugify("   "));
+    }
+
+    @Test
+    void whenExtraAccessCodes_thenIndividualTagsResolvedAndUnknownEmptied() {
+        instructions.setExtraAccessCodes(
+            "[{\"label\":\"Parking résidence\",\"code\":\"9012\"},{\"label\":\"Immeuble\",\"code\":\"7788\"}]");
+        template.setBody("Parking: {code_parking_residence} / Immeuble: {code_immeuble} / X: [{code_inconnu}]");
+
+        var result = service.interpolate(template, reservation, guest, property, instructions);
+
+        assertTrue(result.plainBody().contains("Parking: 9012"));
+        assertTrue(result.plainBody().contains("Immeuble: 7788"));
+        assertTrue(result.plainBody().contains("X: []"));                 // tag inconnu → vidé
+        assertFalse(result.plainBody().contains("{code_inconnu}"));       // pas de littéral résiduel
+    }
 }

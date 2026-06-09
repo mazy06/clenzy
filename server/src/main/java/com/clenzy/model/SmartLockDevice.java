@@ -25,6 +25,17 @@ public class SmartLockDevice {
         LOCKED, UNLOCKED, UNKNOWN
     }
 
+    /**
+     * Origine du code d'accès de la serrure :
+     * <ul>
+     *   <li>{@code PMS_GENERATED} : le PMS génère le code (selon le format du logement) et le pousse à la serrure.</li>
+     *   <li>{@code LOCK_GENERATED} : la serrure génère son propre code aléatoire, le PMS le récupère.</li>
+     * </ul>
+     */
+    public enum AccessCodeMode {
+        PMS_GENERATED, LOCK_GENERATED
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -50,6 +61,11 @@ public class SmartLockDevice {
     @Enumerated(EnumType.STRING)
     @Column(name = "brand", length = 20)
     private SmartLockBrand brand = SmartLockBrand.TUYA;
+
+    /** Origine du code d'accès : PMS (poussé à la serrure) ou serrure (généré puis récupéré). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "access_code_mode", length = 20, nullable = false)
+    private AccessCodeMode accessCodeMode = AccessCodeMode.PMS_GENERATED;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -119,6 +135,9 @@ public class SmartLockDevice {
 
     public SmartLockBrand getBrand() { return brand; }
     public void setBrand(SmartLockBrand brand) { this.brand = brand; }
+
+    public AccessCodeMode getAccessCodeMode() { return accessCodeMode; }
+    public void setAccessCodeMode(AccessCodeMode accessCodeMode) { this.accessCodeMode = accessCodeMode; }
 
     public DeviceStatus getStatus() { return status; }
     public void setStatus(DeviceStatus status) { this.status = status; }

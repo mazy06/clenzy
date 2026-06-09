@@ -313,23 +313,27 @@ public class TuyaApiService {
      * Cree un mot de passe temporaire sur une serrure Tuya.
      * POST /v1.0/devices/{device_id}/door-lock/temp-password
      *
-     * Genere un code 6 chiffres aleatoire (SecureRandom) et l'enregistre
-     * sur le device pour la fenetre de validite donnee.
+     * Utilise {@code requestedPassword} (PIN choisi par le PMS, chiffres 4–8) s'il est
+     * valide ; sinon genere un code 6 chiffres aleatoire (SecureRandom). Le PIN est
+     * enregistre sur le device pour la fenetre de validite donnee.
      *
-     * @param deviceId      Tuya external device ID
-     * @param effectiveTime Debut de validite (epoch seconds)
-     * @param invalidTime   Fin de validite (epoch seconds)
-     * @param name          Nom descriptif (ex: "Clenzy-Jean Dupont")
-     * @return Reponse Tuya enrichie avec le champ "password" contenant le code genere
+     * @param deviceId          Tuya external device ID
+     * @param effectiveTime     Debut de validite (epoch seconds)
+     * @param invalidTime       Fin de validite (epoch seconds)
+     * @param name              Nom descriptif (ex: "Clenzy-Jean Dupont")
+     * @param requestedPassword PIN numerique souhaite (4–8 chiffres) ou null pour aleatoire
+     * @return Reponse Tuya enrichie avec le champ "password" contenant le code utilise
      */
     @CircuitBreaker(name = "tuya-api")
     public Map<String, Object> createTemporaryPassword(
-            String deviceId, long effectiveTime, long invalidTime, String name
+            String deviceId, long effectiveTime, long invalidTime, String name, String requestedPassword
     ) {
         validateDeviceId(deviceId);
 
-        // Genere un code 6 chiffres aleatoire
-        String password = String.format("%06d", new java.security.SecureRandom().nextInt(1_000_000));
+        // PIN fourni par le PMS (chiffres uniquement) sinon code 6 chiffres aleatoire.
+        String password = (requestedPassword != null && requestedPassword.matches("\\d{4,8}"))
+                ? requestedPassword
+                : String.format("%06d", new java.security.SecureRandom().nextInt(1_000_000));
 
         Map<String, Object> body = Map.of(
                 "password", password,

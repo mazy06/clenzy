@@ -102,6 +102,14 @@ export interface CheckInInstructions {
   additionalNotes: string | null;
   /** JSON [{key, caption}] — photos d'indication d'accès. Géré séparément (état accessPhotos). */
   arrivalPhotos?: string | null;
+  /** Régénère le code d'accès automatiquement après chaque départ (opt-in par logement). */
+  accessCodeAutoRotate?: boolean;
+  /** Format JSON ({pattern, letters, symbols}) du générateur, pour régénérer le code côté serveur. */
+  accessCodeFormat?: string | null;
+  /** JSON [{label, code}] — codes additionnels libres (résidence, immeuble, parking…). */
+  extraAccessCodes?: string | null;
+  /** Autorise le voyageur à ouvrir la porte depuis le livret (serrure pilotable à distance). */
+  guestUnlockEnabled?: boolean;
   updatedAt: string | null;
 }
 
@@ -176,6 +184,10 @@ export const airbnbApi = {
 
   updateCheckInInstructions: (propertyId: number, data: UpdateCheckInInstructions): Promise<CheckInInstructions> =>
     apiClient.put(`/properties/${propertyId}/check-in-instructions`, data),
+
+  /** Code d'accès courant généré par la serrure connectée (séjour en cours/à venir), pour pré-remplir le champ. */
+  getSmartLockCode: (propertyId: number): Promise<{ hasSmartLock: boolean; code: string }> =>
+    apiClient.get(`/properties/${propertyId}/check-in-instructions/smart-lock-code`),
 
   /** Upload d'une photo d'indication d'accès → renvoie la clé de stockage à placer dans arrivalPhotos. */
   uploadAccessPhoto: (propertyId: number, file: File): Promise<{ key: string }> => {

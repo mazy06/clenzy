@@ -35,6 +35,8 @@ class CheckInInstructionsControllerTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private UserRepository userRepository;
     @Mock private PhotoStorageService photoStorageService;
+    @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
+    @Mock private com.clenzy.service.access.AccessCodeResolverService accessCodeResolverService;
 
     private TenantContext tenantContext;
     private CheckInInstructionsController controller;
@@ -52,7 +54,8 @@ class CheckInInstructionsControllerTest {
         // redondant — on garde la simple ligne setOrganizationId pour la lisibilite).
         tenantContext.setOrganizationId(1L);
         controller = new CheckInInstructionsController(
-            instructionsRepository, propertyRepository, userRepository, photoStorageService, tenantContext);
+            instructionsRepository, propertyRepository, userRepository, photoStorageService, tenantContext,
+            reservationRepository, accessCodeResolverService);
 
         owner = new User();
         owner.setId(1L);
@@ -162,7 +165,7 @@ class CheckInInstructionsControllerTest {
         var dto = new UpdateCheckInInstructionsDto(
             "5678", "NewWifi", "pass", "Parking A",
             "Entrez par la porte", "Laissez les cles", "Pas de bruit",
-            "+33612345678", "Notes", "[]");
+            "+33612345678", "Notes", "[]", false, null, null, false);
 
         var response = controller.update(10L, dto, ownerJwt);
 
@@ -180,7 +183,7 @@ class CheckInInstructionsControllerTest {
         when(instructionsRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         var dto = new UpdateCheckInInstructionsDto(
-            "9999", null, null, null, null, null, null, null, null, null);
+            "9999", null, null, null, null, null, null, null, null, null, false, null, null, false);
 
         var response = controller.update(10L, dto, ownerJwt);
 

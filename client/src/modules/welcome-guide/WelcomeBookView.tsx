@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Wifi,
   KeyRound,
+  Lock,
+  DoorOpen,
   LogIn,
   LogOut,
   MapPin,
@@ -83,6 +85,8 @@ export interface WelcomeBookViewProps {
   onActivityClick?: (a: GuideActivity) => void;
   onUpsellClick?: (u: PublicUpsell) => void;
   onCheckinClick?: () => void;
+  /** Ouvre la porte (serrure connectée) — résout true si le déverrouillage a réussi. */
+  onUnlock?: () => Promise<boolean>;
   accessPhotoUrl?: (key: string) => string;
   langToggle?: React.ReactNode;
   /** Bloc livre d'or interactif injecté par la page guest (rendu dans la sous-page Avis). */
@@ -348,13 +352,23 @@ function SectionPage({ section, onBack }: { section: GuideSection; onBack: () =>
 
 const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
   model, theme, lang, labels: L, heroImages, interactive = true, previewFocus, copiedKey, onCopy,
-  onActivityClick, onUpsellClick, onCheckinClick, accessPhotoUrl, langToggle, guestbookSlot, children,
+  onActivityClick, onUpsellClick, onCheckinClick, onUnlock, accessPhotoUrl, langToggle, guestbookSlot, children,
 }) => {
   injectWelcomeBookCss();
   const [view, setView] = useState<View>({ name: 'home' });
+  // Bouton « Ouvrir la porte » : anti double-clic + feedback succès/échec (retombe sur idle).
+  const [unlockState, setUnlockState] = useState<'idle' | 'pending' | 'done' | 'error'>('idle');
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
   const { property, practical, stay, checkIn, sections, pois, activities, upsells } = model;
   const goHome = () => setView({ name: 'home' });
+
+  const handleUnlock = async () => {
+    if (!interactive || !onUnlock || unlockState === 'pending') return;
+    setUnlockState('pending');
+    const ok = await onUnlock();
+    setUnlockState(ok ? 'done' : 'error');
+    setTimeout(() => setUnlockState('idle'), 4000);
+  };
 
   // Tags personnalisables dans le mot d'accueil, substitués au rendu (aperçu hôte + page guest) :
   // {prénom} → prénom du voyageur, {nom} → nom complet, chargés depuis la réservation via le token.
@@ -395,13 +409,30 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
   const checkInTime = stay?.checkInTime || null;
   const checkOutTime = stay?.checkOutTime || null;
   const doorCode = practical?.accessCode || null;
+  // Code d'accès verrouillé : un code existe mais il est masqué tant qu'on est avant l'heure
+  // de check-in (le backend ne l'envoie pas). On affiche un cadenas à la place.
+  const codeLocked = !!practical?.accessCodeLocked;
+  // Codes additionnels libres (résidence, immeuble, parking…).
+  const extraCodes: Array<{ label: string; code: string }> = (() => {
+    try {
+      const arr = practical?.extraCodes ? JSON.parse(practical.extraCodes) : [];
+      return Array.isArray(arr)
+        ? arr
+            .filter((x: { label?: string; code?: string }) => x && (x.label || x.code))
+            .map((x: { label?: string; code?: string }) => ({ label: x.label || '', code: x.code || '' }))
+        : [];
+    } catch {
+      return [];
+    }
+  })();
   // Accueil personnalisé : prénom du voyageur chargé depuis la réservation (via le token).
   const guestFirstName = (stay?.guestName || '').trim().split(/\s+/)[0] || '';
   const heroGreeting = guestFirstName ? `${L.welcome}, ${guestFirstName}` : L.welcome;
-  const tiles: Array<{ icon: React.ReactNode; label: string; value: string; mono?: boolean }> = [];
+  const tiles: Array<{ icon: React.ReactNode; label: string; value: string; mono?: boolean; locked?: boolean }> = [];
   if (checkInTime) tiles.push({ icon: <LogIn size={17} strokeWidth={1.6} style={{ color: 'var(--terra)' }} />, label: L.arrival, value: checkInTime });
   if (checkOutTime) tiles.push({ icon: <LogOut size={17} strokeWidth={1.6} style={{ color: 'var(--terra)' }} />, label: L.departure, value: checkOutTime });
   if (doorCode) tiles.push({ icon: <KeyRound size={17} strokeWidth={1.6} style={{ color: 'var(--terra)' }} />, label: L.accessCode, value: doorCode, mono: true });
+  else if (codeLocked) tiles.push({ icon: <KeyRound size={17} strokeWidth={1.6} style={{ color: 'var(--terra)' }} />, label: L.accessCode, value: '', locked: true });
   const hasEssentials = hasWifi || tiles.length > 0;
 
   // Localisation.
@@ -428,7 +459,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
   if (practical?.houseRules) practicalBlocks.push({ label: L.houseRules, value: practical.houseRules });
   if (practical?.additionalNotes) practicalBlocks.push({ label: L.notes, value: practical.additionalNotes });
 
-  const hasArrival = !!(checkInTime || checkOutTime || doorCode || addressLine || accessPhotos.length || practicalBlocks.length || checkIn || practical?.emergencyContact);
+  const hasArrival = !!(checkInTime || checkOutTime || doorCode || codeLocked || extraCodes.length || addressLine || accessPhotos.length || practicalBlocks.length || checkIn || practical?.emergencyContact);
 
   // Entrées de navigation « Explorer le livret ».
   type Nav = { key: string; icon: string; title: string; subtitle: string; go: () => void };
@@ -516,7 +547,11 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
                   {tiles.map((t, i) => (
                     <div key={i} style={{ flex: 1, textAlign: 'center', padding: '10px 6px', borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--line)' }}>
                       {t.icon}
-                      <div style={{ fontWeight: 800, fontSize: 15, marginTop: 5, letterSpacing: t.mono ? '.08em' : 0, fontVariantNumeric: 'tabular-nums' }}>{t.value}</div>
+                      {t.locked ? (
+                        <div style={{ marginTop: 5, display: 'flex', justifyContent: 'center', color: 'var(--ink-soft)' }}><Lock size={16} strokeWidth={1.9} /></div>
+                      ) : (
+                        <div style={{ fontWeight: 800, fontSize: 15, marginTop: 5, letterSpacing: t.mono ? '.08em' : 0, fontVariantNumeric: 'tabular-nums' }}>{t.value}</div>
+                      )}
                       <div className="wb-label" style={{ fontSize: 9.5, marginTop: 2 }}>{t.label}</div>
                     </div>
                   ))}
@@ -667,15 +702,56 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
           </div>
         ) : null}
 
-        {doorCode ? (
+        {(doorCode || codeLocked) ? (
           <div className="wb-card" style={{ padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div style={{ minWidth: 0 }}>
               <div className="wb-label" style={{ marginBottom: 3 }}>{L.accessCode}</div>
-              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '.12em', fontVariantNumeric: 'tabular-nums' }}>{doorCode}</div>
+              {codeLocked ? (
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Lock size={17} strokeWidth={1.8} />
+                  <span>{checkInTime ? `${L.accessCodeLockedFrom} ${checkInTime}` : L.accessCodeLocked}</span>
+                </div>
+              ) : (
+                <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '.12em', fontVariantNumeric: 'tabular-nums' }}>{doorCode}</div>
+              )}
             </div>
-            <CopyChip label={copiedKey === 'door' ? L.copied : L.copy} value={doorCode} copyKey="door" copiedKey={copiedKey} onCopy={onCopy} interactive={interactive} />
+            {!codeLocked && doorCode ? (
+              <CopyChip label={copiedKey === 'door' ? L.copied : L.copy} value={doorCode} copyKey="door" copiedKey={copiedKey} onCopy={onCopy} interactive={interactive} />
+            ) : null}
           </div>
         ) : null}
+
+        {practical?.guestUnlockAvailable && onUnlock ? (
+          <button
+            type="button"
+            className="wb-btn wb-pressable"
+            onClick={handleUnlock}
+            disabled={unlockState === 'pending'}
+            style={{
+              width: '100%', justifyContent: 'center', cursor: interactive ? 'pointer' : 'default',
+              opacity: unlockState === 'pending' ? 0.7 : 1,
+              ...(unlockState === 'done' ? { background: 'var(--terra-deep)' } : null),
+            }}
+          >
+            {unlockState === 'done' ? <Check size={18} strokeWidth={2} /> : <DoorOpen size={18} strokeWidth={1.8} />}
+            {unlockState === 'pending' ? L.doorUnlocking
+              : unlockState === 'done' ? L.doorUnlocked
+              : unlockState === 'error' ? L.doorUnlockError
+              : L.doorUnlock}
+          </button>
+        ) : null}
+
+        {extraCodes.map((ec, i) => (
+          <div key={`ec-${i}`} className="wb-card" style={{ padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div className="wb-label" style={{ marginBottom: 3 }}>{ec.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '.12em', fontVariantNumeric: 'tabular-nums', wordBreak: 'break-all' }}>{ec.code}</div>
+            </div>
+            {ec.code ? (
+              <CopyChip label={copiedKey === `ec-${i}` ? L.copied : L.copy} value={ec.code} copyKey={`ec-${i}`} copiedKey={copiedKey} onCopy={onCopy} interactive={interactive} />
+            ) : null}
+          </div>
+        ))}
 
         {checkIn ? (
           <WarmBlock label={L.checkinTitle}>

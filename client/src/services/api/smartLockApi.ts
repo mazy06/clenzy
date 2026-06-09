@@ -4,6 +4,9 @@ import apiClient from '../apiClient';
 
 export type SmartLockBrand = 'TUYA' | 'NUKI' | 'TTLOCK' | 'YALE';
 
+/** Origine du code : PMS le génère et le pousse à la serrure, ou la serrure le génère. */
+export type SmartLockAccessCodeMode = 'PMS_GENERATED' | 'LOCK_GENERATED';
+
 export interface SmartLockDeviceDto {
   id: number;
   name: string;
@@ -12,6 +15,7 @@ export interface SmartLockDeviceDto {
   roomName: string | null;
   externalDeviceId: string | null;
   brand: SmartLockBrand;
+  accessCodeMode: SmartLockAccessCodeMode;
   status: string;
   lockState: string;
   batteryLevel: number | null;
@@ -26,6 +30,7 @@ export interface CreateSmartLockDeviceDto {
   roomName?: string;
   externalDeviceId?: string;
   brand?: SmartLockBrand;
+  accessCodeMode?: SmartLockAccessCodeMode;
 }
 
 export interface SmartLockStatusDto {
@@ -70,6 +75,11 @@ export const smartLockApi = {
   /** Supprimer une serrure */
   delete(id: number) {
     return apiClient.delete(`/smart-locks/${id}`);
+  },
+
+  /** Changer l'origine du code d'accès (PMS pousse / serrure génère) d'une serrure existante. */
+  updateAccessCodeMode(id: number, mode: SmartLockAccessCodeMode) {
+    return apiClient.patch<SmartLockDeviceDto>(`/smart-locks/${id}/access-code-mode`, { mode });
   },
 
   /** Statut live d'une serrure (locked/unlocked, batterie, online) */

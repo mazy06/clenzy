@@ -227,6 +227,58 @@ class GuestMessagingServiceTest {
     }
 
     @Test
+    void whenSendingBeforeCheckInTime_thenAccessCodeMaskedInVars() {
+        Property property = new Property();
+        property.setId(10L);
+        property.setName("Test Prop");
+        property.setTimezone("Europe/Paris");
+        Guest guest = new Guest();
+        guest.setEmail("guest@test.com");
+        guest.setLanguage("fr");
+
+        Reservation reservation = new Reservation();
+        reservation.setId(100L);
+        reservation.setProperty(property);
+        reservation.setGuest(guest);
+        reservation.setCheckIn(java.time.LocalDate.now().plusDays(2)); // arrivée future
+        reservation.setCheckInTime("15:00");
+        reservation.setCheckOut(java.time.LocalDate.now().plusDays(5));
+
+        MessageTemplate template = new MessageTemplate();
+        template.setId(5L);
+        template.setName("Check-in");
+
+        when(instructionsRepository.findByPropertyIdAndOrganizationId(10L, 1L))
+            .thenReturn(Optional.empty());
+        // Le gating ne s'applique que si le voyageur a un canal de repli (livret publié).
+        when(welcomeGuideService.hasPublishedGuideFor(any())).thenReturn(true);
+        when(accessCodeResolverService.resolveForReservation(any(), any(), any()))
+            .thenReturn(new AccessCodeResult(
+                AccessCodeResult.AccessMethod.SMART_LOCK, Map.of("accessCode", "987654")));
+        when(interpolationService.interpolateAndTranslate(any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TemplateInterpolationService.InterpolatedMessage("S", "H", "P"));
+        when(emailChannel.getChannelType()).thenReturn(MessageChannelType.EMAIL);
+        when(emailChannel.isAvailable()).thenReturn(true);
+        when(emailChannel.send(any())).thenReturn(MessageDeliveryResult.success("ok"));
+
+        GuestMessageLog logEntry = new GuestMessageLog();
+        logEntry.setId(12L);
+        when(messageLogRepository.save(any())).thenReturn(logEntry);
+
+        service.sendForReservation(reservation, template, 1L);
+
+        // Le code réel (987654) ne doit PAS partir dans le message avant l'heure de check-in.
+        verify(interpolationService).interpolateAndTranslate(
+            eq(template), eq(reservation), eq(guest), eq(property), any(),
+            argThat(vars -> {
+                String code = vars.get("accessCode");
+                return code != null && !code.contains("987654") && code.contains("livret");
+            }),
+            eq("fr")
+        );
+    }
+
+    @Test
     void whenAccessCodeResolutionFails_thenMessageStillSent() {
         Property property = new Property();
         property.setId(10L);

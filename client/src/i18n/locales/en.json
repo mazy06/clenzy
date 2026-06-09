@@ -109,13 +109,34 @@
   "welcomeGuide": {
     "themes": {
       "sectionTitle": "Guide theme",
-      "atelier": { "name": "Atelier", "desc": "Cream & terracotta · boutique hotel" },
-      "noir": { "name": "Noir", "desc": "Dark & gold · quiet luxury" },
-      "jardin": { "name": "Jardin", "desc": "Natural greens · country house" },
-      "azur": { "name": "Azur", "desc": "Mineral blue · seaside" },
-      "corail": { "name": "Corail", "desc": "Bright peach · contemporary" },
-      "brume": { "name": "Brume", "desc": "Soft mauve · calm minimal" },
-      "minuit": { "name": "Minuit", "desc": "Midnight & sky · refined dark" }
+      "atelier": {
+        "name": "Atelier",
+        "desc": "Cream & terracotta · boutique hotel"
+      },
+      "noir": {
+        "name": "Noir",
+        "desc": "Dark & gold · quiet luxury"
+      },
+      "jardin": {
+        "name": "Jardin",
+        "desc": "Natural greens · country house"
+      },
+      "azur": {
+        "name": "Azur",
+        "desc": "Mineral blue · seaside"
+      },
+      "corail": {
+        "name": "Corail",
+        "desc": "Bright peach · contemporary"
+      },
+      "brume": {
+        "name": "Brume",
+        "desc": "Soft mauve · calm minimal"
+      },
+      "minuit": {
+        "name": "Minuit",
+        "desc": "Midnight & sky · refined dark"
+      }
     },
     "welcomeNote": {
       "title": "Welcome message",
@@ -379,6 +400,16 @@
   },
   "connectedObjects": {
     "previewBadge": "Preview",
+    "codeMode": {
+      "label": "Access code origin",
+      "pms": "PMS generates and pushes the code",
+      "lock": "The lock generates the code",
+      "helperPms": "The code configured in the PMS is pushed to the lock.",
+      "helperLock": "The lock generates its own code; the PMS retrieves it.",
+      "applied": "Applied to the next generated codes (upcoming reservations).",
+      "saved": "Code origin updated (applies to the next reservation)",
+      "error": "Failed to change the mode"
+    },
     "cameras": {
       "title": "Cameras",
       "subtitle": "Video monitoring across your properties — a preview of what's coming."
@@ -3088,6 +3119,46 @@
       "title": "Guest instructions",
       "accessSection": "Access",
       "accessCode": "Access code / Keypad",
+      "autoRotate": "Regenerate the code after each checkout",
+      "autoRotateHint": "A new code (same format) is generated after checkout — remember to update the key box code. Smart locks already rotate automatically.",
+      "smartLockFetch": "Retrieve the connected lock's code",
+      "smartLockNoCode": "No active lock code for the current stay.",
+      "smartLockError": "Could not retrieve the lock code.",
+      "extraCodes": "Additional codes",
+      "extraCodeLabel": "Label",
+      "extraCodeValue": "Code",
+      "extraCodeTagCopy": "Copy email tag",
+      "extraCodeAdd": "Add a code",
+      "extraCodesHint": "Shown in the guide. Each code provides a tag to paste into your emails.",
+      "smartLockManaged": "Smart lock detected: the stay code is generated and managed by the lock (one code per reservation). This field is a backup (key box).",
+      "guestUnlock": "Allow opening the door from the guide",
+      "guestUnlockHint": "The guest sees an \"Open the door\" button in their guide, active only during their stay (from check-in time). You are notified of every opening.",
+      "generator": {
+        "open": "Click to generate",
+        "regenerate": "Regenerate code",
+        "title": "Generate an access code",
+        "close": "Close",
+        "copy": "Copy",
+        "copied": "Copied!",
+        "length": "Length",
+        "chars": "{{n}} characters",
+        "allowedChars": "Allowed characters",
+        "typeDigits": "Digits",
+        "typeLetters": "Letters",
+        "typeSymbols": "Symbols",
+        "composition": "Composition",
+        "compositionHint": "Click a position to change its character type.",
+        "smartLockDigitsHint": "Smart lock: only the digits of the format (and its length) are used for the lock's PIN.",
+        "slotCycle": "Change type",
+        "hint": "At least one character type.",
+        "lettersAllowed": "Allowed letters",
+        "symbolsAllowed": "Allowed symbols",
+        "allLettersHint": "No selection = all letters.",
+        "allSymbolsHint": "No selection = all symbols.",
+        "cancel": "Cancel",
+        "apply": "Use this code",
+        "codeInput": "Access code"
+      },
       "wifiName": "WiFi name",
       "wifiPassword": "WiFi password",
       "parkingSection": "Parking",

@@ -23,6 +23,7 @@ import {
   type TemplateVariable,
 } from '../../services/api/guestMessagingApi';
 import VariablePicker from '../documents/components/VariablePicker';
+import { EmailMarkdownPreview } from '../../utils/emailMarkdown';
 
 interface MessageTemplateEditorProps {
   open: boolean;
@@ -261,12 +262,14 @@ export default function MessageTemplateEditor({
                   {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
                 </Typography>
                 <Divider sx={{ my: 1 }} />
-                <Typography
-                  variant="body2"
-                  sx={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}
-                >
-                  {getPreviewText(body) || '—'}
-                </Typography>
+                {body ? (
+                  <Typography variant="body2" component="div" sx={{ fontFamily: 'inherit' }}>
+                    {/* Rendu identique à l'email envoyé (gras, puces, paragraphes) */}
+                    <EmailMarkdownPreview text={getPreviewText(body)} />
+                  </Typography>
+                ) : (
+                  <Typography variant="body2">—</Typography>
+                )}
               </Paper>
             </Box>
           </Grid>

@@ -43,7 +43,9 @@ class AccessCodeResolverServiceTest {
     void setUp() {
         service = new AccessCodeResolverService(
                 smartLockRepository, keyExchangePointRepository,
-                tuyaApiService, keyExchangeService, accessCodeRepository
+                tuyaApiService, keyExchangeService, accessCodeRepository,
+                new com.clenzy.service.access.AccessCodeGenerator(),
+                org.mockito.Mockito.mock(com.clenzy.service.smartlock.SmartLockProviderRegistry.class)
         );
 
         property = new Property();
@@ -69,7 +71,7 @@ class AccessCodeResolverServiceTest {
 
         when(smartLockRepository.findByPropertyIdAndStatus(10L, DeviceStatus.ACTIVE))
                 .thenReturn(List.of(device));
-        when(tuyaApiService.createTemporaryPassword(eq("tuya-device-123"), anyLong(), anyLong(), anyString()))
+        when(tuyaApiService.createTemporaryPassword(eq("tuya-device-123"), anyLong(), anyLong(), anyString(), anyString()))
                 .thenReturn(Map.of("password", "987654", "id", "pwd-001"));
 
         AccessCodeResult result = service.resolveForReservation(property, reservation, instructions);
@@ -78,7 +80,7 @@ class AccessCodeResolverServiceTest {
         assertThat(result.templateVariables().get("accessCode")).isEqualTo("987654");
         assertThat(result.templateVariables().get("accessMethod")).isEqualTo("SMART_LOCK");
 
-        verify(tuyaApiService).createTemporaryPassword(eq("tuya-device-123"), anyLong(), anyLong(), contains("Jean Dupont"));
+        verify(tuyaApiService).createTemporaryPassword(eq("tuya-device-123"), anyLong(), anyLong(), contains("Jean Dupont"), anyString());
     }
 
     @Test
@@ -87,7 +89,7 @@ class AccessCodeResolverServiceTest {
 
         when(smartLockRepository.findByPropertyIdAndStatus(10L, DeviceStatus.ACTIVE))
                 .thenReturn(List.of(device));
-        when(tuyaApiService.createTemporaryPassword(anyString(), anyLong(), anyLong(), anyString()))
+        when(tuyaApiService.createTemporaryPassword(anyString(), anyLong(), anyLong(), anyString(), anyString()))
                 .thenThrow(new RuntimeException("Tuya circuit breaker open"));
 
         AccessCodeResult result = service.resolveForReservation(property, reservation, instructions);
@@ -120,7 +122,7 @@ class AccessCodeResolverServiceTest {
 
         when(smartLockRepository.findByPropertyIdAndStatus(10L, DeviceStatus.ACTIVE))
                 .thenReturn(List.of(device));
-        when(tuyaApiService.createTemporaryPassword(anyString(), anyLong(), anyLong(), anyString()))
+        when(tuyaApiService.createTemporaryPassword(anyString(), anyLong(), anyLong(), anyString(), anyString()))
                 .thenThrow(new RuntimeException("Tuya error"));
 
         AccessCodeResult result = service.resolveForReservation(property, reservation, emptyInstructions);
@@ -197,7 +199,7 @@ class AccessCodeResolverServiceTest {
 
         when(smartLockRepository.findByPropertyIdAndStatus(10L, DeviceStatus.ACTIVE))
                 .thenReturn(List.of(device));
-        when(tuyaApiService.createTemporaryPassword(eq("tuya-device-123"), anyLong(), anyLong(), anyString()))
+        when(tuyaApiService.createTemporaryPassword(eq("tuya-device-123"), anyLong(), anyLong(), anyString(), anyString()))
                 .thenReturn(Map.of("password", "111222"));
 
         AccessCodeResult result = service.resolveForReservation(property, reservation, instructions);

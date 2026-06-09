@@ -46,6 +46,7 @@ class WelcomeGuideServiceTest {
     @Mock private PhotoStorageService photoStorageService;
     @Mock private PropertyPhotoRepository propertyPhotoRepository;
     @Mock private com.clenzy.repository.ActivityAffiliateConfigRepository activityAffiliateConfigRepository;
+    @Mock private com.clenzy.service.access.GuestUnlockService guestUnlockService;
 
     private WelcomeGuideService service;
 
@@ -54,7 +55,7 @@ class WelcomeGuideServiceTest {
         service = new WelcomeGuideService(guideRepository, tokenRepository, entryRepository, eventRepository,
             propertyRepository, reservationRepository, checkInInstructionsRepository, guideConfig, accessCodeResolverService,
             onlineCheckInService, photoStorageService, propertyPhotoRepository, activityAffiliateConfigRepository,
-            java.util.List.of());
+            guestUnlockService, java.util.List.of());
     }
 
     @Test
@@ -338,6 +339,76 @@ class WelcomeGuideServiceTest {
         assertThat(result).isPresent();
         assertThat(result.get().title()).isEqualTo("Public Guide");
         assertThat(result.get().practical()).isNull();
+    }
+
+    @Test
+    void getPublicGuidePayload_beforeCheckInTime_masksAccessCodeWithLock() {
+        UUID tokenValue = UUID.randomUUID();
+        Property property = new Property();
+        property.setId(99L);
+        property.setTimezone("Europe/Paris");
+
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(1L);
+        guide.setTitle("G");
+        guide.setProperty(property);
+        guide.setPublished(true);
+        Reservation reservation = new Reservation();
+        reservation.setCheckIn(LocalDate.now().plusDays(2)); // arrivée dans le futur
+        reservation.setCheckInTime("15:00");
+        reservation.setCheckOut(LocalDate.now().plusDays(5));
+        guide.setReservation(reservation);
+
+        WelcomeGuideToken token = new WelcomeGuideToken();
+        token.setToken(tokenValue);
+        token.setGuide(guide);
+        token.setExpiresAt(LocalDateTime.now().plusDays(5));
+
+        CheckInInstructions ci = new CheckInInstructions();
+        ci.setAccessCode("4827#");
+
+        when(tokenRepository.findByToken(tokenValue)).thenReturn(Optional.of(token));
+        when(checkInInstructionsRepository.findByPropertyId(99L)).thenReturn(Optional.of(ci));
+
+        WelcomeGuidePublicDto dto = service.getPublicGuidePayload(tokenValue).orElseThrow();
+        assertThat(dto.practical()).isNotNull();
+        assertThat(dto.practical().accessCode()).isNull();        // code masqué avant l'arrivée
+        assertThat(dto.practical().accessCodeLocked()).isTrue();   // cadenas affiché côté front
+    }
+
+    @Test
+    void getPublicGuidePayload_afterCheckInTime_revealsAccessCode() {
+        UUID tokenValue = UUID.randomUUID();
+        Property property = new Property();
+        property.setId(99L);
+        property.setTimezone("Europe/Paris");
+
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(1L);
+        guide.setTitle("G");
+        guide.setProperty(property);
+        guide.setPublished(true);
+        Reservation reservation = new Reservation();
+        reservation.setCheckIn(LocalDate.now().minusDays(1)); // arrivée déjà passée
+        reservation.setCheckInTime("15:00");
+        reservation.setCheckOut(LocalDate.now().plusDays(2));
+        guide.setReservation(reservation);
+
+        WelcomeGuideToken token = new WelcomeGuideToken();
+        token.setToken(tokenValue);
+        token.setGuide(guide);
+        token.setExpiresAt(LocalDateTime.now().plusDays(2));
+
+        CheckInInstructions ci = new CheckInInstructions();
+        ci.setAccessCode("4827#");
+
+        when(tokenRepository.findByToken(tokenValue)).thenReturn(Optional.of(token));
+        when(checkInInstructionsRepository.findByPropertyId(99L)).thenReturn(Optional.of(ci));
+
+        WelcomeGuidePublicDto dto = service.getPublicGuidePayload(tokenValue).orElseThrow();
+        assertThat(dto.practical()).isNotNull();
+        assertThat(dto.practical().accessCode()).isEqualTo("4827#"); // code révélé après l'arrivée
+        assertThat(dto.practical().accessCodeLocked()).isFalse();
     }
 
     @Test

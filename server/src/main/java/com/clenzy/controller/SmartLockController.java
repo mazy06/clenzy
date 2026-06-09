@@ -83,6 +83,29 @@ public class SmartLockController {
         }
     }
 
+    @PatchMapping("/{id}/access-code-mode")
+    @Operation(summary = "Changer l'origine du code d'acces",
+            description = "PMS_GENERATED (le PMS pousse le code) ou LOCK_GENERATED (la serrure genere)")
+    public ResponseEntity<?> updateAccessCodeMode(@AuthenticationPrincipal Jwt jwt,
+                                                  @PathVariable Long id,
+                                                  @RequestBody Map<String, String> body) {
+        String userId = jwt.getSubject();
+        try {
+            return ResponseEntity.ok(smartLockService.updateAccessCodeMode(userId, id, body.get("mode")));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "not_found",
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("Erreur changement de mode serrure {} pour user {}: {}", id, userId, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "server_error",
+                    "message", "Erreur lors du changement de mode"
+            ));
+        }
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Supprimer une serrure connectee")
     public ResponseEntity<?> deleteDevice(@AuthenticationPrincipal Jwt jwt,
