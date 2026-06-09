@@ -79,6 +79,14 @@ public class Reservation {
     @Column(name = "tourist_tax_amount", precision = 10, scale = 2)
     private BigDecimal touristTaxAmount;
 
+    /**
+     * Frais perçus par l'OTA sur cette réservation (ex. host fee Airbnb).
+     * Renseigné si connu (saisie ou futur webhook API canal) ; sinon null.
+     * Sert de base au calcul de commission NET_OF_OTA_FEE ; à null on retombe sur le brut.
+     */
+    @Column(name = "ota_fee_amount", precision = 10, scale = 2)
+    private BigDecimal otaFeeAmount;
+
     // --- Booking voucher / promo (migration 0157) ---
     // {@code totalPrice} contient le montant FINAL (apres voucher). Les
     // colonnes ci-dessous tracent l'application du voucher pour facturation,
@@ -253,6 +261,9 @@ public class Reservation {
 
     public BigDecimal getCleaningFee() { return cleaningFee; }
     public void setCleaningFee(BigDecimal cleaningFee) { this.cleaningFee = cleaningFee; }
+
+    public BigDecimal getOtaFeeAmount() { return otaFeeAmount; }
+    public void setOtaFeeAmount(BigDecimal otaFeeAmount) { this.otaFeeAmount = otaFeeAmount; }
 
     public BigDecimal getTaxAmount() { return taxAmount; }
     public void setTaxAmount(BigDecimal taxAmount) { this.taxAmount = taxAmount; }

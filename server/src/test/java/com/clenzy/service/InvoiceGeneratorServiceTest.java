@@ -95,7 +95,7 @@ class InvoiceGeneratorServiceTest {
             when(tenantContext.getCountryCode()).thenReturn("FR");
 
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
             when(fiscalProfileRepository.findByOrganizationId(1L))
                 .thenReturn(Optional.of(createTestFiscalProfile()));
@@ -139,7 +139,7 @@ class InvoiceGeneratorServiceTest {
 
             Invoice existing = new Invoice();
             existing.setInvoiceNumber("FA2026-00001");
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.of(existing));
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.of(existing));
 
             GenerateInvoiceRequest request = new GenerateInvoiceRequest(
                 100L, null, null, null, null);
@@ -154,7 +154,7 @@ class InvoiceGeneratorServiceTest {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
 
-            when(invoiceRepository.findByReservationId(999L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(999L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(999L)).thenReturn(Optional.empty());
 
             GenerateInvoiceRequest request = new GenerateInvoiceRequest(
@@ -171,7 +171,7 @@ class InvoiceGeneratorServiceTest {
             when(tenantContext.getCountryCode()).thenReturn("FR");
 
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
             when(fiscalProfileRepository.findByOrganizationId(1L))
                 .thenReturn(Optional.of(createTestFiscalProfile()));
@@ -213,7 +213,7 @@ class InvoiceGeneratorServiceTest {
             when(tenantContext.getCountryCode()).thenReturn("FR");
 
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
             when(fiscalProfileRepository.findByOrganizationId(1L))
                 .thenReturn(Optional.of(createTestFiscalProfile()));
@@ -252,7 +252,7 @@ class InvoiceGeneratorServiceTest {
             Reservation res = createTestReservation();
             res.setCurrency("MAD");
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(res));
             when(fiscalProfileRepository.findByOrganizationId(1L))
                 .thenReturn(Optional.of(createTestFiscalProfile()));
@@ -291,7 +291,7 @@ class InvoiceGeneratorServiceTest {
             Reservation res = createTestReservation();
             res.setCurrency(null);
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(res));
             when(fiscalProfileRepository.findByOrganizationId(1L))
                 .thenReturn(Optional.of(createTestFiscalProfile()));
@@ -559,7 +559,7 @@ class InvoiceGeneratorServiceTest {
             res.setRoomRevenue(null); // fallback to totalPrice
             res.setTotalPrice(new BigDecimal("400.00"));
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(res));
             when(fiscalProfileRepository.findByOrganizationId(1L))
                 .thenReturn(Optional.of(createTestFiscalProfile()));
@@ -591,7 +591,7 @@ class InvoiceGeneratorServiceTest {
             res.setRoomRevenue(BigDecimal.ZERO);
             res.setTotalPrice(BigDecimal.ZERO);
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(res));
             when(fiscalProfileRepository.findByOrganizationId(1L))
                 .thenReturn(Optional.of(createTestFiscalProfile()));
@@ -621,7 +621,7 @@ class InvoiceGeneratorServiceTest {
             Reservation res = createTestReservation();
             res.setCleaningFee(null);
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(res));
             when(fiscalProfileRepository.findByOrganizationId(1L))
                 .thenReturn(Optional.of(createTestFiscalProfile()));
@@ -651,7 +651,7 @@ class InvoiceGeneratorServiceTest {
             res.setCheckIn(LocalDate.of(2026, 5, 10));
             res.setCheckOut(LocalDate.of(2026, 5, 10)); // 0 nights → forced to 1
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(res));
             when(fiscalProfileRepository.findByOrganizationId(1L))
                 .thenReturn(Optional.of(createTestFiscalProfile()));
@@ -683,7 +683,7 @@ class InvoiceGeneratorServiceTest {
             fp.setVatNumber(null);
             fp.setTaxIdNumber("SIRET-12345");
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
             when(fiscalProfileRepository.findByOrganizationId(1L)).thenReturn(Optional.of(fp));
 
@@ -706,7 +706,7 @@ class InvoiceGeneratorServiceTest {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
             when(fiscalProfileRepository.findByOrganizationId(1L)).thenReturn(Optional.empty());
 
@@ -722,7 +722,7 @@ class InvoiceGeneratorServiceTest {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
             when(fiscalProfileRepository.findByOrganizationId(1L))
                 .thenReturn(Optional.of(createTestFiscalProfile()));
@@ -754,7 +754,7 @@ class InvoiceGeneratorServiceTest {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
 
-            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(100L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
             when(fiscalProfileRepository.findByOrganizationId(1L))
                 .thenReturn(Optional.of(createTestFiscalProfile()));
@@ -1089,7 +1089,7 @@ class InvoiceGeneratorServiceTest {
             // Already linked → linkDocumentGeneration short-circuits
             existing.setDocumentGenerationId(999L);
 
-            when(invoiceRepository.findByReservationId(50L)).thenReturn(Optional.of(existing));
+            when(invoiceRepository.findByReservationIdAndInvoiceType(50L, InvoiceType.GUEST)).thenReturn(Optional.of(existing));
 
             Invoice result = service.createIssuedFromDocumentGeneration(
                 ReferenceType.RESERVATION, 50L, 1L, "FA-2026-00001", 999L);
@@ -1105,7 +1105,7 @@ class InvoiceGeneratorServiceTest {
             existing.setStatus(InvoiceStatus.ISSUED);
             existing.setDocumentGenerationId(null);
 
-            when(invoiceRepository.findByReservationId(50L)).thenReturn(Optional.of(existing));
+            when(invoiceRepository.findByReservationIdAndInvoiceType(50L, InvoiceType.GUEST)).thenReturn(Optional.of(existing));
             when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Invoice result = service.createIssuedFromDocumentGeneration(
@@ -1122,7 +1122,7 @@ class InvoiceGeneratorServiceTest {
             existing.setStatus(InvoiceStatus.ISSUED);
             existing.setDocumentGenerationId(888L);
 
-            when(invoiceRepository.findByReservationId(50L)).thenReturn(Optional.of(existing));
+            when(invoiceRepository.findByReservationIdAndInvoiceType(50L, InvoiceType.GUEST)).thenReturn(Optional.of(existing));
 
             Invoice result = service.createIssuedFromDocumentGeneration(
                 ReferenceType.RESERVATION, 50L, 1L, "FA-2026-00001", 999L);
@@ -1134,7 +1134,7 @@ class InvoiceGeneratorServiceTest {
         @Test
         void shouldCreateIssuedInvoiceForReservationWhenNotExisting() {
             // No existing Invoice
-            when(invoiceRepository.findByReservationId(50L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(50L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(50L)).thenReturn(Optional.of(createTestReservation()));
 
             FiscalProfile fp = createTestFiscalProfile();
@@ -1183,7 +1183,7 @@ class InvoiceGeneratorServiceTest {
 
         @Test
         void shouldThrowWhenReservationNotFound() {
-            when(invoiceRepository.findByReservationId(99L)).thenReturn(Optional.empty());
+            when(invoiceRepository.findByReservationIdAndInvoiceType(99L, InvoiceType.GUEST)).thenReturn(Optional.empty());
             when(reservationRepository.findById(99L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.createIssuedFromDocumentGeneration(

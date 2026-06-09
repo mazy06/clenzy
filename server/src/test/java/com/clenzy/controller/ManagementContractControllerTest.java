@@ -42,7 +42,7 @@ class ManagementContractControllerTest {
             id, 1L, 2L, "C-" + id, ContractType.FULL_MANAGEMENT,
             ContractStatus.ACTIVE, LocalDate.now(), LocalDate.now().plusYears(1),
             new BigDecimal("0.20"), 2, true, 30, false, false,
-            "notes", Instant.now(), null, null, Instant.now(), null, null);
+            "notes", Instant.now(), null, null, Instant.now(), null, null, null, null);
     }
 
     @Test

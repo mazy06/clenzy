@@ -24,6 +24,7 @@ import DashboardErrorBoundary from './DashboardErrorBoundary';
 import OnboardingChecklist from './OnboardingChecklist';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import ContractCTABanner from './ContractCTABanner';
+import MissingContractsDashboardAlert from './MissingContractsDashboardAlert';
 import ChannelHealthWidget from './ChannelHealthWidget';
 import ContextualTipsWidget from './ContextualTipsWidget';
 import MiniPlanningWidget from './MiniPlanningWidget';
@@ -258,6 +259,9 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
           }),
         }}
       >
+
+      {/* Alerte urgente : propriétés sans contrat de gestion */}
+      <MissingContractsDashboardAlert />
 
       {/* ═══ Two-column global layout ═══════════════════════════════════ */}
       <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', lg: 'row' }, alignItems: 'flex-start' }}>

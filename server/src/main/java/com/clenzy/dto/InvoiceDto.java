@@ -2,6 +2,7 @@ package com.clenzy.dto;
 
 import com.clenzy.model.Invoice;
 import com.clenzy.model.InvoiceStatus;
+import com.clenzy.model.InvoiceType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -34,6 +35,7 @@ public record InvoiceDto(
     Long documentGenerationId,
     Long duplicateOfId,
     InvoiceStatus status,
+    InvoiceType invoiceType,
     String legalMentions,
     String paymentMethod,
     LocalDateTime paidAt,
@@ -68,6 +70,7 @@ public record InvoiceDto(
             invoice.getDocumentGenerationId(),
             invoice.getDuplicateOfId(),
             invoice.getStatus(),
+            invoice.getInvoiceType(),
             invoice.getLegalMentions(),
             invoice.getPaymentMethod(),
             invoice.getPaidAt(),

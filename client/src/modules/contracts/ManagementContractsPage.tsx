@@ -16,6 +16,8 @@ import {
   type CreateManagementContractRequest,
   type ContractStatus,
   type ContractType,
+  type PaymentModel,
+  type CommissionBase,
 } from '../../services/api/managementContractsApi';
 import { documentsApi } from '../../services/api/documentsApi';
 import { splitConfigApi } from '../../services/api/splitConfigApi';
@@ -46,9 +48,91 @@ const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
   CUSTOM:           'Personnalisé',
 };
 
-interface PropertyOption { id: number; name: string; ownerId: number; ownerName?: string }
+// ─── Taxonomie OTA : qui encaisse le paiement guest ─────────────────────────
 
-const EMPTY_FORM: CreateManagementContractRequest = {
+const PAYMENT_MODEL_LABELS: Record<PaymentModel, string> = {
+  DIRECT:             'Direct — Clenzy encaisse (Stripe)',
+  OWNER_COLLECTS:     'OTA — Le propriétaire encaisse',
+  CONCIERGE_COLLECTS: 'OTA — La conciergerie encaisse',
+  OTA_COHOST_SPLIT:   'OTA — Co-hosting (split à la source)',
+};
+
+const PAYMENT_MODEL_HELP: Record<PaymentModel, string> = {
+  DIRECT:             'Le guest paie via Clenzy (Stripe). La répartition est appliquée automatiquement à l\'encaissement.',
+  OWNER_COLLECTS:     'L\'OTA verse au propriétaire. La conciergerie facture sa commission au propriétaire (créance).',
+  CONCIERGE_COLLECTS: 'L\'OTA verse à la conciergerie. Elle reverse la part nette au propriétaire (reversement).',
+  OTA_COHOST_SPLIT:   'L\'OTA répartit directement entre les co-hosts. Clenzy réconcilie, sans flux d\'argent.',
+};
+
+const COMMISSION_BASE_LABELS: Record<CommissionBase, string> = {
+  GROSS:          'Montant brut (loyer encaissé)',
+  NET_OF_OTA_FEE: 'Net des frais OTA (après commission plateforme)',
+};
+
+/**
+ * Préconfigurations : selon l'accord conciergerie ↔ hôte, on préremplit un jeu de
+ * valeurs cohérent. L'utilisateur ajuste ensuite les détails avant transmission.
+ */
+interface ContractPreset {
+  id: string;
+  label: string;
+  description: string;
+  values: Partial<CreateManagementContractRequest>;
+}
+
+const CONTRACT_PRESETS: ContractPreset[] = [
+  {
+    id: 'full-concierge',
+    label: 'Gestion complète — Conciergerie encaisse',
+    description: 'La conciergerie gère tout et encaisse les OTA, puis reverse au propriétaire.',
+    values: {
+      contractType: 'FULL_MANAGEMENT', paymentModel: 'CONCIERGE_COLLECTS',
+      commissionRate: 0.20, commissionBase: 'GROSS',
+      cleaningFeeIncluded: true, maintenanceIncluded: true,
+    },
+  },
+  {
+    id: 'full-owner',
+    label: 'Gestion complète — Propriétaire encaisse',
+    description: 'Le propriétaire reçoit les versements OTA ; la conciergerie facture sa commission.',
+    values: {
+      contractType: 'FULL_MANAGEMENT', paymentModel: 'OWNER_COLLECTS',
+      commissionRate: 0.20, commissionBase: 'GROSS',
+      cleaningFeeIncluded: true, maintenanceIncluded: true,
+    },
+  },
+  {
+    id: 'cohost',
+    label: 'Co-hosting Airbnb (split à la source)',
+    description: 'Airbnb répartit directement entre co-hosts. Aucun flux ne transite par Clenzy.',
+    values: {
+      contractType: 'BOOKING_ONLY', paymentModel: 'OTA_COHOST_SPLIT',
+      commissionRate: 0.15, commissionBase: 'GROSS',
+    },
+  },
+  {
+    id: 'direct',
+    label: 'Paiement direct (Clenzy encaisse)',
+    description: 'Le guest paie via Stripe. La répartition est automatique à l\'encaissement.',
+    values: {
+      contractType: 'FULL_MANAGEMENT', paymentModel: 'DIRECT',
+      commissionRate: 0.20, commissionBase: 'GROSS',
+    },
+  },
+  {
+    id: 'booking-light',
+    label: 'Conciergerie légère — Réservations seules',
+    description: 'Apport de réservations uniquement, commission réduite sur le net OTA.',
+    values: {
+      contractType: 'BOOKING_ONLY', paymentModel: 'OWNER_COLLECTS',
+      commissionRate: 0.12, commissionBase: 'NET_OF_OTA_FEE',
+    },
+  },
+];
+
+export interface PropertyOption { id: number; name: string; ownerId: number; ownerName?: string }
+
+export const EMPTY_FORM: CreateManagementContractRequest = {
   propertyId: 0,
   ownerId: 0,
   contractType: 'FULL_MANAGEMENT',
@@ -62,6 +146,8 @@ const EMPTY_FORM: CreateManagementContractRequest = {
   maintenanceIncluded: true,
   upsellCommissionRate: null,
   activityCommissionRate: null,
+  paymentModel: 'DIRECT',
+  commissionBase: 'GROSS',
   notes: '',
 };
 
@@ -179,6 +265,8 @@ const ManagementContractsPage: React.FC = () => {
       maintenanceIncluded: contract.maintenanceIncluded,
       upsellCommissionRate: contract.upsellCommissionRate,
       activityCommissionRate: contract.activityCommissionRate,
+      paymentModel: contract.paymentModel,
+      commissionBase: contract.commissionBase,
       notes: contract.notes ?? '',
     });
     setEditingContract(contract);
@@ -192,15 +280,6 @@ const ManagementContractsPage: React.FC = () => {
       propertyId: properties.length > 0 ? properties[0].id : 0,
       ownerId: properties.length > 0 ? properties[0].ownerId : 0,
     });
-  };
-
-  const handlePropertyChange = (propertyId: number) => {
-    const prop = properties.find(p => p.id === propertyId);
-    setForm(prev => ({
-      ...prev,
-      propertyId,
-      ownerId: prop?.ownerId ?? prev.ownerId,
-    }));
   };
 
   const handleSave = async () => {
@@ -406,158 +485,13 @@ const ManagementContractsPage: React.FC = () => {
           )}
         </Box>
 
-        {/* Grid 12-col à 4 groupes */}
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(12, 1fr)' },
-          gap: { xs: 1, md: 1.25 },
-          alignItems: 'flex-start',
-        }}>
-          {/* ── Logement ── */}
-          <FieldGroup label="Logement" span={{ md: 5 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 1 }}>
-              <TextField
-                select label={t('contracts.property')} value={form.propertyId || ''}
-                onChange={e => handlePropertyChange(Number(e.target.value))}
-                size="small" fullWidth
-                InputProps={{ startAdornment: <InputAdornment position="start"><Home size={14} strokeWidth={1.75} /></InputAdornment> }}
-              >
-                {properties.map(p => (
-                  <MenuItem key={p.id} value={p.id}>
-                    {p.name}{p.ownerName ? ` (${p.ownerName})` : ''}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select label={t('contracts.type')} value={form.contractType}
-                onChange={e => setForm(prev => ({ ...prev, contractType: e.target.value as ContractType }))}
-                size="small" fullWidth
-              >
-                {(Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(([key, label]) => (
-                  <MenuItem key={key} value={key}>{label}</MenuItem>
-                ))}
-              </TextField>
-            </Box>
-          </FieldGroup>
-
-          {/* ── Période ── */}
-          <FieldGroup label="Période" span={{ md: 5 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.65fr 0.65fr', gap: 1 }}>
-              <TextField
-                label={t('contracts.startDate')} type="date" value={form.startDate}
-                onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
-                size="small" fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label={t('contracts.endDate')} type="date" value={form.endDate ?? ''}
-                onChange={e => setForm(prev => ({ ...prev, endDate: e.target.value || null }))}
-                size="small" fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label="Nuits min." type="number"
-                value={form.minimumStayNights ?? ''}
-                onChange={e => setForm(prev => ({ ...prev, minimumStayNights: e.target.value ? Number(e.target.value) : null }))}
-                size="small" fullWidth
-                inputProps={{ min: 1 }}
-              />
-              <TextField
-                label="Préavis" type="number"
-                value={form.noticePeriodDays ?? 30}
-                onChange={e => setForm(prev => ({ ...prev, noticePeriodDays: Number(e.target.value) }))}
-                size="small" fullWidth
-                InputProps={{ endAdornment: <InputAdornment position="end">j</InputAdornment> }}
-              />
-            </Box>
-          </FieldGroup>
-
-          {/* ── Commission ── */}
-          <FieldGroup label="Commission" span={{ md: 2 }}>
-            <TextField
-              label="Taux" type="number"
-              value={form.commissionRate > 0 ? Math.round(form.commissionRate * 100) : ''}
-              onChange={e => setForm(prev => ({ ...prev, commissionRate: e.target.value ? Number(e.target.value) / 100 : 0 }))}
-              size="small" fullWidth
-              placeholder="—"
-              InputProps={{
-                startAdornment: <InputAdornment position="start"><Euro size={12} strokeWidth={1.75} /></InputAdornment>,
-                endAdornment: <InputAdornment position="end">%</InputAdornment>,
-              }}
-              inputProps={{ min: 1, max: 50, step: 1 }}
-            />
-          </FieldGroup>
-
-          {/* ── Commissions services (upsells & marketplace) ── */}
-          <FieldGroup label="Commissions services" span={{ md: 2 }}>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <TextField
-                label="Upsells" type="number"
-                value={form.upsellCommissionRate != null ? Math.round(form.upsellCommissionRate * 100) : ''}
-                onChange={e => setForm(prev => ({ ...prev, upsellCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
-                size="small" fullWidth
-                placeholder="Défaut org"
-                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-                inputProps={{ min: 0, max: 100, step: 1 }}
-              />
-              <TextField
-                label="Marketplace" type="number"
-                value={form.activityCommissionRate != null ? Math.round(form.activityCommissionRate * 100) : ''}
-                onChange={e => setForm(prev => ({ ...prev, activityCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
-                size="small" fullWidth
-                placeholder="Défaut org"
-                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-                inputProps={{ min: 0, max: 100, step: 1 }}
-              />
-            </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-              Part conciergerie. La commission plateforme est fixée par la plateforme ; le propriétaire reçoit le solde. Vide = répartition par défaut de l'organisation.
-            </Typography>
-          </FieldGroup>
-
-          {/* ── Inclusions ── */}
-          <FieldGroup label="Inclusions" span={{ md: 6 }}>
-            <Box sx={{
-              display: 'flex',
-              gap: 0.5,
-              flexWrap: 'wrap',
-              minHeight: 36,
-              alignItems: 'center',
-              pl: 0.5,
-            }}>
-              <FormControlLabel
-                control={<Switch size="small" checked={form.autoRenew ?? false} onChange={e => setForm(prev => ({ ...prev, autoRenew: e.target.checked }))} />}
-                label="Renouvellement auto"
-                sx={{ mr: 1.5 }}
-              />
-              <FormControlLabel
-                control={<Switch size="small" checked={form.cleaningFeeIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, cleaningFeeIncluded: e.target.checked }))} />}
-                label="Ménage inclus"
-                sx={{ mr: 1.5 }}
-              />
-              <FormControlLabel
-                control={<Switch size="small" checked={form.maintenanceIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, maintenanceIncluded: e.target.checked }))} />}
-                label="Maintenance incluse"
-              />
-            </Box>
-          </FieldGroup>
-
-          {/* ── Répartition (split bar) ── */}
-          <FieldGroup label="Répartition des paiements" span={{ md: 6 }}>
-            <SplitPreviewBar commissionRate={form.commissionRate} splitRatios={splitRatios} />
-          </FieldGroup>
-
-          {/* ── Notes ── */}
-          <FieldGroup label="Notes" span={{ md: 12 }}>
-            <TextField
-              value={form.notes ?? ''}
-              onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
-              size="small"
-              fullWidth
-              placeholder="Détails complémentaires, conditions particulières… (optionnel)"
-            />
-          </FieldGroup>
-        </Box>
+        {/* Formulaire (préconfigurations + groupes) — partagé avec la modal obligatoire */}
+        <ManagementContractFormFields
+          form={form}
+          setForm={setForm}
+          properties={properties}
+          splitRatios={splitRatios}
+        />
 
         {editingContract && (
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
@@ -882,6 +816,259 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
           </TableBody>
         </Table>
       </TableContainer>
+    </Box>
+  );
+};
+
+// ─── Reusable contract form fields (page /contracts + mandatory modal) ──
+
+export interface ManagementContractFormFieldsProps {
+  form: CreateManagementContractRequest;
+  setForm: React.Dispatch<React.SetStateAction<CreateManagementContractRequest>>;
+  properties: PropertyOption[];
+  splitRatios: SplitRatios | null;
+  /** Verrouille le sélecteur de logement (modal liée à une propriété donnée). */
+  lockProperty?: boolean;
+}
+
+/**
+ * Champs du formulaire de contrat (préconfigurations + groupes visuels), partagés entre
+ * la page de gestion des contrats et la modal obligatoire à la création de propriété.
+ */
+export const ManagementContractFormFields: React.FC<ManagementContractFormFieldsProps> = ({
+  form, setForm, properties, splitRatios, lockProperty = false,
+}) => {
+  const { t } = useTranslation();
+
+  const applyPreset = (preset: ContractPreset) => {
+    setForm(prev => ({ ...prev, ...preset.values }));
+  };
+  const isPresetActive = (preset: ContractPreset) =>
+    (Object.keys(preset.values) as (keyof CreateManagementContractRequest)[])
+      .every(k => form[k] === preset.values[k]);
+  const handlePropertyChange = (propertyId: number) => {
+    const prop = properties.find(p => p.id === propertyId);
+    setForm(prev => ({ ...prev, propertyId, ownerId: prop?.ownerId ?? prev.ownerId }));
+  };
+
+  return (
+    <Box sx={{
+      display: 'grid',
+      gridTemplateColumns: { xs: '1fr', md: 'repeat(12, 1fr)' },
+      gap: { xs: 1, md: 1.25 },
+      alignItems: 'flex-start',
+    }}>
+      {/* ── Préconfiguration (modèles d'accord) ── */}
+      <FieldGroup label="Préconfiguration" span={{ md: 12 }}>
+        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+          {CONTRACT_PRESETS.map(preset => {
+            const active = isPresetActive(preset);
+            return (
+              <Tooltip key={preset.id} title={preset.description} arrow>
+                <Box
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => applyPreset(preset)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyPreset(preset); } }}
+                  sx={{
+                    cursor: 'pointer',
+                    px: 1.25, py: 0.625,
+                    borderRadius: 1.5,
+                    border: '1px solid',
+                    borderColor: active ? '#6B8A9A' : 'divider',
+                    bgcolor: active ? 'rgba(107,138,154,0.10)' : 'transparent',
+                    transition: 'background-color 180ms ease-out, border-color 180ms ease-out',
+                    '&:hover': { borderColor: '#6B8A9A', bgcolor: 'rgba(107,138,154,0.06)' },
+                    '&:focus-visible': { outline: '2px solid #6B8A9A', outlineOffset: 1 },
+                    maxWidth: 210,
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ fontSize: '0.8125rem', fontWeight: active ? 600 : 500, lineHeight: 1.25 }}
+                  >
+                    {preset.label}
+                  </Typography>
+                </Box>
+              </Tooltip>
+            );
+          })}
+        </Box>
+      </FieldGroup>
+
+      {/* ── Logement ── */}
+      <FieldGroup label="Logement" span={{ md: 5 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 1 }}>
+          <TextField
+            select label={t('contracts.property')} value={form.propertyId || ''}
+            onChange={e => handlePropertyChange(Number(e.target.value))}
+            size="small" fullWidth
+            disabled={lockProperty}
+            InputProps={{ startAdornment: <InputAdornment position="start"><Home size={14} strokeWidth={1.75} /></InputAdornment> }}
+          >
+            {properties.map(p => (
+              <MenuItem key={p.id} value={p.id}>
+                {p.name}{p.ownerName ? ` (${p.ownerName})` : ''}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select label={t('contracts.type')} value={form.contractType}
+            onChange={e => setForm(prev => ({ ...prev, contractType: e.target.value as ContractType }))}
+            size="small" fullWidth
+          >
+            {(Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(([key, label]) => (
+              <MenuItem key={key} value={key}>{label}</MenuItem>
+            ))}
+          </TextField>
+        </Box>
+      </FieldGroup>
+
+      {/* ── Période ── */}
+      <FieldGroup label="Période" span={{ md: 5 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.65fr 0.65fr', gap: 1 }}>
+          <TextField
+            label={t('contracts.startDate')} type="date" value={form.startDate}
+            onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
+            size="small" fullWidth
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label={t('contracts.endDate')} type="date" value={form.endDate ?? ''}
+            onChange={e => setForm(prev => ({ ...prev, endDate: e.target.value || null }))}
+            size="small" fullWidth
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Nuits min." type="number"
+            value={form.minimumStayNights ?? ''}
+            onChange={e => setForm(prev => ({ ...prev, minimumStayNights: e.target.value ? Number(e.target.value) : null }))}
+            size="small" fullWidth
+            inputProps={{ min: 1 }}
+          />
+          <TextField
+            label="Préavis" type="number"
+            value={form.noticePeriodDays ?? 30}
+            onChange={e => setForm(prev => ({ ...prev, noticePeriodDays: Number(e.target.value) }))}
+            size="small" fullWidth
+            InputProps={{ endAdornment: <InputAdornment position="end">j</InputAdornment> }}
+          />
+        </Box>
+      </FieldGroup>
+
+      {/* ── Commission ── */}
+      <FieldGroup label="Commission" span={{ md: 2 }}>
+        <TextField
+          label="Taux" type="number"
+          value={form.commissionRate > 0 ? Math.round(form.commissionRate * 100) : ''}
+          onChange={e => setForm(prev => ({ ...prev, commissionRate: e.target.value ? Number(e.target.value) / 100 : 0 }))}
+          size="small" fullWidth
+          placeholder="—"
+          InputProps={{
+            startAdornment: <InputAdornment position="start"><Euro size={12} strokeWidth={1.75} /></InputAdornment>,
+            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+          }}
+          inputProps={{ min: 1, max: 50, step: 1 }}
+        />
+      </FieldGroup>
+
+      {/* ── Encaissement (taxonomie OTA : qui perçoit le paiement guest) ── */}
+      <FieldGroup label="Encaissement" span={{ md: 12 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1.3fr 1fr' }, gap: 1 }}>
+          <TextField
+            select label="Qui encaisse le paiement guest ?" value={form.paymentModel ?? 'DIRECT'}
+            onChange={e => setForm(prev => ({ ...prev, paymentModel: e.target.value as PaymentModel }))}
+            size="small" fullWidth
+            InputProps={{ startAdornment: <InputAdornment position="start"><Handshake size={14} strokeWidth={1.75} /></InputAdornment> }}
+          >
+            {(Object.entries(PAYMENT_MODEL_LABELS) as [PaymentModel, string][]).map(([key, label]) => (
+              <MenuItem key={key} value={key}>{label}</MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select label="Base de commission" value={form.commissionBase ?? 'GROSS'}
+            onChange={e => setForm(prev => ({ ...prev, commissionBase: e.target.value as CommissionBase }))}
+            size="small" fullWidth
+          >
+            {(Object.entries(COMMISSION_BASE_LABELS) as [CommissionBase, string][]).map(([key, label]) => (
+              <MenuItem key={key} value={key}>{label}</MenuItem>
+            ))}
+          </TextField>
+        </Box>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+          {PAYMENT_MODEL_HELP[form.paymentModel ?? 'DIRECT']}
+        </Typography>
+      </FieldGroup>
+
+      {/* ── Commissions services (upsells & marketplace) ── */}
+      <FieldGroup label="Commissions services" span={{ md: 2 }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <TextField
+            label="Upsells" type="number"
+            value={form.upsellCommissionRate != null ? Math.round(form.upsellCommissionRate * 100) : ''}
+            onChange={e => setForm(prev => ({ ...prev, upsellCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
+            size="small" fullWidth
+            placeholder="Défaut org"
+            InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+            inputProps={{ min: 0, max: 100, step: 1 }}
+          />
+          <TextField
+            label="Marketplace" type="number"
+            value={form.activityCommissionRate != null ? Math.round(form.activityCommissionRate * 100) : ''}
+            onChange={e => setForm(prev => ({ ...prev, activityCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
+            size="small" fullWidth
+            placeholder="Défaut org"
+            InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+            inputProps={{ min: 0, max: 100, step: 1 }}
+          />
+        </Box>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+          Part conciergerie. La commission plateforme est fixée par la plateforme ; le propriétaire reçoit le solde. Vide = répartition par défaut de l'organisation.
+        </Typography>
+      </FieldGroup>
+
+      {/* ── Inclusions ── */}
+      <FieldGroup label="Inclusions" span={{ md: 6 }}>
+        <Box sx={{
+          display: 'flex',
+          gap: 0.5,
+          flexWrap: 'wrap',
+          minHeight: 36,
+          alignItems: 'center',
+          pl: 0.5,
+        }}>
+          <FormControlLabel
+            control={<Switch size="small" checked={form.autoRenew ?? false} onChange={e => setForm(prev => ({ ...prev, autoRenew: e.target.checked }))} />}
+            label="Renouvellement auto"
+            sx={{ mr: 1.5 }}
+          />
+          <FormControlLabel
+            control={<Switch size="small" checked={form.cleaningFeeIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, cleaningFeeIncluded: e.target.checked }))} />}
+            label="Ménage inclus"
+            sx={{ mr: 1.5 }}
+          />
+          <FormControlLabel
+            control={<Switch size="small" checked={form.maintenanceIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, maintenanceIncluded: e.target.checked }))} />}
+            label="Maintenance incluse"
+          />
+        </Box>
+      </FieldGroup>
+
+      {/* ── Répartition (split bar) ── */}
+      <FieldGroup label="Répartition des paiements" span={{ md: 6 }}>
+        <SplitPreviewBar commissionRate={form.commissionRate} splitRatios={splitRatios} />
+      </FieldGroup>
+
+      {/* ── Notes ── */}
+      <FieldGroup label="Notes" span={{ md: 12 }}>
+        <TextField
+          value={form.notes ?? ''}
+          onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
+          size="small"
+          fullWidth
+          placeholder="Détails complémentaires, conditions particulières… (optionnel)"
+        />
+      </FieldGroup>
     </Box>
   );
 };
