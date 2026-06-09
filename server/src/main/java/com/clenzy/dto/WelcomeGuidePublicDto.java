@@ -184,11 +184,23 @@ public record WelcomeGuidePublicDto(
             resolveEmergency(ci, p), ci.getAdditionalNotes(),
             ci.getArrivalPhotos() != null ? ci.getArrivalPhotos() : "[]"
         );
-        StayInfo stayInfo = (p == null) ? null : new StayInfo(
-            null, null,
-            p.getDefaultCheckInTime(), p.getDefaultCheckOutTime(),
-            null, null
-        );
+        // Si une reservation est rattachee (sejour en cours / a venir), l'apercu reflete le VRAI
+        // sejour : nom du voyageur, dates et nombre de voyageurs (c'est ce qui alimente le bandeau
+        // "Bienvenue, <prenom>"). Sans reservation, on retombe sur les seuls horaires par defaut du
+        // logement (pas de guest).
+        StayInfo stayInfo;
+        if (currentReservation != null) {
+            stayInfo = new StayInfo(
+                currentReservation.getCheckIn(), currentReservation.getCheckOut(),
+                firstNonBlank(currentReservation.getCheckInTime(), p != null ? p.getDefaultCheckInTime() : null),
+                firstNonBlank(currentReservation.getCheckOutTime(), p != null ? p.getDefaultCheckOutTime() : null),
+                currentReservation.getGuestName(), currentReservation.getGuestCount()
+            );
+        } else if (p != null) {
+            stayInfo = new StayInfo(null, null, p.getDefaultCheckInTime(), p.getDefaultCheckOutTime(), null, null);
+        } else {
+            stayInfo = null;
+        }
         return new PreviewData(propertyInfo, practicalInfo, stayInfo, ReservationRef.from(currentReservation));
     }
 
