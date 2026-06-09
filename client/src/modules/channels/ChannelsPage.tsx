@@ -1,21 +1,19 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
   Alert,
   Snackbar,
-  ToggleButtonGroup,
-  ToggleButton,
 } from '@mui/material';
 import {
   Link as LinkIcon,
   Refresh as RefreshIcon,
-  ViewList as ViewListIcon,
-  GridView as GridViewIcon,
 } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { Star as StarIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import FilterSearchBar from '../../components/FilterSearchBar';
+import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   useAirbnbConnectionStatus,
@@ -33,7 +31,7 @@ import { useChannelConnections, useDisconnectChannel } from '../../hooks/useChan
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
 import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
 import type { ChannelId } from '../../services/api/channelConnectionApi';
-import { type OtaChannel } from '../../services/channels/otaChannels';
+import { OTA_CHANNELS, type OtaChannel } from '../../services/channels/otaChannels';
 import ChannelConnectDialog from './ChannelConnectDialog';
 import ChannelsListView from './ChannelsListView';
 import ChannelsGridView from './ChannelsGridView';
@@ -91,6 +89,18 @@ const ChannelsPage: React.FC = () => {
     'grid',
     VIEW_MODES,
   );
+
+  // Recherche + filtre par segment (B2C / B2B) sur le catalogue d'intégrations.
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSegment, setSelectedSegment] = useState('all');
+  const filteredChannels = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return OTA_CHANNELS.filter((c) => {
+      const matchesSearch = !q || c.name.toLowerCase().includes(q);
+      const matchesSegment = selectedSegment === 'all' || c.segment === selectedSegment;
+      return matchesSearch && matchesSegment;
+    });
+  }, [searchTerm, selectedSegment]);
 
   // Link dialog
   const [linkingPropertyId, setLinkingPropertyId] = useState<number | null>(null);
@@ -187,6 +197,29 @@ const ChannelsPage: React.FC = () => {
   const linkedPropertyIds = new Set(listings.map((l) => l.propertyId));
   const unlinkableProperties = properties.filter((p) => !linkedPropertyIds.has(p.id));
 
+  const filterBar = (
+    <FilterSearchBar
+      bare
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      searchPlaceholder={t('channels.searchPlaceholder', 'Rechercher une intégration…')}
+      filters={{
+        category: {
+          value: selectedSegment,
+          options: [
+            { value: 'all', label: t('common.all', 'Tous') },
+            { value: 'B2C', label: 'B2C' },
+            { value: 'B2B', label: 'B2B' },
+          ],
+          onChange: setSelectedSegment,
+          label: t('channels.segment', 'Segment'),
+        },
+      }}
+      counter={{ label: t('channels.counterLabel', 'intégration'), count: filteredChannels.length, singular: '', plural: 's' }}
+      viewToggle={{ mode: viewMode, onChange: (m) => setViewMode(m as 'list' | 'grid'), modes: ['grid', 'list'] }}
+    />
+  );
+
   return (
     <Box>
       <PageHeader
@@ -195,22 +228,9 @@ const ChannelsPage: React.FC = () => {
         iconBadge={<LinkIcon />}
         backPath="/settings"
         showBackButton={false}
+        filters={filterBar}
         actions={
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <ToggleButtonGroup
-              value={viewMode}
-              exclusive
-              onChange={(_, v) => { if (v) setViewMode(v); }}
-              size="small"
-              sx={{ height: 30 }}
-            >
-              <ToggleButton value="list" sx={{ px: 1 }}>
-                <ViewListIcon size={16} strokeWidth={1.75} />
-              </ToggleButton>
-              <ToggleButton value="grid" sx={{ px: 1 }}>
-                <GridViewIcon size={16} strokeWidth={1.75} />
-              </ToggleButton>
-            </ToggleButtonGroup>
             <Button
               size="small"
               variant="outlined"
@@ -242,8 +262,15 @@ const ChannelsPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════════
           OTA Channels — List or Grid
           ═══════════════════════════════════════════════════════════════════════ */}
-      {viewMode === 'list' ? (
+      {filteredChannels.length === 0 ? (
+        <EmptyState
+          icon={<LinkIcon />}
+          title={t('channels.empty.title', 'Aucune intégration trouvée')}
+          description={t('channels.empty.description', 'Ajuste ta recherche ou le filtre de segment.')}
+        />
+      ) : viewMode === 'list' ? (
         <ChannelsListView
+          channels={filteredChannels}
           isConnected={isConnected}
           connectionStatus={connectionStatus}
           connectionLoading={connectionLoading}
@@ -261,6 +288,7 @@ const ChannelsPage: React.FC = () => {
         />
       ) : (
         <ChannelsGridView
+          channels={filteredChannels}
           isConnected={isConnected}
           connectionStatus={connectionStatus}
           connectionLoading={connectionLoading}

@@ -40,6 +40,8 @@ interface FilterConfig {
 export interface ViewToggleConfig {
   mode: 'grid' | 'list' | 'map';
   onChange: (mode: 'grid' | 'list' | 'map') => void;
+  /** Boutons de vue à afficher. Défaut : les 3 (grid/list/map). */
+  modes?: Array<'grid' | 'list' | 'map'>;
 }
 
 export interface FilterSearchBarProps {
@@ -255,43 +257,52 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
           {getCounterText()}
         </Typography>
 
-        {viewToggle && (
-          <Box sx={{ display: 'flex', gap: 0.25 }}>
-            <IconButton
-              size="small"
-              onClick={() => viewToggle.onChange('grid')}
-              sx={{
-                ...VIEW_TOGGLE_BUTTON_SX,
-                color: viewToggle.mode === 'grid' ? 'primary.main' : 'text.disabled',
-                bgcolor: viewToggle.mode === 'grid' ? 'rgba(107,138,154,0.08)' : 'transparent',
-              }}
-            >
-              <GridView size={18} strokeWidth={1.75} />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => viewToggle.onChange('list')}
-              sx={{
-                ...VIEW_TOGGLE_BUTTON_SX,
-                color: viewToggle.mode === 'list' ? 'primary.main' : 'text.disabled',
-                bgcolor: viewToggle.mode === 'list' ? 'rgba(107,138,154,0.08)' : 'transparent',
-              }}
-            >
-              <ViewList size={18} strokeWidth={1.75} />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => viewToggle.onChange('map')}
-              sx={{
-                ...VIEW_TOGGLE_BUTTON_SX,
-                color: viewToggle.mode === 'map' ? 'primary.main' : 'text.disabled',
-                bgcolor: viewToggle.mode === 'map' ? 'rgba(107,138,154,0.08)' : 'transparent',
-              }}
-            >
-              <MapIcon size={18} strokeWidth={1.75} />
-            </IconButton>
-          </Box>
-        )}
+        {viewToggle ? (() => {
+          const shownModes = viewToggle.modes ?? ['grid', 'list', 'map'];
+          return (
+            <Box sx={{ display: 'flex', gap: 0.25 }}>
+              {shownModes.includes('grid') ? (
+                <IconButton
+                  size="small"
+                  onClick={() => viewToggle.onChange('grid')}
+                  sx={{
+                    ...VIEW_TOGGLE_BUTTON_SX,
+                    color: viewToggle.mode === 'grid' ? 'primary.main' : 'text.disabled',
+                    bgcolor: viewToggle.mode === 'grid' ? 'rgba(107,138,154,0.08)' : 'transparent',
+                  }}
+                >
+                  <GridView size={18} strokeWidth={1.75} />
+                </IconButton>
+              ) : null}
+              {shownModes.includes('list') ? (
+                <IconButton
+                  size="small"
+                  onClick={() => viewToggle.onChange('list')}
+                  sx={{
+                    ...VIEW_TOGGLE_BUTTON_SX,
+                    color: viewToggle.mode === 'list' ? 'primary.main' : 'text.disabled',
+                    bgcolor: viewToggle.mode === 'list' ? 'rgba(107,138,154,0.08)' : 'transparent',
+                  }}
+                >
+                  <ViewList size={18} strokeWidth={1.75} />
+                </IconButton>
+              ) : null}
+              {shownModes.includes('map') ? (
+                <IconButton
+                  size="small"
+                  onClick={() => viewToggle.onChange('map')}
+                  sx={{
+                    ...VIEW_TOGGLE_BUTTON_SX,
+                    color: viewToggle.mode === 'map' ? 'primary.main' : 'text.disabled',
+                    bgcolor: viewToggle.mode === 'map' ? 'rgba(107,138,154,0.08)' : 'transparent',
+                  }}
+                >
+                  <MapIcon size={18} strokeWidth={1.75} />
+                </IconButton>
+              ) : null}
+            </Box>
+          );
+        })() : null}
 
         {/* Filter button with badge */}
         <IconButton
