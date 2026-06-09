@@ -5,6 +5,7 @@ import com.clenzy.dto.ICalImportDto.ImportResponse;
 import com.clenzy.dto.ICalImportDto.PreviewResponse;
 import com.clenzy.model.Guest;
 import com.clenzy.model.ICalFeed;
+import com.clenzy.model.InvoiceType;
 import com.clenzy.model.Property;
 import com.clenzy.model.PropertyType;
 import com.clenzy.model.Reservation;
@@ -89,7 +90,7 @@ class ICalImportServiceImportFlowTest {
     @Mock private CalendarEngine calendarEngine;
     @Mock private GuestService guestService;
     @Mock private ServiceRequestService serviceRequestService;
-    @Mock private AutoInvoiceService autoInvoiceService;
+    @Mock private OtaReservationInvoicingService otaInvoicingService;
 
     private TenantContext tenantContext;
     private ICalImportService service;
@@ -108,7 +109,7 @@ class ICalImportServiceImportFlowTest {
             propertyRepository, userRepository,
             auditLogService, notificationService, pricingConfigService,
             priceEngine, calendarEngine, guestService, tenantContext,
-            serviceRequestService, autoInvoiceService);
+            serviceRequestService, otaInvoicingService);
 
         // Pricing config defaults (used by createCleaningServiceRequest)
         when(pricingConfigService.getBasePrices()).thenReturn(Map.of(
@@ -379,7 +380,7 @@ class ICalImportServiceImportFlowTest {
         when(reservationRepository2.findActiveByICalFeedId(53L, ORG_ID)).thenReturn(List.of());
         when(interventionRepository.findByReservationId(800L, ORG_ID)).thenReturn(List.of());
         when(serviceRequestRepository.findByReservationId(800L, ORG_ID)).thenReturn(List.of());
-        when(invoiceRepository.findByReservationId(800L)).thenReturn(Optional.empty());
+        when(invoiceRepository.findByReservationIdAndInvoiceType(800L, InvoiceType.GUEST)).thenReturn(Optional.empty());
 
         String ics = """
             BEGIN:VCALENDAR
@@ -619,7 +620,7 @@ class ICalImportServiceImportFlowTest {
             .thenReturn(List.of(kept, orphan));
         when(interventionRepository.findByReservationId(999L, ORG_ID)).thenReturn(List.of());
         when(serviceRequestRepository.findByReservationId(999L, ORG_ID)).thenReturn(List.of());
-        when(invoiceRepository.findByReservationId(999L)).thenReturn(Optional.empty());
+        when(invoiceRepository.findByReservationIdAndInvoiceType(999L, InvoiceType.GUEST)).thenReturn(Optional.empty());
 
         String ics = """
             BEGIN:VCALENDAR

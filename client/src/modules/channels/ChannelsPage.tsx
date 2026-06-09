@@ -1,51 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { alpha } from '@mui/material/styles';
+import React, { useState, useCallback } from 'react';
 import {
   Box,
-  Paper,
-  Typography,
   Button,
-  Chip,
   Alert,
-  CircularProgress,
-  Switch,
-  FormControlLabel,
-  Divider,
-  IconButton,
-  Tooltip,
-  Collapse,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Snackbar,
   ToggleButtonGroup,
   ToggleButton,
 } from '@mui/material';
 import {
-  LinkOff as LinkOffIcon,
   Link as LinkIcon,
-  Sync as SyncIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Warning as WarningIcon,
   Refresh as RefreshIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  CleaningServices as CleaningIcon,
-  OpenInNew as OpenInNewIcon,
-  TrendingUp as PricingIcon,
   ViewList as ViewListIcon,
   GridView as GridViewIcon,
-  People as PeopleIcon,
-  Business as BusinessIcon,
 } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { Star as StarIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { AirbnbConnectionStatus, AirbnbListingMapping } from '../../services/api/airbnbApi';
-import type { Property } from '../../services/api/propertiesApi';
 import {
   useAirbnbConnectionStatus,
   useAirbnbListings,
@@ -62,60 +33,14 @@ import { useChannelConnections, useDisconnectChannel } from '../../hooks/useChan
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
 import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
 import type { ChannelId } from '../../services/api/channelConnectionApi';
+import { type OtaChannel } from '../../services/channels/otaChannels';
 import ChannelConnectDialog from './ChannelConnectDialog';
-
-// Logo import (utilise dans la section "connecte" Airbnb plus bas)
-import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
-
-// Source de verite des OTAs : module partage (utilise aussi par
-// IntegrationsSection pour la vitrine visuelle)
-import { OTA_CHANNELS, type OtaChannel } from '../../services/channels/otaChannels';
-
-// ─── OTA Definitions ────────────────────────────────────────────────────────
-// Types et donnees deplaces dans ../../services/channels/otaChannels.ts pour
-// permettre la reutilisation cote IntegrationsSection (vitrine visuelle).
-
-
-// ─── Style Constants ────────────────────────────────────────────────────────
-
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
-  boxShadow: 'none',
-  borderRadius: 1.5,
-  p: 2,
-} as const;
-
-const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: '#4A9B8E',
-  EXPIRED: '#D4A574',
-  REVOKED: '#d32f2f',
-  ERROR: '#d32f2f',
-};
-
-const OTA_CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
-  borderRadius: 1.5,
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-  cursor: 'default',
-  '&:hover': {
-    transform: 'translateY(-3px)',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
-    borderColor: 'grey.300',
-  },
-} as const;
-
-const OTA_CARD_CONTENT_SX = {
-  p: 2.5,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 1.5,
-  flex: 1,
-} as const;
+import ChannelsListView from './ChannelsListView';
+import ChannelsGridView from './ChannelsGridView';
+import AirbnbConnectionDetails from './AirbnbConnectionDetails';
+import AirbnbListingsSection from './AirbnbListingsSection';
+import AirbnbSyncStatusSection from './AirbnbSyncStatusSection';
+import ChannelDisconnectDialog from './ChannelDisconnectDialog';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -257,15 +182,6 @@ const ChannelsPage: React.FC = () => {
     setConnectDialogChannel(null);
   }, [connectDialogChannel, t]);
 
-  /** Check if a channel shares its backend with another (Vrbo ↔ Abritel → HOMEAWAY) */
-  const getSharedChannelWarning = useCallback((channelId: string): string | null => {
-    if (channelId === 'vrbo' || channelId === 'abritel') {
-      const other = channelId === 'vrbo' ? 'Abritel' : 'Vrbo';
-      return t('channels.connect.sharedChannelWarning', { other });
-    }
-    return null;
-  }, [t]);
-
   // ── Derived ──
   const isConnected = connectionStatus?.connected === true;
   const linkedPropertyIds = new Set(listings.map((l) => l.propertyId));
@@ -327,302 +243,50 @@ const ChannelsPage: React.FC = () => {
           OTA Channels — List or Grid
           ═══════════════════════════════════════════════════════════════════════ */}
       {viewMode === 'list' ? (
-        /* ── List View ── */
-        <Paper sx={{ ...CARD_SX, mb: 1.5, p: 0, overflow: 'hidden' }}>
-          {/* Table header */}
-          <Box sx={{
-            display: 'grid',
-            gridTemplateColumns: '110px 1.6fr 0.8fr 1fr 1.4fr',
-            gap: 2,
-            px: 2,
-            py: 1.25,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            bgcolor: 'action.hover',
-          }}>
-            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Logo
-            </Typography>
-            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Nom
-            </Typography>
-            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Segment
-            </Typography>
-            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Statut
-            </Typography>
-            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right' }}>
-              Action
-            </Typography>
-          </Box>
-
-          {/* Rows */}
-          {OTA_CHANNELS.map((ota, idx) => {
-            const isAirbnb = ota.id === 'airbnb';
-            const isOtaChannel = (ota.id as string) in CHANNEL_BACKEND_MAP;
-            const otaStatus = isOtaChannel ? getOtaStatus(ota.id as ChannelId) : undefined;
-            const connected = isAirbnb ? isConnected : isOtaChannel ? isOtaConnected(ota.id as ChannelId) : false;
-            const loading = isAirbnb ? connectionLoading : isOtaChannel ? otaConnectionsLoading : false;
-
-            return (
-              <Box
-                key={ota.id}
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: '110px 1.6fr 0.8fr 1fr 1.4fr',
-                  gap: 2,
-                  px: 2,
-                  py: 1.5,
-                  alignItems: 'center',
-                  borderBottom: idx < OTA_CHANNELS.length - 1 ? '1px solid' : 'none',
-                  borderColor: 'divider',
-                  opacity: ota.available ? 1 : 0.6,
-                  transition: 'background 0.15s',
-                  '&:hover': { bgcolor: 'action.hover' },
-                }}
-              >
-                {/* Logo column (big) */}
-                <Box
-                  sx={{
-                    height: 48,
-                    width: 96,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    pl: 1.25,
-                  }}
-                >
-                  {ota.logo ? (
-                    <Box
-                      component="img"
-                      src={ota.logo}
-                      alt={ota.name}
-                      sx={{ height: 28, maxWidth: 80, objectFit: 'contain' }}
-                    />
-                  ) : (
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: ota.brandColor, letterSpacing: '-0.02em' }}>
-                      {ota.name}
-                    </Typography>
-                  )}
-                </Box>
-
-                {/* Channel name */}
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, color: 'text.primary' }}>
-                    {ota.name}
-                  </Typography>
-                </Box>
-
-                {/* Segment B2B / B2C */}
-                <Box>
-                  {(() => {
-                    const segHex = ota.segment === 'B2C' ? '#0288d1' : '#ED6C02';
-                    return (
-                      <Chip
-                        icon={ota.segment === 'B2C'
-                          ? <PeopleIcon size={14} strokeWidth={1.75} color={segHex} />
-                          : <BusinessIcon size={14} strokeWidth={1.75} color={segHex} />
-                        }
-                        label={ota.segment}
-                        size="small"
-                        sx={{
-                          backgroundColor: `${segHex}18`,
-                          color: segHex,
-                          border: `1px solid ${segHex}40`,
-                          borderRadius: '6px',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          height: 24,
-                          '& .MuiChip-label': { px: 0.75 },
-                        }}
-                      />
-                    );
-                  })()}
-                </Box>
-
-                {/* Status */}
-                <Box>
-                  {(() => {
-                    if (loading) return <CircularProgress size={14} />;
-                    if (connected) {
-                      const hex = '#4A9B8E';
-                      return (
-                        <Chip
-                          icon={<CheckCircleIcon size={14} strokeWidth={1.75} color={hex} />}
-                          label={otaStatus?.status ?? (isAirbnb ? connectionStatus?.status ?? 'ACTIVE' : 'ACTIVE')}
-                          size="small"
-                          sx={{
-                            backgroundColor: `${hex}18`,
-                            color: hex,
-                            border: `1px solid ${hex}40`,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            height: 24,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
-                        />
-                      );
-                    }
-                    if (ota.available) {
-                      const hex = '#ED6C02';
-                      return (
-                        <Chip
-                          label={t('channels.ota.disconnected')}
-                          size="small"
-                          sx={{
-                            backgroundColor: `${hex}18`,
-                            color: hex,
-                            border: `1px solid ${hex}40`,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            height: 24,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
-                        />
-                      );
-                    }
-                    const hex = '#757575';
-                    return (
-                      <Chip
-                        label={t('channels.ota.comingSoon')}
-                        size="small"
-                        sx={{
-                          backgroundColor: `${hex}18`,
-                          color: hex,
-                          border: `1px solid ${hex}40`,
-                          borderRadius: '6px',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          height: 24,
-                          '& .MuiChip-label': { px: 0.75 },
-                        }}
-                      />
-                    );
-                  })()}
-                </Box>
-
-                {/* Action */}
-                <Box sx={{ textAlign: 'right' }}>
-                  {ota.available && !connected && (
-                    <Button
-                      size="small"
-                      variant="contained"
-                      startIcon={<LinkIcon size={'0.75rem'} strokeWidth={1.75} />}
-                      onClick={isAirbnb ? handleConnect : isOtaChannel ? () => handleOtaConnect(ota) : undefined}
-                      disabled={(isAirbnb && connectMutation.isPending) || loading}
-                      sx={{
-                        fontSize: '0.6875rem',
-                        fontWeight: 600,
-                        px: 1.5,
-                        py: 0.4,
-                        minHeight: 28,
-                        backgroundColor: ota.brandColor,
-                        '&:hover': { backgroundColor: ota.brandColor, filter: 'brightness(0.9)' },
-                      }}
-                    >
-                      {(isAirbnb && connectMutation.isPending)
-                        ? <CircularProgress size={12} color="inherit" />
-                        : `Connecter ${ota.name}`
-                      }
-                    </Button>
-                  )}
-                  {ota.available && connected && (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="error"
-                      startIcon={<LinkOffIcon size={'0.75rem'} strokeWidth={1.75} />}
-                      onClick={isAirbnb ? handleDisconnect : isOtaChannel ? () => handleOtaDisconnectRequest(ota) : undefined}
-                      disabled={(isAirbnb && disconnectMutation.isPending) || disconnectingChannelId === ota.id}
-                      sx={{ fontSize: '0.6875rem', px: 1.5, py: 0.4, minHeight: 28 }}
-                    >
-                      {((isAirbnb && disconnectMutation.isPending) || disconnectingChannelId === ota.id)
-                        ? <CircularProgress size={12} />
-                        : `Déconnecter ${ota.name}`
-                      }
-                    </Button>
-                  )}
-                  {!ota.available && (
-                    <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', fontStyle: 'italic' }}>
-                      {t('channels.ota.comingSoon')}
-                    </Typography>
-                  )}
-                </Box>
-              </Box>
-            );
-          })}
-        </Paper>
+        <ChannelsListView
+          isConnected={isConnected}
+          connectionStatus={connectionStatus}
+          connectionLoading={connectionLoading}
+          otaConnectionsLoading={otaConnectionsLoading}
+          isOtaConnected={isOtaConnected}
+          getOtaStatus={getOtaStatus}
+          connectPending={connectMutation.isPending}
+          disconnectPending={disconnectMutation.isPending}
+          disconnectingChannelId={disconnectingChannelId}
+          onAirbnbConnect={handleConnect}
+          onAirbnbDisconnect={handleDisconnect}
+          onOtaConnect={handleOtaConnect}
+          onOtaDisconnectRequest={handleOtaDisconnectRequest}
+          t={t}
+        />
       ) : (
-        /* ── Grid View ── */
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
-          gap: 1.5,
-          mb: 1.5,
-        }}>
-          {OTA_CHANNELS.map((ota) => {
-            const isAirbnb = ota.id === 'airbnb';
-            const isOtaChannel = (ota.id as string) in CHANNEL_BACKEND_MAP;
-            const otaStatus = isOtaChannel ? getOtaStatus(ota.id as ChannelId) : undefined;
-
-            return (
-              <OtaChannelCard
-                key={ota.id}
-                channel={ota}
-                isConnected={isAirbnb ? isConnected : isOtaChannel ? isOtaConnected(ota.id as ChannelId) : false}
-                connectionStatus={isAirbnb ? connectionStatus : otaStatus ? { status: otaStatus.status } : null}
-                connectionLoading={isAirbnb ? connectionLoading : isOtaChannel ? otaConnectionsLoading : false}
-                onConnect={isAirbnb ? handleConnect : isOtaChannel ? () => handleOtaConnect(ota) : undefined}
-                onDisconnect={isAirbnb ? handleDisconnect : isOtaChannel ? () => handleOtaDisconnectRequest(ota) : undefined}
-                connecting={isAirbnb ? connectMutation.isPending : false}
-                disconnecting={isAirbnb ? disconnectMutation.isPending : disconnectingChannelId === ota.id}
-                t={t}
-              />
-            );
-          })}
-        </Box>
+        <ChannelsGridView
+          isConnected={isConnected}
+          connectionStatus={connectionStatus}
+          connectionLoading={connectionLoading}
+          otaConnectionsLoading={otaConnectionsLoading}
+          isOtaConnected={isOtaConnected}
+          getOtaStatus={getOtaStatus}
+          connectPending={connectMutation.isPending}
+          disconnectPending={disconnectMutation.isPending}
+          disconnectingChannelId={disconnectingChannelId}
+          onAirbnbConnect={handleConnect}
+          onAirbnbDisconnect={handleDisconnect}
+          onOtaConnect={handleOtaConnect}
+          onOtaDisconnectRequest={handleOtaDisconnectRequest}
+          t={t}
+        />
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           Airbnb Connection Details (shown when connected)
           ═══════════════════════════════════════════════════════════════════════ */}
       {isConnected && connectionStatus && (
-        <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-            <Box
-              component="img"
-              src={airbnbLogoSmall}
-              alt="Airbnb"
-              sx={{ height: 18 }}
-            />
-            <Typography sx={{ fontSize: '0.875rem', fontWeight: 700 }}>
-              {t('channels.airbnb.connectedSince')}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-            <DetailItem label={t('channels.airbnb.userId')} value={connectionStatus.airbnbUserId ?? '—'} />
-            <DetailItem
-              label={t('channels.airbnb.connectedSince')}
-              value={connectionStatus.connectedAt ? new Date(connectionStatus.connectedAt).toLocaleDateString(dateLocale) : '—'}
-            />
-            <DetailItem
-              label={t('channels.airbnb.lastSync')}
-              value={connectionStatus.lastSyncAt ? new Date(connectionStatus.lastSyncAt).toLocaleString(dateLocale) : '—'}
-            />
-            <DetailItem
-              label={t('channels.airbnb.linkedListings')}
-              value={String(connectionStatus.linkedListingsCount)}
-            />
-            {connectionStatus.errorMessage && (
-              <Alert severity="warning" sx={{ fontSize: '0.75rem', py: 0, width: '100%' }}>
-                {connectionStatus.errorMessage}
-              </Alert>
-            )}
-          </Box>
-        </Paper>
+        <AirbnbConnectionDetails
+          connectionStatus={connectionStatus}
+          dateLocale={dateLocale}
+          t={t}
+        />
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -642,100 +306,38 @@ const ChannelsPage: React.FC = () => {
           Section 2 : Propriétés liées (Listings)
           ═══════════════════════════════════════════════════════════════════════ */}
       {isConnected && (
-        <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-          <Box
-            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
-            onClick={() => setExpandedListings((prev) => !prev)}
-          >
-            <Typography sx={{ fontSize: '0.875rem', fontWeight: 700 }}>
-              {t('channels.listings.title')} ({listings.length})
-            </Typography>
-            <IconButton size="small">
-              {expandedListings ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          </Box>
-
-          <Collapse in={expandedListings}>
-            {listingsLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : listings.length === 0 ? (
-              <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 1 }}>
-                {t('channels.listings.noListings')}
-              </Typography>
-            ) : (
-              <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {listings.map((listing) => (
-                  <ListingCard
-                    key={listing.id}
-                    listing={listing}
-                    onToggleSync={handleToggleSync}
-                    onToggleAutoInterventions={handleToggleAutoInterventions}
-                    onToggleAutoPushPricing={handleToggleAutoPushPricing}
-                    onUnlink={handleUnlink}
-                    t={t}
-                  />
-                ))}
-              </Box>
-            )}
-
-            {/* Link new property */}
-            {unlinkableProperties.length > 0 && (
-              <Box sx={{ mt: 1.5 }}>
-                <Divider sx={{ mb: 1.5 }} />
-                {linkingPropertyId === null ? (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<LinkIcon />}
-                    onClick={() => setLinkingPropertyId(unlinkableProperties[0]?.id ?? null)}
-                    sx={{ fontSize: '0.75rem' }}
-                  >
-                    {t('channels.listings.linkProperty')}
-                  </Button>
-                ) : (
-                  <LinkPropertyForm
-                    properties={unlinkableProperties}
-                    selectedPropertyId={linkingPropertyId}
-                    form={linkForm}
-                    loading={linkListingMutation.isPending}
-                    onPropertyChange={setLinkingPropertyId}
-                    onFormChange={setLinkForm}
-                    onSubmit={handleLink}
-                    onCancel={() => { setLinkingPropertyId(null); setLinkForm({ airbnbListingId: '', airbnbListingTitle: '', airbnbListingUrl: '' }); }}
-                    t={t}
-                  />
-                )}
-              </Box>
-            )}
-          </Collapse>
-        </Paper>
+        <AirbnbListingsSection
+          listings={listings}
+          listingsLoading={listingsLoading}
+          expanded={expandedListings}
+          onToggleExpand={() => setExpandedListings((prev) => !prev)}
+          onToggleSync={handleToggleSync}
+          onToggleAutoInterventions={handleToggleAutoInterventions}
+          onToggleAutoPushPricing={handleToggleAutoPushPricing}
+          onUnlink={handleUnlink}
+          unlinkableProperties={unlinkableProperties}
+          linkingPropertyId={linkingPropertyId}
+          linkForm={linkForm}
+          linkPending={linkListingMutation.isPending}
+          onStartLink={() => setLinkingPropertyId(unlinkableProperties[0]?.id ?? null)}
+          onPropertyChange={setLinkingPropertyId}
+          onFormChange={setLinkForm}
+          onSubmitLink={handleLink}
+          onCancelLink={() => { setLinkingPropertyId(null); setLinkForm({ airbnbListingId: '', airbnbListingTitle: '', airbnbListingUrl: '' }); }}
+          t={t}
+        />
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           Section 3 : Statut sync par propriété (Channel Manager vue hôte)
           ═══════════════════════════════════════════════════════════════════════ */}
       {isConnected && listings.length > 0 && (
-        <Paper sx={{ ...CARD_SX }}>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mb: 1 }}>
-            {t('channels.syncStatus.title')}
-          </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 1 }}>
-            {listings.map((listing) => {
-              const property = properties.find((p) => p.id === listing.propertyId);
-              return (
-                <SyncStatusCard
-                  key={listing.id}
-                  listing={listing}
-                  propertyName={property?.name ?? `Propriété #${listing.propertyId}`}
-                  t={t}
-                  dateLocale={dateLocale}
-                />
-              );
-            })}
-          </Box>
-        </Paper>
+        <AirbnbSyncStatusSection
+          listings={listings}
+          properties={properties}
+          dateLocale={dateLocale}
+          t={t}
+        />
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -750,9 +352,6 @@ const ChannelsPage: React.FC = () => {
         />
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          Disconnect Confirmation Dialog
-          ═══════════════════════════════════════════════════════════════════════ */}
       {/* ═══════════════════════════════════════════════════════════════════════
           Success Snackbar
           ═══════════════════════════════════════════════════════════════════════ */}
@@ -775,479 +374,14 @@ const ChannelsPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════════
           Disconnect Confirmation Dialog
           ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog open={!!disconnectConfirmChannel} onClose={() => setDisconnectConfirmChannel(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
-          {t('channels.connect.disconnectConfirm', { channel: disconnectConfirmChannel?.name ?? '' })}
-        </DialogTitle>
-        <DialogContent>
-          {disconnectConfirmChannel && getSharedChannelWarning(disconnectConfirmChannel.id) && (
-            <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
-              {getSharedChannelWarning(disconnectConfirmChannel.id)}
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2 }}>
-          <Button size="small" onClick={() => setDisconnectConfirmChannel(null)} sx={{ textTransform: 'none' }}>
-            {t('common.cancel')}
-          </Button>
-          <Button size="small" variant="contained" color="error" onClick={handleOtaDisconnectConfirm} sx={{ textTransform: 'none' }}>
-            {t('channels.airbnb.disconnect')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ChannelDisconnectDialog
+        channel={disconnectConfirmChannel}
+        onClose={() => setDisconnectConfirmChannel(null)}
+        onConfirm={handleOtaDisconnectConfirm}
+        t={t}
+      />
     </Box>
   );
 };
-
-// ─── Sub-components ──────────────────────────────────────────────────────────
-
-function OtaLogo({ channel }: { channel: OtaChannel }) {
-  if (channel.logo) {
-    return (
-      <Box
-        component="img"
-        src={channel.logo}
-        alt={channel.name}
-        sx={{
-          height: 30,
-          objectFit: 'contain',
-          maxWidth: 130,
-          position: 'relative',
-          zIndex: 2,
-        }}
-      />
-    );
-  }
-
-  return (
-    <Typography
-      sx={{
-        fontSize: '1.25rem',
-        fontWeight: 800,
-        color: channel.brandColor,
-        letterSpacing: '-0.02em',
-        lineHeight: 1,
-        position: 'relative',
-        zIndex: 2,
-      }}
-    >
-      {channel.name}
-    </Typography>
-  );
-}
-
-function OtaChannelCard({
-  channel,
-  isConnected,
-  connectionStatus,
-  connectionLoading,
-  onConnect,
-  onDisconnect,
-  connecting,
-  disconnecting,
-  t,
-}: {
-  channel: OtaChannel;
-  isConnected: boolean;
-  connectionStatus: { status?: string | null } | null;
-  connectionLoading: boolean;
-  onConnect?: () => void;
-  onDisconnect?: () => void;
-  connecting: boolean;
-  disconnecting: boolean;
-  t: (key: string, options?: Record<string, unknown>) => string;
-}) {
-  const isAvailable = channel.available;
-
-  return (
-    <Box
-      sx={{
-        ...OTA_CARD_SX,
-        opacity: isAvailable ? 1 : 0.7,
-        '&:hover': isAvailable
-          ? OTA_CARD_SX['&:hover']
-          : { borderColor: 'grey.300' },
-      }}
-    >
-      {/* Brand header with logo + status — top accent stripe, neutral bg */}
-      <Box
-        sx={{
-          position: 'relative',
-          bgcolor: 'background.paper',
-          opacity: isAvailable ? 1 : 0.6,
-          px: 2.5,
-          py: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          minHeight: 56,
-          borderTop: '3px solid',
-          borderTopColor: channel.brandColor,
-          borderBottom: '1px solid',
-          borderBottomColor: 'divider',
-        }}
-      >
-        <OtaLogo channel={channel} />
-        {connectionLoading && isAvailable ? (
-          <CircularProgress size={14} sx={{ color: channel.brandColor }} />
-        ) : isAvailable && isConnected ? (
-          <Chip
-            label={connectionStatus?.status ?? 'ACTIVE'}
-            size="small"
-            sx={{
-              fontSize: '0.5625rem',
-              height: 20,
-              backgroundColor: '#10b98115',
-              color: '#10b981',
-              fontWeight: 700,
-              border: '1px solid #10b98140',
-            }}
-            icon={<CheckCircleIcon size={12} strokeWidth={1.75} color="#10b981" />}
-          />
-        ) : isAvailable ? (
-          <Chip
-            label={t('channels.ota.disconnected')}
-            size="small"
-            sx={{
-              fontSize: '0.5625rem',
-              height: 20,
-              fontWeight: 600,
-              backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-              color: 'text.secondary',
-              border: '1px solid',
-              borderColor: 'divider',
-            }}
-          />
-        ) : (
-          <Chip
-            label={t('channels.ota.comingSoon')}
-            size="small"
-            sx={{
-              fontSize: '0.5625rem',
-              height: 20,
-              fontWeight: 600,
-              backgroundColor: `${channel.brandColor}14`,
-              color: channel.brandColor,
-              border: `1px solid ${channel.brandColor}30`,
-            }}
-          />
-        )}
-      </Box>
-
-      {/* Card content */}
-      <Box sx={OTA_CARD_CONTENT_SX}>
-        {/* Channel name */}
-        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'text.primary' }}>
-          {channel.name}
-        </Typography>
-
-        {/* Description */}
-        <Typography sx={{
-          fontSize: '0.6875rem',
-          color: 'text.secondary',
-          lineHeight: 1.5,
-          flex: 1,
-          minHeight: 32,
-        }}>
-          {t(channel.descriptionKey)}
-        </Typography>
-
-        {/* Action button */}
-        <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
-          {isAvailable && !isConnected && (
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={<LinkIcon size={'0.8rem'} strokeWidth={1.75} />}
-              onClick={onConnect}
-              disabled={connecting || connectionLoading}
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                px: 2,
-                py: 0.5,
-                minHeight: 30,
-                backgroundColor: channel.brandColor,
-                '&:hover': {
-                  backgroundColor: channel.brandColor,
-                  filter: 'brightness(0.9)',
-                },
-              }}
-            >
-              {connecting ? <CircularProgress size={12} color="inherit" /> : `Connecter ${channel.name}`}
-            </Button>
-          )}
-          {isAvailable && isConnected && (
-            <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              startIcon={<LinkOffIcon size={'0.8rem'} strokeWidth={1.75} />}
-              onClick={onDisconnect}
-              disabled={disconnecting}
-              sx={{ fontSize: '0.6875rem', px: 2, py: 0.5, minHeight: 30 }}
-            >
-              {disconnecting ? <CircularProgress size={12} /> : `Déconnecter ${channel.name}`}
-            </Button>
-          )}
-          {!isAvailable && (
-            <Button
-              size="small"
-              variant="outlined"
-              disabled
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                px: 2,
-                py: 0.5,
-                minHeight: 30,
-                borderColor: 'grey.200',
-                color: 'text.disabled',
-              }}
-            >
-              {t('channels.ota.comingSoon')}
-            </Button>
-          )}
-        </Box>
-      </Box>
-    </Box>
-  );
-}
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return (
-    <Box>
-      <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-        {label}
-      </Typography>
-      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
-        {value}
-      </Typography>
-    </Box>
-  );
-}
-
-function ListingCard({
-  listing,
-  onToggleSync,
-  onToggleAutoInterventions,
-  onToggleAutoPushPricing,
-  onUnlink,
-  t,
-}: {
-  listing: AirbnbListingMapping;
-  onToggleSync: (propertyId: number, enabled: boolean) => void;
-  onToggleAutoInterventions: (propertyId: number, enabled: boolean) => void;
-  onToggleAutoPushPricing: (propertyId: number, enabled: boolean) => void;
-  onUnlink: (propertyId: number) => void;
-  t: (key: string, options?: Record<string, unknown>) => string;
-}) {
-  return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 1.5,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 1,
-      }}
-    >
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {listing.airbnbListingTitle || `Listing ${listing.airbnbListingId}`}
-          {listing.airbnbListingUrl && (
-            <Tooltip title={t('channels.listings.viewOnAirbnb')}>
-              <IconButton
-                size="small"
-                href={listing.airbnbListingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                component="a"
-                sx={{ p: 0.25 }}
-              >
-                <OpenInNewIcon size={'0.875rem'} strokeWidth={1.75} />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Typography>
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-          ID: {listing.airbnbListingId} · Propriété #{listing.propertyId}
-        </Typography>
-      </Box>
-
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              checked={listing.syncEnabled}
-              onChange={(_, checked) => onToggleSync(listing.propertyId, checked)}
-            />
-          }
-          label={<Typography sx={{ fontSize: '0.6875rem' }}>{t('channels.listings.sync')}</Typography>}
-        />
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              checked={listing.autoCreateInterventions}
-              onChange={(_, checked) => onToggleAutoInterventions(listing.propertyId, checked)}
-            />
-          }
-          label={
-            <Typography sx={{ fontSize: '0.6875rem', display: 'flex', alignItems: 'center', gap: 0.25 }}>
-              <CleaningIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoClean')}
-            </Typography>
-          }
-        />
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              checked={listing.autoPushPricing ?? false}
-              onChange={(_, checked) => onToggleAutoPushPricing(listing.propertyId, checked)}
-            />
-          }
-          label={
-            <Typography sx={{ fontSize: '0.6875rem', display: 'flex', alignItems: 'center', gap: 0.25 }}>
-              <PricingIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoPushPricing')}
-            </Typography>
-          }
-        />
-        <Tooltip title={t('channels.listings.unlink')}>
-          <IconButton size="small" color="error" onClick={() => onUnlink(listing.propertyId)}>
-            <LinkOffIcon size={'1rem'} strokeWidth={1.75} />
-          </IconButton>
-        </Tooltip>
-      </Box>
-    </Box>
-  );
-}
-
-function LinkPropertyForm({
-  properties,
-  selectedPropertyId,
-  form,
-  loading,
-  onPropertyChange,
-  onFormChange,
-  onSubmit,
-  onCancel,
-  t,
-}: {
-  properties: Property[];
-  selectedPropertyId: number;
-  form: { airbnbListingId: string; airbnbListingTitle: string; airbnbListingUrl: string };
-  loading: boolean;
-  onPropertyChange: (id: number) => void;
-  onFormChange: (form: { airbnbListingId: string; airbnbListingTitle: string; airbnbListingUrl: string }) => void;
-  onSubmit: () => void;
-  onCancel: () => void;
-  t: (key: string, options?: Record<string, unknown>) => string;
-}) {
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
-        {t('channels.listings.linkNewProperty')}
-      </Typography>
-      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <Box component="select"
-          value={selectedPropertyId}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onPropertyChange(Number(e.target.value))}
-          sx={{
-            fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: 1,
-            border: '1px solid', borderColor: 'divider', minWidth: 160, bgcolor: 'background.paper',
-          }}
-        >
-          {properties.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </Box>
-        <Box
-          component="input"
-          placeholder="Airbnb Listing ID"
-          value={form.airbnbListingId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFormChange({ ...form, airbnbListingId: e.target.value })}
-          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: 1, border: '1px solid', borderColor: 'divider', minWidth: 140 }}
-        />
-        <Box
-          component="input"
-          placeholder={t('channels.listings.listingTitle')}
-          value={form.airbnbListingTitle}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFormChange({ ...form, airbnbListingTitle: e.target.value })}
-          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: 1, border: '1px solid', borderColor: 'divider', minWidth: 180, flex: 1 }}
-        />
-        <Box
-          component="input"
-          placeholder="URL Airbnb"
-          value={form.airbnbListingUrl}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFormChange({ ...form, airbnbListingUrl: e.target.value })}
-          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: 1, border: '1px solid', borderColor: 'divider', minWidth: 200, flex: 1 }}
-        />
-        <Button
-          size="small"
-          variant="contained"
-          onClick={onSubmit}
-          disabled={loading || !form.airbnbListingId}
-          sx={{ fontSize: '0.75rem' }}
-        >
-          {loading ? <CircularProgress size={14} /> : t('channels.listings.link')}
-        </Button>
-        <Button size="small" variant="outlined" onClick={onCancel} sx={{ fontSize: '0.75rem' }}>
-          {t('common.cancel')}
-        </Button>
-      </Box>
-    </Box>
-  );
-}
-
-function SyncStatusCard({
-  listing,
-  propertyName,
-  t,
-  dateLocale,
-}: {
-  listing: AirbnbListingMapping;
-  propertyName: string;
-  t: (key: string, options?: Record<string, unknown>) => string;
-  dateLocale: string;
-}) {
-  const syncOk = listing.syncEnabled && listing.lastSyncAt;
-  const StatusIcon = syncOk ? CheckCircleIcon : listing.syncEnabled ? WarningIcon : ErrorIcon;
-  const statusColor = syncOk ? '#4A9B8E' : listing.syncEnabled ? '#D4A574' : '#9e9e9e';
-
-  return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: alpha(statusColor, 0.35),
-        borderRadius: 1,
-        p: 1.25,
-        bgcolor: alpha(statusColor, 0.04),
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: statusColor }}>
-          <StatusIcon size={14} strokeWidth={1.75} />
-        </Box>
-        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
-          {propertyName}
-        </Typography>
-      </Box>
-      <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
-        {listing.syncEnabled ? t('channels.syncStatus.syncOn') : t('channels.syncStatus.syncOff')}
-        {listing.lastSyncAt && ` · ${t('channels.syncStatus.lastSync')}: ${new Date(listing.lastSyncAt).toLocaleString(dateLocale)}`}
-      </Typography>
-      <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-        {listing.syncEnabled && <Chip label={<><SyncIcon size={'0.625rem'} strokeWidth={1.75} /> Sync</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="success" variant="outlined" />}
-        {listing.autoCreateInterventions && <Chip label={<><CleaningIcon size={'0.625rem'} strokeWidth={1.75} /> Auto</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="info" variant="outlined" />}
-      </Box>
-    </Box>
-  );
-}
 
 export default ChannelsPage;

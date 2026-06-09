@@ -2412,6 +2412,18 @@
     }
   },
   "contracts": {
+    "gate": {
+      "cta": "Set up contracts",
+      "banner": "property(ies) without an active management contract. The organization's default split applies in the meantime.",
+      "badge": "Missing contract"
+    },
+    "required": {
+      "title": "Management contract required",
+      "intro": "Before operating this property, define the management contract: it sets the collection model (OTA taxonomy) and the commission that drive payment splitting. Pick a template to prefill, then adjust the details.",
+      "submit": "Validate contract",
+      "saving": "Saving…",
+      "error": "Saving the contract failed. Check the fields and try again."
+    },
     "title": "Management Contracts",
     "subtitle": "Manage contracts between property owners and concierge services for automatic commission calculation",
     "create": "New contract",
@@ -3439,6 +3451,10 @@
     }
   },
   "invoices": {
+    "type": {
+      "label": "Type",
+      "commission": "Commission"
+    },
     "title": "Invoices",
     "subtitle": "Invoice and fiscal document management",
     "from": "From",

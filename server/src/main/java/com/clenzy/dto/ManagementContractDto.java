@@ -1,8 +1,10 @@
 package com.clenzy.dto;
 
 import com.clenzy.model.ManagementContract;
+import com.clenzy.model.ManagementContract.CommissionBase;
 import com.clenzy.model.ManagementContract.ContractStatus;
 import com.clenzy.model.ManagementContract.ContractType;
+import com.clenzy.model.ManagementContract.PaymentModel;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -29,7 +31,9 @@ public record ManagementContractDto(
     String terminationReason,
     Instant createdAt,
     BigDecimal upsellCommissionRate,
-    BigDecimal activityCommissionRate
+    BigDecimal activityCommissionRate,
+    PaymentModel paymentModel,
+    CommissionBase commissionBase
 ) {
     public static ManagementContractDto from(ManagementContract c) {
         return new ManagementContractDto(
@@ -40,7 +44,8 @@ public record ManagementContractDto(
             c.getCleaningFeeIncluded(), c.getMaintenanceIncluded(),
             c.getNotes(), c.getSignedAt(), c.getTerminatedAt(),
             c.getTerminationReason(), c.getCreatedAt(),
-            c.getUpsellCommissionRate(), c.getActivityCommissionRate()
+            c.getUpsellCommissionRate(), c.getActivityCommissionRate(),
+            c.getPaymentModel(), c.getCommissionBase()
         );
     }
 }

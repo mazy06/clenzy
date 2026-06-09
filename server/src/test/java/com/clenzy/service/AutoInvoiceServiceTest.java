@@ -75,7 +75,7 @@ class AutoInvoiceServiceTest {
 
     @Test
     void generateForReservation_existingInvoice_skips() {
-        when(invoiceRepository.findByReservationId(RES_ID)).thenReturn(Optional.of(new Invoice()));
+        when(invoiceRepository.findByReservationIdAndInvoiceType(RES_ID, InvoiceType.GUEST)).thenReturn(Optional.of(new Invoice()));
 
         Invoice result = service.generateForReservation(reservation());
 
@@ -85,7 +85,7 @@ class AutoInvoiceServiceTest {
 
     @Test
     void generateForReservation_noFiscalProfile_skips() {
-        when(invoiceRepository.findByReservationId(RES_ID)).thenReturn(Optional.empty());
+        when(invoiceRepository.findByReservationIdAndInvoiceType(RES_ID, InvoiceType.GUEST)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
 
         Invoice result = service.generateForReservation(reservation());
@@ -97,7 +97,7 @@ class AutoInvoiceServiceTest {
     @Test
     void generateForReservation_success_assignsNumberStatusAndPaymentMethod() {
         Reservation reservation = reservation();
-        when(invoiceRepository.findByReservationId(RES_ID)).thenReturn(Optional.empty());
+        when(invoiceRepository.findByReservationIdAndInvoiceType(RES_ID, InvoiceType.GUEST)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
         when(invoiceGeneratorService.generateFromReservation(reservation, ORG_ID)).thenReturn(draftInvoice());
         when(numberingService.generateNextNumber(ORG_ID)).thenReturn("FAC-2025-001");
@@ -122,7 +122,7 @@ class AutoInvoiceServiceTest {
         dg.setId(55L);
         dg.setDocumentType(DocumentType.FACTURE);
 
-        when(invoiceRepository.findByReservationId(RES_ID)).thenReturn(Optional.empty());
+        when(invoiceRepository.findByReservationIdAndInvoiceType(RES_ID, InvoiceType.GUEST)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
         when(invoiceGeneratorService.generateFromReservation(reservation, ORG_ID)).thenReturn(draftInvoice());
         when(numberingService.generateNextNumber(ORG_ID)).thenReturn("FAC-001");
@@ -141,7 +141,7 @@ class AutoInvoiceServiceTest {
         devis.setId(33L);
         devis.setDocumentType(DocumentType.DEVIS);
 
-        when(invoiceRepository.findByReservationId(RES_ID)).thenReturn(Optional.empty());
+        when(invoiceRepository.findByReservationIdAndInvoiceType(RES_ID, InvoiceType.GUEST)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
         when(invoiceGeneratorService.generateFromReservation(reservation, ORG_ID)).thenReturn(draftInvoice());
         when(numberingService.generateNextNumber(ORG_ID)).thenReturn("FAC-001");
@@ -156,7 +156,7 @@ class AutoInvoiceServiceTest {
     @Test
     void generateForReservation_documentGenLookupThrows_swallowedAndInvoiceReturned() {
         Reservation reservation = reservation();
-        when(invoiceRepository.findByReservationId(RES_ID)).thenReturn(Optional.empty());
+        when(invoiceRepository.findByReservationIdAndInvoiceType(RES_ID, InvoiceType.GUEST)).thenReturn(Optional.empty());
         when(fiscalProfileRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(fiscalProfile()));
         when(invoiceGeneratorService.generateFromReservation(reservation, ORG_ID)).thenReturn(draftInvoice());
         when(numberingService.generateNextNumber(ORG_ID)).thenReturn("FAC-001");

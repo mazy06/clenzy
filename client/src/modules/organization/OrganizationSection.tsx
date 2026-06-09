@@ -24,6 +24,8 @@ import MembersList from './MembersList';
 import BillingSummaryCard from './BillingSummaryCard';
 import SettingsSection from '../settings/components/SettingsSection';
 import LaunchSettingsSection from '../settings/LaunchSettingsSection';
+import PageTabs from '../../components/PageTabs';
+import { Building2, Rocket } from 'lucide-react';
 
 const ORG_TYPE_LABELS: Record<string, string> = {
   INDIVIDUAL: 'Particulier',
@@ -54,6 +56,9 @@ export default function OrganizationSection({ organizationId }: Props) {
   const { hasAnyRole } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  // Sous-onglets de la page Organisation : 0 = infos org (par-org, suit le
+  // sélecteur), 1 = pré-lancement (config GLOBALE plateforme).
+  const [subTab, setSubTab] = useState(0);
 
   const [organizations, setOrganizations] = useState<OrganizationDto[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<OrganizationDto | null>(null);
@@ -155,6 +160,18 @@ export default function OrganizationSection({ organizationId }: Props) {
 
   return (
     <>
+      <PageTabs
+        options={[
+          { label: 'Organisation', icon: <Building2 /> },
+          { label: 'Pré-lancement', icon: <Rocket /> },
+        ]}
+        value={subTab}
+        onChange={setSubTab}
+        ariaLabel="Sous-sections de l'organisation"
+      />
+
+      {subTab === 0 && (
+      <>
       <Grid container spacing={2}>
         {/* ─── Colonne gauche : Organisation ─────────────────────────── */}
         <Grid item xs={12} md={5}>
@@ -295,11 +312,14 @@ export default function OrganizationSection({ organizationId }: Props) {
           </Box>
         </Grid>
       </Grid>
+      </>
+      )}
 
-      {/* ─── Pré-lancement plateforme (toggle emails prospects + waitlist) ─── */}
-      <Box sx={{ mt: 2 }}>
+      {/* ─── Pré-lancement plateforme (toggle emails prospects + waitlist) ───
+          Sous-onglet séparé : config GLOBALE plateforme, indépendante de l'org. */}
+      {subTab === 1 && (
         <LaunchSettingsSection />
-      </Box>
+      )}
 
       {effectiveOrgId && (
         <SendInvitationDialog

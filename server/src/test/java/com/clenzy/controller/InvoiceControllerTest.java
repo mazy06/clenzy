@@ -7,6 +7,7 @@ import com.clenzy.model.DocumentTemplate;
 import com.clenzy.model.DocumentType;
 import com.clenzy.model.Invoice;
 import com.clenzy.model.InvoiceStatus;
+import com.clenzy.model.InvoiceType;
 import com.clenzy.model.PaymentProviderType;
 import com.clenzy.model.PaymentTransaction;
 import com.clenzy.payment.PaymentResult;
@@ -55,7 +56,7 @@ class InvoiceControllerTest {
     private InvoiceDto dto(Long id) {
         return new InvoiceDto(id, 1L, "INV-001", LocalDate.now(), LocalDate.now().plusDays(30),
                 "EUR", "FR", null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, InvoiceStatus.DRAFT, null, null, null,
+                null, null, null, null, null, InvoiceStatus.DRAFT, InvoiceType.GUEST, null, null, null,
                 List.of(), LocalDateTime.now());
     }
 

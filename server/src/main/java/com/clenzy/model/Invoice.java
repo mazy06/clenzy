@@ -113,6 +113,11 @@ public class Invoice {
     @Column(name = "status", nullable = false, length = 20)
     private InvoiceStatus status = InvoiceStatus.DRAFT;
 
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "invoice_type", nullable = false, length = 20)
+    private InvoiceType invoiceType = InvoiceType.GUEST;
+
     @Column(name = "legal_mentions", columnDefinition = "TEXT")
     private String legalMentions;
 
@@ -239,6 +244,9 @@ public class Invoice {
 
     public InvoiceStatus getStatus() { return status; }
     public void setStatus(InvoiceStatus status) { this.status = status; }
+
+    public InvoiceType getInvoiceType() { return invoiceType; }
+    public void setInvoiceType(InvoiceType invoiceType) { this.invoiceType = invoiceType; }
 
     public String getLegalMentions() { return legalMentions; }
     public void setLegalMentions(String legalMentions) { this.legalMentions = legalMentions; }

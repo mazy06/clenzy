@@ -6,6 +6,9 @@ import { getAccessToken } from '../../keycloak';
 
 export type InvoiceStatus = 'DRAFT' | 'SENT' | 'ISSUED' | 'PAID' | 'OVERDUE' | 'CANCELLED' | 'CREDIT_NOTE';
 
+/** Nature de la facture : séjour (client) ou commission de gestion (propriétaire). */
+export type InvoiceType = 'GUEST' | 'COMMISSION';
+
 export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, string> = {
   DRAFT: '#D4A574',
   SENT: '#7B61FF',
@@ -40,6 +43,7 @@ export interface Invoice {
   invoiceDate: string;
   dueDate: string | null;
   status: InvoiceStatus;
+  invoiceType: InvoiceType;
   currency: string;
   countryCode: string;
   sellerName: string;

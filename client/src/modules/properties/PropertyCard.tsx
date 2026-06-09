@@ -49,6 +49,7 @@ import {
   getAmenityHex,
 } from '../../utils/statusUtils';
 import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
+import MissingContractChip from './MissingContractChip';
 import ThemedTooltip from '../../components/ThemedTooltip';
 
 // Interface pour les propriétés détaillées
@@ -97,6 +98,10 @@ interface PropertyCardProps {
   channexMapping?: import('../../services/api/channexApi').ChannexMappingDto | null;
   /** Callback declenche quand l'utilisateur clique sur le badge Channex. */
   onChannexBadgeClick?: () => void;
+  /** Vrai si la propriété n'a pas de contrat de gestion vivant (gate de rattrapage). */
+  missingContract?: boolean;
+  /** Callback déclenché au clic sur le badge « Contrat manquant ». */
+  onMissingContractClick?: () => void;
 }
 
 // Gradient par type de propriété
@@ -361,7 +366,7 @@ export function formatDuration(mins: number): string {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit, onDelete, onView, channexMapping, onChannexBadgeClick }) => {
+const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit, onDelete, onView, channexMapping, onChannexBadgeClick, missingContract, onMissingContractClick }) => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
@@ -562,6 +567,11 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 size={10}
                 variant="dot"
                 onClick={onChannexBadgeClick}
+              />
+            )}
+            {missingContract && (
+              <MissingContractChip
+                onClick={(e) => { e.stopPropagation(); onMissingContractClick?.(); }}
               />
             )}
           </Box>

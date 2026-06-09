@@ -17,6 +17,7 @@ import { Person } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { usersApi } from '../../services/api';
+import type { Property } from '../../services/api';
 import { usePropertyForm } from '../../hooks/usePropertyForm';
 import type { FormUser } from '../../hooks/usePropertyForm';
 import { PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
@@ -57,7 +58,7 @@ interface TemporaryOwner {
 
 interface PropertyFormProps {
   onClose?: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (created: Property) => void;
   setLoading?: (loading: boolean) => void;
   loading?: boolean;
   propertyId?: number;
@@ -87,9 +88,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
   } = usePropertyForm({
     propertyId,
     isEditMode,
-    onSuccess: () => {
-      if (onSuccess) onSuccess();
-      if (onClose) onClose();
+    onSuccess: (created) => {
+      // En création, on délègue à onSuccess (qui ouvre la modal de contrat) sans naviguer ;
+      // sinon (autres contextes) on ferme. L'édition passe par onNavigate.
+      if (onSuccess) onSuccess(created);
+      else if (onClose) onClose();
     },
     onNavigate: (path) => navigate(path),
   });
