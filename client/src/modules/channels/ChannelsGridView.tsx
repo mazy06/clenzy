@@ -14,7 +14,7 @@ import {
 import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
 import type { ChannelId, ChannelConnectionStatus } from '../../services/api/channelConnectionApi';
-import { OTA_CHANNELS, type OtaChannel } from '../../services/channels/otaChannels';
+import { type OtaChannel } from '../../services/channels/otaChannels';
 import { OTA_CARD_SX, OTA_CARD_CONTENT_SX } from './channelsPageConstants';
 
 interface ChannelsGridViewProps {
@@ -24,6 +24,7 @@ interface ChannelsGridViewProps {
   otaConnectionsLoading: boolean;
   isOtaConnected: (id: ChannelId) => boolean;
   getOtaStatus: (id: ChannelId) => ChannelConnectionStatus | undefined;
+  channels: OtaChannel[];
   connectPending: boolean;
   disconnectPending: boolean;
   disconnectingChannelId: string | null;
@@ -42,6 +43,7 @@ const ChannelsGridView: React.FC<ChannelsGridViewProps> = ({
   otaConnectionsLoading,
   isOtaConnected,
   getOtaStatus,
+  channels,
   connectPending,
   disconnectPending,
   disconnectingChannelId,
@@ -57,7 +59,7 @@ const ChannelsGridView: React.FC<ChannelsGridViewProps> = ({
     gap: 1.5,
     mb: 1.5,
   }}>
-    {OTA_CHANNELS.map((ota) => {
+    {channels.map((ota) => {
       const isAirbnb = ota.id === 'airbnb';
       const isOtaChannel = (ota.id as string) in CHANNEL_BACKEND_MAP;
       const otaStatus = isOtaChannel ? getOtaStatus(ota.id as ChannelId) : undefined;
