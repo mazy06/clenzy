@@ -260,9 +260,13 @@ public class ICalImportService {
                     String defaultCheckOut = property.getDefaultCheckOutTime() != null ? property.getDefaultCheckOutTime() : "11:00";
                     reservation.setCheckInTime(defaultCheckIn);
                     reservation.setCheckOutTime(defaultCheckOut);
-                    // Utiliser le statut parse depuis l'iCal (CONFIRMED/TENTATIVE/CANCELLED)
-                    // Si absent (la plupart des OTAs ne le fournissent pas), defaut = "pending"
-                    reservation.setStatus(event.getStatus() != null ? event.getStatus() : "pending");
+                    // Utiliser le statut parse depuis l'iCal (CONFIRMED/TENTATIVE/CANCELLED).
+                    // Si absent (la plupart des OTA ne le fournissent pas), defaut = "confirmed" :
+                    // les blocages ("Not available", "Blocked") sont deja filtres en amont (type
+                    // "blocked"), donc tout evenement restant est une vraie reservation OTA = booking
+                    // confirme. "pending" excluait a tort ces reservations des traitements filtres sur
+                    // "confirmed" (livret d'accueil, envoi auto des instructions check-in, revenus).
+                    reservation.setStatus(event.getStatus() != null ? event.getStatus() : "confirmed");
                     reservation.setSource(sourceKey);
                     reservation.setSourceName(request.getSourceName());
                     reservation.setConfirmationCode(event.getConfirmationCode());
