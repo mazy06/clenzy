@@ -89,7 +89,17 @@ public record WelcomeGuidePublicDto(
         String emergencyContact,
         String additionalNotes,
         /** JSON [{key, caption}] — photos d'indication d'acces ; le front construit l'URL via le token. */
-        String arrivalPhotos
+        String arrivalPhotos,
+        /** JSON [{label, code}] — codes additionnels libres (résidence, immeuble, parking…). */
+        String extraCodes,
+        /**
+         * true = un code d'acces existe mais est masque car on est avant l'heure de check-in
+         * (anti entree anticipee). Dans ce cas {@link #accessCode} est null et le front affiche
+         * un cadenas. false = pas de restriction (code visible s'il existe).
+         */
+        boolean accessCodeLocked,
+        /** true = le bouton « Ouvrir la porte » est disponible (opt-in + serrure pilotable + sejour commence). */
+        boolean guestUnlockAvailable
     ) {}
 
     /** Check-in en ligne lie au sejour (nullable si non configure pour ce sejour). */
@@ -126,7 +136,8 @@ public record WelcomeGuidePublicDto(
     public static WelcomeGuidePublicDto from(WelcomeGuide g, Property p,
                                              CheckInInstructions ci, Reservation r,
                                              String dynamicAccessCode, CheckInInfo checkIn,
-                                             List<String> heroImageUrls) {
+                                             List<String> heroImageUrls, boolean accessCodeUnlocked,
+                                             boolean guestUnlockAvailable) {
         PropertyInfo propertyInfo = (p == null) ? null : new PropertyInfo(
             p.getName(), p.getAddress(), p.getCity(), p.getPostalCode(), p.getCountry(),
             p.getLatitude() != null ? p.getLatitude().doubleValue() : null,
@@ -135,17 +146,26 @@ public record WelcomeGuidePublicDto(
 
         // Le digicode dynamique (serrure connectee) ecrase le code statique des instructions.
         boolean hasDynamicCode = dynamicAccessCode != null && !dynamicAccessCode.isBlank();
+        String resolvedAccessCode = hasDynamicCode ? dynamicAccessCode : (ci != null ? ci.getAccessCode() : null);
+        // Le code est masque tant qu'on est avant l'heure de check-in (un code existe bien,
+        // mais on ne le revele pas pour eviter une entree anticipee dans le logement).
+        boolean codeLocked = !accessCodeUnlocked && resolvedAccessCode != null && !resolvedAccessCode.isBlank();
         PracticalInfo practicalInfo = (ci == null && !hasDynamicCode) ? null : new PracticalInfo(
             ci != null ? ci.getWifiName() : null,
             ci != null ? ci.getWifiPassword() : null,
-            hasDynamicCode ? dynamicAccessCode : (ci != null ? ci.getAccessCode() : null),
+            codeLocked ? null : resolvedAccessCode,
             ci != null ? ci.getParkingInfo() : null,
             ci != null ? ci.getArrivalInstructions() : null,
             ci != null ? ci.getDepartureInstructions() : null,
             ci != null ? ci.getHouseRules() : null,
             resolveEmergency(ci, p),
             ci != null ? ci.getAdditionalNotes() : null,
-            ci != null && ci.getArrivalPhotos() != null ? ci.getArrivalPhotos() : "[]"
+            ci != null && ci.getArrivalPhotos() != null ? ci.getArrivalPhotos() : "[]",
+            // Codes additionnels (residence, immeuble, parking…) : memes regles anti entree
+            // anticipee que le code principal — masques tant que le check-in n'est pas atteint.
+            accessCodeUnlocked && ci != null && ci.getExtraAccessCodes() != null ? ci.getExtraAccessCodes() : "[]",
+            codeLocked,
+            guestUnlockAvailable
         );
 
         StayInfo stayInfo = (r == null) ? null : new StayInfo(
@@ -182,7 +202,10 @@ public record WelcomeGuidePublicDto(
             ci.getWifiName(), ci.getWifiPassword(), ci.getAccessCode(), ci.getParkingInfo(),
             ci.getArrivalInstructions(), ci.getDepartureInstructions(), ci.getHouseRules(),
             resolveEmergency(ci, p), ci.getAdditionalNotes(),
-            ci.getArrivalPhotos() != null ? ci.getArrivalPhotos() : "[]"
+            ci.getArrivalPhotos() != null ? ci.getArrivalPhotos() : "[]",
+            ci.getExtraAccessCodes() != null ? ci.getExtraAccessCodes() : "[]",
+            false,
+            false
         );
         // Si une reservation est rattachee (sejour en cours / a venir), l'apercu reflete le VRAI
         // sejour : nom du voyageur, dates et nombre de voyageurs (c'est ce qui alimente le bandeau

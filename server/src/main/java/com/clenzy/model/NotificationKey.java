@@ -167,6 +167,10 @@ public enum NotificationKey {
     GUEST_PRICING_PUSHED(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, false),
     GUEST_NO_EMAIL_FOR_CHECKIN(NotificationType.WARNING, NotificationCategory.GUEST_MESSAGING, true),
 
+    // ─── ACCÈS ──────────────────────────────────────────────────────────────
+    ACCESS_CODE_ROTATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
+    GUEST_DOOR_UNLOCKED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
+
     // ─── NOISE ALERT (4 cles) ──────────────────────────────────────────────
     NOISE_ALERT_WARNING(NotificationType.WARNING, NotificationCategory.NOISE_ALERT, true),
     NOISE_ALERT_CRITICAL(NotificationType.ERROR, NotificationCategory.NOISE_ALERT, true),

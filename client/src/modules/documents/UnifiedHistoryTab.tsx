@@ -42,6 +42,7 @@ import { documentsApi, type DocumentGeneration } from '../../services/api/docume
 import { useGenerations, useVerifyDocumentIntegrity } from './hooks/useDocuments';
 import GenerateDialog from './GenerateDialog';
 import { softChipSx } from '../../utils/statusUtils';
+import { renderServerEmailPreview } from '../../utils/emailMarkdown';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -606,7 +607,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                     >
                       <iframe
                         sandbox=""
-                        srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.6;color:${isDark ? '#e0e0e0' : '#333'};background:${isDark ? '#1e1e1e' : '#fff'};padding:16px;margin:0;white-space:pre-line;word-wrap:break-word;}a{color:${isDark ? '#90caf9' : '#1976d2'};}</style></head><body>${previewHtml}</body></html>`}
+                        srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.6;color:${isDark ? '#e0e0e0' : '#333'};background:${isDark ? '#1e1e1e' : '#fff'};padding:16px;margin:0;word-wrap:break-word;}a{color:${isDark ? '#90caf9' : '#1976d2'};}</style></head><body>${renderServerEmailPreview(previewHtml)}</body></html>`}
                         title="Apercu email"
                         style={{
                           width: '100%',

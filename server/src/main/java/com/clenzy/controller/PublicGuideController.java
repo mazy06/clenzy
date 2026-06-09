@@ -37,19 +37,22 @@ public class PublicGuideController {
     private final GuestChatService guestChatService;
     private final WelcomeGuideAnalyticsService analyticsService;
     private final UpsellService upsellService;
+    private final com.clenzy.service.access.GuestUnlockService guestUnlockService;
 
     public PublicGuideController(WelcomeGuideService guideService,
                                  WelcomeGuideEntryService entryService,
                                  ActivityService activityService,
                                  GuestChatService guestChatService,
                                  WelcomeGuideAnalyticsService analyticsService,
-                                 UpsellService upsellService) {
+                                 UpsellService upsellService,
+                                 com.clenzy.service.access.GuestUnlockService guestUnlockService) {
         this.guideService = guideService;
         this.entryService = entryService;
         this.activityService = activityService;
         this.guestChatService = guestChatService;
         this.analyticsService = analyticsService;
         this.upsellService = upsellService;
+        this.guestUnlockService = guestUnlockService;
     }
 
     @GetMapping("/{token}")
@@ -138,6 +141,26 @@ public class PublicGuideController {
     @PostMapping("/{token}/upsells/orders/{orderId}/confirm")
     public ResponseEntity<Map<String, String>> confirmUpsell(@PathVariable UUID token, @PathVariable Long orderId) {
         return ResponseEntity.ok(Map.of("status", upsellService.confirmOrder(token, orderId)));
+    }
+
+    /**
+     * Ouvre la porte du logement (serrure connectée pilotable) pour un token de livret valide.
+     * Toutes les règles (opt-in, fenêtre du séjour, rate-limit) sont revalidées côté serveur.
+     */
+    @PostMapping("/{token}/unlock")
+    public ResponseEntity<Map<String, String>> unlockDoor(@PathVariable UUID token) {
+        var status = guestUnlockService.guestUnlock(token);
+        if (status == com.clenzy.service.access.GuestUnlockService.Status.OK) {
+            analyticsService.record(token, WelcomeGuideEventType.DOOR_UNLOCK.name(), null);
+        }
+        HttpStatus code = switch (status) {
+            case OK -> HttpStatus.OK;
+            case INVALID -> HttpStatus.NOT_FOUND;
+            case RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS;
+            case DISABLED, LOCKED -> HttpStatus.FORBIDDEN;
+            case FAILED -> HttpStatus.BAD_GATEWAY;
+        };
+        return ResponseEntity.status(code).body(Map.of("status", status.name()));
     }
 
     @PostMapping("/{token}/chat")

@@ -2,8 +2,10 @@ package com.clenzy.repository;
 
 import com.clenzy.model.CheckInInstructions;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -12,4 +14,11 @@ public interface CheckInInstructionsRepository extends JpaRepository<CheckInInst
     Optional<CheckInInstructions> findByPropertyId(Long propertyId);
 
     Optional<CheckInInstructions> findByPropertyIdAndOrganizationId(Long propertyId, Long organizationId);
+
+    /**
+     * Tous les logements en rotation automatique de code, propriété chargée (scheduler hors session).
+     * Cross-org : le scheduler n'a pas de contexte tenant (filtre Hibernate inactif).
+     */
+    @Query("SELECT c FROM CheckInInstructions c JOIN FETCH c.property WHERE c.accessCodeAutoRotate = true")
+    List<CheckInInstructions> findAutoRotateWithProperty();
 }

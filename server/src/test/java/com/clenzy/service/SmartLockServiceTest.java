@@ -41,12 +41,14 @@ class SmartLockServiceTest {
     @Mock private TuyaApiService tuyaApiService;
     @Mock private TenantContext tenantContext;
     @Mock private TuyaDeviceClaimService claimService;
+    @Mock private com.clenzy.service.smartlock.SmartLockProviderRegistry providerRegistry;
 
     private SmartLockService service;
 
     @BeforeEach
     void setUp() {
-        service = new SmartLockService(smartLockRepository, propertyRepository, tuyaApiService, tenantContext, claimService);
+        service = new SmartLockService(smartLockRepository, propertyRepository, tuyaApiService, tenantContext, claimService,
+                providerRegistry);
         lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
     }
 

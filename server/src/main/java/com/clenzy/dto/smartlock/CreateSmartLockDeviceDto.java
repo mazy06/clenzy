@@ -20,10 +20,16 @@ public class CreateSmartLockDeviceDto {
     @Size(max = 64, message = "L'ID device externe ne peut pas depasser 64 caracteres")
     private String externalDeviceId;
 
+    /** Origine du code : "PMS_GENERATED" (PMS pousse) ou "LOCK_GENERATED" (serrure génère). Défaut PMS_GENERATED. */
+    private String accessCodeMode;
+
     // ─── Getters / Setters ──────────────────────────────────────
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public String getAccessCodeMode() { return accessCodeMode; }
+    public void setAccessCodeMode(String accessCodeMode) { this.accessCodeMode = accessCodeMode; }
 
     public Long getPropertyId() { return propertyId; }
     public void setPropertyId(Long propertyId) { this.propertyId = propertyId; }
