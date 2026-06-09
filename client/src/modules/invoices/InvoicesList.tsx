@@ -51,7 +51,7 @@ import {
   useDuplicateInvoice,
 } from '../../hooks/useInvoices';
 import { invoicesApi, INVOICE_STATUS_COLORS } from '../../services/api/invoicesApi';
-import type { InvoiceStatus, Invoice } from '../../services/api/invoicesApi';
+import type { InvoiceStatus, InvoiceType, Invoice } from '../../services/api/invoicesApi';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { API_CONFIG } from '../../config/api';
 import { getAccessToken } from '../../keycloak';
@@ -78,6 +78,15 @@ const STATUS_LABELS: Record<InvoiceStatus, string> = {
   CANCELLED: 'Annulee',
   CREDIT_NOTE: 'Avoir',
 };
+
+const TYPE_OPTIONS: { value: InvoiceType | ''; label: string }[] = [
+  { value: '', label: 'Toutes' },
+  { value: 'GUEST', label: 'S\u00e9jour' },
+  { value: 'COMMISSION', label: 'Commission' },
+];
+
+/** Accent de la facture de commission (rose valid\u00e9 Clenzy), distinct des couleurs de statut. */
+const COMMISSION_COLOR = '#C97A7A';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('fr-FR') : '\u2014';
@@ -109,6 +118,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
   };
 
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | ''>('');
+  const [typeFilter, setTypeFilter] = useState<InvoiceType | ''>('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
@@ -122,6 +132,11 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
   }), [statusFilter, dateFrom, dateTo]);
 
   const { data: invoices, isLoading, error } = useInvoices(filters);
+  // Filtre par nature (séjour / commission) appliqué côté client sur la liste déjà chargée.
+  const displayedInvoices = useMemo(
+    () => (invoices ?? []).filter((i) => !typeFilter || i.invoiceType === typeFilter),
+    [invoices, typeFilter],
+  );
   const { data: templateStatus } = useTemplateStatus();
   const issueMutation = useIssueInvoice();
   const markPaidMutation = useMarkInvoicePaid();
@@ -174,23 +189,25 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
   const handleClearFilters = () => {
     setStatusFilter('');
+    setTypeFilter('');
     setDateFrom('');
     setDateTo('');
   };
 
-  const hasActiveFilters = statusFilter || dateFrom || dateTo;
+  const hasActiveFilters = statusFilter || typeFilter || dateFrom || dateTo;
 
   // ─── Stats ──────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     if (!invoices) return null;
-    const total = invoices.length;
-    const draft = invoices.filter(i => i.status === 'DRAFT').length;
-    const issued = invoices.filter(i => i.status === 'ISSUED').length;
-    const paid = invoices.filter(i => i.status === 'PAID').length;
-    const totalTtc = invoices.reduce((sum, i) => sum + i.totalTtc, 0);
-    const currency = invoices[0]?.currency ?? 'EUR';
+    const list = displayedInvoices;
+    const total = list.length;
+    const draft = list.filter(i => i.status === 'DRAFT').length;
+    const issued = list.filter(i => i.status === 'ISSUED').length;
+    const paid = list.filter(i => i.status === 'PAID').length;
+    const totalTtc = list.reduce((sum, i) => sum + i.totalTtc, 0);
+    const currency = list[0]?.currency ?? 'EUR';
     return { total, draft, issued, paid, totalTtc, currency };
-  }, [invoices]);
+  }, [invoices, displayedInvoices]);
 
   const summaryCards = stats
     ? [
@@ -314,6 +331,20 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           ))}
         </TextField>
         <TextField
+          select
+          size="small"
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as InvoiceType | '')}
+          label={t('invoices.type.label', 'Type')}
+          sx={{ minWidth: 150, ...inputSx }}
+        >
+          {TYPE_OPTIONS.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.8125rem' }}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
           size="small"
           type="date"
           label={t('invoices.from', 'Du')}
@@ -360,7 +391,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
         <Alert severity="error" sx={{ mb: 2, borderRadius: '8px', fontSize: '0.8125rem' }}>
           {t('invoices.loadError', 'Erreur lors du chargement des factures')}
         </Alert>
-      ) : !invoices?.length ? (
+      ) : !displayedInvoices.length ? (
         <Card sx={{ borderRadius: '12px' }}>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
             <Box
@@ -423,7 +454,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {invoices.map((inv: Invoice) => {
+              {displayedInvoices.map((inv: Invoice) => {
                 const source = getSourceType(inv);
                 const statusColor = INVOICE_STATUS_COLORS[inv.status];
                 return (
@@ -464,9 +495,26 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                     {/* ─── Date ─── */}
                     <TableCell>{fmtDate(inv.invoiceDate)}</TableCell>
 
-                    {/* ─── Type (Reservation / Intervention) ─── */}
+                    {/* ─── Type (Commission / Reservation / Intervention) ─── */}
                     <TableCell>
-                      {source ? (
+                      {inv.invoiceType === 'COMMISSION' ? (
+                        <Chip
+                          label={t('invoices.type.commission', 'Commission')}
+                          size="small"
+                          icon={<Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><MoneyIcon size={14} strokeWidth={1.75} /></Box>}
+                          sx={{
+                            height: 22,
+                            fontSize: '0.6875rem',
+                            fontWeight: 600,
+                            bgcolor: `${COMMISSION_COLOR}14`,
+                            color: COMMISSION_COLOR,
+                            border: `1px solid ${COMMISSION_COLOR}30`,
+                            borderRadius: '6px',
+                            '& .MuiChip-label': { px: 0.75 },
+                            '& .MuiChip-icon': { ml: 0.5, color: COMMISSION_COLOR },
+                          }}
+                        />
+                      ) : source ? (
                         <Chip
                           label={source.label}
                           size="small"

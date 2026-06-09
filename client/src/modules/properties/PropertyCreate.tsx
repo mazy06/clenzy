@@ -6,6 +6,8 @@ import PropertyForm from './PropertyForm';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { Property } from '../../services/api';
+import ManagementContractRequiredModal from '../contracts/ManagementContractRequiredModal';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
@@ -28,6 +30,8 @@ const PropertyCreate: React.FC = () => {
   const { t } = useTranslation();
 
   const [canCreate, setCanCreate] = useState(false);
+  // Propriété fraîchement créée : déclenche la modal de contrat obligatoire.
+  const [createdProperty, setCreatedProperty] = useState<Property | null>(null);
 
   useEffect(() => {
     const checkPermissions = async () => {
@@ -38,9 +42,8 @@ const PropertyCreate: React.FC = () => {
   }, [hasPermissionAsync]);
 
   const handleClose = () => navigate('/properties');
-  const handleSuccess = () => {
-    setTimeout(() => navigate('/properties'), 1200);
-  };
+  // Au lieu de naviguer, on ouvre la modal de contrat obligatoire (bloquante).
+  const handleSuccess = (created: Property) => setCreatedProperty(created);
 
   if (!canCreate) return null;
 
@@ -85,6 +88,17 @@ const PropertyCreate: React.FC = () => {
       <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         <PropertyForm onClose={handleClose} onSuccess={handleSuccess} />
       </Box>
+
+      <ManagementContractRequiredModal
+        open={!!createdProperty}
+        property={createdProperty ? {
+          id: createdProperty.id,
+          name: createdProperty.name,
+          ownerId: createdProperty.ownerId,
+          ownerName: createdProperty.ownerName,
+        } : null}
+        onCompleted={() => navigate('/properties')}
+      />
     </Box>
   );
 };

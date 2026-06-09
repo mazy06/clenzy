@@ -2099,3 +2099,53 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Contrat de gestion : modèle de flux/répartition (taxonomie OTA) + base de commission.
+  - changeSet:
+      id: "0215-add-management-contract-payment-model"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0215__add_management_contract_payment_model.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Facture : nature GUEST (séjour) | COMMISSION (commission de gestion au propriétaire).
+  - changeSet:
+      id: "0216-add-invoice-type"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0216__add_invoice_type.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Réservation : frais OTA perçus (base de commission NET_OF_OTA_FEE).
+  - changeSet:
+      id: "0217-add-reservation-ota-fee-amount"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0217__add_reservation_ota_fee_amount.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Suppression de propriété : ON DELETE CASCADE sur le sous-arbre propriété (+ objets connectés).
+  - changeSet:
+      id: "0218-cascade-delete-property-subtree"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0218__cascade_delete_property_subtree.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  # Suppression de propriété : cascade RÉCURSIVE sur tout le sous-arbre (complète 0218).
+  - changeSet:
+      id: "0219-cascade-delete-property-subtree-recursive"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0219__cascade_delete_property_subtree_recursive.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

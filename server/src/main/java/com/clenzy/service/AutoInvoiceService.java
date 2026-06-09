@@ -51,9 +51,9 @@ public class AutoInvoiceService {
     public Invoice generateForReservation(Reservation reservation) {
         Long orgId = reservation.getOrganizationId();
 
-        // Idempotent : skip si facture existe deja
-        if (invoiceRepository.findByReservationId(reservation.getId()).isPresent()) {
-            log.debug("Facture deja existante pour reservation {}, skip", reservation.getId());
+        // Idempotent : skip si facture de séjour existe deja (la facture de commission est distincte)
+        if (invoiceRepository.findByReservationIdAndInvoiceType(reservation.getId(), InvoiceType.GUEST).isPresent()) {
+            log.debug("Facture de séjour deja existante pour reservation {}, skip", reservation.getId());
             return null;
         }
 

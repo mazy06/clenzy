@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { propertiesApi, usersApi } from '../services/api';
+import type { Property } from '../services/api';
 import { propertySchema } from '../schemas';
 import type { PropertyFormValues } from '../schemas';
 import { extractApiList } from '../types';
@@ -97,7 +98,7 @@ const DEFAULT_VALUES: PropertyFormValues = {
 interface UsePropertyFormParams {
   propertyId?: number;
   isEditMode: boolean;
-  onSuccess?: () => void;
+  onSuccess?: (created: Property) => void;
   onNavigate?: (path: string) => void;
 }
 
@@ -240,7 +241,7 @@ export function usePropertyForm({
       }
       return propertiesApi.create(backendData);
     },
-    onSuccess: () => {
+    onSuccess: (created: Property) => {
       // Invalidate related caches
       queryClient.invalidateQueries({ queryKey: propertyDetailsKeys.all });
       queryClient.invalidateQueries({ queryKey: propertiesListKeys.all });
@@ -251,7 +252,7 @@ export function usePropertyForm({
         if (isEditMode && propertyId) {
           onNavigate?.(`/properties/${propertyId}`);
         } else {
-          onSuccess?.();
+          onSuccess?.(created);
         }
       }, 1200);
     },

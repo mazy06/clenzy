@@ -63,7 +63,7 @@ public class ICalImportService {
     private final GuestService guestService;
     private final TenantContext tenantContext;
     private final ServiceRequestService serviceRequestService;
-    private final AutoInvoiceService autoInvoiceService;
+    private final OtaReservationInvoicingService otaInvoicingService;
     private final HttpClient httpClient;
 
     public ICalImportService(ICalFeedRepository icalFeedRepository,
@@ -81,7 +81,7 @@ public class ICalImportService {
                              GuestService guestService,
                              TenantContext tenantContext,
                              @org.springframework.context.annotation.Lazy ServiceRequestService serviceRequestService,
-                             AutoInvoiceService autoInvoiceService) {
+                             OtaReservationInvoicingService otaInvoicingService) {
         this.icalFeedRepository = icalFeedRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.reservationRepository2 = reservationRepository2;
@@ -97,7 +97,7 @@ public class ICalImportService {
         this.guestService = guestService;
         this.tenantContext = tenantContext;
         this.serviceRequestService = serviceRequestService;
-        this.autoInvoiceService = autoInvoiceService;
+        this.otaInvoicingService = otaInvoicingService;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(15))
                 .followRedirects(HttpClient.Redirect.NEVER) // SSRF: disable redirects to prevent bypass
@@ -559,8 +559,8 @@ public class ICalImportService {
             try {
                 Reservation reservation = reservationRepository2.findById(resId).orElse(null);
                 if (reservation != null) {
-                    // Idempotent : AutoInvoiceService skip si une facture existe deja pour la resa.
-                    autoInvoiceService.generateForReservation(reservation);
+                    // Route séjour/commission selon le modèle de paiement du contrat (idempotent).
+                    otaInvoicingService.invoiceImportedReservation(reservation);
                 }
             } catch (Exception e) {
                 log.warn("Auto-facture OTA (post-commit) echouee pour reservation #{}: {}", resId, e.getMessage());
@@ -1086,13 +1086,14 @@ public class ICalImportService {
      * Seules les factures DRAFT sont annulees ; les factures emises/payees ne sont pas touchees.
      */
     private void cancelLinkedDraftInvoice(Long reservationId) {
-        invoiceRepository.findByReservationId(reservationId).ifPresent(invoice -> {
+        // Annule les brouillons (séjour ET commission) ; les factures émises/payées restent intactes.
+        for (Invoice invoice : invoiceRepository.findAllByReservationId(reservationId)) {
             if (invoice.getStatus() == InvoiceStatus.DRAFT) {
                 invoice.setStatus(InvoiceStatus.CANCELLED);
                 invoiceRepository.save(invoice);
                 log.debug("Facture #{} annulee (reservation #{} annulee via iCal)",
                         invoice.getId(), reservationId);
             }
-        });
+        }
     }
 }

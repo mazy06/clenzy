@@ -2,115 +2,45 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom';
 import {
   Box,
-  Typography,
   Button,
-  Grid,
-  Card,
-  CardContent,
   Menu,
   MenuItem,
   ListItemIcon,
   ListItemText,
-  TablePagination,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
   IconButton,
   Tooltip,
-  LinearProgress,
-  useTheme,
 } from '@mui/material';
 import {
   Add,
   Edit,
   Delete,
   Visibility,
-  CheckCircle,
   Cancel,
   Description,
   Assignment,
-  MoreVert,
-  Refresh,
-  LocationOn,
-  Build as BuildIcon,
 } from '../../icons';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
-import ServiceRequestCard from '../../components/ServiceRequestCard';
 import ExportButton from '../../components/ExportButton';
 import type { ExportColumn } from '../../utils/exportUtils';
-import { createSpacing } from '../../theme/spacing';
 import { useServiceRequestsList } from './useServiceRequestsList';
 import { statusColors, priorityColors, typeIcons } from './serviceRequestsUtils';
-import {
-  getServiceRequestStatusLabel,
-  getServiceRequestStatusHex,
-  getServiceRequestPriorityLabel,
-  getServiceRequestPriorityHex,
-} from '../../utils/statusUtils';
 import {
   DeleteConfirmDialog,
   StatusChangeDialog,
   AssignDialog,
-  ValidateConfirmDialog,
   ErrorDialog,
   SuccessDialog,
 } from './ServiceRequestsDialogs';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import { useCurrency } from '../../hooks/useCurrency';
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
-import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
-
-const paginationSx = {
-  position: 'sticky',
-  bottom: 0,
-  bgcolor: 'background.paper',
-  borderTop: '1px solid',
-  borderColor: 'divider',
-  mt: 2,
-  borderRadius: 1,
-} as const;
-
-const LIST_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
-const LIST_DEFAULT_ROWS = 10;
-
-/**
- * Retire le suffixe " — {propertyName}" ou " - {propertyName}" du titre.
- * Evite la redondance quand le nom de propriete est deja affiche dans sa
- * propre colonne.
- */
-function stripPropertySuffix(title: string, propertyName?: string): string {
-  if (!propertyName) return title;
-  const patterns = [` — ${propertyName}`, ` - ${propertyName}`, ` -- ${propertyName}`];
-  for (const p of patterns) {
-    if (title.endsWith(p)) return title.slice(0, -p.length).trim();
-  }
-  return title;
-}
-
-const LIST_PAPER_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
-  boxShadow: 'none',
-  borderRadius: 1.5,
-} as const;
-
-function formatDateShort(dateStr: string): string {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function formatPrice(price: number | undefined, symbol: string): string {
-  if (price === undefined || price === null) return '—';
-  return `${price}${symbol}`;
-}
+import { ITEMS_PER_PAGE } from './serviceRequestsListConstants';
+import ServiceRequestsMapView from './ServiceRequestsMapView';
+import ServiceRequestsGridView from './ServiceRequestsGridView';
+import ServiceRequestsTableView from './ServiceRequestsTableView';
 
 interface ServiceRequestsListProps {
   embedded?: boolean;
@@ -227,9 +157,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     ['grid', 'list', 'map'] as const,
     autoDefaultMode,
   );
-  const theme = useTheme();
   const { convertAndFormat } = useCurrency();
-  const ITEMS_PER_PAGE = 6;
 
   // ─── Map state ──────────────────────────────────────────────
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
@@ -422,310 +350,38 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           )}
         />
       ) : viewMode === 'map' ? (
-        /* ─── Vue carte + liste viewport ─── */
-        <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 0, overflow: 'hidden', flexShrink: 0 }}>
-            {mapMarkers.length > 0 ? (
-              <MapboxPropertyMap
-                properties={mapMarkers}
-                height={400}
-                onMarkerClick={(marker) => {
-                  if (marker.id) navigate(`/service-requests/${marker.id}`);
-                }}
-                onBoundsChange={handleBoundsChange}
-              />
-            ) : (
-              <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", opacity: 0.5 }}><BuildIcon size={36} strokeWidth={1.5} /></Box>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
-                  Aucune demande avec coordonnées GPS
-                </Typography>
-              </Box>
-            )}
-          </Paper>
-
-          {mapMarkers.length > 0 && (
-            <Box sx={{ mt: 1.5, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 1, fontSize: '0.8125rem', fontWeight: 600, color: 'text.secondary', flexShrink: 0 }}
-              >
-                {viewportRequests.length} {viewportRequests.length > 1 ? 'demandes' : 'demande'} dans la zone visible
-              </Typography>
-
-              {viewportRequests.length === 0 ? (
-                <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2, textAlign: 'center' }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
-                    Aucune demande dans cette zone. Déplacez ou dézoomez la carte.
-                  </Typography>
-                </Paper>
-              ) : (
-                <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, pr: 0.5 }}>
-                  {viewportRequests.map((request) => {
-                    const statusColor = getServiceRequestStatusHex(request.status);
-                    const priorityColor = getServiceRequestPriorityHex(request.priority);
-                    return (
-                      <Paper
-                        key={request.id}
-                        sx={{
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          boxShadow: 'none',
-                          borderRadius: 1.5,
-                          p: 1.5,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          flexShrink: 0,
-                          '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
-                        }}
-                        onClick={() => navigate(`/service-requests/${request.id}`)}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography
-                              variant="body2"
-                              fontWeight={600}
-                              sx={{ fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                            >
-                              {stripPropertySuffix(request.title, request.propertyName)}
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                              <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{ fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                              >
-                                {request.propertyName} — {request.propertyAddress}
-                              </Typography>
-                            </Box>
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-                            <Chip
-                              label={getServiceRequestStatusLabel(request.status, t)}
-                              size="small"
-                              sx={{
-                                backgroundColor: `${statusColor}18`,
-                                color: statusColor,
-                                border: `1px solid ${statusColor}40`,
-                                borderRadius: '6px',
-                                fontWeight: 600,
-                                fontSize: '0.62rem',
-                                height: 22,
-                                '& .MuiChip-label': { px: 0.75 },
-                              }}
-                            />
-                            <Chip
-                              label={getServiceRequestPriorityLabel(request.priority, t)}
-                              size="small"
-                              sx={{
-                                backgroundColor: `${priorityColor}18`,
-                                color: priorityColor,
-                                border: `1px solid ${priorityColor}40`,
-                                borderRadius: '6px',
-                                fontWeight: 600,
-                                fontSize: '0.62rem',
-                                height: 22,
-                                '& .MuiChip-label': { px: 0.75 },
-                              }}
-                            />
-                            {request.assignedToName && (
-                              <Typography variant="caption" sx={{ fontSize: '0.68rem', color: 'text.secondary', ml: 0.5 }}>
-                                {request.assignedToName}
-                              </Typography>
-                            )}
-                            <Tooltip title="Voir">
-                              <IconButton size="small" sx={{ ml: 0.5 }}>
-                                <Visibility size={16} strokeWidth={1.75} />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </Box>
-                      </Paper>
-                    );
-                  })}
-                </Box>
-              )}
-            </Box>
-          )}
-        </Box>
+        <ServiceRequestsMapView
+          mapMarkers={mapMarkers}
+          viewportRequests={viewportRequests}
+          onBoundsChange={handleBoundsChange}
+          navigate={navigate}
+        />
       ) : viewMode === 'grid' ? (
-        <>
-          <Grid container spacing={2}>
-            {paginatedServiceRequests.map((request) => (
-              <Grid item xs={12} md={6} lg={4} key={request.id}>
-                <ServiceRequestCard
-                  request={request}
-                  onMenuOpen={handleMenuOpen}
-                  typeIcons={typeIcons}
-                  statuses={statuses}
-                  priorities={priorities}
-                  statusColors={statusColors}
-                  priorityColors={priorityColors}
-                />
-              </Grid>
-            ))}
-          </Grid>
-          {filteredServiceRequests.length > ITEMS_PER_PAGE && (
-            <TablePagination
-              component="div"
-              count={filteredServiceRequests.length}
-              page={page}
-              onPageChange={(_, p) => setPage(p)}
-              rowsPerPage={ITEMS_PER_PAGE}
-              rowsPerPageOptions={[ITEMS_PER_PAGE]}
-              labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-              sx={paginationSx}
-            />
-          )}
-        </>
+        <ServiceRequestsGridView
+          serviceRequests={paginatedServiceRequests}
+          totalCount={filteredServiceRequests.length}
+          page={page}
+          onPageChange={setPage}
+          onMenuOpen={handleMenuOpen}
+          typeIcons={typeIcons}
+          statuses={statuses}
+          priorities={priorities}
+          statusColors={statusColors}
+          priorityColors={priorityColors}
+          navigate={navigate}
+        />
       ) : (
-        /* ─── Vue liste (table) ─── */
-        <Paper ref={listContainerRef} sx={{ ...LIST_PAPER_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow
-                  sx={{
-                    '& th': {
-                      fontWeight: 700,
-                      fontSize: '0.78rem',
-                      color: theme.palette.text.secondary,
-                      borderBottom: `2px solid ${theme.palette.divider}`,
-                      whiteSpace: 'nowrap',
-                    },
-                  }}
-                >
-                  <TableCell>Titre</TableCell>
-                  <TableCell>Propriété</TableCell>
-                  <TableCell>Demandeur</TableCell>
-                  <TableCell>Assigné à</TableCell>
-                  <TableCell align="center">Statut</TableCell>
-                  <TableCell align="center">Priorité</TableCell>
-                  <TableCell align="right">Coût</TableCell>
-                  <TableCell>Échéance</TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedServiceRequests.map((request) => (
-                  <TableRow
-                    key={request.id}
-                    hover
-                    sx={{
-                      cursor: 'pointer',
-                      '&:last-child td': { borderBottom: 0 },
-                    }}
-                    onClick={() => navigate(`/service-requests/${request.id}`)}
-                  >
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
-                        {stripPropertySuffix(request.title, request.propertyName)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                        {request.propertyName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
-                        {request.propertyAddress}, {request.propertyCity}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                        {request.requestorName}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                        {request.assignedToName || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      {(() => { const c = getServiceRequestStatusHex(request.status); return (
-                        <Chip
-                          label={getServiceRequestStatusLabel(request.status, t)}
-                          size="small"
-                          sx={{
-                            backgroundColor: `${c}18`,
-                            color: c,
-                            border: `1px solid ${c}40`,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            height: 24,
-                            '& .MuiChip-label': { px: 1 },
-                          }}
-                        />
-                      ); })()}
-                    </TableCell>
-                    <TableCell align="center">
-                      {(() => { const c = getServiceRequestPriorityHex(request.priority); return (
-                        <Chip
-                          label={getServiceRequestPriorityLabel(request.priority, t)}
-                          size="small"
-                          sx={{
-                            backgroundColor: `${c}18`,
-                            color: c,
-                            border: `1px solid ${c}40`,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            height: 24,
-                            '& .MuiChip-label': { px: 1 },
-                          }}
-                        />
-                      ); })()}
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.82rem' }}>
-                        {request.estimatedCost != null ? convertAndFormat(request.estimatedCost, 'EUR') : '—'}
-                      </Typography>
-                      {request.estimatedDuration > 0 && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
-                          ~{request.estimatedDuration}h
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                        {formatDateShort(request.dueDate)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
-                      <Tooltip title="Détails">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/service-requests/${request.id}`); }}
-                        >
-                          <Visibility size={18} strokeWidth={1.75} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Actions">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, request); }}
-                        >
-                          <MoreVert size={18} strokeWidth={1.75} />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <TablePagination
-            component="div"
-            count={filteredServiceRequests.length}
-            page={page}
-            onPageChange={(_, p) => setPage(p)}
-            rowsPerPage={rowsPerPage}
-            rowsPerPageOptions={[]}
-            labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-            sx={{ ...paginationSx, flexShrink: 0 }}
-          />
-        </Paper>
+        <ServiceRequestsTableView
+          serviceRequests={paginatedServiceRequests}
+          totalCount={filteredServiceRequests.length}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          containerRef={listContainerRef}
+          convertAndFormat={convertAndFormat}
+          onMenuOpen={handleMenuOpen}
+          navigate={navigate}
+        />
       )}
 
       {/* Menu contextuel */}

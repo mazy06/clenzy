@@ -23,6 +23,22 @@ public class ManagementContract {
         CUSTOM                // Personnalise
     }
 
+    /**
+     * Modele de flux des paiements / repartition (taxonomie OTA).
+     * DIRECT            : Clenzy encaisse via Stripe -> split escrow owner/concierge/platform.
+     * OWNER_COLLECTS    : l'OTA verse au proprietaire -> la conciergerie facture sa commission (creance).
+     * CONCIERGE_COLLECTS: l'OTA verse a la conciergerie -> elle reverse le net au proprietaire (Reversement).
+     * OTA_COHOST_SPLIT  : l'OTA repartit a la source (co-host payout) -> reconciliation seule.
+     */
+    public enum PaymentModel {
+        DIRECT, OWNER_COLLECTS, CONCIERGE_COLLECTS, OTA_COHOST_SPLIT
+    }
+
+    /** Base de calcul de la commission : montant brut, ou net des frais OTA (host fee Airbnb, etc.). */
+    public enum CommissionBase {
+        GROSS, NET_OF_OTA_FEE
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -63,6 +79,16 @@ public class ManagementContract {
     /** Part conciergerie sur les activités/marketplace (fraction, après commission plateforme). null = défaut org. */
     @Column(name = "activity_commission_rate", precision = 5, scale = 4)
     private BigDecimal activityCommissionRate;
+
+    /** Modèle de flux des paiements / répartition. Défaut DIRECT (comportement Stripe historique). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_model", nullable = false, length = 30)
+    private PaymentModel paymentModel = PaymentModel.DIRECT;
+
+    /** Base de calcul de la commission (brut, ou net des frais OTA). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "commission_base", nullable = false, length = 20)
+    private CommissionBase commissionBase = CommissionBase.GROSS;
 
     @Column(name = "minimum_stay_nights")
     private Integer minimumStayNights;
@@ -136,6 +162,10 @@ public class ManagementContract {
     public void setUpsellCommissionRate(BigDecimal upsellCommissionRate) { this.upsellCommissionRate = upsellCommissionRate; }
     public BigDecimal getActivityCommissionRate() { return activityCommissionRate; }
     public void setActivityCommissionRate(BigDecimal activityCommissionRate) { this.activityCommissionRate = activityCommissionRate; }
+    public PaymentModel getPaymentModel() { return paymentModel; }
+    public void setPaymentModel(PaymentModel paymentModel) { this.paymentModel = paymentModel; }
+    public CommissionBase getCommissionBase() { return commissionBase; }
+    public void setCommissionBase(CommissionBase commissionBase) { this.commissionBase = commissionBase; }
     public Integer getMinimumStayNights() { return minimumStayNights; }
     public void setMinimumStayNights(Integer minimumStayNights) { this.minimumStayNights = minimumStayNights; }
     public Boolean getAutoRenew() { return autoRenew; }

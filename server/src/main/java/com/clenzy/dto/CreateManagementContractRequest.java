@@ -1,6 +1,8 @@
 package com.clenzy.dto;
 
+import com.clenzy.model.ManagementContract.CommissionBase;
 import com.clenzy.model.ManagementContract.ContractType;
+import com.clenzy.model.ManagementContract.PaymentModel;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
@@ -20,5 +22,9 @@ public record CreateManagementContractRequest(
     Boolean maintenanceIncluded,
     String notes,
     BigDecimal upsellCommissionRate,
-    BigDecimal activityCommissionRate
+    BigDecimal activityCommissionRate,
+    /** Modèle de flux/répartition (null = DIRECT par défaut côté service). */
+    PaymentModel paymentModel,
+    /** Base de commission brut/net OTA (null = GROSS par défaut côté service). */
+    CommissionBase commissionBase
 ) {}
