@@ -75,7 +75,7 @@ class ICalImportServiceExtendedTest {
     @Mock private CalendarEngine calendarEngine;
     @Mock private GuestService guestService;
     @Mock private ServiceRequestService serviceRequestService;
-    @Mock private AutoInvoiceService autoInvoiceService;
+    @Mock private OtaReservationInvoicingService otaInvoicingService;
 
     private TenantContext tenantContext;
     private ICalImportService service;
@@ -93,7 +93,7 @@ class ICalImportServiceExtendedTest {
             propertyRepository, userRepository,
             auditLogService, notificationService, pricingConfigService,
             priceEngine, calendarEngine, guestService, tenantContext,
-            serviceRequestService, autoInvoiceService);
+            serviceRequestService, otaInvoicingService);
     }
 
     private User host(Long id, String kc, String forfait) {

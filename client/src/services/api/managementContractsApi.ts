@@ -4,6 +4,10 @@ import apiClient from '../apiClient';
 
 export type ContractStatus = 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | 'TERMINATED' | 'EXPIRED';
 export type ContractType = 'FULL_MANAGEMENT' | 'BOOKING_ONLY' | 'MAINTENANCE_ONLY' | 'CUSTOM';
+/** Modèle de flux/répartition (taxonomie OTA). DIRECT = Clenzy encaisse via Stripe. */
+export type PaymentModel = 'DIRECT' | 'OWNER_COLLECTS' | 'CONCIERGE_COLLECTS' | 'OTA_COHOST_SPLIT';
+/** Base de calcul de la commission : brut, ou net des frais OTA. */
+export type CommissionBase = 'GROSS' | 'NET_OF_OTA_FEE';
 
 export interface ManagementContract {
   id: number;
@@ -19,6 +23,10 @@ export interface ManagementContract {
   upsellCommissionRate: number | null;
   /** Part conciergerie sur les activités/marketplace (fraction) ; null = défaut org. */
   activityCommissionRate: number | null;
+  /** Modèle de flux/répartition (taxonomie OTA). */
+  paymentModel: PaymentModel;
+  /** Base de calcul de la commission. */
+  commissionBase: CommissionBase;
   minimumStayNights: number | null;
   autoRenew: boolean;
   noticePeriodDays: number;
@@ -40,6 +48,8 @@ export interface CreateManagementContractRequest {
   commissionRate: number;
   upsellCommissionRate?: number | null;
   activityCommissionRate?: number | null;
+  paymentModel?: PaymentModel;
+  commissionBase?: CommissionBase;
   minimumStayNights?: number | null;
   autoRenew?: boolean;
   noticePeriodDays?: number;

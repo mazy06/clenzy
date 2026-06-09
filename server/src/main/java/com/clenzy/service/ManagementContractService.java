@@ -7,9 +7,11 @@ import com.clenzy.model.ManagementContract;
 import com.clenzy.model.ManagementContract.ContractStatus;
 import com.clenzy.model.ReferenceType;
 import com.clenzy.repository.ManagementContractRepository;
+import com.clenzy.repository.PropertyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,13 +28,16 @@ public class ManagementContractService {
 
     private final ManagementContractRepository contractRepository;
     private final DocumentGeneratorService documentGeneratorService;
+    private final PropertyRepository propertyRepository;
 
     public ManagementContractService(
             ManagementContractRepository contractRepository,
-            @Lazy DocumentGeneratorService documentGeneratorService
+            @Lazy DocumentGeneratorService documentGeneratorService,
+            PropertyRepository propertyRepository
     ) {
         this.contractRepository = contractRepository;
         this.documentGeneratorService = documentGeneratorService;
+        this.propertyRepository = propertyRepository;
     }
 
     public List<ManagementContractDto> getAllContracts(Long orgId) {
@@ -82,6 +87,9 @@ public class ManagementContractService {
                 "Property " + request.propertyId() + " already has an active contract: " + existing.get().getContractNumber());
         }
 
+        // Ownership : la propriété ciblée doit appartenir à l'organisation du requester.
+        requirePropertyInOrg(request.propertyId(), orgId);
+
         ManagementContract contract = new ManagementContract();
         contract.setOrganizationId(orgId);
         contract.setPropertyId(request.propertyId());
@@ -92,6 +100,8 @@ public class ManagementContractService {
         contract.setCommissionRate(request.commissionRate());
         contract.setUpsellCommissionRate(request.upsellCommissionRate());
         contract.setActivityCommissionRate(request.activityCommissionRate());
+        contract.setPaymentModel(request.paymentModel() != null ? request.paymentModel() : ManagementContract.PaymentModel.DIRECT);
+        contract.setCommissionBase(request.commissionBase() != null ? request.commissionBase() : ManagementContract.CommissionBase.GROSS);
         contract.setMinimumStayNights(request.minimumStayNights());
         contract.setAutoRenew(request.autoRenew() != null ? request.autoRenew() : false);
         contract.setNoticePeriodDays(request.noticePeriodDays() != null ? request.noticePeriodDays() : 30);
@@ -190,6 +200,8 @@ public class ManagementContractService {
                 renewed.setStartDate(contract.getEndDate().plusDays(1));
                 renewed.setEndDate(contract.getEndDate().plusYears(1));
                 renewed.setCommissionRate(contract.getCommissionRate());
+                renewed.setPaymentModel(contract.getPaymentModel());
+                renewed.setCommissionBase(contract.getCommissionBase());
                 renewed.setMinimumStayNights(contract.getMinimumStayNights());
                 renewed.setAutoRenew(true);
                 renewed.setNoticePeriodDays(contract.getNoticePeriodDays());
@@ -217,6 +229,9 @@ public class ManagementContractService {
             throw new IllegalStateException("Can only update DRAFT contracts, current: " + contract.getStatus());
         }
 
+        // Ownership : la propriété ciblée doit appartenir à l'organisation du requester.
+        requirePropertyInOrg(request.propertyId(), orgId);
+
         contract.setPropertyId(request.propertyId());
         contract.setOwnerId(request.ownerId());
         contract.setContractType(request.contractType());
@@ -225,6 +240,8 @@ public class ManagementContractService {
         contract.setCommissionRate(request.commissionRate());
         contract.setUpsellCommissionRate(request.upsellCommissionRate());
         contract.setActivityCommissionRate(request.activityCommissionRate());
+        if (request.paymentModel() != null) contract.setPaymentModel(request.paymentModel());
+        if (request.commissionBase() != null) contract.setCommissionBase(request.commissionBase());
         contract.setMinimumStayNights(request.minimumStayNights());
         if (request.autoRenew() != null) contract.setAutoRenew(request.autoRenew());
         if (request.noticePeriodDays() != null) contract.setNoticePeriodDays(request.noticePeriodDays());
@@ -239,5 +256,16 @@ public class ManagementContractService {
     private ManagementContract getEntity(Long id, Long orgId) {
         return contractRepository.findByIdAndOrgId(id, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Contract not found: " + id));
+    }
+
+    /**
+     * Valide que la propriété appartient à l'organisation du requester.
+     * Empêche d'attacher un contrat à une propriété hors de son périmètre (ownership).
+     */
+    private void requirePropertyInOrg(Long propertyId, Long orgId) {
+        if (propertyId == null || propertyRepository.findByIdWithOwner(propertyId, orgId).isEmpty()) {
+            throw new AccessDeniedException(
+                "Propriété introuvable ou hors de votre organisation : " + propertyId);
+        }
     }
 }

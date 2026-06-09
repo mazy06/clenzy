@@ -13,12 +13,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Management contract CRUD — SUPER_ADMIN/SUPER_MANAGER can create and manage contracts
- * with per-property commission rates that drive the payment split engine.
+ * Management contract CRUD — la plateforme (SUPER_ADMIN/SUPER_MANAGER) et les gestionnaires
+ * de l'organisation (HOST) créent/gèrent les contrats, avec un taux de commission par propriété
+ * qui pilote le moteur de répartition. L'accès est borné à l'organisation (TenantContext) et la
+ * propriété ciblée est validée comme appartenant à l'org (ownership) côté service.
  */
 @RestController
 @RequestMapping("/api/management-contracts")
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
 public class ManagementContractController {
 
     private final ManagementContractService contractService;
@@ -76,6 +78,7 @@ public class ManagementContractController {
     }
 
     @PostMapping("/expire")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public Map<String, Integer> expireContracts() {
         int count = contractService.expireContracts(tenantContext.getOrganizationId());
         return Map.of("expired", count);

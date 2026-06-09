@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -70,8 +71,8 @@ public class InvoiceGeneratorService {
         Long orgId = tenantContext.getRequiredOrganizationId();
         String countryCode = tenantContext.getCountryCode();
 
-        // Verifier qu'il n'y a pas deja une facture pour cette reservation
-        invoiceRepository.findByReservationId(request.reservationId())
+        // Verifier qu'il n'y a pas deja une facture de séjour pour cette reservation
+        invoiceRepository.findByReservationIdAndInvoiceType(request.reservationId(), InvoiceType.GUEST)
             .ifPresent(existing -> {
                 throw new IllegalStateException(
                     "Une facture existe deja pour la reservation " + request.reservationId()
@@ -413,6 +414,112 @@ public class InvoiceGeneratorService {
     }
 
     /**
+     * Genere une facture DRAFT de commission de gestion (conciergerie → propriétaire).
+     *
+     * <p>Vendeur = profil fiscal de l'organisation (la conciergerie) ; acheteur = propriétaire
+     * du logement. La base de commission est le montant brut de la réservation, ou le net des
+     * frais OTA si {@code commissionBase = NET_OF_OTA_FEE} et que les frais OTA sont connus.
+     * La commission est exprimée HT, la TVA standard est ajoutée par le moteur fiscal.</p>
+     */
+    @Transactional
+    public Invoice generateCommissionFromReservation(Reservation reservation,
+                                                     ManagementContract contract, Long orgId) {
+        FiscalProfile fiscalProfile = fiscalProfileRepository.findByOrganizationId(orgId)
+            .orElseThrow(() -> new IllegalStateException(
+                "Profil fiscal non configure pour l'organisation " + orgId));
+
+        String countryCode = fiscalProfile.getCountryCode() != null
+            ? fiscalProfile.getCountryCode() : "FR";
+        String currency = reservation.getCurrency() != null
+            ? reservation.getCurrency()
+            : (fiscalProfile.getDefaultCurrency() != null ? fiscalProfile.getDefaultCurrency() : "EUR");
+
+        // Base de commission : brut, ou net des frais OTA si connus (sinon repli sur le brut).
+        BigDecimal base = reservation.getTotalPrice() != null ? reservation.getTotalPrice() : BigDecimal.ZERO;
+        if (contract.getCommissionBase() == ManagementContract.CommissionBase.NET_OF_OTA_FEE
+                && reservation.getOtaFeeAmount() != null) {
+            base = base.subtract(reservation.getOtaFeeAmount()).max(BigDecimal.ZERO);
+        }
+
+        BigDecimal rate = contract.getCommissionRate() != null ? contract.getCommissionRate() : BigDecimal.ZERO;
+        BigDecimal commissionHt = base.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+
+        Invoice invoice = new Invoice();
+        invoice.setOrganizationId(orgId);
+        invoice.setInvoiceNumber("DRAFT");
+        invoice.setInvoiceDate(LocalDate.now());
+        invoice.setDueDate(LocalDate.now().plusDays(30));
+        invoice.setCurrency(currency);
+        invoice.setCountryCode(countryCode);
+        invoice.setReservationId(reservation.getId());
+        invoice.setInvoiceType(InvoiceType.COMMISSION);
+        invoice.setStatus(InvoiceStatus.DRAFT);
+
+        // Vendeur = conciergerie (organisation)
+        invoice.setSellerName(fiscalProfile.getLegalEntityName());
+        invoice.setSellerAddress(fiscalProfile.getLegalAddress());
+        invoice.setSellerTaxId(fiscalProfile.getVatNumber() != null
+            ? fiscalProfile.getVatNumber() : fiscalProfile.getTaxIdNumber());
+
+        // Acheteur = propriétaire du logement
+        User owner = reservation.getProperty() != null ? reservation.getProperty().getOwner() : null;
+        invoice.setBuyerName(resolveOwnerName(owner));
+        invoice.setBuyerAddress(resolveOwnerAddress(owner));
+
+        invoice.setLegalMentions(fiscalProfile.getLegalMentions());
+
+        // Aucune commission à facturer (base ou taux nul) : retourner sans persister (pas d'orphelin).
+        if (commissionHt.compareTo(BigDecimal.ZERO) <= 0) {
+            invoice.setTotalHt(BigDecimal.ZERO);
+            invoice.setTotalTax(BigDecimal.ZERO);
+            invoice.setTotalTtc(BigDecimal.ZERO);
+            return invoice;
+        }
+
+        // Ligne unique : commission de gestion (prestation de service → TVA standard)
+        int ratePct = rate.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP).intValue();
+        LocalDate taxDate = reservation.getCheckOut() != null ? reservation.getCheckOut() : LocalDate.now();
+        TaxResult commissionTax = fiscalEngine.calculateTax(
+            countryCode,
+            new TaxableItem(commissionHt, TaxCategory.STANDARD.name(), "Commission de gestion"),
+            taxDate
+        );
+        invoice.addLine(createLine(1,
+            String.format("Commission de gestion (%d%%) - reservation #%d, sejour du %s au %s",
+                ratePct, reservation.getId(), reservation.getCheckIn(), reservation.getCheckOut()),
+            BigDecimal.ONE, commissionHt,
+            TaxCategory.STANDARD.name(),
+            commissionTax.taxRate(), commissionTax.taxAmount(),
+            commissionTax.amountHT(), commissionTax.amountTTC()));
+
+        computeTotals(invoice);
+        invoice = invoiceRepository.save(invoice);
+
+        log.info("Facture commission DRAFT id={} pour reservation {} (base={} commissionHT={} totalTTC={})",
+            invoice.getId(), reservation.getId(), base, commissionHt, invoice.getTotalTtc());
+        return invoice;
+    }
+
+    private String resolveOwnerName(User owner) {
+        if (owner == null) return "Proprietaire";
+        if (owner.getCompanyName() != null && !owner.getCompanyName().isBlank()) {
+            return owner.getCompanyName();
+        }
+        String full = ((owner.getFirstName() != null ? owner.getFirstName() : "") + " "
+                     + (owner.getLastName() != null ? owner.getLastName() : "")).trim();
+        if (!full.isBlank()) return full;
+        return owner.getEmail() != null ? owner.getEmail() : "Proprietaire";
+    }
+
+    private String resolveOwnerAddress(User owner) {
+        if (owner == null) return null;
+        String postal = owner.getPostalCode() != null ? owner.getPostalCode() : "";
+        String city = owner.getCity() != null ? owner.getCity() : "";
+        String addr = (postal + " " + city).trim();
+        return addr.isBlank() ? null : addr;
+    }
+
+    /**
      * Genere une facture DRAFT pour une intervention.
      * Sans dependance TenantContext (utilisee depuis webhooks Stripe).
      */
@@ -610,7 +717,7 @@ public class InvoiceGeneratorService {
 
     private Optional<Invoice> findExistingInvoice(ReferenceType refType, Long referenceId) {
         if (refType == ReferenceType.RESERVATION) {
-            return invoiceRepository.findByReservationId(referenceId);
+            return invoiceRepository.findByReservationIdAndInvoiceType(referenceId, InvoiceType.GUEST);
         } else if (refType == ReferenceType.INTERVENTION) {
             return invoiceRepository.findByInterventionId(referenceId);
         }

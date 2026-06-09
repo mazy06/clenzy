@@ -3,44 +3,18 @@ import { createPortal } from 'react-dom';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
-  Grid,
   MenuItem,
   Alert,
   CircularProgress,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  ToggleButton,
-  ToggleButtonGroup,
-  FormControl,
-  InputLabel,
-  Select as MuiSelect,
-  TablePagination,
   Menu,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
   IconButton,
   Tooltip,
-  LinearProgress,
-  useTheme,
 } from '@mui/material';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import ListSkeleton from '../../components/ListSkeleton';
-import InterventionCard from './InterventionCard';
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
-import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import {
   Add as AddIcon,
@@ -48,77 +22,24 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Assignment as AssignmentIcon,
-  Person as PersonIcon,
-  Group as GroupIcon,
   Build,
   Refresh,
-  MoreVert,
-  LocationOn,
 } from '../../icons';
 import { INTERVENTION_STATUS_OPTIONS, PRIORITY_OPTIONS } from '../../types/statusEnums';
 import { createSpacing } from '../../theme/spacing';
 import ExportButton from '../../components/ExportButton';
 import { useInterventionsList } from './useInterventionsList';
-import type { Intervention } from './useInterventionsList';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
-import {
-  getInterventionStatusLabel,
-  getInterventionStatusHex,
-  getInterventionPriorityLabel,
-  getInterventionPriorityHex,
-  getInterventionTypeLabel,
-  getInterventionTypeHex,
-} from '../../utils/statusUtils';
-
-const paginationSx = {
-  position: 'sticky',
-  bottom: 0,
-  bgcolor: 'background.paper',
-  borderTop: '1px solid',
-  borderColor: 'divider',
-  mt: 2,
-  borderRadius: 1,
-} as const;
-
-const LIST_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
-const LIST_DEFAULT_ROWS = 10;
-
-/**
- * Retire le suffixe " — {propertyName}" ou " - {propertyName}" du titre.
- * Evite la redondance quand le nom de propriete est deja affiche dans sa
- * propre colonne.
- */
-function stripPropertySuffix(title: string, propertyName?: string): string {
-  if (!propertyName) return title;
-  const patterns = [` — ${propertyName}`, ` - ${propertyName}`, ` -- ${propertyName}`];
-  for (const p of patterns) {
-    if (title.endsWith(p)) return title.slice(0, -p.length).trim();
-  }
-  return title;
-}
-
-const LIST_PAPER_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
-  boxShadow: 'none',
-  borderRadius: 1.5,
-} as const;
-
-
-function formatDateShort(dateStr: string): string {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-}
+import InterventionsMapView from './InterventionsMapView';
+import InterventionsGridView from './InterventionsGridView';
+import InterventionsTableView from './InterventionsTableView';
+import InterventionAssignDialog from './InterventionAssignDialog';
 
 interface InterventionsListProps {
   embedded?: boolean;
   actionsContainer?: HTMLElement | null;
   filtersContainer?: HTMLElement | null;
 }
-
-/** COMPLETED interventions always show 100% regardless of stored value */
-const getProgress = (i: Intervention): number =>
-  i.status === 'COMPLETED' ? 100 : (i.progressPercentage ?? 0);
 
 export default function InterventionsList({ embedded = false, actionsContainer, filtersContainer }: InterventionsListProps) {
   const {
@@ -172,7 +93,6 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     exportColumns,
 
     // Auth helpers
-    isHost,
     isManager,
     isAdmin,
     navigate,
@@ -196,7 +116,6 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   );
   const [listPage, setListPage] = useState(0);
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
-  const theme = useTheme();
 
   // Dynamic page size based on available viewport height
   const { containerRef: listContainerRef, pageSize: listRowsPerPage } = useDynamicPageSize({
@@ -472,413 +391,33 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
               } — ${t('interventions.interventionsDescription')}`}
             />
           ) : viewMode === 'map' ? (
-            /* ─── Vue carte (sticky) + liste viewport (scrollable) ─── */
-            <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-              {/* Carte fixe en haut */}
-              <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 0, overflow: 'hidden', flexShrink: 0 }}>
-                {mapMarkers.length > 0 ? (
-                  <MapboxPropertyMap
-                    properties={mapMarkers}
-                    height={400}
-                    onMarkerClick={(marker) => {
-                      if (marker.id) navigate(`/interventions/${marker.id}`);
-                    }}
-                    onBoundsChange={handleBoundsChange}
-                  />
-                ) : (
-                  <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                    <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", opacity: 0.5 }}><Build size={36} strokeWidth={1.5} /></Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
-                      Aucune intervention avec coordonnées GPS
-                    </Typography>
-                  </Box>
-                )}
-              </Paper>
-
-              {/* Liste scrollable en dessous */}
-              {mapMarkers.length > 0 && (
-                <Box sx={{ mt: 1.5, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ mb: 1, fontSize: '0.8125rem', fontWeight: 600, color: 'text.secondary', flexShrink: 0 }}
-                  >
-                    {viewportInterventions.length} {viewportInterventions.length > 1 ? 'interventions' : 'intervention'} dans la zone visible
-                  </Typography>
-
-                  {viewportInterventions.length === 0 ? (
-                    <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2, textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
-                        Aucune intervention dans cette zone. Déplacez ou dézoomez la carte.
-                      </Typography>
-                    </Paper>
-                  ) : (
-                    <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, pr: 0.5 }}>
-                      {viewportInterventions.map((intervention) => {
-                        const statusColor = getInterventionStatusHex(intervention.status);
-                        const typeColor = getInterventionTypeHex(intervention.type);
-                        const priorityColor = getInterventionPriorityHex(intervention.priority);
-                        return (
-                          <Paper
-                            key={intervention.id}
-                            sx={{
-                              border: '1px solid',
-                              borderColor: 'divider',
-                              boxShadow: 'none',
-                              borderRadius: 1.5,
-                              p: 1.5,
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease',
-                              flexShrink: 0,
-                              '&:hover': {
-                                borderColor: 'primary.main',
-                                bgcolor: 'action.hover',
-                              },
-                            }}
-                            onClick={() => navigate(`/interventions/${intervention.id}`)}
-                          >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                              {/* Titre + adresse */}
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography
-                                  variant="body2"
-                                  fontWeight={600}
-                                  sx={{ fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                >
-                                  {stripPropertySuffix(intervention.title, intervention.propertyName)}
-                                </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                                  <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    sx={{ fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                  >
-                                    {intervention.propertyName} — {intervention.propertyAddress}
-                                  </Typography>
-                                </Box>
-                              </Box>
-
-                              {/* Type + Statut + Priorité chips */}
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-                                <Chip
-                                  label={getInterventionTypeLabel(intervention.type, t)}
-                                  size="small"
-                                  sx={{
-                                    backgroundColor: `${typeColor}18`,
-                                    color: typeColor,
-                                    border: `1px solid ${typeColor}40`,
-                                    borderRadius: '6px',
-                                    fontWeight: 600,
-                                    fontSize: '0.62rem',
-                                    height: 22,
-                                    '& .MuiChip-label': { px: 0.75 },
-                                  }}
-                                />
-                                <Chip
-                                  label={getInterventionStatusLabel(intervention.status, t)}
-                                  size="small"
-                                  sx={{
-                                    backgroundColor: `${statusColor}18`,
-                                    color: statusColor,
-                                    border: `1px solid ${statusColor}40`,
-                                    borderRadius: '6px',
-                                    fontWeight: 600,
-                                    fontSize: '0.62rem',
-                                    height: 22,
-                                    '& .MuiChip-label': { px: 0.75 },
-                                  }}
-                                />
-                                <Chip
-                                  label={getInterventionPriorityLabel(intervention.priority, t)}
-                                  size="small"
-                                  sx={{
-                                    backgroundColor: `${priorityColor}18`,
-                                    color: priorityColor,
-                                    border: `1px solid ${priorityColor}40`,
-                                    borderRadius: '6px',
-                                    fontWeight: 600,
-                                    fontSize: '0.62rem',
-                                    height: 22,
-                                    '& .MuiChip-label': { px: 0.75 },
-                                  }}
-                                />
-                              </Box>
-
-                              {/* Progression + Assigné + Action */}
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 70 }}>
-                                  <LinearProgress
-                                    variant="determinate"
-                                    value={getProgress(intervention)}
-                                    sx={{
-                                      flex: 1,
-                                      height: 5,
-                                      borderRadius: 3,
-                                      bgcolor: 'grey.200',
-                                      '& .MuiLinearProgress-bar': {
-                                        borderRadius: 3,
-                                        bgcolor: getProgress(intervention) === 100 ? 'success.main'
-                                          : getProgress(intervention) >= 50 ? 'info.main' : 'warning.main',
-                                      },
-                                    }}
-                                  />
-                                  <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 24 }}>
-                                    {getProgress(intervention)}%
-                                  </Typography>
-                                </Box>
-                                {intervention.assignedToName && (
-                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {intervention.assignedToName}
-                                  </Typography>
-                                )}
-                                <Tooltip title="Détails">
-                                  <IconButton
-                                    size="small"
-                                    onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
-                                    sx={{ p: 0.5 }}
-                                  >
-                                    <VisibilityIcon size={16} strokeWidth={1.75} />
-                                  </IconButton>
-                                </Tooltip>
-                              </Box>
-                            </Box>
-                          </Paper>
-                        );
-                      })}
-                    </Box>
-                  )}
-                </Box>
-              )}
-            </Box>
+            <InterventionsMapView
+              mapMarkers={mapMarkers}
+              viewportInterventions={viewportInterventions}
+              onBoundsChange={handleBoundsChange}
+              navigate={navigate}
+            />
           ) : viewMode === 'grid' ? (
-            <>
-              <Grid container spacing={2}>
-                {paginatedInterventions
-                  .map((intervention) => {
-                    if (
-                      !intervention ||
-                      typeof intervention !== 'object' ||
-                      !intervention.id ||
-                      !intervention.title ||
-                      !intervention.description ||
-                      !intervention.type ||
-                      !intervention.status ||
-                      !intervention.priority
-                    ) {
-                      return null;
-                    }
-                    return (
-                      <Grid item xs={12} md={6} lg={4} key={intervention.id}>
-                        <InterventionCard
-                          intervention={intervention}
-                          onMenuOpen={handleMenuOpen}
-                          canEdit={canModifyIntervention(intervention)}
-                        />
-                      </Grid>
-                    );
-                  })
-                  .filter(Boolean)}
-              </Grid>
-              {filteredInterventions.length > ITEMS_PER_PAGE && (
-                <TablePagination
-                  component="div"
-                  count={filteredInterventions.length}
-                  page={page}
-                  onPageChange={(_, p) => setPage(p)}
-                  rowsPerPage={ITEMS_PER_PAGE}
-                  rowsPerPageOptions={[ITEMS_PER_PAGE]}
-                  labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-                  sx={paginationSx}
-                />
-              )}
-            </>
+            <InterventionsGridView
+              interventions={paginatedInterventions}
+              totalCount={filteredInterventions.length}
+              page={page}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={setPage}
+              onMenuOpen={handleMenuOpen}
+              canModifyIntervention={canModifyIntervention}
+            />
           ) : (
-            <Paper ref={listContainerRef} sx={{ ...LIST_PAPER_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow
-                      sx={{
-                        '& th': {
-                          fontWeight: 700,
-                          fontSize: '0.78rem',
-                          color: theme.palette.text.secondary,
-                          borderBottom: `2px solid ${theme.palette.divider}`,
-                          whiteSpace: 'nowrap',
-                        },
-                      }}
-                    >
-                      <TableCell>Titre</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Propriété</TableCell>
-                      <TableCell>Assigné à</TableCell>
-                      <TableCell align="center">Statut</TableCell>
-                      <TableCell align="center">Priorité</TableCell>
-                      <TableCell align="center">Progression</TableCell>
-                      <TableCell>Planifié le</TableCell>
-                      <TableCell align="center">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {listPaginatedInterventions.map((intervention) => {
-                      if (!intervention?.id) return null;
-                      return (
-                        <TableRow
-                          key={intervention.id}
-                          hover
-                          sx={{
-                            cursor: 'pointer',
-                            '&:last-child td': { borderBottom: 0 },
-                          }}
-                          onClick={() => navigate(`/interventions/${intervention.id}`)}
-                        >
-                          <TableCell>
-                            <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
-                              {stripPropertySuffix(intervention.title, intervention.propertyName)}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
-                              {intervention.requestorName}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            {(() => { const c = getInterventionTypeHex(intervention.type); return (
-                            <Chip
-                              label={getInterventionTypeLabel(intervention.type, t)}
-                              size="small"
-                              sx={{
-                                backgroundColor: `${c}18`,
-                                color: c,
-                                border: `1px solid ${c}40`,
-                                borderRadius: '6px',
-                                fontWeight: 600,
-                                fontSize: '0.62rem',
-                                height: 22,
-                                '& .MuiChip-label': { px: 0.75 },
-                              }}
-                            />
-                            ); })()}
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                              {intervention.propertyName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
-                              {intervention.propertyAddress}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                              {intervention.assignedToName || '—'}
-                            </Typography>
-                            {intervention.assignedToType && (
-                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
-                                {intervention.assignedToType === 'team' ? 'Équipe' : 'Utilisateur'}
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell align="center">
-                            {(() => { const c = getInterventionStatusHex(intervention.status); return (
-                              <Chip
-                                label={getInterventionStatusLabel(intervention.status, t)}
-                                size="small"
-                                sx={{
-                                  backgroundColor: `${c}18`,
-                                  color: c,
-                                  border: `1px solid ${c}40`,
-                                  borderRadius: '6px',
-                                  fontWeight: 600,
-                                  fontSize: '0.75rem',
-                                  height: 24,
-                                  '& .MuiChip-label': { px: 1 },
-                                }}
-                              />
-                            ); })()}
-                          </TableCell>
-                          <TableCell align="center">
-                            {(() => { const c = getInterventionPriorityHex(intervention.priority); return (
-                              <Chip
-                                label={getInterventionPriorityLabel(intervention.priority, t)}
-                                size="small"
-                                sx={{
-                                  backgroundColor: `${c}18`,
-                                  color: c,
-                                  border: `1px solid ${c}40`,
-                                  borderRadius: '6px',
-                                  fontWeight: 600,
-                                  fontSize: '0.75rem',
-                                  height: 24,
-                                  '& .MuiChip-label': { px: 1 },
-                                }}
-                              />
-                            ); })()}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 80 }}>
-                              <LinearProgress
-                                variant="determinate"
-                                value={getProgress(intervention)}
-                                sx={{
-                                  flex: 1,
-                                  height: 6,
-                                  borderRadius: 3,
-                                  bgcolor: 'grey.200',
-                                  '& .MuiLinearProgress-bar': {
-                                    borderRadius: 3,
-                                    bgcolor: getProgress(intervention) === 100 ? 'success.main'
-                                      : getProgress(intervention) >= 50 ? 'info.main' : 'warning.main',
-                                  },
-                                }}
-                              />
-                              <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 28 }}>
-                                {getProgress(intervention)}%
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                              {formatDateShort(intervention.scheduledDate)}
-                            </Typography>
-                            {intervention.estimatedDurationHours > 0 && (
-                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
-                                ~{intervention.estimatedDurationHours}h
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
-                            <Tooltip title="Détails">
-                              <IconButton
-                                size="small"
-                                onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
-                              >
-                                <VisibilityIcon size={18} strokeWidth={1.75} />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Actions">
-                              <IconButton
-                                size="small"
-                                onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, intervention); }}
-                              >
-                                <MoreVert size={18} strokeWidth={1.75} />
-                              </IconButton>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              <TablePagination
-                component="div"
-                count={filteredInterventions.length}
-                page={listPage}
-                onPageChange={(_, p) => setListPage(p)}
-                rowsPerPage={listRowsPerPage}
-                rowsPerPageOptions={[]}
-                labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-                sx={{ ...paginationSx, flexShrink: 0 }}
-              />
-            </Paper>
+            <InterventionsTableView
+              interventions={listPaginatedInterventions}
+              totalCount={filteredInterventions.length}
+              page={listPage}
+              rowsPerPage={listRowsPerPage}
+              onPageChange={setListPage}
+              onMenuOpen={handleMenuOpen}
+              containerRef={listContainerRef}
+              navigate={navigate}
+            />
           )}
         </Box>
 
@@ -909,91 +448,19 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       </Menu>
 
       {/* Dialog d'assignation rapide */}
-      <Dialog
+      <InterventionAssignDialog
         open={assignDialogOpen}
+        selectedIntervention={selectedIntervention}
+        assignType={assignType}
+        assignTargetId={assignTargetId}
+        teams={teams}
+        availableUsers={availableUsers}
+        assignLoading={assignLoading}
         onClose={handleCloseAssignDialog}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ pb: 1, fontSize: '1rem', fontWeight: 600 }}>
-          Assigner l'intervention
-          {selectedIntervention && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.8125rem' }}>
-              {selectedIntervention.title}
-            </Typography>
-          )}
-        </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <ToggleButtonGroup
-            value={assignType}
-            exclusive
-            onChange={(_e, val) => {
-              if (val !== null) {
-                setAssignType(val);
-                setAssignTargetId('');
-              }
-            }}
-            size="small"
-            fullWidth
-            sx={{ mb: 2 }}
-          >
-            <ToggleButton value="team" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-              <Box component="span" sx={{ display: "inline-flex", mr: 0.5 }}><GroupIcon size={18} strokeWidth={1.75} /></Box>
-              Équipe
-            </ToggleButton>
-            <ToggleButton value="user" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-              <Box component="span" sx={{ display: "inline-flex", mr: 0.5 }}><PersonIcon size={18} strokeWidth={1.75} /></Box>
-              Utilisateur
-            </ToggleButton>
-          </ToggleButtonGroup>
-
-          <FormControl fullWidth size="small">
-            <InputLabel>{assignType === 'team' ? 'Équipe' : 'Utilisateur'}</InputLabel>
-            <MuiSelect
-              value={assignTargetId}
-              onChange={(e) => setAssignTargetId(e.target.value as number)}
-              label={assignType === 'team' ? 'Équipe' : 'Utilisateur'}
-            >
-              {assignType === 'team'
-                ? teams.map((team) => (
-                    <MenuItem key={team.id} value={team.id} sx={{ fontSize: '0.875rem' }}>
-                      {team.name}
-                      {team.memberCount !== undefined && (
-                        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                          ({team.memberCount} membres)
-                        </Typography>
-                      )}
-                    </MenuItem>
-                  ))
-                : availableUsers.map((u) => (
-                    <MenuItem key={u.id} value={u.id} sx={{ fontSize: '0.875rem' }}>
-                      {u.firstName} {u.lastName}
-                      {u.role && (
-                        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                          ({u.role})
-                        </Typography>
-                      )}
-                    </MenuItem>
-                  ))}
-            </MuiSelect>
-          </FormControl>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCloseAssignDialog} size="small" sx={{ textTransform: 'none' }}>
-            Annuler
-          </Button>
-          <Button
-            onClick={handleAssign}
-            variant="contained"
-            size="small"
-            disabled={assignTargetId === '' || assignLoading}
-            sx={{ textTransform: 'none' }}
-          >
-            {assignLoading ? <CircularProgress size={18} /> : 'Assigner'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onAssign={handleAssign}
+        setAssignType={setAssignType}
+        setAssignTargetId={setAssignTargetId}
+      />
 
     </Box>
   );

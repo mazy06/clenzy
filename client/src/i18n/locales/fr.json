@@ -2436,6 +2436,18 @@
     }
   },
   "contracts": {
+    "gate": {
+      "cta": "Établir les contrats",
+      "banner": "logement(s) sans contrat de gestion actif. La répartition par défaut de l'organisation s'applique en attendant.",
+      "badge": "Contrat manquant"
+    },
+    "required": {
+      "title": "Contrat de gestion requis",
+      "intro": "Avant d'exploiter ce logement, définissez le contrat de gestion : il fixe le modèle d'encaissement (taxonomie OTA) et la commission qui pilotent la répartition des paiements. Choisissez un modèle pour préremplir, puis ajustez les détails.",
+      "submit": "Valider le contrat",
+      "saving": "Enregistrement…",
+      "error": "L'enregistrement du contrat a échoué. Vérifiez les champs et réessayez."
+    },
     "title": "Contrats de gestion",
     "subtitle": "Gérez les contrats entre propriétaires et conciergeries pour le calcul automatique des commissions",
     "create": "Nouveau contrat",
@@ -3463,6 +3475,10 @@
     }
   },
   "invoices": {
+    "type": {
+      "label": "Type",
+      "commission": "Commission"
+    },
     "title": "Factures",
     "subtitle": "Gestion des factures et documents fiscaux",
     "from": "Du",

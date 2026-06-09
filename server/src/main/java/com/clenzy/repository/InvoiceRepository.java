@@ -2,6 +2,7 @@ package com.clenzy.repository;
 
 import com.clenzy.model.Invoice;
 import com.clenzy.model.InvoiceStatus;
+import com.clenzy.model.InvoiceType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,7 +21,11 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     Optional<Invoice> findByOrganizationIdAndInvoiceNumber(Long organizationId, String invoiceNumber);
 
-    Optional<Invoice> findByReservationId(Long reservationId);
+    /** Toutes les factures (séjour + commission) liées à une réservation. */
+    List<Invoice> findAllByReservationId(Long reservationId);
+
+    /** Facture d'une réservation par nature (unicité GUEST / COMMISSION). */
+    Optional<Invoice> findByReservationIdAndInvoiceType(Long reservationId, InvoiceType invoiceType);
 
     Optional<Invoice> findByPayoutId(Long payoutId);
 
