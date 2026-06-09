@@ -145,7 +145,12 @@ public class DocumentTemplateSyncService {
             }
             tagRepository.saveAll(newTags);
             tagRepository.flush();
-            tpl.setTags(newTags);
+            // NE PAS faire tpl.setTags(newTags) : remplacer une collection orphanRemoval la
+            // déréférence → au commit Hibernate lève "A collection with cascade=all-delete-orphan
+            // was no longer referenced by the owning entity instance". Les tags sont déjà gérés en
+            // base ci-dessus (delete + saveAll via le repo) ; la collection lazy de tpl reste
+            // intacte (non initialisée) et se recharge à la demande. Sans ce remplacement, le sync
+            // d'un template modifié ne plante plus au boot.
             log.info("Re-parsed {} tags for template '{}' (id={})",
                     newTags.size(), tpl.getName(), tpl.getId());
         }
