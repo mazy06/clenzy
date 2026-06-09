@@ -157,8 +157,12 @@ function reservationToEvent(
   // Never show on cancelled/checked_out reservations or when PAID/REFUNDED/NOT_REQUIRED
   const isTerminal = effectiveStatus === 'cancelled' || effectiveStatus === 'checked_out';
   const isPaid = r.paymentStatus === 'PAID' || r.paymentStatus === 'REFUNDED' || r.paymentStatus === 'NOT_REQUIRED';
+  // Réservations OTA (Airbnb, Booking, autres canaux iCal) : déjà réglées sur le canal externe,
+  // le PMS n'encaisse rien (cf. PanelFinancial isOTABooking → reste à payer 0). Pas de pastille
+  // de paiement, sinon incohérence avec le panneau qui affiche « Payé OTA ».
+  const isOtaPaid = r.source === 'airbnb' || r.source === 'booking' || r.source === 'other';
   const hasUnpaidAmount = (r.totalPrice ?? 0) > 0;
-  const needsBadge = !isTerminal && !isPaid && hasUnpaidAmount;
+  const needsBadge = !isTerminal && !isPaid && !isOtaPaid && hasUnpaidAmount;
   const badgeStatus: 'PENDING' | 'PROCESSING' | 'FAILED' | undefined = needsBadge
     ? (PAYMENT_BADGE_STATUSES.has(r.paymentStatus ?? '') ? r.paymentStatus as 'PENDING' | 'PROCESSING' | 'FAILED' : 'PENDING')
     : undefined;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Box,
@@ -46,6 +46,7 @@ import {
   Link2,
   Unlink,
   Lock,
+  Tag,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
@@ -197,6 +198,8 @@ const WelcomeGuideAdmin: React.FC = () => {
   // Suppression : cible du modal de confirmation (null = fermé) + état en cours.
   const [deleteTarget, setDeleteTarget] = useState<WelcomeGuide | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // Publication/dépublication depuis la liste : id du livret en cours de bascule (désactive le toggle).
+  const [togglingPublishId, setTogglingPublishId] = useState<number | null>(null);
 
   // Form state
   const [propertyId, setPropertyId] = useState<string>('');
@@ -211,6 +214,7 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [heroTouched, setHeroTouched] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [hostNames, setHostNames] = useState('');
+  const welcomeMessageRef = useRef<HTMLTextAreaElement | null>(null);
   const [logoUrl, setLogoUrl] = useState('');
   const [published, setPublished] = useState(false);
   const [chatbotEnabled, setChatbotEnabled] = useState(true);
@@ -246,6 +250,25 @@ const WelcomeGuideAdmin: React.FC = () => {
     editingId != null ? editingGuide?.reservation ?? null : previewData?.currentReservation ?? null;
   // En création, il faut une réservation en cours/à venir pour que le livret soit créable.
   const canCreate = editingId == null ? isStaff && linkedReservation != null : true;
+
+  // Nom du voyageur chargé depuis la réservation liée (lecture seule). Insérable dans le mot
+  // d'accueil via le tag {prénom}, substitué au rendu (cf. WelcomeBookView).
+  const loadedGuestName = linkedReservation?.guestName?.trim() || '';
+  const insertGuestFirstNameTag = () => {
+    const tag = '{prénom}';
+    const el = welcomeMessageRef.current;
+    if (!el) {
+      setWelcomeMessage((m) => `${m}${tag}`);
+      return;
+    }
+    const start = el.selectionStart ?? welcomeMessage.length;
+    const end = el.selectionEnd ?? welcomeMessage.length;
+    setWelcomeMessage(welcomeMessage.slice(0, start) + tag + welcomeMessage.slice(end));
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + tag.length, start + tag.length);
+    });
+  };
 
   // Hero par défaut = toutes les photos du logement, tant que l'hôte n'a pas choisi.
   useEffect(() => {
@@ -414,6 +437,30 @@ const WelcomeGuideAdmin: React.FC = () => {
       notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // Publie / dépublie un livret directement depuis la liste (update partiel, sans ouvrir l'éditeur).
+  const handleTogglePublish = async (g: WelcomeGuide) => {
+    setTogglingPublishId(g.id);
+    try {
+      // propertyId (@NotNull) + title (@NotBlank) sont validés même en update (DTO partagé) ; on
+      // renvoie les valeurs courantes (propertyId est ignoré côté service), seul `published` change.
+      await welcomeGuideApi.update(g.id, {
+        propertyId: g.propertyId ?? 0,
+        title: g.title,
+        published: !g.published,
+      });
+      notify(
+        g.published
+          ? t('welcomeGuide.actions.unpublishOk', 'Livret dépublié')
+          : t('welcomeGuide.actions.publishOk', 'Livret publié'),
+      );
+      await refetch();
+    } catch {
+      notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
+    } finally {
+      setTogglingPublishId(null);
     }
   };
 
@@ -713,6 +760,20 @@ const WelcomeGuideAdmin: React.FC = () => {
                     borderColor: 'divider',
                   }}
                 >
+                  <Tooltip
+                    title={
+                      g.published
+                        ? t('welcomeGuide.actions.unpublish', 'Dépublier')
+                        : t('welcomeGuide.actions.publish', 'Publier')
+                    }
+                  >
+                    <Switch
+                      size="small"
+                      checked={g.published}
+                      onChange={() => handleTogglePublish(g)}
+                      disabled={togglingPublishId === g.id}
+                    />
+                  </Tooltip>
                   <Tooltip title={t('welcomeGuide.actions.generateLink', 'Générer le lien')}>
                     <span>
                       <IconButton size="small" onClick={() => handleGenerateLink(g)} disabled={!g.published}>
@@ -1194,6 +1255,7 @@ const WelcomeGuideAdmin: React.FC = () => {
         <Stack spacing={1.5}>
           <TextField
             label={t('welcomeGuide.welcomeNote.message', "Mot d'accueil")}
+            inputRef={welcomeMessageRef}
             value={welcomeMessage}
             onChange={(e) => setWelcomeMessage(e.target.value)}
             size="small"
@@ -1205,6 +1267,30 @@ const WelcomeGuideAdmin: React.FC = () => {
               'Bienvenue chez nous. Installez-vous, respirez — tout ce qu’il vous faut pour un séjour parfait est ici.',
             )}
           />
+          {/* Nom du voyageur chargé depuis la réservation (lecture seule), insérable dans le
+              message via un tag. Remplace l'ancienne signature d'hôte (champ libre). */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <Typography variant="caption" color="text.secondary">
+              {t('welcomeGuide.welcomeNote.guestLabel', 'Voyageur (chargé depuis la réservation)')} :
+            </Typography>
+            <Chip
+              size="small"
+              label={loadedGuestName || t('welcomeGuide.welcomeNote.guestPending', 'chargé à l’arrivée')}
+              sx={{ height: 24, '& .MuiChip-label': { px: 1, fontSize: 12.5, fontWeight: 600 } }}
+            />
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<Tag size={14} strokeWidth={1.9} />}
+              onClick={insertGuestFirstNameTag}
+              sx={{ textTransform: 'none' }}
+            >
+              {t('welcomeGuide.welcomeNote.insertFirstName', 'Insérer le prénom dans le message')}
+            </Button>
+          </Box>
+          <Typography variant="caption" color="text.secondary">
+            {t('welcomeGuide.welcomeNote.tagHint', 'Le tag {prénom} sera remplacé par le prénom du voyageur.')}
+          </Typography>
           <TextField
             label={t('welcomeGuide.welcomeNote.signature', 'Signature (vos noms)')}
             value={hostNames}
@@ -1808,15 +1894,8 @@ const WelcomeGuideAdmin: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Visibilité : publication du livret (action principale, mise en avant) */}
-      <Card
-        variant="outlined"
-        sx={{
-          borderColor: published ? 'success.main' : 'divider',
-          bgcolor: published ? 'rgba(74,155,142,0.06)' : 'transparent',
-          transition: 'border-color .15s, background-color .15s',
-        }}
-      >
+      {/* Publication déplacée sur la liste des livrets (toggle par carte) : ici on informe seulement. */}
+      <Card variant="outlined">
         <CardContent sx={{ '&:last-child': { pb: 1.5 }, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box
             sx={{
@@ -1827,8 +1906,8 @@ const WelcomeGuideAdmin: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: published ? 'success.main' : 'action.hover',
-              color: published ? '#fff' : 'text.secondary',
+              bgcolor: 'action.hover',
+              color: 'text.secondary',
             }}
           >
             <Globe size={18} strokeWidth={1.75} />
@@ -1838,10 +1917,12 @@ const WelcomeGuideAdmin: React.FC = () => {
               {t('welcomeGuide.fields.publishTitle', 'Publier le livret')}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {t('welcomeGuide.fields.publishHint', 'Rend le livret accessible à vos voyageurs via le lien partagé.')}
+              {t(
+                'welcomeGuide.actions.publishFromListHint',
+                'La publication se fait depuis la liste des livrets, via le bouton sur chaque carte.',
+              )}
             </Typography>
           </Box>
-          <Switch checked={published} onChange={(e) => setPublished(e.target.checked)} />
         </CardContent>
       </Card>
       </>

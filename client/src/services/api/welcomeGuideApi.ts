@@ -340,6 +340,9 @@ export const welcomeGuideApi = {
       throw err;
     }
   },
+  // Le DTO est partagé create/update : propertyId (@NotNull) + title (@NotBlank) restent requis
+  // même en update. Le service n'applique toutefois que les champs non-null et ignore propertyId
+  // après création — un appelant peut donc ne (re)passer que propertyId + title + le champ ciblé.
   update: (id: number, data: WelcomeGuideRequest) =>
     apiClient.put<WelcomeGuide>(`/welcome-guides/${id}`, data),
   remove: (id: number) => apiClient.delete(`/welcome-guides/${id}`),

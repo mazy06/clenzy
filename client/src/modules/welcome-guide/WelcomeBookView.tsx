@@ -356,7 +356,12 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
   const { property, practical, stay, checkIn, sections, pois, activities, upsells } = model;
   const goHome = () => setView({ name: 'home' });
 
-  const welcomeMessage = model.welcomeMessage?.trim() || '';
+  // Tags personnalisables dans le mot d'accueil, substitués au rendu (aperçu hôte + page guest) :
+  // {prénom} → prénom du voyageur, {nom} → nom complet, chargés depuis la réservation via le token.
+  const guestFullName = (stay?.guestName || '').trim();
+  const welcomeMessage = (model.welcomeMessage?.trim() || '')
+    .replace(/\{pr[ée]nom\}/gi, guestFullName.split(/\s+/)[0] || '')
+    .replace(/\{nom\}/gi, guestFullName);
   const editorialSections = sections.filter((s) => s.title || s.body || s.items.length);
 
   // Aperçu piloté par l'éditeur : la navigation interne suit l'étape du formulaire.
@@ -437,6 +442,11 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
   /* ───────── HOME ───────── */
   const home = (
     <div className="wb__scroll" ref={homeScrollRef}>
+      {/* Hero qui se RÉTRÉCIT au scroll : grâce au `top` négatif sticky, il remonte d'environ
+          212px puis se fige en gardant sa partie basse (~168px, là où est le titre) visible.
+          Le titre du livret reste donc toujours lisible (le hero ne disparaît jamais), et le
+          contenu défile DERRIÈRE lui (z-index supérieur du hero). */}
+      <div style={{ position: 'sticky', top: -212, zIndex: 2 }}>
       <HeroCarousel images={heroImages} interactive={interactive}>
         {model.logoUrl ? <img src={model.logoUrl} alt="" style={{ position: 'absolute', top: 22, left: 22, maxHeight: 40, maxWidth: 150, objectFit: 'contain' }} /> : null}
         {langToggle ? <div style={{ position: 'absolute', top: 22, right: 16, pointerEvents: 'auto' }}>{langToggle}</div> : null}
@@ -458,8 +468,10 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
           </div>
         </div>
       </HeroCarousel>
+      </div>
 
-      <div style={{ padding: '20px 18px 132px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Contenu : feuille opaque qui passe DERRIÈRE le hero épinglé (z-index inférieur). */}
+      <div style={{ position: 'relative', zIndex: 1, background: 'var(--bg)', padding: '20px 18px 132px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Note d'accueil */}
         {welcomeMessage ? (
           <div className="wb-card wb-rise" style={{ padding: 16, display: 'flex', gap: 13, alignItems: 'flex-start', background: 'var(--raised)' }}>
