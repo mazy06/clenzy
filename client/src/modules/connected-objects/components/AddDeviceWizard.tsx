@@ -6,7 +6,8 @@ import {
 } from '@mui/material';
 import { ChevronRight } from '../../../icons';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
-import { smartLockApi, type SmartLockBrand } from '../../../services/api/smartLockApi';
+import { smartLockApi, type SmartLockBrand, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { noiseDevicesApi } from '../../../services/api/noiseApi';
 import { keyExchangeApi } from '../../../services/api/keyExchangeApi';
 import { camerasApi } from '../../../services/api/camerasApi';
@@ -60,6 +61,7 @@ const PROVIDERS: Record<DeviceKind, { value: string; label: string }[]> = {
 
 export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropertyId, defaultKind }: AddDeviceWizardProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [step, setStep] = useState(defaultKind ? 1 : 0);
   const [kind, setKind] = useState<DeviceKind | null>(defaultKind ?? null);
   const [provider, setProvider] = useState('');
@@ -67,6 +69,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
   const [name, setName] = useState('');
   const [roomName, setRoomName] = useState('');
   const [externalDeviceId, setExternalDeviceId] = useState('');
+  const [accessCodeMode, setAccessCodeMode] = useState<SmartLockAccessCodeMode>('PMS_GENERATED');
   const [rtspUrl, setRtspUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +95,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
     setSubmitting(true); setError(null);
     try {
       if (kind === 'lock') {
-        await smartLockApi.create({ name: name.trim(), propertyId, roomName: roomName || undefined, externalDeviceId: externalDeviceId || undefined, brand: provider as SmartLockBrand });
+        await smartLockApi.create({ name: name.trim(), propertyId, roomName: roomName || undefined, externalDeviceId: externalDeviceId || undefined, brand: provider as SmartLockBrand, accessCodeMode });
       } else if (kind === 'noise') {
         await noiseDevicesApi.create({ deviceType: provider, name: name.trim(), propertyId, roomName: roomName || undefined, externalDeviceId: externalDeviceId || undefined });
       } else if (kind === 'keybox') {
@@ -200,6 +203,19 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             )}
             {(kind === 'lock' || kind === 'noise' || kind === 'thermostat' || ENV_SENSOR_KINDS.includes(kind)) && provider === 'TUYA' && (
               <TuyaDevicePicker category={kind === 'thermostat' ? 'wk' : undefined} selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
+            )}
+            {kind === 'lock' && (
+              <TextField
+                select fullWidth size="small" label={t('connectedObjects.codeMode.label', "Origine du code d'accès")}
+                value={accessCodeMode}
+                onChange={(e) => setAccessCodeMode(e.target.value as SmartLockAccessCodeMode)}
+                helperText={accessCodeMode === 'PMS_GENERATED'
+                  ? t('connectedObjects.codeMode.helperPms', 'Le code configuré dans le PMS est poussé à la serrure.')
+                  : t('connectedObjects.codeMode.helperLock', 'La serrure génère son propre code ; le PMS le récupère.')}
+              >
+                <MenuItem value="PMS_GENERATED">{t('connectedObjects.codeMode.pms', 'Le PMS génère et pousse le code')}</MenuItem>
+                <MenuItem value="LOCK_GENERATED">{t('connectedObjects.codeMode.lock', 'La serrure génère le code')}</MenuItem>
+              </TextField>
             )}
             {kind === 'climate' && provider === 'NETATMO' && (
               <NetatmoDevicePicker source="weather" selectedId={externalDeviceId} onSelect={setExternalDeviceId} />

@@ -35,17 +35,20 @@ public class SmartLockService {
     private final TuyaApiService tuyaApiService;
     private final TenantContext tenantContext;
     private final TuyaDeviceClaimService claimService;
+    private final com.clenzy.service.smartlock.SmartLockProviderRegistry providerRegistry;
 
     public SmartLockService(SmartLockDeviceRepository smartLockRepository,
                             PropertyRepository propertyRepository,
                             TuyaApiService tuyaApiService,
                             TenantContext tenantContext,
-                            TuyaDeviceClaimService claimService) {
+                            TuyaDeviceClaimService claimService,
+                            com.clenzy.service.smartlock.SmartLockProviderRegistry providerRegistry) {
         this.smartLockRepository = smartLockRepository;
         this.propertyRepository = propertyRepository;
         this.tuyaApiService = tuyaApiService;
         this.tenantContext = tenantContext;
         this.claimService = claimService;
+        this.providerRegistry = providerRegistry;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -72,6 +75,7 @@ public class SmartLockService {
         device.setPropertyId(dto.getPropertyId());
         device.setRoomName(dto.getRoomName());
         device.setExternalDeviceId(dto.getExternalDeviceId());
+        device.setAccessCodeMode(parseAccessCodeMode(dto.getAccessCodeMode()));
         device.setStatus(DeviceStatus.ACTIVE);
         device.setLockState(LockState.UNKNOWN);
         device.setOrganizationId(tenantContext.getRequiredOrganizationId());
@@ -83,6 +87,21 @@ public class SmartLockService {
         log.info("Serrure creee: {} (property={}) pour user={}",
                 saved.getName(), saved.getPropertyId(), userId);
 
+        return toDto(saved);
+    }
+
+    /**
+     * Change l'origine du code (PMS pousse / serrure génère) d'une serrure existante.
+     * findById ne passe pas par le filtre Hibernate → ownership org vérifié explicitement.
+     */
+    @Transactional
+    public SmartLockDeviceDto updateAccessCodeMode(String userId, Long deviceId, String mode) {
+        SmartLockDevice device = smartLockRepository.findById(deviceId)
+                .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable: " + deviceId));
+        requireSameOrganization(device);
+        device.setAccessCodeMode(parseAccessCodeMode(mode));
+        SmartLockDevice saved = smartLockRepository.save(device);
+        log.info("Mode de code change: {} (serrure={}) par user={}", saved.getAccessCodeMode(), deviceId, userId);
         return toDto(saved);
     }
 
@@ -100,6 +119,15 @@ public class SmartLockService {
         claimService.release(device.getExternalDeviceId());
         smartLockRepository.delete(device);
         log.info("Serrure supprimee: {} (id={}) pour user={}", device.getName(), deviceId, userId);
+    }
+
+    /** Refuse l'accès si la serrure appartient à une autre organisation (staff plateforme exempté). */
+    private void requireSameOrganization(SmartLockDevice device) {
+        Long orgId = tenantContext.getOrganizationId();
+        if (orgId != null && device.getOrganizationId() != null && !orgId.equals(device.getOrganizationId())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Serrure hors de votre organisation");
+        }
     }
 
     // ─── Lock operations ─────────────────────────────────────────
@@ -185,28 +213,47 @@ public class SmartLockService {
     }
 
     /**
-     * Envoie une commande verrouillage/deverrouillage via Tuya.
+     * Envoie une commande verrouillage/deverrouillage (routee par marque).
      */
     public void sendLockCommand(String userId, Long deviceId, boolean lock) {
         SmartLockDevice device = smartLockRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable: " + deviceId));
 
+        performLockCommand(device, lock);
+
+        log.info("Commande {} envoyee a la serrure {} (device {})",
+                lock ? "LOCK" : "UNLOCK", deviceId, device.getExternalDeviceId());
+    }
+
+    /**
+     * Execute la commande lock/unlock sur le device, routee selon la marque :
+     * TUYA en direct, autres marques via le {@code SmartLockProviderRegistry}
+     * (NUKI implemente). Met a jour l'etat local. Leve si marque non pilotable.
+     */
+    public void performLockCommand(SmartLockDevice device, boolean lock) {
         if (device.getExternalDeviceId() == null || device.getExternalDeviceId().isEmpty()) {
-            throw new IllegalStateException("Pas d'ID device Tuya configure pour cette serrure");
+            throw new IllegalStateException("Pas d'ID device externe configure pour cette serrure");
         }
 
-        List<Map<String, Object>> commands = List.of(
-                Map.of("code", "lock", "value", lock)
-        );
+        com.clenzy.service.smartlock.SmartLockBrand brand =
+                device.getBrand() != null ? device.getBrand() : com.clenzy.service.smartlock.SmartLockBrand.TUYA;
+        if (brand == com.clenzy.service.smartlock.SmartLockBrand.TUYA) {
+            List<Map<String, Object>> commands = List.of(
+                    Map.of("code", "lock", "value", lock)
+            );
+            tuyaApiService.sendCommand(device.getExternalDeviceId(), commands);
+        } else {
+            var provider = providerRegistry.getRequiredProvider(brand);
+            var result = lock
+                    ? provider.lock(device.getExternalDeviceId(), device.getOrganizationId())
+                    : provider.unlock(device.getExternalDeviceId(), device.getOrganizationId());
+            if (!result.success()) {
+                throw new IllegalStateException(result.message());
+            }
+        }
 
-        tuyaApiService.sendCommand(device.getExternalDeviceId(), commands);
-
-        // Update local state
         device.setLockState(lock ? LockState.LOCKED : LockState.UNLOCKED);
         smartLockRepository.save(device);
-
-        log.info("Commande {} envoyee a la serrure {} (device Tuya {})",
-                lock ? "LOCK" : "UNLOCK", deviceId, device.getExternalDeviceId());
     }
 
     // ─── Private helpers ────────────────────────────────────────
@@ -234,6 +281,7 @@ public class SmartLockService {
         dto.setRoomName(device.getRoomName());
         dto.setExternalDeviceId(device.getExternalDeviceId());
         dto.setBrand(device.getBrand() != null ? device.getBrand().name() : null);
+        dto.setAccessCodeMode(device.getAccessCodeMode() != null ? device.getAccessCodeMode().name() : null);
         dto.setStatus(device.getStatus().name());
         dto.setLockState(device.getLockState().name());
         dto.setBatteryLevel(device.getBatteryLevel());
@@ -245,5 +293,17 @@ public class SmartLockService {
                 .ifPresent(p -> dto.setPropertyName(p.getName()));
 
         return dto;
+    }
+
+    /** Parse le mode de code ("PMS_GENERATED"/"LOCK_GENERATED") ; défaut PMS_GENERATED. */
+    private SmartLockDevice.AccessCodeMode parseAccessCodeMode(String raw) {
+        if (raw != null && !raw.isBlank()) {
+            try {
+                return SmartLockDevice.AccessCodeMode.valueOf(raw.trim());
+            } catch (IllegalArgumentException ignored) {
+                // défaut ci-dessous
+            }
+        }
+        return SmartLockDevice.AccessCodeMode.PMS_GENERATED;
     }
 }

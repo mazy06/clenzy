@@ -4,11 +4,14 @@ import com.clenzy.dto.CheckInInstructionsDto;
 import com.clenzy.dto.UpdateCheckInInstructionsDto;
 import com.clenzy.model.CheckInInstructions;
 import com.clenzy.model.Property;
+import com.clenzy.model.Reservation;
 import com.clenzy.model.User;
 import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.PhotoStorageService;
+import com.clenzy.service.access.AccessCodeResolverService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.MediaType;
@@ -19,6 +22,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Map;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -43,19 +50,25 @@ public class CheckInInstructionsController {
     private final UserRepository userRepository;
     private final PhotoStorageService photoStorageService;
     private final TenantContext tenantContext;
+    private final ReservationRepository reservationRepository;
+    private final AccessCodeResolverService accessCodeResolverService;
 
     public CheckInInstructionsController(
             CheckInInstructionsRepository instructionsRepository,
             PropertyRepository propertyRepository,
             UserRepository userRepository,
             PhotoStorageService photoStorageService,
-            TenantContext tenantContext
+            TenantContext tenantContext,
+            ReservationRepository reservationRepository,
+            AccessCodeResolverService accessCodeResolverService
     ) {
         this.instructionsRepository = instructionsRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.photoStorageService = photoStorageService;
         this.tenantContext = tenantContext;
+        this.reservationRepository = reservationRepository;
+        this.accessCodeResolverService = accessCodeResolverService;
     }
 
     @GetMapping
@@ -70,6 +83,31 @@ public class CheckInInstructionsController {
             .map(CheckInInstructionsDto::fromEntity)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Code d'accès courant généré par la serrure connectée du logement (séjour en cours/à venir),
+     * pour pré-remplir le champ code. {@code hasSmartLock=false} si aucune serrure → boîte à clé.
+     */
+    @GetMapping("/smart-lock-code")
+    public ResponseEntity<Map<String, Object>> getSmartLockCode(
+            @PathVariable Long propertyId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        validatePropertyAccess(propertyId, jwt.getSubject());
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        boolean hasSmartLock = accessCodeResolverService.hasActiveSmartLock(propertyId);
+        String code = "";
+        if (hasSmartLock) {
+            Reservation reservation = reservationRepository
+                .findCurrentOrNextByPropertyId(propertyId, LocalDate.now(), orgId)
+                .stream().findFirst().orElse(null);
+            if (reservation != null) {
+                code = accessCodeResolverService.existingAccessCode(reservation.getId()).orElse("");
+            }
+        }
+        return ResponseEntity.ok(Map.of("hasSmartLock", hasSmartLock, "code", code));
     }
 
     @PutMapping
@@ -89,6 +127,13 @@ public class CheckInInstructionsController {
             .findByPropertyIdAndOrganizationId(propertyId, orgId)
             .orElseGet(() -> new CheckInInstructions(property, orgId));
 
+        // Code change manuellement → repere de rotation rafraichi, sinon le scheduler
+        // ecraserait dans l'heure le code que l'hote vient de poser (depart recent).
+        boolean accessCodeChanged = !java.util.Objects.equals(instructions.getAccessCode(), dto.accessCode());
+        if (accessCodeChanged) {
+            instructions.setAccessCodeRotatedAt(LocalDateTime.now());
+        }
+
         instructions.setAccessCode(dto.accessCode());
         instructions.setWifiName(dto.wifiName());
         instructions.setWifiPassword(dto.wifiPassword());
@@ -101,6 +146,23 @@ public class CheckInInstructionsController {
         // arrival_photos est NOT NULL : ne l'ecraser que si le client l'envoie.
         if (dto.arrivalPhotos() != null) {
             instructions.setArrivalPhotos(dto.arrivalPhotos());
+        }
+        // extra_access_codes est NOT NULL : idem.
+        if (dto.extraAccessCodes() != null) {
+            instructions.setExtraAccessCodes(dto.extraAccessCodes());
+        }
+        instructions.setGuestUnlockEnabled(dto.guestUnlockEnabled());
+
+        // Rotation auto du code d'accès : opt-in + format de génération (pour régénérer à l'identique).
+        boolean wasAutoRotate = instructions.isAccessCodeAutoRotate();
+        instructions.setAccessCodeAutoRotate(dto.accessCodeAutoRotate());
+        if (dto.accessCodeFormat() != null) {
+            instructions.setAccessCodeFormat(dto.accessCodeFormat());
+        }
+        // À l'activation, on pose un repère de rotation (now) pour ne pas régénérer
+        // immédiatement à cause d'un départ déjà passé.
+        if (dto.accessCodeAutoRotate() && !wasAutoRotate) {
+            instructions.setAccessCodeRotatedAt(LocalDateTime.now());
         }
 
         CheckInInstructions saved = instructionsRepository.save(instructions);

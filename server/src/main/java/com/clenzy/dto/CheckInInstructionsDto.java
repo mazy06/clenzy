@@ -15,6 +15,10 @@ public record CheckInInstructionsDto(
     String emergencyContact,
     String additionalNotes,
     String arrivalPhotos,
+    boolean accessCodeAutoRotate,
+    String accessCodeFormat,
+    String extraAccessCodes,
+    boolean guestUnlockEnabled,
     String updatedAt
 ) {
     public static CheckInInstructionsDto fromEntity(CheckInInstructions e) {
@@ -31,6 +35,10 @@ public record CheckInInstructionsDto(
             e.getEmergencyContact(),
             e.getAdditionalNotes(),
             e.getArrivalPhotos(),
+            e.isAccessCodeAutoRotate(),
+            e.getAccessCodeFormat(),
+            e.getExtraAccessCodes(),
+            e.isGuestUnlockEnabled(),
             e.getUpdatedAt() != null ? e.getUpdatedAt().toString() : null
         );
     }

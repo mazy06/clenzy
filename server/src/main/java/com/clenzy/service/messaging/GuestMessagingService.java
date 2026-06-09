@@ -187,6 +187,26 @@ public class GuestMessagingService {
             // Continue sans code dynamique — le code statique de CheckInInstructions sera utilise
         }
 
+        // Anti entree anticipee : le code d'acces (et les codes additionnels) ne sont communiques
+        // qu'a partir de l'heure de check-in (meme regle que le livret). Avant ce moment, les tags
+        // renvoient vers le livret au lieu des codes reels (texte FR, traduit ensuite dans la
+        // langue du guest). Repli : si AUCUN livret publie n'existe, l'email reste le seul canal
+        // du code → on ne masque pas (sinon le voyageur ne le recevrait jamais).
+        if (!com.clenzy.service.access.StayTimes.isAfterCheckIn(reservation, property)
+                && welcomeGuideService.hasPublishedGuideFor(reservation)) {
+            var checkInAt = com.clenzy.service.access.StayTimes.checkInMoment(reservation, property);
+            String at = checkInAt != null ? checkInAt.toLocalTime().toString() : "15:00";
+            resolvedVars.put("accessCode",
+                    "Communiqué le jour de votre arrivée à partir de " + at
+                    + " — il s'affichera dans votre livret d'accueil");
+            String extraPlaceholder = "Communiqué le jour de votre arrivée dans votre livret d'accueil";
+            if (instructions != null) {
+                for (String var : TemplateInterpolationService.extraCodeVariableNames(instructions.getExtraAccessCodes())) {
+                    resolvedVars.put(var, extraPlaceholder);
+                }
+            }
+        }
+
         // Resoudre le lien du livret d'accueil ({guideLink}) uniquement si le template
         // y fait reference et qu'il n'a pas deja ete fourni (l'action SEND_GUIDE le passe
         // deja via extraVars). On evite ainsi de creer un token de livret inutile pour les

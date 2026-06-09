@@ -65,6 +65,27 @@ public class CheckInInstructions {
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String arrivalPhotos = "[]";
 
+    /** Codes additionnels libres (JSON : [{label, code}]) — résidence, immeuble, parking… */
+    @Column(name = "extra_access_codes", columnDefinition = "JSONB", nullable = false)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    private String extraAccessCodes = "[]";
+
+    /** Régénère automatiquement le code d'accès statique après chaque départ (opt-in par logement). */
+    @Column(name = "access_code_auto_rotate", nullable = false)
+    private boolean accessCodeAutoRotate = false;
+
+    /** Format JSON ({pattern, letters, symbols}) du générateur, pour régénérer un code cohérent côté serveur. */
+    @Column(name = "access_code_format", length = 500)
+    private String accessCodeFormat;
+
+    /** Dernière rotation automatique du code (idempotence du scheduler). */
+    @Column(name = "access_code_rotated_at")
+    private LocalDateTime accessCodeRotatedAt;
+
+    /** Autorise le voyageur à ouvrir la porte depuis le livret (serrure pilotable à distance). */
+    @Column(name = "guest_unlock_enabled", nullable = false)
+    private boolean guestUnlockEnabled = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -124,6 +145,21 @@ public class CheckInInstructions {
 
     public String getArrivalPhotos() { return arrivalPhotos; }
     public void setArrivalPhotos(String arrivalPhotos) { this.arrivalPhotos = arrivalPhotos; }
+
+    public String getExtraAccessCodes() { return extraAccessCodes; }
+    public void setExtraAccessCodes(String extraAccessCodes) { this.extraAccessCodes = extraAccessCodes; }
+
+    public boolean isAccessCodeAutoRotate() { return accessCodeAutoRotate; }
+    public void setAccessCodeAutoRotate(boolean accessCodeAutoRotate) { this.accessCodeAutoRotate = accessCodeAutoRotate; }
+
+    public String getAccessCodeFormat() { return accessCodeFormat; }
+    public void setAccessCodeFormat(String accessCodeFormat) { this.accessCodeFormat = accessCodeFormat; }
+
+    public LocalDateTime getAccessCodeRotatedAt() { return accessCodeRotatedAt; }
+    public void setAccessCodeRotatedAt(LocalDateTime accessCodeRotatedAt) { this.accessCodeRotatedAt = accessCodeRotatedAt; }
+
+    public boolean isGuestUnlockEnabled() { return guestUnlockEnabled; }
+    public void setGuestUnlockEnabled(boolean guestUnlockEnabled) { this.guestUnlockEnabled = guestUnlockEnabled; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

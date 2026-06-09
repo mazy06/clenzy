@@ -2,9 +2,13 @@ package com.clenzy.service.messaging;
 
 import com.clenzy.model.*;
 import com.clenzy.util.StringUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
+import java.text.Normalizer;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +25,9 @@ public class TemplateInterpolationService {
 
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{(\\w+)}");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    /** Préfixe des variables de codes additionnels libres ({@code {code_<slug>}}). */
+    private static final String EXTRA_CODE_PREFIX = "code_";
 
     /**
      * Variables dont la valeur est du HTML genere cote serveur (non saisie par l'utilisateur).
@@ -205,7 +212,59 @@ public class TemplateInterpolationService {
         // Reservation
         vars.put("confirmationCode", nullToEmpty(reservation.getConfirmationCode()));
 
+        // Codes additionnels libres → un tag par code : {code_<slug>} (ex. {code_parking}).
+        if (instructions != null) {
+            for (String[] entry : parseExtraCodes(instructions.getExtraAccessCodes())) {
+                String slug = slugify(entry[0]);
+                if (!slug.isBlank()) {
+                    vars.put(EXTRA_CODE_PREFIX + slug, nullToEmpty(entry[1]));
+                }
+            }
+        }
+
         return vars;
+    }
+
+    /**
+     * Noms des variables de codes additionnels ({@code code_<slug>}) déclarées par un logement.
+     * Utilisé par le gating anti entrée anticipée pour neutraliser ces tags avant le check-in.
+     */
+    public static List<String> extraCodeVariableNames(String extraAccessCodesJson) {
+        List<String> names = new ArrayList<>();
+        for (String[] entry : parseExtraCodes(extraAccessCodesJson)) {
+            String slug = slugify(entry[0]);
+            if (!slug.isBlank()) names.add(EXTRA_CODE_PREFIX + slug);
+        }
+        return names;
+    }
+
+    /** Parse le JSON [{label, code}] en paires [label, code]. Robuste (vide si illisible). */
+    private static List<String[]> parseExtraCodes(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            JsonNode arr = MAPPER.readTree(json);
+            if (!arr.isArray()) return List.of();
+            List<String[]> out = new ArrayList<>();
+            for (JsonNode n : arr) {
+                String label = n.path("label").asText("");
+                if (!label.isBlank()) out.add(new String[]{label, n.path("code").asText("")});
+            }
+            return out;
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Slug stable d'un libellé pour en faire un tag : minuscules, accents retirés,
+     * non-alphanumériques → underscore. "Parking résidence" → "parking_residence".
+     * Doit rester identique au slug côté front (affichage du tag à copier).
+     */
+    public static String slugify(String label) {
+        if (label == null) return "";
+        String n = Normalizer.normalize(label, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        n = n.toLowerCase().replaceAll("[^a-z0-9]+", "_");
+        return n.replaceAll("^_+|_+$", "");
     }
 
     /**
@@ -245,7 +304,14 @@ public class TemplateInterpolationService {
 
         while (matcher.find()) {
             String key = matcher.group(1);
-            String value = vars.getOrDefault(key, "{" + key + "}");
+            String value;
+            if (vars.containsKey(key)) {
+                value = vars.get(key);
+            } else if (key.startsWith(EXTRA_CODE_PREFIX)) {
+                value = ""; // tag de code additionnel non defini pour ce logement → vide
+            } else {
+                value = "{" + key + "}";
+            }
             if (escapeHtml && !HTML_SAFE_VARIABLES.contains(key)) {
                 value = StringUtils.escapeHtml(value);
             }

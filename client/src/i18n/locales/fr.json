@@ -109,13 +109,34 @@
   "welcomeGuide": {
     "themes": {
       "sectionTitle": "Thème du livret",
-      "atelier": { "name": "Atelier", "desc": "Crème & terracotta · hôtel-boutique" },
-      "noir": { "name": "Noir", "desc": "Sombre & or · luxe discret" },
-      "jardin": { "name": "Jardin", "desc": "Verts naturels · maison de campagne" },
-      "azur": { "name": "Azur", "desc": "Bleu minéral · bord de mer" },
-      "corail": { "name": "Corail", "desc": "Pêche vif · lumineux & contemporain" },
-      "brume": { "name": "Brume", "desc": "Mauve doux · minimal apaisé" },
-      "minuit": { "name": "Minuit", "desc": "Bleu nuit & ciel · sombre raffiné" }
+      "atelier": {
+        "name": "Atelier",
+        "desc": "Crème & terracotta · hôtel-boutique"
+      },
+      "noir": {
+        "name": "Noir",
+        "desc": "Sombre & or · luxe discret"
+      },
+      "jardin": {
+        "name": "Jardin",
+        "desc": "Verts naturels · maison de campagne"
+      },
+      "azur": {
+        "name": "Azur",
+        "desc": "Bleu minéral · bord de mer"
+      },
+      "corail": {
+        "name": "Corail",
+        "desc": "Pêche vif · lumineux & contemporain"
+      },
+      "brume": {
+        "name": "Brume",
+        "desc": "Mauve doux · minimal apaisé"
+      },
+      "minuit": {
+        "name": "Minuit",
+        "desc": "Bleu nuit & ciel · sombre raffiné"
+      }
     },
     "welcomeNote": {
       "title": "Message d'accueil",
@@ -379,6 +400,16 @@
   },
   "connectedObjects": {
     "previewBadge": "Aperçu",
+    "codeMode": {
+      "label": "Origine du code d'accès",
+      "pms": "Le PMS génère et pousse le code",
+      "lock": "La serrure génère le code",
+      "helperPms": "Le code configuré dans le PMS est poussé à la serrure.",
+      "helperLock": "La serrure génère son propre code ; le PMS le récupère.",
+      "applied": "Appliqué aux prochains codes générés (réservations à venir).",
+      "saved": "Origine du code mise à jour (appliquée à la prochaine réservation)",
+      "error": "Échec du changement de mode"
+    },
     "cameras": {
       "title": "Caméras",
       "subtitle": "Supervision vidéo des logements — aperçu de l'expérience à venir."
@@ -3185,6 +3216,46 @@
       "title": "Instructions voyageur",
       "accessSection": "Accès",
       "accessCode": "Code d'accès / Digicode",
+      "autoRotate": "Régénérer le code après chaque départ",
+      "autoRotateHint": "Un nouveau code (même format) est généré après le checkout — pensez à mettre à jour le code de la boîte à clé. Les serrures connectées tournent déjà automatiquement.",
+      "smartLockFetch": "Récupérer le code de la serrure connectée",
+      "smartLockNoCode": "Aucun code de serrure actif pour le séjour en cours.",
+      "smartLockError": "Impossible de récupérer le code de la serrure.",
+      "extraCodes": "Codes additionnels",
+      "extraCodeLabel": "Libellé",
+      "extraCodeValue": "Code",
+      "extraCodeTagCopy": "Copier le tag email",
+      "extraCodeAdd": "Ajouter un code",
+      "extraCodesHint": "Affichés dans le livret. Chaque code fournit un tag à coller dans vos emails.",
+      "smartLockManaged": "Serrure connectée détectée : le code du séjour est généré et géré par la serrure (un code par réservation). Ce champ sert de secours (boîte à clé).",
+      "guestUnlock": "Autoriser l'ouverture de la porte depuis le livret",
+      "guestUnlockHint": "Le voyageur voit un bouton « Ouvrir la porte » dans son livret, actif uniquement pendant son séjour (à partir de l'heure de check-in). Chaque ouverture vous est notifiée.",
+      "generator": {
+        "open": "Cliquer pour générer",
+        "regenerate": "Régénérer le code",
+        "title": "Générer un code d'accès",
+        "close": "Fermer",
+        "copy": "Copier",
+        "copied": "Copié !",
+        "length": "Longueur",
+        "chars": "{{n}} caractères",
+        "allowedChars": "Caractères autorisés",
+        "typeDigits": "Chiffres",
+        "typeLetters": "Lettres",
+        "typeSymbols": "Symboles",
+        "composition": "Composition",
+        "compositionHint": "Cliquez sur une position pour changer le type de caractère.",
+        "smartLockDigitsHint": "Serrure connectée : seuls les chiffres du format (et sa longueur) sont utilisés pour le PIN de la serrure.",
+        "slotCycle": "Changer le type",
+        "hint": "Au moins un type de caractère.",
+        "lettersAllowed": "Lettres autorisées",
+        "symbolsAllowed": "Symboles autorisés",
+        "allLettersHint": "Aucune sélection = toutes les lettres.",
+        "allSymbolsHint": "Aucune sélection = tous les symboles.",
+        "cancel": "Annuler",
+        "apply": "Utiliser ce code",
+        "codeInput": "Code d'accès"
+      },
       "wifiName": "Nom du WiFi",
       "wifiPassword": "Mot de passe WiFi",
       "parkingSection": "Stationnement",

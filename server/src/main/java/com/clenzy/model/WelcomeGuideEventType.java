@@ -14,5 +14,7 @@ public enum WelcomeGuideEventType {
     /** Avis depose dans le livre d'or. */
     GUESTBOOK_SUBMIT,
     /** Clic sur le lien de check-in en ligne. */
-    CHECKIN_CLICK
+    CHECKIN_CLICK,
+    /** Ouverture de la porte depuis le livret (serrure connectée). */
+    DOOR_UNLOCK
 }

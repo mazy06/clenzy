@@ -28,7 +28,7 @@ class EmailChannelTest {
         @SuppressWarnings("unchecked")
         ObjectProvider<JavaMailSender> provider = mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn(mailSender);
-        emailChannel = new EmailChannel(provider);
+        emailChannel = new EmailChannel(provider, new EmailWrapperService());
         ReflectionTestUtils.setField(emailChannel, "fromAddress", "test@clenzy.fr");
     }
 
@@ -47,7 +47,7 @@ class EmailChannelTest {
         @SuppressWarnings("unchecked")
         ObjectProvider<JavaMailSender> nullProvider = mock(ObjectProvider.class);
         when(nullProvider.getIfAvailable()).thenReturn(null);
-        EmailChannel channel = new EmailChannel(nullProvider);
+        EmailChannel channel = new EmailChannel(nullProvider, new EmailWrapperService());
 
         assertFalse(channel.isAvailable());
     }
@@ -81,7 +81,7 @@ class EmailChannelTest {
         @SuppressWarnings("unchecked")
         ObjectProvider<JavaMailSender> nullProvider = mock(ObjectProvider.class);
         when(nullProvider.getIfAvailable()).thenReturn(null);
-        EmailChannel channel = new EmailChannel(nullProvider);
+        EmailChannel channel = new EmailChannel(nullProvider, new EmailWrapperService());
 
         var request = new MessageDeliveryRequest(
             "test@example.com", null, "Test", "Subject", "<p>Body</p>", "Body", "fr"

@@ -15,6 +15,8 @@ import {
   Tooltip,
   LinearProgress,
   Stack,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   VpnKey as KeyIcon,
@@ -30,12 +32,15 @@ import {
   VisibilityOff,
   CheckCircle,
   ContentCopy,
+  Autorenew,
+  CloudDownload,
   AddPhotoAlternate as PhotoIcon,
   Close as CloseIcon,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import type { CheckInInstructions, UpdateCheckInInstructions } from '../../services/api/airbnbApi';
+import AccessCodeGeneratorDialog, { generateCode, inferFormat, type CodeFormat } from '../../components/AccessCodeGeneratorDialog';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -195,6 +200,18 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
   const [dirty, setDirty] = useState(false);
   const [accessPhotos, setAccessPhotos] = useState<AccessPhoto[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  // Générateur de code d'accès : popup de paramétrage + format mémorisé pour la régénération rapide.
+  const [genOpen, setGenOpen] = useState(false);
+  const [codeFormat, setCodeFormat] = useState<CodeFormat>(() => inferFormat(null));
+  // Rotation automatique du code après chaque départ (opt-in par logement).
+  const [autoRotate, setAutoRotate] = useState(false);
+  // Serrure connectée détectée → permet de récupérer le code généré par la serrure.
+  const [hasSmartLock, setHasSmartLock] = useState(false);
+  const [fetchingLock, setFetchingLock] = useState(false);
+  // Codes additionnels libres (résidence, immeuble, parking…) — un tag email par code.
+  const [extraCodes, setExtraCodes] = useState<Array<{ label: string; code: string }>>([]);
+  // Ouverture de la porte depuis le livret guest (opt-in, serrure connectée requise).
+  const [guestUnlock, setGuestUnlock] = useState(false);
 
   // Fetch existing instructions
   useEffect(() => {
@@ -215,6 +232,26 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           additionalNotes: data.additionalNotes,
         });
         setAccessPhotos(parseAccessPhotos(data.arrivalPhotos));
+        setAutoRotate(!!data.accessCodeAutoRotate);
+        setGuestUnlock(!!data.guestUnlockEnabled);
+        // Reprend le format persisté (sinon déduit du code existant).
+        let fmt: CodeFormat;
+        try {
+          fmt = data.accessCodeFormat ? (JSON.parse(data.accessCodeFormat) as CodeFormat) : inferFormat(data.accessCode);
+        } catch {
+          fmt = inferFormat(data.accessCode);
+        }
+        setCodeFormat(fmt);
+        try {
+          const parsed = data.extraAccessCodes ? JSON.parse(data.extraAccessCodes) : [];
+          setExtraCodes(Array.isArray(parsed)
+            ? parsed
+                .filter((x: unknown): x is { label?: string; code?: string } => !!x && typeof x === 'object')
+                .map((x) => ({ label: x.label || '', code: x.code || '' }))
+            : []);
+        } catch {
+          setExtraCodes([]);
+        }
       })
       .catch(() => {
         // No instructions yet — form stays empty
@@ -222,11 +259,54 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
       .finally(() => setLoading(false));
   }, [propertyId]);
 
+  // Détecte une serrure connectée → propose de récupérer le code généré par la serrure.
+  useEffect(() => {
+    airbnbApi.getSmartLockCode(propertyId)
+      .then((r) => setHasSmartLock(!!r.hasSmartLock))
+      .catch(() => setHasSmartLock(false));
+  }, [propertyId]);
+
   const handleChange = useCallback((field: keyof UpdateCheckInInstructions, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value || null }));
     setSuccess(false);
     setDirty(true);
   }, []);
+
+  /** Régénère un code d'accès aléatoire avec le format mémorisé (icône à côté du champ). */
+  const regenerateAccessCode = useCallback(() => {
+    const next = generateCode(codeFormat);
+    if (next) handleChange('accessCode', next);
+  }, [codeFormat, handleChange]);
+
+  /** Récupère le code généré par la serrure connectée et le place dans le champ. */
+  const fetchSmartLockCode = useCallback(async () => {
+    setFetchingLock(true);
+    setError(null);
+    try {
+      const r = await airbnbApi.getSmartLockCode(propertyId);
+      setHasSmartLock(!!r.hasSmartLock);
+      if (r.code) {
+        handleChange('accessCode', r.code);
+      } else {
+        setError(t('channels.checkIn.smartLockNoCode', 'Aucun code de serrure actif pour le séjour en cours.'));
+      }
+    } catch {
+      setError(t('channels.checkIn.smartLockError', 'Impossible de récupérer le code de la serrure.'));
+    } finally {
+      setFetchingLock(false);
+    }
+  }, [propertyId, handleChange, t]);
+
+  // Slug stable du tag email d'un code additionnel — DOIT correspondre au back (TemplateInterpolationService.slugify).
+  const slugify = (label: string) =>
+    (label || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+  const addExtraCode = () => { setExtraCodes((prev) => [...prev, { label: '', code: '' }]); setDirty(true); setSuccess(false); };
+  const updateExtraCode = (i: number, field: 'label' | 'code', value: string) => {
+    setExtraCodes((prev) => prev.map((c, idx) => (idx === i ? { ...c, [field]: value } : c)));
+    setDirty(true); setSuccess(false);
+  };
+  const removeExtraCode = (i: number) => { setExtraCodes((prev) => prev.filter((_, idx) => idx !== i)); setDirty(true); setSuccess(false); };
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -236,6 +316,10 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
       const payload = {
         ...form,
         arrivalPhotos: JSON.stringify(accessPhotos.map((p) => ({ key: p.key, caption: p.caption }))),
+        accessCodeAutoRotate: autoRotate,
+        accessCodeFormat: JSON.stringify(codeFormat),
+        extraAccessCodes: JSON.stringify(extraCodes.filter((c) => c.label.trim() || c.code.trim())),
+        guestUnlockEnabled: guestUnlock,
       };
       const updated = await airbnbApi.updateCheckInInstructions(propertyId, payload);
       setInstructions(updated);
@@ -248,7 +332,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
     } finally {
       setSaving(false);
     }
-  }, [propertyId, form, accessPhotos, t, queryClient]);
+  }, [propertyId, form, accessPhotos, autoRotate, codeFormat, extraCodes, guestUnlock, t, queryClient]);
 
   const handleAddPhoto = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -411,24 +495,43 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               <TextField
                 label={t('channels.checkIn.accessCode')}
                 value={form.accessCode ?? ''}
-                onChange={(e) => handleChange('accessCode', e.target.value)}
+                placeholder={t('channels.checkIn.generator.open', 'Cliquer pour générer')}
                 size="small"
+                onClick={() => setGenOpen(true)}
                 sx={{
                   ...FIELD_SX,
-                  '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.9375rem', fontWeight: 600, letterSpacing: '0.05em' },
+                  '& .MuiInputBase-root': { cursor: 'pointer' },
+                  '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.9375rem', fontWeight: 600, letterSpacing: '0.05em', cursor: 'pointer' },
                 }}
                 InputProps={{
-                  endAdornment: form.accessCode && (
+                  readOnly: true,
+                  endAdornment: (
                     <InputAdornment position="end">
-                      <Tooltip title={copiedField === 'accessCode' ? 'Copié !' : 'Copier'}>
-                        <IconButton size="small" onClick={() => handleCopy('accessCode', form.accessCode)} edge="end">
-                          {copiedField === 'accessCode' ? (
-                            <CheckCircle size={16} strokeWidth={2} color="#10b981" />
-                          ) : (
-                            <ContentCopy size={14} strokeWidth={1.75} />
-                          )}
+                      {hasSmartLock ? (
+                        <Tooltip title={t('channels.checkIn.smartLockFetch', 'Récupérer le code de la serrure connectée')}>
+                          <span>
+                            <IconButton size="small" edge="end" disabled={fetchingLock} onClick={(e) => { e.stopPropagation(); fetchSmartLockCode(); }}>
+                              <CloudDownload size={15} strokeWidth={1.85} />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      ) : null}
+                      <Tooltip title={t('channels.checkIn.generator.regenerate', 'Régénérer le code')}>
+                        <IconButton size="small" edge="end" onClick={(e) => { e.stopPropagation(); regenerateAccessCode(); }}>
+                          <Autorenew size={15} strokeWidth={1.85} />
                         </IconButton>
                       </Tooltip>
+                      {form.accessCode ? (
+                        <Tooltip title={copiedField === 'accessCode' ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}>
+                          <IconButton size="small" edge="end" onClick={(e) => { e.stopPropagation(); handleCopy('accessCode', form.accessCode); }}>
+                            {copiedField === 'accessCode' ? (
+                              <CheckCircle size={16} strokeWidth={2} color="#10b981" />
+                            ) : (
+                              <ContentCopy size={14} strokeWidth={1.75} />
+                            )}
+                          </IconButton>
+                        </Tooltip>
+                      ) : null}
                     </InputAdornment>
                   ),
                 }}
@@ -461,7 +564,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                     <InputAdornment position="end">
                       <Stack direction="row" spacing={0}>
                         {form.wifiPassword && (
-                          <Tooltip title={copiedField === 'wifiPassword' ? 'Copié !' : 'Copier'}>
+                          <Tooltip title={copiedField === 'wifiPassword' ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}>
                             <IconButton size="small" onClick={() => handleCopy('wifiPassword', form.wifiPassword)}>
                               {copiedField === 'wifiPassword' ? (
                                 <CheckCircle size={16} strokeWidth={2} color="#10b981" />
@@ -487,6 +590,96 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                   ),
                 }}
               />
+            </Box>
+            {hasSmartLock ? (
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1, maxWidth: 560 }}>
+                {t('channels.checkIn.smartLockManaged', 'Serrure connectée détectée : le code du séjour est généré et géré par la serrure (un code par réservation). Ce champ sert de secours (boîte à clé).')}
+              </Typography>
+            ) : (
+              <FormControlLabel
+                sx={{ mt: 1.5, ml: 0, alignItems: 'flex-start' }}
+                control={
+                  <Switch
+                    checked={autoRotate}
+                    onChange={(e) => { setAutoRotate(e.target.checked); setDirty(true); setSuccess(false); }}
+                    size="small"
+                  />
+                }
+                label={
+                  <Box sx={{ ml: 0.5, mt: 0.25 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {t('channels.checkIn.autoRotate', 'Régénérer le code après chaque départ')}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', maxWidth: 520 }}>
+                      {t('channels.checkIn.autoRotateHint', 'Un nouveau code (même format) est généré après le checkout — pensez à mettre à jour le code de la boîte à clé. Les serrures connectées tournent déjà automatiquement.')}
+                    </Typography>
+                  </Box>
+                }
+              />
+            )}
+            {hasSmartLock ? (
+              <FormControlLabel
+                sx={{ mt: 1, ml: 0, alignItems: 'flex-start' }}
+                control={
+                  <Switch
+                    checked={guestUnlock}
+                    onChange={(e) => { setGuestUnlock(e.target.checked); setDirty(true); setSuccess(false); }}
+                    size="small"
+                  />
+                }
+                label={
+                  <Box sx={{ ml: 0.5, mt: 0.25 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {t('channels.checkIn.guestUnlock', "Autoriser l'ouverture de la porte depuis le livret")}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', maxWidth: 520 }}>
+                      {t('channels.checkIn.guestUnlockHint', "Le voyageur voit un bouton « Ouvrir la porte » dans son livret, actif uniquement pendant son séjour (à partir de l'heure de check-in). Chaque ouverture vous est notifiée.")}
+                    </Typography>
+                  </Box>
+                }
+              />
+            ) : null}
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                {t('channels.checkIn.extraCodes', 'Codes additionnels')}
+              </Typography>
+              <Stack spacing={1}>
+                {extraCodes.map((ec, i) => {
+                  const slug = slugify(ec.label);
+                  return (
+                    <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <TextField
+                        size="small" label={t('channels.checkIn.extraCodeLabel', 'Libellé')}
+                        value={ec.label} onChange={(e) => updateExtraCode(i, 'label', e.target.value)}
+                        sx={{ flex: '1 1 150px' }}
+                      />
+                      <TextField
+                        size="small" label={t('channels.checkIn.extraCodeValue', 'Code')}
+                        value={ec.code} onChange={(e) => updateExtraCode(i, 'code', e.target.value)}
+                        sx={{ flex: '1 1 110px', '& .MuiInputBase-input': { fontFamily: 'monospace' } }}
+                      />
+                      {slug ? (
+                        <Tooltip title={copiedField === `extraTag${i}` ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.extraCodeTagCopy', 'Copier le tag email')}>
+                          <Chip
+                            size="small" label={`{code_${slug}}`}
+                            onClick={() => handleCopy(`extraTag${i}`, `{code_${slug}}`)}
+                            sx={{ fontFamily: 'monospace', cursor: 'pointer' }}
+                          />
+                        </Tooltip>
+                      ) : null}
+                      <IconButton size="small" onClick={() => removeExtraCode(i)} aria-label="Supprimer">
+                        <CloseIcon size={16} strokeWidth={1.8} />
+                      </IconButton>
+                    </Box>
+                  );
+                })}
+              </Stack>
+              <Button size="small" onClick={addExtraCode} sx={{ mt: 1, textTransform: 'none' }}>
+                + {t('channels.checkIn.extraCodeAdd', 'Ajouter un code')}
+              </Button>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                {t('channels.checkIn.extraCodesHint', 'Affichés dans le livret. Chaque code fournit un tag à coller dans vos emails.')}
+              </Typography>
             </Box>
           </SectionCard>
         </Box>
@@ -760,6 +953,15 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           {saving ? 'Enregistrement…' : t('common.save')}
         </Button>
       </Box>
+
+      <AccessCodeGeneratorDialog
+        open={genOpen}
+        initialCode={form.accessCode}
+        initialFormat={codeFormat}
+        smartLockHint={hasSmartLock}
+        onClose={() => setGenOpen(false)}
+        onApply={(code, format) => { handleChange('accessCode', code); setCodeFormat(format); setGenOpen(false); }}
+      />
     </Box>
   );
 };

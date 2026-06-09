@@ -44,19 +44,25 @@ public class AccessCodeResolverService {
     private final TuyaApiService tuyaApiService;
     private final KeyExchangeService keyExchangeService;
     private final SmartLockAccessCodeRepository accessCodeRepository;
+    private final AccessCodeGenerator accessCodeGenerator;
+    private final com.clenzy.service.smartlock.SmartLockProviderRegistry providerRegistry;
 
     public AccessCodeResolverService(
             SmartLockDeviceRepository smartLockRepository,
             KeyExchangePointRepository keyExchangePointRepository,
             TuyaApiService tuyaApiService,
             KeyExchangeService keyExchangeService,
-            SmartLockAccessCodeRepository accessCodeRepository
+            SmartLockAccessCodeRepository accessCodeRepository,
+            AccessCodeGenerator accessCodeGenerator,
+            com.clenzy.service.smartlock.SmartLockProviderRegistry providerRegistry
     ) {
         this.smartLockRepository = smartLockRepository;
         this.keyExchangePointRepository = keyExchangePointRepository;
         this.tuyaApiService = tuyaApiService;
         this.keyExchangeService = keyExchangeService;
         this.accessCodeRepository = accessCodeRepository;
+        this.accessCodeGenerator = accessCodeGenerator;
+        this.providerRegistry = providerRegistry;
     }
 
     /**
@@ -121,6 +127,12 @@ public class AccessCodeResolverService {
                         .collect(Collectors.joining("\n")));
     }
 
+    /** Vrai si le logement a au moins une serrure connectée active (sinon : boîte à clé). */
+    public boolean hasActiveSmartLock(Long propertyId) {
+        return propertyId != null
+                && !smartLockRepository.findByPropertyIdAndStatus(propertyId, DeviceStatus.ACTIVE).isEmpty();
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // Tier 1 — Serrure connectee Tuya
     // ═══════════════════════════════════════════════════════════════
@@ -149,18 +161,38 @@ public class AccessCodeResolverService {
         }
 
         try {
-            long effectiveTime = toEpochSeconds(reservation.getCheckIn());
-            long invalidTime = toEpochSeconds(reservation.getCheckOut().plusDays(1));
             String guestName = reservation.getGuestName() != null
                     ? reservation.getGuestName() : "Guest";
+            String name = "Clenzy-" + guestName;
 
-            Map<String, Object> result = tuyaApiService.createTemporaryPassword(
-                    externalDeviceId, effectiveTime, invalidTime, "Clenzy-" + guestName
-            );
+            // Mode PMS_GENERATED : PIN selon le format du logement, poussé à la serrure.
+            // Mode LOCK_GENERATED : null → la serrure génère son propre code (Tuya uniquement).
+            String requestedPin = device.getAccessCodeMode() == SmartLockDevice.AccessCodeMode.PMS_GENERATED
+                    ? accessCodeGenerator.generateNumeric(instructions != null ? instructions.getAccessCodeFormat() : null, 6)
+                    : null;
 
-            String tempCode = extractPasswordFromResult(result);
+            com.clenzy.service.smartlock.SmartLockBrand brand = device.getBrand() != null
+                    ? device.getBrand() : com.clenzy.service.smartlock.SmartLockBrand.TUYA;
+            String tempCode;
+            if (brand == com.clenzy.service.smartlock.SmartLockBrand.TUYA) {
+                long effectiveTime = toEpochSeconds(reservation.getCheckIn());
+                long invalidTime = toEpochSeconds(reservation.getCheckOut().plusDays(1));
+                Map<String, Object> result = tuyaApiService.createTemporaryPassword(
+                        externalDeviceId, effectiveTime, invalidTime, name, requestedPin
+                );
+                tempCode = extractPasswordFromResult(result);
+            } else {
+                // Marques Web API (Nuki...) : ce chemin de secours ne PERSISTE pas le code, donc
+                // il serait irrevocable et s'accumulerait sur le keypad a chaque envoi de message.
+                // Le code par reservation est cree (et persiste) par SmartLockAccessCodeService au
+                // cycle reservation — ici on se replie sur le code statique.
+                log.warn("Pas de code persiste pour la serrure {} ({}) — pas de generation a la volee, fallback statique",
+                        device.getId(), brand);
+                tempCode = null;
+            }
+
             if (tempCode != null && !tempCode.isBlank()) {
-                log.info("Code temporaire Tuya genere pour reservation={}, device={}",
+                log.info("Code temporaire serrure genere pour reservation={}, device={}",
                         reservation.getId(), device.getId());
 
                 Map<String, String> vars = new LinkedHashMap<>();
@@ -169,10 +201,10 @@ public class AccessCodeResolverService {
                 return new AccessCodeResult(AccessCodeResult.AccessMethod.SMART_LOCK, vars);
             }
 
-            log.warn("Tuya n'a pas retourne de code pour device={}, fallback statique", device.getId());
+            log.warn("Le provider n'a pas retourne de code pour device={}, fallback statique", device.getId());
 
         } catch (Exception e) {
-            log.error("Erreur generation code Tuya pour device={}: {}, fallback statique",
+            log.error("Erreur generation code serrure pour device={}: {}, fallback statique",
                     device.getId(), e.getMessage());
         }
 

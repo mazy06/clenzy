@@ -60,6 +60,7 @@ public class WelcomeGuideService {
     private final PhotoStorageService photoStorageService;
     private final PropertyPhotoRepository propertyPhotoRepository;
     private final ActivityAffiliateConfigRepository activityAffiliateConfigRepository;
+    private final com.clenzy.service.access.GuestUnlockService guestUnlockService;
     private final Map<ActivityProvider, AffiliateLinkDecorator> linkDecorators;
 
     public WelcomeGuideService(WelcomeGuideRepository guideRepository,
@@ -75,6 +76,7 @@ public class WelcomeGuideService {
                                 PhotoStorageService photoStorageService,
                                 PropertyPhotoRepository propertyPhotoRepository,
                                 ActivityAffiliateConfigRepository activityAffiliateConfigRepository,
+                                com.clenzy.service.access.GuestUnlockService guestUnlockService,
                                 List<AffiliateLinkDecorator> linkDecorators) {
         this.guideRepository = guideRepository;
         this.tokenRepository = tokenRepository;
@@ -89,6 +91,7 @@ public class WelcomeGuideService {
         this.photoStorageService = photoStorageService;
         this.propertyPhotoRepository = propertyPhotoRepository;
         this.activityAffiliateConfigRepository = activityAffiliateConfigRepository;
+        this.guestUnlockService = guestUnlockService;
         this.linkDecorators = new EnumMap<>(ActivityProvider.class);
         for (AffiliateLinkDecorator decorator : linkDecorators) {
             this.linkDecorators.put(decorator.provider(), decorator);
@@ -332,6 +335,25 @@ public class WelcomeGuideService {
         return Optional.of(generateGuideLink(tokenRepository.save(token)));
     }
 
+    /**
+     * Vrai si un livret PUBLIÉ existe pour cette réservation (lié à la résa ou au logement).
+     * Lecture seule — ne crée aucun token. Sert de condition au gating du code d'accès dans
+     * les emails : on ne masque le code que si le voyageur a un canal (le livret) pour le
+     * récupérer à l'heure du check-in.
+     */
+    @Transactional(readOnly = true)
+    public boolean hasPublishedGuideFor(Reservation reservation) {
+        if (reservation == null || reservation.getProperty() == null || reservation.getOrganizationId() == null) {
+            return false;
+        }
+        if (guideRepository.findByReservationId(reservation.getId())
+                .filter(WelcomeGuide::isPublished).isPresent()) {
+            return true;
+        }
+        return resolvePublishedGuide(
+                reservation.getProperty().getId(), reservation.getOrganizationId(), guestLanguage(reservation)) != null;
+    }
+
     private String guestLanguage(Reservation reservation) {
         return reservation.getGuest() != null && reservation.getGuest().getLanguage() != null
             ? reservation.getGuest().getLanguage() : "fr";
@@ -501,11 +523,30 @@ public class WelcomeGuideService {
                 .orElse(null)
             : null;
         List<String> heroImageUrls = resolveHeroImageUrls(guide, t.getToken());
+        // Le code d'acces n'est revele qu'a partir de l'heure de check-in (anti entree anticipee).
+        boolean accessCodeUnlocked = isAccessCodeUnlocked(reservation, property);
+        // Bouton « Ouvrir la porte » : opt-in logement + serrure pilotable + fenetre STRICTE du
+        // sejour (apres le check-out, le bouton disparait — et l'action serait refusee de toute facon).
+        boolean guestUnlockAvailable = ci != null && ci.isGuestUnlockEnabled()
+            && reservation != null
+            && com.clenzy.service.access.StayTimes.isDuringStay(reservation, property)
+            && property != null && guestUnlockService.hasRemoteUnlockableLock(property.getId());
         WelcomeGuidePublicDto dto =
-            WelcomeGuidePublicDto.from(guide, property, ci, reservation, dynamicAccessCode, checkIn, heroImageUrls);
+            WelcomeGuidePublicDto.from(guide, property, ci, reservation, dynamicAccessCode, checkIn,
+                heroImageUrls, accessCodeUnlocked, guestUnlockAvailable);
         // Injecte les ID d'affiliation (Klook, GetYourGuide, ...) dans les liens des activites curatees.
         String decorated = decorateAffiliateLinks(dto.curatedActivities(), guide.getOrganizationId());
         return Optional.of(decorated.equals(dto.curatedActivities()) ? dto : dto.withCuratedActivities(decorated));
+    }
+
+    /**
+     * Le code d'acces ne doit etre revele qu'a partir de l'heure de check-in (date d'arrivee
+     * + heure d'arrivee, dans le fuseau horaire du logement) pour eviter qu'un voyageur entre
+     * avant l'heure. Avant ce moment, le payload masque le code (le front affiche un cadenas).
+     * Sans date de reservation, aucune restriction (rien sur quoi se baser).
+     */
+    private boolean isAccessCodeUnlocked(Reservation reservation, Property property) {
+        return com.clenzy.service.access.StayTimes.isAfterCheckIn(reservation, property);
     }
 
     /**
