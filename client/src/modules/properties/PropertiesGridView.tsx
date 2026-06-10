@@ -17,13 +17,15 @@ interface PropertiesGridViewProps {
   onDiagnose: (propertyId: number, propertyName: string) => void;
   canManageContracts: boolean;
   missingContractIds: Set<number>;
+  /** Clic sur le badge « Contrat manquant » : ouvre la modal de contrat préselectionnée. */
+  onMissingContractClick: (propertyId: number) => void;
   navigate: NavigateFunction;
 }
 
 /** Vue grille : cartes PropertyCard + pagination fixe. */
 const PropertiesGridView: React.FC<PropertiesGridViewProps> = ({
   properties, totalCount, page, onPageChange, channexMappings, onDelete, onDiagnose,
-  canManageContracts, missingContractIds, navigate,
+  canManageContracts, missingContractIds, onMissingContractClick, navigate,
 }) => (
   <>
     <Grid container spacing={1.5}>
@@ -37,7 +39,7 @@ const PropertiesGridView: React.FC<PropertiesGridViewProps> = ({
             channexMapping={channexMappings.get(Number(property.id)) ?? null}
             onChannexBadgeClick={() => onDiagnose(Number(property.id), property.name)}
             missingContract={canManageContracts && missingContractIds.has(Number(property.id))}
-            onMissingContractClick={() => navigate('/contracts')}
+            onMissingContractClick={() => onMissingContractClick(Number(property.id))}
           />
         </Grid>
       ))}

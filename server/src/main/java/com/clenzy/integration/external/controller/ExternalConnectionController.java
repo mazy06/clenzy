@@ -6,6 +6,7 @@ import com.clenzy.integration.external.model.ExternalServiceConnection;
 import com.clenzy.integration.external.service.ExternalServiceConnectionService;
 import com.clenzy.integration.external.strategy.ConnectionTestStrategy;
 import com.clenzy.integration.external.strategy.ConnectionTestStrategyRegistry;
+import com.clenzy.service.signature.SignatureProviderRegistry;
 import com.clenzy.service.signature.SignatureProviderType;
 import com.clenzy.tenant.TenantContext;
 import jakarta.validation.Valid;
@@ -17,8 +18,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -61,14 +64,43 @@ public class ExternalConnectionController {
 
     private final ExternalServiceConnectionService service;
     private final ConnectionTestStrategyRegistry strategyRegistry;
+    private final SignatureProviderRegistry signatureProviderRegistry;
     private final TenantContext tenantContext;
 
     public ExternalConnectionController(ExternalServiceConnectionService service,
                                           ConnectionTestStrategyRegistry strategyRegistry,
+                                          SignatureProviderRegistry signatureProviderRegistry,
                                           TenantContext tenantContext) {
         this.service = service;
         this.strategyRegistry = strategyRegistry;
+        this.signatureProviderRegistry = signatureProviderRegistry;
         this.tenantContext = tenantContext;
+    }
+
+    /**
+     * État des providers de signature enregistrés : disponibilité (configuration /
+     * connexion org) et provider actif ({@code SIGNATURE_PROVIDER}). Alimente la
+     * section « Signature électronique » de l'onglet Intégrations.
+     */
+    @GetMapping("/signature-providers")
+    public ResponseEntity<List<Map<String, Object>>> signatureProviders() {
+        SignatureProviderType active = signatureProviderRegistry.getActiveProviderType();
+        List<Map<String, Object>> result = signatureProviderRegistry.getAllProviders().values().stream()
+                .map(provider -> {
+                    boolean available;
+                    try {
+                        available = provider.isAvailable();
+                    } catch (Exception e) {
+                        available = false;
+                    }
+                    return Map.<String, Object>of(
+                            "type", provider.getType().name(),
+                            "available", available,
+                            "active", provider.getType() == active);
+                })
+                .sorted(Comparator.comparing(m -> (String) m.get("type")))
+                .toList();
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/{providerType}/connect")

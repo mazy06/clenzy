@@ -33,9 +33,15 @@ public record ManagementContractDto(
     BigDecimal upsellCommissionRate,
     BigDecimal activityCommissionRate,
     PaymentModel paymentModel,
-    CommissionBase commissionBase
+    CommissionBase commissionBase,
+    /** Statut de la demande de signature électronique : PENDING | SIGNED | EXPIRED | CANCELLED | null. */
+    String signatureStatus
 ) {
     public static ManagementContractDto from(ManagementContract c) {
+        return from(c, null);
+    }
+
+    public static ManagementContractDto from(ManagementContract c, String signatureStatus) {
         return new ManagementContractDto(
             c.getId(), c.getPropertyId(), c.getOwnerId(),
             c.getContractNumber(), c.getContractType(), c.getStatus(),
@@ -45,7 +51,8 @@ public record ManagementContractDto(
             c.getNotes(), c.getSignedAt(), c.getTerminatedAt(),
             c.getTerminationReason(), c.getCreatedAt(),
             c.getUpsellCommissionRate(), c.getActivityCommissionRate(),
-            c.getPaymentModel(), c.getCommissionBase()
+            c.getPaymentModel(), c.getCommissionBase(),
+            signatureStatus
         );
     }
 }

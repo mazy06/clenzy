@@ -18,8 +18,14 @@ import { type Activity } from '../../services/api/activitiesApi';
 import WelcomeBookView, { type Lang, type WelcomeBookModel } from './WelcomeBookView';
 import { WELCOME_BOOK_THEMES, normalizeTheme, injectWelcomeBookCss } from './welcomeBookThemes';
 import { GUIDE_LABELS as LABELS } from './guideLabels';
+import { API_CONFIG } from '../../config/api';
 
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) || '';
+// Origine de l'API (SANS le préfixe /api : les chemins ci-dessous et les URLs
+// relatives du payload — hero-photo, access-photos — l'incluent déjà).
+// Résolution standard de l'app via VITE_API_BASE_URL : dev = http://localhost:8084,
+// prod = https://app.clenzy.fr. L'ancien VITE_API_URL n'était défini nulle part :
+// en dev les fetch tapaient le serveur Vite (localhost:3000) qui renvoyait index.html.
+const API_BASE = API_CONFIG.BASE_URL;
 
 /** Parse le JSON arrivalPhotos ([{key, caption}]) du payload public. */
 function parseArrivalPhotos(json: string | null | undefined): Array<{ key: string; caption: string }> {

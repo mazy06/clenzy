@@ -22,37 +22,21 @@ export interface ServiceTooltipData {
 }
 
 export const SERVICE_TOOLTIPS: Record<string, ServiceTooltipData> = {
-  // ─── Signature electronique (QTSP francais + OAuth) ────────────────────
+  // ─── Signature electronique (Phase 2 : implémentés, à brancher) ─────────
   YOUSIGN: {
     description:
-      "QTSP français basé à Caen, certifié ANSSI. Signature électronique SES, AES et QES (équivalent juridique de la signature manuscrite). Pure player avec tarification adaptée PME.",
+      "QTSP français basé à Caen, certifié ANSSI. Signature électronique SES, AES et QES (équivalent juridique de la signature manuscrite). Intégration implémentée côté Clenzy — saisissez votre clé API puis basculez SIGNATURE_PROVIDER=yousign pour l'activer.",
     accessModality:
-      'Compte Yousign Pro requis. Génération API key dans Settings → API. Tarification au volume de signatures (~0.50-2 €/signature selon plan).',
+      'Compte Yousign requis (sandbox dev gratuite 40 jours). Génération API key dans Settings → API. Tarification au volume de signatures (~0.50-2 €/signature selon plan).',
     websiteUrl: 'https://yousign.com',
     region: 'FR',
   },
-  UNIVERSIGN: {
+  DOCUSEAL: {
     description:
-      "QTSP français (groupe Quadient), historiquement implanté dans le secteur bancaire et assurance. Niveaux SES, AES, QES disponibles.",
+      "Alternative open source (AGPL) auto-hébergée à DocuSign : signature SES avec scellement cryptographique du PDF, données sur votre infrastructure, 0 € de licence. Intégration implémentée côté Clenzy — nécessite le déploiement de l'instance (clenzy-infra) puis SIGNATURE_PROVIDER=docuseal.",
     accessModality:
-      'Contrat partenaire B2B requis. API key fournie après contractualisation. Tarification au volume + frais de setup.',
-    websiteUrl: 'https://universign.com',
-    region: 'FR',
-  },
-  DOCAPOSTE: {
-    description:
-      "Filiale du Groupe La Poste, QTSP français certifié ANSSI. SES, AES, QES + Lettre Recommandée Électronique (LRE) — utile pour les mises en demeure et notifications légales.",
-    accessModality:
-      'Compte DocaPoste Pro. API key via portail développeur après validation KYC. Tarification au volume.',
-    websiteUrl: 'https://www.docaposte.com',
-    region: 'FR',
-  },
-  DOCUSIGN: {
-    description:
-      "Leader mondial de la signature électronique. SES + AES + QES via partenariats avec QTSP européens. Authentification OAuth2 (Authorization Code Grant ou JWT Grant).",
-    accessModality:
-      'Compte développeur DocuSign (sandbox gratuit, prod facturée). Créer une intégration → Integration Key + Secret. Tarification par envoi.',
-    websiteUrl: 'https://developers.docusign.com',
+      'Self-hosted : container Docker dans clenzy-infra + variables DOCUSEAL_BASE_URL / DOCUSEAL_API_KEY. Gratuit (AGPL).',
+    websiteUrl: 'https://www.docuseal.com',
     region: 'Global',
   },
   PENNYLANE: {
@@ -62,14 +46,6 @@ export const SERVICE_TOOLTIPS: Record<string, ServiceTooltipData> = {
       'Compte développeur Pennylane (sur dossier). Client ID + Secret après validation. API gratuite pour le sync facturation comptable.',
     websiteUrl: 'https://developers.pennylane.com',
     region: 'FR',
-  },
-  ODOO: {
-    description:
-      "ERP open-source polyvalent. Module Sign (Odoo Enterprise) pour signature électronique SES + AES. Connexion via API key sur instance SaaS ou self-hosted.",
-    accessModality:
-      "Instance Odoo Enterprise requise (15-30 €/utilisateur/mois). Générer API key dans Settings → Users → API Keys. Module Sign à installer séparément.",
-    websiteUrl: 'https://www.odoo.com/documentation',
-    region: 'Global',
   },
 
   // ─── Tarification dynamique ────────────────────────────────────────────

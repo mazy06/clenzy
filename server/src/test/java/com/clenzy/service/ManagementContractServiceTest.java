@@ -5,9 +5,14 @@ import com.clenzy.dto.ManagementContractDto;
 import com.clenzy.model.ManagementContract;
 import com.clenzy.model.ManagementContract.ContractStatus;
 import com.clenzy.model.ManagementContract.ContractType;
+import com.clenzy.model.DocumentType;
 import com.clenzy.model.Property;
+import com.clenzy.model.ReferenceType;
+import com.clenzy.model.User;
 import com.clenzy.repository.ManagementContractRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.UserRepository;
+import com.clenzy.service.signature.ContractSignatureService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -30,6 +35,8 @@ class ManagementContractServiceTest {
     @Mock private ManagementContractRepository contractRepository;
     @Mock private DocumentGeneratorService documentGeneratorService;
     @Mock private PropertyRepository propertyRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private ContractSignatureService contractSignatureService;
     @InjectMocks private ManagementContractService service;
 
     private static final Long ORG_ID = 1L;
@@ -78,6 +85,62 @@ class ManagementContractServiceTest {
         assertEquals(ContractType.FULL_MANAGEMENT, result.contractType());
         assertEquals(ContractStatus.DRAFT, result.status());
         assertEquals(0, new BigDecimal("0.2000").compareTo(result.commissionRate()));
+    }
+
+    @Test
+    void createContract_sendsSignatureLinkToOwner() {
+        CreateManagementContractRequest request = new CreateManagementContractRequest(
+            100L, 10L, ContractType.FULL_MANAGEMENT,
+            LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31),
+            new BigDecimal("0.2000"), null, false, 30, true, true, "Notes",
+            new BigDecimal("0.1500"), new BigDecimal("0.2500"),
+            null, null
+        );
+        when(contractRepository.findActiveByPropertyId(100L, ORG_ID)).thenReturn(Optional.empty());
+        when(propertyRepository.findByIdWithOwner(100L, ORG_ID)).thenReturn(Optional.of(new Property()));
+        when(contractRepository.save(any())).thenAnswer(inv -> {
+            ManagementContract saved = inv.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+        User owner = new User();
+        owner.setEmail("owner@example.com");
+        when(userRepository.findById(10L)).thenReturn(Optional.of(owner));
+
+        service.createContract(request, ORG_ID);
+
+        // Le mandat est généré pour archive (sans pièce jointe) et le lien de
+        // signature est demandé pour l'email du propriétaire.
+        verify(documentGeneratorService).generateFromEvent(
+            DocumentType.MANDAT_GESTION, 1L, ReferenceType.MANAGEMENT_CONTRACT,
+            null, ORG_ID);
+        verify(contractSignatureService).requestSignature(any(ManagementContract.class), eq("owner@example.com"));
+    }
+
+    @Test
+    void createContract_ownerWithoutEmail_generatesMandateWithoutLink() {
+        CreateManagementContractRequest request = new CreateManagementContractRequest(
+            100L, 10L, ContractType.FULL_MANAGEMENT,
+            LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31),
+            new BigDecimal("0.2000"), null, false, 30, true, true, "Notes",
+            new BigDecimal("0.1500"), new BigDecimal("0.2500"),
+            null, null
+        );
+        when(contractRepository.findActiveByPropertyId(100L, ORG_ID)).thenReturn(Optional.empty());
+        when(propertyRepository.findByIdWithOwner(100L, ORG_ID)).thenReturn(Optional.of(new Property()));
+        when(contractRepository.save(any())).thenAnswer(inv -> {
+            ManagementContract saved = inv.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+        when(userRepository.findById(10L)).thenReturn(Optional.empty());
+
+        service.createContract(request, ORG_ID);
+
+        verify(documentGeneratorService).generateFromEvent(
+            DocumentType.MANDAT_GESTION, 1L, ReferenceType.MANAGEMENT_CONTRACT,
+            null, ORG_ID);
+        verify(contractSignatureService).requestSignature(any(ManagementContract.class), isNull());
     }
 
     @Test

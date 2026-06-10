@@ -23,6 +23,7 @@ package com.clenzy.service.signature;
  *   <tr><td>DOCUSIGN</td><td>via partenaires QTSP</td><td>SES + AES + QES</td><td>OAuth2</td></tr>
  *   <tr><td>PENNYLANE</td><td>(non QTSP, SES uniquement)</td><td>SES</td><td>OAuth2</td></tr>
  *   <tr><td>ODOO</td><td>(via modules tiers selon instance)</td><td>variable</td><td>API key</td></tr>
+ *   <tr><td>DOCUSEAL</td><td>(non QTSP, open source self-hosted)</td><td>SES + scellement PAdES</td><td>API key (instance)</td></tr>
  *   <tr><td>CLENZY_CUSTOM</td><td>n/a</td><td>workflow interne</td><td>n/a</td></tr>
  * </table>
  */
@@ -36,6 +37,8 @@ public enum SignatureProviderType {
     UNIVERSIGN,
     /** DocaPoste (La Poste) — QTSP francais. Atout : LRE (lettre recommandee electronique). */
     DOCAPOSTE,
+    /** DocuSeal — open source auto-hébergé (clenzy-infra). SES + scellement cryptographique du PDF. */
+    DOCUSEAL,
     /** Workflow interne Clenzy (sans tiers, niveau SES uniquement). */
     CLENZY_CUSTOM
 }

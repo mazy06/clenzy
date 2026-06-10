@@ -1023,6 +1023,63 @@ public class EmailService {
         }
     }
 
+    /**
+     * Envoie au propriétaire le lien public de consultation + signature du mandat
+     * de gestion (workflow SES interne).
+     *
+     * <p>Subject + body resolus depuis {@code system_email_template} (cle
+     * {@code contract_signature_request}, wrapper INVITATION — le pattern
+     * {@code [TEXTE → URL]} devient un bouton CTA). Variables : {@code {ownerName}},
+     * {@code {propertyName}}, {@code {contractNumber}}, {@code {commissionRate}},
+     * {@code {startDate}}, {@code {signingLink}}, {@code {expiresAt}}.</p>
+     */
+    public void sendContractSignatureEmail(String toEmail, String ownerName, String propertyName,
+                                            String contractNumber, String commissionRate,
+                                            String startDate, String signingLink,
+                                            LocalDateTime expiresAt) {
+        try {
+            JavaMailSender ms = requireMailSender();
+
+            var template = systemEmailTemplateService.resolve(null, "contract_signature_request", "fr")
+                .orElseThrow(() -> new IllegalStateException(
+                    "Template systeme contract_signature_request introuvable en BDD"));
+
+            String expiresStr = expiresAt != null
+                    ? expiresAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    : "30 jours";
+
+            Map<String, String> vars = Map.of(
+                "ownerName", nullToEmpty(ownerName),
+                "propertyName", nullToEmpty(propertyName),
+                "contractNumber", nullToEmpty(contractNumber),
+                "commissionRate", nullToEmpty(commissionRate),
+                "startDate", nullToEmpty(startDate),
+                "signingLink", nullToEmpty(signingLink),
+                "expiresAt", expiresStr
+            );
+
+            String subject = templateInterpolationService.interpolate(template.getSubject(), vars, false);
+            String interpolatedBody = templateInterpolationService.interpolate(template.getBody(), vars, true);
+            String htmlBody = emailWrapperService.wrap(template.getWrapperStyle(), interpolatedBody);
+
+            MimeMessage message = ms.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            applyDeliverabilityHeaders(message, helper);
+            helper.setTo(toEmail);
+            helper.setSubject(sanitizeHeaderValue(subject));
+            helper.setText(htmlToPlainText(htmlBody), htmlBody);
+            ms.send(message);
+            log.info("Email lien de signature envoye a {} pour le contrat {}", toEmail, contractNumber);
+        } catch (MessagingException e) {
+            log.error("Erreur d'envoi du lien de signature a {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email de signature", e);
+        } catch (Exception e) {
+            log.error("Erreur d'envoi du lien de signature a {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email de signature", e);
+        }
+    }
+
     private String formatRoleName(String role) {
         if (role == null) return "Membre";
         return switch (role.toUpperCase()) {
