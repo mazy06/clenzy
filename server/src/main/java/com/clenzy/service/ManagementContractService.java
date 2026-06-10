@@ -6,8 +6,11 @@ import com.clenzy.model.DocumentType;
 import com.clenzy.model.ManagementContract;
 import com.clenzy.model.ManagementContract.ContractStatus;
 import com.clenzy.model.ReferenceType;
+import com.clenzy.model.User;
 import com.clenzy.repository.ManagementContractRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.UserRepository;
+import com.clenzy.service.signature.ContractSignatureService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
@@ -29,45 +32,56 @@ public class ManagementContractService {
     private final ManagementContractRepository contractRepository;
     private final DocumentGeneratorService documentGeneratorService;
     private final PropertyRepository propertyRepository;
+    private final UserRepository userRepository;
+    private final ContractSignatureService contractSignatureService;
 
     public ManagementContractService(
             ManagementContractRepository contractRepository,
             @Lazy DocumentGeneratorService documentGeneratorService,
-            PropertyRepository propertyRepository
+            PropertyRepository propertyRepository,
+            UserRepository userRepository,
+            ContractSignatureService contractSignatureService
     ) {
         this.contractRepository = contractRepository;
         this.documentGeneratorService = documentGeneratorService;
         this.propertyRepository = propertyRepository;
+        this.userRepository = userRepository;
+        this.contractSignatureService = contractSignatureService;
     }
 
     public List<ManagementContractDto> getAllContracts(Long orgId) {
-        return contractRepository.findAllByOrgId(orgId).stream()
-            .map(ManagementContractDto::from)
-            .toList();
+        return toDtos(contractRepository.findAllByOrgId(orgId));
     }
 
     public List<ManagementContractDto> getByProperty(Long propertyId, Long orgId) {
-        return contractRepository.findByPropertyId(propertyId, orgId).stream()
-            .map(ManagementContractDto::from)
-            .toList();
+        return toDtos(contractRepository.findByPropertyId(propertyId, orgId));
     }
 
     public List<ManagementContractDto> getByOwner(Long ownerId, Long orgId) {
-        return contractRepository.findByOwnerId(ownerId, orgId).stream()
-            .map(ManagementContractDto::from)
-            .toList();
+        return toDtos(contractRepository.findByOwnerId(ownerId, orgId));
     }
 
     public List<ManagementContractDto> getByStatus(ContractStatus status, Long orgId) {
-        return contractRepository.findByStatus(status, orgId).stream()
-            .map(ManagementContractDto::from)
-            .toList();
+        return toDtos(contractRepository.findByStatus(status, orgId));
     }
 
     public ManagementContractDto getById(Long id, Long orgId) {
         return contractRepository.findByIdAndOrgId(id, orgId)
-            .map(ManagementContractDto::from)
+            .map(c -> ManagementContractDto.from(c, signatureStatusOf(c.getId())))
             .orElseThrow(() -> new IllegalArgumentException("Contract not found: " + id));
+    }
+
+    /** Enrichit en batch avec le statut de signature (évite le N+1 sur la liste). */
+    private List<ManagementContractDto> toDtos(List<ManagementContract> contracts) {
+        var statuses = contractSignatureService.signatureStatusByContractIds(
+            contracts.stream().map(ManagementContract::getId).toList());
+        return contracts.stream()
+            .map(c -> ManagementContractDto.from(c, statuses.get(c.getId())))
+            .toList();
+    }
+
+    private String signatureStatusOf(Long contractId) {
+        return contractSignatureService.signatureStatusByContractIds(List.of(contractId)).get(contractId);
     }
 
     /**
@@ -113,8 +127,10 @@ public class ManagementContractService {
         ManagementContract saved = contractRepository.save(contract);
         log.info("Created management contract {} for property {}", saved.getContractNumber(), request.propertyId());
 
-        // Auto-generation du Mandat de gestion (best-effort, ne fait pas echouer la creation
-        // du contrat si aucun template actif n'existe ou si la generation echoue).
+        // Auto-generation du Mandat de gestion (archive, sans piece jointe) puis envoi
+        // au proprietaire du LIEN public de consultation + signature electronique (SES).
+        // Best-effort : ne fait pas echouer la creation du contrat si aucun template
+        // actif n'existe, si la generation echoue ou si le proprietaire n'a pas d'email.
         try {
             documentGeneratorService.generateFromEvent(
                     DocumentType.MANDAT_GESTION,
@@ -125,8 +141,13 @@ public class ManagementContractService {
         } catch (Exception e) {
             log.warn("Auto-generation du mandat pour contrat {} echouee : {}", saved.getContractNumber(), e.getMessage());
         }
+        try {
+            contractSignatureService.requestSignature(saved, resolveOwnerEmail(request.ownerId()));
+        } catch (Exception e) {
+            log.warn("Envoi du lien de signature pour contrat {} echoue : {}", saved.getContractNumber(), e.getMessage());
+        }
 
-        return ManagementContractDto.from(saved);
+        return ManagementContractDto.from(saved, signatureStatusOf(saved.getId()));
     }
 
     @Transactional
@@ -250,12 +271,43 @@ public class ManagementContractService {
         contract.setNotes(request.notes());
 
         ManagementContract saved = contractRepository.save(contract);
-        return ManagementContractDto.from(saved);
+
+        // Les termes ont changé : le lien envoyé ne doit plus permettre de signer
+        // l'ancien PDF. On annule la demande PENDING, on régénère le mandat et on
+        // renvoie un nouveau lien (best-effort).
+        try {
+            contractSignatureService.cancelPending(saved.getId());
+            documentGeneratorService.generateFromEvent(
+                    DocumentType.MANDAT_GESTION,
+                    saved.getId(),
+                    ReferenceType.MANAGEMENT_CONTRACT,
+                    null,
+                    orgId);
+            contractSignatureService.requestSignature(saved, resolveOwnerEmail(saved.getOwnerId()));
+        } catch (Exception e) {
+            log.warn("Renvoi du lien de signature apres modification du contrat {} echoue : {}",
+                    saved.getContractNumber(), e.getMessage());
+        }
+
+        return ManagementContractDto.from(saved, signatureStatusOf(saved.getId()));
     }
 
     private ManagementContract getEntity(Long id, Long orgId) {
         return contractRepository.findByIdAndOrgId(id, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Contract not found: " + id));
+    }
+
+    /**
+     * Email du propriétaire (contrepartie du contrat), destinataire du mandat de gestion.
+     * Null si l'utilisateur est introuvable ou sans email — le mandat est alors généré
+     * sans envoi (consultable depuis l'écran Contrats).
+     */
+    private String resolveOwnerEmail(Long ownerId) {
+        if (ownerId == null) return null;
+        return userRepository.findById(ownerId)
+            .map(User::getEmail)
+            .filter(email -> email != null && !email.isBlank())
+            .orElse(null);
     }
 
     /**

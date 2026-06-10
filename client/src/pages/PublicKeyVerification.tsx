@@ -16,10 +16,15 @@ import {
   PersonOutline,
 } from '../icons';
 import { useParams } from 'react-router-dom';
+import { API_CONFIG } from '../config/api';
 
 // ─── API base URL (no auth needed for public endpoints) ─────────────────────
+// Origine de l'API (les chemins passés à publicFetch incluent déjà /api).
+// Résolution standard de l'app via VITE_API_BASE_URL : dev = http://localhost:8084,
+// prod = https://app.clenzy.fr. L'ancien VITE_API_URL n'était défini nulle part :
+// en dev les fetch tapaient le serveur Vite (localhost:3000) qui renvoyait index.html.
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = API_CONFIG.BASE_URL;
 
 async function publicFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`, {

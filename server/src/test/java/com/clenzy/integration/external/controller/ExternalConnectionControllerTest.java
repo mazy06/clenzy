@@ -34,6 +34,7 @@ class ExternalConnectionControllerTest {
 
     @Mock private ExternalServiceConnectionService service;
     @Mock private ConnectionTestStrategyRegistry strategyRegistry;
+    @Mock private com.clenzy.service.signature.SignatureProviderRegistry signatureProviderRegistry;
     @Mock private TenantContext tenantContext;
 
     private ExternalConnectionController controller;
@@ -41,7 +42,7 @@ class ExternalConnectionControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new ExternalConnectionController(service, strategyRegistry, tenantContext);
+        controller = new ExternalConnectionController(service, strategyRegistry, signatureProviderRegistry, tenantContext);
         jwt = Jwt.withTokenValue("token").header("alg", "RS256")
                 .claim("sub", "u-1").claim("user_id", 42L)
                 .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(3600)).build();

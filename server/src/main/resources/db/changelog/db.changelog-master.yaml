@@ -2199,3 +2199,15 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Signature électronique interne (SES) du contrat de gestion : table des demandes
+  # de signature (token public, preuve, PDF tamponné), template email lien de
+  # signature, CHECK notifications + CONTRACT_SIGNED.
+  - changeSet:
+      id: "0225-add-contract-signature-requests"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0225__add_contract_signature_requests.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false

@@ -188,9 +188,17 @@ clenzy:
   hubspot:
     api-key: ${HUBSPOT_API_KEY:}
     portal-id: ${HUBSPOT_PORTAL_ID:}
-  # Signature electronique (Pennylane, extensible DocuSign/Odoo/Custom)
+  # Signature electronique. Defaut : workflow interne SES (lien public /sign/{token}).
+  # Bascule vers un QTSP (yousign, docusign, ...) via SIGNATURE_PROVIDER une fois cable.
   signature:
-    active-provider: ${SIGNATURE_PROVIDER:pennylane}
+    active-provider: ${SIGNATURE_PROVIDER:clenzy_custom}
+    signing-base-url: ${SIGNING_BASE_URL:https://app.clenzy.fr/sign}
+    token-validity-days: ${SIGNATURE_TOKEN_VALIDITY_DAYS:30}
+    yousign:
+      api-base-url: ${YOUSIGN_API_BASE_URL:https://api.yousign.app/v3}
+    docuseal:
+      base-url: ${DOCUSEAL_BASE_URL:}
+      api-key: ${DOCUSEAL_API_KEY:}
   pennylane:
     api-url: ${PENNYLANE_API_URL:https://app.pennylane.com/api}
     client-id: ${PENNYLANE_CLIENT_ID:}

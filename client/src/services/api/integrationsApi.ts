@@ -18,11 +18,21 @@ export type SignatureProvider =
   | 'YOUSIGN'
   | 'UNIVERSIGN'
   | 'DOCAPOSTE'
+  | 'DOCUSEAL'
   | 'CLENZY_CUSTOM'
   | null;
 
 export interface IntegrationsConfig {
   signatureProvider: SignatureProvider;
+}
+
+/** État d'un provider de signature côté backend (registre + disponibilité). */
+export interface SignatureProviderState {
+  type: Exclude<SignatureProvider, null>;
+  /** Configuré/connecté : prêt à être utilisé si activé via SIGNATURE_PROVIDER. */
+  available: boolean;
+  /** Provider effectivement actif (SIGNATURE_PROVIDER). */
+  active: boolean;
 }
 
 async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -58,5 +68,10 @@ export const integrationsApi = {
       method: 'PUT',
       body: JSON.stringify({ provider }),
     });
+  },
+
+  /** État des providers de signature enregistrés (disponibilité + provider actif). */
+  async getSignatureProviders(): Promise<SignatureProviderState[]> {
+    return fetchJson('/integrations/external/signature-providers');
   },
 };

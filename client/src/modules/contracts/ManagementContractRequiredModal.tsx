@@ -10,7 +10,7 @@ import {
   ManagementContractFormFields,
   EMPTY_FORM,
   type PropertyOption,
-} from './ManagementContractsPage';
+} from './ManagementContractForm';
 import {
   managementContractsApi,
   type CreateManagementContractRequest,
@@ -88,10 +88,10 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
   return (
     <Dialog
       open={open}
-      maxWidth="lg"
+      maxWidth="md"
       fullWidth
       disableEscapeKeyDown
-      PaperProps={{ sx: { borderRadius: 2 } }}
+      PaperProps={{ sx: { borderRadius: 3 } }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
         <Box
@@ -116,8 +116,8 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
         </Box>
       </DialogTitle>
 
-      <DialogContent dividers>
-        <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 1.5 }}>
+      <DialogContent dividers sx={{ px: 3, py: 3 }}>
+        <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 3 }}>
           {t(
             'contracts.required.intro',
             "Avant d'exploiter ce logement, définissez le contrat de gestion : il fixe le modèle d'encaissement (taxonomie OTA) et la commission qui pilotent la répartition des paiements. Choisissez un modèle pour préremplir, puis ajustez les détails.",

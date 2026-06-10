@@ -66,13 +66,10 @@ function entry(id: string, name: string, categoryId: string): ServiceIndexEntry 
 }
 
 export const ALL_SERVICES: ServiceIndexEntry[] = [
-  // Signature electronique
+  // Signature electronique — Phase 2 : Yousign (QTSP) + DocuSeal (self-hosted),
+  // implementes mais non branches (workflow interne actif par defaut).
   entry('YOUSIGN', 'Yousign', 'signature'),
-  entry('UNIVERSIGN', 'Universign', 'signature'),
-  entry('DOCAPOSTE', 'DocaPoste', 'signature'),
-  entry('DOCUSIGN', 'DocuSign', 'signature'),
-  entry('PENNYLANE', 'Pennylane', 'signature'),
-  entry('ODOO', 'Odoo', 'signature'),
+  entry('DOCUSEAL', 'DocuSeal', 'signature'),
 
   // Tarification dynamique
   entry('PRICELABS', 'PriceLabs', 'pricing'),
@@ -80,6 +77,7 @@ export const ALL_SERVICES: ServiceIndexEntry[] = [
   entry('WHEELHOUSE', 'Wheelhouse', 'pricing'),
 
   // Comptabilite
+  entry('PENNYLANE', 'Pennylane', 'accounting'),
   entry('QUICKBOOKS', 'QuickBooks', 'accounting'),
   entry('XERO', 'Xero', 'accounting'),
   entry('SAGE', 'Sage', 'accounting'),

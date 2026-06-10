@@ -188,6 +188,22 @@ clenzy:
       analytics-ai: false
       sentiment-ai: false
 
+  # ─── Signature électronique ────────────────────────────────────────────
+  # Provider actif : clenzy_custom = workflow interne SES (lien public /sign/{token}).
+  # Bascule vers un QTSP (yousign, docusign, …) via SIGNATURE_PROVIDER quand câblé.
+  signature:
+    active-provider: ${SIGNATURE_PROVIDER:clenzy_custom}
+    signing-base-url: ${SIGNING_BASE_URL:http://localhost:3000/sign}
+    token-validity-days: ${SIGNATURE_TOKEN_VALIDITY_DAYS:30}
+    # Yousign (QTSP) — clé API per-org via l'onglet Intégrations ; serverUrl de la
+    # connexion = sandbox (https://api-sandbox.yousign.app/v3) ou prod.
+    yousign:
+      api-base-url: ${YOUSIGN_API_BASE_URL:https://api.yousign.app/v3}
+    # DocuSeal self-hosted (clenzy-infra). Vide = non déployé → provider indisponible.
+    docuseal:
+      base-url: ${DOCUSEAL_BASE_URL:}
+      api-key: ${DOCUSEAL_API_KEY:}
+
   # ─── WhatsApp providers ───────────────────────────────────────────────
   # Meta Cloud API : pas de config globale, les credentials sont per-org
   #   (cf. table whatsapp_configs : api_token, phone_number_id, etc.).
