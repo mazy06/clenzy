@@ -1,19 +1,20 @@
-import { Box } from '@mui/material';
+import { Box, Chip } from '@mui/material';
 import ServiceGridCard from './ServiceGridCard';
 import type { ProviderId } from './ProviderLogos';
 import type { SignatureProvider } from '../../../services/api/integrationsApi';
 
 /**
- * Grille de cards pour selectionner UN provider de signature a visualiser /
- * configurer en bas. Selection = navigation pure (single-focus), pas de
- * connexion ici. Chaque provider conserve sa propre connexion cote backend.
+ * Grille des providers de signature électronique — Phase 2 : les deux
+ * intégrations retenues (Yousign QTSP + DocuSeal self-hosted), implémentées
+ * côté code mais NON branchées (le workflow interne Clenzy reste le provider
+ * actif tant que `SIGNATURE_PROVIDER` n'est pas basculé).
  *
- * Utilise le composant partage {@link ServiceGridCard} (meme design que les
- * cartes IoT Tuya/Minut) : logo + pastille de statut + description 1 ligne +
- * tooltip riche. Le badge "QTSP 🇫🇷" passe en {@code titleAdornment}.
+ * Sélection = navigation pure (single-focus) vers le panneau de configuration
+ * en bas. Utilise le composant partagé {@link ServiceGridCard}.
  */
 
 const ACCENT = '#4A9B8E';
+const READY = '#D4A574';
 
 type SelectableProvider = Exclude<SignatureProvider, null>;
 
@@ -26,12 +27,8 @@ interface ProviderCardSpec {
 }
 
 const PROVIDERS: ProviderCardSpec[] = [
-  { id: 'YOUSIGN',    value: 'YOUSIGN',    label: 'Yousign',    description: 'QTSP français · API key', qtspFr: true },
-  { id: 'UNIVERSIGN', value: 'UNIVERSIGN', label: 'Universign', description: 'QTSP français · API key', qtspFr: true },
-  { id: 'DOCAPOSTE',  value: 'DOCAPOSTE',  label: 'DocaPoste',  description: 'QTSP français · API + LRE', qtspFr: true },
-  { id: 'DOCUSIGN',   value: 'DOCUSIGN',   label: 'DocuSign',   description: 'Leader mondial · OAuth2' },
-  { id: 'PENNYLANE',  value: 'PENNYLANE',  label: 'Pennylane',  description: 'Compta + signature · OAuth2' },
-  { id: 'ODOO',       value: 'ODOO',       label: 'Odoo',       description: 'ERP open source · API key' },
+  { id: 'YOUSIGN',  value: 'YOUSIGN',  label: 'Yousign',  description: 'QTSP français · SES + AES + QES · clé API', qtspFr: true },
+  { id: 'DOCUSEAL', value: 'DOCUSEAL', label: 'DocuSeal', description: 'Open source self-hosted · SES + scellement PDF' },
 ];
 
 /** Badge "QTSP 🇫🇷" (rendu dans le titre via titleAdornment, sans tooltip propre pour eviter l'imbrication). */
@@ -58,18 +55,32 @@ const qtspBadge = (
   </Box>
 );
 
+/** Provider implémenté côté code mais pas encore branché (config/clé manquante). */
+const readyToWireBadge = (
+  <Chip
+    label="Prêt — à brancher"
+    size="small"
+    sx={{
+      height: 18,
+      fontSize: '0.6rem',
+      fontWeight: 700,
+      color: READY,
+      backgroundColor: `${READY}14`,
+      border: `1px solid ${READY}40`,
+      '& .MuiChip-label': { px: 0.875 },
+    }}
+  />
+);
+
 interface SignatureProviderCardsProps {
-  /** Provider actuellement focuse (panneau affiche en bas). null si aucun. */
+  /** Provider actuellement focusé (panneau affiché en bas). null si aucun. */
   value: SelectableProvider | null;
   onChange: (next: SelectableProvider) => void;
-  /** Set des providers qui ont deja une connexion active (pour le badge). */
+  /** Providers configurés/connectés (clé API saisie, instance déployée…). */
   connectedSet?: Set<SelectableProvider>;
-  /** Section "bientot disponible" : pilote le statut affiche (l'interactivite est bloquee par le wrapper). */
-  disabled?: boolean;
   /**
    * Filtre par ID de service : si non-null, on n'affiche QUE la card du
    * service correspondant (utile depuis l'autocomplete de recherche).
-   * null = toutes les cards visibles (comportement par defaut).
    */
   serviceFilter?: string | null;
 }
@@ -78,7 +89,6 @@ export default function SignatureProviderCards({
   value,
   onChange,
   connectedSet,
-  disabled = false,
   serviceFilter = null,
 }: SignatureProviderCardsProps) {
   const visibleProviders = serviceFilter
@@ -95,20 +105,24 @@ export default function SignatureProviderCards({
         mt: 1,
       }}
     >
-      {visibleProviders.map((p) => (
-        <ServiceGridCard
-          key={p.id}
-          providerId={p.id}
-          serviceTooltipId={p.value}
-          label={p.label}
-          description={p.description}
-          role="radio"
-          selected={value === p.value}
-          status={connectedSet?.has(p.value) ? 'connected' : disabled ? 'comingSoon' : 'idle'}
-          onClick={() => onChange(p.value)}
-          titleAdornment={p.qtspFr ? qtspBadge : undefined}
-        />
-      ))}
+      {visibleProviders.map((p) => {
+        const connected = connectedSet?.has(p.value) ?? false;
+        return (
+          <ServiceGridCard
+            key={p.id}
+            providerId={p.id}
+            serviceTooltipId={p.value}
+            label={p.label}
+            description={p.description}
+            role="radio"
+            selected={value === p.value}
+            status={connected ? 'connected' : 'idle'}
+            badge={connected ? undefined : readyToWireBadge}
+            onClick={() => onChange(p.value)}
+            titleAdornment={p.qtspFr ? qtspBadge : undefined}
+          />
+        );
+      })}
     </Box>
   );
 }

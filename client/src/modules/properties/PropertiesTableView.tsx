@@ -35,6 +35,8 @@ interface PropertiesTableViewProps {
   channexMappings: Map<number, ChannexMappingDto>;
   canManageContracts: boolean;
   missingContractIds: Set<number>;
+  /** Clic sur le badge « Contrat manquant » : ouvre la modal de contrat préselectionnée. */
+  onMissingContractClick: (propertyId: number) => void;
   onToggleStatus: (property: PropertyListItem) => void;
   onDelete: (property: PropertyListItem) => void;
   navigate: NavigateFunction;
@@ -43,7 +45,8 @@ interface PropertiesTableViewProps {
 /** Vue liste : tableau dense des propriétés + pagination. */
 const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
   properties, totalCount, page, rowsPerPage, onPageChange, onRowsPerPageChange,
-  channexMappings, canManageContracts, missingContractIds, onToggleStatus, onDelete, navigate,
+  channexMappings, canManageContracts, missingContractIds, onMissingContractClick,
+  onToggleStatus, onDelete, navigate,
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -124,7 +127,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                         )}
                         {canManageContracts && missingContractIds.has(Number(property.id)) && (
                           <MissingContractChip
-                            onClick={(e) => { e.stopPropagation(); navigate('/contracts'); }}
+                            onClick={(e) => { e.stopPropagation(); onMissingContractClick(Number(property.id)); }}
                           />
                         )}
                       </Box>

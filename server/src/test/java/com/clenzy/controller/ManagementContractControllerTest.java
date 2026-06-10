@@ -5,6 +5,7 @@ import com.clenzy.dto.ManagementContractDto;
 import com.clenzy.model.ManagementContract.ContractStatus;
 import com.clenzy.model.ManagementContract.ContractType;
 import com.clenzy.service.ManagementContractService;
+import com.clenzy.service.signature.ContractSignatureService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,13 +28,14 @@ import static org.mockito.Mockito.*;
 class ManagementContractControllerTest {
 
     @Mock private ManagementContractService contractService;
+    @Mock private ContractSignatureService contractSignatureService;
     @Mock private TenantContext tenantContext;
 
     private ManagementContractController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new ManagementContractController(contractService, tenantContext);
+        controller = new ManagementContractController(contractService, contractSignatureService, tenantContext);
         lenient().when(tenantContext.getOrganizationId()).thenReturn(1L);
     }
 
@@ -42,7 +44,7 @@ class ManagementContractControllerTest {
             id, 1L, 2L, "C-" + id, ContractType.FULL_MANAGEMENT,
             ContractStatus.ACTIVE, LocalDate.now(), LocalDate.now().plusYears(1),
             new BigDecimal("0.20"), 2, true, 30, false, false,
-            "notes", Instant.now(), null, null, Instant.now(), null, null, null, null);
+            "notes", Instant.now(), null, null, Instant.now(), null, null, null, null, null);
     }
 
     @Test
@@ -143,5 +145,14 @@ class ManagementContractControllerTest {
         Map<String, Integer> result = controller.expireContracts();
 
         assertEquals(5, result.get("expired"));
+    }
+
+    @Test
+    void resendSignature_delegatesAndReturnsContract() {
+        ManagementContractDto dto = buildDto(10L);
+        when(contractService.getById(10L, 1L)).thenReturn(dto);
+
+        assertEquals(dto, controller.resendSignature(10L));
+        verify(contractSignatureService).resend(10L, 1L);
     }
 }

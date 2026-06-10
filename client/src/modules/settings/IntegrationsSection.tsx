@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -26,11 +26,12 @@ import {
 } from '../../icons';
 import { pennylaneApi } from '../../services/api/pennylaneApi';
 import type { PennylaneStatus, PennylaneSyncStatus } from '../../services/api/pennylaneApi';
-import type { SignatureProvider } from '../../services/api/integrationsApi';
+import { integrationsApi, type SignatureProvider, type SignatureProviderState } from '../../services/api/integrationsApi';
 import { externalConnectionApi } from '../../services/api/externalConnectionApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import ApiKeyProviderCard from './components/ApiKeyProviderCard';
 import SignatureProviderCards from './components/SignatureProviderCards';
+import DocuSealInfoCard from './components/DocuSealInfoCard';
 import OAuthProviderCard from './components/OAuthProviderCard';
 import IoTServicesSection from './components/IoTServicesSection';
 import PricingProviderCard from './components/PricingProviderCard';
@@ -210,6 +211,21 @@ export default function IntegrationsSection({
   const [connectedProviders, setConnectedProviders] = useState<Set<SelectableProvider>>(new Set());
   const [providerLoading] = useState(false);
   const [providerMessage, setProviderMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // État backend des providers de signature (registre : disponibilité + actif).
+  // Les deux intégrations Phase 2 (Yousign, DocuSeal) sont implémentées mais NON
+  // branchées : le provider actif reste le workflow interne CLENZY_CUSTOM tant
+  // que SIGNATURE_PROVIDER n'est pas basculé côté serveur.
+  const [signatureProviderStates, setSignatureProviderStates] = useState<SignatureProviderState[]>([]);
+  const docusealState = signatureProviderStates.find((p) => p.type === 'DOCUSEAL');
+  const activeSignatureProvider = signatureProviderStates.find((p) => p.active)?.type ?? 'CLENZY_CUSTOM';
+  const signatureConnectedSet = useMemo(() => {
+    const set = new Set(connectedProviders);
+    signatureProviderStates.forEach((p) => {
+      if (p.available && (p.type === 'YOUSIGN' || p.type === 'DOCUSEAL')) set.add(p.type);
+    });
+    return set;
+  }, [connectedProviders, signatureProviderStates]);
 
   /**
    * Callback distribue a chaque card de config. Quand un provider se connecte
@@ -406,24 +422,23 @@ export default function IntegrationsSection({
 
     Promise.all([
       safeStatus(externalConnectionApi.getStatus('YOUSIGN')),
-      safeStatus(externalConnectionApi.getStatus('UNIVERSIGN')),
-      safeStatus(externalConnectionApi.getStatus('DOCAPOSTE')),
-      safeStatus(externalConnectionApi.getStatus('ODOO')),
       safeStatus(pennylaneApi.getStatus()),
-      safeStatus(docusignApi.getStatus()),
-    ]).then(([yousign, universign, docaposte, odoo, pennylane, docusign]) => {
+    ]).then(([yousign, pennylane]) => {
       const configured = new Set<SelectableProvider>();
-      if (yousign?.connected)    configured.add('YOUSIGN');
-      if (universign?.connected) configured.add('UNIVERSIGN');
-      if (docaposte?.connected)  configured.add('DOCAPOSTE');
-      if (odoo?.connected)       configured.add('ODOO');
-      if (pennylane?.connected)  configured.add('PENNYLANE');
-      if (docusign?.connected)   configured.add('DOCUSIGN');
-      setConnectedProviders(configured);
+      if (yousign?.connected)   configured.add('YOUSIGN');
+      if (pennylane?.connected) configured.add('PENNYLANE');
+      // Merge (et non remplacement) : l'effet de sync Pennylane peut avoir
+      // déjà alimenté le set entre-temps.
+      setConnectedProviders((prev) => new Set([...prev, ...configured]));
       // Pas d'ouverture automatique de modal — les badges "Configure" sur
       // les cards suffisent a indiquer l'etat. L'utilisateur clique pour
       // configurer.
     });
+
+    // Disponibilité + provider actif côté registre backend (Yousign/DocuSeal/interne).
+    integrationsApi.getSignatureProviders()
+      .then(setSignatureProviderStates)
+      .catch(() => setSignatureProviderStates([]));
   }, []);
 
   const handleConnect = async () => {
@@ -611,28 +626,39 @@ export default function IntegrationsSection({
           <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
             {t('settings.integrations.signatureProvider.title', 'Signature electronique')}
           </Typography>
-          <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
+          <Chip
+            label="Opérationnel — à brancher"
+            size="small"
+            sx={{
+              height: 18,
+              fontSize: '0.6rem',
+              fontWeight: 700,
+              color: '#D4A574',
+              backgroundColor: '#D4A57414',
+              border: '1px solid #D4A57440',
+              '& .MuiChip-label': { px: 0.875 },
+            }}
+          />
         </Box>
         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
           {t(
             'settings.integrations.signatureProvider.description',
-            'Activez et configurez plusieurs fournisseurs en parallele. Chaque connexion est independante.',
+            'Deux intégrations prêtes côté code : Yousign (QTSP certifié ANSSI) et DocuSeal (open source self-hosted). Les mandats sont signés via le workflow interne Clenzy tant qu’aucune n’est branchée.',
           )}
         </Typography>
-        <Box
-          sx={DISABLED_CARDS_SX}
-          aria-disabled="true"
-          onClickCapture={blockInteraction}
-          onKeyDownCapture={blockInteraction}
+        <SignatureProviderCards
+          value={openSignatureProvider}
+          onChange={(next) => setOpenSignatureProvider(next)}
+          connectedSet={signatureConnectedSet}
+          serviceFilter={selectedServiceId}
+        />
+        <Alert
+          severity="info"
+          variant="outlined"
+          sx={{ mt: 1.25, borderRadius: '8px', fontSize: '0.75rem', py: 0.25 }}
         >
-          <SignatureProviderCards
-            value={openSignatureProvider}
-            onChange={(next) => setOpenSignatureProvider(next)}
-            connectedSet={connectedProviders}
-            serviceFilter={selectedServiceId}
-            disabled
-          />
-        </Box>
+          {`Ces intégrations sont implémentées et fonctionnelles, mais pas branchées : pour en activer une, renseignez sa connexion (clé API Yousign ou instance DocuSeal) puis basculez la variable serveur SIGNATURE_PROVIDER. Provider actuellement actif : ${activeSignatureProvider === 'CLENZY_CUSTOM' ? 'workflow interne Clenzy (SES)' : activeSignatureProvider}.`}
+        </Alert>
         {providerMessage && (
           <Alert
             severity={providerMessage.type}
@@ -888,7 +914,7 @@ export default function IntegrationsSection({
       </Paper>
       </IntegrationConfigDialog>
 
-      {/* ─── Modals de config signature (QTSP, Odoo, DocuSign) ────────── */}
+      {/* ─── Modals de config signature (Yousign + DocuSeal) ──────────── */}
       <IntegrationConfigDialog
         open={openSignatureProvider === 'YOUSIGN'}
         onClose={() => setOpenSignatureProvider(null)}
@@ -899,42 +925,12 @@ export default function IntegrationsSection({
         />
       </IntegrationConfigDialog>
       <IntegrationConfigDialog
-        open={openSignatureProvider === 'UNIVERSIGN'}
+        open={openSignatureProvider === 'DOCUSEAL'}
         onClose={() => setOpenSignatureProvider(null)}
       >
-        <ApiKeyProviderCard
-          provider="UNIVERSIGN"
-          onStatusChange={(c) => handleProviderStatusChange('UNIVERSIGN', c)}
-        />
-      </IntegrationConfigDialog>
-      <IntegrationConfigDialog
-        open={openSignatureProvider === 'DOCAPOSTE'}
-        onClose={() => setOpenSignatureProvider(null)}
-      >
-        <ApiKeyProviderCard
-          provider="DOCAPOSTE"
-          onStatusChange={(c) => handleProviderStatusChange('DOCAPOSTE', c)}
-        />
-      </IntegrationConfigDialog>
-      <IntegrationConfigDialog
-        open={openSignatureProvider === 'DOCUSIGN'}
-        onClose={() => setOpenSignatureProvider(null)}
-      >
-        <OAuthProviderCard
-          providerId="DOCUSIGN"
-          label="DocuSign"
-          description="Signature électronique mondiale · OAuth2 · SES + AES + QES via partenaires QTSP européens"
-          api={docusignApi}
-          onStatusChange={(c) => handleProviderStatusChange('DOCUSIGN', c)}
-        />
-      </IntegrationConfigDialog>
-      <IntegrationConfigDialog
-        open={openSignatureProvider === 'ODOO'}
-        onClose={() => setOpenSignatureProvider(null)}
-      >
-        <ApiKeyProviderCard
-          provider="ODOO"
-          onStatusChange={(c) => handleProviderStatusChange('ODOO', c)}
+        <DocuSealInfoCard
+          available={docusealState?.available ?? false}
+          active={docusealState?.active ?? false}
         />
       </IntegrationConfigDialog>
 
@@ -1032,8 +1028,24 @@ export default function IntegrationsSection({
           <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
         </Box>
         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
-          Synchronisez factures et dépenses vers votre logiciel comptable. Pennylane est aussi disponible dans la section signature ci-dessus.
+          Synchronisez factures et dépenses vers votre logiciel comptable.
         </Typography>
+        {/* Pennylane : connexion OAuth réelle (sync factures) — carte interactive,
+            hors du wrapper « Bientôt disponible » des autres logiciels compta. */}
+        {matchesService('PENNYLANE') && (
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 1.5, mt: 1 }}>
+            <ServiceGridCard
+              providerId="PENNYLANE"
+              serviceTooltipId="PENNYLANE"
+              label="Pennylane"
+              description="Compta française · OAuth2 · sync factures"
+              role="button"
+              selected={openSignatureProvider === 'PENNYLANE'}
+              status={connectedProviders.has('PENNYLANE') ? 'connected' : 'idle'}
+              onClick={() => setOpenSignatureProvider('PENNYLANE')}
+            />
+          </Box>
+        )}
         <Box
           aria-disabled="true"
           onClickCapture={blockInteraction}
