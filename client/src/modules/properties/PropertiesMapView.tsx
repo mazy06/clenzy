@@ -25,13 +25,15 @@ interface PropertiesMapViewProps {
   onDiagnose: (propertyId: number, propertyName: string) => void;
   canManageContracts: boolean;
   missingContractIds: Set<number>;
+  /** Clic sur le badge « Contrat manquant » : ouvre la modal de contrat préselectionnée. */
+  onMissingContractClick: (propertyId: number) => void;
   navigate: NavigateFunction;
 }
 
 /** Vue carte : carte fixe en haut + liste scrollable des propriétés du viewport. */
 const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
   mapMarkers, viewportProperties, channexMappings, onBoundsChange, onDiagnose,
-  canManageContracts, missingContractIds, navigate,
+  canManageContracts, missingContractIds, onMissingContractClick, navigate,
 }) => {
   const { t } = useTranslation();
 
@@ -120,7 +122,7 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
                           )}
                           {canManageContracts && missingContractIds.has(Number(property.id)) && (
                             <MissingContractChip
-                              onClick={(e) => { e.stopPropagation(); navigate('/contracts'); }}
+                              onClick={(e) => { e.stopPropagation(); onMissingContractClick(Number(property.id)); }}
                             />
                           )}
                         </Box>

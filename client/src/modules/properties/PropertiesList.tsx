@@ -21,6 +21,7 @@ import { usePropertiesList, propertiesListKeys } from '../../hooks/useProperties
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import { propertiesApi } from '../../services/api';
 import { useContractedPropertyIds } from '../../hooks/useContractedPropertyIds';
+import ManagementContractFormModal from '../contracts/ManagementContractFormModal';
 import { ICON_BUTTON_SX, ITEMS_PER_PAGE, LIST_DEFAULT_ROWS } from './propertiesListConstants';
 import PropertiesMapView from './PropertiesMapView';
 import PropertiesGridView from './PropertiesGridView';
@@ -112,6 +113,15 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     [canManageContracts, properties, contractedPropertyIds],
   );
   const { t } = useTranslation();
+
+  // Modal de création de contrat de gestion (bandeau « Établir les contrats »
+  // + badge « Contrat manquant »). null = fermée ; sinon logement préselectionné.
+  const [contractModalPropertyId, setContractModalPropertyId] = useState<number | null>(null);
+  const [contractModalOpen, setContractModalOpen] = useState(false);
+  const openContractModal = useCallback((propertyId: number | null) => {
+    setContractModalPropertyId(propertyId);
+    setContractModalOpen(true);
+  }, []);
 
   // Quick Win #5 suite : OPEN_HUB action depuis le diagnose dialog → on
   // navigate vers les settings. Requiert `navigate` declaree juste au-dessus.
@@ -341,7 +351,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
             <Button
               color="inherit"
               size="small"
-              onClick={() => navigate('/contracts')}
+              onClick={() => openContractModal([...missingContractIds][0] ?? null)}
               sx={{ textTransform: 'none', fontWeight: 600 }}
             >
               {t('contracts.gate.cta', 'Établir les contrats')}
@@ -385,6 +395,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           onDiagnose={openDiagnoseFor}
           canManageContracts={canManageContracts}
           missingContractIds={missingContractIds}
+          onMissingContractClick={openContractModal}
           navigate={navigate}
         />
       ) : viewMode === 'grid' ? (
@@ -398,6 +409,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           onDiagnose={openDiagnoseFor}
           canManageContracts={canManageContracts}
           missingContractIds={missingContractIds}
+          onMissingContractClick={openContractModal}
           navigate={navigate}
         />
       ) : (
@@ -411,11 +423,19 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           channexMappings={channexMappings}
           canManageContracts={canManageContracts}
           missingContractIds={missingContractIds}
+          onMissingContractClick={openContractModal}
           onToggleStatus={setStatusTarget}
           onDelete={handleDeleteRequest}
           navigate={navigate}
         />
       )}
+
+      {/* Modal de création de contrat de gestion (gate de rattrapage). */}
+      <ManagementContractFormModal
+        open={contractModalOpen}
+        onClose={() => setContractModalOpen(false)}
+        initialPropertyId={contractModalPropertyId}
+      />
 
       <PropertyDeleteDialog
         open={deleteDialogOpen}

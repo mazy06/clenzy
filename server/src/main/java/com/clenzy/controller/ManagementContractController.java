@@ -4,11 +4,16 @@ import com.clenzy.dto.CreateManagementContractRequest;
 import com.clenzy.dto.ManagementContractDto;
 import com.clenzy.model.ManagementContract.ContractStatus;
 import com.clenzy.service.ManagementContractService;
+import com.clenzy.service.signature.ContractSignatureService;
 import com.clenzy.tenant.TenantContext;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -24,11 +29,14 @@ import java.util.Map;
 public class ManagementContractController {
 
     private final ManagementContractService contractService;
+    private final ContractSignatureService contractSignatureService;
     private final TenantContext tenantContext;
 
     public ManagementContractController(ManagementContractService contractService,
+                                         ContractSignatureService contractSignatureService,
                                          TenantContext tenantContext) {
         this.contractService = contractService;
+        this.contractSignatureService = contractSignatureService;
         this.tenantContext = tenantContext;
     }
 
@@ -82,5 +90,26 @@ public class ManagementContractController {
     public Map<String, Integer> expireContracts() {
         int count = contractService.expireContracts(tenantContext.getOrganizationId());
         return Map.of("expired", count);
+    }
+
+    /** Renvoie le lien de signature au propriétaire (contrats DRAFT uniquement). */
+    @PostMapping("/{id}/signature/resend")
+    public ManagementContractDto resendSignature(@PathVariable Long id) {
+        Long orgId = tenantContext.getOrganizationId();
+        contractSignatureService.resend(id, orgId);
+        return contractService.getById(id, orgId);
+    }
+
+    /** Mandat PDF du contrat : version signée (avec certificat) si elle existe, sinon l'original. */
+    @GetMapping("/{id}/mandate")
+    public ResponseEntity<byte[]> downloadMandate(@PathVariable Long id) {
+        var payload = contractSignatureService.getMandateForContract(id, tenantContext.getOrganizationId());
+        String encodedFilename = URLEncoder.encode(payload.fileName(), StandardCharsets.UTF_8).replace("+", "%20");
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header("Content-Disposition", "inline; filename=\"" + payload.fileName() + "\"; "
+                        + "filename*=UTF-8''" + encodedFilename)
+                .header("Cache-Control", "private, no-store")
+                .body(payload.bytes());
     }
 }

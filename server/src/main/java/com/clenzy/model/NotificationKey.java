@@ -137,12 +137,14 @@ public enum NotificationKey {
     CONTACT_FORM_RECEIVED(NotificationType.WARNING, NotificationCategory.CONTACT, true),
     CONTACT_FORM_STATUS_CHANGED(NotificationType.INFO, NotificationCategory.CONTACT, false),
 
-    // ─── DOCUMENT (4 cles) ──────────────────────────────────────────────────────
+    // ─── DOCUMENT (5 cles) ──────────────────────────────────────────────────────
 
     DOCUMENT_GENERATED(NotificationType.SUCCESS, NotificationCategory.DOCUMENT, true),
     DOCUMENT_GENERATION_FAILED(NotificationType.ERROR, NotificationCategory.DOCUMENT, true),
     DOCUMENT_TEMPLATE_UPLOADED(NotificationType.INFO, NotificationCategory.DOCUMENT, false),
     DOCUMENT_SENT_BY_EMAIL(NotificationType.SUCCESS, NotificationCategory.DOCUMENT, true),
+    /** Mandat de gestion signé électroniquement par le propriétaire (lien public). */
+    CONTRACT_SIGNED(NotificationType.SUCCESS, NotificationCategory.DOCUMENT, true),
 
     // ─── RECONCILIATION (3 cles) ──────────────────────────────────────────────
 

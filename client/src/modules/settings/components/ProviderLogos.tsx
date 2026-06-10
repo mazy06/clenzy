@@ -24,6 +24,7 @@ export type ProviderId =
   | 'UNIVERSIGN'
   | 'DOCAPOSTE'
   | 'DOCUSIGN'
+  | 'DOCUSEAL'
   | 'PENNYLANE'
   | 'ODOO'
   | 'PRICELABS'
@@ -69,6 +70,8 @@ const PALETTE: Record<ProviderId, BrandPalette> = {
   DOCAPOSTE:  { bg: '#FFCC00', fg: '#1B2A4A', accent: '#003366' },
   // DocuSign : jaune signature + ardoise
   DOCUSIGN:   { bg: '#FFCC22', fg: '#2D353F', accent: '#1F2A37' },
+  // DocuSeal : ardoise sombre + ambre (open source self-hosted)
+  DOCUSEAL:   { bg: '#1C2536', fg: '#FFFFFF', accent: '#F59E0B' },
   // Pennylane : indigo profond
   PENNYLANE:  { bg: '#1B2A4A', fg: '#FFFFFF', accent: '#6C7FE0' },
   // Odoo : prune
@@ -261,6 +264,16 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
         </>
       );
 
+    case 'DOCUSEAL':
+      // Tile ardoise, document blanc coin plie + paraphe ambre (scellement)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <path d="M16 12 h12 l6 6 v18 h-18 z" fill={p.fg} opacity="0.92" />
+          <path d="M28 12 v6 h6 z" fill={p.bg} opacity="0.35" />
+          <path d="M19.5 30.5 c 2.5 -3 4 -1 5.5 0.5 c 1.5 1.5 3 0.5 4.5 -1.5" fill="none" stroke={p.accent} strokeWidth="2.2" strokeLinecap="round" />
+        </>
+      );
     case 'ODOO':
       // Tile prune, "o" blanc avec barres verticales caracteristiques
       return (

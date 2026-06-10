@@ -1,8 +1,12 @@
 import apiClient from '../apiClient';
+import { API_CONFIG } from '../../config/api';
+import { getAccessToken } from '../../keycloak';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type ContractStatus = 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | 'TERMINATED' | 'EXPIRED';
+/** Statut de la demande de signature électronique du mandat (workflow SES interne). */
+export type ContractSignatureStatus = 'PENDING' | 'SIGNED' | 'EXPIRED' | 'CANCELLED';
 export type ContractType = 'FULL_MANAGEMENT' | 'BOOKING_ONLY' | 'MAINTENANCE_ONLY' | 'CUSTOM';
 /** Modèle de flux/répartition (taxonomie OTA). DIRECT = Clenzy encaisse via Stripe. */
 export type PaymentModel = 'DIRECT' | 'OWNER_COLLECTS' | 'CONCIERGE_COLLECTS' | 'OTA_COHOST_SPLIT';
@@ -37,6 +41,8 @@ export interface ManagementContract {
   terminatedAt: string | null;
   terminationReason: string | null;
   createdAt: string;
+  /** null = aucune demande de signature (contrat antérieur ou propriétaire sans email). */
+  signatureStatus: ContractSignatureStatus | null;
 }
 
 export interface CreateManagementContractRequest {
@@ -102,5 +108,29 @@ export const managementContractsApi = {
 
   async expireAll(): Promise<{ expired: number }> {
     return apiClient.post<{ expired: number }>('/management-contracts/expire', {});
+  },
+
+  /** Renvoie le lien de signature au propriétaire (contrats DRAFT uniquement). */
+  async resendSignature(id: number): Promise<ManagementContract> {
+    return apiClient.post<ManagementContract>(`/management-contracts/${id}/signature/resend`, {});
+  },
+
+  /**
+   * Ouvre le mandat PDF dans un nouvel onglet : version SIGNÉE (avec certificat)
+   * si elle existe, sinon l'original. Rejette avec le status HTTP si indisponible
+   * (404 = aucun mandat généré — l'appelant peut générer à la volée).
+   */
+  async viewMandate(id: number): Promise<void> {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/management-contracts/${id}/mandate`;
+    const token = getAccessToken();
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error(String(response.status));
+    }
+    const blob = await response.blob();
+    window.open(window.URL.createObjectURL(blob), '_blank');
   },
 };

@@ -25,7 +25,7 @@ public class SignatureProviderRegistry {
 
     public SignatureProviderRegistry(
             List<SignatureProvider> providerList,
-            @Value("${clenzy.signature.active-provider:pennylane}") String activeProvider) {
+            @Value("${clenzy.signature.active-provider:clenzy_custom}") String activeProvider) {
 
         this.providers = providerList.stream()
             .collect(Collectors.toMap(SignatureProvider::getType, Function.identity()));
@@ -73,12 +73,17 @@ public class SignatureProviderRegistry {
         return Map.copyOf(providers);
     }
 
+    /** Type du fournisseur actif configure (sans verifier sa disponibilite). */
+    public SignatureProviderType getActiveProviderType() {
+        return activeProviderType;
+    }
+
     private SignatureProviderType parseProviderType(String value) {
         try {
             return SignatureProviderType.valueOf(value.toUpperCase().replace("-", "_"));
         } catch (IllegalArgumentException e) {
-            log.warn("Type de fournisseur inconnu '{}', fallback sur PENNYLANE", value);
-            return SignatureProviderType.PENNYLANE;
+            log.warn("Type de fournisseur inconnu '{}', fallback sur CLENZY_CUSTOM", value);
+            return SignatureProviderType.CLENZY_CUSTOM;
         }
     }
 }

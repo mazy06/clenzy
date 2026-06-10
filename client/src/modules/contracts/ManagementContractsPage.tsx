@@ -2,30 +2,25 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Box, Typography, Paper, Button, Chip, IconButton, Tooltip,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TextField, MenuItem, FormControlLabel, Switch, Alert, Snackbar,
-  CircularProgress, InputAdornment, Stack,
+  TextField, Alert, Snackbar, CircularProgress, Stack,
 } from '@mui/material';
 import {
-  Add, Edit, CheckCircle, Pause, Cancel, Close, Save, Check,
-  Handshake, Home, Person, Euro, PictureAsPdf,
+  Add, Edit, CheckCircle, Pause, Cancel,
+  Handshake, Home, Person, PictureAsPdf, Send,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   managementContractsApi,
   type ManagementContract,
-  type CreateManagementContractRequest,
   type ContractStatus,
-  type ContractType,
-  type PaymentModel,
-  type CommissionBase,
 } from '../../services/api/managementContractsApi';
 import { documentsApi } from '../../services/api/documentsApi';
-import { splitConfigApi } from '../../services/api/splitConfigApi';
-import type { SplitRatios } from '../../types/payment';
 import apiClient from '../../services/apiClient';
 import PageHeader from '../../components/PageHeader';
 import FilterChipRow from '../../components/FilterChipRow';
 import EmptyState from '../../components/EmptyState';
+import { CONTRACT_TYPE_LABELS, type PropertyOption } from './ManagementContractForm';
+import ManagementContractFormModal from './ManagementContractFormModal';
 
 // ─── Status palette (PMS soft-filled, identical aux autres pages) ───────────
 
@@ -41,116 +36,6 @@ const STATUS_META: Record<ContractStatus, StatusMeta> = {
 
 const FILTER_ALL_COLOR = '#6B8A9A';
 
-const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
-  FULL_MANAGEMENT:  'Gestion complète',
-  BOOKING_ONLY:     'Réservations uniquement',
-  MAINTENANCE_ONLY: 'Maintenance uniquement',
-  CUSTOM:           'Personnalisé',
-};
-
-// ─── Taxonomie OTA : qui encaisse le paiement guest ─────────────────────────
-
-const PAYMENT_MODEL_LABELS: Record<PaymentModel, string> = {
-  DIRECT:             'Direct — Clenzy encaisse (Stripe)',
-  OWNER_COLLECTS:     'OTA — Le propriétaire encaisse',
-  CONCIERGE_COLLECTS: 'OTA — La conciergerie encaisse',
-  OTA_COHOST_SPLIT:   'OTA — Co-hosting (split à la source)',
-};
-
-const PAYMENT_MODEL_HELP: Record<PaymentModel, string> = {
-  DIRECT:             'Le guest paie via Clenzy (Stripe). La répartition est appliquée automatiquement à l\'encaissement.',
-  OWNER_COLLECTS:     'L\'OTA verse au propriétaire. La conciergerie facture sa commission au propriétaire (créance).',
-  CONCIERGE_COLLECTS: 'L\'OTA verse à la conciergerie. Elle reverse la part nette au propriétaire (reversement).',
-  OTA_COHOST_SPLIT:   'L\'OTA répartit directement entre les co-hosts. Clenzy réconcilie, sans flux d\'argent.',
-};
-
-const COMMISSION_BASE_LABELS: Record<CommissionBase, string> = {
-  GROSS:          'Montant brut (loyer encaissé)',
-  NET_OF_OTA_FEE: 'Net des frais OTA (après commission plateforme)',
-};
-
-/**
- * Préconfigurations : selon l'accord conciergerie ↔ hôte, on préremplit un jeu de
- * valeurs cohérent. L'utilisateur ajuste ensuite les détails avant transmission.
- */
-interface ContractPreset {
-  id: string;
-  label: string;
-  description: string;
-  values: Partial<CreateManagementContractRequest>;
-}
-
-const CONTRACT_PRESETS: ContractPreset[] = [
-  {
-    id: 'full-concierge',
-    label: 'Gestion complète — Conciergerie encaisse',
-    description: 'La conciergerie gère tout et encaisse les OTA, puis reverse au propriétaire.',
-    values: {
-      contractType: 'FULL_MANAGEMENT', paymentModel: 'CONCIERGE_COLLECTS',
-      commissionRate: 0.20, commissionBase: 'GROSS',
-      cleaningFeeIncluded: true, maintenanceIncluded: true,
-    },
-  },
-  {
-    id: 'full-owner',
-    label: 'Gestion complète — Propriétaire encaisse',
-    description: 'Le propriétaire reçoit les versements OTA ; la conciergerie facture sa commission.',
-    values: {
-      contractType: 'FULL_MANAGEMENT', paymentModel: 'OWNER_COLLECTS',
-      commissionRate: 0.20, commissionBase: 'GROSS',
-      cleaningFeeIncluded: true, maintenanceIncluded: true,
-    },
-  },
-  {
-    id: 'cohost',
-    label: 'Co-hosting Airbnb (split à la source)',
-    description: 'Airbnb répartit directement entre co-hosts. Aucun flux ne transite par Clenzy.',
-    values: {
-      contractType: 'BOOKING_ONLY', paymentModel: 'OTA_COHOST_SPLIT',
-      commissionRate: 0.15, commissionBase: 'GROSS',
-    },
-  },
-  {
-    id: 'direct',
-    label: 'Paiement direct (Clenzy encaisse)',
-    description: 'Le guest paie via Stripe. La répartition est automatique à l\'encaissement.',
-    values: {
-      contractType: 'FULL_MANAGEMENT', paymentModel: 'DIRECT',
-      commissionRate: 0.20, commissionBase: 'GROSS',
-    },
-  },
-  {
-    id: 'booking-light',
-    label: 'Conciergerie légère — Réservations seules',
-    description: 'Apport de réservations uniquement, commission réduite sur le net OTA.',
-    values: {
-      contractType: 'BOOKING_ONLY', paymentModel: 'OWNER_COLLECTS',
-      commissionRate: 0.12, commissionBase: 'NET_OF_OTA_FEE',
-    },
-  },
-];
-
-export interface PropertyOption { id: number; name: string; ownerId: number; ownerName?: string }
-
-export const EMPTY_FORM: CreateManagementContractRequest = {
-  propertyId: 0,
-  ownerId: 0,
-  contractType: 'FULL_MANAGEMENT',
-  startDate: new Date().toISOString().split('T')[0],
-  endDate: null,
-  commissionRate: 0,
-  minimumStayNights: null,
-  autoRenew: false,
-  noticePeriodDays: 30,
-  cleaningFeeIncluded: true,
-  maintenanceIncluded: true,
-  upsellCommissionRate: null,
-  activityCommissionRate: null,
-  paymentModel: 'DIRECT',
-  commissionBase: 'GROSS',
-  notes: '',
-};
-
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const ManagementContractsPage: React.FC = () => {
@@ -161,15 +46,13 @@ const ManagementContractsPage: React.FC = () => {
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ContractStatus | ''>('');
-  const [splitRatios, setSplitRatios] = useState<SplitRatios | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
 
-  // Form state — toujours visible. editingContract != null = mode edition.
+  // Modal de création/édition. editingContract != null = mode édition.
+  const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingContract, setEditingContract] = useState<ManagementContract | null>(null);
-  const [form, setForm] = useState<CreateManagementContractRequest>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
 
   // Inline terminate state
   const [terminatingId, setTerminatingId] = useState<number | null>(null);
@@ -200,18 +83,8 @@ const ManagementContractsPage: React.FC = () => {
     }
   }, []);
 
-  const loadSplitRatios = useCallback(async () => {
-    try {
-      const ratios = await splitConfigApi.getCurrentRatios();
-      setSplitRatios(ratios);
-    } catch {
-      // Fallback handled in preview computation
-    }
-  }, []);
-
   useEffect(() => { loadContracts(); }, [loadContracts]);
   useEffect(() => { loadProperties(); }, [loadProperties]);
-  useEffect(() => { loadSplitRatios(); }, [loadSplitRatios]);
 
   // ─── Derived data ─────────────────────────────────────────────────────────
 
@@ -237,67 +110,37 @@ const ManagementContractsPage: React.FC = () => {
     return { activeContracts: active, inactiveContracts: inactive };
   }, [contracts]);
 
-  // ─── Form handlers ────────────────────────────────────────────────────────
+  // ─── Modal handlers ──────────────────────────────────────────────────────
 
-  // Init/reset le formulaire de creation quand les proprietes arrivent
-  useEffect(() => {
-    if (!editingContract && properties.length > 0 && form.propertyId === 0) {
-      setForm(prev => ({
-        ...prev,
-        propertyId: properties[0].id,
-        ownerId: properties[0].ownerId,
-      }));
-    }
-  }, [properties, editingContract, form.propertyId]);
+  const openCreateModal = () => {
+    setEditingContract(null);
+    setFormModalOpen(true);
+  };
 
   const startEdit = (contract: ManagementContract) => {
-    setForm({
-      propertyId: contract.propertyId,
-      ownerId: contract.ownerId,
-      contractType: contract.contractType,
-      startDate: contract.startDate,
-      endDate: contract.endDate,
-      commissionRate: contract.commissionRate,
-      minimumStayNights: contract.minimumStayNights,
-      autoRenew: contract.autoRenew,
-      noticePeriodDays: contract.noticePeriodDays,
-      cleaningFeeIncluded: contract.cleaningFeeIncluded,
-      maintenanceIncluded: contract.maintenanceIncluded,
-      upsellCommissionRate: contract.upsellCommissionRate,
-      activityCommissionRate: contract.activityCommissionRate,
-      paymentModel: contract.paymentModel,
-      commissionBase: contract.commissionBase,
-      notes: contract.notes ?? '',
-    });
     setEditingContract(contract);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setFormModalOpen(true);
   };
 
-  const resetForm = () => {
+  const closeFormModal = () => {
+    setFormModalOpen(false);
     setEditingContract(null);
-    setForm({
-      ...EMPTY_FORM,
-      propertyId: properties.length > 0 ? properties[0].id : 0,
-      ownerId: properties.length > 0 ? properties[0].ownerId : 0,
-    });
   };
 
-  const handleSave = async () => {
-    setSaving(true);
+  const handleSaved = () => {
+    showSuccess(editingContract ? t('contracts.updated') : t('contracts.created'));
+    loadContracts();
+  };
+
+  // ─── Lien de signature ───────────────────────────────────────────────────
+
+  const handleResendSignature = async (id: number) => {
     try {
-      if (editingContract) {
-        await managementContractsApi.update(editingContract.id, form);
-        showSuccess(t('contracts.updated'));
-      } else {
-        await managementContractsApi.create(form);
-        showSuccess(t('contracts.created'));
-      }
-      resetForm();
+      await managementContractsApi.resendSignature(id);
+      showSuccess(t('contracts.signature.resent', 'Lien de signature renvoyé au propriétaire'));
       loadContracts();
     } catch {
-      showError(t('contracts.errorSaving'));
-    } finally {
-      setSaving(false);
+      showError(t('contracts.signature.resendError', "Impossible de renvoyer le lien — vérifiez que le propriétaire a un email."));
     }
   };
 
@@ -346,24 +189,18 @@ const ManagementContractsPage: React.FC = () => {
   };
 
   // ─── Mandat de gestion ──────────────────────────────────────────────────
-  // Ouvre (ou genere puis ouvre) le mandat PDF associe au contrat.
-  // Cherche d'abord les generations existantes ; si aucune, declenche la
-  // generation cote serveur via POST /documents/generate.
+  // Ouvre le mandat PDF : version SIGNÉE (avec page certificat) si elle existe,
+  // sinon l'original. Si aucun mandat n'a encore été généré (404), déclenche la
+  // génération à la volée via POST /documents/generate.
 
   const handleViewMandate = async (contractId: number) => {
     try {
-      const existing = await documentsApi.getGenerationsByReference('MANAGEMENT_CONTRACT', contractId);
-      // Prend la plus recente MANDAT_GESTION terminée
-      const latest = existing
-        ?.filter((g) => g.documentType === 'MANDAT_GESTION' && g.status === 'COMPLETED')
-        ?.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))?.[0];
-
-      if (latest) {
-        await documentsApi.viewGeneration(latest.id);
-        return;
-      }
-
-      // Aucune generation existante : on tente la generation a la volee
+      await managementContractsApi.viewMandate(contractId);
+      return;
+    } catch {
+      // 404 (aucune génération) ou autre erreur : on tente la génération à la volée.
+    }
+    try {
       const generated = await documentsApi.generateDocument({
         documentType: 'MANDAT_GESTION',
         referenceId: contractId,
@@ -391,8 +228,6 @@ const ManagementContractsPage: React.FC = () => {
     count: contracts.filter(c => c.status === status).length,
   }));
 
-  const formValid = Boolean(form.propertyId) && Boolean(form.startDate) && form.commissionRate > 0;
-
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {/* ─── Header standardise (PageHeader) ──────────────────────────── */}
@@ -413,100 +248,25 @@ const ManagementContractsPage: React.FC = () => {
           />
         )}
         actions={(
-          <Button
-            variant="outlined"
-            size="small"
-            color={editingContract ? 'warning' : 'primary'}
-            startIcon={saving
-              ? <CircularProgress size={12} color="inherit" />
-              : (editingContract ? <Save size={14} strokeWidth={1.75} /> : <Check size={14} strokeWidth={1.75} />)
-            }
-            onClick={handleSave}
-            disabled={!formValid || saving}
-            sx={{
-              '&.Mui-disabled': {
-                color: 'text.disabled',
-                borderColor: 'divider',
-              },
-            }}
-          >
-            {saving ? 'Enregistrement…' : (editingContract ? 'Enregistrer' : 'Valider')}
-          </Button>
+          <Tooltip title={t('contracts.create', 'Nouveau contrat')}>
+            <IconButton
+              size="small"
+              onClick={openCreateModal}
+              sx={{
+                p: 0.5,
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'primary.main',
+                color: 'primary.main',
+                bgcolor: 'rgba(107,138,154,0.06)',
+                '&:hover': { bgcolor: 'rgba(107,138,154,0.12)' },
+              }}
+            >
+              <Add size={20} strokeWidth={1.75} />
+            </IconButton>
+          </Tooltip>
         )}
       />
-
-      {/* ─── Inline create/edit form — organisé en 4 groupes visuels ───── */}
-      <Paper
-        variant="outlined"
-        sx={{
-          p: { xs: 1.25, md: 1.5 },
-          borderRadius: 2,
-          borderColor: editingContract ? 'warning.light' : 'divider',
-          borderLeftWidth: 3,
-          borderLeftColor: editingContract ? 'warning.main' : 'primary.main',
-          bgcolor: 'background.paper',
-          // Compact form sizing — fields, labels, helper text scaled down to match the sidebar density.
-          '& .MuiInputBase-input': { fontSize: '0.75rem', py: '5px' },
-          '& .MuiInputLabel-root': { fontSize: '0.75rem' },
-          '& .MuiOutlinedInput-root': { borderRadius: 1 },
-          '& .MuiSelect-select': { py: '5px' },
-          '& .MuiFormHelperText-root': { fontSize: '0.625rem', mt: 0.25 },
-          '& .MuiInputAdornment-root': { '& > *': { fontSize: '0.8125rem' } },
-          '& .MuiFormControlLabel-label': { fontSize: '0.6875rem' },
-          '& .MuiSwitch-root': { transform: 'scale(0.75)' },
-        }}
-      >
-        {/* Bandeau de mode */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.25 }}>
-          <Box
-            component="span"
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 18, height: 18,
-              borderRadius: '50%',
-              bgcolor: editingContract ? 'warning.main' : 'primary.main',
-              color: '#fff',
-            }}
-          >
-            {editingContract ? <Edit size={10} strokeWidth={2} /> : <Add size={11} strokeWidth={2.25} />}
-          </Box>
-          <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7, color: editingContract ? 'warning.main' : 'primary.main' }}>
-            {editingContract ? `Modification · ${editingContract.contractNumber}` : 'Nouveau contrat'}
-          </Typography>
-          <Box sx={{ flex: 1 }} />
-          {editingContract && (
-            <Tooltip title="Annuler la modification">
-              <IconButton size="small" onClick={resetForm} sx={{ p: 0.25 }}>
-                <Close size={13} strokeWidth={1.75} />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
-
-        {/* Formulaire (préconfigurations + groupes) — partagé avec la modal obligatoire */}
-        <ManagementContractFormFields
-          form={form}
-          setForm={setForm}
-          properties={properties}
-          splitRatios={splitRatios}
-        />
-
-        {editingContract && (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
-            <Button
-              onClick={resetForm}
-              size="small"
-              startIcon={<Close size={14} strokeWidth={1.75} />}
-              sx={{ textTransform: 'none' }}
-            >
-              {t('contracts.cancel')}
-            </Button>
-          </Box>
-        )}
-        {/* Submit button is in the page header (top-right) to avoid duplication. */}
-      </Paper>
 
       {/* ─── Body ──────────────────────────────────────────────────── */}
       {loading ? (
@@ -519,6 +279,17 @@ const ManagementContractsPage: React.FC = () => {
           title={t('contracts.noContracts')}
           description="Sans contrat actif, les paiements suivent la répartition par défaut de l'organisation (Paramètres → Paiement → Répartition des revenus)."
           tip="Crée un contrat ici pour appliquer une commission spécifique à un bien (au lieu de la répartition globale)."
+          action={(
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Add size={16} strokeWidth={1.75} />}
+              onClick={openCreateModal}
+              sx={{ textTransform: 'none' }}
+            >
+              {t('contracts.createTitle', 'Créer un contrat de gestion')}
+            </Button>
+          )}
         />
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -536,6 +307,7 @@ const ManagementContractsPage: React.FC = () => {
               onSuspend={handleSuspend}
               onEdit={startEdit}
               onViewMandate={handleViewMandate}
+              onResendSignature={handleResendSignature}
               onTerminateStart={startTerminate}
               onTerminateCancel={cancelTerminate}
               onTerminateConfirm={confirmTerminate}
@@ -555,6 +327,7 @@ const ManagementContractsPage: React.FC = () => {
               onSuspend={handleSuspend}
               onEdit={startEdit}
               onViewMandate={handleViewMandate}
+              onResendSignature={handleResendSignature}
               onTerminateStart={startTerminate}
               onTerminateCancel={cancelTerminate}
               onTerminateConfirm={confirmTerminate}
@@ -563,6 +336,14 @@ const ManagementContractsPage: React.FC = () => {
           )}
         </Box>
       )}
+
+      {/* Modal de création / édition */}
+      <ManagementContractFormModal
+        open={formModalOpen}
+        onClose={closeFormModal}
+        onSaved={handleSaved}
+        contract={editingContract}
+      />
 
       {/* Snackbar */}
       <Snackbar
@@ -593,6 +374,8 @@ interface ContractsTableSectionProps {
   onSuspend: (id: number) => void;
   onEdit: (c: ManagementContract) => void;
   onViewMandate: (id: number) => void;
+  /** Renvoie le lien de signature au propriétaire (contrats DRAFT). */
+  onResendSignature: (id: number) => void;
   onTerminateStart: (id: number) => void;
   onTerminateCancel: () => void;
   onTerminateConfirm: () => void;
@@ -603,7 +386,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
   title, accentColor, contracts,
   terminatingId, terminateReason, setTerminateReason,
   getPropertyName, getOwnerName,
-  onActivate, onSuspend, onEdit, onViewMandate,
+  onActivate, onSuspend, onEdit, onViewMandate, onResendSignature,
   onTerminateStart, onTerminateCancel, onTerminateConfirm,
   muted,
 }) => {
@@ -758,20 +541,32 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
-                    <Chip
-                      label={meta.label}
-                      size="small"
-                      sx={{
-                        bgcolor: `${meta.color}18`,
-                        color: meta.color,
-                        border: `1px solid ${meta.color}40`,
-                        fontWeight: 600,
-                        fontSize: '0.6875rem',
-                        height: 22,
-                        borderRadius: '6px',
-                        '& .MuiChip-label': { px: 0.75 },
-                      }}
-                    />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.375 }}>
+                      <Chip
+                        label={meta.label}
+                        size="small"
+                        sx={{
+                          bgcolor: `${meta.color}18`,
+                          color: meta.color,
+                          border: `1px solid ${meta.color}40`,
+                          fontWeight: 600,
+                          fontSize: '0.6875rem',
+                          height: 22,
+                          borderRadius: '6px',
+                          '& .MuiChip-label': { px: 0.75 },
+                        }}
+                      />
+                      {c.status === 'DRAFT' && c.signatureStatus === 'PENDING' && (
+                        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: '#D4A574' }}>
+                          {t('contracts.signature.pending', 'En attente de signature')}
+                        </Typography>
+                      )}
+                      {c.status === 'DRAFT' && c.signatureStatus === 'EXPIRED' && (
+                        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: '#C97A7A' }}>
+                          {t('contracts.signature.expired', 'Lien de signature expiré')}
+                        </Typography>
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell align="right">
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.25 }}>
@@ -780,6 +575,13 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                           <PictureAsPdf size={16} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
+                      {c.status === 'DRAFT' && (
+                        <Tooltip title={t('contracts.signature.resend', 'Renvoyer le lien de signature')}>
+                          <IconButton size="small" sx={{ color: '#D4A574' }} onClick={() => onResendSignature(c.id)}>
+                            <Send size={16} strokeWidth={1.75} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                       {(c.status === 'DRAFT' || c.status === 'SUSPENDED') && (
                         <Tooltip title={t('contracts.activate')}>
                           <IconButton size="small" color="success" onClick={() => onActivate(c.id)}>
@@ -820,407 +622,4 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
   );
 };
 
-// ─── Reusable contract form fields (page /contracts + mandatory modal) ──
-
-export interface ManagementContractFormFieldsProps {
-  form: CreateManagementContractRequest;
-  setForm: React.Dispatch<React.SetStateAction<CreateManagementContractRequest>>;
-  properties: PropertyOption[];
-  splitRatios: SplitRatios | null;
-  /** Verrouille le sélecteur de logement (modal liée à une propriété donnée). */
-  lockProperty?: boolean;
-}
-
-/**
- * Champs du formulaire de contrat (préconfigurations + groupes visuels), partagés entre
- * la page de gestion des contrats et la modal obligatoire à la création de propriété.
- */
-export const ManagementContractFormFields: React.FC<ManagementContractFormFieldsProps> = ({
-  form, setForm, properties, splitRatios, lockProperty = false,
-}) => {
-  const { t } = useTranslation();
-
-  const applyPreset = (preset: ContractPreset) => {
-    setForm(prev => ({ ...prev, ...preset.values }));
-  };
-  const isPresetActive = (preset: ContractPreset) =>
-    (Object.keys(preset.values) as (keyof CreateManagementContractRequest)[])
-      .every(k => form[k] === preset.values[k]);
-  const handlePropertyChange = (propertyId: number) => {
-    const prop = properties.find(p => p.id === propertyId);
-    setForm(prev => ({ ...prev, propertyId, ownerId: prop?.ownerId ?? prev.ownerId }));
-  };
-
-  return (
-    <Box sx={{
-      display: 'grid',
-      gridTemplateColumns: { xs: '1fr', md: 'repeat(12, 1fr)' },
-      gap: { xs: 1, md: 1.25 },
-      alignItems: 'flex-start',
-    }}>
-      {/* ── Préconfiguration (modèles d'accord) ── */}
-      <FieldGroup label="Préconfiguration" span={{ md: 12 }}>
-        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
-          {CONTRACT_PRESETS.map(preset => {
-            const active = isPresetActive(preset);
-            return (
-              <Tooltip key={preset.id} title={preset.description} arrow>
-                <Box
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => applyPreset(preset)}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyPreset(preset); } }}
-                  sx={{
-                    cursor: 'pointer',
-                    px: 1.25, py: 0.625,
-                    borderRadius: 1.5,
-                    border: '1px solid',
-                    borderColor: active ? '#6B8A9A' : 'divider',
-                    bgcolor: active ? 'rgba(107,138,154,0.10)' : 'transparent',
-                    transition: 'background-color 180ms ease-out, border-color 180ms ease-out',
-                    '&:hover': { borderColor: '#6B8A9A', bgcolor: 'rgba(107,138,154,0.06)' },
-                    '&:focus-visible': { outline: '2px solid #6B8A9A', outlineOffset: 1 },
-                    maxWidth: 210,
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{ fontSize: '0.8125rem', fontWeight: active ? 600 : 500, lineHeight: 1.25 }}
-                  >
-                    {preset.label}
-                  </Typography>
-                </Box>
-              </Tooltip>
-            );
-          })}
-        </Box>
-      </FieldGroup>
-
-      {/* ── Logement ── */}
-      <FieldGroup label="Logement" span={{ md: 5 }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 1 }}>
-          <TextField
-            select label={t('contracts.property')} value={form.propertyId || ''}
-            onChange={e => handlePropertyChange(Number(e.target.value))}
-            size="small" fullWidth
-            disabled={lockProperty}
-            InputProps={{ startAdornment: <InputAdornment position="start"><Home size={14} strokeWidth={1.75} /></InputAdornment> }}
-          >
-            {properties.map(p => (
-              <MenuItem key={p.id} value={p.id}>
-                {p.name}{p.ownerName ? ` (${p.ownerName})` : ''}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select label={t('contracts.type')} value={form.contractType}
-            onChange={e => setForm(prev => ({ ...prev, contractType: e.target.value as ContractType }))}
-            size="small" fullWidth
-          >
-            {(Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(([key, label]) => (
-              <MenuItem key={key} value={key}>{label}</MenuItem>
-            ))}
-          </TextField>
-        </Box>
-      </FieldGroup>
-
-      {/* ── Période ── */}
-      <FieldGroup label="Période" span={{ md: 5 }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.65fr 0.65fr', gap: 1 }}>
-          <TextField
-            label={t('contracts.startDate')} type="date" value={form.startDate}
-            onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
-            size="small" fullWidth
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label={t('contracts.endDate')} type="date" value={form.endDate ?? ''}
-            onChange={e => setForm(prev => ({ ...prev, endDate: e.target.value || null }))}
-            size="small" fullWidth
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="Nuits min." type="number"
-            value={form.minimumStayNights ?? ''}
-            onChange={e => setForm(prev => ({ ...prev, minimumStayNights: e.target.value ? Number(e.target.value) : null }))}
-            size="small" fullWidth
-            inputProps={{ min: 1 }}
-          />
-          <TextField
-            label="Préavis" type="number"
-            value={form.noticePeriodDays ?? 30}
-            onChange={e => setForm(prev => ({ ...prev, noticePeriodDays: Number(e.target.value) }))}
-            size="small" fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end">j</InputAdornment> }}
-          />
-        </Box>
-      </FieldGroup>
-
-      {/* ── Commission ── */}
-      <FieldGroup label="Commission" span={{ md: 2 }}>
-        <TextField
-          label="Taux" type="number"
-          value={form.commissionRate > 0 ? Math.round(form.commissionRate * 100) : ''}
-          onChange={e => setForm(prev => ({ ...prev, commissionRate: e.target.value ? Number(e.target.value) / 100 : 0 }))}
-          size="small" fullWidth
-          placeholder="—"
-          InputProps={{
-            startAdornment: <InputAdornment position="start"><Euro size={12} strokeWidth={1.75} /></InputAdornment>,
-            endAdornment: <InputAdornment position="end">%</InputAdornment>,
-          }}
-          inputProps={{ min: 1, max: 50, step: 1 }}
-        />
-      </FieldGroup>
-
-      {/* ── Encaissement (taxonomie OTA : qui perçoit le paiement guest) ── */}
-      <FieldGroup label="Encaissement" span={{ md: 12 }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1.3fr 1fr' }, gap: 1 }}>
-          <TextField
-            select label="Qui encaisse le paiement guest ?" value={form.paymentModel ?? 'DIRECT'}
-            onChange={e => setForm(prev => ({ ...prev, paymentModel: e.target.value as PaymentModel }))}
-            size="small" fullWidth
-            InputProps={{ startAdornment: <InputAdornment position="start"><Handshake size={14} strokeWidth={1.75} /></InputAdornment> }}
-          >
-            {(Object.entries(PAYMENT_MODEL_LABELS) as [PaymentModel, string][]).map(([key, label]) => (
-              <MenuItem key={key} value={key}>{label}</MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select label="Base de commission" value={form.commissionBase ?? 'GROSS'}
-            onChange={e => setForm(prev => ({ ...prev, commissionBase: e.target.value as CommissionBase }))}
-            size="small" fullWidth
-          >
-            {(Object.entries(COMMISSION_BASE_LABELS) as [CommissionBase, string][]).map(([key, label]) => (
-              <MenuItem key={key} value={key}>{label}</MenuItem>
-            ))}
-          </TextField>
-        </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-          {PAYMENT_MODEL_HELP[form.paymentModel ?? 'DIRECT']}
-        </Typography>
-      </FieldGroup>
-
-      {/* ── Commissions services (upsells & marketplace) ── */}
-      <FieldGroup label="Commissions services" span={{ md: 2 }}>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <TextField
-            label="Upsells" type="number"
-            value={form.upsellCommissionRate != null ? Math.round(form.upsellCommissionRate * 100) : ''}
-            onChange={e => setForm(prev => ({ ...prev, upsellCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
-            size="small" fullWidth
-            placeholder="Défaut org"
-            InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-            inputProps={{ min: 0, max: 100, step: 1 }}
-          />
-          <TextField
-            label="Marketplace" type="number"
-            value={form.activityCommissionRate != null ? Math.round(form.activityCommissionRate * 100) : ''}
-            onChange={e => setForm(prev => ({ ...prev, activityCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
-            size="small" fullWidth
-            placeholder="Défaut org"
-            InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-            inputProps={{ min: 0, max: 100, step: 1 }}
-          />
-        </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-          Part conciergerie. La commission plateforme est fixée par la plateforme ; le propriétaire reçoit le solde. Vide = répartition par défaut de l'organisation.
-        </Typography>
-      </FieldGroup>
-
-      {/* ── Inclusions ── */}
-      <FieldGroup label="Inclusions" span={{ md: 6 }}>
-        <Box sx={{
-          display: 'flex',
-          gap: 0.5,
-          flexWrap: 'wrap',
-          minHeight: 36,
-          alignItems: 'center',
-          pl: 0.5,
-        }}>
-          <FormControlLabel
-            control={<Switch size="small" checked={form.autoRenew ?? false} onChange={e => setForm(prev => ({ ...prev, autoRenew: e.target.checked }))} />}
-            label="Renouvellement auto"
-            sx={{ mr: 1.5 }}
-          />
-          <FormControlLabel
-            control={<Switch size="small" checked={form.cleaningFeeIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, cleaningFeeIncluded: e.target.checked }))} />}
-            label="Ménage inclus"
-            sx={{ mr: 1.5 }}
-          />
-          <FormControlLabel
-            control={<Switch size="small" checked={form.maintenanceIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, maintenanceIncluded: e.target.checked }))} />}
-            label="Maintenance incluse"
-          />
-        </Box>
-      </FieldGroup>
-
-      {/* ── Répartition (split bar) ── */}
-      <FieldGroup label="Répartition des paiements" span={{ md: 6 }}>
-        <SplitPreviewBar commissionRate={form.commissionRate} splitRatios={splitRatios} />
-      </FieldGroup>
-
-      {/* ── Notes ── */}
-      <FieldGroup label="Notes" span={{ md: 12 }}>
-        <TextField
-          value={form.notes ?? ''}
-          onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
-          size="small"
-          fullWidth
-          placeholder="Détails complémentaires, conditions particulières… (optionnel)"
-        />
-      </FieldGroup>
-    </Box>
-  );
-};
-
 export default ManagementContractsPage;
-
-// ─── Form helpers ────────────────────────────────────────────────────────────
-
-interface FieldGroupProps {
-  /** Étiquette du groupe (capitales discrètes au-dessus des champs). */
-  label: string;
-  /** Largeur du groupe en colonnes (sur 12). Par défaut : pleine largeur. */
-  span?: { md?: number };
-  children: React.ReactNode;
-}
-
-/**
- * Conteneur visuel pour grouper des champs liés sous une même étiquette.
- * Donne une lecture hiérarchique au formulaire sans alourdir le DOM.
- */
-const FieldGroup: React.FC<FieldGroupProps> = ({ label, span, children }) => (
-  <Box
-    sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 0.375,
-      gridColumn: { xs: 'span 1', md: `span ${span?.md ?? 12}` },
-    }}
-  >
-    <Typography
-      sx={{
-        fontSize: '0.5625rem',
-        fontWeight: 700,
-        textTransform: 'uppercase',
-        letterSpacing: 0.6,
-        color: 'text.disabled',
-        ml: 0.25,
-      }}
-    >
-      {label}
-    </Typography>
-    {children}
-  </Box>
-);
-
-// ─── Split preview bar ───────────────────────────────────────────────────────
-
-interface SplitPreviewBarProps {
-  commissionRate: number;
-  splitRatios: SplitRatios | null;
-}
-
-/**
- * Barre visuelle qui montre la répartition réelle d'un paiement :
- *  propriétaire (gris bleuté) · plateforme (or) · conciergerie (vert).
- *
- * Si aucune commission n'est encore définie (rate <= 0), affiche un placeholder
- * neutre au lieu de pourcentages calculés sur des valeurs non saisies.
- * La barre est entièrement réactive à `commissionRate` (mise à jour instantanée
- * dès que l'utilisateur tape).
- */
-const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, splitRatios }) => {
-  const commissionPct = (commissionRate ?? 0) * 100;
-  const hasCommission = commissionPct > 0;
-
-  // État vide : aucune commission saisie → pas de calcul, juste un repère visuel.
-  if (!hasCommission) {
-    return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-        <Box
-          sx={{
-            height: 8,
-            borderRadius: 0.75,
-            border: '1px dashed',
-            borderColor: 'divider',
-            bgcolor: 'transparent',
-          }}
-          aria-label="Aucune commission définie"
-        />
-        <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', fontStyle: 'italic' }}>
-          Saisis un taux de commission pour voir la répartition appliquée à ce contrat.
-        </Typography>
-      </Box>
-    );
-  }
-
-  const ownerPct = 100 - commissionPct;
-  const platformBase = splitRatios?.platformShare ?? 0.05;
-  const conciergeBase = splitRatios?.conciergeShare ?? 0.15;
-  const commissionTotal = platformBase + conciergeBase;
-  const platformRatio = commissionTotal > 0 ? platformBase / commissionTotal : 0.25;
-  const conciergeRatio = commissionTotal > 0 ? conciergeBase / commissionTotal : 0.75;
-  const platformPct = commissionPct * platformRatio;
-  const conciergePct = commissionPct * conciergeRatio;
-
-  const OWNER_COLOR = '#6B8A9A';
-  const PLATFORM_COLOR = '#D4A574';
-  const CONCIERGE_COLOR = '#10b981';
-
-  const segments = [
-    { label: 'Propriétaire', pct: ownerPct, color: OWNER_COLOR },
-    { label: 'Plateforme',   pct: platformPct, color: PLATFORM_COLOR },
-    { label: 'Conciergerie', pct: conciergePct, color: CONCIERGE_COLOR },
-  ];
-
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-      {/* Barre segmentée */}
-      <Box
-        sx={{
-          display: 'flex',
-          height: 8,
-          borderRadius: 0.75,
-          overflow: 'hidden',
-          border: '1px solid',
-          borderColor: 'divider',
-          bgcolor: 'background.default',
-        }}
-        role="img"
-        aria-label={`Répartition : propriétaire ${ownerPct.toFixed(0)}%, plateforme ${platformPct.toFixed(1)}%, conciergerie ${conciergePct.toFixed(1)}%`}
-      >
-        {segments.map((seg) => (
-          <Tooltip key={seg.label} title={`${seg.label} : ${seg.pct.toFixed(1)} %`} arrow>
-            <Box
-              sx={{
-                width: `${seg.pct}%`,
-                bgcolor: seg.color,
-                transition: 'width 200ms cubic-bezier(0.22, 1, 0.36, 1)',
-              }}
-            />
-          </Tooltip>
-        ))}
-      </Box>
-      {/* Légende */}
-      <Box sx={{ display: 'flex', gap: 1.25, flexWrap: 'wrap' }}>
-        {segments.map((seg) => (
-          <Box key={seg.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Box
-              sx={{
-                width: 6, height: 6, borderRadius: '50%',
-                bgcolor: seg.color,
-              }}
-            />
-            <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', fontWeight: 500 }}>
-              {seg.label}
-            </Typography>
-            <Typography sx={{ fontSize: '0.625rem', color: 'text.primary', fontWeight: 600 }}>
-              {seg.pct.toFixed(seg.pct >= 10 ? 0 : 1)} %
-            </Typography>
-          </Box>
-        ))}
-      </Box>
-    </Box>
-  );
-};
