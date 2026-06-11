@@ -128,6 +128,10 @@ const legendToggleSx = (selected: boolean) => ({
   ...sigChipSx(false),
   appearance: 'none' as const,
   fontFamily: 'inherit',
+  // Hauteur uniforme : les chips canaux (logo 15px) et statuts (puce 9px)
+  // doivent etre identiques — on fixe la hauteur du contenu le plus haut.
+  boxSizing: 'border-box' as const,
+  minHeight: '27px',
   opacity: selected ? 1 : 0.4,
   transition: 'opacity .12s, border-color .12s',
   '&:hover': { borderColor: 'var(--faint)' },
