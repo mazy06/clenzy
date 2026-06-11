@@ -40,6 +40,7 @@ vi.mock('../../../hooks/useCurrency', () => ({
 import PlanningRow from '../PlanningRow';
 import type { BarLayout, PlanningEvent, PlanningProperty, PlanningDragState } from '../types';
 import type { PricingMap } from '../hooks/usePlanningPricing';
+import type { Reservation, PlanningIntervention } from '../../../services/api';
 
 // ─── Test fixtures ──────────────────────────────────────────────────────────
 
@@ -119,7 +120,7 @@ function renderRow(overrides?: Partial<React.ComponentProps<typeof PlanningRow>>
         pricingMap={emptyPricingMap}
         effectiveRowHeight={68}
         allEvents={[reservationEvent]}
-        loadedReservationIds={new Set()}
+        loadedReservations={[]}
         {...overrides}
       />
     </ThemeProvider>,
@@ -203,6 +204,133 @@ describe('PlanningRow', () => {
       const { container } = renderRow();
       const bar = container.querySelector('[data-planning-bar]') as HTMLElement;
       expect(window.getComputedStyle(bar).position).toBe('absolute');
+    });
+  });
+
+  describe('Rattachement des interventions (heuristique jour de checkout)', () => {
+    // Réservation « Gérard Mazy » : 4 nuits, checkout le 2026-03-05.
+    const hostReservation: Reservation = {
+      id: 42,
+      propertyId: 1,
+      propertyName: 'Villa Test',
+      guestName: 'Gérard Mazy',
+      guestCount: 2,
+      checkIn: '2026-03-01',
+      checkOut: '2026-03-05',
+      status: 'confirmed',
+      source: 'direct',
+      totalPrice: 480,
+    };
+
+    const hostEvent: PlanningEvent = {
+      id: 'res-42',
+      type: 'reservation',
+      propertyId: 1,
+      startDate: '2026-03-01',
+      endDate: '2026-03-05',
+      label: 'Gérard Mazy',
+      status: 'confirmed',
+      color: '#4CAF50',
+      reservation: hostReservation,
+    };
+
+    const hostLayout: BarLayout = {
+      event: hostEvent,
+      left: 0,
+      width: 320,
+      top: 4,
+      height: 34,
+      layer: 'primary',
+    };
+
+    // Ménage post-départ planifié le JOUR du checkout (12h-15h, après le
+    // départ 11h) — SANS linkedReservationId : cas réel des données dev où le
+    // backend ne renseigne le lien que via le FK reservation.intervention_id.
+    const cleaningIntervention: PlanningIntervention = {
+      id: 1000,
+      propertyId: 1,
+      propertyName: 'Villa Test',
+      type: 'cleaning',
+      title: 'Ménage après séjour Gérard Mazy',
+      assigneeName: 'Fatou Diallo',
+      startDate: '2026-03-05',
+      endDate: '2026-03-05',
+      startTime: '12:00',
+      endTime: '15:00',
+      status: 'scheduled',
+      estimatedDurationHours: 3,
+    };
+
+    const cleaningEvent: PlanningEvent = {
+      id: 'int-1000',
+      type: 'cleaning',
+      propertyId: 1,
+      startDate: '2026-03-05',
+      endDate: '2026-03-05',
+      startTime: '12:00',
+      endTime: '15:00',
+      label: 'Ménage après séjour Gérard Mazy',
+      status: 'scheduled',
+      color: '#5083C9',
+      intervention: cleaningIntervention,
+    };
+
+    const cleaningLayout: BarLayout = {
+      event: cleaningEvent,
+      left: 320,
+      width: 80,
+      top: 4,
+      height: 34,
+      layer: 'primary',
+    };
+
+    it('absorbe le ménage du jour de checkout dans la brique (pas de pastille isolée)', () => {
+      const { container } = renderRow({
+        barLayouts: [hostLayout, cleaningLayout],
+        allEvents: [hostEvent, cleaningEvent],
+        loadedReservations: [hostReservation],
+      });
+      const bars = container.querySelectorAll('[data-planning-bar]');
+      // Une seule brique rendue : la réservation. Le ménage est une pastille
+      // DANS la brique, pas un bar standalone sur la grille.
+      expect(bars.length).toBe(1);
+    });
+
+    it('clic sur la pastille in-brick → ouvre le détail intervention (onEventClick)', () => {
+      const { container } = renderRow({
+        barLayouts: [hostLayout, cleaningLayout],
+        allEvents: [hostEvent, cleaningEvent],
+        loadedReservations: [hostReservation],
+      });
+      const bar = container.querySelector('[data-planning-bar]') as HTMLElement;
+      const pill = Array.from(bar.querySelectorAll('div')).find(
+        (el) => el.querySelector('svg') && window.getComputedStyle(el).cursor === 'pointer',
+      );
+      expect(pill).toBeTruthy();
+      fireEvent.click(pill!);
+      expect(mockOnEventClick).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'int-1000' }),
+      );
+    });
+
+    it('rattachée mais brique hôte non rendue (masquée/hors plage) → rien', () => {
+      const { container } = renderRow({
+        barLayouts: [cleaningLayout],
+        allEvents: [cleaningEvent],
+        loadedReservations: [hostReservation],
+      });
+      const bars = container.querySelectorAll('[data-planning-bar]');
+      expect(bars.length).toBe(0);
+    });
+
+    it('orpheline réelle (aucune réservation candidate chargée) → pastille isolée', () => {
+      const { container } = renderRow({
+        barLayouts: [cleaningLayout],
+        allEvents: [cleaningEvent],
+        loadedReservations: [],
+      });
+      const bars = container.querySelectorAll('[data-planning-bar]');
+      expect(bars.length).toBe(1);
     });
   });
 
