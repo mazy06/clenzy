@@ -1,15 +1,16 @@
 import React from 'react';
 import { Box, Tooltip } from '@mui/material';
 import { useDraggable } from '@dnd-kit/core';
-import { Lock as LockIcon, Close, CreditCard, Warning } from '../../icons';
+import { Lock as LockIcon, Close, CreditCard, Warning, CleaningServices, Build } from '../../icons';
 import { INTERVENTION_TYPE_LABELS } from '../../services/api/reservationsApi';
 import type { PlanningInterventionType } from '../../services/api';
-import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData } from './types';
+import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData, UrgencyAnimationMode } from './types';
 import { BAR_BORDER_RADIUS } from './constants';
 import { getEventDisplayColor } from './utils/colorUtils';
 import { getSourceLogo } from './utils/sourceLogos';
 import { daysBetween } from './utils/dateUtils';
 import { useAuth } from '../../hooks/useAuth';
+import './planningUrgency.css';
 
 /** Compte le nombre de nuits d'une reservation (endDate - startDate). */
 function getNights(startDate: string, endDate: string): number {
@@ -42,6 +43,11 @@ interface PlanningBarProps {
   resizeConflict: boolean;
   onClick: (event: PlanningEvent) => void;
   onHide?: (event: PlanningEvent) => void;
+  /** Interventions (menage/maintenance) rattachees a cette reservation —
+   *  affichees en pastilles blanches dans la brique (maquette). */
+  linkedInterventions?: PlanningEvent[];
+  /** Variante d'animation d'urgence (paiement en attente / info manquante). */
+  urgencyAnimation?: UrgencyAnimationMode;
 }
 
 /** Icone des interventions. Menage/maintenance affichent leur type en
@@ -198,6 +204,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   resizeConflict,
   onClick,
   onHide,
+  linkedInterventions,
+  urgencyAnimation = 'shake',
 }) => {
   const { event, left, top, height } = layout;
   const isIntervention = event.type !== 'reservation';
@@ -251,7 +259,13 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     : event.paymentBadgeStatus === 'PROCESSING'
       ? 'Paiement en cours de traitement'
       : 'Paiement en attente';
-  const indicators: { key: string; tooltip: string; color: string; icon: React.ReactNode }[] = [];
+  const indicators: {
+    key: string;
+    tooltip: string;
+    color: string;
+    icon: React.ReactNode;
+    onClick?: (e: React.MouseEvent) => void;
+  }[] = [];
   if (event.needsPaymentBadge) {
     indicators.push({
       key: 'pay',
@@ -268,6 +282,24 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       tooltip: 'Email voyageur manquant — les messages automatiques ne seront pas envoyés',
       color: 'var(--warn)',
       icon: <Warning size={12} strokeWidth={2} />,
+    });
+  }
+  // Interventions rattachees a la reservation : pastille blanche avec l'icone
+  // du type (menage / maintenance), cliquable → ouvre le detail intervention.
+  for (const linked of linkedInterventions ?? []) {
+    const isCleaning = linked.type === 'cleaning';
+    const typeLabel = INTERVENTION_TYPE_LABELS[(isCleaning ? 'cleaning' : 'maintenance') as PlanningInterventionType];
+    indicators.push({
+      key: linked.id,
+      tooltip: linked.label && linked.label !== typeLabel ? `${typeLabel} — ${linked.label}` : typeLabel,
+      color: isCleaning ? 'var(--info)' : 'var(--warn)',
+      icon: isCleaning
+        ? <CleaningServices size={12} strokeWidth={2} />
+        : <Build size={12} strokeWidth={2} />,
+      onClick: (e) => {
+        e.stopPropagation();
+        onClick(linked);
+      },
     });
   }
 
@@ -287,10 +319,24 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // Only reduce opacity for move drag, not resize
   const draggedOpacity = isDragging ? 0.3 : 1;
 
+  // ── Animation d'urgence (galerie 09b) : wizz périodique ~4s + anneau pulsé
+  // permanent à la couleur de la brique. Uniquement sur les réservations en
+  // urgence (paiement en attente OU info voyageur manquante), hors annulées.
+  // Suspendue quand la brique est sélectionnée / en conflit / draggée (leurs
+  // anneaux et animations propres priment).
+  const isUrgent = isReservation && !isCancelled && (event.needsPaymentBadge || missingEmail);
+  const urgencyClass = isUrgent
+    && urgencyAnimation !== 'none'
+    && !isSelected && !isConflict && !resizeConflict && !isDragging && !isResizing
+    ? `pl-urgent--${urgencyAnimation}`
+    : undefined;
+
   return (
     <Box
       ref={setNodeRef}
       data-planning-bar
+      className={urgencyClass}
+      style={isUrgent ? ({ '--bc': barColor } as React.CSSProperties) : undefined}
       {...(!isDragDisabled ? listeners : {})}
       {...(!isDragDisabled ? attributes : {})}
       onClick={(e) => {
@@ -459,7 +505,16 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
               {showBadgeGroup && shownIndicators.map((it) => (
                 <Tooltip key={it.key} title={it.tooltip} arrow>
-                  <Box sx={{ ...BAR_BADGE_SX, color: it.color }}>{it.icon}</Box>
+                  <Box
+                    onClick={it.onClick}
+                    sx={{
+                      ...BAR_BADGE_SX,
+                      color: it.color,
+                      ...(it.onClick && { cursor: 'pointer' }),
+                    }}
+                  >
+                    {it.icon}
+                  </Box>
                 </Tooltip>
               ))}
               {showBadgeGroup && hiddenIndicators.length > 0 && (

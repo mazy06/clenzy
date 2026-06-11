@@ -2,7 +2,6 @@ import React, { useCallback, useRef, useState } from 'react';
 import { Box, Typography, Tooltip, useTheme, Chip, Divider } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import type { PlanningProperty, DensityMode } from './types';
-import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getCleaningFrequencyLabel } from '../../utils/statusUtils';
 import {
@@ -366,8 +365,6 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   reservationCountByProperty,
   channelSyncMap,
 }) => {
-  const theme = useTheme();
-
   // ── Drag handle pour redimensionner la colonne ───────────────────────────
   const resizeStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const [isResizing, setIsResizing] = useState(false);
@@ -453,18 +450,6 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
         />
       )}
       {properties.map((property, idx) => {
-        const showCarousel = colWidth >= 100;
-        // Padding vertical autour du carousel (top + bottom). Hauteur = row
-        // moins le padding. Largeur LEGEREMENT plus grande que la hauteur
-        // pour donner un aspect "landscape" type photo de propriete (1.45:1),
-        // tout en plafonnant a 50% de la colonne pour ne pas trop manger
-        // l'espace texte.
-        const rowVerticalPadding = 6; // px
-        const carouselHeight = Math.max(24, effectiveRowHeight - rowVerticalPadding * 2);
-        const carouselWidth = Math.max(
-          carouselHeight,
-          Math.min(Math.round(carouselHeight * 1.45), Math.round(colWidth * 0.5)),
-        );
         const reservationCount = reservationCountByProperty?.get(property.id) ?? 0;
         const subtitle = property.city || property.address || '';
         const sync = channelSyncMap?.get(property.id);
@@ -522,7 +507,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 alignItems: 'center',
                 gap: 0,
                 px: 0,
-                py: `${rowVerticalPadding}px`,
+                py: '6px',
                 cursor: onPropertyClick ? 'pointer' : 'default',
                 borderBottom: '1px solid var(--line)',
                 backgroundColor: selectedPropertyId === property.id
@@ -536,62 +521,9 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 } : {},
               }}
             >
-              {showCarousel && (() => {
-                const hasPhoto = (property.photoUrls?.length ?? 0) > 0;
-                const carouselSx = {
-                  width: carouselWidth,
-                  height: carouselHeight,
-                  flexShrink: 0,
-                  overflow: 'hidden',
-                } as const;
-                if (hasPhoto) {
-                  return (
-                    <Box sx={carouselSx}>
-                      <PropertyImageCarousel
-                        photoUrls={property.photoUrls}
-                        alt={property.name}
-                        width={carouselWidth}
-                        height={carouselHeight}
-                        sx={{ width: carouselWidth, height: carouselHeight }}
-                      />
-                    </Box>
-                  );
-                }
-                // Pas de photo → on tente la carte statique
-                const mapUrl = buildStaticMapUrl(
-                  property.latitude,
-                  property.longitude,
-                  carouselWidth,
-                  carouselHeight,
-                  theme.palette.mode === 'dark',
-                );
-                if (mapUrl) {
-                  return (
-                    <Box
-                      sx={{
-                        ...carouselSx,
-                        backgroundImage: `url(${mapUrl})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      }}
-                    />
-                  );
-                }
-                // Aucun fallback dispo → placeholder du carousel
-                return (
-                  <Box sx={carouselSx}>
-                    <PropertyImageCarousel
-                      photoUrls={property.photoUrls}
-                      alt={property.name}
-                      width={carouselWidth}
-                      height={carouselHeight}
-                      sx={{ width: carouselWidth, height: carouselHeight }}
-                    />
-                  </Box>
-                );
-              })()}
-              {/* Bloc texte : nom + sous-titre, centre verticalement.
-                  pr augmente pour laisser respirer le tag count en bas-droite. */}
+              {/* Bloc texte (maquette) : nom + ville/arrondissement dessous,
+                  centre verticalement. Le count de reservations en cours reste
+                  visible en pastille discrete inline a cote du nom. */}
               <Box
                 sx={{
                   flex: 1,
@@ -599,29 +531,58 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 0.125,
-                  pl: 0.75,
-                  pr: reservationCount > 0 ? 2.25 : 0.75,
+                  pl: 1.25,
+                  pr: 0.75,
                 }}
               >
-                {/* Box component=span : evite l'heritage du variant body1 du
-                    Typography (le theme MUI a des fontSize responsive en
-                    media-query qui peuvent surcharger sx en breakpoint large). */}
-                <Box
-                  component="span"
-                  sx={{
-                    fontSize: density === 'compact' ? '0.6875rem' : '0.75rem',
-                    fontWeight: 600,
-                    color: 'var(--ink)',
-                    lineHeight: 1.25,
-                    letterSpacing: '-0.01em',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {property.name}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, minWidth: 0 }}>
+                  {/* Box component=span : evite l'heritage du variant body1 du
+                      Typography (le theme MUI a des fontSize responsive en
+                      media-query qui peuvent surcharger sx en breakpoint large). */}
+                  <Box
+                    component="span"
+                    sx={{
+                      fontSize: density === 'compact' ? '0.6875rem' : '0.75rem',
+                      fontWeight: 600,
+                      color: 'var(--ink)',
+                      lineHeight: 1.25,
+                      letterSpacing: '-0.01em',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      wordBreak: 'break-word',
+                      minWidth: 0,
+                    }}
+                  >
+                    {property.name}
+                  </Box>
+                  {/* Reservations en cours / a venir : pastille inline discrete */}
+                  {reservationCount > 0 && (
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.25,
+                        flexShrink: 0,
+                        color: 'var(--faint)',
+                      }}
+                    >
+                      <TagIcon size={10} strokeWidth={1.75} />
+                      <Box
+                        component="span"
+                        sx={{
+                          fontSize: '0.625rem',
+                          fontWeight: 600,
+                          lineHeight: 1,
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {reservationCount}
+                      </Box>
+                    </Box>
+                  )}
                 </Box>
                 {subtitle && (
                   <Box
@@ -641,8 +602,8 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                   </Box>
                 )}
               </Box>
-              {/* Indicateurs en bas-droite : reservations (tag) + sync (wifi) */}
-              {(reservationCount > 0 || (sync && sync.total > 0)) && (
+              {/* Indicateur en bas-droite : sync canaux (wifi) */}
+              {sync && sync.total > 0 && (
                 <Box
                   sx={{
                     position: 'absolute',
@@ -654,62 +615,35 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                     pointerEvents: 'none',
                   }}
                 >
-                  {sync && sync.total > 0 && (
-                    <Tooltip
-                      title={`${sync.synced} sur ${sync.total} canaux synchronises (sync < 24h)`}
-                      placement="top"
-                      arrow
-                    >
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 0.25,
-                          color: syncColor,
-                          pointerEvents: 'auto',
-                        }}
-                      >
-                        <ChannelIcon size={11} strokeWidth={1.75} />
-                        <Box
-                          component="span"
-                          sx={{
-                            fontSize: '0.5625rem',
-                            fontWeight: 600,
-                            color: 'inherit',
-                            lineHeight: 1,
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
-                          {sync.synced}/{sync.total}
-                        </Box>
-                      </Box>
-                    </Tooltip>
-                  )}
-                  {reservationCount > 0 && (
+                  <Tooltip
+                    title={`${sync.synced} sur ${sync.total} canaux synchronises (sync < 24h)`}
+                    placement="top"
+                    arrow
+                  >
                     <Box
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: 0.25,
-                        color: 'var(--muted)',
+                        color: syncColor,
+                        pointerEvents: 'auto',
                       }}
                     >
-                      <TagIcon size={13} strokeWidth={1.75} />
+                      <ChannelIcon size={11} strokeWidth={1.75} />
                       <Box
                         component="span"
                         sx={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: '0.6875rem',
-                          fontWeight: 500,
-                          color: 'var(--muted)',
+                          fontSize: '0.5625rem',
+                          fontWeight: 600,
+                          color: 'inherit',
                           lineHeight: 1,
                           fontVariantNumeric: 'tabular-nums',
                         }}
                       >
-                        {reservationCount}
+                        {sync.synced}/{sync.total}
                       </Box>
                     </Box>
-                  )}
+                  </Tooltip>
                 </Box>
               )}
             </Box>
