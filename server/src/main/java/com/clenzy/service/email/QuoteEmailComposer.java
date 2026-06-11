@@ -157,4 +157,40 @@ public class QuoteEmailComposer {
         // Toujours echapper : si la cle ne matche pas, elle contient du user input brut
         return StringUtils.escapeHtml(labels.getOrDefault(key, key));
     }
+
+    /**
+     * Contenu par defaut du mail devis prospect quand le template
+     * {@code quote_to_prospect} est absent en BDD : {@code [subjectPlain,
+     * bodyPlain, wrapperStyle]} en texte brut (le wrapper HTML est applique
+     * a l'envoi par {@code EmailService}).
+     */
+    public String[] defaultProspectContent() {
+        return new String[]{
+            "Votre devis Baitly",
+            "Bonjour,\n\nNous avons le plaisir de vous transmettre votre devis "
+            + "personnalisé, que vous trouverez en pièce jointe au format PDF.\n\n"
+            + "Ce devis est sans engagement. Notre équipe reste à votre disposition "
+            + "pour toute question ou pour planifier une intervention.\n\n"
+            + "Au plaisir de collaborer avec vous,\nL'équipe Baitly",
+            "NOTIFICATION_GUEST"
+        };
+    }
+
+    /** Sujet de la copie interne du devis envoye au prospect. */
+    public String internalCopySubject(String prospectEmail) {
+        return "Copie interne — devis envoyé à " + prospectLabel(prospectEmail);
+    }
+
+    /** Corps plain text/markdown leger de la copie interne du devis. */
+    public String internalCopyBody(String prospectEmail) {
+        String prospectLabel = prospectLabel(prospectEmail);
+        return "Un devis vient d'être transmis à *" + prospectLabel + "*.\n\n"
+                + "Le PDF du devis envoyé est joint à cet email. "
+                + "Répondez directement à ce message pour écrire au prospect.";
+    }
+
+    /** Libelle prospect affichable ("un prospect" si l'email est absent). */
+    private static String prospectLabel(String prospectEmail) {
+        return (prospectEmail != null && !prospectEmail.isBlank()) ? prospectEmail : "un prospect";
+    }
 }

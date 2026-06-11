@@ -115,7 +115,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
+      # Mirror GCR d'abord (registry-1.docker.io timeout par intermittence), repli Docker Hub.
+      - name: Set up Docker Buildx (mirror GCR)
+        id: buildx-mirror
+        continue-on-error: true
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=mirror.gcr.io/moby/buildkit:buildx-stable-1
+
+      - name: Set up Docker Buildx (fallback Docker Hub)
+        if: steps.buildx-mirror.outcome == 'failure'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry

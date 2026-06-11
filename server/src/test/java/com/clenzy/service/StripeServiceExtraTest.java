@@ -69,15 +69,22 @@ class StripeServiceExtraTest {
     void setUp() throws Exception {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(1L);
-        stripeService = new StripeService(interventionRepository, reservationRepository,
-            serviceRequestRepository, notificationService, serviceRequestService, walletService,
-            ledgerService, splitPaymentService, autoInvoiceService, kafkaTemplate,
-            new com.clenzy.service.access.OrganizationAccessGuard(tenantContext),
-            stripeGateway, paymentStatusTransitionService,
-            org.mockito.Mockito.mock(PaymentLedgerReversalService.class));
-        setField("currency", "EUR");
-        setField("successUrl", "https://ok.test");
-        setField("cancelUrl", "https://ko.test");
+        StripeCheckoutSessionFactory checkoutSessionFactory = new StripeCheckoutSessionFactory(
+            interventionRepository, reservationRepository, serviceRequestRepository,
+            new com.clenzy.service.access.OrganizationAccessGuard(tenantContext), stripeGateway);
+        StripePaymentConfirmationService paymentConfirmationService = new StripePaymentConfirmationService(
+            interventionRepository, reservationRepository, serviceRequestRepository,
+            notificationService, serviceRequestService, walletService, ledgerService,
+            splitPaymentService, autoInvoiceService, kafkaTemplate, paymentStatusTransitionService);
+        StripeRefundService refundService = new StripeRefundService(stripeGateway,
+            paymentStatusTransitionService, org.mockito.Mockito.mock(PaymentLedgerReversalService.class),
+            notificationService, kafkaTemplate);
+        stripeService = new StripeService(stripeGateway, checkoutSessionFactory,
+            paymentConfirmationService, refundService);
+        setField(checkoutSessionFactory, "currency", "EUR");
+        setField(checkoutSessionFactory, "successUrl", "https://ok.test");
+        setField(checkoutSessionFactory, "cancelUrl", "https://ko.test");
+        setField(paymentConfirmationService, "currency", "EUR");
         org.mockito.Mockito.lenient()
             .when(paymentStatusTransitionService.markInterventionPaid(any())).thenReturn(true);
         org.mockito.Mockito.lenient()
@@ -86,10 +93,10 @@ class StripeServiceExtraTest {
             .when(paymentStatusTransitionService.markServiceRequestPaid(any())).thenReturn(true);
     }
 
-    private void setField(String name, String value) throws Exception {
-        Field f = StripeService.class.getDeclaredField(name);
+    private void setField(Object target, String name, String value) throws Exception {
+        Field f = target.getClass().getDeclaredField(name);
         f.setAccessible(true);
-        f.set(stripeService, value);
+        f.set(target, value);
     }
 
     private Intervention buildInterventionWithProperty(Long id, String currency) {

@@ -207,7 +207,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
+      # L'image moby/buildkit est tiree par defaut de Docker Hub (registry-1.docker.io),
+      # qui timeout par intermittence depuis les runners GitHub (flake recurrent).
+      # On tente d'abord le mirror GCR, puis repli sur Docker Hub si indisponible.
+      - name: Set up Docker Buildx (mirror GCR)
+        id: buildx-mirror
+        continue-on-error: true
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=mirror.gcr.io/moby/buildkit:buildx-stable-1
+
+      - name: Set up Docker Buildx (fallback Docker Hub)
+        if: steps.buildx-mirror.outcome == 'failure'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry

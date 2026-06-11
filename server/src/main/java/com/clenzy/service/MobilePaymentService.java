@@ -4,9 +4,11 @@ import com.clenzy.dto.InscriptionDto;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.User;
+import com.clenzy.payment.StripeAmounts;
 import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.UserRepository;
+import org.springframework.security.access.AccessDeniedException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.*;
 import com.stripe.model.Invoice;
@@ -325,14 +327,30 @@ public class MobilePaymentService {
         Intervention intervention = interventionRepository.findById(interventionId)
                 .orElseThrow(() -> new RuntimeException("Intervention introuvable: " + interventionId));
 
-        // Utiliser le montant fourni ou celui de l'intervention
-        long amount = amountCents != null ? amountCents
-                : intervention.getEstimatedCost() != null
-                ? intervention.getEstimatedCost().multiply(BigDecimal.valueOf(100)).longValue()
-                : 0;
+        // Ownership (regle audit #3) : findById contourne le filtre Hibernate. Un user
+        // non-staff ne peut initier le paiement (et muter le statut) que d'une intervention
+        // de SON organisation, sinon IDOR cross-org.
+        boolean platformStaff = user.getRole() != null && user.getRole().isPlatformStaff();
+        if (!platformStaff
+                && (user.getOrganizationId() == null
+                    || !user.getOrganizationId().equals(intervention.getOrganizationId()))) {
+            throw new AccessDeniedException("Intervention hors de votre organisation");
+        }
 
-        if (amount <= 0) {
-            throw new IllegalArgumentException("Montant invalide pour l'intervention");
+        // Le serveur est seul maitre du montant (regle audit #1) : on recalcule TOUJOURS
+        // depuis estimatedCost. Le montant client (amountCents) n'est qu'un cross-check :
+        // un ecart => 400, jamais une facturation au montant arbitraire fourni par le client.
+        if (intervention.getEstimatedCost() == null
+                || intervention.getEstimatedCost().signum() <= 0) {
+            throw new IllegalArgumentException("Montant indisponible pour cette intervention");
+        }
+        // Conversion euros->centimes via StripeAmounts (HALF_UP + longValueExact), pas la
+        // troncature multiply(100).longValue() (Z3-BUGS-09).
+        long amount = StripeAmounts.toMinorUnits(intervention.getEstimatedCost());
+        if (amountCents != null && !amountCents.equals(amount)) {
+            throw new IllegalArgumentException(
+                    "Le montant fourni (" + amountCents + " cts) ne correspond pas au cout de l'intervention ("
+                            + amount + " cts)");
         }
 
         PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()

@@ -893,6 +893,10 @@ public class ContactMessageService {
         try {
             return objectMapper.readValue(json, new TypeReference<List<ContactAttachmentDto>>() {});
         } catch (Exception e) {
+            // Degradation volontaire (le message reste consultable sans pieces
+            // jointes), mais trace exploitable : des metadonnees JSONB corrompues
+            // etaient avalees sans aucun log (regle audit n°7).
+            log.warn("Metadonnees de pieces jointes illisibles, ignorees: {}", e.getMessage(), e);
             return List.of();
         }
     }
