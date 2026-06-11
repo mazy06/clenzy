@@ -116,8 +116,9 @@ export default function PageHeader({
                 variant="h5"
                 component="h1"
                 sx={{
+                  fontFamily: 'var(--font-display)',
                   letterSpacing: '-0.01em',
-                  color: 'text.primary',
+                  color: 'var(--ink)',
                   lineHeight: 1.2,
                   ...(isCompact && {
                     overflow: 'hidden',
@@ -138,7 +139,7 @@ export default function PageHeader({
               <Typography
                 variant="caption"
                 sx={{
-                  color: 'text.secondary',
+                  color: 'var(--muted)',
                   display: 'block',
                   lineHeight: 1.3,
                   ...(isCompact && {

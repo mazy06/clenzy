@@ -86,6 +86,40 @@ export function signatureOverrides(isDark: boolean): ThemeOptions {
           },
         },
       },
+      // Paper global : plat (pas d'elevation par defaut), pas de gradient overlay dark.
+      // NB : pas de border/rayon ici — ça casserait menus, drawers, popovers.
+      MuiPaper: {
+        defaultProps: { elevation: 0 },
+        styleOverrides: { root: { backgroundImage: 'none' } },
+      },
+      // Menus / popovers : panneau hairline + ombre flottante (handoff --shadow-pop)
+      MuiMenu: {
+        styleOverrides: {
+          paper: {
+            border: '1px solid var(--line)',
+            borderRadius: 12,
+            boxShadow: 'var(--shadow-pop)',
+          },
+        },
+      },
+      MuiPopover: {
+        styleOverrides: {
+          paper: {
+            border: '1px solid var(--line)',
+            borderRadius: 12,
+            boxShadow: 'var(--shadow-pop)',
+          },
+        },
+      },
+      // Modales : rayon carte (14) + hairline, comme .s-modal
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            borderRadius: 14,
+            border: '1px solid var(--line)',
+          },
+        },
+      },
       // Cartes / panneaux : 1px hairline, rayon 14, AUCUNE ombre au repos
       MuiCard: {
         defaultProps: { elevation: 0 },
