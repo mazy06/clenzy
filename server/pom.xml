@@ -41,6 +41,17 @@
             environnements (spring.liquibase.enabled=true).
         -->
         <liquibase.version>4.29.2</liquibase.version>
+        <!--
+            CVE 2026-06 (audit D, incrément 1 — overrides chirurgicaux, Spring Boot 3.2 conservé).
+            Tomcat : Spring Boot 3.2.0 manage tomcat-embed-core 10.1.16, affecté par
+            CVE-2025-24813 (RCE non authentifiée via PUT partiel, CVSS 9.8 ; corrigé en 10.1.35).
+            On surcharge la version managée (même mineure 10.1.x → API compatible) pour fermer
+            le RCE sans attendre la montée Boot 3.5 (incrément 2).
+            Postgres : 42.6.0 (managé) affecté par CVE-2024-1597 (injection via NUL byte,
+            corrigé en 42.7.2) → 42.7.x.
+        -->
+        <tomcat.version>10.1.39</tomcat.version>
+        <postgresql.version>42.7.4</postgresql.version>
     </properties>
 
     <dependencies>
@@ -208,13 +219,13 @@
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-admin-client</artifactId>
-            <version>24.0.2</version>
+            <version>24.0.5</version>
         </dependency>
         
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-core</artifactId>
-            <version>24.0.2</version>
+            <version>24.0.5</version>
         </dependency>
         
         <!-- Jakarta WS RS API -->
@@ -254,10 +265,12 @@
         </dependency>
 
         <!-- Firebase Admin SDK (Push Notifications FCM) -->
+        <!-- CVE 2026-06 : 9.2.0 tirait protobuf-java 3.23.2 (CVE-2024-7254, DoS parsing).
+             9.4.x tire un protobuf-java patché. -->
         <dependency>
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
-            <version>9.2.0</version>
+            <version>9.4.3</version>
         </dependency>
 
         <!-- Jasypt Spring Boot (Chiffrement tokens en base) -->
