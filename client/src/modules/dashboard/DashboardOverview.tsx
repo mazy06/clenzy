@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { Box, Grid, Typography, useTheme } from '@mui/material';
+import { Box, Grid, Typography } from '@mui/material';
 import {
   Percent,
   Euro,
@@ -61,18 +61,20 @@ const EMPTY_INTERVENTIONS: Array<{
 
 // ─── Hover lift wrapper sx (shared across all KPI cards) ────────────────────
 
-const kpiHoverSx = (isDark: boolean) => ({
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  borderRadius: '12px',
+const kpiHoverSx = () => ({
+  transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  borderRadius: 'var(--radius-lg)',
   height: '100%',
   '&:hover': {
     transform: 'translateY(-3px)',
     '& > .MuiCard-root': {
-      borderColor: 'primary.main',
-      boxShadow: isDark
-        ? '0 8px 24px rgba(0,0,0,0.25)'
-        : '0 8px 24px rgba(107,138,154,0.15)',
+      borderColor: 'var(--line-2)',
+      boxShadow: 'var(--shadow-card)',
     },
+  },
+  '@media (prefers-reduced-motion: reduce)': {
+    transition: 'none',
+    '&:hover': { transform: 'none' },
   },
 }) as const;
 
@@ -82,8 +84,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
   const { data: aiToggles } = useAiFeatureToggles();
   const hasAnyAiEnabled = useMemo(() => {
     if (!aiToggles) return true; // show by default while loading
@@ -190,7 +190,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const isKpiLoading = loading || analyticsLoading;
 
   // Shared hover lift style
-  const hoverLift = kpiHoverSx(isDark);
+  const hoverLift = kpiHoverSx();
 
   // ─── Role-based widget visibility ──────────────────────────────────────
   const isOperational = ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'].includes(userRole);
@@ -296,11 +296,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                   bottom: 0,
                   zIndex: 2,
                   backdropFilter: 'blur(3px)',
-                  bgcolor: (theme) =>
-                    theme.palette.mode === 'dark'
-                      ? 'rgba(18, 18, 18, 0.5)'
-                      : 'rgba(255, 255, 255, 0.5)',
-                  borderRadius: 2,
+                  bgcolor: 'color-mix(in srgb, var(--bg) 55%, transparent)',
+                  borderRadius: 'var(--radius-lg)',
                   display: 'flex',
                   alignItems: 'flex-start',
                   justifyContent: 'center',
@@ -315,14 +312,10 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                     textAlign: 'center',
                     px: 3,
                     py: 1.5,
-                    borderRadius: 2,
-                    bgcolor: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? 'rgba(30, 30, 30, 0.9)'
-                        : 'rgba(255, 255, 255, 0.9)',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                    borderRadius: 'var(--radius-md)',
+                    bgcolor: 'color-mix(in srgb, var(--card) 92%, transparent)',
+                    border: '1px solid var(--line)',
+                    boxShadow: 'var(--shadow-card)',
                   }}
                 >
                   {t('onboarding.completionMessage')}
