@@ -171,8 +171,9 @@ export const WEEKEND_CELL_BG = 'var(--pl-cell-we)';
 // ─── Pagination ─────────────────────────────────────────────────────────────
 
 export const PAGINATION_BAR_HEIGHT = 32;
-// Hauteur desktop : rangée contrôles (~44px) + rangées filtres Canaux/Statuts
-// (~64px) + gap. Sert au calcul du pageSize (sur-estimer = sûr, jamais de clip).
+// Hauteur desktop : rangée contrôles (~44px) + rangée filtres fusionnée
+// canaux+statuts+interventions (~32px) + gaps/padding. Sert au calcul du
+// pageSize (sur-estimé = sûr, jamais de clip).
 export const TOOLBAR_HEIGHT = 116;
 export const APP_HEADER_HEIGHT = 56;
 

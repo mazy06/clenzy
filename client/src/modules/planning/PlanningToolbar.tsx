@@ -135,17 +135,6 @@ const legendToggleSx = (selected: boolean) => ({
   '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
 });
 
-/** Label overline d'une rangée de filtres (CANAUX / STATUTS). */
-const ROW_LABEL_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 700,
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase' as const,
-  color: 'var(--faint)',
-  width: 64,
-  flexShrink: 0,
-};
-
 /** Overline des sections du popover de filtres. */
 const OVERLINE_SX = {
   fontSize: '0.5625rem',
@@ -438,11 +427,10 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
               borderRadius: '7px !important',
             },
             '& .MuiToggleButton-root': {
-              fontSize: '0.6875rem',
+              fontSize: '0.75rem',
               fontWeight: 600,
-              py: 0.25,
-              px: 1.25,
-              height: 22,
+              lineHeight: 1,
+              padding: '6px 13px',
               textTransform: 'none',
               letterSpacing: '0.01em',
               color: 'var(--muted)',
@@ -972,31 +960,28 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
         </Tooltip>
       </Box>
 
-      {/* ── Rangées 2-3 (desktop) : filtres togglables CANAUX + STATUTS ───── */}
+      {/* ── Rangée 2 (desktop) : filtres togglables fusionnés — canaux,
+          statuts puis Interventions, sans libellés de rangée ─────────────── */}
       {!isCompact && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           {/* Canaux : LOGO de canal (la pastille des briques), toggle masque/affiche */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Box component="span" sx={ROW_LABEL_SX}>Canaux</Box>
-            <ChannelToggleChips activeChannels={activeChannels} onToggleChannel={onToggleChannel} />
-          </Box>
-
+          <ChannelToggleChips activeChannels={activeChannels} onToggleChannel={onToggleChannel} />
           {/* Statuts : puce colorée = couleur de brique, toggle masque/affiche */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Box component="span" sx={ROW_LABEL_SX}>Statuts</Box>
-            <StatusToggleChips activeStatuses={activeStatuses} onToggleStatus={onToggleStatus} />
-            {/* Ménage & maintenance sur la grille (maquette : chip Ménage) */}
-            <Box
-              component="span"
-              onClick={() => onShowInterventionsChange(!filters.showInterventions)}
-              sx={sigChipSx(filters.showInterventions)}
-            >
-              {/* Icône balai à la couleur ménage (spec --menage) */}
-              <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.cleaning }}>
-                <CleaningServices size={13} strokeWidth={1.75} />
-              </Box>
-              Interventions
+          <StatusToggleChips activeStatuses={activeStatuses} onToggleStatus={onToggleStatus} />
+          {/* Ménage & maintenance sur la grille : même chip .pl-chip que les
+              autres (icône balai 15px à la place du logo/dot), off = opacity .4 */}
+          <Box
+            component="button"
+            type="button"
+            aria-pressed={filters.showInterventions}
+            onClick={() => onShowInterventionsChange(!filters.showInterventions)}
+            sx={legendToggleSx(filters.showInterventions)}
+          >
+            {/* Icône balai à la couleur ménage (spec --menage) */}
+            <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.cleaning }}>
+              <CleaningServices size={15} strokeWidth={1.75} />
             </Box>
+            Interventions
           </Box>
         </Box>
       )}
@@ -1028,8 +1013,8 @@ const ChannelToggleChips: React.FC<{
                 src={ch.logo}
                 alt=""
                 sx={{
-                  width: 14,
-                  height: 14,
+                  width: 15,
+                  height: 15,
                   objectFit: 'contain',
                   display: 'block',
                   flexShrink: 0,
@@ -1037,7 +1022,7 @@ const ChannelToggleChips: React.FC<{
               />
             ) : (
               <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
-                <GlobeIcon size={14} strokeWidth={1.75} />
+                <GlobeIcon size={15} strokeWidth={1.75} />
               </Box>
             )}
             {ch.label}
