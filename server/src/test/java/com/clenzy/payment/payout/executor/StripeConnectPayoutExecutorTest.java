@@ -204,6 +204,50 @@ class StripeConnectPayoutExecutorTest {
     }
 
     @Test
+    @DisplayName("persistence failure AFTER successful transfer -> raises a structured reconciliation alert")
+    void whenSaveFailsAfterTransfer_thenReconciliationAlertRaised() throws StripeException {
+        OwnerPayoutConfig config = config("acct_123");
+        OwnerPayout p = payout();
+
+        Transfer transfer = mock(Transfer.class);
+        when(transfer.getId()).thenReturn("tr_recon");
+        when(stripeGateway.createTransfer(any(TransferCreateParams.class), anyString()))
+                .thenReturn(transfer);
+        when(payoutRepository.save(any(OwnerPayout.class)))
+                .thenAnswer(inv -> inv.getArgument(0))
+                .thenThrow(new RuntimeException("db down"));
+
+        assertThatThrownBy(() -> executor.execute(p, config))
+                .isInstanceOf(PayoutExecutor.PayoutExecutionException.class);
+
+        // Un humain doit etre notifie de l'incoherence transfert-reussi / DB-non-persistee.
+        verify(notifier).notifyReconciliationRequired(p, "tr_recon");
+        verify(notifier, never()).notifyFailure(any(), any());
+        verify(notifier, never()).notifySuccess(any());
+    }
+
+    @Test
+    @DisplayName("reconciliation alert failure does not mask the original persistence incident")
+    void whenReconciliationAlertThrows_thenOriginalIncidentStillPropagates() throws StripeException {
+        OwnerPayoutConfig config = config("acct_123");
+        OwnerPayout p = payout();
+
+        Transfer transfer = mock(Transfer.class);
+        when(transfer.getId()).thenReturn("tr_mask");
+        when(stripeGateway.createTransfer(any(TransferCreateParams.class), anyString()))
+                .thenReturn(transfer);
+        when(payoutRepository.save(any(OwnerPayout.class)))
+                .thenAnswer(inv -> inv.getArgument(0))
+                .thenThrow(new RuntimeException("db down"));
+        doThrow(new RuntimeException("notif down"))
+                .when(notifier).notifyReconciliationRequired(any(), anyString());
+
+        assertThatThrownBy(() -> executor.execute(p, config))
+                .isInstanceOf(PayoutExecutor.PayoutExecutionException.class)
+                .hasMessageContaining("tr_mask");
+    }
+
+    @Test
     @DisplayName("success notification failure does not fail the execution")
     void whenNotifySuccessThrows_thenExecutionStillSucceeds() throws StripeException {
         OwnerPayoutConfig config = config("acct_123");

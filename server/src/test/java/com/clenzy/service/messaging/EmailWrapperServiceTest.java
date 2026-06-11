@@ -76,7 +76,12 @@ class EmailWrapperServiceTest {
 
             String html = service.wrap("INTERNAL_FORM", "Nouvelle demande :\n\n" + details);
 
-            assertThat(html).contains(details);
+            // La sanitisation jsoup re-serialise le bloc en sa forme normalisee :
+            // <tbody> implicite materialise. Structure, styles inline et contenu
+            // conserves a l'identique (aucun construct dangereux ici a retirer).
+            String normalized = "<div style=\"background:#f8f9fa;\"><table cellpadding=\"0\">"
+                + "<tbody><tr><td style=\"color:#334155;\">Nom</td><td>Jean</td></tr></tbody></table></div>";
+            assertThat(html).contains(normalized);
         }
 
         @Test

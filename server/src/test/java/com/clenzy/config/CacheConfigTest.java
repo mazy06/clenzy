@@ -27,6 +27,8 @@ class CacheConfigTest {
     @Mock private RedisConnectionFactory redisConnectionFactory;
 
     private CacheConfig config;
+    /** Publisher no-op : la diffusion pub/sub n'est pas exercee dans ces tests unitaires. */
+    private final CacheInvalidationPublisher noopPublisher = (cacheName, key) -> { };
 
     @BeforeEach
     void setUp() {
@@ -36,7 +38,7 @@ class CacheConfigTest {
     @Test
     @DisplayName("cacheManager retourne un TwoLayerCacheManager (defaut config + 8 caches specifiques)")
     void cacheManager_returnsTwoLayerCacheManager() {
-        CacheManager manager = config.cacheManager(redisConnectionFactory);
+        CacheManager manager = config.cacheManager(redisConnectionFactory, noopPublisher);
 
         assertThat(manager).isNotNull();
         assertThat(manager).isInstanceOf(TwoLayerCacheManager.class);
@@ -45,7 +47,7 @@ class CacheConfigTest {
     @Test
     @DisplayName("cacheManager expose les noms de caches via getCacheNames()")
     void cacheManager_exposesCacheNames() {
-        CacheManager manager = config.cacheManager(redisConnectionFactory);
+        CacheManager manager = config.cacheManager(redisConnectionFactory, noopPublisher);
 
         // getCacheNames() peut etre vide tant qu'aucun getCache() n'a ete fait
         // (Redis cache manager se construit avec withInitialCacheConfigurations).
@@ -55,7 +57,7 @@ class CacheConfigTest {
     @Test
     @DisplayName("cacheManager retourne null quand on cherche un cache inconnu (RedisCacheManager comportement)")
     void cacheManager_unknownCacheNameReturnsNull_or_DefaultConfig() {
-        CacheManager manager = config.cacheManager(redisConnectionFactory);
+        CacheManager manager = config.cacheManager(redisConnectionFactory, noopPublisher);
 
         // RedisCacheManager + Caffeine L1 → renvoie un Cache (default config) ou null.
         // Le but est juste d'exercer la branche createTwoLayerCache.

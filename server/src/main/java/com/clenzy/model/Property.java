@@ -25,7 +25,7 @@ public class Property {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "organization_id")
+    @Column(name = "organization_id", nullable = false)
     private Long organizationId;
 
     @NotBlank(message = "Le nom du logement est obligatoire")

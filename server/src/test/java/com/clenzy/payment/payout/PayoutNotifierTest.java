@@ -114,6 +114,27 @@ class PayoutNotifierTest {
     }
 
     @Test
+    void notifyReconciliationRequired_notifiesAdminsWithTransferReference() {
+        OwnerPayout payout = buildPayout();
+
+        notifier.notifyReconciliationRequired(payout, "tr_abc123");
+
+        verify(notificationService).notifyAdminsAndManagersByOrgId(
+            eq(1L), eq(NotificationKey.RECONCILIATION_FAILED),
+            contains("Reconciliation"), contains("tr_abc123"), eq("/billing"));
+    }
+
+    @Test
+    void notifyReconciliationRequired_doesNotNotifyOwner() {
+        OwnerPayout payout = buildPayout();
+
+        notifier.notifyReconciliationRequired(payout, "tr_abc123");
+
+        verify(notificationService, never()).sendByOrgId(any(), any(), any(), any(), any(), any());
+        verify(userRepository, never()).findById(any());
+    }
+
+    @Test
     void notifySepaPending_notifiesAdmins() {
         OwnerPayout payout = buildPayout();
 

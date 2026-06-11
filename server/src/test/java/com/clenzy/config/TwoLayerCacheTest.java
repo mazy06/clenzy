@@ -166,4 +166,61 @@ class TwoLayerCacheTest {
         inOrder.verify(redisCache).clear();
         inOrder.verify(caffeineMock).invalidateAll();
     }
+
+    // --- Invalidation cross-instance (C3-AUDITIP-CACHE) ------------------
+
+    @Test void whenEvict_withPublisher_thenPublishesKeyAfterLocalEvict() {
+        CacheInvalidationPublisher publisher = mock(CacheInvalidationPublisher.class);
+        TwoLayerCache cache = new TwoLayerCache("pub-cache", caffeineCache, redisCache, publisher);
+
+        cache.evict("key1");
+
+        verify(redisCache).evict("key1");
+        verify(publisher).publishEviction("pub-cache", "key1");
+    }
+
+    @Test void whenClear_withPublisher_thenPublishesClearMarker() {
+        CacheInvalidationPublisher publisher = mock(CacheInvalidationPublisher.class);
+        TwoLayerCache cache = new TwoLayerCache("pub-cache", caffeineCache, redisCache, publisher);
+
+        cache.clear();
+
+        verify(redisCache).clear();
+        // key == null = clear complet du cache sur les autres noeuds
+        verify(publisher).publishEviction("pub-cache", null);
+    }
+
+    @Test void whenEvict_withoutPublisher_thenNoPublicationAndNoNpe() {
+        // Constructeur mono-instance (publisher null) : comportement historique strict.
+        twoLayerCache.evict("key1");
+
+        verify(redisCache).evict("key1");
+        // Pas de publisher : aucune diffusion, et surtout aucune NPE.
+    }
+
+    @Test void whenPublisherThrows_thenEvictStillSucceedsLocally() {
+        // Le contrat best-effort est porte par l'implementation du publisher
+        // (RedisCacheInvalidationPublisher avale les RuntimeException). Ici on
+        // verifie au moins que l'evict local L2/L1 a bien eu lieu AVANT la
+        // publication, donc qu'un publisher tardif ne defait pas l'eviction.
+        caffeineCache.put("key1", "value1");
+        CacheInvalidationPublisher publisher = mock(CacheInvalidationPublisher.class);
+        TwoLayerCache cache = new TwoLayerCache("pub-cache", caffeineCache, redisCache, publisher);
+
+        cache.evict("key1");
+
+        assertThat(caffeineCache.getIfPresent("key1")).isNull();
+        verify(redisCache).evict("key1");
+    }
+
+    @Test void clearLocal_invalidatesL1Only_withoutTouchingRedis() {
+        caffeineCache.put("key1", "value1");
+        caffeineCache.put("key2", "value2");
+
+        twoLayerCache.clearLocal();
+
+        assertThat(caffeineCache.estimatedSize()).isZero();
+        // clearLocal ne doit ni vider Redis ni re-publier.
+        verifyNoInteractions(redisCache);
+    }
 }

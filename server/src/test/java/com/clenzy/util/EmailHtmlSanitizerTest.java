@@ -19,21 +19,31 @@ class EmailHtmlSanitizerTest {
         }
 
         @Test
-        void whenPlainTextWithMarkdownAndNewlines_thenByteIdentical() {
-            // Arrange — body typique d'un template plain text (variables, markdown, puces)
+        void whenPlainTextWithMarkdownAndNewlines_thenContentAndStructurePreserved() {
+            // Arrange — body typique d'un template plain text (variables, markdown, puces).
+            // NB : jsoup re-serialise et echappe les caracteres HTML (< > &) en entites ;
+            // le markdown (*..* _.._) et les sauts de ligne (decoupage en paragraphes par
+            // EmailWrapperService) restent intacts.
             String body = "Bonjour {guestName},\n\n*Important* : prix < 100 & > 50.\n"
                 + "- regle 1\n- regle 2\n\n_Merci_ de votre sejour.";
 
             // Act
             String result = EmailHtmlSanitizer.sanitize(body);
 
-            // Assert
-            assertThat(result).isEqualTo(body);
+            // Assert — texte, markdown et sauts de ligne conserves ; HTML echappe
+            assertThat(result)
+                .contains("Bonjour {guestName},")
+                .contains("*Important*")
+                .contains("_Merci_ de votre sejour.")
+                .contains("- regle 1\n- regle 2")
+                .contains("prix &lt; 100 &amp; &gt; 50.");
         }
 
         @Test
-        void whenLegitEmailHtmlBlock_thenPreservedVerbatim() {
-            // Arrange — bloc table/div avec styles inline (cas {detailsHtml})
+        void whenLegitEmailHtmlBlock_thenStructureAndStylesPreserved() {
+            // Arrange — bloc table/div avec styles inline (cas {detailsHtml}).
+            // jsoup normalise le HTML (insertion <tbody>, attributs) mais conserve la
+            // structure, les styles inline et le lien https legitimes.
             String body = "<div style=\"background:#f8f9fa;padding:16px;\">"
                 + "<table cellpadding=\"0\" cellspacing=\"0\"><tr>"
                 + "<td style=\"color:#334155;\">Nom</td><td>Jean</td>"
@@ -42,14 +52,23 @@ class EmailHtmlSanitizerTest {
 
             String result = EmailHtmlSanitizer.sanitize(body);
 
-            assertThat(result).isEqualTo(body);
+            assertThat(result)
+                .contains("<div style=\"background:#f8f9fa;padding:16px;\">")
+                .contains("<table cellpadding=\"0\" cellspacing=\"0\">")
+                .contains("<td style=\"color:#334155;\">Nom</td>")
+                .contains("<td>Jean</td>")
+                .contains("<a href=\"https://app.clenzy.fr/contracts\">Voir le contrat</a>");
         }
 
         @Test
         void whenHttpsLinkWithQueryParams_thenPreserved() {
             String body = "<a href=\"https://x.com/page?onboarding=true&data=1\">lien</a>";
 
-            assertThat(EmailHtmlSanitizer.sanitize(body)).isEqualTo(body);
+            // jsoup echappe l'esperluette du query string (&data → &amp;data) :
+            // le lien reste fonctionnel et le scheme https est conserve.
+            assertThat(EmailHtmlSanitizer.sanitize(body))
+                .contains("href=\"https://x.com/page?onboarding=true&amp;data=1\"")
+                .contains(">lien</a>");
         }
     }
 

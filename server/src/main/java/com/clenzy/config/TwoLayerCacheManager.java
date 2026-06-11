@@ -22,13 +22,35 @@ public class TwoLayerCacheManager implements CacheManager {
     private final RedisCacheManager redisCacheManager;
     private final Duration caffeineTtl;
     private final long caffeineMaxSize;
+    /** Diffusion cross-instance des invalidations L1. {@code null} = mono-instance. */
+    private final CacheInvalidationPublisher invalidationPublisher;
     private final ConcurrentMap<String, Cache> cacheMap = new ConcurrentHashMap<>();
 
+    /** Constructeur mono-instance : pas de diffusion cross-instance (comportement historique). */
     public TwoLayerCacheManager(RedisCacheManager redisCacheManager,
                                  Duration caffeineTtl, long caffeineMaxSize) {
+        this(redisCacheManager, caffeineTtl, caffeineMaxSize, null);
+    }
+
+    public TwoLayerCacheManager(RedisCacheManager redisCacheManager,
+                                 Duration caffeineTtl, long caffeineMaxSize,
+                                 CacheInvalidationPublisher invalidationPublisher) {
         this.redisCacheManager = redisCacheManager;
         this.caffeineTtl = caffeineTtl;
         this.caffeineMaxSize = caffeineMaxSize;
+        this.invalidationPublisher = invalidationPublisher;
+    }
+
+    /**
+     * Evince le L1 LOCAL du cache nomme (sans toucher L2 ni re-publier), suite a
+     * un message d'invalidation cross-instance. No-op si le cache n'a pas encore
+     * ete materialise sur ce noeud (rien a evincer).
+     */
+    void evictLocal(String cacheName) {
+        Cache cache = cacheMap.get(cacheName);
+        if (cache instanceof TwoLayerCache twoLayer) {
+            twoLayer.clearLocal();
+        }
     }
 
     @Override
@@ -56,6 +78,6 @@ public class TwoLayerCacheManager implements CacheManager {
                         .recordStats()
                         .build();
 
-        return new TwoLayerCache(name, caffeineCache, redisCache);
+        return new TwoLayerCache(name, caffeineCache, redisCache, invalidationPublisher);
     }
 }

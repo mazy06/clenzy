@@ -25,6 +25,7 @@ import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -138,6 +139,35 @@ class ContractSignatureServiceTest {
         assertEquals("SIGNED", result.status());
         verify(notificationService).notifyAdminsAndManagersByOrgId(
                 eq(ORG_ID), eq(NotificationKey.CONTRACT_SIGNED), anyString(), contains("actif"), anyString());
+    }
+
+    @Test
+    void whenSigning_thenNotificationBodyContainsOnlyInitialsNotFullName() throws Exception {
+        // RGPD : le corps PERSISTÉ de la notification in-app ne doit contenir que
+        // les initiales du signataire (J.D.), jamais son nom complet — le nom
+        // complet reste dans le dossier de preuve (légitime), pas dans la notif.
+        ContractSignatureRequest request = pendingRequest();
+        ManagementContract contract = contract(ContractStatus.DRAFT);
+        when(signatureRequestRepository.findByToken(TOKEN)).thenReturn(Optional.of(request));
+        when(contractRepository.findById(1L)).thenReturn(Optional.of(contract));
+        when(generationRepository.findById(7L)).thenReturn(Optional.of(mandateGeneration()));
+        when(documentStorageService.loadAsBytes(anyString())).thenReturn("PDF".getBytes());
+        when(signatureRequestRepository.markSigned(5L)).thenReturn(1);
+        when(signatureRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(contractRepository.findActiveByPropertyId(100L, ORG_ID)).thenReturn(Optional.empty());
+        when(contractRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(certificateStamper.appendCertificate(any(), any())).thenReturn("PDF-SIGNED".getBytes());
+        when(documentStorageService.store(anyString(), anyString(), any())).thenReturn("path.pdf");
+
+        service.sign(TOKEN, "Jean Dupont", true, "1.2.3.4", "UA");
+
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        verify(notificationService).notifyAdminsAndManagersByOrgId(
+                eq(ORG_ID), eq(NotificationKey.CONTRACT_SIGNED), anyString(), body.capture(), eq("/contracts"));
+        assertTrue(body.getValue().contains("J.D."), "le corps doit contenir les initiales");
+        assertFalse(body.getValue().contains("Jean Dupont"), "le corps ne doit pas contenir le nom complet");
+        // Le nom complet reste bien dans le dossier de preuve (donnée légale).
+        assertEquals("Jean Dupont", request.getSignedByName());
     }
 
     @Test

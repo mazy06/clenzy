@@ -1325,8 +1325,13 @@ class EmailServiceTest {
             String html = extractHtmlPart(captor.getValue());
 
             assertThat(html).isNotNull();
+            // Securite : l'ancre injectee N'EST PAS rendue comme un lien vivant —
+            // ses chevrons restent echappes (&lt; / &gt;), donc affichee en texte
+            // litteral. jsoup re-serialise le &quot; interne en " (les guillemets
+            // dans une valeur d'attribut n'ont pas besoin d'echappement) : cosmetique,
+            // le construct reste neutralise (pas de <a ...> reel).
             assertThat(html).doesNotContain("<a href=\"https://evil.example\">");
-            assertThat(html).contains("&lt;a href=&quot;https://evil.example&quot;&gt;Cliquez ici&lt;/a&gt;");
+            assertThat(html).contains("&lt;a href=\"https://evil.example\"&gt;Cliquez ici&lt;/a&gt;");
         }
 
         @Test

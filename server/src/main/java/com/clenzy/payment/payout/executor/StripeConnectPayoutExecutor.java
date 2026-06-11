@@ -32,8 +32,11 @@ import java.time.Instant;
  *       le même transfert, jamais un second virement.</li>
  *   <li>Seul l'échec de {@code Transfer.create} marque le payout FAILED. Un
  *       échec de persistance APRÈS un transfert réussi n'est PAS traité comme
- *       un échec de virement : il est loggé pour réconciliation et remonté
- *       sans passer par {@code failPayout} (pas d'incrément de retry FAILED).</li>
+ *       un échec de virement : il déclenche une ALERTE de réconciliation
+ *       structurée vers les admins/managers (en plus du log ERROR) et est
+ *       remonté sans passer par {@code failPayout} (pas d'incrément de retry
+ *       FAILED). Un humain est ainsi notifié de l'incohérence transfert-réussi
+ *       / DB-non-persistée.</li>
  *   <li>Un échec de notification ne fait jamais échouer l'exécution.</li>
  * </ul>
  */
@@ -106,9 +109,10 @@ public class StripeConnectPayoutExecutor implements PayoutExecutor {
 
     /**
      * Persiste le resultat du transfert. Un echec ici ne doit PAS marquer le
-     * payout FAILED (l'argent est parti) : log ERROR pour reconciliation et
-     * propagation d'une exception explicite — le re-essai est sans risque
-     * grace a l'idempotency key Stripe.
+     * payout FAILED (l'argent est parti) : log ERROR + ALERTE de reconciliation
+     * structuree vers les admins/managers (un humain doit reconcilier, pas
+     * seulement un log — regle audit n°7) puis propagation d'une exception
+     * explicite — le re-essai est sans risque grace a l'idempotency key Stripe.
      */
     private OwnerPayout persistTransferResult(OwnerPayout payout, Transfer transfer) {
         try {
@@ -121,10 +125,23 @@ public class StripeConnectPayoutExecutor implements PayoutExecutor {
             log.error("Transfert Stripe {} emis pour le payout {} mais la persistance a echoue — "
                 + "reconciliation requise (re-executer ce payout est sans risque : idempotency key payout-{}).",
                 transfer.getId(), payout.getId(), payout.getId(), e);
+            notifyReconciliationQuietly(payout, transfer.getId());
             throw new PayoutExecutionException(
                 "Le virement Stripe a ete emis (ref " + transfer.getId()
                 + ") mais son enregistrement a echoue. Ne pas re-executer via un autre rail — "
                 + "relancer ce payout est sans risque (idempotence Stripe).", e);
+        }
+    }
+
+    /**
+     * Alerte de reconciliation best-effort : un echec de notification ne doit
+     * jamais masquer l'incident de persistance d'origine (qui est propage).
+     */
+    private void notifyReconciliationQuietly(OwnerPayout payout, String transferReference) {
+        try {
+            notifier.notifyReconciliationRequired(payout, transferReference);
+        } catch (Exception e) {
+            log.warn("Alerte de reconciliation du payout {} echouee: {}", payout.getId(), e.getMessage());
         }
     }
 
