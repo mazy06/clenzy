@@ -44,6 +44,14 @@ public class CalendarEngine {
     /** Source des overrides crees par une mise a jour manuelle du prix. */
     static final String MANUAL_OVERRIDE_SOURCE = "MANUAL";
 
+    /**
+     * Prefixe de source des overrides crees par un import de prix OTA inbound
+     * (Airbnb, Booking.com, Expedia/VRBO). La source complete est
+     * {@code OTA:<CHANNEL>} (ex: {@code OTA:AIRBNB}) afin de tracer le canal
+     * d'origine — voir {@link #updateExternalPrice}.
+     */
+    static final String OTA_OVERRIDE_SOURCE_PREFIX = "OTA:";
+
     private final CalendarDayRepository calendarDayRepository;
     private final CalendarCommandRepository calendarCommandRepository;
     private final PropertyRepository propertyRepository;
@@ -424,10 +432,13 @@ public class CalendarEngine {
      * Met a jour le prix par nuit sur les jours [from, to) d'une propriete.
      * Cree les CalendarDays s'ils n'existent pas encore.
      *
-     * <p>N'ecrit QUE calendar_days.nightly_price (affichage calendrier) — utilise
-     * notamment par les imports OTA inbound. Pour un prix fixe manuellement par
-     * l'utilisateur, utiliser {@link #updateManualPrice} qui cree en plus un
-     * {@link RateOverride} source MANUAL visible du PriceEngine (audit Z5-BUGS-04).</p>
+     * <p>N'ecrit QUE calendar_days.nightly_price (affichage calendrier) — chemin
+     * bas niveau partage. Les appelants qui veulent que le prix soit VISIBLE du
+     * {@link PriceEngine} (facturation, devis booking engine, push OTA) doivent
+     * passer par une variante qui cree en plus un {@link RateOverride} :
+     * {@link #updateManualPrice} (source MANUAL, saisie utilisateur) ou
+     * {@link #updateExternalPrice} (source OTA:&lt;channel&gt;, imports OTA inbound)
+     * — audit Z5-BUGS-04.</p>
      *
      * @param propertyId propriete cible
      * @param from       premier jour (inclus)
@@ -523,6 +534,83 @@ public class CalendarEngine {
 
         log.info("CalendarEngine.updateManualPrice: {} override(s) MANUAL pour propriete {} [{}, {})",
                 toSave.size(), propertyId, from, to);
+    }
+
+    /**
+     * Met a jour le prix par nuit IMPORTE D'UN OTA sur les jours [from, to).
+     *
+     * <p>Miroir de {@link #updateManualPrice} pour les imports OTA inbound
+     * (Airbnb, Booking.com, Expedia/VRBO — audit Z5-BUGS-04, reliquat) : en plus
+     * de l'ecriture calendrier ({@link #updatePrice}), cree/met a jour un
+     * {@link RateOverride} de source {@code OTA:<channel>} par date. Le prix
+     * importe devient ainsi VISIBLE du {@link PriceEngine} (priorite override,
+     * au-dessus des plans) — facture au guest, repercute aux devis.</p>
+     *
+     * <p>Anti-boucle yield : le yield management ({@link AdvancedRateManager})
+     * n'ecrase QUE les overrides de source {@code YIELD_RULE} ; un override
+     * {@code OTA:*} est donc preserve (exclusion deja en place, source != YIELD_RULE).</p>
+     *
+     * <p>Anti-boucle push : cette methode reutilise l'event outbox emis par
+     * {@link #updatePrice} ({@code CALENDAR_PRICE_UPDATED}). Elle n'introduit
+     * AUCUN event/push supplementaire par rapport au comportement anterieur
+     * (qui appelait deja {@link #updatePrice}). Le fan-out OUTBOUND existant
+     * vers les channels reste donc inchange (voir note de boucle dans le
+     * rapport de mission).</p>
+     *
+     * @param propertyId propriete cible
+     * @param from       premier jour (inclus)
+     * @param to         dernier jour (exclus)
+     * @param price      nouveau prix par nuit (requis ; un null est ignore comme
+     *                   sur {@link #updateManualPrice})
+     * @param orgId      organization du tenant
+     * @param actorId    identifiant de l'acteur (ex: "airbnb-webhook")
+     * @param channel    canal OTA d'origine (ex: "AIRBNB", "BOOKING", "VRBO") ;
+     *                   sert a construire la source {@code OTA:<channel>}
+     */
+    public void updateExternalPrice(Long propertyId, LocalDate from, LocalDate to,
+                                    BigDecimal price, Long orgId, String actorId, String channel) {
+        // Ecriture calendrier (lock advisory, command log, event outbox)
+        updatePrice(propertyId, from, to, price, orgId, actorId);
+
+        if (price == null) {
+            return;
+        }
+
+        final String overrideSource = OTA_OVERRIDE_SOURCE_PREFIX
+                + (channel != null ? channel.trim().toUpperCase(Locale.ROOT) : "UNKNOWN");
+
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Propriete introuvable: " + propertyId));
+
+        // Batch : charger les overrides existants de la plage puis upsert par date
+        Map<LocalDate, RateOverride> existingByDate = rateOverrideRepository
+                .findByPropertyIdAndDateRange(propertyId, from, to, orgId).stream()
+                .collect(Collectors.toMap(RateOverride::getDate, o -> o));
+
+        List<RateOverride> toSave = new ArrayList<>();
+        for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
+            RateOverride override = existingByDate.get(date);
+            if (override == null) {
+                override = new RateOverride(property, date, price, overrideSource, orgId);
+                override.setCreatedBy(actorId);
+            } else if (MANUAL_OVERRIDE_SOURCE.equals(override.getSource())) {
+                // Un prix fixe manuellement par l'hote prime sur un import OTA :
+                // on ne l'ecrase pas (symetrie inverse de la garde yield, qui
+                // preserve deja tout override non YIELD_RULE).
+                log.debug("CalendarEngine.updateExternalPrice: override MANUAL existant pour"
+                                + " propriete {} date {}, import {} ignore sur ce jour",
+                        propertyId, date, overrideSource);
+                continue;
+            } else {
+                override.setNightlyPrice(price);
+                override.setSource(overrideSource);
+            }
+            toSave.add(override);
+        }
+        rateOverrideRepository.saveAll(toSave);
+
+        log.info("CalendarEngine.updateExternalPrice: {} override(s) {} pour propriete {} [{}, {})",
+                toSave.size(), overrideSource, propertyId, from, to);
     }
 
     // ----------------------------------------------------------------

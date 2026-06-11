@@ -76,7 +76,8 @@ class RateManagerServiceTest {
                 advancedRateManager, rateDistributionService, null, priceEngine,
                 channelRateModifierRepository, lengthOfStayDiscountRepository,
                 occupancyPricingRepository, yieldRuleRepository, rateAuditLogRepository,
-                rateOverrideRepository, propertyRepository, reservationService, tenantContext);
+                rateOverrideRepository, propertyRepository, reservationService, tenantContext,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
     }
 
     private void setupRegularUserInOrg(Long orgId) {

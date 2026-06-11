@@ -69,6 +69,25 @@ class PriceEngineTest {
     }
 
     @Test
+    void resolvePrice_otaImportedOverride_isResolved() {
+        // Un prix importe d'un OTA (source OTA:<channel>) est un override comme un
+        // autre : le PriceEngine le resout en priorite (Z5-BUGS-04 reliquat).
+        RateOverride otaOverride = new RateOverride();
+        otaOverride.setDate(date);
+        otaOverride.setNightlyPrice(new BigDecimal("175.00"));
+        otaOverride.setSource("OTA:AIRBNB");
+
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, date, orgId))
+                .thenReturn(Optional.of(otaOverride));
+
+        // L'exclusion yield ne porte que sur YIELD_RULE : l'override OTA reste resolu
+        BigDecimal result = priceEngine.resolvePrice(propertyId, date, orgId, Set.of("YIELD_RULE"));
+
+        assertEquals(new BigDecimal("175.00"), result);
+        verify(ratePlanRepository, never()).findActiveByPropertyId(anyLong(), anyLong());
+    }
+
+    @Test
     void resolvePrice_promotional_overSeasonal() {
         RatePlan promotional = new RatePlan();
         promotional.setType(RatePlanType.PROMOTIONAL);

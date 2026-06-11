@@ -100,7 +100,8 @@ class RateManagerControllerTest {
                 advancedRateManager, rateDistributionService, scheduler, priceEngine,
                 channelRateModifierRepository, lengthOfStayDiscountRepository,
                 occupancyPricingRepository, yieldRuleRepository, rateAuditLogRepository,
-                rateOverrideRepository, propertyRepository, reservationService, tenantContext);
+                rateOverrideRepository, propertyRepository, reservationService, tenantContext,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
         return new RateManagerController(rateManagerService);
     }
 
@@ -374,6 +375,9 @@ class RateManagerControllerTest {
         void deleteModifier_exists_deletes() {
             ChannelRateModifier existing = new ChannelRateModifier();
             existing.setId(10L);
+            // Org alignee au tenant : OrganizationAccessGuard est fail-closed (org NULL -> refus).
+            existing.setOrganizationId(ORG_ID);
+            when(tenantContext.getOrganizationId()).thenReturn(ORG_ID);
             when(channelRateModifierRepository.findById(10L)).thenReturn(Optional.of(existing));
 
             ResponseEntity<Void> response = controller.deleteModifier(10L, jwt);
@@ -481,6 +485,9 @@ class RateManagerControllerTest {
         void deleteLosDiscount_exists_deletes() {
             LengthOfStayDiscount existing = new LengthOfStayDiscount();
             existing.setId(50L);
+            // Org alignee au tenant : OrganizationAccessGuard est fail-closed (org NULL -> refus).
+            existing.setOrganizationId(ORG_ID);
+            when(tenantContext.getOrganizationId()).thenReturn(ORG_ID);
             when(lengthOfStayDiscountRepository.findById(50L)).thenReturn(Optional.of(existing));
 
             ResponseEntity<Void> response = controller.deleteLosDiscount(50L, jwt);
@@ -685,6 +692,9 @@ class RateManagerControllerTest {
         void deleteYieldRule_exists_deletes() {
             YieldRule rule = new YieldRule();
             rule.setId(10L);
+            // Org alignee au tenant : OrganizationAccessGuard est fail-closed (org NULL -> refus).
+            rule.setOrganizationId(ORG_ID);
+            when(tenantContext.getOrganizationId()).thenReturn(ORG_ID);
             when(yieldRuleRepository.findById(10L)).thenReturn(Optional.of(rule));
 
             ResponseEntity<Void> response = controller.deleteYieldRule(10L, jwt);

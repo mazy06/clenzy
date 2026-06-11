@@ -99,13 +99,14 @@ class ExpediaCalendarServiceTest {
 
             service.handleCalendarEvent(event);
 
-            verify(calendarEngine).updatePrice(
+            verify(calendarEngine).updateExternalPrice(
                     eq(PROPERTY_ID),
                     eq(LocalDate.of(2025, 9, 1)),
                     eq(LocalDate.of(2025, 9, 10)),
                     any(BigDecimal.class),
                     eq(ORG_ID),
-                    eq("expedia-webhook")
+                    eq("expedia-webhook"),
+                    eq("VRBO")
             );
             verify(auditLogService).logSync(eq("ExpediaCalendar"), eq(EXPEDIA_PROPERTY_ID), anyString());
             verify(webhookService).markAsProcessed(EVENT_ID);
@@ -202,13 +203,14 @@ class ExpediaCalendarServiceTest {
 
             service.handleCalendarEvent(event);
 
-            verify(calendarEngine).updatePrice(
+            verify(calendarEngine).updateExternalPrice(
                     eq(PROPERTY_ID),
                     eq(LocalDate.of(2025, 9, 1)),
                     eq(LocalDate.of(2025, 9, 10)),
                     any(BigDecimal.class),
                     eq(ORG_ID),
-                    eq("expedia-webhook")
+                    eq("expedia-webhook"),
+                    eq("VRBO")
             );
             verify(auditLogService).logSync(eq("ExpediaRate"), eq(EXPEDIA_PROPERTY_ID), anyString());
             verify(webhookService).markAsProcessed(EVENT_ID);

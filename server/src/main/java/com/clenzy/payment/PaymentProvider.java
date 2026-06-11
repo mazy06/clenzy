@@ -31,7 +31,7 @@ public interface PaymentProvider {
      * Refund a payment (full or partial) — signature historique.
      *
      * <p>Suffisante pour Stripe (un seul identifiant suffit). Pour les
-     * providers qui ont besoin de plus de contexte (PayTabs, Payzone, PayPal),
+     * providers qui ont besoin de plus de contexte (PayTabs, Payzone),
      * implémenter plutôt {@link #refundPayment(RefundContext, BigDecimal, String)}.</p>
      */
     PaymentResult refundPayment(String providerTxId, BigDecimal amount, String reason);
@@ -39,8 +39,8 @@ public interface PaymentProvider {
     /**
      * Refund avec contexte enrichi. Surcharge par défaut qui délègue à la
      * signature historique pour les providers qui n'ont pas besoin du
-     * contexte étendu (Stripe). Les providers régionaux (PayTabs / Payzone /
-     * PayPal) overrident pour utiliser l'orgId + currency + transactionRef.
+     * contexte étendu (Stripe). Les providers régionaux (PayTabs / Payzone)
+     * overrident pour utiliser l'orgId + currency + transactionRef.
      */
     default PaymentResult refundPayment(RefundContext context, BigDecimal amount, String reason) {
         return refundPayment(context.providerTxId(), amount, reason);
