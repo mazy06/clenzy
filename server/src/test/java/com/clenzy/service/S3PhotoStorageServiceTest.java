@@ -5,10 +5,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.clenzy.repository.AssistantMessageRepository;
+import com.clenzy.tenant.TenantContext;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.core.ResponseBytes;
+import org.springframework.security.access.AccessDeniedException;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -26,12 +28,15 @@ import static org.mockito.Mockito.*;
 class S3PhotoStorageServiceTest {
 
     @Mock private S3Client s3Client;
+    @Mock private AssistantMessageRepository assistantMessageRepository;
+    @Mock private TenantContext tenantContext;
 
     private S3PhotoStorageService service;
 
     @BeforeEach
     void setUp() {
-        service = new S3PhotoStorageService(s3Client, "test-bucket", "photos");
+        service = new S3PhotoStorageService(
+                s3Client, "test-bucket", "photos", assistantMessageRepository, tenantContext);
     }
 
     @Nested
@@ -85,11 +90,61 @@ class S3PhotoStorageServiceTest {
 
         @Test
         void usesCustomPrefix() {
-            S3PhotoStorageService custom = new S3PhotoStorageService(s3Client, "other-bucket", "uploads");
+            S3PhotoStorageService custom = new S3PhotoStorageService(
+                    s3Client, "other-bucket", "uploads", assistantMessageRepository, tenantContext);
 
             String key = custom.store(new byte[]{1}, "image/jpeg", "x.jpg");
 
             assertThat(key).startsWith("uploads/");
+        }
+    }
+
+    @Nested
+    @DisplayName("assertReadableInCurrentOrg")
+    class AssertReadableInCurrentOrg {
+
+        @Test
+        void keyReferencedByOrgMessage_passes() {
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(tenantContext.isSystemOrg()).thenReturn(false);
+            when(tenantContext.getOrganizationId()).thenReturn(7L);
+            when(assistantMessageRepository.existsAttachmentKeyForOrg("photos/abc.jpg", 7L))
+                    .thenReturn(true);
+
+            service.assertReadableInCurrentOrg("photos/abc.jpg");
+            // pas d'exception → autorise
+        }
+
+        @Test
+        void keyFromAnotherOrg_denied() {
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(tenantContext.isSystemOrg()).thenReturn(false);
+            when(tenantContext.getOrganizationId()).thenReturn(7L);
+            when(assistantMessageRepository.existsAttachmentKeyForOrg("photos/foreign.jpg", 7L))
+                    .thenReturn(false);
+
+            assertThatThrownBy(() -> service.assertReadableInCurrentOrg("photos/foreign.jpg"))
+                    .isInstanceOf(AccessDeniedException.class);
+        }
+
+        @Test
+        void platformStaff_bypassesCheck() {
+            when(tenantContext.isSuperAdmin()).thenReturn(true);
+
+            service.assertReadableInCurrentOrg("photos/anything.jpg");
+
+            verify(assistantMessageRepository, never())
+                    .existsAttachmentKeyForOrg(any(), any());
+        }
+
+        @Test
+        void nullTenantOrg_denied() {
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(tenantContext.isSystemOrg()).thenReturn(false);
+            when(tenantContext.getOrganizationId()).thenReturn(null);
+
+            assertThatThrownBy(() -> service.assertReadableInCurrentOrg("photos/abc.jpg"))
+                    .isInstanceOf(AccessDeniedException.class);
         }
     }
 

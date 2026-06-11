@@ -58,4 +58,25 @@ public interface AssistantMessageRepository extends JpaRepository<AssistantMessa
             + "LIMIT 1", nativeQuery = true)
     String findAttachmentsJsonByStorageKeyForUser(@Param("storageKey") String storageKey,
                                                     @Param("keycloakId") String keycloakId);
+
+    /**
+     * Indique si un {@code storageKey} est deja reference par un attachment d'un
+     * message appartenant a l'organisation {@code orgId}.
+     *
+     * <p>Use case (audit 2026-06, A1-AGENT-IA-01) : garde fail-closed pour les
+     * backends de stockage dont la cle n'est pas liee a une ressource org-scopee
+     * (cle S3 = UUID aleatoire). On autorise la resolution d'un attachment chat
+     * uniquement si la cle a deja ete vue dans un message de la meme org.</p>
+     *
+     * <p>Native query : on contourne le filtre Hibernate (la garde fournit l'org
+     * explicitement) et on recherche par sous-chaine dans le champ jsonb cast en
+     * texte, comme {@link #findAttachmentsJsonByStorageKeyForUser}.</p>
+     */
+    @Query(value = "SELECT EXISTS(SELECT 1 FROM assistant_message m "
+            + "WHERE m.organization_id = :orgId "
+            + "AND m.attachments IS NOT NULL "
+            + "AND m.attachments::text LIKE CONCAT('%\"storageKey\":\"', :storageKey, '\"%'))",
+            nativeQuery = true)
+    boolean existsAttachmentKeyForOrg(@Param("storageKey") String storageKey,
+                                       @Param("orgId") Long orgId);
 }

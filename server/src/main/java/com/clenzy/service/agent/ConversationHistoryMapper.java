@@ -111,6 +111,20 @@ public class ConversationHistoryMapper {
                 String storageKey = node.path("storageKey").asText(null);
                 String mediaType = node.path("mediaType").asText(null);
                 if (storageKey == null || storageKey.isBlank() || mediaType == null) continue;
+                // SECURITE (audit 2026-06, A1-AGENT-IA-01) : le storageKey est
+                // controle par le client (refs re-injectees dans le body chat).
+                // On valide l'appartenance a l'org du caller AVANT de resoudre les
+                // bytes — sinon lecture de fichier arbitraire cross-org (le storage
+                // local resout par property_photos.id, enumerable cross-org).
+                // L'AccessDeniedException remonte (pas avalee) : un attachment force
+                // est une tentative d'acces, pas une indisponibilite transitoire.
+                try {
+                    photoStorageService.assertReadableInCurrentOrg(storageKey);
+                } catch (org.springframework.security.access.AccessDeniedException e) {
+                    log.warn("Attachment storageKey '{}' refuse (acces cross-organisation) : {}",
+                            storageKey, e.getMessage());
+                    throw e;
+                }
                 try {
                     byte[] bytes = photoStorageService.retrieve(storageKey);
                     if (bytes == null || bytes.length == 0) continue;
@@ -121,6 +135,10 @@ public class ConversationHistoryMapper {
                             storageKey, e.getMessage());
                 }
             }
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            // Tentative d'acces cross-org sur un attachment force : remonter,
+            // ne PAS confondre avec un JSON invalide (catch generique ci-dessous).
+            throw e;
         } catch (Exception e) {
             log.warn("attachments JSON invalide, ignored : {}", e.getMessage());
         }

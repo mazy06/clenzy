@@ -223,6 +223,10 @@ public class PropertyService {
     public PropertyDto updateStatus(Long id, String status) {
         final com.clenzy.model.Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Property not found"));
+        // findById ne passe PAS par le filtre Hibernate organizationFilter
+        // (audit 2026-06, regle 3) → garde org fail-closed obligatoire avant write.
+        // Sans elle : IDOR write cross-org via le tool LLM update_property_status.
+        requireSameOrganization(property);
         final com.clenzy.model.PropertyStatus newStatus;
         try {
             newStatus = com.clenzy.model.PropertyStatus.valueOf(status);

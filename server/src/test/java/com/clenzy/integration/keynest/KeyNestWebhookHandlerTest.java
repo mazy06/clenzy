@@ -85,19 +85,22 @@ class KeyNestWebhookHandlerTest {
     }
 
     @Test
-    void verifySignature_blankSecret_returnsTrue() throws Exception {
+    void verifySignature_blankSecret_returnsFalse_failClosed() throws Exception {
+        // Durcissement DS2/I2-IOT-02 : secret non configure => fail-CLOSED (rejet),
+        // plus de fail-open qui acceptait n'importe quelle requete sans secret.
         java.lang.reflect.Field f = KeyNestConfig.class.getDeclaredField("webhookSecret");
         f.setAccessible(true);
         f.set(config, "");
-        assertThat(handler.verifySignature("anything", "whatever")).isTrue();
+        assertThat(handler.verifySignature("anything", "whatever")).isFalse();
     }
 
     @Test
-    void verifySignature_nullSecret_returnsTrue() throws Exception {
+    void verifySignature_nullSecret_returnsFalse_failClosed() throws Exception {
+        // Idem : secret null => rejet (fail-closed).
         java.lang.reflect.Field f = KeyNestConfig.class.getDeclaredField("webhookSecret");
         f.setAccessible(true);
         f.set(config, null);
-        assertThat(handler.verifySignature("p", "s")).isTrue();
+        assertThat(handler.verifySignature("p", "s")).isFalse();
     }
 
     @Test

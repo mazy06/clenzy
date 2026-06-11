@@ -2308,3 +2308,37 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # Préparation schéma pour le chiffrement au repos des colonnes « secret » (audit
+  # DS1-SECRETS — M1-MODEL-02/03/04) : élargit external_pricing_configs.api_key,
+  # integration_partners.api_key_encrypted, check_in_instructions.access_code/wifi_password
+  # en TEXT, et convertit check_in_instructions.extra_access_codes de JSONB en TEXT
+  # (le ciphertext Jasypt n'est pas du JSON). Le chiffrement effectif des valeurs en clair
+  # existantes est assuré au boot par le runner SecretColumnEncryptionBackfill (côté Java).
+  # ORDRE OBLIGATOIRE : Liquibase(0233 -> colonnes TEXT) AVANT la validation Hibernate
+  # (entités déclarant columnDefinition=TEXT) sinon échec ddl-auto=validate au boot.
+  # Bloc PL/pgSQL DO $$ pour la conversion JSONB->TEXT -> splitStatements: false.
+  - changeSet:
+      id: "0233-encrypt-secret-columns"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0233__encrypt_secret_columns.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  # Secret de webhook par connexion Nuki (audit DS2-ENDPOINTS-WEBHOOKS — I2-IOT-01) :
+  # ajoute nuki_connections.webhook_secret_encrypted (TEXT, nouvelle colonne, NULL par
+  # défaut). L'entité NukiConnection mappe le champ JPA webhookSecret sur cette colonne
+  # (@Convert EncryptedFieldConverter, chiffrement AES-256 au repos). Colonne NOUVELLE
+  # sans valeur en clair préexistante -> aucun backfill requis (cf. mode STRICT du
+  # converter). En prod (ddl-auto=validate), cette entrée DOIT être présente sinon
+  # Liquibase ne crée pas la colonne et la validation Hibernate échoue au boot.
+  - changeSet:
+      id: "0234-webhook-secrets"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0234__webhook_secrets.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

@@ -757,6 +757,112 @@ class DirectBookingServiceTest {
             assertThatThrownBy(() -> service.confirmBooking("DB-UNKNOWN", ORG_ID))
                     .isInstanceOf(IllegalArgumentException.class);
         }
+
+        @Test
+        @DisplayName("I1-OTA-01 — paid booking refused on public endpoint (403)")
+        void whenPaidBooking_publicConfirmRefused() {
+            // Stripe active + config requirePayment=true → paiement requis → refus public
+            lenient().when(config.getDefaultCurrency()).thenReturn(CURRENCY);
+            when(config.isStripeEnabled()).thenReturn(true);
+
+            Property prop = activeProperty();
+            prop.setOrganizationId(ORG_ID);
+            Reservation r = new Reservation(prop, "Jean", futureCheckIn(), futureCheckOut(),
+                    "pending", "DIRECT");
+            r.setId(100L);
+            r.setOrganizationId(ORG_ID);
+            r.setConfirmationCode("DB-PAID");
+
+            DirectBookingConfiguration cfg = new DirectBookingConfiguration(ORG_ID, PROPERTY_ID);
+            cfg.setEnabled(true);
+            cfg.setRequirePayment(true);
+
+            when(reservationRepository.findAll()).thenReturn(List.of(r));
+            when(configRepository.findEnabledByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(cfg));
+
+            assertThatThrownBy(() -> service.confirmBooking("DB-PAID", ORG_ID))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            // La resa n'est PAS confirmee cote public
+            verify(reservationRepository, never()).save(any(Reservation.class));
+        }
+
+        @Test
+        @DisplayName("I1-OTA-01 — webhook confirms paid booking")
+        void webhookConfirmsPaidBooking() {
+            Property prop = activeProperty();
+            prop.setOrganizationId(ORG_ID);
+            Reservation r = new Reservation(prop, "Jean", futureCheckIn(), futureCheckOut(),
+                    "pending", "DIRECT");
+            r.setId(100L);
+            r.setOrganizationId(ORG_ID);
+            r.setConfirmationCode("DB-PAID");
+
+            when(reservationRepository.findAll()).thenReturn(List.of(r));
+            when(reservationRepository.save(any(Reservation.class))).thenReturn(r);
+
+            service.confirmPaidBookingFromWebhook("DB-PAID", ORG_ID);
+
+            ArgumentCaptor<Reservation> cap = ArgumentCaptor.forClass(Reservation.class);
+            verify(reservationRepository).save(cap.capture());
+            assertThat(cap.getValue().getStatus()).isEqualTo("confirmed");
+        }
+
+        @Test
+        @DisplayName("I1-OTA-01 — webhook is idempotent on already-confirmed booking")
+        void webhookIdempotent() {
+            Property prop = activeProperty();
+            Reservation r = new Reservation(prop, "Jean", futureCheckIn(), futureCheckOut(),
+                    "confirmed", "DIRECT");
+            r.setId(100L);
+            r.setOrganizationId(ORG_ID);
+            r.setConfirmationCode("DB-PAID");
+
+            when(reservationRepository.findAll()).thenReturn(List.of(r));
+
+            service.confirmPaidBookingFromWebhook("DB-PAID", ORG_ID);
+
+            verify(reservationRepository, never()).save(any(Reservation.class));
+        }
+    }
+
+    // ================================================================
+    // getPropertySummary — I1-OTA-03 cross-org guard
+    // ================================================================
+
+    @Nested
+    @DisplayName("getPropertySummary")
+    class GetPropertySummary {
+
+        @Test
+        @DisplayName("I1-OTA-03 — no enabled config for org throws (no cross-org leak)")
+        void whenNoEnabledConfigForOrg_thenThrows() {
+            when(configRepository.findEnabledByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.getPropertySummary(PROPERTY_ID, ORG_ID))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("introuvable");
+            // La propriete n'est jamais chargee si pas de config org
+            verify(propertyRepository, never()).findById(any());
+        }
+
+        @Test
+        @DisplayName("I1-OTA-03 — config enabled but property belongs to other org throws")
+        void whenConfigEnabledButCrossOrgProperty_thenThrows() {
+            DirectBookingConfiguration cfg = new DirectBookingConfiguration(ORG_ID, PROPERTY_ID);
+            cfg.setEnabled(true);
+            when(configRepository.findEnabledByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(cfg));
+
+            Property otherOrgProp = activeProperty();
+            otherOrgProp.setOrganizationId(999L);
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(otherOrgProp));
+
+            assertThatThrownBy(() -> service.getPropertySummary(PROPERTY_ID, ORG_ID))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("introuvable");
+        }
     }
 
     // ================================================================
