@@ -89,10 +89,10 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
 
   // ── Interventions rattachées à une réservation (maquette) ────────────────
   // Une intervention liée (linkedReservationId) dont la réservation est
-  // visible sur cette rangée est absorbée DANS la brique (pastille blanche)
-  // au lieu d'une chip séparée sur la grille — uniquement si la brique est
-  // assez large pour le groupe de pastilles (sinon la chip reste visible :
-  // rien ne disparaît). Les interventions orphelines gardent leur chip.
+  // visible sur cette rangée est TOUJOURS absorbée DANS la brique (pastille
+  // blanche 21px — sur brique étroite elle compte dans le « +N »). Les
+  // interventions sans réservation liée restent sur la grille, rendues en
+  // pastille icône seule par PlanningBar (plus de chip texte).
   const { visibleLayouts, linkedInterventionsByBarId } = useMemo(() => {
     const reservationLayoutsById = new Map<number, BarLayout>();
     for (const l of barLayouts) {
@@ -108,9 +108,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
       const host = isInterventionType && linkedResId
         ? reservationLayoutsById.get(linkedResId)
         : undefined;
-      // Même seuil que showBadgeGroup dans PlanningBar (largeur > 120,
-      // hauteur >= 28) : en-dessous, le groupe de pastilles n'est pas rendu.
-      if (host && host.width > 120 && host.height >= 28) {
+      if (host) {
         const arr = linked.get(host.event.id);
         if (arr) {
           arr.push(l.event);

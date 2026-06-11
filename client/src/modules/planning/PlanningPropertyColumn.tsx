@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Box, Typography, Tooltip, useTheme, Chip, Divider } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import PropertyPopover from './PropertyPopover';
 import type { PlanningProperty, DensityMode } from './types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getCleaningFrequencyLabel } from '../../utils/statusUtils';
@@ -348,7 +349,6 @@ interface PlanningPropertyColumnProps {
   onColWidthChange?: (width: number) => void;
   effectiveRowHeight: number;
   emptyRowCount?: number;
-  onPropertyClick?: (propertyId: number) => void;
   reservationCountByProperty?: Map<number, number>;
   channelSyncMap?: ChannelSyncMap;
 }
@@ -361,10 +361,16 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   onColWidthChange,
   effectiveRowHeight,
   emptyRowCount = 0,
-  onPropertyClick,
   reservationCountByProperty,
   channelSyncMap,
 }) => {
+  // ── Popover logement (maquette) : ouvert au clic sur le nom ──────────────
+  // Le tooltip hover riche reste en place (info au survol) ; il est suspendu
+  // pour la ligne dont le popover est ouvert afin d'éviter le chevauchement.
+  const [popover, setPopover] = useState<{ anchorEl: HTMLElement; propertyId: number } | null>(null);
+  const popoverProperty = popover
+    ? properties.find((p) => p.id === popover.propertyId) ?? null
+    : null;
   // ── Drag handle pour redimensionner la colonne ───────────────────────────
   const resizeStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const [isResizing, setIsResizing] = useState(false);
@@ -462,7 +468,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
         return (
           <Tooltip
             key={property.id}
-            title={<PropertyTooltipContent property={property} />}
+            title={popover?.propertyId === property.id ? '' : <PropertyTooltipContent property={property} />}
             placement="right"
             arrow
             enterDelay={350}
@@ -498,7 +504,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             }}
           >
             <Box
-              onClick={() => onPropertyClick?.(property.id)}
+              onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })}
               sx={{
                 position: 'relative',
                 height: effectiveRowHeight,
@@ -508,17 +514,17 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 gap: 0,
                 px: 0,
                 py: '6px',
-                cursor: onPropertyClick ? 'pointer' : 'default',
+                cursor: 'pointer',
                 borderBottom: '1px solid var(--line)',
-                backgroundColor: selectedPropertyId === property.id
+                backgroundColor: selectedPropertyId === property.id || popover?.propertyId === property.id
                   ? 'var(--accent-soft)'
                   : idx % 2 === 0
                     ? 'transparent'
                     : 'color-mix(in srgb, var(--ink) 1.5%, transparent)',
                 transition: 'background-color 0.15s ease',
-                '&:hover': onPropertyClick ? {
+                '&:hover': {
                   backgroundColor: 'var(--hover)',
-                } : {},
+                },
               }}
             >
               {/* Bloc texte (maquette) : nom + ville/arrondissement dessous,
@@ -662,6 +668,15 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           }}
         />
       ))}
+
+      {/* Popover logement (clic sur le nom) */}
+      {popover && popoverProperty && (
+        <PropertyPopover
+          anchorEl={popover.anchorEl}
+          property={popoverProperty}
+          onClose={() => setPopover(null)}
+        />
+      )}
     </Box>
   );
 });
