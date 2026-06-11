@@ -196,10 +196,14 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
     async (price: number) => {
       if (!selectedPropertyId || selectedDates.length === 0) return;
       const sorted = [...selectedDates].sort();
+      // L'API attend une plage [from, to) ouverte a droite → on ajoute 1 jour a `to`
+      const lastDate = new Date(sorted[sorted.length - 1]);
+      lastDate.setDate(lastDate.getDate() + 1);
+      const toExclusive = lastDate.toISOString().slice(0, 10);
       await onUpdatePrice({
         propertyId: selectedPropertyId,
         from: sorted[0],
-        to: sorted[sorted.length - 1],
+        to: toExclusive,
         nightlyPrice: price,
       });
       setSelectedDates([]);

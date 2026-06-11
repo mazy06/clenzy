@@ -25,7 +25,7 @@ import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
-import keycloak from '../../keycloak';
+import keycloak, { decodeJwt } from '../../keycloak';
 import { clearMockFlags, setSessionCookie } from '../../services/storageService';
 
 interface InscriptionInfo {
@@ -125,7 +125,7 @@ export default function InscriptionConfirm() {
       keycloak.refreshToken = data.refresh_token;
       keycloak.idToken = data.id_token;
       keycloak.authenticated = true;
-      keycloak.tokenParsed = JSON.parse(atob(data.access_token.split('.')[1]));
+      keycloak.tokenParsed = decodeJwt(data.access_token);
 
       // Session vierge : reset des flags mock + session cookie partage avec
       // la landing. Tokens vivent dans le cookie HttpOnly + keycloak.token.

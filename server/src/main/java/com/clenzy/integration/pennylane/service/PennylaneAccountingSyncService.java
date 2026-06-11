@@ -270,6 +270,13 @@ public class PennylaneAccountingSyncService {
 
     /**
      * Mappe un taux de TVA Clenzy vers un code TVA Pennylane.
+     *
+     * <p>Un taux non reconnu lève une {@link IllegalStateException} plutôt que
+     * de retomber silencieusement sur un code par défaut : exporter une facture
+     * avec un taux de TVA faux serait une erreur comptable invisible. L'exception
+     * fait échouer la sync de l'élément concerné — en batch, elle est comptée
+     * dans {@code failed}, remontée dans {@code errors}, et l'élément reste non
+     * marqué comme synchronisé donc en attente de réconciliation/retry.</p>
      */
     private String mapVatRate(BigDecimal taxRate) {
         if (taxRate == null || taxRate.compareTo(BigDecimal.ZERO) == 0) {
@@ -281,8 +288,12 @@ public class PennylaneAccountingSyncService {
         if (percent.compareTo(BigDecimal.valueOf(20)) == 0) return "FR_200";
         if (percent.compareTo(BigDecimal.valueOf(10)) == 0) return "FR_100";
         if (percent.compareTo(new BigDecimal("5.5")) == 0) return "FR_055";
-        // Default : taux standard
-        return "FR_200";
+
+        log.error("Pennylane sync — taux de TVA non mappable vers un code Pennylane : {}% "
+                + "(taux brut {}). Export refusé pour éviter une facture avec une TVA fausse.",
+            percent.stripTrailingZeros().toPlainString(), taxRate.toPlainString());
+        throw new IllegalStateException(
+            "Taux de TVA non reconnu pour l'export Pennylane : " + percent.stripTrailingZeros().toPlainString() + "%");
     }
 
     private void updateLastSync(Long orgId) {

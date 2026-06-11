@@ -2342,3 +2342,18 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # Suppression de la colonne legacy users.password (audit MB1 — M1-MODEL-01) : le champ
+  # JPA password a été retiré de l'entité User (Keycloak = seule source d'authentification).
+  # La colonne users.password était déclarée @Column(nullable=false) et stockait un mot de
+  # passe en clair, désormais non mappé. En prod (ddl-auto=validate), cette entrée DOIT être
+  # présente sinon la colonne NOT NULL subsiste côté DB alors que l'entité ne la mappe plus
+  # -> tout INSERT d'un nouvel utilisateur (InscriptionService, OrganizationInvitationService,
+  # NewUserService) échouerait au niveau DB. DDL simple idempotent (DROP COLUMN IF EXISTS)
+  # -> splitStatements/stripComments non requis.
+  - changeSet:
+      id: "0235-drop-user-password"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0235__drop_user_password.sql
+        relativeToChangelogFile: true

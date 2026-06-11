@@ -93,7 +93,7 @@ class UserServiceTest {
         user.setFirstName("Jean");
         user.setLastName("Dupont");
         user.setEmail(email);
-        user.setPassword("Passw0rd!");
+        // Pas de setPassword : le mot de passe n'est plus persiste (Keycloak = seule source d'auth).
         user.setRole(role);
         user.setStatus(UserStatus.ACTIVE);
         user.setKeycloakId("kc-" + id);
@@ -136,6 +136,34 @@ class UserServiceTest {
             verify(newUserService).createUser(captor.capture());
             assertThat(captor.getValue().getEmail()).isEqualTo("test@example.com");
             assertThat(captor.getValue().getRole()).isEqualTo("HOST");
+            // Le mot de passe d'entree DOIT etre route vers le provisioning Keycloak
+            // (NewUserService -> KeycloakService), jamais persiste en base.
+            assertThat(captor.getValue().getPassword()).isEqualTo("Passw0rd!");
+        }
+
+        @Test
+        void whenCreated_thenReturnedDtoNeverExposesPassword() {
+            UserDto dto = new UserDto();
+            dto.email = "secret@example.com";
+            dto.firstName = "No";
+            dto.lastName = "Leak";
+            dto.password = "Passw0rd!";
+            dto.role = UserRole.HOST;
+
+            UserProfileDto profileDto = new UserProfileDto();
+            profileDto.setId("kc-77");
+            when(newUserService.createUser(any(CreateUserDto.class))).thenReturn(profileDto);
+
+            User savedUser = buildUser(77L, "secret@example.com", UserRole.HOST);
+            savedUser.setKeycloakId("kc-77");
+            when(userRepository.findByKeycloakId("kc-77")).thenReturn(Optional.of(savedUser));
+            when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
+            UserDto result = userService.create(dto);
+
+            // Cœur du correctif MB1-PASSWORD : aucun DTO de sortie ne doit exposer un mot de passe.
+            assertThat(result.password).isNull();
+            assertThat(result.newPassword).isNull();
         }
 
         @Test

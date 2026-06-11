@@ -52,12 +52,12 @@ public class User {
 
     @Column(name = "email_hash", length = 64)
     private String emailHash;
-    
-    @NotBlank(message = "Le mot de passe est obligatoire")
-    @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
-    @Column(nullable = false)
-    private String password;
-    
+
+    // Le mot de passe n'est PAS persiste ici : Keycloak est la seule source
+    // d'authentification (cf. InscriptionService -> keycloakUser.setPassword).
+    // Le champ legacy `users.password` (stocke en clair) a ete supprime
+    // (changeset 0235) — voir mission MB1-PASSWORD.
+
     @Column(name = "phone_number")
     @Convert(converter = EncryptedFieldConverter.class)
     private String phoneNumber;
@@ -178,11 +178,15 @@ public class User {
     // Constructeurs
     public User() {}
     
-    public User(String firstName, String lastName, String email, String password) {
+    /**
+     * @param legacyPassword conserve uniquement pour la compatibilite de signature
+     *        (nombreux appels de test historiques). Le mot de passe n'est PLUS
+     *        persiste : il transite uniquement vers Keycloak. Parametre ignore.
+     */
+    public User(String firstName, String lastName, String email, String legacyPassword) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
-        this.password = password;
     }
     
     // Getters et Setters
@@ -228,14 +232,6 @@ public class User {
     }
 
 
-    public String getPassword() {
-        return password;
-    }
-    
-    public void setPassword(String password) {
-        this.password = password;
-    }
-    
     public String getPhoneNumber() {
         return phoneNumber;
     }
