@@ -39,7 +39,7 @@ import {
 } from '../../icons';
 import type { ZoomLevel, DensityMode, PlanningFilters, UrgencyAnimationMode } from './types';
 import type { ReservationStatus } from '../../services/api';
-import { ZOOM_LABELS, RESERVATION_STATUS_TOKEN_COLORS } from './constants';
+import { ZOOM_LABELS, RESERVATION_STATUS_TOKEN_COLORS, INTERVENTION_TYPE_TOKEN_COLORS } from './constants';
 import type { PlanningChannelKey } from './constants';
 import { RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../services/api/reservationsApi';
 import { getSourceLogo } from './utils/sourceLogos';
@@ -96,7 +96,8 @@ const URGENCY_ANIMATION_OPTIONS: { value: UrgencyAnimationMode; label: string }[
 
 // ─── Styles partagés (langage Signature) ────────────────────────────────────
 
-/** Chip pilule Signature : carte hairline, état actif accent-soft. */
+/** Chip pilule Signature (spec .pl-chip) : carte hairline, padding 5px 10px,
+ *  11.5px fw600 var(--body) ; état actif accent-soft. */
 const sigChipSx = (active: boolean) => ({
   display: 'inline-flex',
   alignItems: 'center',
@@ -109,8 +110,7 @@ const sigChipSx = (active: boolean) => ({
   border: '1px solid',
   borderColor: active ? 'var(--accent)' : 'var(--line-2)',
   borderRadius: '8px',
-  px: 1.25,
-  py: 0.6875,
+  padding: '5px 10px',
   cursor: 'pointer',
   userSelect: 'none' as const,
   whiteSpace: 'nowrap' as const,
@@ -121,25 +121,17 @@ const sigChipSx = (active: boolean) => ({
 
 /**
  * Chip-bouton togglable des rangées légende (Canaux / Statuts).
- * Sélectionné = look hairline normal ; désélectionné = texte var(--faint),
- * pastille désaturée (cf. legendDotSx) — fond et bordure hairline inchangés.
+ * Spec .pl-chip / .pl-chip.off : sélectionné = look hairline normal ;
+ * désélectionné = chip entière à opacity .4 (fond, bordure, puce inchangés).
  */
 const legendToggleSx = (selected: boolean) => ({
   ...sigChipSx(false),
   appearance: 'none' as const,
   fontFamily: 'inherit',
-  color: selected ? 'var(--body)' : 'var(--faint)',
-  transition: 'color 150ms cubic-bezier(.16,1,.3,1), border-color 150ms cubic-bezier(.16,1,.3,1)',
+  opacity: selected ? 1 : 0.4,
+  transition: 'opacity .12s, border-color .12s',
   '&:hover': { borderColor: 'var(--faint)' },
   '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-});
-
-/** Pastille (puce statut / logo canal) : désaturée quand le toggle est off. */
-const legendDotSx = (selected: boolean) => ({
-  filter: selected ? 'none' : 'grayscale(1)',
-  opacity: selected ? 1 : 0.45,
-  transition: 'filter 150ms cubic-bezier(.16,1,.3,1), opacity 150ms cubic-bezier(.16,1,.3,1)',
   '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
 });
 
@@ -246,7 +238,8 @@ const StatusToggleChips: React.FC<{
           onClick={() => onToggleStatus(opt.value)}
           sx={legendToggleSx(selected)}
         >
-          {/* Puce colorée = couleur du statut (mêmes tokens que les briques) */}
+          {/* Puce 9px radius 3 (spec .s-dot) = couleur exacte du statut,
+              mêmes constantes que les briques */}
           <Box
             component="span"
             sx={{
@@ -255,7 +248,6 @@ const StatusToggleChips: React.FC<{
               borderRadius: '3px',
               flexShrink: 0,
               backgroundColor: RESERVATION_STATUS_TOKEN_COLORS[opt.value] ?? 'var(--faint)',
-              ...legendDotSx(selected),
             }}
           />
           {opt.label}
@@ -999,7 +991,8 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
               onClick={() => onShowInterventionsChange(!filters.showInterventions)}
               sx={sigChipSx(filters.showInterventions)}
             >
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}>
+              {/* Icône balai à la couleur ménage (spec --menage) */}
+              <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.cleaning }}>
                 <CleaningServices size={13} strokeWidth={1.75} />
               </Box>
               Interventions
@@ -1040,11 +1033,10 @@ const ChannelToggleChips: React.FC<{
                   objectFit: 'contain',
                   display: 'block',
                   flexShrink: 0,
-                  ...legendDotSx(selected),
                 }}
               />
             ) : (
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', ...legendDotSx(selected) }}>
+              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
                 <GlobeIcon size={14} strokeWidth={1.75} />
               </Box>
             )}

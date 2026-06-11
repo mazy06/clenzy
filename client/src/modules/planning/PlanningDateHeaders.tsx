@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Box, Tooltip, Typography } from '@mui/material';
 import { isToday, isWeekend, formatMonthYear, formatDayNumber, formatDayShort, formatFullDate } from './utils/dateUtils';
-import { DATE_HEADER_HEIGHT, WEEKEND_TINT_BG } from './constants';
+import { DATE_HEADER_HEIGHT, WEEKEND_HEADER_BG } from './constants';
 import type { ZoomLevel, MonthSeparator } from './types';
 
 interface PlanningDateHeadersProps {
@@ -167,10 +167,11 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                     borderRight: '1px solid var(--line)',
                     // Spec .pl-day:last-child : pas de séparateur sur le dernier
                     '&:last-child': { borderRight: 0 },
+                    // Spec .pl-day.we (constante locale --pl-day-we)
                     backgroundColor: today
                       ? 'color-mix(in srgb, var(--accent) 6%, transparent)'
                       : weekend
-                        ? WEEKEND_TINT_BG
+                        ? WEEKEND_HEADER_BG
                         : 'transparent',
                     cursor: 'default',
                     userSelect: 'none',

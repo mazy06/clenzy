@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box } from '@mui/material';
-import { isToday, daysBetween } from './utils/dateUtils';
+import { isToday } from './utils/dateUtils';
 import { TODAY_LINE_COLOR, TODAY_LINE_WIDTH } from './constants';
 
 interface PlanningTodayLineProps {
@@ -14,16 +14,25 @@ const PlanningTodayLine: React.FC<PlanningTodayLineProps> = React.memo(({
   dayWidth,
   totalHeight,
 }) => {
+  // Recalage chaque minute (spec JS placeNow : setInterval 60 000 ms,
+  // cleanup à l'unmount) — le trait suit l'heure courante sans reload.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   const todayOffset = useMemo(() => {
     if (days.length === 0) return null;
     const todayIndex = days.findIndex((d) => isToday(d));
     if (todayIndex === -1) return null;
 
-    // Position at current hour within the day
-    const now = new Date();
+    // Équivalent du calc(188px + (100% − 188px) × fraction) de la spec : le
+    // conteneur des rangées démarre déjà après la colonne logements, d'où
+    // left = (todayIdx + heure/24) × dayWidth.
     const hourFraction = (now.getHours() + now.getMinutes() / 60) / 24;
     return todayIndex * dayWidth + hourFraction * dayWidth;
-  }, [days, dayWidth]);
+  }, [days, dayWidth, now]);
 
   if (todayOffset === null) return null;
 

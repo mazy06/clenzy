@@ -6,8 +6,8 @@ import { INTERVENTION_TYPE_LABELS } from '../../services/api/reservationsApi';
 import type { PlanningInterventionType } from '../../services/api';
 import ReservationPopover from './ReservationPopover';
 import SendMessageDialog from '../messaging/SendMessageDialog';
-import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData, UrgencyAnimationMode } from './types';
-import { BAR_BORDER_RADIUS } from './constants';
+import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData } from './types';
+import { BAR_BORDER_RADIUS, INTERVENTION_TYPE_TOKEN_COLORS } from './constants';
 import { getEventDisplayColor } from './utils/colorUtils';
 import { getSourceLogo } from './utils/sourceLogos';
 import { daysBetween } from './utils/dateUtils';
@@ -48,8 +48,6 @@ interface PlanningBarProps {
   /** Interventions (menage/maintenance) rattachees a cette reservation —
    *  affichees en pastilles blanches dans la brique (maquette). */
   linkedInterventions?: PlanningEvent[];
-  /** Variante d'animation d'urgence (paiement en attente / info manquante). */
-  urgencyAnimation?: UrgencyAnimationMode;
 }
 
 /** Icone des interventions. Menage/maintenance sont rendues en pastille
@@ -131,11 +129,11 @@ const RadarPastille: React.FC<{
 
 // ─── Pastille blanche (langage Signature, dans la brique) ───────────────────
 //
-// Indicateurs groupes a droite de la brique : carre arrondi blanc de 20px
-// (réconciliation brique 36px — spec .pl-bar : height 36, padding 0 7px 0 5px)
-// avec icone coloree 13px (paiement, info manquante) ou logo canal.
+// Indicateurs groupes a droite de la brique : carre arrondi blanc de 21px
+// (spec .pl-badge — brique 36px, padding 0 7px 0 5px) avec icone coloree 13px
+// (paiement, info manquante) ou logo canal.
 // Tooltip au survol. Variante "combo" : repli « +N ».
-const BAR_BADGE_SIZE = 20;
+const BAR_BADGE_SIZE = 21;
 const BAR_BADGE_SX = {
   width: BAR_BADGE_SIZE,
   height: BAR_BADGE_SIZE,
@@ -200,7 +198,6 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   onClick,
   onHide,
   linkedInterventions,
-  urgencyAnimation = 'shake',
 }) => {
   const { event, left, top, height } = layout;
   const isIntervention = event.type !== 'reservation';
@@ -237,8 +234,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // ── Intervention ménage/maintenance : pastille icône seule (maquette) ────
   // Plus de chip MÉNAGE/MAINTENANCE sur la grille : une intervention sans
   // réservation liée (ou dont la réservation n'est pas visible) est posée à
-  // sa date sous forme de pastille blanche 20×20 avec l'icône du type
-  // (balai = ménage var(--info), clé = maintenance var(--warn)), sans
+  // sa date sous forme de pastille blanche 21×21 avec l'icône du type
+  // (balai = ménage --menage, clé = maintenance --maintenance), sans
   // étiquette texte. Clic = détail intervention existant, drag conservé.
   if (event.type === 'cleaning' || event.type === 'maintenance') {
     const isCleaning = event.type === 'cleaning';
@@ -266,12 +263,15 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             top: top + (height - BAR_BADGE_SIZE) / 2,
             ...BAR_BADGE_SX,
             border: '1px solid var(--line)',
-            color: isCleaning ? 'var(--info)' : 'var(--warn)',
+            color: isCleaning
+              ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning
+              : INTERVENTION_TYPE_TOKEN_COLORS.maintenance,
             cursor: 'pointer',
             touchAction: 'none',
             userSelect: 'none',
             opacity: isDragging ? 0.3 : 1,
-            zIndex: isSelected ? 5 : 2,
+            // Spec .pl-bar.sel : z-index 7 (au-dessus de la ligne « maintenant »)
+            zIndex: isSelected ? 7 : 2,
             transition: isDragging ? 'none' : 'transform .12s, box-shadow .12s',
             // Spec .pl-bar:hover : translateY(-1px) + shadow, z-5
             '&:hover': {
@@ -362,7 +362,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       key: linked.id,
       label: typeLabel,
       tooltip: linked.label && linked.label !== typeLabel ? `${typeLabel} — ${linked.label}` : typeLabel,
-      color: isCleaning ? 'var(--info)' : 'var(--warn)',
+      color: isCleaning
+        ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning
+        : INTERVENTION_TYPE_TOKEN_COLORS.maintenance,
       icon: isCleaning
         ? <CleaningServices size={13} strokeWidth={2} />
         : <Build size={13} strokeWidth={2} />,
@@ -430,17 +432,18 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // Only reduce opacity for move drag, not resize
   const draggedOpacity = isDragging ? 0.3 : 1;
 
-  // ── Animation d'urgence (galerie 09b) : wizz périodique ~4s + anneau pulsé
-  // permanent à la couleur de la brique. Uniquement sur les réservations en
-  // urgence (paiement en attente OU info voyageur manquante), hors annulées.
-  // Suspendue quand la brique est sélectionnée / en conflit / draggée (leurs
-  // anneaux et animations propres priment).
+  // ── Animation d'urgence (galerie 09b) : anneau pulsé permanent à la couleur
+  // de la brique + mouvement périodique ~4s sélectionné par l'attribut racine
+  // [data-wizz] sur <html> (posé par useUrgencyAnimation — le CSS fait le
+  // reste, la brique ne porte que la classe .pl-urgent). Uniquement sur les
+  // réservations en urgence (paiement en attente OU info voyageur manquante),
+  // hors annulées. Suspendue quand la brique est sélectionnée / en conflit /
+  // draggée (leurs anneaux et animations propres priment).
   const isPopoverActive = popoverAnchor !== null;
   const isUrgent = isReservation && !isCancelled && (event.needsPaymentBadge || missingEmail);
   const urgencyClass = isUrgent
-    && urgencyAnimation !== 'none'
     && !isSelected && !isPopoverActive && !isConflict && !resizeConflict && !isDragging && !isResizing
-    ? `pl-urgent--${urgencyAnimation}`
+    ? 'pl-urgent'
     : undefined;
 
   return (
@@ -506,7 +509,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         transition: (isDragging || isResizing) ? 'none' : 'transform .12s, box-shadow .12s, width .12s',
         userSelect: 'none',
         opacity: draggedOpacity,
-        zIndex: isSelected ? 5 : isIntervention ? 2 : 3,
+        // Spec .pl-bar.sel : z-index 7 (au-dessus de la ligne « maintenant »)
+        zIndex: isSelected ? 7 : isIntervention ? 2 : 3,
         // Spec .pl-bar:hover : translateY(-1px) + shadow, z-5.
         '&:hover': {
           boxShadow: '0 7px 16px -8px var(--shadow-pop)',
@@ -517,6 +521,11 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           transition: 'none',
           '&:hover': { transform: 'none' },
         },
+        // Spec .pl-bar.cancelled:hover : brique fantôme inerte (pas de lift
+        // ni d'ombre au survol).
+        ...(isCancelled && {
+          '&:hover': { transform: 'none', boxShadow: 'none' },
+        }),
         // Brique active (popover ouvert) : anneau accent + offset blanc.
         ...(isPopoverActive && !isSelected && {
           boxShadow: '0 0 0 2px var(--card), 0 0 0 4px var(--accent)',
@@ -566,9 +575,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             borderRadius: `${BAR_BORDER_RADIUS}px`,
           }}
         >
-          {/* Avatar voyageur : rond 26px (réconciliation brique 36px, mêmes
-              proportions que la maquette), bord clair, initiales 10px. La
-              pastille d'alerte 10px se pose en haut-gauche de l'avatar. */}
+          {/* Avatar voyageur : rond 26px (spec .pl-bar__av), bord clair,
+              initiales 9.5px fw700. La pastille d'alerte 10px se pose en
+              haut-gauche de l'avatar. */}
           {showAvatar && (
             <Box sx={{ position: 'relative', display: 'flex', flexShrink: 0 }}>
               <Box
@@ -582,7 +591,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '10px',
+                  fontSize: '9.5px',
                   fontWeight: 700,
                   color: isCancelled ? 'var(--muted)' : '#fff',
                   ...(isCancelled && {
@@ -637,12 +646,12 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             >
               {nights} {nights > 1 ? 'nuits' : 'nuit'}
             </Box>
-            {/* Ligne 2 (spec .s-brick__g) : nom du voyageur — 12.5px fw600 */}
+            {/* Ligne 2 (spec .pl-bar__g) : nom du voyageur — 12px fw600 */}
             {showLabel && (
               <Box
                 component="span"
                 sx={{
-                  fontSize: '12.5px',
+                  fontSize: '12px',
                   fontWeight: 600,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',

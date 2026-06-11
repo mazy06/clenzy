@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { STORAGE_KEYS, getItem, setItem } from '../../../services/storageService';
 import type { UrgencyAnimationMode } from '../types';
 
@@ -18,6 +18,14 @@ function readStoredMode(): UrgencyAnimationMode {
 
 export function useUrgencyAnimation(): [UrgencyAnimationMode, (mode: UrgencyAnimationMode) => void] {
   const [mode, setMode] = useState<UrgencyAnimationMode>(readStoredMode);
+
+  // Spec JS de la référence : le TYPE de mouvement est porté par l'attribut
+  // racine data-wizz sur <html> ; planningUrgency.css sélectionne via
+  // [data-wizz="…"] .pl-urgent (la brique ne porte que la classe .pl-urgent,
+  // anneau seul par défaut / mode "none").
+  useEffect(() => {
+    document.documentElement.setAttribute('data-wizz', mode);
+  }, [mode]);
 
   const updateMode = useCallback((next: UrgencyAnimationMode) => {
     setMode(next);

@@ -113,28 +113,45 @@ export const BAR_MIN_WIDTH = 28;
 export const INTERVENTION_LANE_GAP = 1;
 export const INTERVENTION_BOTTOM_PAD = 2;
 
-// ─── Couleurs Signature (tokens CSS) ────────────────────────────────────────
+// ─── Positionnement à l'heure (spec JS placeBar) ────────────────────────────
 //
-// Design « Baitly Signature » : la COULEUR de brique encode le STATUT de la
-// réservation (le canal est porté par la pastille logo). Tout passe par les
-// tokens var(--…) de theme/signature/tokens.css — seule exception : le violet
-// « Départ » qui n'a pas de token (constante locale issue de la maquette,
-// teinte [data-accent="violet"]).
-export const PLANNING_DEPARTURE_VIOLET = '#8A4FD0';
+// Les briques de réservation sont posées à l'heure de check-in/check-out :
+//   left  = (startDayIndex + checkInHour/24)  × dayWidth
+//   right = (startDayIndex + nuits + checkOutHour/24) × dayWidth
+// Heures par défaut quand la réservation n'en porte pas (champs
+// startTime/endTime absents) : 15 h / 11 h — mêmes valeurs que les replis
+// defaultCheckInTime/defaultCheckOutTime du drag-to-select.
+export const DEFAULT_CHECK_IN_HOUR = 15;
+export const DEFAULT_CHECK_OUT_HOUR = 11;
+// Spec : width = max(3.5 %, right − left) sur la grille 14 jours de la
+// maquette → 3.5 % × 14 jours = 0.49 jour. Exprimé en fraction de jour car
+// la grille Clenzy a un nombre de jours variable (timeline infinie).
+export const BAR_MIN_DAY_FRACTION = 0.49;
+
+// ─── Couleurs de statut (constantes locales, maquette pl-grid) ──────────────
+//
+// La COULEUR de brique encode le STATUT de la réservation (le canal est porté
+// par la pastille logo). Valeurs EXACTES de planning-grid-reference.css
+// (--st-*) ; identiques en sombre — la référence ne les redéfinit pas.
+// Annulée = brique fantôme hachurée sans remplissage ; var(--faint) ne sert
+// qu'à la puce de la chip Statuts.
+// NB : nom historique « DEPARTURE_VIOLET » conservé (consommé par le panneau
+// et le popover) — valeur réalignée sur le mauve --st-checkout.
+export const PLANNING_DEPARTURE_VIOLET = '#9A7FA3';
 
 export const RESERVATION_STATUS_TOKEN_COLORS: Record<string, string> = {
-  confirmed: 'var(--ok)',
-  pending: 'var(--warn)',
-  checked_in: 'var(--info)',
-  checked_out: PLANNING_DEPARTURE_VIOLET,
+  confirmed: '#3E9C80',   // --st-confirmee (vert)
+  pending: '#C28A52',     // --st-pending   (ambre)
+  checked_in: '#4F86C6',  // --st-checkin   (bleu)
+  checked_out: PLANNING_DEPARTURE_VIOLET, // --st-checkout (mauve)
   cancelled: 'var(--faint)',
 };
 
-// Interventions : même mapping que le MiniPlanningWidget du dashboard
-// (cohérence cross-écrans) — ménage bleu, maintenance ambre, blocage neutre.
+// Indicateurs internes (spec --menage / --maintenance) : couleurs des icônes
+// ménage (balai) et maintenance (clé à molette). Blocage : neutre.
 export const INTERVENTION_TYPE_TOKEN_COLORS: Record<string, string> = {
-  cleaning: 'var(--info)',
-  maintenance: 'var(--warn)',
+  cleaning: '#2F9E8D',    // --menage
+  maintenance: '#4F86C6', // --maintenance
   blocked: 'var(--muted)',
 };
 
@@ -147,11 +164,11 @@ export const TODAY_LINE_WIDTH = 2;
 
 // ─── Weekend / day styling ───────────────────────────────────────────────────
 
-export const WEEKEND_BG_ALPHA = 0.04;
-
-// Spec .pl-day.we / .pl-cell.we (--day-we / --cell-we) : pas de token dédié
-// dans tokens.css → constante locale dérivée, translucide et theme-aware.
-export const WEEKEND_TINT_BG = 'color-mix(in srgb, var(--ink) 2.5%, transparent)';
+// Spec .pl-day.we / .pl-cell.we (--day-we / --cell-we) : constantes locales du
+// module. Les valeurs exactes clair/sombre (#F2F6F7·#F8FAFB / #121A21·#131C23)
+// sont posées en custom properties dans planningUrgency.css ([data-theme]).
+export const WEEKEND_HEADER_BG = 'var(--pl-day-we)';
+export const WEEKEND_CELL_BG = 'var(--pl-cell-we)';
 
 // ─── Pagination ─────────────────────────────────────────────────────────────
 
