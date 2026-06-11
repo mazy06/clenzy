@@ -15,6 +15,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -29,7 +30,9 @@ class GoogleVrApiClientTest {
 
     @BeforeEach
     void setUp() {
-        when(restClientBuilder.baseUrl(any())).thenReturn(restClientBuilder);
+        // Spring 6.2 (Boot 3.5) ajoute une surcharge baseUrl(URI) -> any() devient
+        // ambigu ; le code prod appelle baseUrl(String), d'ou anyString().
+        when(restClientBuilder.baseUrl(anyString())).thenReturn(restClientBuilder);
         when(restClientBuilder.build()).thenReturn(restClient);
         lenient().when(config.getApiBaseUrl()).thenReturn("https://www.googleapis.com/travelpartner/v3");
         client = new GoogleVrApiClient(config, restClientBuilder);
