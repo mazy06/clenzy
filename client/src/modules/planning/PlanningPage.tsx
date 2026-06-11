@@ -459,7 +459,6 @@ const PlanningPage: React.FC = () => {
             minNightsMap={minNightsMap}
             channelSyncMap={channelSyncMap}
             pageSize={pagination.pageSize}
-            urgencyAnimation={urgencyAnimation}
           />
 
           {/* Pagination — pinned to bottom, full width (compensate parent px) */}

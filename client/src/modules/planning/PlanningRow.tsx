@@ -1,8 +1,8 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import PlanningBar from './PlanningBar';
-import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, PlanningDragState, UrgencyAnimationMode } from './types';
-import { ROW_CONFIG, BAR_BORDER_RADIUS, WEEKEND_TINT_BG } from './constants';
+import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, PlanningDragState } from './types';
+import { ROW_CONFIG, BAR_BORDER_RADIUS, WEEKEND_CELL_BG } from './constants';
 import { isWeekend, isToday, toDateStr, getHourOffsetPx } from './utils/dateUtils';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
@@ -55,8 +55,6 @@ interface PlanningRowProps {
   effectiveRowHeight: number;
   /** All events (unfiltered) for conflict detection on range selection */
   allEvents: PlanningEvent[];
-  /** Variante d'animation d'urgence des briques (per-device). */
-  urgencyAnimation?: UrgencyAnimationMode;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -83,7 +81,6 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   minNightsMap,
   effectiveRowHeight,
   allEvents,
-  urgencyAnimation,
 }) => {
   const { convertAndFormat } = useCurrency();
   const config = ROW_CONFIG[density];
@@ -463,11 +460,11 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               width: dayWidth,
               height: effectiveRowHeight,
               // Aujourd'hui : colonne légèrement teintée accent (maquette).
-              // Week-end : spec .pl-cell.we (constante locale --cell-we).
+              // Week-end : spec .pl-cell.we (constante locale --pl-cell-we).
               backgroundColor: today
                 ? 'color-mix(in srgb, var(--accent) 6%, transparent)'
                 : weekend
-                  ? WEEKEND_TINT_BG
+                  ? WEEKEND_CELL_BG
                   : 'transparent',
               pointerEvents: 'none',
             }}
@@ -563,7 +560,6 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             onClick={onEventClick}
             onHide={onHideEvent}
             linkedInterventions={linkedInterventionsByBarId.get(layout.event.id)}
-            urgencyAnimation={urgencyAnimation}
           />
         );
       })}

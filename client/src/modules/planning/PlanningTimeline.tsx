@@ -6,7 +6,11 @@ import PlanningPropertyColumn from './PlanningPropertyColumn';
 import PlanningRow from './PlanningRow';
 import PlanningTodayLine from './PlanningTodayLine';
 import PlanningBarGhost from './PlanningBarGhost';
-import type { PlanningProperty, PlanningEvent, BarLayout, DensityMode, ZoomLevel, QuickCreateData, UrgencyAnimationMode } from './types';
+// Tokens locaux de la grille (week-end clair/sombre) + animations d'urgence :
+// importé ici pour garantir la présence des custom properties --pl-*-we dès
+// le rendu des entêtes/cellules.
+import './planningUrgency.css';
+import type { PlanningProperty, PlanningEvent, BarLayout, DensityMode, ZoomLevel, QuickCreateData } from './types';
 import type { UsePlanningDragReturn } from './hooks/usePlanningDrag';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
@@ -40,7 +44,6 @@ interface PlanningTimelineProps {
   minNightsMap?: MinNightsMap;
   channelSyncMap?: ChannelSyncMap;
   pageSize?: number;
-  urgencyAnimation?: UrgencyAnimationMode;
 }
 
 const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
@@ -68,7 +71,6 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   minNightsMap,
   channelSyncMap,
   pageSize,
-  urgencyAnimation,
 }) => {
   const config = ROW_CONFIG[density];
   // Plus de price line dediee : les prix sont desormais affiches dans
@@ -209,7 +211,6 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                     minNightsMap={minNightsMap}
                     effectiveRowHeight={effectiveRowHeight}
                     allEvents={events}
-                    urgencyAnimation={urgencyAnimation}
                   />
                 ))}
 
