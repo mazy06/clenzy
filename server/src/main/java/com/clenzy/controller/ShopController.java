@@ -1,8 +1,8 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.HardwareOrderDto;
 import com.clenzy.dto.ShopCheckoutRequest;
 import com.clenzy.model.HardwareCatalog;
-import com.clenzy.model.HardwareOrder;
 import com.clenzy.service.ShopService;
 import com.stripe.exception.StripeException;
 import org.slf4j.Logger;
@@ -46,7 +46,10 @@ public class ShopController {
     }
 
     @GetMapping("/orders")
-    public ResponseEntity<List<HardwareOrder>> getOrders() {
-        return ResponseEntity.ok(shopService.getOrders());
+    public ResponseEntity<List<HardwareOrderDto>> getOrders() {
+        return ResponseEntity.ok(
+            shopService.getOrders().stream()
+                .map(HardwareOrderDto::from)
+                .toList());
     }
 }

@@ -1,7 +1,8 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.RegulatoryComplianceDto;
-import com.clenzy.model.RegulatoryConfig;
+import com.clenzy.dto.RegulatoryConfigDto;
+import com.clenzy.dto.RegulatoryConfigRequest;
 import com.clenzy.service.RegulatoryComplianceService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,19 +28,23 @@ public class RegulatoryController {
     }
 
     @GetMapping("/configs")
-    public List<RegulatoryConfig> getAllConfigs() {
-        return complianceService.getAllConfigs(tenantContext.getOrganizationId());
+    public List<RegulatoryConfigDto> getAllConfigs() {
+        return complianceService.getAllConfigs(tenantContext.getOrganizationId()).stream()
+            .map(RegulatoryConfigDto::from)
+            .toList();
     }
 
     @GetMapping("/configs/{propertyId}")
-    public List<RegulatoryConfig> getPropertyConfigs(@PathVariable Long propertyId) {
-        return complianceService.getConfigs(propertyId, tenantContext.getOrganizationId());
+    public List<RegulatoryConfigDto> getPropertyConfigs(@PathVariable Long propertyId) {
+        return complianceService.getConfigs(propertyId, tenantContext.getOrganizationId()).stream()
+            .map(RegulatoryConfigDto::from)
+            .toList();
     }
 
     @PutMapping("/configs")
-    public RegulatoryConfig saveConfig(@RequestBody RegulatoryConfig config) {
-        config.setOrganizationId(tenantContext.getOrganizationId());
-        return complianceService.saveConfig(config);
+    public RegulatoryConfigDto saveConfig(@RequestBody RegulatoryConfigRequest request) {
+        return RegulatoryConfigDto.from(
+            complianceService.upsertConfig(request, tenantContext.getOrganizationId()));
     }
 
     @GetMapping("/alur/{propertyId}")

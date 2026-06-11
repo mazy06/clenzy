@@ -148,15 +148,24 @@ public class GuestMessagingScheduler {
             .orElse(null);
         if (template == null || !template.isActive()) return 0;
 
+        // L'email de check-out doit partir LE JOUR DU DEPART (dans le fuseau du logement),
+        // jamais plusieurs jours avant. On pre-filtre large en base (+/- 1 jour, pour couvrir tous
+        // les fuseaux possibles des logements de l'org) puis on tranche par reservation ci-dessous
+        // selon la date locale du logement. NB : le champ hoursBeforeCheckOut n'est plus utilise ici,
+        // la regle metier est desormais "jour J" (l'ancien calcul hoursAhead/24 + 1 envoyait
+        // jusqu'a plusieurs jours civils trop tot et ignorait le fuseau du logement).
         LocalDate today = LocalDate.now();
-        int hoursAhead = config.getHoursBeforeCheckOut();
-        LocalDate maxDate = today.plusDays((hoursAhead / 24) + 1);
-
         List<Reservation> reservations = reservationRepository
-            .findConfirmedByCheckOutRange(today, maxDate, orgId);
+            .findConfirmedByCheckOutRange(today.minusDays(1), today.plusDays(1), orgId);
 
         int sent = 0;
         for (Reservation reservation : reservations) {
+            // Cron horaire : le mail part au premier passage apres minuit dans le fuseau du
+            // logement, donc le jour du depart au plus tot (et pas la veille en zone serveur).
+            LocalDate departureDayLocal = LocalDate.now(StayTimes.zoneOf(reservation.getProperty()));
+            if (!departureDayLocal.isEqual(reservation.getCheckOut())) {
+                continue;
+            }
             if (messagingService.alreadySent(reservation.getId(), MessageTemplateType.CHECK_OUT)) {
                 continue;
             }

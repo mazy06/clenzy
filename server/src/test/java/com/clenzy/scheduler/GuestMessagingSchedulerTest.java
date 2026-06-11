@@ -136,6 +136,8 @@ class GuestMessagingSchedulerTest {
         config.setAutoSendCheckIn(false);
         config.setAutoSendCheckOut(true);
         config.setCheckOutTemplateId(20L);
+        // Le check-out auto ne part QUE le jour du depart (date locale du logement).
+        reservation.setCheckOut(LocalDate.now());
 
         MessageTemplate checkOutTemplate = new MessageTemplate();
         checkOutTemplate.setId(20L);
@@ -153,6 +155,58 @@ class GuestMessagingSchedulerTest {
         scheduler.processAutomatedMessages();
 
         verify(messagingService).sendForReservation(reservation, checkOutTemplate, 1L);
+    }
+
+    @Test
+    void whenCheckOutIsToday_thenSends() {
+        // reservation.checkOut == aujourd'hui -> l'email de depart part le jour J.
+        config.setAutoSendCheckIn(false);
+        config.setAutoSendCheckOut(true);
+        config.setCheckOutTemplateId(20L);
+        reservation.setCheckOut(LocalDate.now());
+
+        MessageTemplate checkOutTemplate = new MessageTemplate();
+        checkOutTemplate.setId(20L);
+        checkOutTemplate.setActive(true);
+
+        when(configRepository.findByAutoSendCheckInTrueOrAutoSendCheckOutTrue())
+            .thenReturn(List.of(config));
+        when(templateRepository.findByIdAndOrganizationId(20L, 1L))
+            .thenReturn(Optional.of(checkOutTemplate));
+        when(reservationRepository.findConfirmedByCheckOutRange(any(LocalDate.class), any(LocalDate.class), eq(1L)))
+            .thenReturn(List.of(reservation));
+        when(messagingService.alreadySent(100L, MessageTemplateType.CHECK_OUT))
+            .thenReturn(false);
+
+        scheduler.processAutomatedMessages();
+
+        verify(messagingService).sendForReservation(reservation, checkOutTemplate, 1L);
+    }
+
+    @Test
+    void whenCheckOutIsTomorrow_thenSkips() {
+        // Le pre-filtre BDD (+/- 1 jour) peut remonter un depart de demain, mais le
+        // filtre "jour du depart" (date locale du logement == checkOut) doit le rejeter :
+        // l'email ne doit JAMAIS partir en avance.
+        config.setAutoSendCheckIn(false);
+        config.setAutoSendCheckOut(true);
+        config.setCheckOutTemplateId(20L);
+        reservation.setCheckOut(LocalDate.now().plusDays(1));
+
+        MessageTemplate checkOutTemplate = new MessageTemplate();
+        checkOutTemplate.setId(20L);
+        checkOutTemplate.setActive(true);
+
+        when(configRepository.findByAutoSendCheckInTrueOrAutoSendCheckOutTrue())
+            .thenReturn(List.of(config));
+        when(templateRepository.findByIdAndOrganizationId(20L, 1L))
+            .thenReturn(Optional.of(checkOutTemplate));
+        when(reservationRepository.findConfirmedByCheckOutRange(any(LocalDate.class), any(LocalDate.class), eq(1L)))
+            .thenReturn(List.of(reservation));
+
+        scheduler.processAutomatedMessages();
+
+        verify(messagingService, never()).sendForReservation(any(), any(), anyLong());
     }
 
     @Test

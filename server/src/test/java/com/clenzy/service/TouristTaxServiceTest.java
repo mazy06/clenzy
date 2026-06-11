@@ -1,11 +1,13 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.TouristTaxCalculationDto;
+import com.clenzy.dto.TouristTaxConfigRequest;
 import com.clenzy.model.TouristTaxConfig;
 import com.clenzy.model.TouristTaxConfig.TaxCalculationMode;
 import com.clenzy.repository.TouristTaxConfigRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -14,6 +16,7 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -121,5 +124,56 @@ class TouristTaxServiceTest {
             3, 2, new BigDecimal("100.00"));
 
         assertNull(result);
+    }
+
+    @Test
+    void upsertConfig_newConfig_forcesOrgFromTenant() {
+        TouristTaxConfigRequest request = new TouristTaxConfigRequest(
+            PROPERTY_ID, "Lyon", "69123", TaxCalculationMode.FLAT_PER_NIGHT,
+            new BigDecimal("1.50"), null, null, 12, true);
+        when(configRepository.findByPropertyId(PROPERTY_ID, ORG_ID)).thenReturn(Optional.empty());
+        when(configRepository.save(any(TouristTaxConfig.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.upsertConfig(request, ORG_ID);
+
+        ArgumentCaptor<TouristTaxConfig> captor = ArgumentCaptor.forClass(TouristTaxConfig.class);
+        verify(configRepository).save(captor.capture());
+        assertEquals(ORG_ID, captor.getValue().getOrganizationId());
+        assertEquals(PROPERTY_ID, captor.getValue().getPropertyId());
+        assertNull(captor.getValue().getId()); // jamais d'id fourni par le client
+        assertEquals("Lyon", captor.getValue().getCommuneName());
+    }
+
+    @Test
+    void upsertConfig_existingByProperty_isUpdatedNotDuplicated() {
+        // Une config existe deja pour (propertyId, orgId). On la met a jour
+        // (pas de nouvel insert) — son id et son org restent ceux de la DB.
+        TouristTaxConfig existing = createConfig(TaxCalculationMode.PER_PERSON_PER_NIGHT);
+        existing.setId(42L);
+        when(configRepository.findByPropertyId(PROPERTY_ID, ORG_ID)).thenReturn(Optional.of(existing));
+        when(configRepository.save(any(TouristTaxConfig.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TouristTaxConfigRequest request = new TouristTaxConfigRequest(
+            PROPERTY_ID, "Nice", null, TaxCalculationMode.FLAT_PER_NIGHT,
+            new BigDecimal("2.00"), null, null, null, false);
+
+        service.upsertConfig(request, ORG_ID);
+
+        ArgumentCaptor<TouristTaxConfig> captor = ArgumentCaptor.forClass(TouristTaxConfig.class);
+        verify(configRepository).save(captor.capture());
+        assertEquals(42L, captor.getValue().getId());
+        assertEquals(ORG_ID, captor.getValue().getOrganizationId());
+        assertEquals("Nice", captor.getValue().getCommuneName());
+        assertEquals(false, captor.getValue().getEnabled());
+    }
+
+    @Test
+    void upsertConfig_missingPropertyId_throws() {
+        TouristTaxConfigRequest request = new TouristTaxConfigRequest(
+            null, "Paris", null, TaxCalculationMode.FLAT_PER_NIGHT,
+            BigDecimal.ONE, null, null, null, true);
+
+        assertThrows(IllegalArgumentException.class, () -> service.upsertConfig(request, ORG_ID));
+        verify(configRepository, never()).save(any());
     }
 }

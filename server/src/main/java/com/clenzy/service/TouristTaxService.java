@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.TouristTaxCalculationDto;
+import com.clenzy.dto.TouristTaxConfigRequest;
 import com.clenzy.model.TouristTaxConfig;
 import com.clenzy.model.TouristTaxConfig.TaxCalculationMode;
 import com.clenzy.repository.TouristTaxConfigRepository;
@@ -30,8 +31,42 @@ public class TouristTaxService {
         return configRepository.findByPropertyId(propertyId, orgId);
     }
 
+    /**
+     * Upsert d'une config de taxe de sejour a partir d'un payload client.
+     *
+     * <p>Cle naturelle : {@code (propertyId, orgId)} — une config par propriete
+     * et par organisation. On charge la config existante de l'org (jamais par
+     * {@code id} fourni par le client : fermeture du mass assignment / IDOR),
+     * sinon on en cree une nouvelle. L'{@code organizationId} est impose par le
+     * {@code TenantContext} (jamais celui du client).</p>
+     */
     @Transactional
-    public TouristTaxConfig saveConfig(TouristTaxConfig config) {
+    public TouristTaxConfig upsertConfig(TouristTaxConfigRequest request, Long orgId) {
+        if (request.propertyId() == null) {
+            throw new IllegalArgumentException("propertyId is required");
+        }
+
+        TouristTaxConfig config = configRepository
+            .findByPropertyId(request.propertyId(), orgId)
+            .orElseGet(TouristTaxConfig::new);
+
+        config.setOrganizationId(orgId);
+        config.setPropertyId(request.propertyId());
+        config.setCommuneName(request.communeName());
+        config.setCommuneCode(request.communeCode());
+        if (request.calculationMode() != null) {
+            config.setCalculationMode(request.calculationMode());
+        }
+        config.setRatePerPerson(request.ratePerPerson());
+        config.setPercentageRate(request.percentageRate());
+        config.setMaxNights(request.maxNights());
+        if (request.childrenExemptUnder() != null) {
+            config.setChildrenExemptUnder(request.childrenExemptUnder());
+        }
+        if (request.enabled() != null) {
+            config.setEnabled(request.enabled());
+        }
+
         return configRepository.save(config);
     }
 
