@@ -1,7 +1,7 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import PlanningBar from './PlanningBar';
-import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, PlanningDragState } from './types';
+import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, PlanningDragState, UrgencyAnimationMode } from './types';
 import { ROW_CONFIG, BAR_BORDER_RADIUS } from './constants';
 import { isWeekend, isToday, toDateStr, getHourOffsetPx } from './utils/dateUtils';
 import type { PricingMap } from './hooks/usePlanningPricing';
@@ -53,6 +53,8 @@ interface PlanningRowProps {
   effectiveRowHeight: number;
   /** All events (unfiltered) for conflict detection on range selection */
   allEvents: PlanningEvent[];
+  /** Variante d'animation d'urgence des briques (per-device). */
+  urgencyAnimation?: UrgencyAnimationMode;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -80,9 +82,47 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   minNightsMap,
   effectiveRowHeight,
   allEvents,
+  urgencyAnimation,
 }) => {
   const { convertAndFormat } = useCurrency();
   const config = ROW_CONFIG[density];
+
+  // ── Interventions rattachées à une réservation (maquette) ────────────────
+  // Une intervention liée (linkedReservationId) dont la réservation est
+  // visible sur cette rangée est absorbée DANS la brique (pastille blanche)
+  // au lieu d'une chip séparée sur la grille — uniquement si la brique est
+  // assez large pour le groupe de pastilles (sinon la chip reste visible :
+  // rien ne disparaît). Les interventions orphelines gardent leur chip.
+  const { visibleLayouts, linkedInterventionsByBarId } = useMemo(() => {
+    const reservationLayoutsById = new Map<number, BarLayout>();
+    for (const l of barLayouts) {
+      if (l.event.type === 'reservation' && l.event.reservation) {
+        reservationLayoutsById.set(l.event.reservation.id, l);
+      }
+    }
+    const linked = new Map<string, PlanningEvent[]>();
+    const visible: BarLayout[] = [];
+    for (const l of barLayouts) {
+      const isInterventionType = l.event.type === 'cleaning' || l.event.type === 'maintenance';
+      const linkedResId = l.event.intervention?.linkedReservationId;
+      const host = isInterventionType && linkedResId
+        ? reservationLayoutsById.get(linkedResId)
+        : undefined;
+      // Même seuil que showBadgeGroup dans PlanningBar (largeur > 120,
+      // hauteur >= 28) : en-dessous, le groupe de pastilles n'est pas rendu.
+      if (host && host.width > 120 && host.height >= 28) {
+        const arr = linked.get(host.event.id);
+        if (arr) {
+          arr.push(l.event);
+        } else {
+          linked.set(host.event.id, [l.event]);
+        }
+        continue;
+      }
+      visible.push(l);
+    }
+    return { visibleLayouts: visible, linkedInterventionsByBarId: linked };
+  }, [barLayouts]);
   const propertyPricing = showPrices ? pricingMap.get(property.id) : undefined;
   const propertyMinNights = showPrices ? minNightsMap?.get(property.id) : undefined;
   const activeRowHeight = showInterventions ? config.rowHeight : config.interventionTop + 2;
@@ -499,7 +539,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
       })()}
 
       {/* Event bars */}
-      {barLayouts.map((layout) => {
+      {visibleLayouts.map((layout) => {
         // Check if this bar is being resized → pass live width
         const isBeingResized =
           dragState.activeType === 'resize' &&
@@ -520,6 +560,8 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             resizeConflict={resizeConflict}
             onClick={onEventClick}
             onHide={onHideEvent}
+            linkedInterventions={linkedInterventionsByBarId.get(layout.event.id)}
+            urgencyAnimation={urgencyAnimation}
           />
         );
       })}

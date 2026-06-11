@@ -24,6 +24,7 @@ import { usePlanningPricing } from './hooks/usePlanningPricing';
 import { usePlanningMinNights } from './hooks/usePlanningMinNights';
 import { usePlanningChannelSync } from './hooks/usePlanningChannelSync';
 import { useResizablePropertyColWidth } from './hooks/useResizablePropertyColWidth';
+import { useUrgencyAnimation } from './hooks/useUrgencyAnimation';
 import { ACTION_PANEL_WIDTH } from './constants';
 import type { PlanningEvent } from './types';
 
@@ -42,6 +43,9 @@ const PlanningPage: React.FC = () => {
   // Largeur de la colonne logements : breakpoint-based + redimensionnable
   // par l'utilisateur (persiste dans localStorage).
   const { width: propertyColWidth, setWidth: setPropertyColWidth } = useResizablePropertyColWidth();
+
+  // Variante d'animation d'urgence des briques (per-device, localStorage)
+  const [urgencyAnimation, setUrgencyAnimation] = useUrgencyAnimation();
 
   // Infinite horizontal timeline (buffer, days, scroll)
   const timeline = useInfiniteTimeline({
@@ -363,6 +367,8 @@ const PlanningPage: React.FC = () => {
           onImportICal={() => setIcalModalOpen(true)}
           onBlockPeriod={() => setBlockDialogOpen(true)}
           leftOffset={propertyColWidth}
+          urgencyAnimation={urgencyAnimation}
+          onUrgencyAnimationChange={setUrgencyAnimation}
         />
       </Box>
 
@@ -429,6 +435,7 @@ const PlanningPage: React.FC = () => {
             channelSyncMap={channelSyncMap}
             pageSize={pagination.pageSize}
             onPropertyClick={handlePropertyClick}
+            urgencyAnimation={urgencyAnimation}
           />
 
           {/* Pagination — pinned to bottom, full width (compensate parent px) */}

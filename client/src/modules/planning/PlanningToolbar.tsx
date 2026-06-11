@@ -37,7 +37,7 @@ import {
   Public as GlobeIcon,
   CleaningServices,
 } from '../../icons';
-import type { ZoomLevel, DensityMode, PlanningFilters } from './types';
+import type { ZoomLevel, DensityMode, PlanningFilters, UrgencyAnimationMode } from './types';
 import type { ReservationStatus } from '../../services/api';
 import { ZOOM_LABELS, RESERVATION_STATUS_TOKEN_COLORS } from './constants';
 import { RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../services/api/reservationsApi';
@@ -66,6 +66,8 @@ interface PlanningToolbarProps {
   onBlockPeriod?: () => void;
   /** Decalage gauche (px) pour aligner les controles avec la grille de dates. */
   leftOffset?: number;
+  urgencyAnimation: UrgencyAnimationMode;
+  onUrgencyAnimationChange: (mode: UrgencyAnimationMode) => void;
 }
 
 const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
@@ -74,6 +76,15 @@ const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
   { value: 'checked_in', label: RESERVATION_STATUS_LABELS.checked_in },
   { value: 'checked_out', label: RESERVATION_STATUS_LABELS.checked_out },
   { value: 'cancelled', label: RESERVATION_STATUS_LABELS.cancelled },
+];
+
+// Variantes d'animation d'urgence des briques (galerie Signature 09b).
+const URGENCY_ANIMATION_OPTIONS: { value: UrgencyAnimationMode; label: string }[] = [
+  { value: 'shake', label: 'Shake' },
+  { value: 'wobble', label: 'Wobble' },
+  { value: 'pop', label: 'Pop' },
+  { value: 'tada', label: 'Tada' },
+  { value: 'none', label: 'Aucune' },
 ];
 
 // ─── Styles partagés (langage Signature) ────────────────────────────────────
@@ -185,6 +196,25 @@ const StatusChips: React.FC<{
   </>
 );
 
+const UrgencyAnimationChips: React.FC<{
+  urgencyAnimation: UrgencyAnimationMode;
+  onUrgencyAnimationChange: (mode: UrgencyAnimationMode) => void;
+  chipHeight: number;
+}> = ({ urgencyAnimation, onUrgencyAnimationChange, chipHeight }) => (
+  <>
+    {URGENCY_ANIMATION_OPTIONS.map((opt) => (
+      <Chip
+        key={opt.value}
+        label={opt.label}
+        size="small"
+        variant="outlined"
+        onClick={() => onUrgencyAnimationChange(opt.value)}
+        sx={toggleChipSx(urgencyAnimation === opt.value, chipHeight)}
+      />
+    ))}
+  </>
+);
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
@@ -208,6 +238,8 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   onImportICal,
   onBlockPeriod,
   leftOffset = 0,
+  urgencyAnimation,
+  onUrgencyAnimationChange,
 }) => {
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('lg'));
@@ -520,6 +552,18 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                     sx={toggleChipSx(false, 22)}
                   />
                 </Box>
+
+                {/* Animation d'urgence (briques paiement en attente / info manquante) */}
+                <Typography variant="overline" sx={{ ...OVERLINE_SX, mt: 1.5 }}>
+                  Animation d'urgence
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                  <UrgencyAnimationChips
+                    urgencyAnimation={urgencyAnimation}
+                    onUrgencyAnimationChange={onUrgencyAnimationChange}
+                    chipHeight={22}
+                  />
+                </Box>
               </Box>
 
               {/* Clear all filters */}
@@ -739,6 +783,18 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                       variant="outlined"
                       onClick={() => onDensityChange(density === 'normal' ? 'compact' : 'normal')}
                       sx={toggleChipSx(false, 28)}
+                    />
+                  </Box>
+
+                  {/* Animation d'urgence */}
+                  <Typography variant="overline" sx={{ ...OVERLINE_SX, mt: 1.5 }}>
+                    Animation d'urgence
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    <UrgencyAnimationChips
+                      urgencyAnimation={urgencyAnimation}
+                      onUrgencyAnimationChange={onUrgencyAnimationChange}
+                      chipHeight={28}
                     />
                   </Box>
                 </Box>

@@ -15,6 +15,10 @@ export interface ZoomConfig {
 
 export type DensityMode = 'normal' | 'compact';
 
+// ─── Animation d'urgence (briques paiement en attente / info manquante) ──────
+
+export type UrgencyAnimationMode = 'shake' | 'wobble' | 'pop' | 'tada' | 'none';
+
 // ─── Planning events ─────────────────────────────────────────────────────────
 
 export type PlanningEventType = 'reservation' | 'cleaning' | 'maintenance' | 'blocked';

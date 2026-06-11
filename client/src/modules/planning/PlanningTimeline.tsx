@@ -6,7 +6,7 @@ import PlanningPropertyColumn from './PlanningPropertyColumn';
 import PlanningRow from './PlanningRow';
 import PlanningTodayLine from './PlanningTodayLine';
 import PlanningBarGhost from './PlanningBarGhost';
-import type { PlanningProperty, PlanningEvent, BarLayout, DensityMode, ZoomLevel, QuickCreateData } from './types';
+import type { PlanningProperty, PlanningEvent, BarLayout, DensityMode, ZoomLevel, QuickCreateData, UrgencyAnimationMode } from './types';
 import type { UsePlanningDragReturn } from './hooks/usePlanningDrag';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
@@ -41,6 +41,7 @@ interface PlanningTimelineProps {
   channelSyncMap?: ChannelSyncMap;
   pageSize?: number;
   onPropertyClick?: (propertyId: number) => void;
+  urgencyAnimation?: UrgencyAnimationMode;
 }
 
 const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
@@ -69,6 +70,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   channelSyncMap,
   pageSize,
   onPropertyClick,
+  urgencyAnimation,
 }) => {
   const config = ROW_CONFIG[density];
   // Plus de price line dediee : les prix sont desormais affiches dans
@@ -210,6 +212,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                     minNightsMap={minNightsMap}
                     effectiveRowHeight={effectiveRowHeight}
                     allEvents={events}
+                    urgencyAnimation={urgencyAnimation}
                   />
                 ))}
 
