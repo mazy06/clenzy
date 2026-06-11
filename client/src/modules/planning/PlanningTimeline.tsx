@@ -29,6 +29,8 @@ interface PlanningTimelineProps {
   totalGridWidth: number;
   selectedEventId: string | null;
   events: PlanningEvent[];
+  /** Ids de toutes les réservations chargées (non filtrées) — cf. PlanningRow. */
+  loadedReservationIds: Set<number>;
   drag: UsePlanningDragReturn;
   onEventClick: (event: PlanningEvent) => void;
   onHideEvent?: (event: PlanningEvent) => void;
@@ -56,6 +58,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   totalGridWidth,
   selectedEventId,
   events,
+  loadedReservationIds,
   drag,
   onEventClick,
   onHideEvent,
@@ -211,6 +214,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                     minNightsMap={minNightsMap}
                     effectiveRowHeight={effectiveRowHeight}
                     allEvents={events}
+                    loadedReservationIds={loadedReservationIds}
                   />
                 ))}
 

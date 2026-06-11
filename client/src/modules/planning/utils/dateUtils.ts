@@ -62,30 +62,22 @@ export function daysBetween(d1: Date, d2: Date): number {
  */
 export function computeDateRange(currentDate: Date, zoom: ZoomLevel): { start: Date; end: Date } {
   const config = ZOOM_CONFIGS[zoom];
-  const halfDays = Math.floor(config.visibleDays / 2);
 
   switch (zoom) {
-    case 'day':
-      return {
-        start: subDays(currentDate, 2),
-        end: addDays(currentDate, config.visibleDays - 3),
-      };
+    // Semaine (7 j) et quinzaine (14 j) : calées sur le début de semaine.
     case 'week':
+    case 'fortnight': {
+      const start = startOfWeek(currentDate, { locale: fr });
       return {
-        start: startOfWeek(currentDate, { locale: fr }),
-        end: addDays(startOfWeek(currentDate, { locale: fr }), config.visibleDays - 1),
-      };
-    case 'month': {
-      const monthStart = startOfMonth(currentDate);
-      return {
-        start: monthStart,
-        end: endOfMonth(currentDate),
+        start,
+        end: addDays(start, config.visibleDays - 1),
       };
     }
-    default:
+    // Mois : mois calendaire complet.
+    case 'month':
       return {
-        start: subDays(currentDate, halfDays),
-        end: addDays(currentDate, halfDays),
+        start: startOfMonth(currentDate),
+        end: endOfMonth(currentDate),
       };
   }
 }

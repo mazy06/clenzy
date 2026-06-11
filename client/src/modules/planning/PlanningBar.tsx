@@ -232,9 +232,10 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   const displayWidth = resizeWidth ?? layout.width;
 
   // ── Intervention ménage/maintenance : pastille icône seule (maquette) ────
-  // Plus de chip MÉNAGE/MAINTENANCE sur la grille : une intervention sans
-  // réservation liée (ou dont la réservation n'est pas visible) est posée à
-  // sa date sous forme de pastille blanche 21×21 avec l'icône du type
+  // Plus de chip MÉNAGE/MAINTENANCE sur la grille : seule une intervention
+  // véritablement ORPHELINE (réservation liée absente des données chargées —
+  // cf. règle unique dans PlanningRow) est posée à sa date sous forme de
+  // pastille blanche 21×21 avec l'icône du type
   // (balai = ménage --menage, clé = maintenance --maintenance), sans
   // étiquette texte. Clic = détail intervention existant, drag conservé.
   if (event.type === 'cleaning' || event.type === 'maintenance') {

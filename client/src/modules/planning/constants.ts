@@ -78,23 +78,20 @@ export const PRICE_LINE_HEIGHT: Record<DensityMode, number> = {
 
 // ─── Zoom configuration ─────────────────────────────────────────────────────
 
+// Semaine = 7 jours, Quinzaine = 14 jours (grille maquette repeat(14,1fr),
+// dayWidth 80 inchangé), Mois = mois calendaire (~30-31 jours). dayWidth
+// calibré pour que visibleDays tiennent dans le viewport grille (~1120px).
 export const ZOOM_CONFIGS: Record<ZoomLevel, ZoomConfig> = {
-  day: {
-    dayWidth: 200,
-    showHours: true,
-    navStep: 3,
+  week: {
+    dayWidth: 160,
     visibleDays: 7,
   },
-  week: {
+  fortnight: {
     dayWidth: 80,
-    showHours: false,
-    navStep: 7,
     visibleDays: 14,
   },
   month: {
     dayWidth: 38,
-    showHours: false,
-    navStep: 30,
     visibleDays: 31,
   },
 };
@@ -102,8 +99,8 @@ export const ZOOM_CONFIGS: Record<ZoomLevel, ZoomConfig> = {
 // ─── Zoom labels (for toolbar) ──────────────────────────────────────────────
 
 export const ZOOM_LABELS: Record<ZoomLevel, string> = {
-  day: 'Jour',
   week: 'Semaine',
+  fortnight: 'Quinzaine',
   month: 'Mois',
 };
 

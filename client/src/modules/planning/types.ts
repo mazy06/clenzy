@@ -2,12 +2,14 @@ import type { Reservation, PlanningIntervention, PlanningServiceRequest, Reserva
 
 // ─── Zoom ────────────────────────────────────────────────────────────────────
 
-export type ZoomLevel = 'day' | 'week' | 'month';
+// Trois vues : semaine (7 jours), quinzaine (14 jours, maquette/défaut),
+// mois (mois calendaire ~30-31 jours). La vue « jour » a été supprimée.
+export type ZoomLevel = 'week' | 'fortnight' | 'month';
 
 export interface ZoomConfig {
   dayWidth: number;
-  showHours: boolean;
-  navStep: number;
+  /** Nb de jours de la vue — sert aussi de pas de navigation ‹ ›
+   *  (sauf 'month' : avance d'un mois calendaire dans usePlanningNavigation). */
   visibleDays: number;
 }
 

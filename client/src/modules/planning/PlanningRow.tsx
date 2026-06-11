@@ -55,6 +55,10 @@ interface PlanningRowProps {
   effectiveRowHeight: number;
   /** All events (unfiltered) for conflict detection on range selection */
   allEvents: PlanningEvent[];
+  /** Ids de TOUTES les réservations chargées (avant filtres/légende/plage).
+   *  Une intervention liée à une réservation connue n'est JAMAIS rendue en
+   *  pastille isolée — même si la brique hôte est masquée ou hors plage. */
+  loadedReservationIds: Set<number>;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -81,16 +85,21 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   minNightsMap,
   effectiveRowHeight,
   allEvents,
+  loadedReservationIds,
 }) => {
   const { convertAndFormat } = useCurrency();
   const config = ROW_CONFIG[density];
 
   // ── Interventions rattachées à une réservation (maquette) ────────────────
-  // Une intervention liée (linkedReservationId) dont la réservation est
-  // visible sur cette rangée est TOUJOURS absorbée DANS la brique (pastille
-  // blanche 20px — sur brique étroite elle compte dans le « +N »). Les
-  // interventions sans réservation liée restent sur la grille, rendues en
-  // pastille icône seule par PlanningBar (plus de chip texte).
+  // RÈGLE UNIQUE : une intervention liée (linkedReservationId) est UNIQUEMENT
+  // rendue comme pastille DANS la brique de sa réservation (pastille blanche
+  // 20px — sur brique étroite elle compte dans le « +N »). Si la brique hôte
+  // n'est pas rendue (masquée par les filtres/légende, hors plage, autre
+  // propriété), l'intervention n'est PAS rendue du tout — jamais en pastille
+  // isolée. Seules les interventions véritablement orphelines (réservation
+  // absente des données chargées) restent sur la grille, rendues en pastille
+  // icône seule par PlanningBar. Chaque layout suit UN seul chemin (absorbé,
+  // ignoré ou standalone) : une intervention ne peut pas être rendue 2 fois.
   const { visibleLayouts, linkedInterventionsByBarId } = useMemo(() => {
     const reservationLayoutsById = new Map<number, BarLayout>();
     for (const l of barLayouts) {
@@ -102,23 +111,27 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
     const visible: BarLayout[] = [];
     for (const l of barLayouts) {
       const isInterventionType = l.event.type === 'cleaning' || l.event.type === 'maintenance';
-      const linkedResId = l.event.intervention?.linkedReservationId;
-      const host = isInterventionType && linkedResId
-        ? reservationLayoutsById.get(linkedResId)
+      const linkedResId = isInterventionType
+        ? l.event.intervention?.linkedReservationId
         : undefined;
-      if (host) {
-        const arr = linked.get(host.event.id);
-        if (arr) {
-          arr.push(l.event);
-        } else {
-          linked.set(host.event.id, [l.event]);
+      if (linkedResId) {
+        const host = reservationLayoutsById.get(linkedResId);
+        if (host) {
+          const arr = linked.get(host.event.id);
+          if (arr) {
+            arr.push(l.event);
+          } else {
+            linked.set(host.event.id, [l.event]);
+          }
+          continue;
         }
-        continue;
+        // Réservation connue mais brique non rendue : on ne rend rien.
+        if (loadedReservationIds.has(linkedResId)) continue;
       }
       visible.push(l);
     }
     return { visibleLayouts: visible, linkedInterventionsByBarId: linked };
-  }, [barLayouts]);
+  }, [barLayouts, loadedReservationIds]);
   const propertyPricing = showPrices ? pricingMap.get(property.id) : undefined;
   const propertyMinNights = showPrices ? minNightsMap?.get(property.id) : undefined;
   // Hauteur active = rangée entière : les interventions partagent la bande
