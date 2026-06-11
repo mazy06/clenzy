@@ -26,6 +26,8 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from '../hooks/useTranslation';
+import { useThemeMode, type ThemeMode } from '../hooks/useThemeMode';
+import { ACCENT_OPTIONS, getSavedAccent, setAccent, type AccentName } from '../theme/signature/accent';
 import { useCurrency } from '../hooks/useCurrency';
 import { CURRENCY_OPTIONS } from '../utils/currencyUtils';
 import type { CurrencyCode } from '../hooks/useCurrency';
@@ -69,6 +71,8 @@ export default function Sidebar({
   const { user, clearUser } = useAuth();
   const { t, changeLanguage, currentLanguage } = useTranslation();
   const { currency, setCurrency, rateDate, ratesLoading } = useCurrency();
+  const { mode: themeMode, setMode: setThemeMode } = useThemeMode();
+  const [accent, setAccentState] = useState<AccentName>(getSavedAccent);
   const theme = useTheme();
   const isRtl = theme.direction === 'rtl';
   const isXl = useMediaQuery(theme.breakpoints.up('xl'));
@@ -146,6 +150,16 @@ export default function Sidebar({
     setCurrency(code);
   };
 
+  // ── Apparence Signature : teinte d'accent + mode clair/sombre ──────────
+  const handleAccentChange = (name: AccentName) => {
+    setAccent(name);          // persiste (clenzy_accent) + pose data-accent
+    setAccentState(name);     // re-render local (coche du sélecteur)
+  };
+
+  const handleModeChange = (newMode: ThemeMode) => {
+    setThemeMode(newMode);    // useThemeMode : optimistic + sync backend
+  };
+
   // ─── Sidebar content (shared between permanent and temporary) ──────────
 
   const sidebarContent = (
@@ -218,10 +232,10 @@ export default function Sidebar({
                       pt: groupIndex === 0 ? 0.5 : isXl ? 2 : 1.5,
                       pb: 0.5,
                       fontSize: groupLabelFontSize,
-                      fontWeight: 600,
-                      color: 'text.disabled',
+                      fontWeight: 700,
+                      color: 'var(--faint)',
                       textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
+                      letterSpacing: '0.06em',
                       userSelect: 'none',
                     }}
                   >
@@ -266,7 +280,7 @@ export default function Sidebar({
             py: isXl ? 1.5 : 1,
             cursor: 'pointer',
             justifyContent: collapsed ? 'center' : 'flex-start',
-            '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.04)' },
+            '&:hover': { backgroundColor: 'var(--hover)' },
             transition: 'background-color 150ms',
           }}
         >
@@ -324,7 +338,7 @@ export default function Sidebar({
                 <Typography
                   variant="caption"
                   sx={{
-                    color: 'secondary.main',
+                    color: 'var(--accent)',
                     fontSize: userRoleFontSize,
                     fontWeight: 600,
                     textTransform: 'uppercase',
@@ -357,8 +371,8 @@ export default function Sidebar({
               size="small"
               onClick={handleSettingsOpen}
               sx={{
-                color: 'text.secondary',
-                '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
+                color: 'var(--muted)',
+                '&:hover': { backgroundColor: 'var(--hover)' },
               }}
             >
               <LanguageIcon size={actionIconSize} strokeWidth={1.75} />
@@ -371,8 +385,8 @@ export default function Sidebar({
               size="small"
               onClick={() => handleNavigation('/notifications')}
               sx={{
-                color: 'text.secondary',
-                '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
+                color: 'var(--muted)',
+                '&:hover': { backgroundColor: 'var(--hover)' },
               }}
             >
               <Badge
@@ -457,13 +471,79 @@ export default function Sidebar({
             },
           }}
         >
-          {/* ── Section: Langue ── */}
+          {/* ── Section: Apparence (Signature — teinte d'accent + mode) ── */}
           <Typography
             variant="caption"
             sx={{
               display: 'block',
               px: 2,
               pt: 1,
+              pb: 0.5,
+              fontSize: '0.6875rem',
+              fontWeight: 700,
+              color: 'text.disabled',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              userSelect: 'none',
+            }}
+          >
+            {t('navigation.appearance', 'Apparence')}
+          </Typography>
+          {/* Teinte d'accent : 7 pastilles (handoff §1 — couleur paramétrable).
+              data-accent est posé sur <html> → toute l'UI se reteinte en CSS pur. */}
+          <Box sx={{ display: 'flex', gap: 0.75, px: 2, py: 0.5 }}>
+            {ACCENT_OPTIONS.map((opt) => (
+              <Tooltip key={opt.value} title={opt.label} placement="top">
+                <Box
+                  onClick={() => handleAccentChange(opt.value)}
+                  sx={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: '50%',
+                    backgroundColor: opt.swatch,
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    border: accent === opt.value ? '2px solid var(--ink)' : '2px solid transparent',
+                    boxShadow: accent === opt.value ? '0 0 0 1.5px var(--card) inset' : 'none',
+                    transition: 'transform 120ms, border-color 120ms',
+                    '&:hover': { transform: 'scale(1.15)' },
+                    '@media (prefers-reduced-motion: reduce)': {
+                      transition: 'none',
+                      '&:hover': { transform: 'none' },
+                    },
+                  }}
+                />
+              </Tooltip>
+            ))}
+          </Box>
+          {/* Mode clair / sombre / auto (réutilise useThemeMode existant) */}
+          {([
+            { value: 'light' as const, label: t('navigation.themeLight', 'Clair') },
+            { value: 'dark' as const, label: t('navigation.themeDark', 'Sombre') },
+            { value: 'auto' as const, label: t('navigation.themeAuto', 'Auto') },
+          ]).map((opt) => (
+            <MuiMenuItem
+              key={opt.value}
+              onClick={() => handleModeChange(opt.value)}
+              selected={themeMode === opt.value}
+              sx={{ fontSize: '0.8125rem', py: 0.75, minHeight: 0 }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <span>{opt.label}</span>
+                {themeMode === opt.value && <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', ml: 1 }}><CheckIcon size={16} strokeWidth={2} /></Box>}
+              </Box>
+            </MuiMenuItem>
+          ))}
+
+          <Divider sx={{ my: 0.5 }} />
+
+          {/* ── Section: Langue ── */}
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              px: 2,
+              pt: 0.5,
               pb: 0.5,
               fontSize: '0.6875rem',
               fontWeight: 700,
@@ -579,9 +659,8 @@ export default function Sidebar({
           '& .MuiDrawer-paper': {
             width: Math.min(SIDEBAR_WIDTH_EXPANDED, 280),
             maxWidth: '80vw',
-            backgroundColor: 'background.paper',
-            borderRight: '1px solid',
-            borderColor: 'divider',
+            backgroundColor: 'var(--card)',
+            borderRight: '1px solid var(--line)',
             boxShadow: 'none',
             borderRadius: 0,
           },
@@ -604,10 +683,9 @@ export default function Sidebar({
           width: collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED,
           transition: 'width 200ms cubic-bezier(0.4, 0, 0.2, 1)',
           overflowX: 'hidden',
-          borderRight: '1px solid',
-          borderColor: 'divider',
+          borderRight: '1px solid var(--line)',
           boxShadow: 'none',
-          backgroundColor: 'background.paper',
+          backgroundColor: 'var(--card)',
           borderRadius: 0,
         },
       }}

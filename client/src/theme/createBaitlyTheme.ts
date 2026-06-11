@@ -1,6 +1,7 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 import lightTheme from './theme';
 import darkTheme from './darkTheme';
+import { signatureOverrides } from './signature/signatureTheme';
 
 /**
  * Stack font arabe : Tajawal (Google Fonts) en priorite, fallback sur les
@@ -46,11 +47,17 @@ export function createBaitlyTheme(opts: CreateBaitlyThemeOpts = {}): Theme {
   // palette, etc.) seraient cassees -> certains composants ne re-emettraient
   // pas leur fontFamily depuis le nouveau theme (bug visible : tooltips
   // hereditent OK mais body / Typography variants restent en Plus Jakarta).
+  // Couche « Signature » (refonte design 2026-06, handoff §2) : appliquée en
+  // deep merge SUR le baseTheme existant — la peau prime là où elle redéfinit,
+  // tout le reste du thème historique est conservé (reskin incrémental).
+  const signature = signatureOverrides(isDark);
+
   if (!isRtl) {
-    // LTR : pas besoin d'override, on retourne le baseTheme inchange
-    return baseTheme;
+    return createTheme(baseTheme, signature);
   }
-  return createTheme(baseTheme, {
+  // RTL : la couche Tajawal vient APRÈS Signature (deep merge gauche→droite)
+  // pour que l'arabe garde sa font dédiée sur tous les variants.
+  return createTheme(baseTheme, signature, {
     direction: 'rtl',
     typography: {
       fontFamily: ARABIC_FONT_STACK,
