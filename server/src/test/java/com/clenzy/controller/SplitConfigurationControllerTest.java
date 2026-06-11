@@ -96,6 +96,50 @@ class SplitConfigurationControllerTest {
     }
 
     @Test
+    void create_clientSuppliedIdAndOrg_areIgnored() {
+        // Mass assignment : le client tente d'imposer un id et une organisation
+        // arbitraires. Le service DOIT les ignorer (id genere par la DB, org issue
+        // du TenantContext).
+        when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+        SplitConfigurationDto malicious = new SplitConfigurationDto(
+                999L, 666L, "Hijack",
+                new BigDecimal("0.8000"), new BigDecimal("0.0500"), new BigDecimal("0.1500"),
+                true, true, null, null);
+        when(repository.save(any(SplitConfiguration.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        controller.createConfig(malicious);
+
+        ArgumentCaptor<SplitConfiguration> captor = ArgumentCaptor.forClass(SplitConfiguration.class);
+        verify(repository).save(captor.capture());
+        assertThat(captor.getValue().getId()).isNull();
+        assertThat(captor.getValue().getOrganizationId()).isEqualTo(1L);
+    }
+
+    @Test
+    void update_clientSuppliedIdAndOrg_areIgnored() {
+        // L'entite chargee provient de la DB (id 5, org 1). Le payload tente
+        // d'imposer un autre id et une autre org : tous deux doivent etre ignores
+        // (l'id reste celui charge, l'org n'est jamais reassignee).
+        when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+        SplitConfiguration existing = sc(5L, new BigDecimal("0.8000"), new BigDecimal("0.0500"), new BigDecimal("0.1500"));
+        SplitConfigurationDto malicious = new SplitConfigurationDto(
+                999L, 666L, "Renamed",
+                new BigDecimal("0.7000"), new BigDecimal("0.1000"), new BigDecimal("0.2000"),
+                true, true, null, null);
+
+        when(repository.findById(5L)).thenReturn(Optional.of(existing));
+        when(repository.save(any(SplitConfiguration.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        controller.updateConfig(5L, malicious);
+
+        ArgumentCaptor<SplitConfiguration> captor = ArgumentCaptor.forClass(SplitConfiguration.class);
+        verify(repository).save(captor.capture());
+        assertThat(captor.getValue().getId()).isEqualTo(5L);
+        assertThat(captor.getValue().getOrganizationId()).isEqualTo(1L);
+        assertThat(captor.getValue().getName()).isEqualTo("Renamed");
+    }
+
+    @Test
     void create_invalidShareSum_throws() {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
         SplitConfigurationDto request = dto(null, new BigDecimal("0.6000"), new BigDecimal("0.0500"), new BigDecimal("0.1500"));

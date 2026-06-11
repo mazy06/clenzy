@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import com.clenzy.service.SecurityAuditService;
+import com.clenzy.util.ClientIpResolver;
 
 import java.util.List;
 import java.util.Map;
@@ -218,85 +219,24 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * Plages privees/loopback considerees comme proxies de confiance (nginx,
-     * reseaux Docker). CIDR exacts : 172.32.x.x ou 172.0.x.x (publiques) ne sont
-     * PAS de confiance, contrairement a l'ancien test startsWith("172.").
-     */
-    private static final List<Ipv4Cidr> TRUSTED_PROXY_RANGES = List.of(
-            Ipv4Cidr.parse("127.0.0.0/8"),
-            Ipv4Cidr.parse("10.0.0.0/8"),
-            Ipv4Cidr.parse("172.16.0.0/12"),
-            Ipv4Cidr.parse("192.168.0.0/16"));
-
-    /**
-     * Resout l'IP cliente reelle pour le keying du rate-limit.
-     *
-     * X-Forwarded-For n'est exploite que si le pair direct est un proxy de
-     * confiance, et il est parcouru de DROITE a GAUCHE en sautant les proxies de
-     * confiance : nginx AJOUTE l'IP reelle en fin de chaine
-     * (proxy_add_x_forwarded_for), donc les entrees de gauche sont fournies par
-     * le client et spoofables.
+     * Resout l'IP cliente reelle pour le keying du rate-limit. Delegue a
+     * {@link ClientIpResolver} (source de verite unique partagee avec
+     * {@code TrustedClientIpResolver}) : X-Forwarded-For n'est exploite que si le
+     * pair direct est un proxy de confiance, et il est parcouru de DROITE a GAUCHE
+     * en sautant les proxies de confiance.
      *
      * <p>Visibilite package-private pour les tests.</p>
      */
     String getClientIp(HttpServletRequest request) {
-        String remoteAddr = request.getRemoteAddr();
-        if (!isTrustedProxy(remoteAddr)) {
-            return remoteAddr;
-        }
-        String forwardedClientIp = resolveClientIpFromForwardedChain(request.getHeader("X-Forwarded-For"));
-        if (forwardedClientIp != null) {
-            return forwardedClientIp;
-        }
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isBlank()) {
-            return xRealIp.trim();
-        }
-        return remoteAddr;
+        return ClientIpResolver.resolve(
+                request.getRemoteAddr(),
+                request.getHeader("X-Forwarded-For"),
+                request.getHeader("X-Real-IP"));
     }
 
-    /**
-     * Parcourt X-Forwarded-For de droite a gauche et retourne la premiere adresse
-     * qui n'est pas un proxy de confiance (= IP cliente vue par le premier proxy
-     * de confiance). Retourne null si le header est absent/vide ou si toute la
-     * chaine est de confiance (client interne : repli X-Real-IP/remoteAddr).
-     */
-    private String resolveClientIpFromForwardedChain(String xForwardedFor) {
-        if (xForwardedFor == null || xForwardedFor.isBlank()) {
-            return null;
-        }
-        String[] entries = xForwardedFor.split(",");
-        for (int i = entries.length - 1; i >= 0; i--) {
-            String candidate = entries[i].trim();
-            if (candidate.isEmpty()) {
-                continue;
-            }
-            if (!isTrustedProxy(candidate)) {
-                return candidate;
-            }
-        }
-        return null;
-    }
-
-    /** Visibilite package-private pour les tests. */
+    /** Visibilite package-private pour les tests. Delegue a {@link ClientIpResolver}. */
     boolean isTrustedProxy(String address) {
-        if (address == null || address.isBlank()) {
-            return false;
-        }
-        String trimmed = address.trim();
-        if (trimmed.equals("0:0:0:0:0:0:0:1") || trimmed.equals("::1")) {
-            return true;
-        }
-        Integer ipv4 = Ipv4Cidr.parseAddress(trimmed);
-        if (ipv4 == null) {
-            return false;
-        }
-        for (Ipv4Cidr range : TRUSTED_PROXY_RANGES) {
-            if (range.contains(ipv4)) {
-                return true;
-            }
-        }
-        return false;
+        return ClientIpResolver.isTrustedProxy(address);
     }
 
     private String getCurrentUserId() {
@@ -320,56 +260,6 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     record RateLimitResult(boolean allowed, int remaining, long retryAfterSeconds) {}
-
-    /**
-     * Plage CIDR IPv4 : comparaison par masque sur des litteraux d'adresse,
-     * sans aucune resolution DNS.
-     */
-    record Ipv4Cidr(int network, int mask) {
-
-        static Ipv4Cidr parse(String cidr) {
-            int slash = cidr.indexOf('/');
-            if (slash < 0) {
-                throw new IllegalArgumentException("CIDR invalide: " + cidr);
-            }
-            Integer base = parseAddress(cidr.substring(0, slash));
-            int prefix = Integer.parseInt(cidr.substring(slash + 1));
-            if (base == null || prefix < 0 || prefix > 32) {
-                throw new IllegalArgumentException("CIDR invalide: " + cidr);
-            }
-            int mask = prefix == 0 ? 0 : -1 << (32 - prefix);
-            return new Ipv4Cidr(base & mask, mask);
-        }
-
-        /** Retourne null si la valeur n'est pas une IPv4 litterale valide. */
-        static Integer parseAddress(String address) {
-            String[] octets = address.split("\\.", -1);
-            if (octets.length != 4) {
-                return null;
-            }
-            int value = 0;
-            for (String octetText : octets) {
-                if (octetText.isEmpty() || octetText.length() > 3) {
-                    return null;
-                }
-                final int octet;
-                try {
-                    octet = Integer.parseInt(octetText);
-                } catch (NumberFormatException e) {
-                    return null;
-                }
-                if (octet < 0 || octet > 255) {
-                    return null;
-                }
-                value = (value << 8) | octet;
-            }
-            return value;
-        }
-
-        boolean contains(int address) {
-            return (address & mask) == network;
-        }
-    }
 
     static class RateLimitBucket {
         private final int limit;
