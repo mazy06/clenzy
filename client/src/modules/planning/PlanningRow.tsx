@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react';
-import { alpha, Box, Typography, useTheme } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import PlanningBar from './PlanningBar';
 import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, PlanningDragState } from './types';
 import { ROW_CONFIG, BAR_BORDER_RADIUS } from './constants';
@@ -81,10 +81,8 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   effectiveRowHeight,
   allEvents,
 }) => {
-  const theme = useTheme();
   const { convertAndFormat } = useCurrency();
   const config = ROW_CONFIG[density];
-  const isDark = theme.palette.mode === 'dark';
   const propertyPricing = showPrices ? pricingMap.get(property.id) : undefined;
   const propertyMinNights = showPrices ? minNightsMap?.get(property.id) : undefined;
   const activeRowHeight = showInterventions ? config.rowHeight : config.interventionTop + 2;
@@ -399,9 +397,13 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         position: 'relative',
         height: effectiveRowHeight,
         width: totalGridWidth,
+        borderBottom: '1px solid var(--line)',
         backgroundColor: rowIndex % 2 === 0
           ? 'transparent'
-          : isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
+          : 'color-mix(in srgb, var(--ink) 1.5%, transparent)',
+        // Hairlines verticales entre les jours (maquette) : un seul paint
+        // via repeating-gradient plutôt qu'une Box par cellule.
+        backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${dayWidth - 1}px, var(--line) ${dayWidth - 1}px ${dayWidth}px)`,
       }}
     >
       {/* Day column backgrounds (weekends + today) */}
@@ -418,10 +420,12 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               top: 0,
               width: dayWidth,
               height: effectiveRowHeight,
+              // Aujourd'hui : colonne légèrement teintée accent (maquette).
+              // Week-end : voile neutre var(--surface-2)-like, theme-aware.
               backgroundColor: today
-                ? isDark ? 'rgba(239, 68, 68, 0.05)' : 'rgba(239, 68, 68, 0.03)'
+                ? 'color-mix(in srgb, var(--accent) 6%, transparent)'
                 : weekend
-                  ? isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'
+                  ? 'color-mix(in srgb, var(--ink) 2.5%, transparent)'
                   : 'transparent',
               pointerEvents: 'none',
             }}
@@ -446,7 +450,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
       {/* Selection highlight overlay (drag-to-select) — styled like reservation bars */}
       {selectionRange && (() => {
         const isError = selectionError || selectionBlocked;
-        const selColor = isError ? '#EF4444' : '#26A69A'; // Red on error/blocked, teal otherwise
+        const selColor = isError ? 'var(--err)' : 'var(--ok)'; // Rouge si bloqué, vert sinon
         const nightCount = selectionRange.end - selectionRange.start + 1;
         const offsetPx = selectionRange.startOffsetPx || 0;
         const leftPx = selectionRange.start * dayWidth + offsetPx;
@@ -459,29 +463,29 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               top: config.barPadding,
               width: Math.max(widthPx, 4), // Minimum 4px so the bar is always visible
               height: config.reservationBarHeight,
-              backgroundColor: alpha(selColor, isDark ? 0.35 : 0.25),
-              border: `1.5px solid ${alpha(selColor, 0.6)}`,
-              borderLeft: `3px solid ${selColor}`,
+              backgroundColor: `color-mix(in srgb, ${selColor} 25%, transparent)`,
+              border: `1.5px solid color-mix(in srgb, ${selColor} 60%, transparent)`,
               borderRadius: `${BAR_BORDER_RADIUS}px`,
               zIndex: 4,
               pointerEvents: 'none',
               display: 'flex',
               alignItems: 'center',
               px: 1,
-              boxShadow: `0 2px 8px ${alpha(selColor, 0.25)}`,
+              boxShadow: `0 2px 8px color-mix(in srgb, ${selColor} 25%, transparent)`,
               transition: isError ? 'opacity 0.3s ease' : undefined,
               animation: isError ? 'pulseError 0.4s ease-in-out 2' : undefined,
               '@keyframes pulseError': {
                 '0%, 100%': { opacity: 1 },
                 '50%': { opacity: 0.5 },
               },
+              '@media (prefers-reduced-motion: reduce)': { animation: 'none', transition: 'none' },
             }}
           >
             <Typography
               sx={{
                 fontSize: '0.6875rem',
                 fontWeight: 600,
-                color: isDark ? (isError ? '#FCA5A5' : 'text.primary') : selColor,
+                color: selColor,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -554,10 +558,11 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               <Box
                 component="span"
                 sx={{
+                  fontFamily: 'var(--font-display)',
                   fontSize: dayWidth < 60 ? '0.625rem' : '0.6875rem',
                   fontWeight: 500,
-                  color: 'text.secondary',
-                  opacity: 0.7,
+                  color: 'var(--muted)',
+                  opacity: 0.8,
                   lineHeight: 1,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -578,7 +583,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
                   display: 'flex',
                   alignItems: 'center',
                   gap: 0.125,
-                  color: 'text.secondary',
+                  color: 'var(--faint)',
                   opacity: 0.85,
                 }}
               >

@@ -1,12 +1,12 @@
 import React from 'react';
-import { Box, Tooltip, Typography, useTheme } from '@mui/material';
+import { Box, Tooltip } from '@mui/material';
 import { useDraggable } from '@dnd-kit/core';
-import { Lock as LockIcon, Close } from '../../icons';
+import { Lock as LockIcon, Close, CreditCard, Warning } from '../../icons';
 import { INTERVENTION_TYPE_LABELS } from '../../services/api/reservationsApi';
 import type { PlanningInterventionType } from '../../services/api';
 import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData } from './types';
 import { BAR_BORDER_RADIUS } from './constants';
-import { hexToRgba } from './utils/colorUtils';
+import { getEventDisplayColor } from './utils/colorUtils';
 import { getSourceLogo } from './utils/sourceLogos';
 import { daysBetween } from './utils/dateUtils';
 import { useAuth } from '../../hooks/useAuth';
@@ -18,6 +18,17 @@ function getNights(startDate: string, endDate: string): number {
   } catch {
     return 1;
   }
+}
+
+/** Initiales du voyageur pour l'avatar rond (max 2 lettres). */
+function getInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 }
 
 interface PlanningBarProps {
@@ -56,16 +67,15 @@ function getInterventionTypeLabel(event: PlanningEvent): string | null {
 //
 // Petite pastille avec effet "radar" : un point solide entoure de 2 anneaux
 // qui pulsent vers l'exterieur (decales de 0.8s pour un effet continu).
-// La couleur de la pastille encode le type de souci :
-//   - orange (#ED6C02) : info manquante (ex: email voyageur)
-//   - rouge  (#E53935) : paiement en attente
-//   - rouge fonce (#C62828) : paiement echoue
+// Utilisee en REPLI quand la brique est trop etroite pour les pastilles
+// blanches du langage Signature. Couleurs tokens :
+//   - var(--warn) : info manquante (ex: email voyageur)
+//   - var(--err)  : paiement en attente / echoue
 const RadarPastille: React.FC<{
   color: string;
   tooltip: string;
   right?: number;
-  isDark: boolean;
-}> = ({ color, tooltip, right = -4, isDark }) => (
+}> = ({ color, tooltip, right = -4 }) => (
   <Tooltip title={tooltip} arrow>
     <Box
       sx={{
@@ -90,6 +100,7 @@ const RadarPastille: React.FC<{
             '0%':   { transform: 'scale(1)', opacity: 0.55 },
             '100%': { transform: 'scale(2.6)', opacity: 0 },
           },
+          '@media (prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0 },
         }}
       />
       {/* Anneau 2 (decale de 0.8s pour un effet continu) */}
@@ -101,6 +112,7 @@ const RadarPastille: React.FC<{
           backgroundColor: color,
           pointerEvents: 'none',
           animation: 'radar-pulse 1.6s cubic-bezier(0,0,0.2,1) 0.8s infinite',
+          '@media (prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0 },
         }}
       />
       {/* Point central solide */}
@@ -110,13 +122,30 @@ const RadarPastille: React.FC<{
           inset: 0,
           borderRadius: '50%',
           backgroundColor: color,
-          border: `1.5px solid ${isDark ? '#1e1e1e' : '#fff'}`,
+          border: '1.5px solid var(--card)',
           boxShadow: `0 0 6px ${color}`,
         }}
       />
     </Box>
   </Tooltip>
 );
+
+// ─── Pastille blanche (langage Signature, dans la brique) ───────────────────
+//
+// Indicateurs groupes a droite de la brique : carre arrondi clair de 20px
+// avec icone coloree (paiement, info manquante) ou logo canal. Tooltip au
+// survol. Variante "combo" : repli « +N » quand la place manque.
+const BAR_BADGE_SX = {
+  width: 20,
+  height: 20,
+  borderRadius: '7px',
+  backgroundColor: 'var(--on-accent)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+  boxShadow: '0 1px 2px color-mix(in srgb, var(--ink) 14%, transparent)',
+} as const;
 
 // ─── Resize Handle (right edge) ──────────────────────────────────────────────
 
@@ -150,7 +179,7 @@ const ResizeHandle: React.FC<{ eventId: string; event: PlanningEvent; layout: Ba
         cursor: 'col-resize',
         zIndex: 10,
         '&:hover': {
-          backgroundColor: 'rgba(0,0,0,0.08)',
+          backgroundColor: 'color-mix(in srgb, var(--ink) 8%, transparent)',
         },
       }}
     />
@@ -170,11 +199,10 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   onClick,
   onHide,
 }) => {
-  const theme = useTheme();
   const { event, left, top, height } = layout;
-  const isDark = theme.palette.mode === 'dark';
   const isIntervention = event.type !== 'reservation';
   const isReservation = event.type === 'reservation';
+  const isCancelled = isReservation && event.status === 'cancelled';
 
   // Role check: only SUPER_ADMIN, SUPER_MANAGER, or org ADMIN can drag interventions
   const { user } = useAuth();
@@ -198,18 +226,15 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // When interventions are stacked (compact height), adapt display
   const isCompactBar = isIntervention && height < 18;
   const showLabel = displayWidth > 40 && height >= 12;
-  const showSublabel = displayWidth > 100 && height >= 18;
   const icon = isIntervention ? getEventIcon(event.type, isCompactBar) : null;
 
-  // Reservations ET interventions : fond OPAQUE saturé (couleur du status
-  // / type). Plus de transparence rgba, plus de border ni liseré (les
-  // side-stripes >1px sont un anti-pattern Impeccable). Cards pleines,
-  // lisibles d'un coup d'oeil, harmonieuses avec le reste du planning.
-  const bgColor = event.color;
+  // Brique Signature : la couleur de fond encode le STATUT (réservations)
+  // ou le TYPE (interventions), via les tokens CSS. Annulée = fond hachuré
+  // gris (géré plus bas). Aplat uniforme, pas de side-stripe (ban Impeccable).
+  const barColor = getEventDisplayColor(event);
 
   // Note : pas de pattern strié pour "paiement en attente". L'info est
-  // deja transmise par la pastille radar rouge (RadarPastille) → grillage
-  // redondant et bruyant. Le fond reste un aplat uniforme.
+  // transmise par la pastille paiement (badge blanc ou radar en repli).
   const isAwaitingPayment = !!event.isAwaitingPayment;
 
   // Nuits pour la 1ere ligne (uniquement reservations)
@@ -218,6 +243,46 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
 
   // Texte du type pour menage/maintenance (remplace l'icone)
   const interventionTypeLabel = isIntervention ? getInterventionTypeLabel(event) : null;
+
+  // ── Indicateurs (paiement, info manquante) ────────────────────────────────
+  const missingEmail = isReservation && !!event.reservation && !event.reservation.guestEmail && !isCancelled;
+  const paymentTooltip = event.paymentBadgeStatus === 'FAILED'
+    ? 'Paiement echoue'
+    : event.paymentBadgeStatus === 'PROCESSING'
+      ? 'Paiement en cours de traitement'
+      : 'Paiement en attente';
+  const indicators: { key: string; tooltip: string; color: string; icon: React.ReactNode }[] = [];
+  if (event.needsPaymentBadge) {
+    indicators.push({
+      key: 'pay',
+      tooltip: paymentTooltip,
+      color: event.paymentBadgeStatus === 'FAILED'
+        ? 'color-mix(in srgb, var(--err) 75%, var(--ink))'
+        : 'var(--err)',
+      icon: <CreditCard size={12} strokeWidth={2} />,
+    });
+  }
+  if (missingEmail) {
+    indicators.push({
+      key: 'miss',
+      tooltip: 'Email voyageur manquant — les messages automatiques ne seront pas envoyés',
+      color: 'var(--warn)',
+      icon: <Warning size={12} strokeWidth={2} />,
+    });
+  }
+
+  // Pastilles blanches inline (langage maquette) si la brique est assez
+  // large, sinon repli sur les pastilles radar flottantes (élément historique).
+  const showBadgeGroup = isReservation && displayWidth > 120 && height >= 28;
+  const indicatorSlots = displayWidth > 175 ? 2 : 1;
+  const shownIndicators = indicators.length <= indicatorSlots
+    ? indicators
+    : indicators.slice(0, Math.max(0, indicatorSlots - 1));
+  const hiddenIndicators = indicators.slice(shownIndicators.length);
+
+  // Avatar voyageur (rond, bord clair) — si la place le permet
+  const avatarSize = Math.max(20, Math.min(28, height - 16));
+  const showAvatar = isReservation && displayWidth > 90 && height >= 32;
 
   // Only reduce opacity for move drag, not resize
   const draggedOpacity = isDragging ? 0.3 : 1;
@@ -240,11 +305,19 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         top,
         width: displayWidth,
         height,
-        backgroundColor: bgColor,
-        // Aucune border ni liseré : fond opaque uniforme pour tous les types
-        // (reservation, menage, maintenance, blocked). Conforme aux règles
-        // Impeccable (anti-pattern side-stripe).
-        border: 'none',
+        // Couleur = statut/type (tokens). Annulée = hachuré gris (maquette).
+        ...(isCancelled
+          ? {
+              backgroundColor: 'var(--surface-2)',
+              backgroundImage: 'repeating-linear-gradient(135deg, color-mix(in srgb, var(--muted) 22%, transparent) 0 1.5px, transparent 1.5px 8px)',
+              border: '1.5px dashed var(--line-2)',
+            }
+          : {
+              backgroundColor: barColor,
+              // Aucune border ni liseré : fond opaque uniforme (anti-pattern
+              // side-stripe Impeccable).
+              border: 'none',
+            }),
         borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
         cursor: isResizing ? 'col-resize' : isDragDisabled ? 'pointer' : 'grab',
         touchAction: 'none',
@@ -259,19 +332,25 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           ? 'center'
           : showLabel ? 'flex-start' : 'center',
         gap: isReservation ? 0 : (showLabel ? 0.5 : 0),
-        px: isReservation ? 0.875 : (showLabel ? 0.75 : 0),
+        px: isReservation ? 0.625 : (showLabel ? 0.75 : 0),
         py: isReservation ? 0.5 : 0,
         transition: (isDragging || isResizing) ? 'none' : 'box-shadow 0.15s ease, transform 0.1s ease, width 0.1s ease',
         userSelect: 'none',
         opacity: draggedOpacity,
         zIndex: isSelected ? 5 : isIntervention ? 2 : 3,
-        '&:hover': {
-          boxShadow: `0 4px 12px ${hexToRgba(event.color, 0.45)}`,
-          transform: 'translateY(-1px)',
-          zIndex: 6,
+        '&:hover': isCancelled
+          ? { zIndex: 6 }
+          : {
+              boxShadow: `0 7px 16px -8px color-mix(in srgb, ${barColor} 60%, transparent)`,
+              transform: 'translateY(-1px)',
+              zIndex: 6,
+            },
+        '@media (prefers-reduced-motion: reduce)': {
+          transition: 'none',
+          '&:hover': { transform: 'none' },
         },
         ...(isSelected && {
-          boxShadow: `0 0 0 2px ${theme.palette.primary.main}, 0 4px 12px ${hexToRgba(theme.palette.primary.main, 0.3)}`,
+          boxShadow: '0 0 0 2px var(--card), 0 0 0 4px var(--accent)',
           transform: 'translateY(-1px)',
           animation: 'select-pop 0.3s ease-out',
           '@keyframes select-pop': {
@@ -279,26 +358,23 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             '40%': { transform: 'scale(1.05) translateY(-2px)' },
             '100%': { transform: 'scale(1) translateY(-1px)' },
           },
+          '@media (prefers-reduced-motion: reduce)': { animation: 'none', transform: 'none' },
         }),
         ...((isConflict || resizeConflict) && {
-          boxShadow: `0 0 0 2px ${theme.palette.error.main}`,
+          boxShadow: '0 0 0 2px var(--err)',
           animation: 'pulse-conflict 2s ease-in-out infinite',
           '@keyframes pulse-conflict': {
-            '0%, 100%': { boxShadow: `0 0 0 2px ${theme.palette.error.main}` },
-            '50%': { boxShadow: `0 0 0 2px ${hexToRgba(theme.palette.error.main, 0.5)}` },
+            '0%, 100%': { boxShadow: '0 0 0 2px var(--err)' },
+            '50%': { boxShadow: '0 0 0 2px color-mix(in srgb, var(--err) 50%, transparent)' },
           },
-        }),
-        ...(event.status === 'cancelled' && !isConflict && !resizeConflict && {
-          opacity: draggedOpacity * 0.6,
-          animation: 'pulse-cancelled 2s ease-in-out infinite',
-          '@keyframes pulse-cancelled': {
-            '0%, 100%': { opacity: draggedOpacity * 0.6 },
-            '50%': { opacity: draggedOpacity * 0.4 },
+          '@media (prefers-reduced-motion: reduce)': {
+            animation: 'none',
+            boxShadow: '0 0 0 2px var(--err)',
           },
         }),
       }}
     >
-      {/* ── RESERVATION : 2 lignes (nuits + nom) + logo canal a droite ───── */}
+      {/* ── RESERVATION : avatar + 2 lignes (nuits + nom) + pastilles ────── */}
       {isReservation && (
         <Box
           sx={{
@@ -306,25 +382,51 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 0.5,
+            gap: 0.625,
             width: '100%',
             height: '100%',
-            color: '#fff',
+            color: isCancelled ? 'var(--muted)' : 'var(--on-accent)',
             minWidth: 0,
-            // Clip le contenu (texte + logo) au radius de la card.
-            // L'overflow visible reste sur le parent pour les pastilles.
+            // Clip le contenu (texte + pastilles) au radius de la brique.
+            // L'overflow visible reste sur le parent pour les pastilles radar.
             overflow: 'hidden',
             borderRadius: `${BAR_BORDER_RADIUS}px`,
           }}
         >
-          <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+          {/* Avatar voyageur : rond, bord clair, initiales */}
+          {showAvatar && (
+            <Box
+              sx={{
+                width: avatarSize,
+                height: avatarSize,
+                borderRadius: '50%',
+                flexShrink: 0,
+                border: '1.5px solid color-mix(in srgb, var(--on-accent) 55%, transparent)',
+                backgroundColor: 'color-mix(in srgb, var(--on-accent) 22%, transparent)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.59375rem',
+                fontWeight: 700,
+                color: isCancelled ? 'var(--muted)' : 'var(--on-accent)',
+                ...(isCancelled && {
+                  filter: 'grayscale(1)',
+                  opacity: 0.6,
+                  borderColor: 'var(--line-2)',
+                }),
+              }}
+            >
+              {getInitials(event.label)}
+            </Box>
+          )}
+          <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             {/* Ligne 1 : nombre de nuits */}
             <Box
               component="span"
               sx={{
-                fontSize: '0.625rem',
-                fontWeight: 400,
-                lineHeight: 1,
+                fontSize: '0.59375rem',
+                fontWeight: 600,
+                lineHeight: 1.15,
                 opacity: 0.85,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -339,41 +441,70 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 component="span"
                 sx={{
                   fontSize: '0.75rem',
-                  fontWeight: 400,
-                  lineHeight: 1,
+                  fontWeight: 600,
+                  lineHeight: 1.2,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   letterSpacing: '-0.01em',
+                  ...(isCancelled && { textDecoration: 'line-through' }),
                 }}
               >
                 {event.label}
               </Box>
             )}
           </Box>
-          {/* Logo canal a droite */}
-          {sourceLogo && displayWidth > 60 && (
-            <Box
-              component="img"
-              src={sourceLogo}
-              alt={event.sublabel || ''}
-              sx={{
-                height: '60%',
-                maxHeight: 22,
-                width: 'auto',
-                objectFit: 'contain',
-                flexShrink: 0,
-                // Le logo reste lisible sur le fond colore : leger backdrop
-                // blanc circulaire si le logo est foncé.
-                filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.15))',
-              }}
-            />
+          {/* Pastilles a droite : indicateurs (+N) + logo canal */}
+          {(showBadgeGroup || (sourceLogo && displayWidth > 60)) && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+              {showBadgeGroup && shownIndicators.map((it) => (
+                <Tooltip key={it.key} title={it.tooltip} arrow>
+                  <Box sx={{ ...BAR_BADGE_SX, color: it.color }}>{it.icon}</Box>
+                </Tooltip>
+              ))}
+              {showBadgeGroup && hiddenIndicators.length > 0 && (
+                <Tooltip
+                  arrow
+                  title={hiddenIndicators.map((it) => it.tooltip).join(' · ')}
+                >
+                  <Box
+                    sx={{
+                      ...BAR_BADGE_SX,
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '0.625rem',
+                      fontWeight: 700,
+                      color: 'var(--ink)',
+                    }}
+                  >
+                    +{hiddenIndicators.length}
+                  </Box>
+                </Tooltip>
+              )}
+              {sourceLogo && displayWidth > 60 && (
+                <Tooltip title={event.sublabel || ''} arrow>
+                  <Box sx={BAR_BADGE_SX}>
+                    <Box
+                      component="img"
+                      src={sourceLogo}
+                      alt={event.sublabel || ''}
+                      sx={{
+                        width: 13,
+                        height: 13,
+                        objectFit: 'contain',
+                        display: 'block',
+                        ...(isCancelled && { filter: 'grayscale(1)', opacity: 0.7 }),
+                      }}
+                    />
+                  </Box>
+                </Tooltip>
+              )}
+            </Box>
           )}
         </Box>
       )}
 
       {/* ── INTERVENTION (menage / maintenance / blocked) : layout inline ───
-          fond opaque + icone + label + sublabel, tous en blanc.
+          fond opaque + icone + label + sublabel, tous sur on-accent.
           Padding horizontal pour respirer entre les bords. Clipping interne
           pour empecher le texte de deborder du radius. */}
       {!isReservation && (
@@ -386,7 +517,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             gap: 0.5,
             width: '100%',
             height: '100%',
-            color: '#fff',
+            color: 'var(--on-accent)',
             minWidth: 0,
             overflow: 'hidden',
             borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
@@ -400,7 +531,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               sx={{
                 fontSize: isCompactBar ? '0.5rem' : '0.5625rem',
                 fontWeight: 700,
-                color: '#fff',
+                color: 'var(--on-accent)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.04em',
                 flexShrink: 0,
@@ -414,7 +545,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             icon && (
               <Box
                 sx={{
-                  color: '#fff',
+                  color: 'var(--on-accent)',
                   flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
@@ -448,54 +579,49 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               width: 16,
               height: 16,
               borderRadius: '50%',
-              backgroundColor: event.color,
+              backgroundColor: 'var(--muted)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               zIndex: 12,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-              border: `1.5px solid ${isDark ? '#1e1e1e' : '#fff'}`,
+              boxShadow: '0 1px 3px color-mix(in srgb, var(--ink) 30%, transparent)',
+              border: '1.5px solid var(--card)',
+              color: 'var(--on-accent)',
               '&:hover': {
-                filter: 'brightness(0.85)',
+                backgroundColor: 'var(--body)',
                 transform: 'scale(1.1)',
               },
               transition: 'transform 0.15s ease, background-color 0.15s ease',
+              '@media (prefers-reduced-motion: reduce)': {
+                transition: 'none',
+                '&:hover': { transform: 'none' },
+              },
             }}
           >
-            <Close size={10} strokeWidth={1.75} color='#fff' />
+            <Close size={10} strokeWidth={1.75} />
           </Box>
         </Tooltip>
       )}
 
-      {/* Pastille radar (info) — email voyageur manquant (orange) */}
-      {isReservation && event.reservation && !event.reservation.guestEmail && event.status !== 'cancelled' && (
+      {/* Pastilles radar flottantes — REPLI quand la brique est trop etroite
+          pour le groupe de pastilles blanches (l'info reste toujours visible). */}
+      {!showBadgeGroup && missingEmail && (
         <RadarPastille
-          color="#ED6C02"
+          color="var(--warn)"
           tooltip="Email voyageur manquant — les messages automatiques ne seront pas envoyés"
           right={-4}
-          isDark={isDark}
         />
       )}
-
-      {/* Pastille radar (paiement) — en attente / en cours / echoue (rouge) */}
-      {event.needsPaymentBadge && (() => {
-        const hasInfoPastille = isReservation && event.reservation && !event.reservation.guestEmail && event.status !== 'cancelled';
-        const tooltipText = event.paymentBadgeStatus === 'FAILED'
-          ? 'Paiement echoue'
-          : event.paymentBadgeStatus === 'PROCESSING'
-            ? 'Paiement en cours de traitement'
-            : 'Paiement en attente';
-        const paymentColor = event.paymentBadgeStatus === 'FAILED' ? '#C62828' : '#E53935';
-        return (
-          <RadarPastille
-            color={paymentColor}
-            tooltip={tooltipText}
-            right={hasInfoPastille ? 12 : -4}
-            isDark={isDark}
-          />
-        );
-      })()}
+      {!showBadgeGroup && event.needsPaymentBadge && (
+        <RadarPastille
+          color={event.paymentBadgeStatus === 'FAILED'
+            ? 'color-mix(in srgb, var(--err) 75%, var(--ink))'
+            : 'var(--err)'}
+          tooltip={paymentTooltip}
+          right={missingEmail ? 12 : -4}
+        />
+      )}
 
       {/* Resize handle (right edge) — hidden during move drag, respects role permissions */}
       {!isDragDisabled && !isDragging && (

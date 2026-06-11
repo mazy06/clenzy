@@ -171,9 +171,8 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
               height: 18,
               fontSize: LABEL_FS,
               fontWeight: 600,
-              bgcolor: (theme) =>
-                theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(107,138,154,0.12)',
-              color: 'primary.main',
+              bgcolor: 'var(--accent-soft)',
+              color: 'var(--accent)',
               textTransform: 'capitalize',
               '& .MuiChip-label': { px: 0.625 },
             }}
@@ -320,28 +319,21 @@ function StatPill({
       sx={{
         p: 0.875,
         borderRadius: 1,
-        bgcolor: (theme) => {
-          if (highlight) {
-            return theme.palette.mode === 'dark'
-              ? 'rgba(16,185,129,0.18)'
-              : 'rgba(16,185,129,0.10)';
-          }
-          return theme.palette.mode === 'dark'
-            ? 'rgba(255,255,255,0.04)'
-            : 'rgba(0,0,0,0.025)';
-        },
+        bgcolor: highlight
+          ? 'var(--ok-soft)'
+          : 'color-mix(in srgb, var(--ink) 2.5%, transparent)',
         border: '1px solid',
-        borderColor: highlight ? 'success.main' : 'divider',
+        borderColor: highlight ? 'var(--ok)' : 'var(--line)',
         minWidth: 0,
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, color: highlight ? 'success.main' : 'text.secondary', mb: 0.375 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, color: highlight ? 'var(--ok)' : 'var(--muted)', mb: 0.375 }}>
         {icon}
         <Typography sx={{ fontSize: LABEL_FS, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, color: 'inherit', lineHeight: 1 }}>
           {label}
         </Typography>
       </Box>
-      <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: highlight ? 'success.main' : 'text.primary', lineHeight: 1.2 }}>
+      <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: highlight ? 'var(--ok)' : 'var(--ink)', lineHeight: 1.2 }}>
         {value}
       </Typography>
     </Box>
@@ -419,7 +411,8 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
         width: colWidth,
         minWidth: colWidth,
         flexShrink: 0,
-        backgroundColor: 'background.paper',
+        backgroundColor: 'var(--card)',
+        borderRight: '1px solid var(--line)',
       }}
     >
       {/* Drag handle pour redimensionner la colonne (bord droit).
@@ -447,12 +440,14 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
               width: 2,
               height: '100%',
               backgroundColor: isResizing
-                ? 'primary.main'
+                ? 'var(--accent)'
                 : 'transparent',
               transition: 'background-color 150ms ease',
             },
             '&:hover::after': {
-              backgroundColor: isResizing ? 'primary.main' : 'primary.light',
+              backgroundColor: isResizing
+                ? 'var(--accent)'
+                : 'color-mix(in srgb, var(--accent) 55%, transparent)',
             },
           }}
         />
@@ -473,12 +468,12 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
         const reservationCount = reservationCountByProperty?.get(property.id) ?? 0;
         const subtitle = property.city || property.address || '';
         const sync = channelSyncMap?.get(property.id);
-        // Color du wifi : vert si tout sync, orange si partiel, gris si rien connecte
+        // Color du wifi : vert si tout sync, ambre si partiel, rouge si zero
         const syncColor = sync && sync.total > 0
           ? sync.synced === sync.total
-            ? '#5FAB7E' // vert sauge (matches checked_in)
-            : sync.synced > 0 ? '#D4A574' : '#d32f2f' // ambre partiel / red zero
-          : 'text.disabled';
+            ? 'var(--ok)'
+            : sync.synced > 0 ? 'var(--warn)' : 'var(--err)'
+          : 'var(--faint)';
         return (
           <Tooltip
             key={property.id}
@@ -529,14 +524,15 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 px: 0,
                 py: `${rowVerticalPadding}px`,
                 cursor: onPropertyClick ? 'pointer' : 'default',
+                borderBottom: '1px solid var(--line)',
                 backgroundColor: selectedPropertyId === property.id
-                  ? theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.1)' : 'rgba(107, 138, 154, 0.05)'
+                  ? 'var(--accent-soft)'
                   : idx % 2 === 0
                     ? 'transparent'
-                    : theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
+                    : 'color-mix(in srgb, var(--ink) 1.5%, transparent)',
                 transition: 'background-color 0.15s ease',
                 '&:hover': onPropertyClick ? {
-                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.15)' : 'rgba(107, 138, 154, 0.08)',
+                  backgroundColor: 'var(--hover)',
                 } : {},
               }}
             >
@@ -615,7 +611,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                   sx={{
                     fontSize: density === 'compact' ? '0.6875rem' : '0.75rem',
                     fontWeight: 600,
-                    color: 'text.primary',
+                    color: 'var(--ink)',
                     lineHeight: 1.25,
                     letterSpacing: '-0.01em',
                     display: '-webkit-box',
@@ -633,7 +629,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                     sx={{
                       fontSize: density === 'compact' ? '0.5625rem' : '0.625rem',
                       fontWeight: 400,
-                      color: 'text.secondary',
+                      color: 'var(--muted)',
                       lineHeight: 1.2,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -695,16 +691,17 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                         display: 'flex',
                         alignItems: 'center',
                         gap: 0.25,
-                        color: 'text.secondary',
+                        color: 'var(--muted)',
                       }}
                     >
                       <TagIcon size={13} strokeWidth={1.75} />
                       <Box
                         component="span"
                         sx={{
+                          fontFamily: 'var(--font-display)',
                           fontSize: '0.6875rem',
                           fontWeight: 500,
-                          color: 'text.secondary',
+                          color: 'var(--muted)',
                           lineHeight: 1,
                           fontVariantNumeric: 'tabular-nums',
                         }}
@@ -727,7 +724,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             height: effectiveRowHeight,
             backgroundColor: (properties.length + i) % 2 === 0
               ? 'transparent'
-              : theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
+              : 'color-mix(in srgb, var(--ink) 1.5%, transparent)',
           }}
         />
       ))}

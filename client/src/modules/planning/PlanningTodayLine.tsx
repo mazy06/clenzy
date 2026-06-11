@@ -55,6 +55,7 @@ const PlanningTodayLine: React.FC<PlanningTodayLineProps> = React.memo(({
           height: 8,
           borderRadius: '50%',
           backgroundColor: TODAY_LINE_COLOR,
+          boxShadow: `0 0 0 3px color-mix(in srgb, ${TODAY_LINE_COLOR} 25%, transparent)`,
           zIndex: 20,
           pointerEvents: 'none',
         }}

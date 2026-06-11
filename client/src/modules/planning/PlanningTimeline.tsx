@@ -119,7 +119,10 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
         minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: 1,
+        // Carte Signature : hairline + radius lg (maquette .pl-grid)
+        backgroundColor: 'var(--card)',
+        border: '1px solid var(--line)',
+        borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
       }}
     >
@@ -219,7 +222,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                       width: totalGridWidth,
                       backgroundColor: (properties.length + i) % 2 === 0
                         ? 'transparent'
-                        : 'rgba(255,255,255,0.015)',
+                        : 'color-mix(in srgb, var(--ink) 1.5%, transparent)',
                     }}
                   />
                 ))}
