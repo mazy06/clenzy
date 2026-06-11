@@ -70,9 +70,10 @@ public class EmailChannel implements MessageChannel {
             // un template de message guest commencant par <html (corps host-editable,
             // non echappe par TemplateInterpolationService) partait verbatim au voyageur.
             // On applique donc la MEME sanitisation que le wrapper (EmailHtmlSanitizer,
-            // utilise par EmailWrapperService.wrap) : suppression ciblee des constructs
-            // dangereux (script/iframe/object/embed, handlers on*=, URLs javascript:),
-            // contenu legitime (briefings) restitue byte-identique.
+            // utilise par EmailWrapperService.wrap) : allowlist jsoup ecartant les
+            // constructs dangereux (script/iframe/object/embed, handlers on*=, URLs
+            // javascript:). Le HTML legitime (briefings) est conserve mais re-serialise
+            // par jsoup (entites echappees, attributs normalises, wrapper html/body retire).
             String body = request.htmlBody() != null ? request.htmlBody() : "";
             String trimmed = body.stripLeading().toLowerCase();
             String html = (trimmed.startsWith("<!doctype") || trimmed.startsWith("<html"))

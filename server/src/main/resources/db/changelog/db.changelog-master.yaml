@@ -2294,3 +2294,17 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # Verrou structurel NOT NULL sur organization_id (audit SECU9, étape 2 — suite du
+  # backfill 0231). Étape 0 : complète le backfill document_generations (4 reference_type
+  # non couverts + repli org Clenzy) ; puis pose NOT NULL sur 15 tables où NULL est
+  # illégitime, avec pré-check RAISE EXCEPTION lisible si une ligne NULL subsiste.
+  # Exclut users/notifications/templates globaux. Bloc PL/pgSQL DO $$ -> splitStatements: false.
+  - changeSet:
+      id: "0232-organization-id-not-null"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0232__organization_id_not_null.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

@@ -19,13 +19,16 @@ import java.util.concurrent.Callable;
  * alors tout un TTL L1 supplementaire. L2-puis-L1 borne la fenetre de
  * course a la duree de l'evict lui-meme.</p>
  *
- * <p><b>Tolerance multi-instance (documentee, Z1-BUGS-09)</b> : il n'y a pas
- * d'invalidation cross-instance (pas de Redis pub/sub). Le deploiement actuel
- * est mono-instance ; si l'application passe en 2+ instances, le L1 des autres
- * noeuds peut servir une valeur perimee pendant au plus le TTL Caffeine
- * (30s, cf. CacheConfig). Cette tolerance est assumee pour les caches
- * concernes (properties, permissions). Avant tout passage multi-instance,
- * ajouter une invalidation par Redis pub/sub ou reduire le TTL L1.</p>
+ * <p><b>Invalidation cross-instance (Z1-BUGS-09, C3-AUDITIP-CACHE)</b> : sur
+ * evict/clear, apres avoir evince L2 puis L1 localement, le cache publie la cle
+ * (ou un marqueur de clear) via {@link CacheInvalidationPublisher} (Redis pub/sub).
+ * Chaque autre noeud evince alors SON L1 local pour ce cache via
+ * {@link #clearLocal()} (eviction coarse mais idempotente et sure : L1 borne a
+ * ~500 entrees / 30s, re-warm negligeable). Le noeud emetteur ignore sa propre
+ * publication grace a l'{@code originId} embarque dans le message — pas de boucle.
+ * Si {@code publisher == null} (mono-instance / test), le comportement est
+ * strictement celui d'avant : L1 invalide localement, aucune diffusion. La
+ * publication est best-effort (un echec Redis ne casse jamais l'evict local).</p>
  *
  * <p><b>Contrat null (Z1-BUGS-04)</b> : {@code allowNullValues=true}, donc une
  * valeur {@code null} (methode {@code @Cacheable} retournant null) est stockee
@@ -42,13 +45,22 @@ public class TwoLayerCache extends AbstractValueAdaptingCache {
     private final String name;
     private final Cache<Object, Object> caffeineCache;
     private final RedisCache redisCache;
+    /** Diffusion cross-instance des invalidations L1. {@code null} = mono-instance (pas de pub/sub). */
+    private final CacheInvalidationPublisher invalidationPublisher;
 
+    /** Constructeur mono-instance : aucune diffusion cross-instance (comportement historique). */
     public TwoLayerCache(String name, Cache<Object, Object> caffeineCache,
                          RedisCache redisCache) {
+        this(name, caffeineCache, redisCache, null);
+    }
+
+    public TwoLayerCache(String name, Cache<Object, Object> caffeineCache,
+                         RedisCache redisCache, CacheInvalidationPublisher invalidationPublisher) {
         super(true); // allowNullValues
         this.name = name;
         this.caffeineCache = caffeineCache;
         this.redisCache = redisCache;
+        this.invalidationPublisher = invalidationPublisher;
     }
 
     @Override
@@ -115,17 +127,39 @@ public class TwoLayerCache extends AbstractValueAdaptingCache {
     /**
      * Evince L2 avant L1 : si L1 etait evince en premier, un lookup concurrent
      * pouvait repeupler L1 depuis le Redis pas encore evince (Z1-BUGS-09).
+     * Puis diffuse l'invalidation L1 aux autres noeuds (C3-AUDITIP-CACHE).
      */
     @Override
     public void evict(Object key) {
         redisCache.evict(key);
         caffeineCache.invalidate(key);
+        publishInvalidation(key);
     }
 
-    /** Meme ordre que {@link #evict(Object)} : L2 puis L1 (Z1-BUGS-09). */
+    /** Meme ordre que {@link #evict(Object)} : L2 puis L1 (Z1-BUGS-09), puis diffusion. */
     @Override
     public void clear() {
         redisCache.clear();
         caffeineCache.invalidateAll();
+        publishInvalidation(null); // null = clear complet du cache sur les autres noeuds
+    }
+
+    /**
+     * Eviction L1 LOCALE uniquement (Caffeine), declenchee a la reception d'un
+     * message d'invalidation d'un autre noeud. NE touche PAS L2 (deja evince par
+     * l'emetteur) et NE re-publie PAS (pas de boucle). Implementation coarse et
+     * sure : on vide tout le L1 de ce cache plutot que de tenter de reconstruire
+     * la cle exacte (type-safe sans serialisation fragile ; L1 minuscule).
+     */
+    void clearLocal() {
+        caffeineCache.invalidateAll();
+    }
+
+    /** Best-effort : un publisher absent (mono-instance) ou un echec de diffusion ne casse rien. */
+    private void publishInvalidation(Object key) {
+        if (invalidationPublisher == null) {
+            return;
+        }
+        invalidationPublisher.publishEviction(name, key);
     }
 }

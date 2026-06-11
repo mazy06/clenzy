@@ -55,6 +55,27 @@ public class PayoutNotifier {
                 + " n'a pas pu etre execute. Notre equipe a ete notifiee.");
     }
 
+    /**
+     * Alerte de reconciliation : le transfert externe a REUSSI mais la
+     * persistance du resultat en base a echoue (incoherence transfert-emis /
+     * DB-non-persistee). Un humain doit reconcilier — sans cette alerte la
+     * divergence n'etait visible que dans les logs (regle audit n°7).
+     *
+     * <p>Le re-essai du payout est sans risque (idempotency key Stripe), mais
+     * il faut un humain pour le declencher et verifier l'etat reel.</p>
+     */
+    public void notifyReconciliationRequired(OwnerPayout payout, String transferReference) {
+        notificationService.notifyAdminsAndManagersByOrgId(
+            payout.getOrganizationId(),
+            NotificationKey.RECONCILIATION_FAILED,
+            "Reconciliation reversement requise",
+            "Le reversement #" + payout.getId() + " (" + payout.getNetAmount() + " " + payout.getCurrency()
+                + ") a ete transfere (ref " + transferReference + ") mais son enregistrement a echoue. "
+                + "Verifier l'etat du payout avant tout re-essai (le re-essai est sans risque : idempotence du virement).",
+            "/billing"
+        );
+    }
+
     /** Notification "virement SEPA a effectuer manuellement". */
     public void notifySepaPending(OwnerPayout payout) {
         notificationService.notifyAdminsAndManagersByOrgId(
