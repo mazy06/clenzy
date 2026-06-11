@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Box, CircularProgress, Alert, Typography } from '@mui/material';
-import { CalendarMonth } from '../../icons';
+import { Box, CircularProgress, Alert, Typography, TextField, InputAdornment, Chip, Button, Tooltip } from '@mui/material';
+import { CalendarMonth, Search, CalendarToday as CalendarTodayIcon, Add } from '../../icons';
 import EmptyState from '../../components/EmptyState';
+import PageHeader from '../../components/PageHeader';
 import PlanningToolbar from './PlanningToolbar';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningActionPanel from './PlanningActionPanel';
@@ -26,6 +27,7 @@ import { usePlanningChannelSync } from './hooks/usePlanningChannelSync';
 import { useResizablePropertyColWidth } from './hooks/useResizablePropertyColWidth';
 import { useUrgencyAnimation } from './hooks/useUrgencyAnimation';
 import { ACTION_PANEL_WIDTH, PLANNING_CHANNEL_KEYS, PLANNING_STATUS_KEYS } from './constants';
+import { formatMonthYear, toDateStr, addDays } from './utils/dateUtils';
 import type { PlanningChannelKey } from './constants';
 import type { PlanningEvent } from './types';
 import type { ReservationStatus } from '../../services/api';
@@ -181,6 +183,27 @@ const PlanningPage: React.FC = () => {
     openQuickCreate,
     closeQuickCreate,
   } = usePlanningSelection(filteredEvents);
+
+  // « + Réservation » (header) : réutilise le flux quick-create existant
+  // (PlanningQuickCreateDialog). Le dialog est lié à UNE propriété (pas de
+  // sélecteur interne) : on préselectionne le premier logement visible avec
+  // un séjour aujourd'hui → demain ; les dates restent modifiables dans le dialog.
+  const handleCreateReservation = useCallback(() => {
+    const prop = filteredProperties[0] ?? properties[0];
+    if (!prop) return;
+    const today = new Date();
+    openQuickCreate({
+      propertyId: prop.id,
+      propertyName: prop.name,
+      startDate: toDateStr(today),
+      endDate: toDateStr(addDays(today, 1)),
+      nightlyPrice: prop.nightlyPrice ?? 0,
+      defaultCheckInTime: prop.defaultCheckInTime,
+      defaultCheckOutTime: prop.defaultCheckOutTime,
+      cleaningFrequency: prop.cleaningFrequency,
+      cleaningBasePrice: prop.cleaningBasePrice,
+    });
+  }, [filteredProperties, properties, openQuickCreate]);
 
   // Handle event click: SR blocks redirect to linked reservation's Paiement tab
   const handleEventClick = useCallback((event: PlanningEvent) => {
@@ -397,6 +420,10 @@ const PlanningPage: React.FC = () => {
     });
   }, [selectedEvent?.id, selection.panelOpen, timeline]);
 
+  // Sous-titre du header : mois visible (synchronisé au scroll), capitalisé.
+  const visibleMonthLabel = formatMonthYear(visibleMonthDate);
+  const headerSubtitle = `Réservations & interventions · ${visibleMonthLabel.charAt(0).toUpperCase()}${visibleMonthLabel.slice(1)}`;
+
   return (
     <Box
       sx={{
@@ -417,6 +444,102 @@ const PlanningPage: React.FC = () => {
         }),
       }}
     >
+      {/* Page header — masqué en plein écran (le fullscreen masque déjà le
+          chrome ; la toolbar garde les actions critiques) */}
+      {!nav.isFullscreen && (
+        <Box sx={{ flexShrink: 0, px: { xs: 1.5, md: 2 }, pt: { xs: 1.5, md: 2 } }}>
+          <PageHeader
+            title="Planning"
+            subtitle={headerSubtitle}
+            showBackButton={false}
+            filters={
+              <TextField
+                size="small"
+                placeholder="Rechercher..."
+                value={filters.searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><Search size={14} strokeWidth={1.75} /></Box>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  width: 180,
+                  '& .MuiOutlinedInput-root': {
+                    height: 28,
+                    fontSize: '0.6875rem',
+                    borderRadius: '9px',
+                    backgroundColor: 'var(--field)',
+                    color: 'var(--body)',
+                    '& fieldset': { borderColor: 'var(--field-line)' },
+                    '&:hover fieldset': { borderColor: 'var(--faint)' },
+                    '&.Mui-focused fieldset': { borderColor: 'var(--accent)', borderWidth: 1 },
+                    '&.Mui-focused': { boxShadow: '0 0 0 3px var(--accent-soft)' },
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    py: 0.25,
+                    '&::placeholder': { color: 'var(--faint)', opacity: 1 },
+                  },
+                }}
+              />
+            }
+            actions={
+              <>
+                <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
+                  <Chip
+                    icon={<CalendarTodayIcon size={14} strokeWidth={1.75} />}
+                    label="Import iCal"
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setIcalModalOpen(true)}
+                    sx={{
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      height: 28,
+                      borderRadius: '9px',
+                      cursor: 'pointer',
+                      backgroundColor: 'var(--card)',
+                      borderColor: 'var(--line-2)',
+                      color: 'var(--body)',
+                      '& .MuiChip-icon': { fontSize: 14, color: 'var(--muted)' },
+                      '&:hover': {
+                        backgroundColor: 'var(--hover)',
+                        borderColor: 'var(--faint)',
+                      },
+                    }}
+                  />
+                </Tooltip>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Add size={14} strokeWidth={1.75} />}
+                  onClick={handleCreateReservation}
+                  disabled={properties.length === 0}
+                  sx={{
+                    height: 28,
+                    borderRadius: '9px',
+                    fontSize: '0.6875rem',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    px: 1.25,
+                    color: 'var(--accent)',
+                    borderColor: 'var(--accent)',
+                    '&:hover': {
+                      backgroundColor: 'var(--accent-soft)',
+                      borderColor: 'var(--accent)',
+                    },
+                  }}
+                >
+                  Réservation
+                </Button>
+              </>
+            }
+          />
+        </Box>
+      )}
+
       {/* Toolbar */}
       <Box sx={{ flexShrink: 0, mb: 1 }}>
         <PlanningToolbar
@@ -435,13 +558,11 @@ const PlanningPage: React.FC = () => {
           onShowInterventionsChange={setShowInterventions}
           onShowPricesChange={setShowPrices}
           onStatusFilter={setStatusFilter}
-          onSearchChange={setSearchQuery}
           onClearFilters={clearFilters}
           activeChannels={activeChannels}
           onToggleChannel={toggleChannel}
           activeStatuses={activeStatuses}
           onToggleStatus={toggleStatus}
-          onImportICal={() => setIcalModalOpen(true)}
           onBlockPeriod={() => setBlockDialogOpen(true)}
           leftOffset={propertyColWidth}
           urgencyAnimation={urgencyAnimation}

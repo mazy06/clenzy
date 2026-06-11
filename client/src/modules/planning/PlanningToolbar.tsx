@@ -6,8 +6,6 @@ import {
   Chip,
   ToggleButtonGroup,
   ToggleButton,
-  TextField,
-  InputAdornment,
   Tooltip,
   Menu,
   Popover,
@@ -27,11 +25,9 @@ import {
   FullscreenExit,
   ViewCompact,
   ViewComfy,
-  Search,
   FilterListOff,
   FilterList as FilterListIcon,
   Close as CloseIcon,
-  CalendarToday as CalendarTodayIcon,
   TuneOutlined,
   Lock,
   Public as GlobeIcon,
@@ -61,7 +57,6 @@ interface PlanningToolbarProps {
   onShowInterventionsChange: (show: boolean) => void;
   onShowPricesChange: (show: boolean) => void;
   onStatusFilter: (statuses: ReservationStatus[]) => void;
-  onSearchChange: (query: string) => void;
   onClearFilters: () => void;
   /** Canaux visibles (rangée Canaux) — tout sélectionné par défaut. */
   activeChannels: ReadonlySet<PlanningChannelKey>;
@@ -69,7 +64,6 @@ interface PlanningToolbarProps {
   /** Statuts visibles (rangée Statuts) — tout sélectionné par défaut. */
   activeStatuses: ReadonlySet<ReservationStatus>;
   onToggleStatus: (status: ReservationStatus) => void;
-  onImportICal?: () => void;
   onBlockPeriod?: () => void;
   /** Decalage gauche (px) pour aligner les controles avec la grille de dates. */
   leftOffset?: number;
@@ -287,13 +281,11 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   onShowInterventionsChange,
   onShowPricesChange,
   onStatusFilter,
-  onSearchChange,
   onClearFilters,
   activeChannels,
   onToggleChannel,
   activeStatuses,
   onToggleStatus,
-  onImportICal,
   onBlockPeriod,
   leftOffset = 0,
   urgencyAnimation,
@@ -460,43 +452,11 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
         <Box sx={{ flex: 1, minWidth: 8 }} />
 
         {/* ════════════════════════════════════════════════════════════════
-            DESKTOP: search + filter popover + action chips
+            DESKTOP: filter popover + action chips
+            (recherche + Import iCal montés dans le PageHeader)
             ════════════════════════════════════════════════════════════════ */}
         {!isCompact && (
           <>
-            {/* Search */}
-            <TextField
-              size="small"
-              placeholder="Rechercher..."
-              value={filters.searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><Search size={14} strokeWidth={1.75} /></Box>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                width: 180,
-                '& .MuiOutlinedInput-root': {
-                  height: 28,
-                  fontSize: '0.6875rem',
-                  borderRadius: '9px',
-                  backgroundColor: 'var(--field)',
-                  color: 'var(--body)',
-                  '& fieldset': { borderColor: 'var(--field-line)' },
-                  '&:hover fieldset': { borderColor: 'var(--faint)' },
-                  '&.Mui-focused fieldset': { borderColor: 'var(--accent)', borderWidth: 1 },
-                  '&.Mui-focused': { boxShadow: '0 0 0 3px var(--accent-soft)' },
-                },
-                '& .MuiOutlinedInput-input': {
-                  py: 0.25,
-                  '&::placeholder': { color: 'var(--faint)', opacity: 1 },
-                },
-              }}
-            />
-
             {/* Filter button with badge */}
             <IconButton
               size="small"
@@ -646,34 +606,6 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
               )}
             </Popover>
 
-            {/* Import iCal — action, stays in toolbar */}
-            {onImportICal && (
-              <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
-                <Chip
-                  icon={<CalendarTodayIcon size={14} strokeWidth={1.75} />}
-                  label="Import iCal"
-                  size="small"
-                  variant="outlined"
-                  onClick={onImportICal}
-                  sx={{
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    height: 28,
-                    borderRadius: '9px',
-                    cursor: 'pointer',
-                    backgroundColor: 'var(--card)',
-                    borderColor: 'var(--line-2)',
-                    color: 'var(--body)',
-                    '& .MuiChip-icon': { fontSize: 14, color: 'var(--muted)' },
-                    '&:hover': {
-                      backgroundColor: 'var(--hover)',
-                      borderColor: 'var(--faint)',
-                    },
-                  }}
-                />
-              </Tooltip>
-            )}
-
             {/* Block period — action, stays in toolbar */}
             {onBlockPeriod && (
               <Tooltip title="Bloquer une periode (indisponible)" arrow>
@@ -747,41 +679,6 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
               }}
             >
               <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {/* Search */}
-                <TextField
-                  size="small"
-                  placeholder="Rechercher..."
-                  value={filters.searchQuery}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  fullWidth
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><Search size={16} strokeWidth={1.75} /></Box>
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      height: 32,
-                      fontSize: '0.75rem',
-                      borderRadius: '10px',
-                      backgroundColor: 'var(--field)',
-                      color: 'var(--body)',
-                      '& fieldset': { borderColor: 'var(--field-line)' },
-                      '&:hover fieldset': { borderColor: 'var(--faint)' },
-                      '&.Mui-focused fieldset': { borderColor: 'var(--accent)', borderWidth: 1 },
-                      '&.Mui-focused': { boxShadow: '0 0 0 3px var(--accent-soft)' },
-                    },
-                    '& .MuiOutlinedInput-input': {
-                      py: 0.5,
-                      '&::placeholder': { color: 'var(--faint)', opacity: 1 },
-                    },
-                  }}
-                />
-
-                <Divider sx={{ borderColor: 'var(--line)' }} />
-
                 {/* Canaux (toggle masque/affiche) */}
                 <Box>
                   <Typography variant="overline" sx={OVERLINE_SX}>
@@ -860,33 +757,6 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
 
                 {/* Actions */}
                 <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                  {/* Import iCal */}
-                  {onImportICal && (
-                    <Chip
-                      icon={<CalendarTodayIcon size={13} strokeWidth={1.75} />}
-                      label="Import iCal"
-                      size="small"
-                      variant="outlined"
-                      onClick={() => {
-                        setMenuAnchor(null);
-                        onImportICal();
-                      }}
-                      sx={{
-                        fontSize: '0.625rem',
-                        fontWeight: 600,
-                        height: 28,
-                        cursor: 'pointer',
-                        backgroundColor: 'var(--card)',
-                        borderColor: 'var(--accent)',
-                        color: 'var(--accent)',
-                        '& .MuiChip-icon': { fontSize: 13, color: 'var(--accent)' },
-                        '&:hover': {
-                          backgroundColor: 'var(--accent-soft)',
-                        },
-                      }}
-                    />
-                  )}
-
                   {/* Block period */}
                   {onBlockPeriod && (
                     <Chip
