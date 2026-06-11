@@ -40,7 +40,6 @@ interface PlanningTimelineProps {
   minNightsMap?: MinNightsMap;
   channelSyncMap?: ChannelSyncMap;
   pageSize?: number;
-  onPropertyClick?: (propertyId: number) => void;
   urgencyAnimation?: UrgencyAnimationMode;
 }
 
@@ -69,7 +68,6 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   minNightsMap,
   channelSyncMap,
   pageSize,
-  onPropertyClick,
   urgencyAnimation,
 }) => {
   const config = ROW_CONFIG[density];
@@ -172,7 +170,6 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 onColWidthChange={onPropertyColWidthChange}
                 effectiveRowHeight={effectiveRowHeight}
                 emptyRowCount={emptyRowCount}
-                onPropertyClick={onPropertyClick}
                 reservationCountByProperty={reservationCountByProperty}
                 channelSyncMap={channelSyncMap}
               />

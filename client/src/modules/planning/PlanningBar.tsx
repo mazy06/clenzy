@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Tooltip } from '@mui/material';
 import { useDraggable } from '@dnd-kit/core';
 import { Lock as LockIcon, Close, CreditCard, Warning, CleaningServices, Build } from '../../icons';
 import { INTERVENTION_TYPE_LABELS } from '../../services/api/reservationsApi';
 import type { PlanningInterventionType } from '../../services/api';
+import ReservationPopover from './ReservationPopover';
+import SendMessageDialog from '../messaging/SendMessageDialog';
 import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData, UrgencyAnimationMode } from './types';
 import { BAR_BORDER_RADIUS } from './constants';
 import { getEventDisplayColor } from './utils/colorUtils';
@@ -50,23 +52,14 @@ interface PlanningBarProps {
   urgencyAnimation?: UrgencyAnimationMode;
 }
 
-/** Icone des interventions. Menage/maintenance affichent leur type en
- *  texte (pas d'icone), seul "blocked" garde son cadenas. */
+/** Icone des interventions. Menage/maintenance sont rendues en pastille
+ *  icone (voir branche dediee), seul "blocked" garde son cadenas en bar. */
 function getEventIcon(type: PlanningEvent['type'], compact: boolean) {
   const size = compact ? 9 : 12;
   switch (type) {
     case 'blocked': return <LockIcon size={size} strokeWidth={1.75} />;
     default: return null;
   }
-}
-
-/** Texte du type pour les interventions (Ménage / Maintenance).
- *  Null pour les autres types. */
-function getInterventionTypeLabel(event: PlanningEvent): string | null {
-  if (event.type === 'cleaning' || event.type === 'maintenance') {
-    return INTERVENTION_TYPE_LABELS[event.type as PlanningInterventionType];
-  }
-  return null;
 }
 
 // ─── Radar Pastille (pulsing badge indicator) ───────────────────────────────
@@ -227,9 +220,78 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     disabled: isDragDisabled,
   });
 
+  // ── Popover réservation (maquette) : ouvert au clic sur la brique ────────
+  // « Détail » rouvre le panneau existant, « Message » la messagerie existante.
+  const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
+  const [messageOpen, setMessageOpen] = useState(false);
+
   // Use resizeWidth if this bar is being resized, otherwise original width
   const isResizing = resizeWidth !== null;
   const displayWidth = resizeWidth ?? layout.width;
+
+  // ── Intervention ménage/maintenance : pastille icône seule (maquette) ────
+  // Plus de chip MÉNAGE/MAINTENANCE sur la grille : une intervention sans
+  // réservation liée (ou dont la réservation n'est pas visible) est posée à
+  // sa date sous forme de pastille blanche 21×21 avec l'icône du type
+  // (balai = ménage var(--info), clé = maintenance var(--warn)), sans
+  // étiquette texte. Clic = détail intervention existant, drag conservé.
+  if (event.type === 'cleaning' || event.type === 'maintenance') {
+    const isCleaning = event.type === 'cleaning';
+    const typeLabel = INTERVENTION_TYPE_LABELS[event.type as PlanningInterventionType];
+    const tooltipTitle = [
+      typeLabel,
+      event.label && event.label !== typeLabel ? event.label : null,
+      event.sublabel,
+    ].filter(Boolean).join(' — ');
+    return (
+      <Tooltip title={tooltipTitle} arrow>
+        <Box
+          ref={setNodeRef}
+          data-planning-bar
+          {...(!isDragDisabled ? listeners : {})}
+          {...(!isDragDisabled ? attributes : {})}
+          onClick={(e) => {
+            if (isDragActive) return;
+            e.stopPropagation();
+            onClick(event);
+          }}
+          sx={{
+            position: 'absolute',
+            left: left + 2,
+            top: top + (height - 21) / 2,
+            ...BAR_BADGE_SX,
+            border: '1px solid var(--line)',
+            color: isCleaning ? 'var(--info)' : 'var(--warn)',
+            cursor: 'pointer',
+            touchAction: 'none',
+            userSelect: 'none',
+            opacity: isDragging ? 0.3 : 1,
+            zIndex: isSelected ? 5 : 2,
+            transition: isDragging ? 'none' : 'transform .12s, box-shadow .12s',
+            '&:hover': {
+              boxShadow: '0 7px 16px -8px var(--shadow-pop)',
+              transform: 'translateY(-1px)',
+              zIndex: 6,
+            },
+            '@media (prefers-reduced-motion: reduce)': {
+              transition: 'none',
+              '&:hover': { transform: 'none' },
+            },
+            ...(isSelected && {
+              boxShadow: '0 0 0 2px var(--card), 0 0 0 4px var(--accent)',
+            }),
+            ...(isConflict && {
+              boxShadow: '0 0 0 2px var(--err)',
+            }),
+          }}
+        >
+          {isCleaning
+            ? <CleaningServices size={13} strokeWidth={2} />
+            : <Build size={13} strokeWidth={2} />}
+        </Box>
+      </Tooltip>
+    );
+  }
 
   // When interventions are stacked (compact height), adapt display
   const isCompactBar = isIntervention && height < 18;
@@ -248,9 +310,6 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // Nuits pour la 1ere ligne (uniquement reservations)
   const nights = isReservation ? getNights(event.startDate, event.endDate) : 0;
   const sourceLogo = isReservation ? getSourceLogo(event.reservation?.source) : null;
-
-  // Texte du type pour menage/maintenance (remplace l'icone)
-  const interventionTypeLabel = isIntervention ? getInterventionTypeLabel(event) : null;
 
   // ── Indicateurs (paiement, info manquante) ────────────────────────────────
   const missingEmail = isReservation && !!event.reservation && !event.reservation.guestEmail && !isCancelled;
@@ -303,9 +362,11 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     });
   }
 
-  // Pastilles blanches inline (langage maquette) si la brique est assez
-  // large, sinon repli sur les pastilles radar flottantes (élément historique).
-  const showBadgeGroup = isReservation && displayWidth > 120 && height >= 28;
+  // Pastilles blanches inline (langage maquette). Seuil bas (56px = une
+  // pastille 21px + padding) : les interventions absorbées restent TOUJOURS
+  // représentées — sur brique étroite elles comptent dans le « +N ». Le repli
+  // radar ne subsiste que pour les briques où plus rien ne tient.
+  const showBadgeGroup = isReservation && displayWidth > 56 && height >= 28;
   const indicatorSlots = displayWidth > 175 ? 2 : 1;
   const shownIndicators = indicators.length <= indicatorSlots
     ? indicators
@@ -329,14 +390,16 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // urgence (paiement en attente OU info voyageur manquante), hors annulées.
   // Suspendue quand la brique est sélectionnée / en conflit / draggée (leurs
   // anneaux et animations propres priment).
+  const isPopoverActive = popoverAnchor !== null;
   const isUrgent = isReservation && !isCancelled && (event.needsPaymentBadge || missingEmail);
   const urgencyClass = isUrgent
     && urgencyAnimation !== 'none'
-    && !isSelected && !isConflict && !resizeConflict && !isDragging && !isResizing
+    && !isSelected && !isPopoverActive && !isConflict && !resizeConflict && !isDragging && !isResizing
     ? `pl-urgent--${urgencyAnimation}`
     : undefined;
 
   return (
+    <>
     <Box
       ref={setNodeRef}
       data-planning-bar
@@ -348,6 +411,12 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         // Don't trigger click if a drag just happened
         if (isDragActive) return;
         e.stopPropagation();
+        // Réservation : popover récap ancré à la brique (maquette). Le
+        // panneau de détail existant s'ouvre via le bouton « Détail ».
+        if (isReservation) {
+          setPopoverAnchor(e.currentTarget as HTMLElement);
+          return;
+        }
         onClick(event);
       }}
       sx={{
@@ -403,6 +472,10 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           transition: 'none',
           '&:hover': { transform: 'none' },
         },
+        // Brique active (popover ouvert) : anneau accent + offset blanc.
+        ...(isPopoverActive && !isSelected && {
+          boxShadow: '0 0 0 2px var(--card), 0 0 0 4px var(--accent)',
+        }),
         ...(isSelected && {
           boxShadow: '0 0 0 2px var(--card), 0 0 0 4px var(--accent)',
           transform: 'translateY(-1px)',
@@ -596,17 +669,15 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         </Box>
       )}
 
-      {/* ── INTERVENTION (menage / maintenance / blocked) : layout inline ───
-          fond opaque + icone + label + sublabel, tous sur on-accent.
-          Padding horizontal pour respirer entre les bords. Clipping interne
-          pour empecher le texte de deborder du radius. */}
+      {/* ── BLOCAGE (blocked) : layout inline, icone cadenas seule.
+          Menage/maintenance sont rendues en pastille (branche dediee). */}
       {!isReservation && (
         <Box
           sx={{
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: showLabel ? 'flex-start' : 'center',
+            justifyContent: 'center',
             gap: 0.5,
             width: '100%',
             height: '100%',
@@ -616,44 +687,19 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
           }}
         >
-          {/* Type texte (Menage / Maintenance) en remplacement de l'icone.
-              "blocked" garde son icone cadenas (LockIcon). */}
-          {interventionTypeLabel ? (
+          {icon && (
             <Box
-              component="span"
               sx={{
-                fontSize: isCompactBar ? '0.5rem' : '0.5625rem',
-                fontWeight: 700,
                 color: 'var(--on-accent)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
                 flexShrink: 0,
-                lineHeight: 1.1,
-                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                opacity: 0.95,
               }}
             >
-              {interventionTypeLabel}
+              {icon}
             </Box>
-          ) : (
-            icon && (
-              <Box
-                sx={{
-                  color: 'var(--on-accent)',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  opacity: 0.95,
-                }}
-              >
-                {icon}
-              </Box>
-            )
           )}
-
-          {/* Pas de label/sublabel sur les interventions : seul le type
-              s'affiche dans le bar. Le titre custom et l'assigne restent
-              accessibles via le panneau de detail au clic — evite l'effet
-              "MENAGE M." tronque quand la place manque. */}
         </Box>
       )}
 
@@ -721,6 +767,35 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         <ResizeHandle eventId={event.id} event={event} layout={layout} />
       )}
     </Box>
+
+    {/* Popover récap réservation (portail — hors de la zone draggable) */}
+    {isReservation && event.reservation && popoverAnchor && (
+      <ReservationPopover
+        anchorEl={popoverAnchor}
+        event={event}
+        linkedInterventions={linkedInterventions}
+        onClose={() => setPopoverAnchor(null)}
+        onDetail={() => {
+          setPopoverAnchor(null);
+          onClick(event);
+        }}
+        onMessage={() => {
+          setPopoverAnchor(null);
+          setMessageOpen(true);
+        }}
+      />
+    )}
+
+    {/* Messagerie voyageur existante (même dialog que le panneau d'actions) */}
+    {isReservation && event.reservation && messageOpen && (
+      <SendMessageDialog
+        open
+        reservationId={event.reservation.id}
+        guestName={event.reservation.guestName}
+        onClose={() => setMessageOpen(false)}
+      />
+    )}
+    </>
   );
 });
 

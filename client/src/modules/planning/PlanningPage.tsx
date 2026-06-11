@@ -126,33 +126,6 @@ const PlanningPage: React.FC = () => {
     closeQuickCreate,
   } = usePlanningSelection(filteredEvents);
 
-  // Click on property name → open panel on "Logement" tab
-  // Priorite : reservation checked_in > confirmed > pending > any reservation > any event
-  const handlePropertyClick = useCallback((propertyId: number) => {
-    const propertyEvents = filteredEvents.filter((e) => e.propertyId === propertyId);
-    if (propertyEvents.length === 0) return;
-
-    const statusPriority: Record<string, number> = {
-      checked_in: 0,
-      confirmed: 1,
-      pending: 2,
-    };
-
-    // Prefer reservations, sorted by status priority
-    const reservations = propertyEvents
-      .filter((e) => e.type === 'reservation')
-      .sort((a, b) => {
-        const pa = statusPriority[a.status] ?? 99;
-        const pb = statusPriority[b.status] ?? 99;
-        return pa - pb;
-      });
-
-    const event = reservations.length > 0 ? reservations[0] : propertyEvents[0];
-    selectEvent(event);
-    // Switch to property tab after selection (selectEvent defaults to 'info')
-    setTimeout(() => setPanelTab('property'), 0);
-  }, [filteredEvents, selectEvent, setPanelTab]);
-
   // Handle event click: SR blocks redirect to linked reservation's Paiement tab
   const handleEventClick = useCallback((event: PlanningEvent) => {
     if (event.isAwaitingPayment && event.serviceRequest?.reservationId) {
@@ -434,7 +407,6 @@ const PlanningPage: React.FC = () => {
             minNightsMap={minNightsMap}
             channelSyncMap={channelSyncMap}
             pageSize={pagination.pageSize}
-            onPropertyClick={handlePropertyClick}
             urgencyAnimation={urgencyAnimation}
           />
 
