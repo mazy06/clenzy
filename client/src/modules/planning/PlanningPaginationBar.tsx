@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, IconButton, Typography, useTheme } from '@mui/material';
+import { Box, IconButton, Typography } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '../../icons';
 import { PAGINATION_BAR_HEIGHT } from './constants';
 
@@ -22,8 +22,6 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
   onPrevPage,
   onNextPage,
 }) => {
-  const theme = useTheme();
-
   return (
     <Box
       sx={{
@@ -34,9 +32,8 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
         justifyContent: 'center',
         gap: 2,
         px: 2,
-        borderTop: '1px solid',
-        borderColor: 'divider',
-        backgroundColor: 'background.paper',
+        borderTop: '1px solid var(--line)',
+        backgroundColor: 'var(--card)',
         flexShrink: 0,
       }}
     >
@@ -45,7 +42,12 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
         size="small"
         onClick={onPrevPage}
         disabled={currentPage === 0}
-        sx={{ width: 22, height: 22 }}
+        sx={{
+          width: 22,
+          height: 22,
+          color: 'var(--muted)',
+          '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--hover)' },
+        }}
       >
         <ChevronLeft size={14} strokeWidth={1.75} />
       </IconButton>
@@ -54,9 +56,11 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
       <Typography
         variant="body2"
         sx={{
+          fontFamily: 'var(--font-display)',
           fontSize: '0.5625rem',
           fontWeight: 600,
-          color: 'text.primary',
+          color: 'var(--ink)',
+          fontVariantNumeric: 'tabular-nums',
           userSelect: 'none',
         }}
       >
@@ -68,7 +72,12 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
         size="small"
         onClick={onNextPage}
         disabled={currentPage >= totalPages - 1}
-        sx={{ width: 22, height: 22 }}
+        sx={{
+          width: 22,
+          height: 22,
+          color: 'var(--muted)',
+          '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--hover)' },
+        }}
       >
         <ChevronRight size={14} strokeWidth={1.75} />
       </IconButton>
@@ -78,7 +87,8 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
         variant="caption"
         sx={{
           fontSize: '0.5625rem',
-          color: 'text.secondary',
+          color: 'var(--muted)',
+          fontVariantNumeric: 'tabular-nums',
           ml: 1,
         }}
       >

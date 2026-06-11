@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { Box, Tooltip, Typography, useTheme } from '@mui/material';
-import { isToday, isWeekend, formatMonthYear, formatDayNumber, formatFullDate } from './utils/dateUtils';
+import { Box, Tooltip, Typography } from '@mui/material';
+import { isToday, isWeekend, formatMonthYear, formatDayNumber, formatDayShort, formatFullDate } from './utils/dateUtils';
 import { DATE_HEADER_HEIGHT } from './constants';
 import type { ZoomLevel, MonthSeparator } from './types';
 
@@ -47,7 +47,6 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
   propertyColWidth,
   propertyCount,
 }) => {
-  const theme = useTheme();
   const monthSeps = useMemo(() => computeMonthSeparators(days), [days]);
 
   return (
@@ -58,9 +57,8 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
         zIndex: 12,
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: 'background.paper',
-        borderBottom: '2px solid',
-        borderColor: 'divider',
+        backgroundColor: 'var(--surface-2)',
+        borderBottom: '1px solid var(--line)',
         minHeight: DATE_HEADER_HEIGHT,
       }}
     >
@@ -74,18 +72,20 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
             position: 'sticky',
             left: 0,
             zIndex: 14,
-            backgroundColor: 'background.paper',
+            backgroundColor: 'var(--surface-2)',
+            borderRight: '1px solid var(--line)',
             display: 'flex',
             alignItems: 'center',
             px: 1,
           }}
         >
+          {/* Colonne LOGEMENT en overline (maquette) + compteur existant */}
           <Box
             component="span"
             sx={{
               fontWeight: 700,
-              fontSize: propertyColWidth < 130 ? '0.4375rem' : '0.5rem',
-              color: 'text.secondary',
+              fontSize: propertyColWidth < 130 ? '0.5rem' : '0.59375rem',
+              color: 'var(--faint)',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               overflow: 'hidden',
@@ -107,15 +107,16 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                 display: 'flex',
                 alignItems: 'center',
                 px: 0.75,
-                backgroundColor: 'background.paper',
+                backgroundColor: 'var(--surface-2)',
               }}
             >
               <Typography
                 sx={{
-                  fontSize: '0.5rem',
-                  fontWeight: 700,
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '0.5625rem',
+                  fontWeight: 600,
                   textTransform: 'capitalize',
-                  color: 'text.primary',
+                  color: 'var(--ink)',
                   letterSpacing: '-0.01em',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -129,8 +130,8 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
         </Box>
       </Box>
 
-      {/* Day row : uniquement le numero de jour. Le nom complet
-          (jour + numero + mois + annee) est revele au hover via Tooltip. */}
+      {/* Day row : jour abrégé + numéro (aujourd'hui = pastille accent).
+          Le nom complet (jour + numero + mois + annee) reste au hover via Tooltip. */}
       <Box sx={{ display: 'flex', height: DATE_HEADER_HEIGHT - 20 }}>
         <Box
           sx={{
@@ -140,7 +141,8 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
             position: 'sticky',
             left: 0,
             zIndex: 14,
-            backgroundColor: 'background.paper',
+            backgroundColor: 'var(--surface-2)',
+            borderRight: '1px solid var(--line)',
           }}
         />
         <Box sx={{ display: 'flex', width: totalGridWidth }}>
@@ -166,24 +168,58 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                     width: dayWidth,
                     minWidth: dayWidth,
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    gap: '1px',
+                    borderRight: '1px solid var(--line)',
                     backgroundColor: today
-                      ? theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.06)'
+                      ? 'color-mix(in srgb, var(--accent) 6%, transparent)'
                       : weekend
-                        ? theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
+                        ? 'color-mix(in srgb, var(--ink) 2.5%, transparent)'
                         : 'transparent',
                     cursor: 'default',
                     userSelect: 'none',
                   }}
                 >
+                  {/* Jour abrégé (overline) */}
+                  {dayWidth >= 34 && (
+                    <Box
+                      component="span"
+                      sx={{
+                        fontSize: '0.5625rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                        lineHeight: 1,
+                        color: today ? 'var(--accent)' : 'var(--faint)',
+                      }}
+                    >
+                      {formatDayShort(day).replace('.', '')}
+                    </Box>
+                  )}
+                  {/* Numéro — aujourd'hui dans une pastille accent */}
                   <Typography
                     sx={{
+                      fontFamily: 'var(--font-display)',
                       fontSize: dayWidth >= 60 ? '0.8125rem' : '0.6875rem',
-                      fontWeight: today ? 700 : 500,
-                      color: today ? 'error.main' : weekend ? 'text.disabled' : 'text.primary',
+                      fontWeight: 600,
                       lineHeight: 1,
                       fontVariantNumeric: 'tabular-nums',
+                      ...(today
+                        ? {
+                            backgroundColor: 'var(--accent)',
+                            color: 'var(--on-accent)',
+                            width: 22,
+                            height: 22,
+                            borderRadius: '8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }
+                        : {
+                            color: weekend ? 'var(--faint)' : 'var(--body)',
+                          }),
                     }}
                   >
                     {formatDayNumber(day)}

@@ -4,7 +4,8 @@ import {
   INTERVENTION_STATUS_COLORS,
 } from '../../../services/api/reservationsApi';
 import type { ReservationStatus, PlanningInterventionType, PlanningInterventionStatus } from '../../../services/api';
-import type { PlanningEventType } from '../types';
+import type { PlanningEvent, PlanningEventType } from '../types';
+import { RESERVATION_STATUS_TOKEN_COLORS, INTERVENTION_TYPE_TOKEN_COLORS } from '../constants';
 
 export function getReservationColor(status: ReservationStatus): string {
   return RESERVATION_STATUS_COLORS[status] || '#9e9e9e';
@@ -26,6 +27,19 @@ export function getEventTypeColor(type: PlanningEventType): string {
     case 'blocked': return '#616161';
     default: return '#9e9e9e';
   }
+}
+
+/**
+ * Couleur d'affichage Signature d'un évènement (token CSS var(--…)).
+ * Réservation → couleur = STATUT ; intervention/blocage → couleur = TYPE.
+ * Ne touche pas event.color (hex de la couche data, encore utilisé par
+ * les panneaux). À combiner avec color-mix() pour les ombres/voiles.
+ */
+export function getEventDisplayColor(event: PlanningEvent): string {
+  if (event.type === 'reservation') {
+    return RESERVATION_STATUS_TOKEN_COLORS[event.status] ?? 'var(--accent)';
+  }
+  return INTERVENTION_TYPE_TOKEN_COLORS[event.type] ?? 'var(--info)';
 }
 
 /**

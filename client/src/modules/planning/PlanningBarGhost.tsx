@@ -1,8 +1,8 @@
 import React from 'react';
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import type { BarLayout } from './types';
 import { BAR_BORDER_RADIUS } from './constants';
-import { hexToRgba } from './utils/colorUtils';
+import { getEventDisplayColor } from './utils/colorUtils';
 
 interface PlanningBarGhostProps {
   layout: BarLayout;
@@ -10,22 +10,18 @@ interface PlanningBarGhostProps {
 }
 
 const PlanningBarGhost: React.FC<PlanningBarGhostProps> = ({ layout, isConflict }) => {
-  const theme = useTheme();
   const { event, width, height } = layout;
-  const isDark = theme.palette.mode === 'dark';
+  const eventColor = getEventDisplayColor(event);
 
-  const borderColor = isConflict
-    ? theme.palette.error.main
-    : theme.palette.success.main;
+  const borderColor = isConflict ? 'var(--err)' : 'var(--ok)';
 
   return (
     <Box
       sx={{
         width,
         height,
-        backgroundColor: hexToRgba(event.color, isDark ? 0.3 : 0.2),
+        backgroundColor: `color-mix(in srgb, ${eventColor} 25%, transparent)`,
         border: `2px solid ${borderColor}`,
-        borderLeft: `3px solid ${borderColor}`,
         borderRadius: `${BAR_BORDER_RADIUS}px`,
         opacity: 0.8,
         display: 'flex',
@@ -39,6 +35,7 @@ const PlanningBarGhost: React.FC<PlanningBarGhostProps> = ({ layout, isConflict 
             '0%, 100%': { opacity: 0.8 },
             '50%': { opacity: 0.5 },
           },
+          '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
         }),
       }}
     >
@@ -47,7 +44,7 @@ const PlanningBarGhost: React.FC<PlanningBarGhostProps> = ({ layout, isConflict 
           sx={{
             fontSize: '0.6875rem',
             fontWeight: 600,
-            color: isDark ? 'text.primary' : event.color,
+            color: 'var(--ink)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
