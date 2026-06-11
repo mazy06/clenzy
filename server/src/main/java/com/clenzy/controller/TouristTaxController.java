@@ -1,7 +1,8 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.TouristTaxCalculationDto;
-import com.clenzy.model.TouristTaxConfig;
+import com.clenzy.dto.TouristTaxConfigDto;
+import com.clenzy.dto.TouristTaxConfigRequest;
 import com.clenzy.service.TouristTaxService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,20 +25,23 @@ public class TouristTaxController {
     }
 
     @GetMapping
-    public List<TouristTaxConfig> getConfigs() {
-        return taxService.getAllConfigs(tenantContext.getOrganizationId());
+    public List<TouristTaxConfigDto> getConfigs() {
+        return taxService.getAllConfigs(tenantContext.getOrganizationId()).stream()
+            .map(TouristTaxConfigDto::from)
+            .toList();
     }
 
     @GetMapping("/{propertyId}")
-    public TouristTaxConfig getConfig(@PathVariable Long propertyId) {
+    public TouristTaxConfigDto getConfig(@PathVariable Long propertyId) {
         return taxService.getConfigForProperty(propertyId, tenantContext.getOrganizationId())
+            .map(TouristTaxConfigDto::from)
             .orElseThrow(() -> new IllegalArgumentException("No tax config for property: " + propertyId));
     }
 
     @PutMapping
-    public TouristTaxConfig saveConfig(@RequestBody TouristTaxConfig config) {
-        config.setOrganizationId(tenantContext.getOrganizationId());
-        return taxService.saveConfig(config);
+    public TouristTaxConfigDto saveConfig(@RequestBody TouristTaxConfigRequest request) {
+        return TouristTaxConfigDto.from(
+            taxService.upsertConfig(request, tenantContext.getOrganizationId()));
     }
 
     @GetMapping("/calculate/{propertyId}")

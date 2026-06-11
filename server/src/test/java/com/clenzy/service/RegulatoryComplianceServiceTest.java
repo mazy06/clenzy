@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.RegulatoryComplianceDto;
+import com.clenzy.dto.RegulatoryConfigRequest;
 import com.clenzy.model.Property;
 import com.clenzy.model.RegulatoryConfig;
 import com.clenzy.model.RegulatoryConfig.RegulatoryType;
@@ -10,6 +11,7 @@ import com.clenzy.repository.RegulatoryConfigRepository;
 import com.clenzy.repository.ReservationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -21,6 +23,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -168,5 +172,57 @@ class RegulatoryComplianceServiceTest {
             LocalDate.of(2025, 6, 1), LocalDate.of(2025, 6, 15)); // +14 = 84
 
         assertFalse(exceeds);
+    }
+
+    @Test
+    void upsertConfig_newConfig_forcesOrgFromTenant() {
+        RegulatoryConfigRequest request = new RegulatoryConfigRequest(
+            PROPERTY_ID, RegulatoryType.ALUR_120_DAYS, true, "REG-2025-XYZ",
+            120, "FR", "75056", "note");
+        when(configRepository.findByPropertyAndType(PROPERTY_ID, RegulatoryType.ALUR_120_DAYS, ORG_ID))
+            .thenReturn(Optional.empty());
+        when(configRepository.save(any(RegulatoryConfig.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.upsertConfig(request, ORG_ID);
+
+        ArgumentCaptor<RegulatoryConfig> captor = ArgumentCaptor.forClass(RegulatoryConfig.class);
+        verify(configRepository).save(captor.capture());
+        assertEquals(ORG_ID, captor.getValue().getOrganizationId());
+        assertEquals(PROPERTY_ID, captor.getValue().getPropertyId());
+        assertEquals(RegulatoryType.ALUR_120_DAYS, captor.getValue().getRegulatoryType());
+        assertNull(captor.getValue().getId()); // jamais d'id fourni par le client
+        assertEquals("REG-2025-XYZ", captor.getValue().getRegistrationNumber());
+    }
+
+    @Test
+    void upsertConfig_existingByPropertyAndType_isUpdatedNotDuplicated() {
+        RegulatoryConfig existing = createAlurConfig(120);
+        existing.setId(77L);
+        when(configRepository.findByPropertyAndType(PROPERTY_ID, RegulatoryType.ALUR_120_DAYS, ORG_ID))
+            .thenReturn(Optional.of(existing));
+        when(configRepository.save(any(RegulatoryConfig.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        RegulatoryConfigRequest request = new RegulatoryConfigRequest(
+            PROPERTY_ID, RegulatoryType.ALUR_120_DAYS, false, "REG-UPDATED",
+            90, "FR", "69123", "maj");
+
+        service.upsertConfig(request, ORG_ID);
+
+        ArgumentCaptor<RegulatoryConfig> captor = ArgumentCaptor.forClass(RegulatoryConfig.class);
+        verify(configRepository).save(captor.capture());
+        assertEquals(77L, captor.getValue().getId());
+        assertEquals(ORG_ID, captor.getValue().getOrganizationId());
+        assertEquals("REG-UPDATED", captor.getValue().getRegistrationNumber());
+        assertEquals(90, captor.getValue().getMaxDaysPerYear());
+        assertEquals(false, captor.getValue().getIsEnabled());
+    }
+
+    @Test
+    void upsertConfig_missingRequiredKeys_throws() {
+        RegulatoryConfigRequest request = new RegulatoryConfigRequest(
+            null, null, true, null, 120, "FR", null, null);
+
+        assertThrows(IllegalArgumentException.class, () -> service.upsertConfig(request, ORG_ID));
+        verify(configRepository, never()).save(any());
     }
 }

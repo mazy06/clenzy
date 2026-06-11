@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.RegulatoryComplianceDto;
+import com.clenzy.dto.RegulatoryConfigRequest;
 import com.clenzy.model.Property;
 import com.clenzy.model.RegulatoryConfig;
 import com.clenzy.model.RegulatoryConfig.RegulatoryType;
@@ -47,8 +48,41 @@ public class RegulatoryComplianceService {
         return configRepository.findAllByOrgId(orgId);
     }
 
+    /**
+     * Upsert d'une config reglementaire a partir d'un payload client.
+     *
+     * <p>Cle naturelle : {@code (propertyId, regulatoryType, orgId)} — une config
+     * par type reglementaire, par propriete et par organisation. On charge la
+     * config existante de l'org (jamais par {@code id} fourni par le client :
+     * fermeture du mass assignment / IDOR), sinon on en cree une nouvelle.
+     * L'{@code organizationId} est impose par le {@code TenantContext}.</p>
+     */
     @Transactional
-    public RegulatoryConfig saveConfig(RegulatoryConfig config) {
+    public RegulatoryConfig upsertConfig(RegulatoryConfigRequest request, Long orgId) {
+        if (request.propertyId() == null || request.regulatoryType() == null) {
+            throw new IllegalArgumentException("propertyId and regulatoryType are required");
+        }
+
+        RegulatoryConfig config = configRepository
+            .findByPropertyAndType(request.propertyId(), request.regulatoryType(), orgId)
+            .orElseGet(RegulatoryConfig::new);
+
+        config.setOrganizationId(orgId);
+        config.setPropertyId(request.propertyId());
+        config.setRegulatoryType(request.regulatoryType());
+        if (request.isEnabled() != null) {
+            config.setIsEnabled(request.isEnabled());
+        }
+        config.setRegistrationNumber(request.registrationNumber());
+        if (request.maxDaysPerYear() != null) {
+            config.setMaxDaysPerYear(request.maxDaysPerYear());
+        }
+        if (request.countryCode() != null) {
+            config.setCountryCode(request.countryCode());
+        }
+        config.setCityCode(request.cityCode());
+        config.setNotes(request.notes());
+
         return configRepository.save(config);
     }
 
