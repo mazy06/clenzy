@@ -57,10 +57,10 @@ export function computeGlobalKPIs(
   prevCutoff.setDate(prevCutoff.getDate() - days * 2);
 
   const current = reservations.filter(
-    (r) => new Date(r.checkOut) >= cutoff && new Date(r.checkIn) <= now,
+    (r) => new Date(r.checkOut) >= cutoff && new Date(r.checkIn) <= now && r.status !== 'cancelled',
   );
   const previous = reservations.filter(
-    (r) => new Date(r.checkOut) >= prevCutoff && new Date(r.checkOut) < cutoff,
+    (r) => new Date(r.checkOut) >= prevCutoff && new Date(r.checkOut) < cutoff && r.status !== 'cancelled',
   );
 
   const activeProperties = properties.filter((p) => p.status === 'ACTIVE').length || 1;
@@ -148,16 +148,18 @@ export function computeRevenueMetrics(
   prevCutoff.setDate(prevCutoff.getDate() - days * 2);
 
   const current = reservations.filter(
-    (r) => new Date(r.checkOut) >= cutoff,
+    (r) => new Date(r.checkOut) >= cutoff && r.status !== 'cancelled',
   );
   const previous = reservations.filter(
-    (r) => new Date(r.checkOut) >= prevCutoff && new Date(r.checkOut) < cutoff,
+    (r) => new Date(r.checkOut) >= prevCutoff && new Date(r.checkOut) < cutoff && r.status !== 'cancelled',
   );
 
   // By month
   const months = getLast6Months();
   const byMonth: MonthlyRevenue[] = months.map((month) => {
-    const monthRes = reservations.filter((r) => getMonthLabel(new Date(r.checkIn)) === month);
+    const monthRes = reservations.filter(
+      (r) => getMonthLabel(new Date(r.checkIn)) === month && r.status !== 'cancelled',
+    );
     const revenue = monthRes.reduce((s, r) => s + r.totalPrice, 0);
     const expenses = Math.round(revenue * 0.25); // ~25% operational costs
     return { month, revenue: Math.round(revenue), expenses, profit: Math.round(revenue - expenses) };

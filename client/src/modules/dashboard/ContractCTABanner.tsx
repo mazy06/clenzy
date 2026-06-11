@@ -81,23 +81,29 @@ function computeSummary(
   }
 
   const hasPayoutData = payouts.length > 0;
-  let totalCommissions = 0;
-  let totalOwnerPayouts = 0;
 
   const rows: ContractRow[] = contracts.map((c) => {
     const ownerData = payoutByOwner.get(c.ownerId);
-    const commissionAmount = ownerData?.commission ?? null;
-    if (ownerData) {
-      totalCommissions += ownerData.commission;
-      totalOwnerPayouts += ownerData.net;
-    }
     return {
       id: c.id,
       propertyName: propertyMap.get(c.propertyId) ?? c.contractNumber,
       commissionRate: c.commissionRate,
-      commissionAmount,
+      commissionAmount: ownerData?.commission ?? null,
     };
   });
+
+  // Totals are summed per distinct owner — a payout is per-owner per-period, so an
+  // owner with several contracts/properties must only be counted once (double-count fix).
+  const ownersWithContract = new Set(contracts.map((c) => c.ownerId));
+  let totalCommissions = 0;
+  let totalOwnerPayouts = 0;
+  for (const ownerId of ownersWithContract) {
+    const ownerData = payoutByOwner.get(ownerId);
+    if (ownerData) {
+      totalCommissions += ownerData.commission;
+      totalOwnerPayouts += ownerData.net;
+    }
+  }
 
   const avgRate = contracts.length > 0
     ? contracts.reduce((s, c) => s + c.commissionRate, 0) / contracts.length

@@ -630,8 +630,50 @@ class PennylaneAccountingSyncServiceTest {
         }
 
         @Test
-        void whenTaxRateUnknown_thenDefaultsToFR200() {
-            assertVatRateMapsTo(new BigDecimal("0.18"), "FR_200");
+        void whenTaxRateUnknown_thenThrowsAndNeverCreatesInvoice() {
+            // 8.5% n'est pas un taux TVA français mappable : l'export DOIT échouer
+            // explicitement plutôt que de retomber silencieusement sur un code par défaut.
+            when(oauthService.isConnected(ORG_ID)).thenReturn(true);
+            when(client.findCustomerByExternalRef(eq(ORG_ID), anyString()))
+                    .thenReturn(Optional.of(withId(1)));
+
+            Invoice invoice = baseInvoice(1L, "INV", "ISSUED");
+            invoice.getLines().get(0).setTaxRate(new BigDecimal("0.085"));
+
+            assertThatThrownBy(() -> service.syncInvoice(invoice))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Taux de TVA non reconnu")
+                    .hasMessageContaining("8.5%");
+
+            // Aucune facture exportée, aucun marquage de sync → réconciliation/retry.
+            verify(client, never()).createCustomerInvoice(anyLong(), any());
+            verify(invoiceRepository, never()).save(any(Invoice.class));
+            assertThat(invoice.getPennylaneSyncedAt()).isNull();
+        }
+
+        @Test
+        void whenBatchHasUnknownTaxRate_thenItemFailsAndOthersSucceed() {
+            // En batch, un taux inconnu fait échouer l'item concerné (compté dans
+            // failed + errors, non marqué synced) sans bloquer les autres.
+            when(oauthService.isConnected(ORG_ID)).thenReturn(true);
+            Invoice ok = baseInvoice(1L, "I-OK", "ISSUED");
+            Invoice bad = baseInvoice(2L, "I-BAD", "PAID");
+            bad.getLines().get(0).setTaxRate(new BigDecimal("0.085"));
+            when(invoiceRepository.findPendingPennylaneSync(eq(ORG_ID), any()))
+                    .thenReturn(List.of(ok, bad));
+            when(client.findCustomerByExternalRef(eq(ORG_ID), anyString()))
+                    .thenReturn(Optional.of(withId(1)));
+            when(client.createCustomerInvoice(eq(ORG_ID), any())).thenReturn(withId(100));
+            when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(connectionRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
+
+            PennylaneAccountingSyncService.SyncResult result = service.syncAllPendingInvoices(ORG_ID);
+
+            assertThat(result.synced()).isEqualTo(1);
+            assertThat(result.failed()).isEqualTo(1);
+            assertThat(result.errors()).hasSize(1);
+            assertThat(result.errors().get(0)).contains("I-BAD").contains("Taux de TVA non reconnu");
+            assertThat(bad.getPennylaneSyncedAt()).isNull();
         }
 
         private void assertVatRateMapsTo(BigDecimal taxRate, String expected) {

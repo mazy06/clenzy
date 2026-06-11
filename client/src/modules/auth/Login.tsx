@@ -14,7 +14,7 @@ import {
   Link,
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '../../icons';
-import keycloak from '../../keycloak';
+import keycloak, { decodeJwt } from '../../keycloak';
 import apiClient, { ApiError } from '../../services/apiClient';
 import { clearMockFlags, setSessionCookie } from '../../services/storageService';
 import TurnstileCaptcha from '../../components/TurnstileCaptcha';
@@ -71,7 +71,7 @@ export default function Login() {
       keycloak.refreshToken = data.refresh_token;
       keycloak.idToken = data.id_token;
       keycloak.authenticated = true;
-      keycloak.tokenParsed = JSON.parse(atob(data.access_token.split('.')[1]));
+      keycloak.tokenParsed = decodeJwt(data.access_token);
 
       clearMockFlags();
       setSessionCookie(data.access_token);

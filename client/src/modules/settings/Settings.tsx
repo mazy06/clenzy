@@ -54,7 +54,7 @@ import { propertiesApi } from '../../services/api/propertiesApi';
 import { planningKeys } from '../../hooks/useDashboardPlanning';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
-import { useTabKeyParam } from '../../components/tabKeyParam';
+import { useTabKeyParam, tabIndexFromKey } from '../../components/tabKeyParam';
 import { SettingsHeaderProvider, useSettingsHeaderActionsSlot } from './SettingsHeaderContext';
 
 // Type re-export pour la metadata des tabs. Le mapping concret est construit
@@ -243,6 +243,28 @@ export default function Settings() {
   ];
   const visibleSettingsTabs = settingsTabs.filter((tab) => !tab.hidden);
   const [tabValue, setTabValue] = useTabKeyParam(settingsTabs);
+
+  // ─── Index VISIBLE de chaque onglet, resolu par CLE stable ────────────────
+  // tabValue est l'index VISIBLE (filtre par role) renvoye par useTabKeyParam,
+  // pas l'index absolu dans settingsTabs. On ne PEUT donc PAS comparer tabValue
+  // a un index code en dur (0/1/4/7/8…) ni indexer les TabPanel par index absolu :
+  // ces constantes shiftent selon les onglets masques par role (HOST sans onglets
+  // admin, SUPER_MANAGER sans Reversements, etc.) → onglets vides ou superposes.
+  // On resout l'index visible de chaque onglet par sa cle (calcul trivial, pas de
+  // memo : settingsTabs est recree a chaque render comme visibleSettingsTabs).
+  const tabIdx = {
+    general: tabIndexFromKey(settingsTabs, 'general'),
+    notifications: tabIndexFromKey(settingsTabs, 'notifications'),
+    messaging: tabIndexFromKey(settingsTabs, 'messaging'),
+    myPayout: tabIndexFromKey(settingsTabs, 'my-payout'),
+    ai: tabIndexFromKey(settingsTabs, 'ai'),
+    fiscal: tabIndexFromKey(settingsTabs, 'fiscal'),
+    organization: tabIndexFromKey(settingsTabs, 'organization'),
+    payment: tabIndexFromKey(settingsTabs, 'payment'),
+    integrations: tabIndexFromKey(settingsTabs, 'integrations'),
+    payouts: tabIndexFromKey(settingsTabs, 'payouts'),
+    amenitiesOta: tabIndexFromKey(settingsTabs, 'amenities-ota'),
+  };
 
   // TOUS les useState DOIVENT être déclarés AVANT les vérifications conditionnelles
   const [settings, setSettings] = useState({
@@ -538,7 +560,7 @@ export default function Settings() {
     '&.Mui-disabled': { bgcolor: 'rgba(107, 138, 154, 0.4)', color: '#fff' },
   };
 
-  const headerActions = tabValue === 0 ? (
+  const headerActions = tabValue === tabIdx.general ? (
     <>
       <Button
         variant="outlined"
@@ -562,7 +584,7 @@ export default function Settings() {
         Sauvegarder
       </Button>
     </>
-  ) : tabValue === 1 && notifRef.current?.hasChanges() ? (
+  ) : tabValue === tabIdx.notifications && notifRef.current?.hasChanges() ? (
     <Button
       variant="contained"
       disableElevation
@@ -581,7 +603,7 @@ export default function Settings() {
     >
       {notifRef.current?.isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
     </Button>
-  ) : tabValue === 4 && hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) ? (
+  ) : tabValue === tabIdx.fiscal && hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) ? (
     <Button
       variant="contained"
       disableElevation
@@ -602,7 +624,7 @@ export default function Settings() {
         ? t('fiscal.profile.saving', 'Enregistrement...')
         : t('fiscal.profile.save', 'Enregistrer le profil fiscal')}
     </Button>
-  ) : tabValue === 8 && hasAnyRole(['SUPER_ADMIN']) ? (
+  ) : tabValue === tabIdx.payouts && hasAnyRole(['SUPER_ADMIN']) ? (
     <Button
       variant="contained"
       disableElevation
@@ -697,7 +719,7 @@ export default function Settings() {
         showBackButton={false}
         actions={combinedActions}
         filters={
-          tabValue === 7 ? (
+          tabValue === tabIdx.integrations ? (
             <IntegrationsHeader
               selectedCategoryId={integrationsCategoryId}
               onCategoryChange={handleIntegrationsCategoryChange}
@@ -717,7 +739,7 @@ export default function Settings() {
       />
 
       {/* ─── Onglet Général ─────────────────────────────────────────────── */}
-      <TabPanel value={tabValue} index={0}>
+      <TabPanel value={tabValue} index={tabIdx.general}>
         <Grid container spacing={2}>
 
           {/* Mon compte */}
@@ -1031,7 +1053,7 @@ export default function Settings() {
       </TabPanel>
 
       {/* ─── Onglet Notifications ───────────────────────────────────────── */}
-      <TabPanel value={tabValue} index={1}>
+      <TabPanel value={tabValue} index={tabIdx.notifications}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <NotificationPreferencesCard
             ref={notifRef}
@@ -1042,7 +1064,7 @@ export default function Settings() {
       </TabPanel>
 
       {/* ─── Onglet Messagerie ────────────────────────────────────────── */}
-      <TabPanel value={tabValue} index={2}>
+      <TabPanel value={tabValue} index={tabIdx.messaging}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {/* La config du provider WhatsApp (credentials Meta/OpenWA) est gérée
               par la plateforme depuis l'onglet Organisation. Le HOST voit ici un
@@ -1054,21 +1076,21 @@ export default function Settings() {
 
       {/* ─── Onglet Mes reversements (HOST) ────────────────────────── */}
       {hasAnyRole(['HOST']) && (
-        <TabPanel value={tabValue} index={3}>
+        <TabPanel value={tabValue} index={tabIdx.myPayout}>
           <MyPayoutSettings />
         </TabPanel>
       )}
 
       {/* ─── Onglet IA (permission ai:view) ───────────────────────── */}
       {canViewAi && (
-        <TabPanel value={tabValue} index={3}>
+        <TabPanel value={tabValue} index={tabIdx.ai}>
           <AiSettingsSection />
         </TabPanel>
       )}
 
       {/* ─── Onglet Fiscal (ADMIN/MANAGER) ────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
-        <TabPanel value={tabValue} index={4}>
+        <TabPanel value={tabValue} index={tabIdx.fiscal}>
           <FiscalProfileSection
             ref={fiscalRef}
             onChangeState={() => forceUpdate(n => n + 1)}
@@ -1080,7 +1102,7 @@ export default function Settings() {
 
       {/* ─── Onglet Organisation (ADMIN/MANAGER) ─────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
-        <TabPanel value={tabValue} index={5}>
+        <TabPanel value={tabValue} index={tabIdx.organization}>
           <OrganizationSection
             organizationId={user?.organizationId}
             organizationName={user?.organizationName}
@@ -1090,14 +1112,14 @@ export default function Settings() {
 
       {/* ─── Onglet Paiement (ADMIN/MANAGER) ─────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
-        <TabPanel value={tabValue} index={6}>
+        <TabPanel value={tabValue} index={tabIdx.payment}>
           <PaymentSettings />
         </TabPanel>
       )}
 
       {/* ─── Onglet Intégrations (ADMIN/MANAGER) ──────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
-        <TabPanel value={tabValue} index={7}>
+        <TabPanel value={tabValue} index={tabIdx.integrations}>
           <IntegrationsSection
             selectedCategoryId={integrationsCategoryId}
             selectedServiceId={integrationsServiceId}
@@ -1107,7 +1129,7 @@ export default function Settings() {
 
       {/* ─── Onglet Reversements (SUPER_ADMIN) ──────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN']) && (
-        <TabPanel value={tabValue} index={8}>
+        <TabPanel value={tabValue} index={tabIdx.payouts}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <SepaDebtorSettings
@@ -1130,7 +1152,7 @@ export default function Settings() {
 
       {/* ─── Onglet Commodités OTA ─────────────────────────────────────── */}
       {hasAnyRole(['HOST', 'SUPERVISOR', 'SUPER_ADMIN', 'SUPER_MANAGER']) && (
-        <TabPanel value={tabValue} index={9}>
+        <TabPanel value={tabValue} index={tabIdx.amenitiesOta}>
           <AmenityMappingPage />
         </TabPanel>
       )}

@@ -25,7 +25,7 @@ import {
   Visibility,
   VisibilityOff,
 } from '../../icons';
-import keycloak from '../../keycloak';
+import keycloak, { decodeJwt } from '../../keycloak';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 import apiClient, { ApiError } from '../../services/apiClient';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
@@ -246,7 +246,7 @@ export default function AcceptInvitationPage() {
       keycloak.refreshToken = tokens.refresh_token;
       keycloak.idToken = tokens.id_token;
       keycloak.authenticated = true;
-      keycloak.tokenParsed = JSON.parse(atob(tokens.access_token.split('.')[1]));
+      keycloak.tokenParsed = decodeJwt(tokens.access_token);
 
       clearMockFlags();
       setSessionCookie(tokens.access_token);
