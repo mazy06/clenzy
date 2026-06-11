@@ -602,6 +602,45 @@ class AdvancedRateManagerTest {
         }
 
         @Test
+        @DisplayName("OTA-imported override (OTA:*) is never overwritten by yield")
+        void applyYieldRules_otaOverride_isPreserved() throws Exception {
+            Property property = new Property();
+            property.setId(PROPERTY_ID);
+
+            YieldRule rule = new YieldRule();
+            rule.setName("Early Bird +15%");
+            rule.setRuleType(YieldRule.RuleType.DAYS_BEFORE_ARRIVAL);
+            rule.setAdjustmentType(YieldRule.AdjustmentType.PERCENTAGE);
+            rule.setAdjustmentValue(new BigDecimal("15"));
+            rule.setActive(true);
+            rule.setTriggerCondition("{\"daysAhead\": 30}");
+
+            when(yieldRuleRepository.findActiveByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(List.of(rule));
+            when(propertyRepository.findById(PROPERTY_ID))
+                    .thenReturn(Optional.of(property));
+            when(objectMapper.readTree("{\"daysAhead\": 30}"))
+                    .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"daysAhead\": 30}"));
+
+            LocalDate target = LocalDate.now().plusDays(30);
+
+            // Un override importe d'un OTA existe sur la date ciblee par le yield
+            RateOverride otaOverride = new RateOverride();
+            otaOverride.setNightlyPrice(new BigDecimal("175"));
+            otaOverride.setSource("OTA:AIRBNB");
+            when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, target, ORG_ID))
+                    .thenReturn(Optional.of(otaOverride));
+
+            advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
+
+            // L'override OTA n'est ni ecrase ni audite : le yield s'arrete sur la garde
+            verify(rateOverrideRepository, never()).save(any(RateOverride.class));
+            verify(rateAuditLogRepository, never()).save(any(RateAuditLog.class));
+            assertThat(otaOverride.getSource()).isEqualTo("OTA:AIRBNB");
+            assertThat(otaOverride.getNightlyPrice()).isEqualByComparingTo("175");
+        }
+
+        @Test
         @DisplayName("running the same rule twice does not compound the adjustment (Z5-BUGS-02)")
         void whenYieldRuleRunsTwice_thenPriceDoesNotCompound() throws Exception {
             // Arrange : regle -10% sur un prix de base de 100

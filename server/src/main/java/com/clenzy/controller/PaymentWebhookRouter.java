@@ -4,7 +4,6 @@ import com.clenzy.model.PaymentMethodConfig;
 import com.clenzy.model.PaymentProviderType;
 import com.clenzy.model.PaymentTransaction;
 import com.clenzy.payment.provider.CmiHashService;
-import com.clenzy.payment.provider.PayPalPaymentProvider;
 import com.clenzy.payment.provider.PayTabsPaymentProvider;
 import com.clenzy.payment.provider.PayzonePaymentProvider;
 import com.clenzy.service.PaymentMethodConfigService;
@@ -42,7 +41,6 @@ public class PaymentWebhookRouter {
     private final PaymentMethodConfigService configService;
     private final PayTabsPaymentProvider payTabsProvider;
     private final PayzonePaymentProvider payzoneProvider;
-    private final PayPalPaymentProvider payPalProvider;
     private final CmiHashService cmiHashService;
     private final PaymentTransactionService paymentTransactionService;
     private final ObjectMapper objectMapper;
@@ -54,7 +52,6 @@ public class PaymentWebhookRouter {
                                  PaymentMethodConfigService configService,
                                  PayTabsPaymentProvider payTabsProvider,
                                  PayzonePaymentProvider payzoneProvider,
-                                 PayPalPaymentProvider payPalProvider,
                                  CmiHashService cmiHashService,
                                  PaymentTransactionService paymentTransactionService,
                                  ObjectMapper objectMapper) {
@@ -62,7 +59,6 @@ public class PaymentWebhookRouter {
         this.configService = configService;
         this.payTabsProvider = payTabsProvider;
         this.payzoneProvider = payzoneProvider;
-        this.payPalProvider = payPalProvider;
         this.cmiHashService = cmiHashService;
         this.paymentTransactionService = paymentTransactionService;
         this.objectMapper = objectMapper;
@@ -348,113 +344,6 @@ public class PaymentWebhookRouter {
             log.warn("Payzone webhook : status non gere pour ref={} : {}", merchantRef, status);
         }
         return ResponseEntity.ok("OK");
-    }
-
-    /**
-     * PayPal webhook handler.
-     *
-     * <h2>Spécificités PayPal</h2>
-     * <p>PayPal ne signe pas avec un HMAC partagé — la verification stricte
-     * passe par un appel API à
-     * {@code POST /v1/notifications/verify-webhook-signature} avec les
-     * headers PayPal-Transmission-* et le payload + le webhook_id de l'org.</p>
-     *
-     * <p>Vérification stricte via {@link PayPalPaymentProvider#verifyWebhookStrict}
-     * (appel API verify-webhook-signature). L'ancien mode « soft »
-     * ({@code verifyWebhook}) est désormais fail-closed et ne doit plus être
-     * utilisé (Z3-SEC-03).</p>
-     *
-     * <h2>Évènement attendu</h2>
-     * <p>{@code PAYMENT.CAPTURE.COMPLETED} : capture validée. Le
-     * {@code resource.supplementary_data.related_ids.order_id} contient
-     * notre order PayPal ; le {@code resource.custom_id} ou le
-     * {@code purchase_units[0].reference_id} contient notre
-     * {@code transactionRef}.</p>
-     */
-    @PostMapping("/paypal")
-    public ResponseEntity<String> handlePayPalWebhook(
-            @RequestBody String payload,
-            @RequestHeader(value = "PAYPAL-AUTH-ALGO",        required = false) String authAlgo,
-            @RequestHeader(value = "PAYPAL-CERT-URL",         required = false) String certUrl,
-            @RequestHeader(value = "PAYPAL-TRANSMISSION-ID",  required = false) String transmissionId,
-            @RequestHeader(value = "PAYPAL-TRANSMISSION-SIG", required = false) String transmissionSig,
-            @RequestHeader(value = "PAYPAL-TRANSMISSION-TIME",required = false) String transmissionTime) {
-
-        // Validation des headers requis pour la vérification API PayPal
-        if (transmissionSig == null || transmissionSig.isBlank()
-            || transmissionId == null || transmissionId.isBlank()
-            || transmissionTime == null || transmissionTime.isBlank()
-            || authAlgo == null || authAlgo.isBlank()
-            || certUrl == null || certUrl.isBlank()) {
-            log.warn("PayPal webhook : headers de signature incomplets — rejet");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing PayPal headers");
-        }
-
-        JsonNode root;
-        try {
-            root = objectMapper.readTree(payload);
-        } catch (Exception e) {
-            log.warn("PayPal webhook : payload invalide ({})", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid JSON");
-        }
-
-        String eventType = textOrNull(root, "event_type");
-        // On gère uniquement les événements de capture pour MVP.
-        if (eventType == null || !eventType.startsWith("PAYMENT.CAPTURE.")) {
-            log.debug("PayPal webhook : event_type {} ignoré (hors scope MVP)", eventType);
-            return ResponseEntity.ok("OK");
-        }
-
-        String transactionRef = extractPayPalReferenceId(root);
-        if (transactionRef == null) {
-            log.warn("PayPal webhook : reference_id absent dans le payload");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing reference_id");
-        }
-
-        PaymentTransaction tx = paymentTransactionService.findByTransactionRef(transactionRef).orElse(null);
-        if (tx == null) {
-            log.warn("PayPal webhook : transaction inconnue ref={}", transactionRef);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Unknown transaction");
-        }
-
-        // Vérification stricte via API PayPal /v1/notifications/verify-webhook-signature
-        var headers = new com.clenzy.payment.provider.PayPalClient.PayPalWebhookHeaders(
-            authAlgo, certUrl, transmissionId, transmissionSig, transmissionTime);
-        if (!payPalProvider.verifyWebhookStrict(headers, payload, tx.getOrganizationId())) {
-            log.warn("PayPal webhook : verification API echouee pour ref={}", transactionRef);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid webhook signature");
-        }
-
-        if ("PAYMENT.CAPTURE.COMPLETED".equals(eventType)) {
-            orchestrationService.completeTransaction(transactionRef);
-            log.info("PayPal webhook : transaction {} confirmee", transactionRef);
-        } else if ("PAYMENT.CAPTURE.DENIED".equals(eventType)
-                || "PAYMENT.CAPTURE.DECLINED".equals(eventType)
-                || "PAYMENT.CAPTURE.REVERSED".equals(eventType)) {
-            orchestrationService.failTransaction(transactionRef, "PayPal " + eventType);
-            log.info("PayPal webhook : transaction {} echouee ({})", transactionRef, eventType);
-        } else {
-            log.debug("PayPal webhook : event {} ignore (non final)", eventType);
-        }
-        return ResponseEntity.ok("OK");
-    }
-
-    /** Extrait notre transactionRef du payload PayPal multi-shapes. */
-    private static String extractPayPalReferenceId(JsonNode root) {
-        // Tentative 1 : resource.custom_id (si on l'a passé à la création)
-        JsonNode resource = root.get("resource");
-        if (resource == null) return null;
-        String customId = textOrNull(resource, "custom_id");
-        if (customId != null && !customId.isBlank()) return customId;
-        // Tentative 2 : resource.purchase_units[0].reference_id (Orders v2)
-        JsonNode purchaseUnits = resource.get("purchase_units");
-        if (purchaseUnits != null && purchaseUnits.isArray() && purchaseUnits.size() > 0) {
-            String refId = textOrNull(purchaseUnits.get(0), "reference_id");
-            if (refId != null && !refId.isBlank()) return refId;
-        }
-        // Tentative 3 : invoice_id ou note_to_payer (cas edge)
-        String invoiceId = textOrNull(resource, "invoice_id");
-        return invoiceId != null && !invoiceId.isBlank() ? invoiceId : null;
     }
 
     // ─── Internal Stripe Event Processing ───────────────────────────────────────

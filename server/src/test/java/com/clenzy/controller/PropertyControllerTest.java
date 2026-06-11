@@ -55,7 +55,8 @@ class PropertyControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new PropertyController(propertyService, userService, tenantContext);
+        controller = new PropertyController(propertyService, userService,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
     }
 
     @Nested

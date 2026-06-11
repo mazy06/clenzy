@@ -62,6 +62,7 @@ public class WelcomeGuideService {
     private final PropertyPhotoRepository propertyPhotoRepository;
     private final ActivityAffiliateConfigRepository activityAffiliateConfigRepository;
     private final com.clenzy.service.access.GuestUnlockService guestUnlockService;
+    private final MessageTemplateService messageTemplateService;
     private final Map<ActivityProvider, AffiliateLinkDecorator> linkDecorators;
 
     public WelcomeGuideService(WelcomeGuideRepository guideRepository,
@@ -78,6 +79,7 @@ public class WelcomeGuideService {
                                 PropertyPhotoRepository propertyPhotoRepository,
                                 ActivityAffiliateConfigRepository activityAffiliateConfigRepository,
                                 com.clenzy.service.access.GuestUnlockService guestUnlockService,
+                                MessageTemplateService messageTemplateService,
                                 List<AffiliateLinkDecorator> linkDecorators) {
         this.guideRepository = guideRepository;
         this.tokenRepository = tokenRepository;
@@ -93,6 +95,7 @@ public class WelcomeGuideService {
         this.propertyPhotoRepository = propertyPhotoRepository;
         this.activityAffiliateConfigRepository = activityAffiliateConfigRepository;
         this.guestUnlockService = guestUnlockService;
+        this.messageTemplateService = messageTemplateService;
         this.linkDecorators = new EnumMap<>(ActivityProvider.class);
         for (AffiliateLinkDecorator decorator : linkDecorators) {
             this.linkDecorators.put(decorator.provider(), decorator);
@@ -162,6 +165,7 @@ public class WelcomeGuideService {
     @Transactional
     public WelcomeGuide updateGuide(Long guideId, Long orgId, WelcomeGuideRequest req) {
         WelcomeGuide guide = loadGuide(guideId, orgId);
+        boolean wasPublished = guide.isPublished();
 
         if (req.title() != null) guide.setTitle(req.title());
         if (req.sections() != null) guide.setSections(req.sections());
@@ -181,6 +185,15 @@ public class WelcomeGuideService {
         guide.setUpsellOfferIds(req.upsellOfferIds()); // null = afficher tous les services applicables
 
         WelcomeGuide saved = guideRepository.save(guide);
+
+        // Generalisation de la migration 0230 : a la PREMIERE publication d'un livret, on garantit
+        // que le template CHECK_IN actif de l'org reference {guideLink} (sinon l'email de bienvenue
+        // n'inclurait jamais le lien du livret). Idempotent et org-scope cote MessageTemplateService.
+        // Borne a la transition non-publie -> publie pour ne pas re-traiter a chaque sauvegarde.
+        if (!wasPublished && saved.isPublished()) {
+            messageTemplateService.ensureGuideLinkTag(saved.getOrganizationId());
+        }
+
         Hibernate.initialize(saved.getProperty()); // mapping DTO hors session (open-in-view=false)
         Hibernate.initialize(saved.getReservation()); // idem : le DTO serialise la reservation rattachee (ReservationRef)
         return saved;

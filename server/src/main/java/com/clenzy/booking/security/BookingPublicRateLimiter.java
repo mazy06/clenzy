@@ -1,5 +1,6 @@
 package com.clenzy.booking.security;
 
+import com.clenzy.util.ClientIpResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,60 +90,15 @@ public class BookingPublicRateLimiter {
     }
 
     /**
-     * IP cliente pour le keying : X-Forwarded-For n'est exploite que si le
-     * pair direct est un proxy de confiance (reseau prive/loopback — nginx,
-     * Docker), parcouru de droite a gauche pour ignorer les entrees
-     * spoofables ajoutees par le client (meme regle que RateLimitInterceptor).
+     * IP cliente pour le keying : X-Forwarded-For n'est exploite que si le pair
+     * direct est un proxy de confiance, parcouru de droite a gauche pour ignorer
+     * les entrees spoofables. Delegue a {@link ClientIpResolver} (source unique,
+     * partagee avec RateLimitInterceptor et la signature de contrats).
      */
     String clientIp(HttpServletRequest request) {
-        String remoteAddr = request.getRemoteAddr();
-        if (!isPrivateOrLoopback(remoteAddr)) {
-            return remoteAddr;
-        }
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            String[] entries = forwarded.split(",");
-            for (int i = entries.length - 1; i >= 0; i--) {
-                String candidate = entries[i].trim();
-                if (!candidate.isEmpty() && !isPrivateOrLoopback(candidate)) {
-                    return candidate;
-                }
-            }
-        }
-        String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) {
-            return realIp.trim();
-        }
-        return remoteAddr;
-    }
-
-    /** Comparaison sur litteraux d'adresse uniquement — aucune resolution DNS. */
-    private static boolean isPrivateOrLoopback(String address) {
-        if (address == null || address.isBlank()) {
-            return false;
-        }
-        String trimmed = address.trim();
-        if (trimmed.equals("::1") || trimmed.equals("0:0:0:0:0:0:0:1")) {
-            return true;
-        }
-        String[] octets = trimmed.split("\\.", -1);
-        if (octets.length != 4) {
-            return false;
-        }
-        final int b0;
-        final int b1;
-        try {
-            b0 = Integer.parseInt(octets[0]);
-            b1 = Integer.parseInt(octets[1]);
-        } catch (NumberFormatException e) {
-            return false;
-        }
-        if (b0 == 127 || b0 == 10) {
-            return true;
-        }
-        if (b0 == 172 && b1 >= 16 && b1 <= 31) {
-            return true;
-        }
-        return b0 == 192 && b1 == 168;
+        return ClientIpResolver.resolve(
+            request.getRemoteAddr(),
+            request.getHeader("X-Forwarded-For"),
+            request.getHeader("X-Real-IP"));
     }
 }

@@ -71,7 +71,8 @@ class StripeServiceExtraTest {
         tenantContext.setOrganizationId(1L);
         stripeService = new StripeService(interventionRepository, reservationRepository,
             serviceRequestRepository, notificationService, serviceRequestService, walletService,
-            ledgerService, splitPaymentService, autoInvoiceService, kafkaTemplate, tenantContext,
+            ledgerService, splitPaymentService, autoInvoiceService, kafkaTemplate,
+            new com.clenzy.service.access.OrganizationAccessGuard(tenantContext),
             stripeGateway, paymentStatusTransitionService,
             org.mockito.Mockito.mock(PaymentLedgerReversalService.class));
         setField("currency", "EUR");
@@ -98,6 +99,8 @@ class StripeServiceExtraTest {
         intervention.setStatus(InterventionStatus.AWAITING_PAYMENT);
         intervention.setPaymentStatus(PaymentStatus.PROCESSING);
         intervention.setEstimatedCost(BigDecimal.valueOf(100));
+        // Org alignee au tenant : OrganizationAccessGuard est fail-closed (org NULL -> refus).
+        intervention.setOrganizationId(1L);
         Property p = new Property();
         p.setId(11L);
         p.setDefaultCurrency(currency);
@@ -201,6 +204,7 @@ class StripeServiceExtraTest {
             intervention.setTitle("No-prop");
             intervention.setProperty(null);
             intervention.setEstimatedCost(BigDecimal.valueOf(100));
+            intervention.setOrganizationId(1L);
             Session session = sessionMock();
             when(interventionRepository.findById(2L)).thenReturn(Optional.of(intervention));
             when(stripeGateway.createSession(any())).thenReturn(session);

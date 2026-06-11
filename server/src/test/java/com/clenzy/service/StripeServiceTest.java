@@ -64,7 +64,7 @@ class StripeServiceTest {
     void setUp() throws Exception {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        stripeService = new StripeService(interventionRepository, reservationRepository, serviceRequestRepository, notificationService, serviceRequestService, walletService, ledgerService, splitPaymentService, autoInvoiceService, kafkaTemplate, tenantContext, stripeGateway, paymentStatusTransitionService, org.mockito.Mockito.mock(PaymentLedgerReversalService.class));
+        stripeService = new StripeService(interventionRepository, reservationRepository, serviceRequestRepository, notificationService, serviceRequestService, walletService, ledgerService, splitPaymentService, autoInvoiceService, kafkaTemplate, new com.clenzy.service.access.OrganizationAccessGuard(tenantContext), stripeGateway, paymentStatusTransitionService, org.mockito.Mockito.mock(PaymentLedgerReversalService.class));
         setField("currency", "EUR");
         setField("successUrl", "https://ok.test");
         setField("cancelUrl", "https://ko.test");
@@ -121,6 +121,9 @@ class StripeServiceTest {
         intervention.setTitle("Test intervention");
         intervention.setStatus(status);
         intervention.setPaymentStatus(paymentStatus);
+        // Org alignee au tenant : OrganizationAccessGuard est fail-closed (org NULL -> refus).
+        // Les tests cross-org surchargent explicitement avec ORG_ID + 1.
+        intervention.setOrganizationId(ORG_ID);
         return intervention;
     }
 

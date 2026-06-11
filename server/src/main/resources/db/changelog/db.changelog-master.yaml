@@ -2279,3 +2279,18 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # Backfill des organization_id NULL legacy (audit SECU9) : propage l'org de la
+  # racine (properties.owner_id -> users) vers les tables filles, prérequis au
+  # passage fail-closed de OrganizationAccessGuard. Bloc PL/pgSQL DO $$ idempotent
+  # (UPDATE filtrés sur IS NULL) -> splitStatements: false. Aucune contrainte
+  # NOT NULL posée ici (lot ultérieur après vérification prod). Exclut les NULL
+  # légitimes (staff plateforme, templates/KB globaux).
+  - changeSet:
+      id: "0231-backfill-organization-id"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0231__backfill_organization_id.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

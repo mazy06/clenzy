@@ -8,7 +8,7 @@ import com.clenzy.model.Property;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.exception.UnauthorizedException;
-import com.clenzy.tenant.TenantContext;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.util.JwtRoleExtractor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,14 +41,14 @@ public class PropertyController {
 
     private final PropertyService propertyService;
     private final UserService userService;
-    private final TenantContext tenantContext;
+    private final OrganizationAccessGuard organizationAccessGuard;
 
     public PropertyController(PropertyService propertyService,
                               UserService userService,
-                              TenantContext tenantContext) {
+                              OrganizationAccessGuard organizationAccessGuard) {
         this.propertyService = propertyService;
         this.userService = userService;
-        this.tenantContext = tenantContext;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     /**
@@ -83,19 +83,16 @@ public class PropertyController {
 
     /**
      * Refuse l'accès si la propriété appartient à une autre organisation.
-     * Bypass pour les orgs SYSTEM (prestataires cross-org), même exemption
-     * que le filtre Hibernate organizationFilter (cf. TenantFilter).
+     * Delegue a {@link OrganizationAccessGuard} (fail-closed, bypass platform
+     * staff + org SYSTEM), même exemption que le filtre Hibernate organizationFilter.
      */
     private void requireSameOrganization(Property property) {
-        if (tenantContext.isSuperAdmin() || tenantContext.isSystemOrg()) {
-            return;
-        }
-        Long orgId = tenantContext.getOrganizationId();
-        if (orgId != null && property.getOrganizationId() != null
-                && !orgId.equals(property.getOrganizationId())) {
+        try {
+            organizationAccessGuard.requireSameOrganization(
+                    property.getOrganizationId(), "Vous n'avez pas accès à cette propriété");
+        } catch (org.springframework.security.access.AccessDeniedException e) {
             log.warn("Acces cross-organisation refuse pour la propriete {}", property.getId());
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "Vous n'avez pas accès à cette propriété");
+            throw e;
         }
     }
 

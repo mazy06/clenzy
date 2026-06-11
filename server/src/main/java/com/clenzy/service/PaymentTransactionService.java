@@ -17,9 +17,9 @@ import java.util.Optional;
  *
  * <h2>Deux familles de lookups</h2>
  * <ul>
- *   <li>{@link #findByTransactionRef(String)} / {@link #findByProviderTxId(String)} :
- *       SANS validation d'organisation — reserves aux flux publics
- *       (webhooks providers, redirect CMI, retour PayPal) ou il n'y a pas de
+ *   <li>{@link #findByTransactionRef(String)} :
+ *       SANS validation d'organisation — reserve aux flux publics
+ *       (webhooks providers, redirect CMI) ou il n'y a pas de
  *       JWT donc pas de TenantContext ; l'authentification y est faite par la
  *       verification de signature cryptographique du provider, et la
  *       transaction resolue porte elle-meme son organizationId (utilise pour
@@ -60,25 +60,6 @@ public class PaymentTransactionService {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return paymentTransactionRepository.findByTransactionRef(transactionRef)
             .filter(t -> t.getOrganizationId().equals(orgId));
-    }
-
-    /**
-     * Lookup brut par providerTxId (orderId PayPal...) — flux publics
-     * uniquement (retour PayPal apres approbation guest). Voir javadoc de classe.
-     */
-    @Transactional(readOnly = true)
-    public Optional<PaymentTransaction> findByProviderTxId(String providerTxId) {
-        return paymentTransactionRepository.findByProviderTxId(providerTxId);
-    }
-
-    /**
-     * Met a jour le providerTxId d'une transaction (ex : orderId PayPal →
-     * captureId apres capture, necessaire pour les futurs refunds).
-     */
-    @Transactional
-    public void updateProviderTxId(PaymentTransaction transaction, String providerTxId) {
-        transaction.setProviderTxId(providerTxId);
-        paymentTransactionRepository.save(transaction);
     }
 
     /**

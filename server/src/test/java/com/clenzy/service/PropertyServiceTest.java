@@ -58,7 +58,8 @@ class PropertyServiceTest {
                 propertyRepository, userRepository, managerPropertyRepository,
                 portfolioClientRepository, portfolioRepository,
                 checkInInstructionsRepository, listingMappingRepository,
-                notificationService, tenantContext);
+                notificationService, tenantContext,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
     }
 
     private User buildOwner(Long id) {

@@ -3,7 +3,7 @@ package com.clenzy.service;
 import com.clenzy.model.DocumentGeneration;
 import com.clenzy.model.UserRole;
 import com.clenzy.repository.InterventionRepository;
-import com.clenzy.tenant.TenantContext;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.util.JwtRoleExtractor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -20,30 +20,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class DocumentAccessService {
 
     private final InterventionRepository interventionRepository;
-    private final TenantContext tenantContext;
+    private final OrganizationAccessGuard organizationAccessGuard;
 
     public DocumentAccessService(InterventionRepository interventionRepository,
-                                 TenantContext tenantContext) {
+                                 OrganizationAccessGuard organizationAccessGuard) {
         this.interventionRepository = interventionRepository;
-        this.tenantContext = tenantContext;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     /**
      * Refuse l'acces si la generation appartient a une autre organisation.
      * getGeneration() repose sur findById, qui ne passe PAS par le filtre
      * Hibernate organizationFilter → l'isolation org doit etre verifiee
-     * explicitement. Bypass pour le staff plateforme (SUPER_ADMIN/SUPER_MANAGER)
-     * et les orgs SYSTEM, memes exemptions que le filtre Hibernate (cf. TenantFilter).
+     * explicitement. Delegue a {@link OrganizationAccessGuard} (fail-closed,
+     * bypass platform staff + org SYSTEM, memes exemptions que le filtre Hibernate).
      */
     public void requireSameOrganization(DocumentGeneration generation) {
-        if (tenantContext.isSuperAdmin() || tenantContext.isSystemOrg()) {
-            return;
-        }
-        Long orgId = tenantContext.getOrganizationId();
-        if (orgId != null && generation.getOrganizationId() != null
-                && !orgId.equals(generation.getOrganizationId())) {
-            throw new AccessDeniedException("Document hors de votre organisation");
-        }
+        organizationAccessGuard.requireSameOrganization(
+                generation.getOrganizationId(), "Document hors de votre organisation");
     }
 
     /**

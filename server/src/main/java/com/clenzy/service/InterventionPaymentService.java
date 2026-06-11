@@ -50,17 +50,20 @@ public class InterventionPaymentService {
     private final StripeService stripeService;
     private final PaymentTransactionService paymentTransactionService;
     private final TenantContext tenantContext;
+    private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     public InterventionPaymentService(InterventionRepository interventionRepository,
                                       PaymentOrchestrationService orchestrationService,
                                       StripeService stripeService,
                                       PaymentTransactionService paymentTransactionService,
-                                      TenantContext tenantContext) {
+                                      TenantContext tenantContext,
+                                      com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard) {
         this.interventionRepository = interventionRepository;
         this.orchestrationService = orchestrationService;
         this.stripeService = stripeService;
         this.paymentTransactionService = paymentTransactionService;
         this.tenantContext = tenantContext;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     /**
@@ -257,19 +260,11 @@ public class InterventionPaymentService {
 
     /**
      * Refuse l'accès si l'intervention appartient à une autre organisation.
-     * Bypass pour le staff plateforme (SUPER_ADMIN/SUPER_MANAGER) et les orgs
-     * SYSTEM — mêmes exemptions que le filtre Hibernate organizationFilter
-     * (cf. TenantFilter), que findById ne traverse pas.
-     * Même pattern que SmartLockService.requireSameOrganization.
+     * Delegue a {@link com.clenzy.service.access.OrganizationAccessGuard}
+     * (fail-closed, bypass platform staff + org SYSTEM), que findById ne traverse pas.
      */
     private void requireSameOrganization(Intervention intervention) {
-        if (tenantContext.isSuperAdmin() || tenantContext.isSystemOrg()) {
-            return;
-        }
-        Long orgId = tenantContext.getOrganizationId();
-        if (orgId != null && intervention.getOrganizationId() != null
-                && !orgId.equals(intervention.getOrganizationId())) {
-            throw new AccessDeniedException("Intervention hors de votre organisation");
-        }
+        organizationAccessGuard.requireSameOrganization(
+                intervention.getOrganizationId(), "Intervention hors de votre organisation");
     }
 }
