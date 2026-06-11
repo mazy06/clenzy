@@ -36,12 +36,12 @@ interface FilterChipRowProps<T extends string> {
 /**
  * Rangee de chips de filtres avec etat actif/inactif et compteur optionnel.
  *
- * Pattern PMS soft-filled :
- *  - Inactif : bg pastel `${color}18`, bordure `${color}40`, texte `color`
- *  - Actif   : bg plein `color`, texte blanc, badge inverse
+ * Pattern Signature .s-subtab :
+ *  - Inactif : texte var(--muted), fond transparent, hover bg var(--hover)
+ *  - Actif   : bg var(--accent-soft), texte var(--accent)
  *
- * Le compteur (chip dans le chip) reprend la couleur du parent et bascule
- * sur fond blanc translucide quand l'option est active.
+ * La prop `color` reste acceptee (compat API) mais l'accent visuel vient des
+ * tokens. Le compteur passe en pastille var(--accent) quand l'option est active.
  *
  * Usage :
  *   <FilterChipRow
@@ -90,9 +90,9 @@ export default function FilterChipRow<T extends string>({
                       fontWeight: 700,
                       px: 0.5,
                       py: 0.05,
-                      borderRadius: 0.75,
-                      bgcolor: active ? 'rgba(255,255,255,0.25)' : `${opt.color}28`,
-                      color: active ? '#fff' : opt.color,
+                      borderRadius: 'var(--radius-pill)',
+                      bgcolor: active ? 'var(--accent)' : 'var(--hover)',
+                      color: active ? 'var(--on-accent)' : 'var(--muted)',
                     }}
                   >
                     {opt.count}
@@ -104,17 +104,18 @@ export default function FilterChipRow<T extends string>({
             size="small"
             sx={{
               height: compact ? 22 : 26,
-              borderRadius: '6px',
+              borderRadius: 'var(--radius-sm)',
               cursor: 'pointer',
               fontSize: compact ? '0.6875rem' : '0.75rem',
               fontWeight: 600,
-              transition: 'all 0.15s ease',
-              backgroundColor: active ? opt.color : `${opt.color}18`,
-              color: active ? '#fff' : opt.color,
-              border: `1px solid ${active ? opt.color : `${opt.color}40`}`,
+              transition: 'background-color .14s, color .14s',
+              backgroundColor: active ? 'var(--accent-soft)' : 'transparent',
+              color: active ? 'var(--accent)' : 'var(--muted)',
+              border: '1px solid transparent',
               '& .MuiChip-label': { px: compact ? 0.6 : 0.75 },
               '&:hover': {
-                backgroundColor: active ? opt.color : `${opt.color}28`,
+                backgroundColor: active ? 'var(--accent-soft)' : 'var(--hover)',
+                color: active ? 'var(--accent)' : 'var(--body)',
               },
             }}
           />
