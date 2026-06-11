@@ -70,6 +70,7 @@ import { useWorkflowSettings } from '../../../hooks/useWorkflowSettings';
 import { useAuth } from '../../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import CreateServiceRequestDialog from './CreateServiceRequestDialog';
+import MessagingAutomationStatus from './MessagingAutomationStatus';
 
 // ── Assignee option (user or team) ──────────────────────────────────────────
 interface AssigneeOption {
@@ -935,7 +936,18 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         <>
           {/* Service request creation buttons */}
           <Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+            <Typography
+              component="span"
+              sx={{
+                display: 'block',
+                fontSize: '0.625rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--faint)',
+                mb: 1,
+              }}
+            >
               Demandes de service
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -977,8 +989,19 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             <>
               <Divider />
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.5 }}>
-                  Demandes liees ({serviceRequests.length})
+                <Typography
+                  component="span"
+                  sx={{
+                    display: 'block',
+                    fontSize: '0.625rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: 'var(--faint)',
+                    mb: 0.75,
+                  }}
+                >
+                  Demandes liees · {serviceRequests.length}
                 </Typography>
                 {serviceRequests.map((sr) => {
                   const statusCfg = SR_STATUS_CONFIG[sr.status] || { label: sr.status, color: '#757575' };
@@ -1181,8 +1204,19 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             <>
               <Divider />
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.5 }}>
-                  Interventions ({linkedInterventions.length})
+                <Typography
+                  component="span"
+                  sx={{
+                    display: 'block',
+                    fontSize: '0.625rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: 'var(--faint)',
+                    mb: 0.75,
+                  }}
+                >
+                  Interventions · {linkedInterventions.length}
                 </Typography>
                 {linkedInterventions.map((li) => {
                   const isAssigned = !!li.assigneeName;
@@ -1354,6 +1388,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               Aucune demande de service ou intervention pour cette reservation. Utilisez les boutons ci-dessus pour creer une demande.
             </Alert>
           )}
+
+          {/* Messagerie automatique (maquette : section dédiée de l'onglet Opérations) */}
+          <Divider />
+          <MessagingAutomationStatus
+            guestEmail={reservation?.guestEmail}
+            source={reservation?.source}
+          />
         </>
       )}
 

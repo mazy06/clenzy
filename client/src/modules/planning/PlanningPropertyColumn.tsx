@@ -455,7 +455,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           }}
         />
       )}
-      {properties.map((property, idx) => {
+      {properties.map((property) => {
         const reservationCount = reservationCountByProperty?.get(property.id) ?? 0;
         const subtitle = property.city || property.address || '';
         const sync = channelSyncMap?.get(property.id);
@@ -513,22 +513,20 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 alignItems: 'center',
                 gap: 0,
                 px: 0,
-                py: '6px',
                 cursor: 'pointer',
                 borderBottom: '1px solid var(--line)',
+                // Spec .pl-name : fond plat var(--card) (pas de zebra)
                 backgroundColor: selectedPropertyId === property.id || popover?.propertyId === property.id
                   ? 'var(--accent-soft)'
-                  : idx % 2 === 0
-                    ? 'transparent'
-                    : 'color-mix(in srgb, var(--ink) 1.5%, transparent)',
+                  : 'var(--card)',
                 transition: 'background-color 0.15s ease',
                 '&:hover': {
                   backgroundColor: 'var(--hover)',
                 },
               }}
             >
-              {/* Bloc texte (maquette) : nom + ville/arrondissement dessous,
-                  centre verticalement. Le count de reservations en cours reste
+              {/* Bloc texte (spec .pl-name : padding 0 16px, colonne centrée) :
+                  nom + ville dessous. Le count de reservations en cours reste
                   visible en pastille discrete inline a cote du nom. */}
               <Box
                 sx={{
@@ -537,27 +535,25 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 0.125,
-                  pl: 1.25,
-                  pr: 0.75,
+                  px: '16px',
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, minWidth: 0 }}>
                   {/* Box component=span : evite l'heritage du variant body1 du
                       Typography (le theme MUI a des fontSize responsive en
                       media-query qui peuvent surcharger sx en breakpoint large). */}
+                  {/* Spec .pl-name .nm : 12.5px fw600 var(--ink), 1 ligne ellipsis */}
                   <Box
                     component="span"
                     sx={{
-                      fontSize: density === 'compact' ? '0.6875rem' : '0.75rem',
+                      fontSize: density === 'compact' ? '11.5px' : '12.5px',
                       fontWeight: 600,
                       color: 'var(--ink)',
                       lineHeight: 1.25,
                       letterSpacing: '-0.01em',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
+                      whiteSpace: 'nowrap',
                       overflow: 'hidden',
-                      wordBreak: 'break-word',
+                      textOverflow: 'ellipsis',
                       minWidth: 0,
                     }}
                   >
@@ -590,11 +586,12 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                     </Box>
                   )}
                 </Box>
+                {/* Spec .pl-name .ci : 10.5px var(--muted) */}
                 {subtitle && (
                   <Box
                     component="span"
                     sx={{
-                      fontSize: density === 'compact' ? '0.5625rem' : '0.625rem',
+                      fontSize: density === 'compact' ? '9.5px' : '10.5px',
                       fontWeight: 400,
                       color: 'var(--muted)',
                       lineHeight: 1.2,
@@ -656,16 +653,11 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           </Tooltip>
         );
       })}
-      {/* Empty filler rows */}
+      {/* Empty filler rows — fond plat (spec : pas de zebra) */}
       {Array.from({ length: emptyRowCount }, (_, i) => (
         <Box
           key={`empty-${i}`}
-          sx={{
-            height: effectiveRowHeight,
-            backgroundColor: (properties.length + i) % 2 === 0
-              ? 'transparent'
-              : 'color-mix(in srgb, var(--ink) 1.5%, transparent)',
-          }}
+          sx={{ height: effectiveRowHeight, backgroundColor: 'var(--card)' }}
         />
       ))}
 

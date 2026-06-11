@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import { Box, Typography } from '@mui/material';
 import PlanningBar from './PlanningBar';
 import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, PlanningDragState, UrgencyAnimationMode } from './types';
-import { ROW_CONFIG, BAR_BORDER_RADIUS } from './constants';
+import { ROW_CONFIG, BAR_BORDER_RADIUS, WEEKEND_TINT_BG } from './constants';
 import { isWeekend, isToday, toDateStr, getHourOffsetPx } from './utils/dateUtils';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
@@ -47,7 +47,9 @@ interface PlanningRowProps {
   onEmptyClick: (data: QuickCreateData) => void;
   quickCreateOpen: boolean;
   showPrices: boolean;
-  showInterventions: boolean;
+  /** Conservé pour le contrat avec PlanningTimeline — le filtre des events
+   *  est fait en amont (usePlanningFilters), la hauteur de ligne est fixe. */
+  showInterventions?: boolean;
   pricingMap: PricingMap;
   minNightsMap?: MinNightsMap;
   effectiveRowHeight: number;
@@ -77,7 +79,6 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   onEmptyClick,
   quickCreateOpen,
   showPrices,
-  showInterventions,
   pricingMap,
   minNightsMap,
   effectiveRowHeight,
@@ -90,7 +91,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   // ── Interventions rattachées à une réservation (maquette) ────────────────
   // Une intervention liée (linkedReservationId) dont la réservation est
   // visible sur cette rangée est TOUJOURS absorbée DANS la brique (pastille
-  // blanche 21px — sur brique étroite elle compte dans le « +N »). Les
+  // blanche 20px — sur brique étroite elle compte dans le « +N »). Les
   // interventions sans réservation liée restent sur la grille, rendues en
   // pastille icône seule par PlanningBar (plus de chip texte).
   const { visibleLayouts, linkedInterventionsByBarId } = useMemo(() => {
@@ -123,7 +124,9 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   }, [barLayouts]);
   const propertyPricing = showPrices ? pricingMap.get(property.id) : undefined;
   const propertyMinNights = showPrices ? minNightsMap?.get(property.id) : undefined;
-  const activeRowHeight = showInterventions ? config.rowHeight : config.interventionTop + 2;
+  // Hauteur active = rangée entière : les interventions partagent la bande
+  // verticale de la brique (plus de couloir dédié sous la brique).
+  const activeRowHeight = config.rowHeight;
 
   // ── Drag-to-select state ──────────────────────────────────────────────────
   const selectionRef = useRef<{
@@ -255,10 +258,9 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
 
     const rect = e.currentTarget.getBoundingClientRect();
 
-    // Ignore clicks outside the active grid area (e.g. on the price line)
+    // Ignore clicks outside the active grid area
     const y = e.clientY - rect.top;
-    const activeH = showInterventions ? config.rowHeight : config.interventionTop + 2;
-    if (y > activeH) return;
+    if (y > config.rowHeight) return;
 
     const x = e.clientX - rect.left;
     const dayIndex = Math.floor(x / dayWidthRef.current);
@@ -410,7 +412,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
       document.removeEventListener('mousemove', handleDocMouseMove);
       document.removeEventListener('mouseup', handleDocMouseUp);
     };
-  }, [isDragging, showInterventions, config]);
+  }, [isDragging, config]);
 
   // Cleanup document listeners on unmount
   useEffect(() => {
@@ -436,12 +438,14 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         height: effectiveRowHeight,
         width: totalGridWidth,
         borderBottom: '1px solid var(--line)',
-        backgroundColor: rowIndex % 2 === 0
-          ? 'transparent'
-          : 'color-mix(in srgb, var(--ink) 1.5%, transparent)',
-        // Hairlines verticales entre les jours (maquette) : un seul paint
-        // via repeating-gradient plutôt qu'une Box par cellule.
+        // Spec .pl-row / .pl-cell : fond plat (pas de zebra), hairlines
+        // verticales entre les jours — un seul paint via repeating-gradient
+        // plutôt qu'une Box par cellule. Clip 1px avant le bord droit :
+        // spec .pl-cell:last-child sans séparateur.
+        backgroundColor: 'transparent',
         backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${dayWidth - 1}px, var(--line) ${dayWidth - 1}px ${dayWidth}px)`,
+        backgroundSize: `${totalGridWidth - 1}px 100%`,
+        backgroundRepeat: 'no-repeat',
       }}
     >
       {/* Day column backgrounds (weekends + today) */}
@@ -459,11 +463,11 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               width: dayWidth,
               height: effectiveRowHeight,
               // Aujourd'hui : colonne légèrement teintée accent (maquette).
-              // Week-end : voile neutre var(--surface-2)-like, theme-aware.
+              // Week-end : spec .pl-cell.we (constante locale --cell-we).
               backgroundColor: today
                 ? 'color-mix(in srgb, var(--accent) 6%, transparent)'
                 : weekend
-                  ? 'color-mix(in srgb, var(--ink) 2.5%, transparent)'
+                  ? WEEKEND_TINT_BG
                   : 'transparent',
               pointerEvents: 'none',
             }}

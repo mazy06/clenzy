@@ -73,11 +73,11 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   const config = ROW_CONFIG[density];
   // Plus de price line dediee : les prix sont desormais affiches dans
   // chaque cellule de jour, centres et masques sous les bars.
-  // When interventions are hidden, shrink the row to only reservation bar + padding
-  const baseRowHeight = showInterventions
-    ? config.rowHeight
-    : config.interventionTop + 2; // reservation bar area + small bottom padding
-  const effectiveRowHeight = baseRowHeight;
+  // Hauteur de ligne CONSTANTE (maquette) : les interventions partagent la
+  // bande verticale de la brique (plus de couloir dedie en dessous), masquer
+  // les interventions ne change donc plus la hauteur (le filtre des events
+  // est fait dans usePlanningFilters).
+  const effectiveRowHeight = config.rowHeight;
   // Fill remaining space with empty rows
   const emptyRowCount = pageSize ? Math.max(0, pageSize - properties.length) : 0;
   const totalDisplayRows = properties.length + emptyRowCount;
@@ -213,16 +213,15 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                   />
                 ))}
 
-                {/* Empty filler rows to fill remaining space */}
+                {/* Empty filler rows to fill remaining space — fond plat
+                    (spec : pas de zebra) */}
                 {Array.from({ length: emptyRowCount }, (_, i) => (
                   <Box
                     key={`empty-grid-${i}`}
                     sx={{
                       height: effectiveRowHeight,
                       width: totalGridWidth,
-                      backgroundColor: (properties.length + i) % 2 === 0
-                        ? 'transparent'
-                        : 'color-mix(in srgb, var(--ink) 1.5%, transparent)',
+                      backgroundColor: 'transparent',
                     }}
                   />
                 ))}

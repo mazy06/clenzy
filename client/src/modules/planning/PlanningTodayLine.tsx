@@ -29,7 +29,9 @@ const PlanningTodayLine: React.FC<PlanningTodayLineProps> = React.memo(({
 
   return (
     <>
-      {/* Trait vertical du jour : limite a la hauteur des logements affiches */}
+      {/* Trait vertical du jour (spec .pl-now : 2px #E5484D, z-6 — au-dessus
+          des briques z-3/hover z-5) : ancré au conteneur des rangées, limité
+          à la hauteur des logements affichés. */}
       <Box
         sx={{
           position: 'absolute',
@@ -38,25 +40,24 @@ const PlanningTodayLine: React.FC<PlanningTodayLineProps> = React.memo(({
           width: TODAY_LINE_WIDTH,
           height: totalHeight,
           backgroundColor: TODAY_LINE_COLOR,
-          zIndex: 8,
+          zIndex: 6,
           pointerEvents: 'none',
-          opacity: 0.7,
         }}
       />
-      {/* Point d'ancrage en haut : Box separe pour pouvoir le placer au-dessus
-          du header de dates (zIndex 12). Pseudo-element ::before serait limite
-          au stacking context du parent. */}
+      {/* Point d'ancrage (spec .pl-now::before : 10px, top -1, left -4,
+          halo 0 0 0 3px à 25 % d'alpha). Box séparée plutôt que ::before
+          pour rester hors du clipping du trait. */}
       <Box
         sx={{
           position: 'absolute',
-          left: todayOffset - 3,
-          top: -4,
-          width: 8,
-          height: 8,
+          left: todayOffset - 4,
+          top: -1,
+          width: 10,
+          height: 10,
           borderRadius: '50%',
           backgroundColor: TODAY_LINE_COLOR,
           boxShadow: `0 0 0 3px color-mix(in srgb, ${TODAY_LINE_COLOR} 25%, transparent)`,
-          zIndex: 20,
+          zIndex: 6,
           pointerEvents: 'none',
         }}
       />

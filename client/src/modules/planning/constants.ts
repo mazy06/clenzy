@@ -1,18 +1,36 @@
 import type { ZoomLevel, ZoomConfig, DensityMode } from './types';
+import type { ReservationStatus } from '../../services/api';
+
+// ─── Filtres légende (rangées Canaux / Statuts de la toolbar) ────────────────
+//
+// Clés des chips togglables des rangées 2-3 du toolbar. Tout est sélectionné
+// par défaut ; un clic masque les briques du canal / statut correspondant.
+// Les sources hors légende (ex: 'other') ne sont jamais masquées.
+export const PLANNING_CHANNEL_KEYS = ['airbnb', 'booking', 'direct'] as const;
+export type PlanningChannelKey = (typeof PLANNING_CHANNEL_KEYS)[number];
+
+export const PLANNING_STATUS_KEYS: readonly ReservationStatus[] = [
+  'confirmed',
+  'pending',
+  'checked_in',
+  'checked_out',
+  'cancelled',
+];
 
 // ─── Layout dimensions ──────────────────────────────────────────────────────
 
-// Le carousel occupe rowHeight (72px en normal, 50px en compact). Les
-// largeurs ci-dessous laissent une marge confortable pour le bloc texte
-// (nom 2 lignes + sous-titre + tag count) meme avec des noms longs.
+// Colonne logements : 188px = spec exacte .pl-corner / .pl-name de la maquette
+// (pl-grid-specs.css). Nom sur une ligne (ellipsis) + ville dessous. La colonne
+// reste redimensionnable par l'utilisateur (drag handle).
 /** Default (large screens ≥1200px) */
-export const PROPERTY_COL_WIDTH = 280;
+export const PROPERTY_COL_WIDTH = 188;
 /** Medium screens (≥900px) */
-export const PROPERTY_COL_WIDTH_MD = 240;
+export const PROPERTY_COL_WIDTH_MD = 188;
 /** Small screens (<900px) */
-export const PROPERTY_COL_WIDTH_SM = 200;
-// 20px rangée mois + 36px rangée jour (jour abrégé + numéro en pastille).
-export const DATE_HEADER_HEIGHT = 56;
+export const PROPERTY_COL_WIDTH_SM = 188;
+// 20px rangée mois + 52px rangée jour (spec .pl-day : padding 8px 0, .wd 9.5px
+// + .dn 14px / carré « aujourd'hui » 24×24 → ~35px de contenu + 2×8px).
+export const DATE_HEADER_HEIGHT = 72;
 export const ACTION_PANEL_WIDTH = 380;
 
 // ─── Row dimensions by density ──────────────────────────────────────────────
@@ -24,21 +42,25 @@ export const ROW_CONFIG: Record<DensityMode, {
   interventionTop: number;
   barPadding: number;
 }> = {
-  // Bar de reservation = 2 lignes (nuits + nom). Hauteur 44px = spec
-  // exacte .s-brick de la maquette Signature (signature.css).
+  // Spec exacte .pl-track / .pl-bar (pl-grid-specs.css) : piste 54px, brique
+  // 36px posée à top 9px. La brique est centrée dans la ligne avec un simple
+  // offset vertical (barPadding) — plus de couloir dédié sous la brique. Les
+  // interventions non absorbées (pastille 20px) partagent la même bande
+  // verticale : interventionTop centre la pastille dans la rangée.
   normal: {
-    rowHeight: 88,
-    reservationBarHeight: 44,
-    interventionBarHeight: 24,
-    interventionTop: 56,
-    barPadding: 4,
-  },
-  compact: {
-    rowHeight: 64,
+    rowHeight: 54,
     reservationBarHeight: 36,
+    interventionBarHeight: 24,
+    interventionTop: 15,  // pastille 20px centrée : 15 + (24-20)/2 = (54-20)/2
+    barPadding: 9,        // spec .pl-bar : top 9px — (54-36)/2
+  },
+  // Compact : proportionnel à la spec 54/36 (ratio ≈ 0.85).
+  compact: {
+    rowHeight: 46,
+    reservationBarHeight: 32,
     interventionBarHeight: 16,
-    interventionTop: 42,
-    barPadding: 3,
+    interventionTop: 15,  // pastille 20px centrée : 15 + (16-20)/2 = (46-20)/2
+    barPadding: 7,        // (46-32)/2 — brique 32px centrée
   },
 };
 
@@ -118,12 +140,18 @@ export const INTERVENTION_TYPE_TOKEN_COLORS: Record<string, string> = {
 
 // ─── Today line ──────────────────────────────────────────────────────────────
 
-export const TODAY_LINE_COLOR = 'var(--err)';
+// Spec .pl-now : rouge #E5484D en CONSTANTE LOCALE (pas de token — couleur
+// dédiée maquette, distincte de var(--err)).
+export const TODAY_LINE_COLOR = '#E5484D';
 export const TODAY_LINE_WIDTH = 2;
 
 // ─── Weekend / day styling ───────────────────────────────────────────────────
 
 export const WEEKEND_BG_ALPHA = 0.04;
+
+// Spec .pl-day.we / .pl-cell.we (--day-we / --cell-we) : pas de token dédié
+// dans tokens.css → constante locale dérivée, translucide et theme-aware.
+export const WEEKEND_TINT_BG = 'color-mix(in srgb, var(--ink) 2.5%, transparent)';
 
 // ─── Pagination ─────────────────────────────────────────────────────────────
 

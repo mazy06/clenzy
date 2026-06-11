@@ -673,9 +673,65 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const effectivePaymentStatus = isOTABooking ? `Paye ${otaChannelLabel}` : paymentStatus;
   const effectivePaymentStatusHex = isOTABooking ? '#4A9B8E' : paymentStatusHex;
 
+  // ── Hero « MONTANT » (maquette Signature) : gros montant display +
+  //    badge Réglé / En attente (tokens ok-soft / warn-soft). ─────────────
+  const isSettled = isOTABooking || (hasTotalPrice && effectiveBalanceDue <= 0 && effectiveTotalPaid > 0);
+
   // ── Render ─────────────────────────────────────────────────────────────
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+      {/* ─── MONTANT (hero) ─────────────────────────────────────────────── */}
+      {reservation && (
+        <Box>
+          <Box
+            component="span"
+            sx={{
+              display: 'block',
+              fontSize: '0.625rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color: 'var(--faint)',
+              mb: 0.5,
+            }}
+          >
+            Montant
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.25, flexWrap: 'wrap' }}>
+            <Box
+              component="span"
+              sx={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1.75rem',
+                fontWeight: 700,
+                color: 'var(--ink)',
+                lineHeight: 1.1,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {isICalImport && !hasTotalPrice ? 'Non communiqué' : fmtCurrency(grandTotal)}
+            </Box>
+            {(hasTotalPrice || isOTABooking) && (
+              <Box
+                component="span"
+                sx={{
+                  alignSelf: 'center',
+                  px: 1,
+                  py: '3px',
+                  borderRadius: 'var(--radius-pill)',
+                  fontSize: '0.6875rem',
+                  fontWeight: 600,
+                  backgroundColor: isSettled ? 'var(--ok-soft)' : 'var(--warn-soft)',
+                  color: isSettled ? 'var(--ok)' : 'var(--warn)',
+                }}
+              >
+                {isOTABooking ? `Réglé · ${otaChannelLabel}` : isSettled ? 'Réglé' : 'En attente'}
+              </Box>
+            )}
+          </Box>
+        </Box>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 1 : Paiement Réservation (Guest / Voyageur)
