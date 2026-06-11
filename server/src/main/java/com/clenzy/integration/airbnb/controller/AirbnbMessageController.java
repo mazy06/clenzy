@@ -1,9 +1,8 @@
 package com.clenzy.integration.airbnb.controller;
 
 import com.clenzy.integration.airbnb.dto.AirbnbMessageDto;
-import com.clenzy.model.ConversationChannel;
+import com.clenzy.integration.airbnb.service.AirbnbMessageQueryService;
 import com.clenzy.model.ConversationMessage;
-import com.clenzy.repository.ConversationMessageRepository;
 import com.clenzy.tenant.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,12 +25,12 @@ import java.util.List;
 @Tag(name = "Airbnb Messages", description = "Messages Airbnb (inbox unifie)")
 public class AirbnbMessageController {
 
-    private final ConversationMessageRepository messageRepository;
+    private final AirbnbMessageQueryService messageQueryService;
     private final TenantContext tenantContext;
 
-    public AirbnbMessageController(ConversationMessageRepository messageRepository,
+    public AirbnbMessageController(AirbnbMessageQueryService messageQueryService,
                                    TenantContext tenantContext) {
-        this.messageRepository = messageRepository;
+        this.messageQueryService = messageQueryService;
         this.tenantContext = tenantContext;
     }
 
@@ -41,8 +40,7 @@ public class AirbnbMessageController {
             @RequestParam(required = false) String reservationId) {
 
         Long orgId = tenantContext.getOrganizationId();
-        List<ConversationMessage> messages = messageRepository
-                .findByOrgAndChannelWithConversation(orgId, ConversationChannel.AIRBNB);
+        List<ConversationMessage> messages = messageQueryService.findOrgAirbnbMessages(orgId);
 
         List<AirbnbMessageDto> dtos = messages.stream()
                 .filter(m -> reservationId == null || matchesReservation(m, reservationId))

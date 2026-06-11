@@ -1,7 +1,6 @@
 package com.clenzy.controller;
 
 import com.clenzy.model.OrgVisionAlert;
-import com.clenzy.repository.OrgVisionAlertRepository;
 import com.clenzy.service.agent.vision.VisionTokenUsageService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,21 +18,19 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class VisionUsageAdminControllerTest {
 
     @Mock private VisionTokenUsageService usageService;
-    @Mock private OrgVisionAlertRepository alertRepository;
     @Mock private TenantContext tenantContext;
 
     private VisionUsageAdminController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new VisionUsageAdminController(usageService, alertRepository, tenantContext);
+        controller = new VisionUsageAdminController(usageService, tenantContext);
     }
 
     @Nested
@@ -46,7 +43,7 @@ class VisionUsageAdminControllerTest {
             VisionTokenUsageService.UsageSnapshot snap = new VisionTokenUsageService.UsageSnapshot(
                     7L, 12345L, 30, LocalDateTime.now());
             when(usageService.snapshot(7L)).thenReturn(snap);
-            when(alertRepository.findByOrganizationId(7L)).thenReturn(Optional.empty());
+            when(usageService.getAlertConfig(7L)).thenReturn(Optional.empty());
 
             ResponseEntity<Map<String, Object>> response = controller.getUsage();
 
@@ -64,7 +61,7 @@ class VisionUsageAdminControllerTest {
                     7L, 100L, 30, LocalDateTime.now());
             when(usageService.snapshot(7L)).thenReturn(snap);
             OrgVisionAlert cfg = new OrgVisionAlert(7L, 1_000_000L);
-            when(alertRepository.findByOrganizationId(7L)).thenReturn(Optional.of(cfg));
+            when(usageService.getAlertConfig(7L)).thenReturn(Optional.of(cfg));
 
             ResponseEntity<Map<String, Object>> response = controller.getUsage();
 
@@ -84,7 +81,7 @@ class VisionUsageAdminControllerTest {
             when(usageService.snapshot(7L)).thenReturn(snap);
             OrgVisionAlert cfg = new OrgVisionAlert(7L, 1_000_000L);
             cfg.setLastAlertedAt(LocalDateTime.now().minusDays(1));
-            when(alertRepository.findByOrganizationId(7L)).thenReturn(Optional.of(cfg));
+            when(usageService.getAlertConfig(7L)).thenReturn(Optional.of(cfg));
 
             ResponseEntity<Map<String, Object>> response = controller.getUsage();
 
@@ -102,9 +99,8 @@ class VisionUsageAdminControllerTest {
         @Test
         void validThreshold_createsOrUpdates() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(7L);
-            when(alertRepository.findByOrganizationId(7L)).thenReturn(Optional.empty());
-            when(alertRepository.save(any(OrgVisionAlert.class))).thenAnswer(inv -> {
-                OrgVisionAlert saved = inv.getArgument(0);
+            when(usageService.upsertThreshold(7L, 500_000L)).thenAnswer(inv -> {
+                OrgVisionAlert saved = new OrgVisionAlert(7L, 500_000L);
                 // Set lastAlertedAt so the Map.of in controller doesn't NPE
                 saved.setLastAlertedAt(LocalDateTime.now());
                 return saved;
@@ -125,8 +121,12 @@ class VisionUsageAdminControllerTest {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(7L);
             OrgVisionAlert existing = new OrgVisionAlert(7L, 100L);
             existing.setLastAlertedAt(LocalDateTime.now()); // avoid Map.of(null)
-            when(alertRepository.findByOrganizationId(7L)).thenReturn(Optional.of(existing));
-            when(alertRepository.save(any(OrgVisionAlert.class))).thenAnswer(inv -> inv.getArgument(0));
+            // La mutation du seuil existant est portee par
+            // VisionTokenUsageService.upsertThreshold (teste dans VisionTokenUsageServiceTest).
+            when(usageService.upsertThreshold(7L, 800L)).thenAnswer(inv -> {
+                existing.setThresholdTokens(inv.getArgument(1));
+                return existing;
+            });
 
             Map<String, Object> body = Map.of("thresholdTokens", 800L);
 

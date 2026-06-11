@@ -4,6 +4,8 @@ import com.clenzy.booking.dto.BookingEngineAdminConfigDto;
 import com.clenzy.booking.model.BookingEngineConfig;
 import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.booking.service.BookingEngineAdminService;
+import com.clenzy.booking.service.BookingEngineConfigService;
+import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +34,11 @@ class BookingEngineAdminControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new BookingEngineAdminController(adminService, configRepository, tenantContext);
+        // Pattern Vague A : service de statut REEL construit au-dessus des mocks
+        // (configRepository + tenantContext) pour conserver la couverture e2e.
+        BookingEngineConfigService configService = new BookingEngineConfigService(
+            configRepository, mock(OrganizationRepository.class), tenantContext);
+        controller = new BookingEngineAdminController(adminService, configService);
     }
 
     private BookingEngineAdminConfigDto dto(Long id) {

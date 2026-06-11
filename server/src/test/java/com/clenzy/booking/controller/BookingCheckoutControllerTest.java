@@ -1,11 +1,18 @@
 package com.clenzy.booking.controller;
 
+import com.clenzy.booking.dto.AvailabilityRequestDto;
+import com.clenzy.booking.dto.AvailabilityResponseDto;
 import com.clenzy.booking.dto.BookingCheckoutRequest;
 import com.clenzy.booking.dto.SelectedServiceOptionDto;
+import com.clenzy.booking.model.BookingEngineConfig;
+import com.clenzy.booking.service.BookingCheckoutQuoteService;
 import com.clenzy.booking.service.BookingServiceOptionsService;
+import com.clenzy.booking.service.PublicBookingService;
+import com.clenzy.exception.CalendarConflictException;
+import com.clenzy.model.Organization;
 import com.clenzy.model.Property;
+import com.clenzy.model.Reservation;
 import com.clenzy.repository.PropertyRepository;
-import com.clenzy.tenant.TenantContext;
 import com.stripe.exception.ApiException;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.RequestOptions;
@@ -15,37 +22,56 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.MockedStatic;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class BookingCheckoutControllerTest {
 
+    private static final Long PROPERTY_ID = 1L;
+    private static final Long ORG_ID = 1L;
+    private static final String CHECK_IN = "2026-06-01";
+    private static final String CHECK_OUT = "2026-06-05";
+
     @Mock private PropertyRepository propertyRepository;
     @Mock private BookingServiceOptionsService serviceOptionsService;
-    @Mock private TenantContext tenantContext;
+    @Mock private PublicBookingService publicBookingService;
+    @Mock private com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
+    @Mock private jakarta.servlet.http.HttpServletRequest httpRequest;
 
     private BookingCheckoutController controller;
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new BookingCheckoutController(propertyRepository, serviceOptionsService, tenantContext);
+        // Pattern Vague A : service de devis REEL construit au-dessus des mocks
+        // pour conserver la couverture bout-en-bout (stubs/verify inchanges).
+        BookingCheckoutQuoteService quoteService = new BookingCheckoutQuoteService(
+            propertyRepository, serviceOptionsService, publicBookingService);
+        controller = new BookingCheckoutController(quoteService, publicBookingService, rateLimiter);
         setField("stripeSecretKey", "sk_test_xxx");
         setField("currency", "eur");
+        org.mockito.Mockito.lenient().when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(true);
     }
 
     private void setField(String fieldName, Object value) throws Exception {
@@ -62,6 +88,46 @@ class BookingCheckoutControllerTest {
             email, "John Doe", services);
     }
 
+    private Property buildProperty() {
+        Property property = new Property();
+        property.setId(PROPERTY_ID);
+        property.setName("Studio Riviera");
+        property.setOrganizationId(ORG_ID);
+        return property;
+    }
+
+    private PublicBookingService.OrgContext buildCtx() {
+        Organization org = new Organization();
+        org.setId(ORG_ID);
+        BookingEngineConfig config = new BookingEngineConfig();
+        config.setOrganizationId(ORG_ID);
+        config.setEnabled(true);
+        return new PublicBookingService.OrgContext(org, config);
+    }
+
+    private AvailabilityResponseDto availableQuote(String total) {
+        return new AvailabilityResponseDto(true, PROPERTY_ID, "Studio Riviera",
+            LocalDate.parse(CHECK_IN), LocalDate.parse(CHECK_OUT), 2, 4,
+            List.of(), new BigDecimal(total), BigDecimal.ZERO, BigDecimal.ZERO,
+            new BigDecimal(total), "EUR", 1, 4, "15:00", "11:00", List.of());
+    }
+
+    private Reservation buildHold(Long id) {
+        Reservation hold = new Reservation();
+        hold.setId(id);
+        hold.setConfirmationCode("RES-HOLD01");
+        hold.setOrganizationId(ORG_ID);
+        return hold;
+    }
+
+    /** Stubs disponibilite + contexte org pour le happy-path du devis serveur. */
+    private void stubServerQuote(String serverTotal) {
+        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(buildProperty()));
+        when(publicBookingService.resolveOrgById(ORG_ID)).thenReturn(buildCtx());
+        when(publicBookingService.checkAvailability(any(), any(AvailabilityRequestDto.class)))
+            .thenReturn(availableQuote(serverTotal));
+    }
+
     @Nested
     @DisplayName("createCheckoutSession")
     class CreateCheckoutSession {
@@ -69,10 +135,10 @@ class BookingCheckoutControllerTest {
         @Test
         void whenPropertyNotFound_returnsBadRequest() {
             BookingCheckoutRequest request = buildRequest(
-                99L, 1L, BigDecimal.TEN, "2026-06-01", "2026-06-05", 2, "guest@test.com", null);
+                99L, ORG_ID, BigDecimal.TEN, CHECK_IN, CHECK_OUT, 2, "guest@test.com", null);
             when(propertyRepository.findById(99L)).thenReturn(Optional.empty());
 
-            ResponseEntity<?> response = controller.createCheckoutSession(request);
+            ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
 
             assertThat(response.getStatusCode().value()).isEqualTo(400);
             assertThat(response.getBody()).isInstanceOf(Map.class);
@@ -80,16 +146,14 @@ class BookingCheckoutControllerTest {
 
         @Test
         void whenPropertyOrgMismatch_returnsBadRequest() {
-            Property property = new Property();
-            property.setId(1L);
-            property.setName("Studio");
+            Property property = buildProperty();
             property.setOrganizationId(2L); // doesn't match request orgId
-            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
 
             BookingCheckoutRequest request = buildRequest(
-                1L, 1L, BigDecimal.TEN, "2026-06-01", "2026-06-05", 2, "g@test.com", null);
+                PROPERTY_ID, ORG_ID, BigDecimal.TEN, CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
 
-            ResponseEntity<?> response = controller.createCheckoutSession(request);
+            ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
 
             assertThat(response.getStatusCode().value()).isEqualTo(400);
             @SuppressWarnings("unchecked")
@@ -98,15 +162,50 @@ class BookingCheckoutControllerTest {
         }
 
         @Test
-        void whenStripeSuccess_returns200WithClientSecret() throws Exception {
-            Property property = new Property();
-            property.setId(1L);
-            property.setOrganizationId(1L);
-            property.setName("Studio Riviera");
-            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+        @DisplayName("Z4A-SEC-01: manipulated client amount is rejected with 400, no session created")
+        void whenClientAmountManipulated_thenReturns400WithoutSession() {
+            stubServerQuote("400.00");
+            // L'attaquant annonce 0.01 EUR pour un sejour a 400.00 EUR
+            BookingCheckoutRequest request = buildRequest(
+                PROPERTY_ID, ORG_ID, new BigDecimal("0.01"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
+
+            ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            @SuppressWarnings("unchecked")
+            Map<String, String> body = (Map<String, String>) response.getBody();
+            assertThat(body.get("error")).contains("montant");
+            verify(publicBookingService, never()).createEmbeddedCheckoutHold(
+                any(), any(), any(), any(), org.mockito.ArgumentMatchers.anyInt(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        void whenDatesUnavailable_thenReturns400() {
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(buildProperty()));
+            when(publicBookingService.resolveOrgById(ORG_ID)).thenReturn(buildCtx());
+            when(publicBookingService.checkAvailability(any(), any(AvailabilityRequestDto.class)))
+                .thenReturn(AvailabilityResponseDto.unavailable(PROPERTY_ID,
+                    LocalDate.parse(CHECK_IN), LocalDate.parse(CHECK_OUT), 2, List.of("Dates non disponibles")));
 
             BookingCheckoutRequest request = buildRequest(
-                1L, 1L, new BigDecimal("100.00"), "2026-06-01", "2026-06-05", 2, "g@test.com", null);
+                PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
+
+            ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+        }
+
+        @Test
+        @DisplayName("charges the SERVER amount, creates the hold and attaches the session")
+        void whenStripeSuccess_returns200WithClientSecretAndServerAmount() {
+            stubServerQuote("100.00");
+            Reservation hold = buildHold(55L);
+            when(publicBookingService.createEmbeddedCheckoutHold(
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
+                .thenReturn(hold);
+
+            BookingCheckoutRequest request = buildRequest(
+                PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
 
             Session session = mock(Session.class);
             when(session.getId()).thenReturn("cs_test_abc");
@@ -116,33 +215,122 @@ class BookingCheckoutControllerTest {
                 sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
                     .thenReturn(session);
 
-                ResponseEntity<?> response = controller.createCheckoutSession(request);
+                ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
 
                 assertThat(response.getStatusCode().value()).isEqualTo(200);
                 @SuppressWarnings("unchecked")
                 Map<String, Object> body = (Map<String, Object>) response.getBody();
                 assertThat(body.get("sessionId")).isEqualTo("cs_test_abc");
                 assertThat(body.get("clientSecret")).isEqualTo("cs_test_abc_secret");
+                assertThat(body.get("reservationCode")).isEqualTo("RES-HOLD01");
+
+                // Le montant facture est le devis serveur (jamais le montant client brut)
+                ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
+                sessionStatic.verify(() -> Session.create(paramsCaptor.capture(), any(RequestOptions.class)));
+                SessionCreateParams params = paramsCaptor.getValue();
+                assertThat(params.getLineItems().get(0).getPriceData().getUnitAmount()).isEqualTo(10000L);
+                assertThat(params.getExpiresAt()).isNotNull();
+            }
+            verify(publicBookingService).attachStripeSessionToHold(55L, "cs_test_abc");
+        }
+
+        @Test
+        @DisplayName("client amount excluding tourist tax is accepted, but the FULL total is charged")
+        void whenClientAmountExcludesTouristTax_thenAcceptedAndFullTotalCharged() {
+            // subtotal 90 + cleaning 10 + taxe 5 = total 105 ; le widget envoie 100 (hors taxe)
+            AvailabilityResponseDto quote = new AvailabilityResponseDto(true, PROPERTY_ID, "Studio Riviera",
+                LocalDate.parse(CHECK_IN), LocalDate.parse(CHECK_OUT), 2, 4,
+                List.of(), new BigDecimal("90.00"), new BigDecimal("10.00"), new BigDecimal("5.00"),
+                new BigDecimal("105.00"), "EUR", 1, 4, "15:00", "11:00", List.of());
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(buildProperty()));
+            when(publicBookingService.resolveOrgById(ORG_ID)).thenReturn(buildCtx());
+            when(publicBookingService.checkAvailability(any(), any(AvailabilityRequestDto.class)))
+                .thenReturn(quote);
+            Reservation hold = buildHold(57L);
+            when(publicBookingService.createEmbeddedCheckoutHold(
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
+                .thenReturn(hold);
+
+            BookingCheckoutRequest request = buildRequest(
+                PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
+
+            Session session = mock(Session.class);
+            when(session.getId()).thenReturn("cs_tax");
+            when(session.getClientSecret()).thenReturn("cs_tax_secret");
+
+            try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
+                sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
+                    .thenReturn(session);
+
+                ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
+
+                assertThat(response.getStatusCode().value()).isEqualTo(200);
+                ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
+                sessionStatic.verify(() -> Session.create(paramsCaptor.capture(), any(RequestOptions.class)));
+                // 105.00 EUR factures (total serveur complet, taxe incluse)
+                assertThat(paramsCaptor.getValue().getLineItems().get(0).getPriceData().getUnitAmount())
+                    .isEqualTo(10500L);
             }
         }
 
         @Test
-        @org.junit.jupiter.api.Disabled("NullPointer sur any() pour Integer — utiliser anyInt(). Skip pour debloquer.")
-        void whenServiceOptionsProvided_includesInTotal() throws Exception {
-            Property property = new Property();
-            property.setId(1L);
-            property.setOrganizationId(1L);
-            property.setName("Studio");
-            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
-
-            SelectedServiceOptionDto soDto = mock(SelectedServiceOptionDto.class);
-            List<SelectedServiceOptionDto> services = List.of(soDto);
+        @DisplayName("Z4A-BUGS-03: calendar conflict on hold creation returns 409")
+        void whenHoldConflicts_thenReturns409() {
+            stubServerQuote("100.00");
+            when(publicBookingService.createEmbeddedCheckoutHold(
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
+                .thenThrow(new CalendarConflictException(PROPERTY_ID,
+                    LocalDate.parse(CHECK_IN), LocalDate.parse(CHECK_OUT), 2));
 
             BookingCheckoutRequest request = buildRequest(
-                1L, 1L, new BigDecimal("100.00"), "2026-06-01", "2026-06-04", 2, "g@test.com", services);
+                PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
 
-            when(serviceOptionsService.computeServiceOptionsTotal(any(), any(), any(), any()))
+            ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(409);
+        }
+
+        @Test
+        @DisplayName("releases the hold and returns 500 when Stripe fails")
+        void whenStripeThrows_thenReleasesHoldAndReturns500() {
+            stubServerQuote("100.00");
+            Reservation hold = buildHold(55L);
+            when(publicBookingService.createEmbeddedCheckoutHold(
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
+                .thenReturn(hold);
+
+            BookingCheckoutRequest request = buildRequest(
+                PROPERTY_ID, ORG_ID, new BigDecimal("100"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
+
+            try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
+                sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
+                    .thenThrow(new ApiException("Stripe down", null, "code", 500, null));
+
+                ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
+
+                assertThat(response.getStatusCode().value()).isEqualTo(500);
+            }
+            verify(publicBookingService).releaseEmbeddedCheckoutHold(55L);
+            verify(publicBookingService, never()).attachStripeSessionToHold(anyLong(), anyString());
+        }
+
+        @Test
+        @DisplayName("service options are computed server-side and added to the charged amount")
+        void whenServiceOptionsProvided_includesServerComputedTotal() {
+            stubServerQuote("100.00");
+            SelectedServiceOptionDto soDto = mock(SelectedServiceOptionDto.class);
+            List<SelectedServiceOptionDto> services = List.of(soDto);
+            when(serviceOptionsService.computeServiceOptionsTotal(eq(services), eq(2),
+                org.mockito.ArgumentMatchers.anyInt(), eq(ORG_ID)))
                 .thenReturn(new BigDecimal("30.00"));
+            Reservation hold = buildHold(56L);
+            when(publicBookingService.createEmbeddedCheckoutHold(
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(),
+                eq(new BigDecimal("30.00")), eq(services)))
+                .thenReturn(hold);
+
+            BookingCheckoutRequest request = buildRequest(
+                PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", services);
 
             Session session = mock(Session.class);
             when(session.getId()).thenReturn("cs_test_so");
@@ -152,31 +340,97 @@ class BookingCheckoutControllerTest {
                 sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
                     .thenReturn(session);
 
-                ResponseEntity<?> response = controller.createCheckoutSession(request);
+                ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
 
                 assertThat(response.getStatusCode().value()).isEqualTo(200);
+                ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
+                sessionStatic.verify(() -> Session.create(paramsCaptor.capture(), any(RequestOptions.class)));
+                // 100.00 sejour + 30.00 options = 13000 cents
+                assertThat(paramsCaptor.getValue().getLineItems().get(0).getPriceData().getUnitAmount())
+                    .isEqualTo(13000L);
+                // Z4A-BUGS-10 : selections serialisees en metadata pour le fallback webhook
+                assertThat(paramsCaptor.getValue().getMetadata().get("service_options")).isNotNull();
             }
         }
 
         @Test
-        void whenStripeThrows_returns500() throws Exception {
-            Property property = new Property();
-            property.setId(1L);
-            property.setOrganizationId(1L);
-            property.setName("Studio");
-            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+        @DisplayName("Z4A-BUGS-07: the session is charged in the PROPERTY currency, not stripe.currency")
+        void whenPropertyHasUsdCurrency_thenSessionChargedInUsd() {
+            Property usdProperty = buildProperty();
+            usdProperty.setDefaultCurrency("USD");
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(usdProperty));
+            when(publicBookingService.resolveOrgById(ORG_ID)).thenReturn(buildCtx());
+            when(publicBookingService.checkAvailability(any(), any(AvailabilityRequestDto.class)))
+                .thenReturn(availableQuote("100.00"));
+            Reservation hold = buildHold(58L);
+            when(publicBookingService.createEmbeddedCheckoutHold(
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
+                .thenReturn(hold);
 
             BookingCheckoutRequest request = buildRequest(
-                1L, 1L, new BigDecimal("100"), "2026-06-01", "2026-06-05", 2, "g@test.com", null);
+                PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
+
+            Session session = mock(Session.class);
+            when(session.getId()).thenReturn("cs_usd");
+            when(session.getClientSecret()).thenReturn("cs_usd_secret");
 
             try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
                 sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
-                    .thenThrow(new ApiException("Stripe down", null, "code", 500, null));
+                    .thenReturn(session);
 
-                ResponseEntity<?> response = controller.createCheckoutSession(request);
+                ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
 
-                assertThat(response.getStatusCode().value()).isEqualTo(500);
+                assertThat(response.getStatusCode().value()).isEqualTo(200);
+                ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
+                sessionStatic.verify(() -> Session.create(paramsCaptor.capture(), any(RequestOptions.class)));
+                assertThat(paramsCaptor.getValue().getLineItems().get(0).getPriceData().getCurrency())
+                    .isEqualTo("usd");
             }
+        }
+
+        @Test
+        @DisplayName("falls back to stripe.currency when the property has no default currency")
+        void whenPropertyCurrencyMissing_thenFallsBackToConfigCurrency() {
+            stubServerQuote("100.00");
+            Reservation hold = buildHold(59L);
+            when(publicBookingService.createEmbeddedCheckoutHold(
+                any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
+                .thenReturn(hold);
+
+            BookingCheckoutRequest request = buildRequest(
+                PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
+
+            Session session = mock(Session.class);
+            when(session.getId()).thenReturn("cs_eur");
+            when(session.getClientSecret()).thenReturn("cs_eur_secret");
+
+            try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
+                sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
+                    .thenReturn(session);
+
+                controller.createCheckoutSession(request, httpRequest);
+
+                ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
+                sessionStatic.verify(() -> Session.create(paramsCaptor.capture(), any(RequestOptions.class)));
+                assertThat(paramsCaptor.getValue().getLineItems().get(0).getPriceData().getCurrency())
+                    .isEqualTo("eur");
+            }
+        }
+
+        @Test
+        @DisplayName("reliquat A3: rate-limited request returns 429 without quote nor hold")
+        void whenRateLimited_thenReturns429WithoutHold() {
+            when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(false);
+
+            BookingCheckoutRequest request = buildRequest(
+                PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
+
+            ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(429);
+            verify(publicBookingService, never()).createEmbeddedCheckoutHold(
+                any(), any(), any(), any(), org.mockito.ArgumentMatchers.anyInt(), any(), any(), any(), any(), any());
+            org.mockito.Mockito.verifyNoInteractions(propertyRepository);
         }
     }
 
@@ -185,7 +439,7 @@ class BookingCheckoutControllerTest {
     class GetSessionStatus {
 
         @Test
-        void whenSuccess_returnsStatusAndPaymentStatus() throws Exception {
+        void whenSuccess_returnsStatusAndPaymentStatus() {
             Session session = mock(Session.class);
             when(session.getStatus()).thenReturn("complete");
             when(session.getPaymentStatus()).thenReturn("paid");
@@ -205,7 +459,7 @@ class BookingCheckoutControllerTest {
         }
 
         @Test
-        void whenPaymentStatusNull_returnsUnpaid() throws Exception {
+        void whenPaymentStatusNull_returnsUnpaid() {
             Session session = mock(Session.class);
             when(session.getStatus()).thenReturn("open");
             when(session.getPaymentStatus()).thenReturn(null);
@@ -224,7 +478,7 @@ class BookingCheckoutControllerTest {
         }
 
         @Test
-        void whenStripeFails_returns500() throws Exception {
+        void whenStripeFails_returns500() {
             try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
                 sessionStatic.when(() -> Session.retrieve(any(String.class), any(RequestOptions.class)))
                     .thenThrow(new ApiException("Stripe down", null, "c", 500, null));

@@ -1,9 +1,11 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.TaxRuleDto;
 import com.clenzy.dto.TaxRuleRequest;
 import com.clenzy.fiscal.FiscalEngine;
 import com.clenzy.model.TaxRule;
 import com.clenzy.repository.TaxRuleRepository;
+import com.clenzy.service.TaxRuleService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +39,9 @@ class TaxRuleControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new TaxRuleController(taxRuleRepository, fiscalEngine, tenantContext);
+        // Pattern Vague A : service REEL construit au-dessus du mock repository
+        // pour garder la couverture bout-en-bout (normalisation pays, CRUD).
+        controller = new TaxRuleController(new TaxRuleService(taxRuleRepository), fiscalEngine, tenantContext);
     }
 
     private TaxRule sampleRule() {
@@ -56,7 +60,7 @@ class TaxRuleControllerTest {
             when(tenantContext.getCountryCode()).thenReturn("FR");
             when(taxRuleRepository.findByCountryCode("FR")).thenReturn(List.of(sampleRule()));
 
-            ResponseEntity<List<TaxRule>> response = controller.getCurrentRules(null);
+            ResponseEntity<List<TaxRuleDto>> response = controller.getCurrentRules(null);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).hasSize(1);
@@ -68,7 +72,7 @@ class TaxRuleControllerTest {
             when(fiscalEngine.getApplicableRules(eq("FR"), eq("VAT"), any(LocalDate.class)))
                     .thenReturn(List.of(sampleRule()));
 
-            ResponseEntity<List<TaxRule>> response = controller.getCurrentRules("vat");
+            ResponseEntity<List<TaxRuleDto>> response = controller.getCurrentRules("vat");
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).hasSize(1);
@@ -80,7 +84,7 @@ class TaxRuleControllerTest {
             when(tenantContext.getCountryCode()).thenReturn("FR");
             when(taxRuleRepository.findByCountryCode("FR")).thenReturn(List.of());
 
-            ResponseEntity<List<TaxRule>> response = controller.getCurrentRules("  ");
+            ResponseEntity<List<TaxRuleDto>> response = controller.getCurrentRules("  ");
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             verify(taxRuleRepository).findByCountryCode("FR");
@@ -92,7 +96,7 @@ class TaxRuleControllerTest {
     void getAllRules_returnsRepositoryFindAll() {
         when(taxRuleRepository.findAll()).thenReturn(List.of(sampleRule(), sampleRule()));
 
-        ResponseEntity<List<TaxRule>> response = controller.getAllRules();
+        ResponseEntity<List<TaxRuleDto>> response = controller.getAllRules();
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(2);
@@ -106,7 +110,7 @@ class TaxRuleControllerTest {
         void noCategory_returnsCountryRules() {
             when(taxRuleRepository.findByCountryCode("DE")).thenReturn(List.of(sampleRule()));
 
-            ResponseEntity<List<TaxRule>> response = controller.getRulesForCountry("de", null);
+            ResponseEntity<List<TaxRuleDto>> response = controller.getRulesForCountry("de", null);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).hasSize(1);
@@ -117,7 +121,7 @@ class TaxRuleControllerTest {
             when(fiscalEngine.getApplicableRules(eq("MA"), eq("CITY_TAX"), any(LocalDate.class)))
                     .thenReturn(List.of(sampleRule()));
 
-            ResponseEntity<List<TaxRule>> response = controller.getRulesForCountry("ma", "city_tax");
+            ResponseEntity<List<TaxRuleDto>> response = controller.getRulesForCountry("ma", "city_tax");
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).hasSize(1);
@@ -147,12 +151,12 @@ class TaxRuleControllerTest {
                 return r;
             });
 
-            ResponseEntity<TaxRule> response = controller.createRule(req);
+            ResponseEntity<TaxRuleDto> response = controller.createRule(req);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-            assertThat(response.getBody().getCountryCode()).isEqualTo("FR");
-            assertThat(response.getBody().getTaxCategory()).isEqualTo("VAT");
-            assertThat(response.getBody().getId()).isEqualTo(99L);
+            assertThat(response.getBody().countryCode()).isEqualTo("FR");
+            assertThat(response.getBody().taxCategory()).isEqualTo("VAT");
+            assertThat(response.getBody().id()).isEqualTo(99L);
         }
 
         @Test
@@ -161,11 +165,11 @@ class TaxRuleControllerTest {
                     "TVA reduite", LocalDate.now(), LocalDate.now().plusYears(1), "Reduit");
             when(taxRuleRepository.save(any(TaxRule.class))).thenAnswer(inv -> inv.getArgument(0));
 
-            ResponseEntity<TaxRule> response = controller.createRule(req);
+            ResponseEntity<TaxRuleDto> response = controller.createRule(req);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-            assertThat(response.getBody().getEffectiveTo()).isNotNull();
-            assertThat(response.getBody().getDescription()).isEqualTo("Reduit");
+            assertThat(response.getBody().effectiveTo()).isNotNull();
+            assertThat(response.getBody().description()).isEqualTo("Reduit");
         }
     }
 
@@ -181,7 +185,7 @@ class TaxRuleControllerTest {
             TaxRuleRequest req = new TaxRuleRequest("de", "vat", new BigDecimal("0.19"),
                     "MwSt", LocalDate.now(), null, null);
 
-            ResponseEntity<TaxRule> response = controller.updateRule(1L, req);
+            ResponseEntity<TaxRuleDto> response = controller.updateRule(1L, req);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(existing.getCountryCode()).isEqualTo("DE");
@@ -221,6 +225,40 @@ class TaxRuleControllerTest {
             assertThatThrownBy(() -> controller.deleteRule(99L))
                     .isInstanceOf(IllegalArgumentException.class);
             verify(taxRuleRepository, never()).deleteById(any());
+        }
+    }
+
+    /**
+     * T-ARCH-07 : le DTO reprend champ a champ la shape JSON historique de
+     * l'entite (9 proprietes, memes noms) — contrat frontend (taxRulesApi.ts)
+     * inchange.
+     */
+    @Nested
+    @DisplayName("TaxRuleDto mapping")
+    class DtoMapping {
+
+        @Test
+        void whenMappingEntity_thenAllNineSerializedFieldsArePreserved() {
+            // Arrange
+            TaxRule rule = sampleRule();
+            rule.setEffectiveTo(LocalDate.of(2030, 12, 31));
+            rule.setDescription("TVA standard hexagone");
+            rule.setCreatedAt(java.time.LocalDateTime.of(2026, 1, 1, 12, 0));
+
+            // Act
+            TaxRuleDto dto = TaxRuleDto.from(rule);
+
+            // Assert — id, countryCode, taxCategory, taxRate, taxName,
+            // effectiveFrom, effectiveTo, description, createdAt
+            assertThat(dto.id()).isEqualTo(rule.getId());
+            assertThat(dto.countryCode()).isEqualTo(rule.getCountryCode());
+            assertThat(dto.taxCategory()).isEqualTo(rule.getTaxCategory());
+            assertThat(dto.taxRate()).isEqualByComparingTo(rule.getTaxRate());
+            assertThat(dto.taxName()).isEqualTo(rule.getTaxName());
+            assertThat(dto.effectiveFrom()).isEqualTo(rule.getEffectiveFrom());
+            assertThat(dto.effectiveTo()).isEqualTo(rule.getEffectiveTo());
+            assertThat(dto.description()).isEqualTo(rule.getDescription());
+            assertThat(dto.createdAt()).isEqualTo(rule.getCreatedAt());
         }
     }
 }

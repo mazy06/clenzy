@@ -31,6 +31,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -441,19 +442,20 @@ class UserServiceTest {
         }
 
         @Test
-        void whenTenantContextHasNoOrgId_thenFallsBackToFirstOrg() {
+        void whenTenantContextHasNoOrgId_thenProvisionsWithoutOrganization() {
+            // Fail-closed : pas de fallback vers une "premiere org" de la base.
+            // Un sujet JWT inconnu sans tenant resolu est provisionne SANS organisation
+            // (rattachement legitime via invitations/inscription uniquement).
             tenantContext.setOrganizationId(null);
-
-            Organization org = new Organization();
-            org.setId(5L);
-            org.setName("Default Org");
-            when(organizationRepository.findAll()).thenReturn(List.of(org));
             when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
             User result = userService.autoProvisionUser("kc-no-org", "noorg@test.com",
                     "Test", "User", UserRole.HOST);
 
-            assertThat(result.getOrganizationId()).isEqualTo(5L);
+            assertThat(result).isNotNull();
+            assertThat(result.getOrganizationId()).isNull();
+            verify(organizationRepository, never()).findAll();
+            verify(organizationService, never()).addMember(anyLong(), anyLong(), any());
         }
 
         @Test
@@ -789,9 +791,10 @@ class UserServiceTest {
     class AutoProvisionAdditionalBranches {
 
         @Test
-        void whenNoOrgInTenantAndNoOrgsInDb_thenStillCreatesUserWithoutMembership() {
+        void whenNoOrgInTenant_thenNoMembershipCreatedAndOrgRepositoryNeverScanned() {
+            // Variante fail-closed : meme avec des organisations en base, aucune
+            // recherche d'organisation par defaut ne doit etre tentee.
             tenantContext.setOrganizationId(null);
-            when(organizationRepository.findAll()).thenReturn(List.of());
             when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
             User result = userService.autoProvisionUser("kc-no-orgs", "noorgsdb@test.com",
@@ -799,6 +802,8 @@ class UserServiceTest {
 
             assertThat(result).isNotNull();
             assertThat(result.getOrganizationId()).isNull();
+            verify(organizationRepository, never()).findAll();
+            verify(memberRepository, never()).existsByOrganizationIdAndUserId(anyLong(), anyLong());
             verify(organizationService, never()).addMember(anyLong(), anyLong(), any());
         }
 
@@ -1037,6 +1042,167 @@ class UserServiceTest {
 
             UserDto result = userService.getById(1L);
             assertThat(result.profilePictureUrl).isEqualTo("http://external.com/x.jpg");
+        }
+    }
+
+    // ===== Self-service profile (T-ARCH-01 : logique extraite de UserController) =====
+
+    @Nested
+    class OwnProfile {
+
+        @Test
+        void updateOwnProfile_whenPhoneNumberPresent_thenUpdatesAndSaves() {
+            User user = buildUser(1L, "own@test.com", UserRole.HOST);
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
+
+            userService.updateOwnProfile("kc-1", Map.of("phoneNumber", "+33612345678"));
+
+            assertThat(user.getPhoneNumber()).isEqualTo("+33612345678");
+            verify(userRepository).save(user);
+        }
+
+        @Test
+        void updateOwnProfile_whenNoPhoneNumber_thenJustSaves() {
+            User user = buildUser(1L, "own@test.com", UserRole.HOST);
+            user.setPhoneNumber("+33600000000");
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
+
+            userService.updateOwnProfile("kc-1", Map.of());
+
+            assertThat(user.getPhoneNumber()).isEqualTo("+33600000000");
+            verify(userRepository).save(user);
+        }
+
+        @Test
+        void updateOwnProfile_whenUserNotFound_thenThrows() {
+            when(userRepository.findByKeycloakId("kc-bad")).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> userService.updateOwnProfile("kc-bad", Map.of()))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("Utilisateur non trouve");
+        }
+
+        @Test
+        void getNewsletterOptIn_returnsCurrentValue() {
+            User user = buildUser(1L, "own@test.com", UserRole.HOST);
+            user.setNewsletterOptIn(true);
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
+
+            assertThat(userService.getNewsletterOptIn("kc-1")).isTrue();
+        }
+
+        @Test
+        void updateNewsletterOptIn_whenFalse_thenOptsOutAndSaves() {
+            User user = buildUser(1L, "own@test.com", UserRole.HOST);
+            user.setNewsletterOptIn(true);
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
+
+            boolean result = userService.updateNewsletterOptIn("kc-1", false);
+
+            assertThat(result).isFalse();
+            assertThat(user.isNewsletterOptIn()).isFalse();
+            verify(userRepository).save(user);
+        }
+
+        @Test
+        void updateNewsletterOptIn_whenNull_thenNoOpButStillSaves() {
+            User user = buildUser(1L, "own@test.com", UserRole.HOST);
+            user.setNewsletterOptIn(true);
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
+
+            boolean result = userService.updateNewsletterOptIn("kc-1", null);
+
+            assertThat(result).isTrue();
+            verify(userRepository).save(user);
+        }
+    }
+
+    // ===== Gardes d'ownership (Z2-SEC-06 / T-ARCH-01) =====
+
+    @Nested
+    class OwnershipGuards {
+
+        @Test
+        void requireOwnershipOrAdmin_whenOwner_thenAllows() {
+            User user = buildUser(1L, "owner@test.com", UserRole.HOST); // keycloakId = kc-1
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            // ne doit pas jeter
+            userService.requireOwnershipOrAdmin(1L, "kc-1", false);
+        }
+
+        @Test
+        void requireOwnershipOrAdmin_whenPlatformAdmin_thenBypassesLookup() {
+            userService.requireOwnershipOrAdmin(1L, "kc-other", true);
+
+            verify(userRepository, never()).findById(any());
+        }
+
+        @Test
+        void requireOwnershipOrAdmin_whenIntruder_thenAccessDenied() {
+            User user = buildUser(1L, "owner@test.com", UserRole.HOST);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            assertThatThrownBy(() -> userService.requireOwnershipOrAdmin(1L, "kc-intruder", false))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        }
+
+        @Test
+        void requireOwnershipOrAdmin_whenResourceMissing_thenAccessDenied() {
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> userService.requireOwnershipOrAdmin(999L, "kc-1", false))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        }
+
+        @Test
+        void requireSameOrganizationOrSelf_whenSameOrg_thenAllows() {
+            User resource = buildUser(1L, "res@test.com", UserRole.HOST);   // org 1
+            User requester = buildUser(2L, "req@test.com", UserRole.HOST);  // org 1
+            when(userRepository.findById(1L)).thenReturn(Optional.of(resource));
+            when(userRepository.findByKeycloakId("kc-2")).thenReturn(Optional.of(requester));
+
+            // ne doit pas jeter
+            userService.requireSameOrganizationOrSelf(1L, "kc-2", false);
+        }
+
+        @Test
+        void requireSameOrganizationOrSelf_whenSelf_thenAllowsWithoutRequesterLookup() {
+            User resource = buildUser(1L, "res@test.com", UserRole.HOST);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(resource));
+
+            userService.requireSameOrganizationOrSelf(1L, "kc-1", false);
+
+            verify(userRepository, never()).findByKeycloakId(anyString());
+        }
+
+        @Test
+        void requireSameOrganizationOrSelf_whenCrossOrg_thenAccessDenied() {
+            User resource = buildUser(1L, "res@test.com", UserRole.HOST);
+            resource.setOrganizationId(7L);
+            User requester = buildUser(2L, "req@test.com", UserRole.HOST);
+            requester.setOrganizationId(8L);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(resource));
+            when(userRepository.findByKeycloakId("kc-2")).thenReturn(Optional.of(requester));
+
+            assertThatThrownBy(() -> userService.requireSameOrganizationOrSelf(1L, "kc-2", false))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        }
+
+        @Test
+        void requireSameOrganizationOrSelf_whenResourceMissing_thenAccessDenied() {
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> userService.requireSameOrganizationOrSelf(999L, "kc-1", false))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        }
+
+        @Test
+        void requireSameOrganizationOrSelf_whenPlatformStaff_thenBypassesLookup() {
+            userService.requireSameOrganizationOrSelf(1L, "kc-staff", true);
+
+            verify(userRepository, never()).findById(any());
         }
     }
 }

@@ -8,6 +8,15 @@ import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.tags.EntityTagBuilders;
+import com.clenzy.service.tags.InterventionTagResolver;
+import com.clenzy.service.tags.ManagementContractTagResolver;
+import com.clenzy.service.tags.PropertyTagResolver;
+import com.clenzy.service.tags.ProviderExpenseTagResolver;
+import com.clenzy.service.tags.ReceivedFormTagResolver;
+import com.clenzy.service.tags.ReservationTagResolver;
+import com.clenzy.service.tags.ServiceRequestTagResolver;
+import com.clenzy.service.tags.UserTagResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -49,10 +58,20 @@ class TagResolverServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TagResolverService(userRepository, propertyRepository,
-                interventionRepository, serviceRequestRepository, reservationRepository,
-                providerExpenseRepository, checkInInstructionsRepository,
-                receivedFormRepository, managementContractRepository, pricingConfigService);
+        // Registre OCP (T-SOLID-5) : un resolveur par type de reference, wiring
+        // identique a celui de Spring (List<ReferenceTagResolver> injectee).
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        EntityTagBuilders builders = new EntityTagBuilders(checkInInstructionsRepository, objectMapper);
+        service = new TagResolverService(List.of(
+                new InterventionTagResolver(interventionRepository, builders),
+                new ReservationTagResolver(reservationRepository, builders),
+                new ServiceRequestTagResolver(serviceRequestRepository, builders),
+                new PropertyTagResolver(propertyRepository, builders),
+                new UserTagResolver(userRepository, builders),
+                new ProviderExpenseTagResolver(providerExpenseRepository, builders),
+                new ReceivedFormTagResolver(receivedFormRepository, pricingConfigService, objectMapper),
+                new ManagementContractTagResolver(managementContractRepository,
+                        propertyRepository, userRepository, builders)));
         ReflectionTestUtils.setField(service, "companyName", "Clenzy");
         ReflectionTestUtils.setField(service, "companyAddress", "10 rue de Paris");
         ReflectionTestUtils.setField(service, "companySiret", "12345678900001");

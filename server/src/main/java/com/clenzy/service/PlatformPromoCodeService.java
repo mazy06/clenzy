@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -75,6 +76,36 @@ public class PlatformPromoCodeService {
             return Optional.empty();
         }
         return found;
+    }
+
+    /**
+     * Liste complete des codes promo (administration plateforme).
+     * Deplace de AdminPlatformPromoCodeController (T-ARCH-01).
+     */
+    @Transactional(readOnly = true)
+    public List<PlatformPromoCode> findAll() {
+        return repository.findAll();
+    }
+
+    /**
+     * Cree un code promo (administration plateforme). La validation des
+     * valeurs (range %, type) est portee par les contraintes de l'entite.
+     */
+    public PlatformPromoCode create(PlatformPromoCode promo) {
+        return repository.save(promo);
+    }
+
+    /**
+     * (De)active un code promo. Entite plateforme sans organisation :
+     * pas de validation d'org (endpoint reserve SUPER_ADMIN).
+     *
+     * @return le code mis a jour, ou empty s'il n'existe pas
+     */
+    public Optional<PlatformPromoCode> setActive(Long id, boolean active) {
+        return repository.findById(id).map(promo -> {
+            promo.setActive(active);
+            return repository.save(promo);
+        });
     }
 
     /**

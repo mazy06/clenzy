@@ -8,8 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -42,38 +45,75 @@ public class AuthSessionController {
     private int cookieMaxAge;
 
     /**
-     * Recupere le token contenu dans le cookie HttpOnly clenzy_auth.
+     * Metadonnees de la session portee par le cookie HttpOnly clenzy_auth.
      *
      * <h3>Pourquoi cet endpoint</h3>
      * Le frontend ne peut pas lire un cookie HttpOnly (par design securite).
      * Au boot (hard refresh), Keycloak JS n'a plus de token en memoire et son
      * check-sso peut echouer (cross-origin, SameSite restrictions, timeout
-     * session Keycloak). Cet endpoint permet au frontend de restaurer le token
-     * directement depuis le cookie pour pre-remplir keycloak.token avant init.
+     * session Keycloak). Cet endpoint permet au frontend de savoir que la
+     * session est toujours valide cote backend et de restaurer l'etat UI
+     * (claims non sensibles) sans re-login.
      *
-     * <h3>Securite</h3>
-     * Permet de lire le token cote frontend SEULEMENT si le cookie HttpOnly
-     * est valide (le {@code TokenCookieFilter} injecte deja le token en header
-     * Authorization avant ce controller). Si pas de cookie ou cookie expire,
-     * Spring Security rejette la requete avec 401.
+     * <h3>Securite (Z1-SEC-FRONTAUX-02)</h3>
+     * Cet endpoint ne renvoie JAMAIS le token brut : un echo du token en JSON
+     * neutraliserait la protection HttpOnly du cookie (une XSS pourrait
+     * l'exfiltrer via un simple fetch). Seules des claims non sensibles
+     * (expiration, subject, username, roles) sont exposees — suffisantes pour
+     * le bootstrap UI, puisque les appels API portent le cookie HttpOnly
+     * automatiquement ({@code credentials: 'include'}).
      *
-     * <h3>Securite (suite)</h3>
-     * Le token retourne est le MEME que celui qui voyageait dans le header
-     * Authorization avant la migration HttpOnly. Donc pas de leak supplementaire
-     * vs l'ancien flow localStorage. L'attaquant qui peut faire cet appel
-     * pouvait deja s'authentifier — donc rien de nouveau.
+     * <p>Le {@code TokenCookieFilter} injecte le token du cookie en header
+     * Authorization avant la chaine resource-server : si le cookie est valide,
+     * Spring Security materialise le principal {@link Jwt} ; sinon la requete
+     * arrive ici sans principal et on repond 401.</p>
      */
     @GetMapping
-    public ResponseEntity<Map<String, String>> getSession(HttpServletRequest request) {
-        // Extraire le token du header Authorization. TokenCookieFilter l'a deja
-        // copie depuis le cookie si l'user a un cookie valide. Sinon Spring
-        // Security aurait deja rejete la requete avec 401.
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+    public ResponseEntity<?> getSession(@AuthenticationPrincipal Jwt jwt) {
+        if (jwt == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Pas de session active"));
         }
-        String token = authHeader.substring(7);
-        return ResponseEntity.ok(Map.of("token", token));
+        return ResponseEntity.ok(SessionInfoDto.from(jwt));
+    }
+
+    /**
+     * Claims non sensibles exposees au SPA pour le bootstrap UI apres un hard
+     * refresh. Ne contient volontairement PAS le token (Z1-SEC-FRONTAUX-02).
+     *
+     * @param expiresAt expiration du token (epoch secondes, claim {@code exp})
+     */
+    public record SessionInfoDto(boolean authenticated,
+                                 long expiresAt,
+                                 String subject,
+                                 String preferredUsername,
+                                 String email,
+                                 String givenName,
+                                 String familyName,
+                                 List<String> roles) {
+
+        static SessionInfoDto from(Jwt jwt) {
+            long expiresAt = jwt.getExpiresAt() != null ? jwt.getExpiresAt().getEpochSecond() : 0L;
+            return new SessionInfoDto(
+                    true,
+                    expiresAt,
+                    jwt.getSubject(),
+                    jwt.getClaimAsString("preferred_username"),
+                    jwt.getClaimAsString("email"),
+                    jwt.getClaimAsString("given_name"),
+                    jwt.getClaimAsString("family_name"),
+                    extractRealmRoles(jwt));
+        }
+
+        private static List<String> extractRealmRoles(Jwt jwt) {
+            Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
+            if (realmAccess == null) {
+                return List.of();
+            }
+            if (!(realmAccess.get("roles") instanceof List<?> roleList)) {
+                return List.of();
+            }
+            return roleList.stream().map(String::valueOf).toList();
+        }
     }
 
     /**

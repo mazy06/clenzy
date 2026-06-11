@@ -6,9 +6,9 @@ import com.clenzy.dto.HostBalanceSummaryDto.UnpaidInterventionDto;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.User;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.UserRepository;
-import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -40,9 +40,7 @@ public class DeferredPaymentService {
     private final InterventionRepository interventionRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
-
-    @Value("${stripe.secret-key}")
-    private String stripeSecretKey;
+    private final StripeGateway stripeGateway;
 
     @Value("${stripe.currency}")
     private String currency;
@@ -55,10 +53,12 @@ public class DeferredPaymentService {
 
     public DeferredPaymentService(InterventionRepository interventionRepository,
                                    UserRepository userRepository,
-                                   TenantContext tenantContext) {
+                                   TenantContext tenantContext,
+                                   StripeGateway stripeGateway) {
         this.interventionRepository = interventionRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
+        this.stripeGateway = stripeGateway;
     }
 
     /**
@@ -128,8 +128,6 @@ public class DeferredPaymentService {
      * impayees d'un host. Retourne l'URL de la session Stripe.
      */
     public String createGroupedPaymentSession(Long hostId) throws StripeException {
-        Stripe.apiKey = stripeSecretKey;
-
         User host = userRepository.findById(hostId)
                 .orElseThrow(() -> new RuntimeException("Host non trouve: " + hostId));
 
@@ -139,7 +137,7 @@ public class DeferredPaymentService {
         }
 
         BigDecimal totalUnpaid = interventionRepository.sumUnpaidByHostId(hostId, tenantContext.getRequiredOrganizationId());
-        long amountInCents = totalUnpaid.multiply(BigDecimal.valueOf(100)).longValue();
+        long amountInCents = com.clenzy.payment.StripeAmounts.toMinorUnits(totalUnpaid);
 
         // Construire la liste d'IDs pour les metadata
         String interventionIds = unpaidInterventions.stream()
@@ -178,7 +176,7 @@ public class DeferredPaymentService {
                 .putMetadata("intervention_ids", interventionIds)
                 .build();
 
-        Session session = Session.create(params);
+        Session session = stripeGateway.createSession(params);
 
         // Marquer toutes les interventions comme PROCESSING et sauvegarder le session ID
         for (Intervention intervention : unpaidInterventions) {

@@ -10,6 +10,8 @@ import com.clenzy.payment.provider.PayzonePaymentProvider;
 import com.clenzy.repository.PaymentTransactionRepository;
 import com.clenzy.service.PaymentMethodConfigService;
 import com.clenzy.service.PaymentOrchestrationService;
+import com.clenzy.service.PaymentTransactionService;
+import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,6 +51,7 @@ class PaymentWebhookRouterTest {
     @Mock private PayPalPaymentProvider payPalProvider;
     @Mock private CmiHashService cmiHashService;
     @Mock private PaymentTransactionRepository transactionRepository;
+    @Mock private TenantContext tenantContext;
 
     private PaymentWebhookRouter router;
     private ObjectMapper objectMapper;
@@ -56,9 +59,13 @@ class PaymentWebhookRouterTest {
     @BeforeEach
     void setUp() throws Exception {
         objectMapper = new ObjectMapper();
+        // T-ARCH-01 : le router n'injecte plus le repository — service reel
+        // construit sur le repository mocke (les stubs existants restent valides).
+        PaymentTransactionService paymentTransactionService =
+                new PaymentTransactionService(transactionRepository, tenantContext);
         router = new PaymentWebhookRouter(orchestrationService, configService,
                 payTabsProvider, payzoneProvider, payPalProvider, cmiHashService,
-                transactionRepository, objectMapper);
+                paymentTransactionService, objectMapper);
         Field f = PaymentWebhookRouter.class.getDeclaredField("stripeWebhookSecret");
         f.setAccessible(true);
         f.set(router, "whsec_test");

@@ -1,9 +1,13 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.ExchangeRateDto;
 import com.clenzy.model.ExchangeRate;
 import com.clenzy.repository.ExchangeRateRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +16,12 @@ import org.springframework.web.client.RestTemplate;
 import jakarta.annotation.PostConstruct;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -102,6 +111,106 @@ public class ExchangeRateProviderService {
         throw new IllegalStateException(
             "Taux de change introuvable pour " + baseCurrency + "/" + targetCurrency
             + " a la date " + date);
+    }
+
+    /** Matrice des derniers taux base EUR (deplace de ExchangeRateController, T-ARCH-01). */
+    public record RateMatrix(LocalDate date, Map<String, BigDecimal> rates) {}
+
+    /**
+     * Matrice de tous les taux actuels (base EUR) pour les devises supportees.
+     * Un seul appel pour alimenter la conversion cote client.
+     */
+    @Transactional(readOnly = true)
+    public RateMatrix getLatestMatrix() {
+        LocalDate today = LocalDate.now();
+        Map<String, BigDecimal> rates = new LinkedHashMap<>();
+        rates.put("EUR", BigDecimal.ONE);
+
+        LocalDate latestDate = null;
+        for (String target : TARGET_CURRENCIES) {
+            var rateOpt = exchangeRateRepository.findLatestRate("EUR", target, today);
+            if (rateOpt.isPresent()) {
+                rates.put(target, rateOpt.get().getRate());
+                if (latestDate == null) {
+                    latestDate = rateOpt.get().getRateDate();
+                }
+            }
+        }
+
+        return new RateMatrix(latestDate, rates);
+    }
+
+    /**
+     * Historique des taux de change (deplace de ExchangeRateController, T-ARCH-01).
+     *
+     * Gere les paires directes (EUR→MAD), inverses (MAD→EUR)
+     * et croisees (MAD→SAR) a partir des taux EUR stockes en base.
+     */
+    @Transactional(readOnly = true)
+    public List<ExchangeRateDto> getHistory(String baseCurrency, String targetCurrency,
+                                            LocalDate from, LocalDate to, int page, int size) {
+        LocalDate fromDate = from != null ? from : LocalDate.now().minusMonths(3);
+        LocalDate toDate = to != null ? to : LocalDate.now();
+        int cappedSize = Math.min(size, 200);
+        String base = baseCurrency != null ? baseCurrency.toUpperCase() : null;
+        String target = targetCurrency != null ? targetCurrency.toUpperCase() : null;
+
+        // Cas sans filtre : toutes les paires directes
+        if (base == null || target == null) {
+            PageRequest pageRequest = PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "rateDate"));
+            Page<ExchangeRate> rates = exchangeRateRepository.findByRateDateBetween(fromDate, toDate, pageRequest);
+            return rates.map(this::toDto).getContent();
+        }
+
+        // Paire directe stockee en DB (ex: EUR→MAD)
+        if ("EUR".equals(base)) {
+            PageRequest pageRequest = PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "rateDate"));
+            Page<ExchangeRate> rates = exchangeRateRepository.findHistory(base, target, fromDate, toDate, pageRequest);
+            return rates.map(this::toDto).getContent();
+        }
+
+        // Paire inverse (ex: MAD→EUR) : 1 / EUR→MAD
+        if ("EUR".equals(target)) {
+            PageRequest pageRequest = PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "rateDate"));
+            Page<ExchangeRate> rates = exchangeRateRepository.findHistory("EUR", base, fromDate, toDate, pageRequest);
+            return rates.stream().map(r -> {
+                BigDecimal inverse = BigDecimal.ONE.divide(r.getRate(), 6, RoundingMode.HALF_UP);
+                return new ExchangeRateDto(r.getId(), base, "EUR", inverse, r.getRateDate(), r.getSource() + " (calc)");
+            }).toList();
+        }
+
+        // Paire croisee (ex: MAD→SAR) : EUR→SAR / EUR→MAD par date
+        List<ExchangeRate> baseRates = exchangeRateRepository.findAllByBaseCurrencyAndTargetCurrencyAndRateDateBetween(
+            "EUR", base, fromDate, toDate);
+        List<ExchangeRate> targetRates = exchangeRateRepository.findAllByBaseCurrencyAndTargetCurrencyAndRateDateBetween(
+            "EUR", target, fromDate, toDate);
+
+        // Index par date
+        Map<LocalDate, BigDecimal> baseByDate = new HashMap<>();
+        for (ExchangeRate r : baseRates) {
+            baseByDate.put(r.getRateDate(), r.getRate());
+        }
+
+        List<ExchangeRateDto> crossDtos = new ArrayList<>();
+        for (ExchangeRate r : targetRates) {
+            BigDecimal baseRate = baseByDate.get(r.getRateDate());
+            if (baseRate != null && baseRate.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal crossRate = r.getRate().divide(baseRate, 6, RoundingMode.HALF_UP);
+                crossDtos.add(new ExchangeRateDto(r.getId(), base, target, crossRate, r.getRateDate(), r.getSource() + " (calc)"));
+            }
+        }
+
+        // Tri par date decroissante + pagination manuelle
+        crossDtos.sort((a, b) -> b.rateDate().compareTo(a.rateDate()));
+        int fromIndex = Math.min(page * cappedSize, crossDtos.size());
+        int toIndex = Math.min(fromIndex + cappedSize, crossDtos.size());
+
+        return crossDtos.subList(fromIndex, toIndex);
+    }
+
+    private ExchangeRateDto toDto(ExchangeRate r) {
+        return new ExchangeRateDto(r.getId(), r.getBaseCurrency(), r.getTargetCurrency(),
+                r.getRate(), r.getRateDate(), r.getSource());
     }
 
     /**

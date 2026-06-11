@@ -81,4 +81,89 @@ class TwoLayerCacheTest {
         assertThat(caffeineCache.estimatedSize()).isZero();
         verify(redisCache).clear();
     }
+
+    // --- Contrat null (Z1-BUGS-04) ---------------------------------------
+
+    @Test void whenPutNullValue_thenNoNpeAndRedisNotWritten() {
+        // Caffeine interdit null : la sentinelle NullValue doit etre stockee en L1,
+        // et rien ne doit partir vers Redis (disableCachingNullValues en L2).
+        twoLayerCache.put("nullable-key", null);
+
+        assertThat(caffeineCache.getIfPresent("nullable-key")).isNotNull();
+        verify(redisCache, never()).put(any(), any());
+    }
+
+    @Test void whenPutNullValue_thenGetReturnsWrapperWithNull() {
+        twoLayerCache.put("nullable-key", null);
+
+        org.springframework.cache.Cache.ValueWrapper wrapper = twoLayerCache.get("nullable-key");
+
+        // Hit L1 (null cache) : wrapper non-null, valeur null, sans toucher Redis.
+        assertThat(wrapper).isNotNull();
+        assertThat(wrapper.get()).isNull();
+        verifyNoInteractions(redisCache);
+    }
+
+    @Test void whenValueLoaderReturnsNull_thenNullCachedInL1Only() {
+        when(redisCache.get("miss-key")).thenReturn(null);
+
+        String loaded = twoLayerCache.get("miss-key", () -> null);
+
+        assertThat(loaded).isNull();
+        assertThat(caffeineCache.getIfPresent("miss-key")).isNotNull(); // NullValue en L1
+        verify(redisCache, never()).put(any(), any());
+    }
+
+    @Test void whenValueLoaderReturnsValue_thenCachedInBothLayers() {
+        when(redisCache.get("miss-key")).thenReturn(null);
+
+        String loaded = twoLayerCache.get("miss-key", () -> "loaded-value");
+
+        assertThat(loaded).isEqualTo("loaded-value");
+        assertThat(caffeineCache.getIfPresent("miss-key")).isEqualTo("loaded-value");
+        verify(redisCache).put("miss-key", "loaded-value");
+    }
+
+    @Test void whenValueLoaderThrows_thenValueRetrievalException() {
+        when(redisCache.get("boom-key")).thenReturn(null);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> twoLayerCache.get("boom-key", () -> { throw new IllegalStateException("boom"); }))
+                .isInstanceOf(org.springframework.cache.Cache.ValueRetrievalException.class);
+    }
+
+    // --- Ordre d'invalidation L2 puis L1 (Z1-BUGS-09) ---------------------
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void whenEvict_thenRedisEvictedBeforeCaffeine() {
+        // Arrange : Caffeine mocke pour pouvoir verifier l'ordre inter-couches
+        Cache<Object, Object> caffeineMock = mock(Cache.class);
+        TwoLayerCache cache = new TwoLayerCache("ordered-cache", caffeineMock, redisCache);
+
+        // Act
+        cache.evict("key1");
+
+        // Assert : L2 (Redis) evince AVANT L1 (Caffeine), sinon un lookup
+        // concurrent repeuple L1 depuis le Redis pas encore evince.
+        var inOrder = inOrder(redisCache, caffeineMock);
+        inOrder.verify(redisCache).evict("key1");
+        inOrder.verify(caffeineMock).invalidate("key1");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void whenClear_thenRedisClearedBeforeCaffeine() {
+        // Arrange
+        Cache<Object, Object> caffeineMock = mock(Cache.class);
+        TwoLayerCache cache = new TwoLayerCache("ordered-cache", caffeineMock, redisCache);
+
+        // Act
+        cache.clear();
+
+        // Assert
+        var inOrder = inOrder(redisCache, caffeineMock);
+        inOrder.verify(redisCache).clear();
+        inOrder.verify(caffeineMock).invalidateAll();
+    }
 }

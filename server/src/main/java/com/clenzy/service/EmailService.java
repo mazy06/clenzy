@@ -3,6 +3,9 @@ package com.clenzy.service;
 import com.clenzy.dto.MaintenanceRequestDto;
 import com.clenzy.dto.QuoteRequestDto;
 import com.clenzy.model.WaitlistSignup;
+import com.clenzy.service.email.MaintenanceEmailComposer;
+import com.clenzy.service.email.QuoteEmailComposer;
+import com.clenzy.service.email.RoleEmailLabels;
 import com.clenzy.service.messaging.EmailWrapperService;
 import com.clenzy.service.messaging.SystemEmailTemplateService;
 import com.clenzy.service.messaging.TemplateInterpolationService;
@@ -13,6 +16,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -68,81 +72,50 @@ public class EmailService {
     @Value("${clenzy.mail.contact.max-attachment-size-bytes:10485760}")
     private long maxAttachmentSizeBytes;
 
-    // Labels français pour les valeurs du formulaire
-    private static final Map<String, String> PROPERTY_TYPE_LABELS = Map.of(
-            "studio", "Studio",
-            "appartement", "Appartement",
-            "maison", "Maison",
-            "duplex", "Duplex",
-            "villa", "Villa",
-            "autre", "Autre"
-    );
-
-    private static final Map<String, String> PROPERTY_COUNT_LABELS = Map.of(
-            "1", "1 logement",
-            "2", "2 logements",
-            "3-5", "3 à 5 logements",
-            "6+", "6 logements et plus"
-    );
-
-    private static final Map<String, String> FREQUENCY_LABELS = Map.of(
-            "tres-frequent", "Très fréquent (plusieurs fois/semaine)",
-            "regulier", "Régulier (hebdomadaire)",
-            "occasionnel", "Occasionnel",
-            "nouvelle-annonce", "Nouvelle annonce"
-    );
-
-    private static final Map<String, String> SCHEDULE_LABELS = Map.of(
-            "apres-depart", "Après chaque départ",
-            "hebdomadaire", "Hebdomadaire",
-            "ponctuel", "Ponctuel",
-            "indecis", "Indécis"
-    );
-
-    private static final Map<String, String> SERVICE_LABELS = Map.ofEntries(
-            Map.entry("menage-complet", "Ménage complet"),
-            Map.entry("linge", "Gestion du linge"),
-            Map.entry("desinfection", "Désinfection"),
-            Map.entry("reassort", "Réassort consommables"),
-            Map.entry("poubelles", "Gestion des poubelles")
-    );
-
-    private static final Map<String, String> SERVICE_DEVIS_LABELS = Map.ofEntries(
-            Map.entry("repassage", "Repassage du linge"),
-            Map.entry("vitres", "Nettoyage des vitres"),
-            Map.entry("blanchisserie", "Service de blanchisserie"),
-            Map.entry("pressing", "Service de pressing"),
-            Map.entry("plomberie", "Plomberie"),
-            Map.entry("electricite", "Électricité"),
-            Map.entry("serrurerie", "Serrurerie / clés"),
-            Map.entry("bricolage", "Petit bricolage"),
-            Map.entry("autre-maintenance", "Autre intervention technique")
-    );
-
-    private static final Map<String, String> CALENDAR_LABELS = Map.of(
-            "sync", "Gestion automatique",
-            "manuel", "Gestion en ligne",
-            "non", "Me faire recontacter"
-    );
-
     private final SystemEmailTemplateService systemEmailTemplateService;
     private final TemplateInterpolationService templateInterpolationService;
     private final EmailWrapperService emailWrapperService;
     private final PlatformSettingsService platformSettingsService;
+    private final QuoteEmailComposer quoteEmailComposer;
+    private final MaintenanceEmailComposer maintenanceEmailComposer;
 
+    /** Constructeur Spring : injection des composers de contenu (T-SOLID-9). */
+    @Autowired
     public EmailService(ObjectProvider<JavaMailSender> mailSenderProvider,
                         SystemEmailTemplateService systemEmailTemplateService,
                         TemplateInterpolationService templateInterpolationService,
                         EmailWrapperService emailWrapperService,
-                        PlatformSettingsService platformSettingsService) {
+                        PlatformSettingsService platformSettingsService,
+                        QuoteEmailComposer quoteEmailComposer,
+                        MaintenanceEmailComposer maintenanceEmailComposer) {
         this.mailSender = mailSenderProvider.getIfAvailable();
         this.systemEmailTemplateService = systemEmailTemplateService;
         this.templateInterpolationService = templateInterpolationService;
         this.emailWrapperService = emailWrapperService;
         this.platformSettingsService = platformSettingsService;
+        this.quoteEmailComposer = quoteEmailComposer;
+        this.maintenanceEmailComposer = maintenanceEmailComposer;
         if (this.mailSender == null) {
             log.warn("JavaMailSender non configure: l'envoi d'emails est desactive. Configurez spring.mail.host (ou spring.mail.jndi-name) pour l'activer.");
         }
+    }
+
+    /**
+     * Constructeur retro-compatible (signature historique pre-extraction des
+     * composers de contenu). Conserve pour les tests existants : les composers
+     * sont stateless et sans dependance, leur construction directe est sure.
+     *
+     * @deprecated utiliser le constructeur a composers injectes.
+     */
+    @Deprecated(since = "2026-06")
+    public EmailService(ObjectProvider<JavaMailSender> mailSenderProvider,
+                        SystemEmailTemplateService systemEmailTemplateService,
+                        TemplateInterpolationService templateInterpolationService,
+                        EmailWrapperService emailWrapperService,
+                        PlatformSettingsService platformSettingsService) {
+        this(mailSenderProvider, systemEmailTemplateService, templateInterpolationService,
+                emailWrapperService, platformSettingsService,
+                new QuoteEmailComposer(), new MaintenanceEmailComposer());
     }
 
     /**
@@ -225,11 +198,11 @@ public class EmailService {
             Map<String, String> vars = new HashMap<>();
             vars.put("fullName", nullToEmpty(dto.getFullName()));
             vars.put("city", nullToEmpty(dto.getCity()));
-            vars.put("recommendedPackage", formatPackageName(recommendedPackage));
+            vars.put("recommendedPackage", quoteEmailComposer.formatPackageName(recommendedPackage));
             vars.put("recommendedRate", String.valueOf(recommendedRate));
             // Variable speciale : sections dynamiques pre-rendues (boucles services etc).
             // HTML safe (listee dans HTML_SAFE_VARIABLES) → pas re-echappee a l'interpolation.
-            vars.put("detailsHtml", renderQuoteDetailsHtml(dto));
+            vars.put("detailsHtml", quoteEmailComposer.renderQuoteDetailsHtml(dto));
 
             String subject = templateInterpolationService.interpolate(template.getSubject(), vars, false);
             // Interpolation du body plain text + wrapping HTML uniforme. Le
@@ -311,156 +284,19 @@ public class EmailService {
             mailSender.send(message);
             log.info("Notif waitlist envoyée (inscrit position {} : {})", position, s.getEmail());
         } catch (Exception e) {
-            log.warn("Notif waitlist KO pour {} : {}", s.getEmail(), e.getMessage());
+            // Best-effort documente (l'inscription ne doit pas echouer), mais trace
+            // complete pour diagnostic SMTP (T-SOLID-7 : avant, message seul).
+            log.warn("Notif waitlist KO pour {} : {}", s.getEmail(), e.getMessage(), e);
         }
-    }
-
-    /**
-     * Pre-rend les sections dynamiques du template devis (coordonnees, bien,
-     * services). Le rendu est injecte dans {@code {detailsHtml}} du template
-     * editable. L'user voit cette variable comme "section non-editable
-     * pre-generee" dans la sidebar de l'UI.
-     */
-    private String renderQuoteDetailsHtml(QuoteRequestDto dto) {
-        StringBuilder sb = new StringBuilder();
-
-        // Section: Coordonnées
-        sb.append(sectionStart("#f8fafc", "👤 Coordonnées"));
-        sb.append("<table style='width: 100%; border-collapse: collapse;'>");
-        addRow(sb, "Nom complet", dto.getFullName());
-        addRow(sb, "Email", dto.getEmail());
-        addRow(sb, "Téléphone", dto.getPhone() != null ? dto.getPhone() : "Non renseigné");
-        addRow(sb, "Ville", dto.getCity());
-        addRow(sb, "Code postal", dto.getPostalCode());
-        sb.append("</table></div>");
-
-        // Section: Bien immobilier
-        sb.append(sectionStart("white", "🏠 Bien immobilier"));
-        sb.append("<table style='width: 100%; border-collapse: collapse;'>");
-        addRow(sb, "Type de bien", getLabel(PROPERTY_TYPE_LABELS, dto.getPropertyType()));
-        addRow(sb, "Nombre de logements", getLabel(PROPERTY_COUNT_LABELS, dto.getPropertyCount()));
-        addRow(sb, "Capacité voyageurs", dto.getGuestCapacity() != null ? dto.getGuestCapacity() + " personnes" : "Non renseigné");
-        addRow(sb, "Surface", dto.getSurface() + " m²");
-        sb.append("</table></div>");
-
-        // Section: Réservation & Ménage
-        sb.append(sectionStart("#f8fafc", "📅 Réservation & Ménage"));
-        sb.append("<table style='width: 100%; border-collapse: collapse;'>");
-        addRow(sb, "Fréquence de réservation", getLabel(FREQUENCY_LABELS, dto.getBookingFrequency()));
-        addRow(sb, "Planning de ménage", getLabel(SCHEDULE_LABELS, dto.getCleaningSchedule()));
-        addRow(sb, "Synchronisation calendrier", getLabel(CALENDAR_LABELS, dto.getCalendarSync()));
-        sb.append("</table></div>");
-
-        // Section: Services forfait
-        sb.append(sectionStart("white", "🧹 Services forfait"));
-        if (dto.getServices() != null && !dto.getServices().isEmpty()) {
-            sb.append("<ul style='margin: 0; padding-left: 20px;'>");
-            for (String service : dto.getServices()) {
-                sb.append("<li style='padding: 4px 0;'>").append(getLabel(SERVICE_LABELS, service)).append("</li>");
-            }
-            sb.append("</ul>");
-        } else {
-            sb.append("<p style='color: #94a3b8; margin: 0;'>Aucun service sélectionné</p>");
-        }
-        sb.append("</div>");
-
-        // Section: Services sur devis
-        sb.append(sectionStart("#f8fafc", "📋 Services sur devis"));
-        if (dto.getServicesDevis() != null && !dto.getServicesDevis().isEmpty()) {
-            sb.append("<ul style='margin: 0; padding-left: 20px;'>");
-            for (String service : dto.getServicesDevis()) {
-                sb.append("<li style='padding: 4px 0;'>").append(getLabel(SERVICE_DEVIS_LABELS, service)).append("</li>");
-            }
-            sb.append("</ul>");
-        } else {
-            sb.append("<p style='color: #94a3b8; margin: 0;'>Aucun service complémentaire demandé</p>");
-        }
-        sb.append("</div>");
-
-        return sb.toString();
     }
 
     private static String nullToEmpty(String s) {
         return s != null ? s : "";
     }
 
-    private String sectionStart(String bgColor, String title) {
-        return "<div style='background: " + bgColor + "; padding: 20px; border: 1px solid #e2e8f0;'>" +
-                "<h2 style='color: #334155; margin-top: 0; font-size: 16px; border-bottom: 2px solid #667eea; padding-bottom: 8px;'>" + title + "</h2>";
-    }
-
-    private void addRow(StringBuilder sb, String label, String value) {
-        sb.append("<tr>");
-        sb.append("<td style='padding: 8px 12px; font-weight: bold; color: #475569; width: 40%; vertical-align: top;'>").append(StringUtils.escapeHtml(label)).append("</td>");
-        sb.append("<td style='padding: 8px 12px; color: #1e293b;'>").append(value != null ? StringUtils.escapeHtml(value) : "Non renseigné").append("</td>");
-        sb.append("</tr>");
-    }
-
-    private String getLabel(Map<String, String> labels, String key) {
-        if (key == null) return "Non renseigné";
-        // Toujours echapper : si la cle ne matche pas, elle contient du user input brut
-        return StringUtils.escapeHtml(labels.getOrDefault(key, key));
-    }
-
-    private String formatPackageName(String packageId) {
-        return switch (packageId) {
-            case "premium" -> "Forfait Premium";
-            case "confort" -> "Forfait Confort";
-            case "essentiel" -> "Forfait Essentiel";
-            default -> packageId;
-        };
-    }
-
     // ═══════════════════════════════════════════════════════════════
     // Email de notification maintenance / travaux
     // ═══════════════════════════════════════════════════════════════
-
-    private static final Map<String, String> WORK_LABELS = Map.ofEntries(
-            // Plomberie
-            Map.entry("fuite-eau", "Réparation fuite d'eau"),
-            Map.entry("debouchage", "Débouchage canalisation"),
-            Map.entry("robinetterie", "Remplacement robinetterie"),
-            Map.entry("chasse-eau", "Réparation chasse d'eau / WC"),
-            Map.entry("chauffe-eau", "Installation / réparation chauffe-eau"),
-            Map.entry("raccordement", "Raccordement machine à laver / lave-vaisselle"),
-            // Électricité
-            Map.entry("prise-elec", "Installation / remplacement prise"),
-            Map.entry("interrupteur", "Remplacement interrupteur"),
-            Map.entry("eclairage", "Installation luminaire / plafonnier"),
-            Map.entry("tableau-elec", "Vérification tableau électrique"),
-            Map.entry("panne-elec", "Diagnostic panne électrique"),
-            Map.entry("domotique", "Installation domotique / objets connectés"),
-            // Serrurerie
-            Map.entry("changement-serrure", "Changement de serrure"),
-            Map.entry("double-cle", "Reproduction de clés"),
-            Map.entry("boite-cles", "Installation boîte à clés sécurisée"),
-            Map.entry("serrure-connectee", "Installation serrure connectée"),
-            Map.entry("digicode", "Installation digicode / interphone"),
-            // Bricolage
-            Map.entry("montage-meuble", "Montage de meubles"),
-            Map.entry("fixation-murale", "Fixations murales (étagères, TV, rideaux)"),
-            Map.entry("porte-ajustement", "Ajustement / réparation porte"),
-            Map.entry("joint-silicone", "Refaire des joints (silicone, carrelage)"),
-            Map.entry("store-volet", "Réparation store / volet roulant"),
-            // Travaux & rénovation
-            Map.entry("peinture", "Peinture murs / plafonds"),
-            Map.entry("carrelage", "Pose / réparation carrelage"),
-            Map.entry("parquet", "Pose / réparation parquet"),
-            Map.entry("salle-bain", "Rénovation salle de bain"),
-            Map.entry("cuisine", "Aménagement cuisine"),
-            Map.entry("cloison", "Création / suppression cloison"),
-            // Extérieur & divers
-            Map.entry("climatisation", "Installation / entretien climatisation"),
-            Map.entry("desinsectisation", "Désinsectisation / dératisation"),
-            Map.entry("balcon-terrasse", "Aménagement balcon / terrasse"),
-            Map.entry("demenagement", "Aide au déménagement / livraison")
-    );
-
-    private static final Map<String, String> URGENCY_LABELS = Map.of(
-            "urgent", "🔴 Urgent (sous 24-48h)",
-            "normal", "🟠 Normal (sous 1 semaine)",
-            "planifie", "🔵 Planifié (à programmer)"
-    );
 
     /**
      * Envoie un email de notification pour une demande de devis maintenance.
@@ -483,8 +319,8 @@ public class EmailService {
             vars.put("city", dto.getCity() != null && !dto.getCity().isBlank() ? dto.getCity() : "");
             vars.put("urgencyTag", "urgent".equals(dto.getUrgency()) ? "🔴 URGENT — " : "");
             // Variables HTML-safe pre-rendues
-            vars.put("urgencyBanner", renderUrgencyBanner(dto));
-            vars.put("detailsHtml", renderMaintenanceDetailsHtml(dto));
+            vars.put("urgencyBanner", maintenanceEmailComposer.renderUrgencyBanner(dto));
+            vars.put("detailsHtml", maintenanceEmailComposer.renderMaintenanceDetailsHtml(dto));
 
             String subject = templateInterpolationService.interpolate(template.getSubject(), vars, false);
             String interpolatedBody = templateInterpolationService.interpolate(template.getBody(), vars, true);
@@ -508,73 +344,6 @@ public class EmailService {
             log.error("Erreur d'envoi email maintenance pour {} : {}", dto.getFullName(), e.getMessage(), e);
             throw new RuntimeException("Erreur d'envoi de l'email de notification maintenance", e);
         }
-    }
-
-    /**
-     * Banner d'urgence pre-rendu HTML pour le template
-     * {@code maintenance_request_internal}. Couleur rouge/orange/bleu selon
-     * urgency level. Injecte dans la variable speciale {@code {urgencyBanner}}.
-     */
-    private String renderUrgencyBanner(MaintenanceRequestDto dto) {
-        String urgencyLabel = URGENCY_LABELS.getOrDefault(dto.getUrgency(), "Normal");
-        String urgencyBg = "urgent".equals(dto.getUrgency()) ? "#fef2f2"
-            : "normal".equals(dto.getUrgency()) ? "#fff7ed" : "#eff6ff";
-        String urgencyBorder = "urgent".equals(dto.getUrgency()) ? "#ef4444"
-            : "normal".equals(dto.getUrgency()) ? "#f97316" : "#3b82f6";
-        return "<div style='background: " + urgencyBg + "; border-left: 4px solid " + urgencyBorder
-            + "; padding: 15px 20px;'>"
-            + "<strong>Niveau d'urgence :</strong> " + StringUtils.escapeHtml(urgencyLabel)
-            + "</div>";
-    }
-
-    /**
-     * Sections dynamiques maintenance (coordonnees, travaux, besoin specifique,
-     * description). Pre-rendu HTML injecte dans {@code {detailsHtml}}.
-     */
-    private String renderMaintenanceDetailsHtml(MaintenanceRequestDto dto) {
-        StringBuilder sb = new StringBuilder();
-
-        // Section: Coordonnées
-        sb.append(sectionStart("#f8fafc", "👤 Coordonnées"));
-        sb.append("<table style='width: 100%; border-collapse: collapse;'>");
-        addRow(sb, "Nom complet", dto.getFullName());
-        addRow(sb, "Email", dto.getEmail());
-        addRow(sb, "Téléphone", dto.getPhone() != null && !dto.getPhone().isBlank() ? dto.getPhone() : "Non renseigné");
-        addRow(sb, "Ville", dto.getCity() != null && !dto.getCity().isBlank() ? dto.getCity() : "Non renseigné");
-        if (dto.getPostalCode() != null && !dto.getPostalCode().isBlank()) {
-            addRow(sb, "Code postal", dto.getPostalCode());
-        }
-        sb.append("</table></div>");
-
-        // Section: Travaux sélectionnés
-        sb.append(sectionStart("white", "🔧 Travaux demandés"));
-        if (dto.getSelectedWorks() != null && !dto.getSelectedWorks().isEmpty()) {
-            sb.append("<ul style='margin: 0; padding-left: 20px;'>");
-            for (String work : dto.getSelectedWorks()) {
-                sb.append("<li style='padding: 4px 0;'>").append(StringUtils.escapeHtml(WORK_LABELS.getOrDefault(work, work))).append("</li>");
-            }
-            sb.append("</ul>");
-        } else {
-            sb.append("<p style='color: #94a3b8; margin: 0;'>Aucun travail prédéfini sélectionné</p>");
-        }
-
-        // Besoin personnalisé
-        if (dto.getCustomNeed() != null && !dto.getCustomNeed().isBlank()) {
-            sb.append("<div style='margin-top: 15px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 12px;'>");
-            sb.append("<strong style='color: #92400e;'>Besoin spécifique :</strong><br>");
-            sb.append("<span style='color: #78350f;'>").append(StringUtils.escapeHtml(dto.getCustomNeed())).append("</span>");
-            sb.append("</div>");
-        }
-        sb.append("</div>");
-
-        // Section: Description complémentaire
-        if (dto.getDescription() != null && !dto.getDescription().isBlank()) {
-            sb.append(sectionStart("#f8fafc", "📝 Description complémentaire"));
-            sb.append("<p style='margin: 0; color: #1e293b; white-space: pre-wrap;'>").append(StringUtils.escapeHtml(dto.getDescription())).append("</p>");
-            sb.append("</div>");
-        }
-
-        return sb.toString();
     }
 
     /**
@@ -688,12 +457,22 @@ public class EmailService {
      * volontairement vide). Si le template n'est pas en BDD, fallback sur un corps
      * par defaut propre — jamais d'echec lie au template manquant.</p>
      *
+     * <p><b>Securite (Z7-SEC-02)</b> : {@code customBody} est de l'input utilisateur
+     * (editeur "Renvoyer", endpoint ouvert HOST/ADMIN) attendu en TEXTE/markdown
+     * leger, jamais en HTML brut. Il est echappe via
+     * {@link StringUtils#escapeHtml(String)} avant le wrap pour empecher
+     * l'injection de balises/liens arbitraires (phishing au nom de Baitly) dans
+     * l'email envoye au prospect. Le mini-markdown du wrapper ({@code *gras*},
+     * {@code _italique_}, paragraphes, listes) n'utilise aucun metacaractere HTML
+     * et reste donc rendu a l'identique.</p>
+     *
      * @param toEmail       adresse du prospect
      * @param pdfBytes      bytes du PDF devis
      * @param pdfFilename   nom du fichier joint
      * @param customSubject objet personnalise (nullable → template/defaut)
-     * @param customBody    corps plain text personnalise (nullable → template/defaut ;
-     *                      "" → corps vide volontaire)
+     * @param customBody    corps plain text/markdown personnalise (nullable →
+     *                      template/defaut ; "" → corps vide volontaire ; le HTML
+     *                      eventuel est echappe et rendu comme texte litteral)
      */
     public void sendQuoteToProspect(String toEmail, byte[] pdfBytes, String pdfFilename,
                                     String customSubject, String customBody) {
@@ -701,11 +480,12 @@ public class EmailService {
             JavaMailSender ms = requireMailSender();
 
             // Resoudre subject + body + wrapper (template ou defaut), puis appliquer
-            // les overrides eventuels de l'editeur de renvoi.
+            // les overrides eventuels de l'editeur de renvoi. Le body custom (user
+            // input) est echappe : il doit etre du texte/markdown, pas du HTML brut.
             String[] defaults = resolveQuoteDefaults();
             String subjectPlain = (customSubject != null && !customSubject.isBlank())
                     ? customSubject : defaults[0];
-            String bodyPlain = (customBody != null) ? customBody : defaults[1];
+            String bodyPlain = (customBody != null) ? StringUtils.escapeHtml(customBody) : defaults[1];
             String htmlBody = emailWrapperService.wrap(defaults[2], bodyPlain);
 
             MimeMessage message = ms.createMimeMessage();
@@ -790,7 +570,8 @@ public class EmailService {
                     String.join(",", recipients), prospectEmail, pdfFilename);
         } catch (Exception e) {
             // Best-effort : ne JAMAIS faire echouer/annuler l'envoi deja fait au prospect.
-            log.warn("Copie interne devis KO (prospect {}) : {}", prospectEmail, e.getMessage());
+            // Trace complete pour diagnostic SMTP (T-SOLID-7 : avant, message seul).
+            log.warn("Copie interne devis KO (prospect {}) : {}", prospectEmail, e.getMessage(), e);
         }
     }
 
@@ -996,7 +777,7 @@ public class EmailService {
             Map<String, String> vars = Map.of(
                 "orgName", nullToEmpty(orgName),
                 "inviterName", nullToEmpty(inviterName),
-                "roleName", formatRoleName(roleName),
+                "roleName", RoleEmailLabels.displayName(roleName),
                 "invitationLink", nullToEmpty(invitationLink),
                 "expiresAt", expiresStr
             );
@@ -1080,23 +861,6 @@ public class EmailService {
         }
     }
 
-    private String formatRoleName(String role) {
-        if (role == null) return "Membre";
-        return switch (role.toUpperCase()) {
-            case "OWNER" -> "Proprietaire";
-            case "SUPER_ADMIN" -> "Super Administrateur";
-            case "SUPER_MANAGER" -> "Super Manager";
-            case "SUPERVISOR" -> "Superviseur";
-            case "TECHNICIAN" -> "Technicien";
-            case "HOUSEKEEPER" -> "Agent de menage";
-            case "LAUNDRY" -> "Blanchisserie";
-            case "EXTERIOR_TECH" -> "Tech. Exterieur";
-            case "HOST" -> "Proprietaire";
-            case "MEMBER" -> "Membre";
-            default -> role;
-        };
-    }
-
     /**
      * Envoie un email de bienvenue au nouvel utilisateur avec ses identifiants de connexion.
      */
@@ -1125,7 +889,7 @@ public class EmailService {
         String safeName = StringUtils.escapeHtml(firstName);
         String safeFullName = StringUtils.escapeHtml(firstName + " " + lastName);
         String safeEmail = StringUtils.escapeHtml(email);
-        String safeRole = StringUtils.escapeHtml(roleName != null ? formatRoleName(roleName) : "Utilisateur");
+        String safeRole = StringUtils.escapeHtml(roleName != null ? RoleEmailLabels.displayName(roleName) : "Utilisateur");
         String safeUrl = StringUtils.escapeHtml(loginUrl);
 
         return "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>"

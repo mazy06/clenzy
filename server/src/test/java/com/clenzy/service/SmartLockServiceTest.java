@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -151,6 +152,8 @@ class SmartLockServiceTest {
         @Test
         void whenExists_thenDeletes() {
             SmartLockDevice device = buildDevice(1L, "tuya-1");
+            // Requester de la meme org que la serrure (mock Long non stubbe = 0L, pas null).
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
             when(smartLockRepository.findById(1L)).thenReturn(Optional.of(device));
 
             service.deleteDevice("kc-1", 1L);
@@ -174,6 +177,7 @@ class SmartLockServiceTest {
         @Test
         void whenNoExternalDeviceId_thenReturnsOffline() {
             SmartLockDevice device = buildDevice(1L, null);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
             when(smartLockRepository.findById(1L)).thenReturn(Optional.of(device));
 
             Map<String, Object> result = service.getLockStatus("kc-1", 1L);
@@ -184,6 +188,7 @@ class SmartLockServiceTest {
         @Test
         void whenTuyaReturnsLocked_thenUpdatesAndReturnsLocked() {
             SmartLockDevice device = buildDevice(1L, "tuya-1");
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
             when(smartLockRepository.findById(1L)).thenReturn(Optional.of(device));
             when(smartLockRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -210,6 +215,7 @@ class SmartLockServiceTest {
             SmartLockDevice device = buildDevice(1L, "tuya-1");
             device.setLockState(LockState.LOCKED);
             device.setBatteryLevel(50);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
             when(smartLockRepository.findById(1L)).thenReturn(Optional.of(device));
             when(tuyaApiService.getDeviceStatus("tuya-1")).thenThrow(new RuntimeException("Tuya down"));
 
@@ -235,6 +241,7 @@ class SmartLockServiceTest {
         @Test
         void whenLock_thenSendsCommandAndUpdates() {
             SmartLockDevice device = buildDevice(1L, "tuya-1");
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
             when(smartLockRepository.findById(1L)).thenReturn(Optional.of(device));
             when(smartLockRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -247,6 +254,7 @@ class SmartLockServiceTest {
         @Test
         void whenUnlock_thenSendsCommandWithFalse() {
             SmartLockDevice device = buildDevice(1L, "tuya-1");
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
             when(smartLockRepository.findById(1L)).thenReturn(Optional.of(device));
             when(smartLockRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -258,6 +266,7 @@ class SmartLockServiceTest {
         @Test
         void whenNoExternalDeviceId_thenThrows() {
             SmartLockDevice device = buildDevice(1L, null);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
             when(smartLockRepository.findById(1L)).thenReturn(Optional.of(device));
 
             assertThatThrownBy(() -> service.sendLockCommand("kc-1", 1L, true))
@@ -269,6 +278,62 @@ class SmartLockServiceTest {
             when(smartLockRepository.findById(99L)).thenReturn(Optional.empty());
             assertThatThrownBy(() -> service.sendLockCommand("kc-1", 99L, true))
                     .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("isolation organisation (IDOR cross-tenant)")
+    class OrganizationIsolation {
+
+        private SmartLockDevice buildForeignDevice() {
+            SmartLockDevice device = buildDevice(1L, "tuya-1");
+            device.setOrganizationId(2L);
+            return device;
+        }
+
+        @Test
+        void whenDeleteDeviceFromOtherOrganization_thenAccessDenied() {
+            when(smartLockRepository.findById(1L)).thenReturn(Optional.of(buildForeignDevice()));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> service.deleteDevice("kc-1", 1L))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+            verify(smartLockRepository, never()).delete(any(SmartLockDevice.class));
+            verify(claimService, never()).release(anyString());
+        }
+
+        @Test
+        void whenGetLockStatusFromOtherOrganization_thenAccessDenied() {
+            when(smartLockRepository.findById(1L)).thenReturn(Optional.of(buildForeignDevice()));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> service.getLockStatus("kc-1", 1L))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+            verify(tuyaApiService, never()).getDeviceStatus(anyString());
+        }
+
+        @Test
+        void whenSendLockCommandFromOtherOrganization_thenAccessDenied() {
+            when(smartLockRepository.findById(1L)).thenReturn(Optional.of(buildForeignDevice()));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> service.sendLockCommand("kc-1", 1L, true))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+            verify(tuyaApiService, never()).sendCommand(anyString(), anyList());
+        }
+
+        @Test
+        void whenPlatformStaffDeletesCrossOrgDevice_thenAllowed() {
+            SmartLockDevice device = buildForeignDevice();
+            when(smartLockRepository.findById(1L)).thenReturn(Optional.of(device));
+            when(tenantContext.isSuperAdmin()).thenReturn(true);
+
+            service.deleteDevice("kc-1", 1L);
+
+            verify(smartLockRepository).delete(device);
         }
     }
 

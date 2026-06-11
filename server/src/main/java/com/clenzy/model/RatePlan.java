@@ -65,6 +65,25 @@ public class RatePlan {
     @Column(name = "min_stay_override")
     private Integer minStayOverride;
 
+    /**
+     * Delai minimum (en jours) entre la date de resolution (aujourd'hui)
+     * et la date du sejour pour que le plan s'applique.
+     * Semantique EARLY_BIRD : reservation au moins X jours a l'avance.
+     * Null = pas de borne minimale explicite (le PriceEngine applique
+     * une fenetre par defaut pour les types EARLY_BIRD/LAST_MINUTE).
+     */
+    @Column(name = "min_lead_days")
+    private Integer minLeadDays;
+
+    /**
+     * Delai maximum (en jours) entre la date de resolution (aujourd'hui)
+     * et la date du sejour pour que le plan s'applique.
+     * Semantique LAST_MINUTE : sejour dans au plus X jours.
+     * Null = pas de borne maximale explicite (fenetre par defaut PriceEngine).
+     */
+    @Column(name = "max_lead_days")
+    private Integer maxLeadDays;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -143,6 +162,12 @@ public class RatePlan {
 
     public Integer getMinStayOverride() { return minStayOverride; }
     public void setMinStayOverride(Integer minStayOverride) { this.minStayOverride = minStayOverride; }
+
+    public Integer getMinLeadDays() { return minLeadDays; }
+    public void setMinLeadDays(Integer minLeadDays) { this.minLeadDays = minLeadDays; }
+
+    public Integer getMaxLeadDays() { return maxLeadDays; }
+    public void setMaxLeadDays(Integer maxLeadDays) { this.maxLeadDays = maxLeadDays; }
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }

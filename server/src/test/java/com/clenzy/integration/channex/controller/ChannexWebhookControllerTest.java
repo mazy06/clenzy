@@ -72,9 +72,12 @@ class ChannexWebhookControllerTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
+        // Service sync-error reel sur repository mocke + syncLogService mocke (refactor T-ARCH-01)
         controller = new ChannexWebhookController(signatureValidator, bookingService, objectMapper,
             new ChannexMetrics(new SimpleMeterRegistry()),
-            channexClient, mappingRepository, syncLogService, messagingService);
+            channexClient,
+            new com.clenzy.integration.channex.service.ChannexSyncErrorService(mappingRepository, syncLogService),
+            messagingService);
     }
 
     @Test

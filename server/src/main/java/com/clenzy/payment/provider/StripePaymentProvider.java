@@ -70,7 +70,8 @@ public class StripePaymentProvider implements PaymentProvider {
                             .setPriceData(
                                 com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.builder()
                                     .setCurrency(request.currency().toLowerCase())
-                                    .setUnitAmount(request.amount().multiply(BigDecimal.valueOf(100)).longValue())
+                                    // Arrondi HALF_UP + longValueExact, jamais de troncature (Z3-BUGS-09)
+                                    .setUnitAmount(StripeAmounts.toMinorUnits(request.amount()))
                                     .setProductData(
                                         com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.ProductData.builder()
                                             .setName(request.description() != null ? request.description() : "Payment")
@@ -122,7 +123,7 @@ public class StripePaymentProvider implements PaymentProvider {
                     .setPaymentIntent(providerTxId);
 
             if (amount != null) {
-                builder.setAmount(amount.multiply(BigDecimal.valueOf(100)).longValue());
+                builder.setAmount(StripeAmounts.toMinorUnits(amount));
             }
             if (reason != null) {
                 builder.setReason(com.stripe.param.RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER);
@@ -166,7 +167,7 @@ public class StripePaymentProvider implements PaymentProvider {
         try {
             com.stripe.param.PayoutCreateParams params =
                 com.stripe.param.PayoutCreateParams.builder()
-                    .setAmount(request.amount().multiply(BigDecimal.valueOf(100)).longValue())
+                    .setAmount(StripeAmounts.toMinorUnits(request.amount()))
                     .setCurrency(request.currency().toLowerCase())
                     .setDescription(request.description())
                     .build();

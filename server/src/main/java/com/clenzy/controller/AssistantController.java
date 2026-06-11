@@ -3,8 +3,6 @@ package com.clenzy.controller;
 import com.clenzy.model.AssistantBriefingPref;
 import com.clenzy.model.AssistantConversation;
 import com.clenzy.model.AssistantMessage;
-import com.clenzy.repository.AssistantConversationRepository;
-import com.clenzy.repository.AssistantMessageRepository;
 import com.clenzy.service.PhotoStorageService;
 import com.clenzy.service.agent.AgentContext;
 import com.clenzy.service.agent.AgentOrchestrator;
@@ -13,6 +11,7 @@ import com.clenzy.service.agent.AttachmentRef;
 import com.clenzy.service.agent.briefing.AssistantBriefingPrefService;
 import com.clenzy.service.agent.briefing.BriefingComposer;
 import com.clenzy.service.agent.briefing.BriefingDelivery;
+import com.clenzy.service.assistant.AssistantConversationService;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -62,8 +61,7 @@ public class AssistantController {
     private static final int MAX_ATTACHMENTS_PER_MESSAGE = 3;
 
     private final AgentOrchestrator orchestrator;
-    private final AssistantConversationRepository conversationRepository;
-    private final AssistantMessageRepository messageRepository;
+    private final AssistantConversationService conversationService;
     private final TenantContext tenantContext;
     private final ObjectMapper objectMapper;
     private final PhotoStorageService photoStorageService;
@@ -98,8 +96,7 @@ public class AssistantController {
             new ThreadPoolExecutor.CallerRunsPolicy());
 
     public AssistantController(AgentOrchestrator orchestrator,
-                                AssistantConversationRepository conversationRepository,
-                                AssistantMessageRepository messageRepository,
+                                AssistantConversationService conversationService,
                                 TenantContext tenantContext,
                                 ObjectMapper objectMapper,
                                 PhotoStorageService photoStorageService,
@@ -107,8 +104,7 @@ public class AssistantController {
                                 BriefingComposer briefingComposer,
                                 BriefingDelivery briefingDelivery) {
         this.orchestrator = orchestrator;
-        this.conversationRepository = conversationRepository;
-        this.messageRepository = messageRepository;
+        this.conversationService = conversationService;
         this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
         this.photoStorageService = photoStorageService;
@@ -280,7 +276,7 @@ public class AssistantController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Page<AssistantConversation> p = conversationRepository.findActiveByUser(
+        Page<AssistantConversation> p = conversationService.listActiveConversations(
                 jwt.getSubject(), PageRequest.of(page, Math.min(50, size)));
         return ResponseEntity.ok(p.map(this::toConversationSummary));
     }
@@ -288,22 +284,15 @@ public class AssistantController {
     @GetMapping("/conversations/{id}/messages")
     public ResponseEntity<List<Map<String, Object>>> getMessages(
             @PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        // Ownership check : findByIdAndUser retourne empty si pas le proprietaire
-        AssistantConversation conv = conversationRepository.findByIdAndUser(id, jwt.getSubject())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Conversation " + id + " introuvable ou non autorisee"));
-
-        List<AssistantMessage> messages = messageRepository.findByConversation(conv.getId());
+        // Ownership check au niveau service : throw si pas le proprietaire
+        List<AssistantMessage> messages = conversationService.getMessagesForOwner(
+                id, jwt.getSubject());
         return ResponseEntity.ok(messages.stream().map(this::toMessageDto).toList());
     }
 
     @DeleteMapping("/conversations/{id}")
     public ResponseEntity<Void> archive(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        AssistantConversation conv = conversationRepository.findByIdAndUser(id, jwt.getSubject())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Conversation " + id + " introuvable ou non autorisee"));
-        conv.setArchivedAt(java.time.LocalDateTime.now());
-        conversationRepository.save(conv);
+        conversationService.archiveConversation(id, jwt.getSubject());
         return ResponseEntity.noContent().build();
     }
 
@@ -398,7 +387,7 @@ public class AssistantController {
 
         String attachmentsJson;
         try {
-            attachmentsJson = messageRepository.findAttachmentsJsonByStorageKeyForUser(
+            attachmentsJson = conversationService.findAttachmentsJsonForUser(
                     storageKey, keycloakId);
         } catch (Exception e) {
             log.warn("serveAttachment: ownership lookup failed for key {} user {} : {}",

@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,23 +79,58 @@ public class PricingConfigService {
 
     // ─── Public API ────────────────────────────────────────────────
 
-    @Cacheable(value = "pricingConfig", key = "'current'")
+    /** Cle de cache des contextes sans tenant (landing publique, devis prospects). */
+    private static final String PLATFORM_CACHE_KEY = "platform";
+
+    /**
+     * Cle de cache scopee par organisation (audit Z5-BUGS-06) : la config mise
+     * en cache par une org ne doit jamais etre servie a une autre. Sans tenant
+     * resolu (endpoints publics), repli sur la cle {@code platform}.
+     * Public car referencee en SpEL ({@code #root.target}) par @Cacheable/@CacheEvict.
+     */
+    public String currentTenantCacheKey() {
+        Long orgId = tenantContext.getOrganizationId();
+        return orgId != null ? "org:" + orgId : PLATFORM_CACHE_KEY;
+    }
+
+    /**
+     * Config courante : scopee explicitement sur l'organisation du tenant quand
+     * elle est resolue (coherent avec le @Filter organizationFilter, y compris
+     * quand il est desactive pour le platform staff), sinon derniere config
+     * globale pour les contextes publics (landing / devis).
+     */
+    @Cacheable(value = "pricingConfig", key = "#root.target.currentTenantCacheKey()")
     @Transactional(readOnly = true)
     public PricingConfigDto getCurrentConfig() {
-        return repository.findTopByOrderByIdDesc()
+        Long orgId = tenantContext.getOrganizationId();
+        Optional<PricingConfig> config = orgId != null
+                ? repository.findTopByOrganizationIdOrderByIdDesc(orgId)
+                : repository.findTopByOrderByIdDesc();
+        return config
                 .map(this::toDto)
                 .orElseGet(this::buildDefaultDto);
     }
 
-    @CacheEvict(value = "pricingConfig", allEntries = true)
+    /**
+     * Met a jour la config de l'organisation courante UNIQUEMENT : la query est
+     * org-scopee (audit Z5-BUGS-06 — l'ancienne findTopByOrderByIdDesc pouvait
+     * recuperer la ligne d'une autre org et la reaffecter au tenant courant).
+     * Eviction ciblee : la cle de l'org concernee + la cle platform (la vue
+     * publique derive de la derniere ligne globale, potentiellement celle-ci).
+     */
+    @Caching(evict = {
+            @CacheEvict(value = "pricingConfig", key = "#root.target.currentTenantCacheKey()"),
+            @CacheEvict(value = "pricingConfig", key = "'" + PLATFORM_CACHE_KEY + "'")
+    })
     public PricingConfigDto updateConfig(PricingConfigDto dto) {
         validatePricingBounds(dto);
-        PricingConfig config = repository.findTopByOrderByIdDesc()
-                .orElse(new PricingConfig());
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        PricingConfig config = repository.findTopByOrganizationIdOrderByIdDesc(orgId)
+                .orElseGet(PricingConfig::new);
         applyFromDto(config, dto);
-        config.setOrganizationId(tenantContext.getRequiredOrganizationId());
+        config.setOrganizationId(orgId);
         config = repository.save(config);
-        log.info("Configuration tarifaire mise a jour (id={})", config.getId());
+        log.info("Configuration tarifaire mise a jour (id={}, orgId={})", config.getId(), orgId);
         return toDto(config);
     }
 

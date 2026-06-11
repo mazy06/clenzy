@@ -1,22 +1,12 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.ServiceRequestDto;
-import com.clenzy.model.RequestStatus;
-import com.clenzy.model.ServiceRequest;
-import com.clenzy.model.Team;
-import com.clenzy.model.User;
-import com.clenzy.repository.ServiceRequestRepository;
-import com.clenzy.repository.TeamRepository;
-import com.clenzy.repository.UserRepository;
+import com.clenzy.service.ServiceRequestPaymentService;
 import com.clenzy.service.ServiceRequestService;
-import com.clenzy.model.PaymentStatus;
 import com.clenzy.service.StripeService;
-import com.clenzy.tenant.TenantContext;
-import com.stripe.Stripe;
 import com.stripe.model.checkout.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,10 +17,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -49,28 +37,16 @@ import org.springframework.security.access.prepost.PreAuthorize;
 public class ServiceRequestController {
     private static final Logger log = LoggerFactory.getLogger(ServiceRequestController.class);
 
-    @Value("${stripe.secret-key}")
-    private String stripeSecretKey;
-
     private final ServiceRequestService service;
     private final StripeService stripeService;
-    private final ServiceRequestRepository serviceRequestRepository;
-    private final UserRepository userRepository;
-    private final TeamRepository teamRepository;
-    private final TenantContext tenantContext;
+    private final ServiceRequestPaymentService serviceRequestPaymentService;
 
     public ServiceRequestController(ServiceRequestService service,
                                     StripeService stripeService,
-                                    ServiceRequestRepository serviceRequestRepository,
-                                    UserRepository userRepository,
-                                    TeamRepository teamRepository,
-                                    TenantContext tenantContext) {
+                                    ServiceRequestPaymentService serviceRequestPaymentService) {
         this.service = service;
         this.stripeService = stripeService;
-        this.serviceRequestRepository = serviceRequestRepository;
-        this.userRepository = userRepository;
-        this.teamRepository = teamRepository;
-        this.tenantContext = tenantContext;
+        this.serviceRequestPaymentService = serviceRequestPaymentService;
     }
 
     @PostMapping
@@ -148,82 +124,9 @@ public class ServiceRequestController {
 
         LocalDateTime fromDateTime = from.atStartOfDay();
         LocalDateTime toDateTime = to.atTime(LocalTime.MAX);
-        Long orgId = tenantContext.getRequiredOrganizationId();
 
-        List<ServiceRequest> srList;
-        if (propertyIds != null && !propertyIds.isEmpty()) {
-            srList = serviceRequestRepository.findByStatusAndPropertyIdsAndDesiredDateBetween(
-                    RequestStatus.AWAITING_PAYMENT, propertyIds, fromDateTime, toDateTime, orgId);
-        } else {
-            srList = serviceRequestRepository.findByStatusAndDesiredDateBetween(
-                    RequestStatus.AWAITING_PAYMENT, fromDateTime, toDateTime, orgId);
-        }
-
-        // Pre-load team names to avoid N+1
-        List<Long> teamIds = srList.stream()
-                .filter(sr -> "team".equals(sr.getAssignedToType()) && sr.getAssignedToId() != null)
-                .map(ServiceRequest::getAssignedToId)
-                .distinct()
-                .collect(Collectors.toList());
-        final Map<Long, String> teamNameMap = !teamIds.isEmpty()
-                ? teamRepository.findAllById(teamIds).stream()
-                    .collect(Collectors.toMap(Team::getId, Team::getName, (a, b) -> a))
-                : Map.of();
-
-        // Pre-load user names
-        List<Long> userIds = srList.stream()
-                .filter(sr -> "user".equals(sr.getAssignedToType()) && sr.getAssignedToId() != null)
-                .map(ServiceRequest::getAssignedToId)
-                .distinct()
-                .collect(Collectors.toList());
-        final Map<Long, String> userNameMap = !userIds.isEmpty()
-                ? userRepository.findAllById(userIds).stream()
-                    .collect(Collectors.toMap(User::getId,
-                        u -> (u.getFirstName() + " " + u.getLastName()).trim(), (a, b) -> a))
-                : Map.of();
-
-        List<Map<String, Object>> result = srList.stream().map(sr -> {
-            Map<String, Object> map = new LinkedHashMap<>();
-            map.put("id", sr.getId());
-            map.put("propertyId", sr.getProperty() != null ? sr.getProperty().getId() : null);
-            map.put("propertyName", sr.getProperty() != null ? sr.getProperty().getName() : "");
-            map.put("serviceType", sr.getServiceType() != null ? sr.getServiceType().name() : null);
-            map.put("title", sr.getTitle());
-            map.put("status", "AWAITING_PAYMENT");
-            map.put("estimatedDurationHours", sr.getEstimatedDurationHours());
-            map.put("estimatedCost", sr.getEstimatedCost());
-
-            // Resolve assignee name
-            String assigneeName = null;
-            if ("user".equals(sr.getAssignedToType()) && sr.getAssignedToId() != null) {
-                assigneeName = userNameMap.getOrDefault(sr.getAssignedToId(), "Utilisateur #" + sr.getAssignedToId());
-            } else if ("team".equals(sr.getAssignedToType()) && sr.getAssignedToId() != null) {
-                assigneeName = teamNameMap.getOrDefault(sr.getAssignedToId(), "Équipe #" + sr.getAssignedToId());
-            }
-            map.put("assignedToName", assigneeName);
-
-            // Date/time from desiredDate
-            if (sr.getDesiredDate() != null) {
-                map.put("startDate", sr.getDesiredDate().toLocalDate().toString());
-                map.put("startTime", sr.getDesiredDate().toLocalTime().toString());
-                if (sr.getEstimatedDurationHours() != null) {
-                    LocalTime endTime = sr.getDesiredDate().toLocalTime()
-                            .plusHours(sr.getEstimatedDurationHours());
-                    map.put("endTime", endTime.toString());
-                } else {
-                    map.put("endTime", null);
-                }
-            } else {
-                map.put("startDate", null);
-                map.put("startTime", null);
-                map.put("endTime", null);
-            }
-
-            // Linked reservation
-            map.put("reservationId", sr.getReservationId());
-
-            return map;
-        }).collect(Collectors.toList());
+        List<Map<String, Object>> result = service.getPlanningServiceRequests(
+                propertyIds, fromDateTime, toDateTime);
 
         return ResponseEntity.ok(result);
     }
@@ -270,46 +173,7 @@ public class ServiceRequestController {
                        "Confirme automatiquement + cree l'intervention si Stripe indique paid.")
     public ResponseEntity<?> checkPaymentStatus(@PathVariable Long id) {
         try {
-            ServiceRequest sr = serviceRequestRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Demande de service non trouvee: " + id));
-
-            // Already paid?
-            if (sr.getPaymentStatus() == PaymentStatus.PAID) {
-                return ResponseEntity.ok(Map.of(
-                    "paymentStatus", "PAID",
-                    "message", "Paiement deja confirme"
-                ));
-            }
-
-            String sessionId = sr.getStripeSessionId();
-            if (sessionId == null || sessionId.isBlank()) {
-                return ResponseEntity.ok(Map.of(
-                    "paymentStatus", "NO_SESSION",
-                    "message", "Aucune session de paiement Stripe associee"
-                ));
-            }
-
-            // Query Stripe API directly
-            Stripe.apiKey = stripeSecretKey;
-            Session stripeSession = Session.retrieve(sessionId);
-            String stripePaymentStatus = stripeSession.getPaymentStatus();
-
-            log.info("Check payment SR {}: Stripe session {} paymentStatus={}",
-                    id, sessionId, stripePaymentStatus);
-
-            if ("paid".equals(stripePaymentStatus)) {
-                // Webhook missed — confirm manually (creates intervention too)
-                stripeService.confirmServiceRequestPayment(sessionId);
-                return ResponseEntity.ok(Map.of(
-                    "paymentStatus", "PAID",
-                    "message", "Paiement confirme (webhook rattrape)"
-                ));
-            } else {
-                return ResponseEntity.ok(Map.of(
-                    "paymentStatus", stripePaymentStatus != null ? stripePaymentStatus.toUpperCase() : "UNKNOWN",
-                    "message", "Paiement non encore confirme sur Stripe"
-                ));
-            }
+            return ResponseEntity.ok(serviceRequestPaymentService.checkPaymentStatus(id));
         } catch (Exception e) {
             log.error("Erreur check payment SR {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -317,5 +181,3 @@ public class ServiceRequestController {
         }
     }
 }
-
-

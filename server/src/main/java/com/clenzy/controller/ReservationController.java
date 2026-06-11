@@ -3,43 +3,24 @@ package com.clenzy.controller;
 import com.clenzy.dto.InterventionResponse;
 import com.clenzy.dto.ReservationDto;
 import com.clenzy.exception.NotFoundException;
-import com.clenzy.util.StringUtils;
-import com.clenzy.model.*;
-import com.clenzy.repository.GuestRepository;
-import com.clenzy.repository.InterventionRepository;
-import com.clenzy.repository.MessageTemplateRepository;
-import com.clenzy.repository.PropertyRepository;
-import com.clenzy.repository.ReservationRepository;
-import com.clenzy.repository.SmartLockDeviceRepository;
-import com.clenzy.repository.UserRepository;
-import com.clenzy.service.EmailService;
-import com.clenzy.service.GuestService;
+import com.clenzy.model.Reservation;
 import com.clenzy.service.InterventionMapper;
 import com.clenzy.service.ReservationMapper;
+import com.clenzy.service.ReservationPaymentService;
 import com.clenzy.service.ReservationService;
-import com.clenzy.service.StripeService;
-import com.clenzy.service.messaging.GuestMessagingService;
-import com.clenzy.service.smartlock.SmartLockAccessCodeService;
-import com.clenzy.tenant.TenantContext;
-import com.stripe.Stripe;
-import com.stripe.model.checkout.Session;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -52,58 +33,19 @@ public class ReservationController {
 
     private static final Logger log = LoggerFactory.getLogger(ReservationController.class);
 
-    @Value("${stripe.secret-key}")
-    private String stripeSecretKey;
-
     private final ReservationService reservationService;
     private final ReservationMapper reservationMapper;
-    private final ReservationRepository reservationRepository;
-    private final InterventionRepository interventionRepository;
-    private final PropertyRepository propertyRepository;
-    private final UserRepository userRepository;
-    private final GuestRepository guestRepository;
-    private final StripeService stripeService;
-    private final EmailService emailService;
-    private final GuestService guestService;
-    private final GuestMessagingService guestMessagingService;
-    private final MessageTemplateRepository messageTemplateRepository;
+    private final ReservationPaymentService reservationPaymentService;
     private final InterventionMapper interventionMapper;
-    private final TenantContext tenantContext;
-    private final SmartLockDeviceRepository smartLockDeviceRepository;
-    private final SmartLockAccessCodeService accessCodeService;
 
     public ReservationController(ReservationService reservationService,
                                  ReservationMapper reservationMapper,
-                                 ReservationRepository reservationRepository,
-                                 InterventionRepository interventionRepository,
-                                 PropertyRepository propertyRepository,
-                                 UserRepository userRepository,
-                                 GuestRepository guestRepository,
-                                 GuestService guestService,
-                                 StripeService stripeService,
-                                 EmailService emailService,
-                                 GuestMessagingService guestMessagingService,
-                                 MessageTemplateRepository messageTemplateRepository,
-                                 InterventionMapper interventionMapper,
-                                 TenantContext tenantContext,
-                                 SmartLockDeviceRepository smartLockDeviceRepository,
-                                 SmartLockAccessCodeService accessCodeService) {
-        this.smartLockDeviceRepository = smartLockDeviceRepository;
-        this.accessCodeService = accessCodeService;
+                                 ReservationPaymentService reservationPaymentService,
+                                 InterventionMapper interventionMapper) {
         this.reservationService = reservationService;
         this.reservationMapper = reservationMapper;
-        this.reservationRepository = reservationRepository;
-        this.interventionRepository = interventionRepository;
-        this.propertyRepository = propertyRepository;
-        this.userRepository = userRepository;
-        this.guestRepository = guestRepository;
-        this.guestService = guestService;
-        this.stripeService = stripeService;
-        this.emailService = emailService;
-        this.guestMessagingService = guestMessagingService;
-        this.messageTemplateRepository = messageTemplateRepository;
+        this.reservationPaymentService = reservationPaymentService;
         this.interventionMapper = interventionMapper;
-        this.tenantContext = tenantContext;
     }
 
     // ── GET : interventions liees a une reservation ─────────────────────────
@@ -111,8 +53,7 @@ public class ReservationController {
     @GetMapping("/{id}/interventions")
     @Operation(summary = "Lister les interventions liees a une reservation")
     public ResponseEntity<List<InterventionResponse>> getLinkedInterventions(@PathVariable Long id) {
-        Long orgId = tenantContext.getRequiredOrganizationId();
-        List<InterventionResponse> responses = interventionRepository.findByReservationId(id, orgId)
+        List<InterventionResponse> responses = reservationService.getLinkedInterventions(id)
                 .stream()
                 .map(interventionMapper::convertToResponse)
                 .collect(Collectors.toList());
@@ -171,8 +112,8 @@ public class ReservationController {
         if (q == null || q.trim().length() < 2) {
             return ResponseEntity.ok(List.of());
         }
-        List<ReservationDto> result = reservationRepository
-                .searchByGuestOrProperty(q.trim(), org.springframework.data.domain.PageRequest.of(0, 15)).stream()
+        List<ReservationDto> result = reservationService
+                .searchByGuestOrProperty(q.trim(), 15).stream()
                 .map(reservationMapper::toDto)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(result);
@@ -183,8 +124,7 @@ public class ReservationController {
     @GetMapping("/{id}")
     @Operation(summary = "Detail d'une reservation")
     public ResponseEntity<ReservationDto> getById(@PathVariable Long id) {
-        Reservation reservation = reservationRepository.findByIdFetchAll(id)
-                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+        Reservation reservation = reservationService.getByIdFetchAll(id);
         return ResponseEntity.ok(reservationMapper.toDto(reservation));
     }
 
@@ -198,14 +138,10 @@ public class ReservationController {
             @RequestBody ReservationDto dto,
             @AuthenticationPrincipal Jwt jwt) {
 
-        validatePropertyAccess(dto.propertyId(), jwt.getSubject());
+        reservationService.validatePropertyAccess(dto.propertyId(), jwt.getSubject());
 
         // Valider que le guest appartient a la meme organisation
-        if (dto.guestId() != null) {
-            Long orgId = tenantContext.getRequiredOrganizationId();
-            guestRepository.findByIdAndOrganizationId(dto.guestId(), orgId)
-                    .orElseThrow(() -> new NotFoundException("Guest introuvable: " + dto.guestId()));
-        }
+        reservationService.validateGuestBelongsToOrganization(dto.guestId());
 
         Reservation reservation = new Reservation();
         reservationMapper.apply(dto, reservation);
@@ -220,8 +156,7 @@ public class ReservationController {
         }
 
         // Re-load with all relations to avoid LazyInitializationException (open-in-view=false)
-        Reservation result = reservationRepository.findByIdFetchAll(saved.getId())
-                .orElse(saved);
+        Reservation result = reservationService.reloadWithRelations(saved);
         return ResponseEntity.ok(reservationMapper.toDto(result));
     }
 
@@ -229,82 +164,23 @@ public class ReservationController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Modifier une reservation",
-            description = "Tous les champs sont modifiables (OTA et direct).")
+            description = "Tous les champs sont modifiables (OTA et direct). "
+                    + "Les changements de dates/statut sont synchronises avec le calendrier "
+                    + "(liberation + re-reservation atomiques, 409 en cas de conflit).")
     public ResponseEntity<ReservationDto> update(
             @PathVariable Long id,
             @RequestBody ReservationDto dto,
             @AuthenticationPrincipal Jwt jwt) {
 
-        Reservation existing = reservationRepository.findByIdFetchAll(id)
-                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+        Reservation existing = reservationService.getByIdFetchAll(id);
 
-        validatePropertyAccess(existing.getProperty().getId(), jwt.getSubject());
+        reservationService.validatePropertyAccess(existing.getProperty().getId(), jwt.getSubject());
 
-        // Si la reservation n'a pas de Guest (cas iCal import), le creer/lier avant d'appliquer
-        // les modifications, sinon guestEmail/guestPhone ne seront jamais persistes
-        if (existing.getGuest() == null && existing.getGuestName() != null
-                && !existing.getGuestName().isBlank()) {
-            Long orgId = tenantContext.getRequiredOrganizationId();
-            Guest guest = guestService.findOrCreateFromName(
-                    existing.getGuestName(), existing.getSource(), orgId);
-            if (guest != null) {
-                existing.setGuest(guest);
-                log.info("Guest cree/lie pour reservation #{} (import iCal sans Guest): guestId={}",
-                        existing.getId(), guest.getId());
-            }
-        }
-
-        // Sauvegarder les anciennes dates pour detecter un changement
-        LocalDate oldCheckIn = existing.getCheckIn();
-        LocalDate oldCheckOut = existing.getCheckOut();
-
-        // Tous les champs sont modifiables (OTA et direct)
-        reservationMapper.apply(dto, existing);
-
-        // Si le checkout a change et qu'une intervention est liee, decaler l'intervention
-        if (existing.getIntervention() != null && !existing.getCheckOut().equals(oldCheckOut)) {
-            var intervention = existing.getIntervention();
-            // Garder la meme heure, changer la date au nouveau checkout
-            java.time.LocalTime timeOfDay = intervention.getScheduledDate() != null
-                    ? intervention.getScheduledDate().toLocalTime()
-                    : java.time.LocalTime.of(11, 0);
-            LocalDateTime newScheduled = existing.getCheckOut().atTime(timeOfDay);
-            intervention.setScheduledDate(newScheduled);
-            intervention.setGuestCheckoutTime(newScheduled);
-            // Mettre a jour startTime/endTime aussi pour coherence
-            intervention.setStartTime(newScheduled);
-            if (intervention.getEstimatedDurationHours() != null) {
-                intervention.setEndTime(newScheduled.plusHours(intervention.getEstimatedDurationHours()));
-            }
-            interventionRepository.save(intervention);
-        }
-
-        Reservation saved = reservationRepository.save(existing);
-
-        // Dates modifiees → revoque + regenere les codes d'acces serrure sur la nouvelle
-        // fenetre (non bloquant : une panne Tuya ne doit pas bloquer la mise a jour).
-        boolean datesChanged = !java.util.Objects.equals(saved.getCheckIn(), oldCheckIn)
-                || !java.util.Objects.equals(saved.getCheckOut(), oldCheckOut);
-        if (datesChanged && "confirmed".equals(saved.getStatus())) {
-            try {
-                accessCodeService.revokeForReservation(saved.getId(), "system");
-                for (SmartLockDevice lock : smartLockDeviceRepository.findByPropertyIdAndStatus(
-                        saved.getProperty().getId(), SmartLockDevice.DeviceStatus.ACTIVE)) {
-                    accessCodeService.generateForReservation(
-                            saved, lock, SmartLockAccessCode.CodeSource.AUTO_RESERVATION);
-                }
-            } catch (Exception e) {
-                log.warn("Regeneration des codes d'acces serrure echouee (reservation={}): {}",
-                        saved.getId(), e.getMessage());
-            }
-        }
-
-        // Notification de mise a jour
-        reservationService.notifyReservationUpdated(saved);
+        // Orchestration transactionnelle (calendrier, intervention, codes, notification)
+        Reservation saved = reservationService.update(id, dto, jwt.getSubject());
 
         // Re-load with all relations for DTO conversion
-        Reservation result = reservationRepository.findByIdFetchAll(saved.getId())
-                .orElse(saved);
+        Reservation result = reservationService.reloadWithRelations(saved);
         return ResponseEntity.ok(reservationMapper.toDto(result));
     }
 
@@ -317,15 +193,13 @@ public class ReservationController {
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
 
-        Reservation existing = reservationRepository.findByIdFetchAll(id)
-                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+        Reservation existing = reservationService.getByIdFetchAll(id);
 
-        validatePropertyAccess(existing.getProperty().getId(), jwt.getSubject());
+        reservationService.validatePropertyAccess(existing.getProperty().getId(), jwt.getSubject());
 
         reservationService.cancel(id);
         // Re-load with all relations for DTO conversion
-        Reservation cancelled = reservationRepository.findByIdFetchAll(id)
-                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+        Reservation cancelled = reservationService.getByIdFetchAll(id);
         return ResponseEntity.ok(reservationMapper.toDto(cancelled));
     }
 
@@ -338,17 +212,16 @@ public class ReservationController {
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
 
-        Reservation existing = reservationRepository.findByIdFetchAll(id)
-                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+        Reservation existing = reservationService.getByIdFetchAll(id);
 
-        validatePropertyAccess(existing.getProperty().getId(), jwt.getSubject());
+        reservationService.validatePropertyAccess(existing.getProperty().getId(), jwt.getSubject());
 
         if (!"cancelled".equals(existing.getStatus())) {
             return ResponseEntity.badRequest().build();
         }
 
         existing.setHiddenFromPlanning(true);
-        reservationRepository.save(existing);
+        reservationService.persistHiddenFromPlanning(existing);
 
         return ResponseEntity.ok(reservationMapper.toDto(existing));
     }
@@ -364,112 +237,12 @@ public class ReservationController {
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal Jwt jwt) {
 
-        Reservation reservation = reservationRepository.findByIdFetchAll(id)
-                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+        Reservation reservation = reservationService.getByIdFetchAll(id);
 
-        validatePropertyAccess(reservation.getProperty().getId(), jwt.getSubject());
+        reservationService.validatePropertyAccess(reservation.getProperty().getId(), jwt.getSubject());
 
-        // Determine email: use provided email or fall back to guest email
-        String email = body.get("email");
-        if (email == null || email.isBlank()) {
-            if (reservation.getGuest() != null && reservation.getGuest().getEmail() != null) {
-                email = reservation.getGuest().getEmail();
-            } else {
-                throw new IllegalArgumentException("Aucune adresse email disponible pour ce guest");
-            }
-        }
-
-        BigDecimal amount = reservation.getTotalPrice();
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Le montant de la reservation doit etre superieur a 0");
-        }
-
-        try {
-            // Create Stripe checkout session for the reservation
-            Session session = stripeService.createReservationCheckoutSession(
-                    reservation.getId(), amount, email, reservation.getGuestName(),
-                    reservation.getProperty().getName());
-
-            String paymentUrl = session.getUrl();
-            Long orgId = tenantContext.getRequiredOrganizationId();
-
-            // Try to use a PAYMENT_LINK messaging template if one is configured
-            List<MessageTemplate> paymentTemplates = messageTemplateRepository
-                    .findByOrganizationIdAndTypeAndIsActiveTrue(orgId, MessageTemplateType.PAYMENT_LINK);
-
-            if (!paymentTemplates.isEmpty()) {
-                // Use the first active PAYMENT_LINK template via GuestMessagingService
-                MessageTemplate template = paymentTemplates.get(0);
-                String currency = reservation.getCurrency() != null ? reservation.getCurrency() : "EUR";
-                String paymentButton = "<a href=\"" + paymentUrl
-                        + "\" style=\"background-color: #6B8A9A; color: white; padding: 12px 30px; "
-                        + "text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">"
-                        + "Payer maintenant</a>";
-
-                Map<String, String> extraVars = Map.of(
-                        "paymentLink", paymentButton,
-                        "paymentAmount", amount.toPlainString(),
-                        "paymentCurrency", currency
-                );
-
-                guestMessagingService.sendForReservationViaChannel(
-                        reservation, template, orgId, MessageChannelType.EMAIL, extraVars);
-            } else {
-                // Fallback: send hardcoded email if no template is configured
-                String subject = "Lien de paiement - Reservation " + reservation.getProperty().getName();
-                String htmlBody = buildPaymentEmailBody(
-                        reservation.getGuestName(), reservation.getProperty().getName(),
-                        reservation.getCheckIn().toString(), reservation.getCheckOut().toString(),
-                        amount.toPlainString(), reservation.getCurrency(), paymentUrl);
-
-                emailService.sendSimpleHtmlEmail(email, subject, htmlBody);
-            }
-
-            // Update reservation tracking
-            reservation.setPaymentLinkSentAt(LocalDateTime.now());
-            reservation.setPaymentLinkEmail(email);
-            reservation.setStripeSessionId(session.getId());
-            reservationRepository.save(reservation);
-
-            // Re-load with all relations
-            Reservation result = reservationRepository.findByIdFetchAll(id).orElse(reservation);
-            return ResponseEntity.ok(reservationMapper.toDto(result));
-
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de l'envoi du lien de paiement: " + e.getMessage(), e);
-        }
-    }
-
-    private String buildPaymentEmailBody(String guestName, String propertyName,
-                                         String checkIn, String checkOut,
-                                         String amount, String currency, String paymentUrl) {
-        return """
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #6B8A9A;">Lien de paiement</h2>
-                <p>Bonjour %s,</p>
-                <p>Veuillez trouver ci-dessous le lien pour proceder au paiement de votre reservation :</p>
-                <table style="width: 100%%; border-collapse: collapse; margin: 20px 0;">
-                    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Logement</strong></td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;">%s</td></tr>
-                    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Check-in</strong></td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;">%s</td></tr>
-                    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Check-out</strong></td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;">%s</td></tr>
-                    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Montant</strong></td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;">%s %s</td></tr>
-                </table>
-                <p style="text-align: center; margin: 30px 0;">
-                    <a href="%s" style="background-color: #6B8A9A; color: white; padding: 12px 30px;
-                       text-decoration: none; border-radius: 6px; font-weight: bold;">
-                       Payer maintenant
-                    </a>
-                </p>
-                <p style="color: #888; font-size: 12px;">
-                    Ce lien est securise et vous redirigera vers la plateforme de paiement Stripe.
-                </p>
-            </div>
-            """.formatted(StringUtils.escapeHtml(guestName), StringUtils.escapeHtml(propertyName),
-                    checkIn, checkOut, amount, StringUtils.escapeHtml(currency), paymentUrl);
+        Reservation result = reservationPaymentService.sendPaymentLink(reservation, body.get("email"));
+        return ResponseEntity.ok(reservationMapper.toDto(result));
     }
 
     // ── POST : vérifier le paiement auprès de Stripe ──────────────────────
@@ -482,53 +255,11 @@ public class ReservationController {
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
         try {
-            Reservation reservation = reservationRepository.findByIdFetchAll(id)
-                    .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+            Reservation reservation = reservationService.getByIdFetchAll(id);
 
-            validatePropertyAccess(reservation.getProperty().getId(), jwt.getSubject());
+            reservationService.validatePropertyAccess(reservation.getProperty().getId(), jwt.getSubject());
 
-            // Already paid?
-            if (reservation.getPaymentStatus() == PaymentStatus.PAID) {
-                return ResponseEntity.ok(Map.of(
-                        "paymentStatus", "PAID",
-                        "paidAt", reservation.getPaidAt() != null ? reservation.getPaidAt().toString() : "",
-                        "message", "Paiement deja confirme"
-                ));
-            }
-
-            String sessionId = reservation.getStripeSessionId();
-            if (sessionId == null || sessionId.isBlank()) {
-                return ResponseEntity.ok(Map.of(
-                        "paymentStatus", "NO_SESSION",
-                        "message", "Aucune session de paiement Stripe associee"
-                ));
-            }
-
-            // Query Stripe API directly
-            Stripe.apiKey = stripeSecretKey;
-            Session stripeSession = Session.retrieve(sessionId);
-            String stripePaymentStatus = stripeSession.getPaymentStatus();
-
-            log.info("Check payment reservation {}: Stripe session {} paymentStatus={}",
-                    id, sessionId, stripePaymentStatus);
-
-            if ("paid".equals(stripePaymentStatus)) {
-                // Webhook missed — confirm manually via the same service method
-                stripeService.confirmReservationPayment(sessionId);
-
-                // Reload
-                reservation = reservationRepository.findByIdFetchAll(id).orElse(reservation);
-                return ResponseEntity.ok(Map.of(
-                        "paymentStatus", "PAID",
-                        "paidAt", reservation.getPaidAt() != null ? reservation.getPaidAt().toString() : "",
-                        "message", "Paiement confirme (webhook rattrape)"
-                ));
-            } else {
-                return ResponseEntity.ok(Map.of(
-                        "paymentStatus", stripePaymentStatus != null ? stripePaymentStatus.toUpperCase() : "UNKNOWN",
-                        "message", "Paiement non encore confirme sur Stripe"
-                ));
-            }
+            return ResponseEntity.ok(reservationPaymentService.checkPaymentStatus(reservation));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
@@ -537,29 +268,5 @@ public class ReservationController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Erreur lors de la verification: " + e.getMessage()));
         }
-    }
-
-    // ── Ownership validation ────────────────────────────────────────────────
-
-    private void validatePropertyAccess(Long propertyId, String keycloakId) {
-        Long orgId = tenantContext.getRequiredOrganizationId();
-
-        Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new NotFoundException("Propriete introuvable: " + propertyId));
-
-        if (property.getOrganizationId() != null && !property.getOrganizationId().equals(orgId)) {
-            throw new AccessDeniedException("Acces refuse : propriete hors de votre organisation");
-        }
-
-        if (tenantContext.isSuperAdmin()) return;
-
-        User user = userRepository.findByKeycloakId(keycloakId).orElse(null);
-        if (user != null && user.getRole() != null && user.getRole().isPlatformStaff()) return;
-
-        // Comparaison par ID (PK) pour eviter LazyInitializationException sur le proxy User
-        if (user != null && property.getOwner() != null
-                && property.getOwner().getId().equals(user.getId())) return;
-
-        throw new AccessDeniedException("Acces refuse : vous n'etes pas proprietaire de cette propriete");
     }
 }

@@ -1,24 +1,17 @@
 package com.clenzy.controller;
 
+import com.clenzy.integration.channel.AirbnbChannelAdapter;
+import com.clenzy.integration.channel.SyncResult;
 import com.clenzy.model.CalendarDay;
-import com.clenzy.model.Property;
-import com.clenzy.model.RateOverride;
-import com.clenzy.model.RatePlan;
-import com.clenzy.model.RatePlanType;
-import com.clenzy.model.User;
-import com.clenzy.repository.CalendarDayRepository;
-import com.clenzy.repository.PropertyRepository;
-import com.clenzy.repository.RateOverrideRepository;
-import com.clenzy.repository.RatePlanRepository;
-import com.clenzy.repository.UserRepository;
 import com.clenzy.service.CalendarEngine;
 import com.clenzy.service.PriceEngine;
+import com.clenzy.service.ReservationService;
 import com.clenzy.tenant.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -40,8 +33,9 @@ import java.util.stream.Collectors;
  * Les mutations sont deleguees au CalendarEngine qui gere
  * les advisory locks et l'anti-double-booking.
  *
- * Chaque endpoint valide l'ownership : l'utilisateur doit etre
- * proprietaire de la propriete ou avoir un role platform staff.
+ * Chaque endpoint valide l'ownership via le mecanisme transverse
+ * ReservationService.validatePropertyAccess (T-ARCH-08 : plus de copie
+ * locale de la regle d'acces propriete dans ce controller).
  */
 @RestController
 @RequestMapping("/api/calendar")
@@ -49,31 +43,30 @@ import java.util.stream.Collectors;
 @PreAuthorize("isAuthenticated()")
 public class CalendarController {
 
+    /**
+     * Horizon du push manuel de prix, aligne sur celui du push automatique
+     * horaire ({@code PricingPushScheduler.PUSH_HORIZON_DAYS}) : le push Airbnb
+     * est sequentiel jour par jour, 365 jours seraient trop longs pour une
+     * requete HTTP synchrone.
+     */
+    static final int PUSH_PRICING_HORIZON_DAYS = 90;
+
     private final CalendarEngine calendarEngine;
-    private final CalendarDayRepository calendarDayRepository;
-    private final PropertyRepository propertyRepository;
-    private final UserRepository userRepository;
+    private final ReservationService reservationService;
     private final TenantContext tenantContext;
     private final PriceEngine priceEngine;
-    private final RatePlanRepository ratePlanRepository;
-    private final RateOverrideRepository rateOverrideRepository;
+    private final AirbnbChannelAdapter airbnbChannelAdapter;
 
     public CalendarController(CalendarEngine calendarEngine,
-                              CalendarDayRepository calendarDayRepository,
-                              PropertyRepository propertyRepository,
-                              UserRepository userRepository,
+                              ReservationService reservationService,
                               TenantContext tenantContext,
                               PriceEngine priceEngine,
-                              RatePlanRepository ratePlanRepository,
-                              RateOverrideRepository rateOverrideRepository) {
+                              AirbnbChannelAdapter airbnbChannelAdapter) {
         this.calendarEngine = calendarEngine;
-        this.calendarDayRepository = calendarDayRepository;
-        this.propertyRepository = propertyRepository;
-        this.userRepository = userRepository;
+        this.reservationService = reservationService;
         this.tenantContext = tenantContext;
         this.priceEngine = priceEngine;
-        this.ratePlanRepository = ratePlanRepository;
-        this.rateOverrideRepository = rateOverrideRepository;
+        this.airbnbChannelAdapter = airbnbChannelAdapter;
     }
 
     // ----------------------------------------------------------------
@@ -92,7 +85,7 @@ public class CalendarController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         validatePropertyAccess(propertyId, jwt.getSubject(), orgId);
 
-        List<CalendarDay> days = calendarDayRepository.findByPropertyAndDateRange(propertyId, from, to, orgId);
+        List<CalendarDay> days = calendarEngine.getDays(propertyId, from, to, orgId);
 
         List<Map<String, Object>> result = days.stream().map(this::mapDay).collect(Collectors.toList());
         return ResponseEntity.ok(result);
@@ -172,8 +165,7 @@ public class CalendarController {
 
         Long orgId = tenantContext.getRequiredOrganizationId();
 
-        List<CalendarDay> days = calendarDayRepository.findBlockedOrMaintenanceForProperties(
-                propertyIds, from, to, orgId);
+        List<CalendarDay> days = calendarEngine.getBlockedOrMaintenanceDays(propertyIds, from, to, orgId);
 
         List<Map<String, Object>> result = days.stream().map(day -> {
             Map<String, Object> map = new LinkedHashMap<>();
@@ -207,7 +199,9 @@ public class CalendarController {
         LocalDate to = LocalDate.parse((String) body.get("to"));
         BigDecimal price = new BigDecimal(body.get("price").toString());
 
-        calendarEngine.updatePrice(propertyId, from, to, price, orgId, jwt.getSubject());
+        // Prix MANUEL : cree aussi un RateOverride source MANUAL visible du
+        // PriceEngine (devis booking engine, push OTA) — audit Z5-BUGS-04.
+        calendarEngine.updateManualPrice(propertyId, from, to, price, orgId, jwt.getSubject());
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("propertyId", propertyId);
@@ -237,58 +231,35 @@ public class CalendarController {
         validatePropertyAccess(propertyId, jwt.getSubject(), orgId);
 
         // Charger les jours calendrier existants
-        List<CalendarDay> days = calendarDayRepository.findByPropertyAndDateRange(propertyId, from, to, orgId);
+        List<CalendarDay> days = calendarEngine.getDays(propertyId, from, to, orgId);
         Map<LocalDate, CalendarDay> dayMap = days.stream()
                 .collect(Collectors.toMap(CalendarDay::getDate, d -> d));
 
-        // Resoudre les prix via PriceEngine
-        Map<LocalDate, BigDecimal> prices = priceEngine.resolvePriceRange(propertyId, from, to, orgId);
-
-        // Charger overrides et plans actifs pour identifier la source
-        List<RateOverride> overrides = rateOverrideRepository.findByPropertyIdAndDateRange(propertyId, from, to, orgId);
-        Set<LocalDate> overrideDates = overrides.stream()
-                .map(RateOverride::getDate)
-                .collect(Collectors.toSet());
-        List<RatePlan> activePlans = ratePlanRepository.findActiveByPropertyId(propertyId, orgId);
+        // Resoudre prix ET source via PriceEngine — source de verite unique de la
+        // cascade (audit T-ARCH-04 : plus de re-implementation dans le controller).
+        Map<LocalDate, PriceEngine.ResolvedPrice> prices =
+                priceEngine.resolvePriceRangeWithSource(propertyId, from, to, orgId);
 
         // Construire la reponse enrichie pour chaque jour
         List<Map<String, Object>> result = new ArrayList<>();
         for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("date", date.toString());
-            entry.put("nightlyPrice", prices.get(date) != null ? prices.get(date).doubleValue() : null);
+
+            PriceEngine.ResolvedPrice resolved = prices.get(date);
+            entry.put("nightlyPrice", resolved != null && resolved.price() != null
+                    ? resolved.price().doubleValue() : null);
 
             CalendarDay day = dayMap.get(date);
             entry.put("status", day != null ? day.getStatus().name() : "AVAILABLE");
             entry.put("reservationId", day != null && day.getReservation() != null ? day.getReservation().getId() : null);
 
-            // Identifier la source du prix (meme algorithme que PriceEngine)
-            String priceSource = resolvePriceSource(date, overrideDates, activePlans);
-            entry.put("priceSource", priceSource);
+            entry.put("priceSource", resolved != null ? resolved.source() : PriceEngine.SOURCE_PROPERTY_DEFAULT);
 
             result.add(entry);
         }
 
         return ResponseEntity.ok(result);
-    }
-
-    /**
-     * Identifie la source du prix pour un jour donne.
-     * Meme algorithme que PriceEngine : Override > PROMO > SEASONAL > LAST_MINUTE > BASE > fallback.
-     */
-    private String resolvePriceSource(LocalDate date, Set<LocalDate> overrideDates, List<RatePlan> plans) {
-        if (overrideDates.contains(date)) {
-            return "OVERRIDE";
-        }
-        for (RatePlanType type : List.of(RatePlanType.PROMOTIONAL, RatePlanType.SEASONAL,
-                RatePlanType.LAST_MINUTE, RatePlanType.BASE)) {
-            for (RatePlan plan : plans) {
-                if (plan.getType() == type && plan.appliesTo(date)) {
-                    return type.name();
-                }
-            }
-        }
-        return "PROPERTY_DEFAULT";
     }
 
     // ----------------------------------------------------------------
@@ -297,7 +268,9 @@ public class CalendarController {
 
     @PostMapping("/{propertyId}/push-pricing")
     @Operation(summary = "Pousser les prix vers Airbnb",
-            description = "Declenche un push manuel des prix resolus vers le listing Airbnb lie a la propriete.")
+            description = "Declenche un push manuel des prix resolus vers le listing Airbnb lie a la propriete "
+                    + "(meme mecanisme que le push automatique horaire). "
+                    + "409 si aucun mapping Airbnb n'est configure, 502 si l'API Airbnb echoue.")
     public ResponseEntity<Map<String, Object>> pushPricing(
             @PathVariable Long propertyId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -305,22 +278,35 @@ public class CalendarController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         validatePropertyAccess(propertyId, jwt.getSubject(), orgId);
 
-        // Resoudre les prix pour les 365 prochains jours
+        // T-ARCH-09 : push reellement execute via AirbnbChannelAdapter (l'ancien
+        // endpoint resolvait les prix puis repondait "PUSHED" sans rien pousser).
         LocalDate from = LocalDate.now();
-        LocalDate to = from.plusDays(365);
-        Map<LocalDate, BigDecimal> prices = priceEngine.resolvePriceRange(propertyId, from, to, orgId);
-
-        // TODO: Appeler l'API Airbnb pour pousser les prix
-        // AirbnbApiClient.updatePricing(listingId, prices)
+        LocalDate to = from.plusDays(PUSH_PRICING_HORIZON_DAYS);
+        SyncResult result = airbnbChannelAdapter.pushCalendarUpdate(propertyId, from, to, orgId);
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("propertyId", propertyId);
-        response.put("daysResolved", prices.size());
         response.put("from", from.toString());
         response.put("to", to.toString());
-        response.put("status", "PUSHED");
+        response.put("daysResolved", result.getItemsProcessed());
 
-        return ResponseEntity.ok(response);
+        return switch (result.getStatus()) {
+            case SUCCESS -> {
+                response.put("status", "PUSHED");
+                yield ResponseEntity.ok(response);
+            }
+            case SKIPPED -> {
+                // Pas de mapping Airbnb pour cette propriete : rien n'a ete pousse
+                response.put("status", "SKIPPED");
+                response.put("message", result.getMessage());
+                yield ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+            }
+            case FAILED, UNSUPPORTED -> {
+                response.put("status", "FAILED");
+                response.put("message", result.getMessage());
+                yield ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(response);
+            }
+        };
     }
 
     // ----------------------------------------------------------------
@@ -328,40 +314,17 @@ public class CalendarController {
     // ----------------------------------------------------------------
 
     /**
-     * Valide que l'utilisateur a acces a la propriete :
-     * - Soit il est proprietaire (owner) de la propriete
-     * - Soit il a un role platform staff (SUPER_ADMIN, SUPER_MANAGER)
+     * Valide l'acces a la propriete via le mecanisme transverse unique
+     * (org courante + super admin + platform staff + owner) — T-ARCH-08 :
+     * la copie locale de cette regle a ete supprimee au profit de
+     * {@link ReservationService#validatePropertyAccess(Long, String)}.
      *
      * Conforme a CLAUDE.md §2 : "Ownership validation obligatoire"
      */
     private void validatePropertyAccess(Long propertyId, String keycloakId, Long orgId) {
-        Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new RuntimeException("Propriete introuvable: " + propertyId));
-
-        // Verifier que la propriete appartient a la meme organisation
-        if (property.getOrganizationId() != null && !property.getOrganizationId().equals(orgId)) {
-            throw new AccessDeniedException("Acces refuse : propriete hors de votre organisation");
-        }
-
-        // Staff plateforme : acces autorise
-        if (tenantContext.isSuperAdmin()) {
-            return;
-        }
-
-        // Verifier l'ownership : l'utilisateur est-il le proprietaire ?
-        User user = userRepository.findByKeycloakId(keycloakId).orElse(null);
-        if (user != null && user.getRole() != null && user.getRole().isPlatformStaff()) {
-            return;
-        }
-
-        // Verifier si l'utilisateur est le owner direct de la propriete
-        // Comparaison par ID (PK) pour eviter LazyInitializationException sur le proxy User
-        if (user != null && property.getOwner() != null
-                && property.getOwner().getId().equals(user.getId())) {
-            return;
-        }
-
-        throw new AccessDeniedException("Acces refuse : vous n'etes pas proprietaire de cette propriete");
+        // orgId conserve en parametre pour la lisibilite des appels existants ;
+        // la regle transverse resout l'organisation via TenantContext.
+        reservationService.validatePropertyAccess(propertyId, keycloakId);
     }
 
     // ----------------------------------------------------------------

@@ -1,15 +1,9 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.ServiceRequestDto;
-import com.clenzy.model.PaymentStatus;
-import com.clenzy.model.RequestStatus;
-import com.clenzy.model.ServiceRequest;
-import com.clenzy.repository.ServiceRequestRepository;
-import com.clenzy.repository.TeamRepository;
-import com.clenzy.repository.UserRepository;
+import com.clenzy.service.ServiceRequestPaymentService;
 import com.clenzy.service.ServiceRequestService;
 import com.clenzy.service.StripeService;
-import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,15 +28,22 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Tests unitaires de ServiceRequestController.
+ *
+ * NOTE : depuis le refactor T-ARCH-01, le controller n'injecte plus aucun
+ * repository. La logique deplacee est testee dans :
+ * - com.clenzy.service.ServiceRequestServiceTest (getPlanningServiceRequests :
+ *   requetes, resolution des noms d'assignes, calcul start/end time)
+ * - com.clenzy.service.ServiceRequestPaymentServiceTest (checkPaymentStatus
+ *   via StripeGateway)
+ */
 @ExtendWith(MockitoExtension.class)
 class ServiceRequestControllerTest {
 
     @Mock private ServiceRequestService service;
     @Mock private StripeService stripeService;
-    @Mock private ServiceRequestRepository serviceRequestRepository;
-    @Mock private UserRepository userRepository;
-    @Mock private TeamRepository teamRepository;
-    @Mock private TenantContext tenantContext;
+    @Mock private ServiceRequestPaymentService serviceRequestPaymentService;
 
     private ServiceRequestController controller;
 
@@ -58,7 +59,7 @@ class ServiceRequestControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new ServiceRequestController(service, stripeService, serviceRequestRepository, userRepository, teamRepository, tenantContext);
+        controller = new ServiceRequestController(service, stripeService, serviceRequestPaymentService);
     }
 
     @Nested
@@ -167,10 +168,7 @@ class ServiceRequestControllerTest {
         @Test
         void whenNoProperties_thenUsesGeneralQuery() {
             Jwt jwt = createJwt();
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(serviceRequestRepository.findByStatusAndDesiredDateBetween(
-                    eq(RequestStatus.AWAITING_PAYMENT), any(LocalDateTime.class),
-                    any(LocalDateTime.class), eq(1L)))
+            when(service.getPlanningServiceRequests(isNull(), any(LocalDateTime.class), any(LocalDateTime.class)))
                     .thenReturn(List.of());
 
             ResponseEntity<List<Map<String, Object>>> result = controller.getPlanningServiceRequests(jwt, null, null, null);
@@ -182,20 +180,34 @@ class ServiceRequestControllerTest {
         @Test
         void whenWithPropertyIds_thenUsesPropertyQuery() {
             Jwt jwt = createJwt();
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            ServiceRequest sr = new ServiceRequest();
-            sr.setId(5L);
-            sr.setTitle("Test SR");
-            sr.setEstimatedDurationHours(2);
-            when(serviceRequestRepository.findByStatusAndPropertyIdsAndDesiredDateBetween(
-                    any(), eq(List.of(10L)), any(), any(), eq(1L)))
-                    .thenReturn(List.of(sr));
+            Map<String, Object> planningEntry = Map.of("id", 5L, "status", "AWAITING_PAYMENT");
+            when(service.getPlanningServiceRequests(eq(List.of(10L)), any(LocalDateTime.class), any(LocalDateTime.class)))
+                    .thenReturn(List.of(planningEntry));
 
             ResponseEntity<List<Map<String, Object>>> result = controller.getPlanningServiceRequests(
                     jwt, List.of(10L), null, null);
 
             assertThat(result.getBody()).hasSize(1);
             assertThat(result.getBody().get(0)).containsEntry("id", 5L).containsEntry("status", "AWAITING_PAYMENT");
+        }
+
+        @Test
+        void whenDatesOmitted_thenDefaultsToMinus3PlusMonths6() {
+            Jwt jwt = createJwt();
+            when(service.getPlanningServiceRequests(isNull(), any(LocalDateTime.class), any(LocalDateTime.class)))
+                    .thenReturn(List.of());
+
+            controller.getPlanningServiceRequests(jwt, null, null, null);
+
+            org.mockito.ArgumentCaptor<LocalDateTime> fromCaptor =
+                    org.mockito.ArgumentCaptor.forClass(LocalDateTime.class);
+            org.mockito.ArgumentCaptor<LocalDateTime> toCaptor =
+                    org.mockito.ArgumentCaptor.forClass(LocalDateTime.class);
+            verify(service).getPlanningServiceRequests(isNull(), fromCaptor.capture(), toCaptor.capture());
+            assertThat(fromCaptor.getValue().toLocalDate())
+                    .isEqualTo(java.time.LocalDate.now().minusMonths(3));
+            assertThat(toCaptor.getValue().toLocalDate())
+                    .isEqualTo(java.time.LocalDate.now().plusMonths(6));
         }
     }
 
@@ -264,19 +276,19 @@ class ServiceRequestControllerTest {
     @DisplayName("checkPaymentStatus")
     class CheckPaymentStatus {
         @Test
-        void whenSrNotFound_thenReturns500() {
-            when(serviceRequestRepository.findById(99L)).thenReturn(java.util.Optional.empty());
+        void whenSrNotFound_thenReturns500() throws Exception {
+            when(serviceRequestPaymentService.checkPaymentStatus(99L))
+                    .thenThrow(new RuntimeException("Demande de service non trouvee: 99"));
 
             ResponseEntity<?> result = controller.checkPaymentStatus(99L);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         @Test
-        void whenAlreadyPaid_thenReturnsPaidStatus() {
-            ServiceRequest sr = new ServiceRequest();
-            sr.setId(5L);
-            sr.setPaymentStatus(PaymentStatus.PAID);
-            when(serviceRequestRepository.findById(5L)).thenReturn(java.util.Optional.of(sr));
+        void whenAlreadyPaid_thenReturnsPaidStatus() throws Exception {
+            when(serviceRequestPaymentService.checkPaymentStatus(5L)).thenReturn(Map.of(
+                    "paymentStatus", "PAID",
+                    "message", "Paiement deja confirme"));
 
             ResponseEntity<?> result = controller.checkPaymentStatus(5L);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -286,12 +298,10 @@ class ServiceRequestControllerTest {
         }
 
         @Test
-        void whenNoStripeSession_thenReturnsNoSession() {
-            ServiceRequest sr = new ServiceRequest();
-            sr.setId(5L);
-            sr.setPaymentStatus(PaymentStatus.PROCESSING);
-            sr.setStripeSessionId(null);
-            when(serviceRequestRepository.findById(5L)).thenReturn(java.util.Optional.of(sr));
+        void whenNoStripeSession_thenReturnsNoSession() throws Exception {
+            when(serviceRequestPaymentService.checkPaymentStatus(5L)).thenReturn(Map.of(
+                    "paymentStatus", "NO_SESSION",
+                    "message", "Aucune session de paiement Stripe associee"));
 
             ResponseEntity<?> result = controller.checkPaymentStatus(5L);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -301,76 +311,18 @@ class ServiceRequestControllerTest {
         }
 
         @Test
-        void whenBlankStripeSession_thenReturnsNoSession() {
-            ServiceRequest sr = new ServiceRequest();
-            sr.setId(5L);
-            sr.setPaymentStatus(PaymentStatus.PROCESSING);
-            sr.setStripeSessionId("  ");
-            when(serviceRequestRepository.findById(5L)).thenReturn(java.util.Optional.of(sr));
+        void whenBlankStripeSession_thenReturnsNoSession() throws Exception {
+            when(serviceRequestPaymentService.checkPaymentStatus(5L)).thenReturn(Map.of(
+                    "paymentStatus", "NO_SESSION",
+                    "message", "Aucune session de paiement Stripe associee"));
 
             ResponseEntity<?> result = controller.checkPaymentStatus(5L);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         }
     }
 
-    @Nested
-    @DisplayName("planning - with team and user assignees")
-    class PlanningWithAssignees {
-        @Test
-        void whenSrHasUserAssignee_thenIncludesNameInResult() {
-            Jwt jwt = createJwt();
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            ServiceRequest sr = new ServiceRequest();
-            sr.setId(8L);
-            sr.setTitle("Task");
-            sr.setEstimatedDurationHours(2);
-            sr.setAssignedToType("user");
-            sr.setAssignedToId(50L);
-            sr.setDesiredDate(LocalDateTime.of(2026, 4, 1, 9, 0));
-
-            when(serviceRequestRepository.findByStatusAndDesiredDateBetween(
-                    eq(RequestStatus.AWAITING_PAYMENT), any(), any(), eq(1L)))
-                    .thenReturn(List.of(sr));
-
-            com.clenzy.model.User user = new com.clenzy.model.User();
-            user.setId(50L);
-            user.setFirstName("Alice");
-            user.setLastName("Test");
-            when(userRepository.findAllById(eq(List.of(50L)))).thenReturn(List.of(user));
-
-            ResponseEntity<List<Map<String, Object>>> result =
-                    controller.getPlanningServiceRequests(jwt, null, null, null);
-            assertThat(result.getBody()).hasSize(1);
-            assertThat(result.getBody().get(0)).containsEntry("assignedToName", "Alice Test");
-            assertThat(result.getBody().get(0)).containsEntry("startTime", "09:00");
-            assertThat(result.getBody().get(0)).containsEntry("endTime", "11:00");
-        }
-
-        @Test
-        void whenSrHasTeamAssignee_thenIncludesTeamName() {
-            Jwt jwt = createJwt();
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            ServiceRequest sr = new ServiceRequest();
-            sr.setId(9L);
-            sr.setTitle("Task");
-            sr.setEstimatedDurationHours(3);
-            sr.setAssignedToType("team");
-            sr.setAssignedToId(60L);
-
-            when(serviceRequestRepository.findByStatusAndDesiredDateBetween(
-                    eq(RequestStatus.AWAITING_PAYMENT), any(), any(), eq(1L)))
-                    .thenReturn(List.of(sr));
-
-            com.clenzy.model.Team team = new com.clenzy.model.Team();
-            team.setId(60L);
-            team.setName("Team Bravo");
-            when(teamRepository.findAllById(eq(List.of(60L)))).thenReturn(List.of(team));
-
-            ResponseEntity<List<Map<String, Object>>> result =
-                    controller.getPlanningServiceRequests(jwt, null, null, null);
-            assertThat(result.getBody()).hasSize(1);
-            assertThat(result.getBody().get(0)).containsEntry("assignedToName", "Team Bravo");
-            assertThat(result.getBody().get(0)).containsEntry("startDate", (Object) null); // no desiredDate
-        }
-    }
+    // NOTE : les tests "planning - with team and user assignees" (resolution des
+    // noms d'assignes, calcul startTime/endTime) ont ete deplaces dans
+    // com.clenzy.service.ServiceRequestServiceTest suite au refactor T-ARCH-01
+    // (la logique vit desormais dans ServiceRequestService.getPlanningServiceRequests).
 }

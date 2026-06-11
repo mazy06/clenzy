@@ -25,8 +25,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -270,6 +272,38 @@ class AirbnbChannelAdapterTest {
             assertThat(result.getStatus()).isEqualTo(SyncResult.Status.SUCCESS);
             assertThat(result.getItemsProcessed()).isEqualTo(2);
             verify(restTemplate, times(2)).exchange(anyString(), eq(HttpMethod.PUT), any(), eq(String.class));
+        }
+
+        @Test
+        @DisplayName("consumes provided channel prices instead of re-resolving via PriceEngine (Z5-BUGS-03)")
+        void whenResolvedPricesProvided_thenTheyArePushedWithoutPriceEngine() {
+            // Arrange : prix channel-specific (markup +10%) fournis par RateDistributionService
+            ChannelMapping mapping = mockMapping();
+            when(channelMappingRepository.findByPropertyIdAndChannel(PROPERTY_ID, ChannelName.AIRBNB, ORG_ID))
+                    .thenReturn(Optional.of(mapping));
+            stubAccessToken();
+            when(bookingRestrictionRepository.findApplicable(PROPERTY_ID, from, to, ORG_ID))
+                    .thenReturn(List.of());
+            when(calendarDayRepository.findByPropertyAndDateRange(PROPERTY_ID, from, to, ORG_ID))
+                    .thenReturn(List.of());
+            when(restTemplate.exchange(anyString(), eq(HttpMethod.PUT), any(), eq(String.class)))
+                    .thenReturn(ResponseEntity.ok("ok"));
+
+            Map<LocalDate, BigDecimal> channelPrices = new LinkedHashMap<>();
+            channelPrices.put(from, new BigDecimal("110.00")); // prix de base 100 +10% channel
+
+            // Act
+            SyncResult result = adapter.pushCalendarUpdate(PROPERTY_ID, from, to, ORG_ID, channelPrices);
+
+            // Assert : pas de re-resolution des prix de base
+            verify(priceEngine, never()).resolvePriceRange(any(), any(), any(), any());
+            assertThat(result.getStatus()).isEqualTo(SyncResult.Status.SUCCESS);
+            assertThat(result.getItemsProcessed()).isEqualTo(1);
+
+            // Le prix POUSSE est bien le prix channel (110), pas le prix de base
+            ArgumentCaptor<HttpEntity<Map<String, Object>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
+            verify(restTemplate).exchange(anyString(), eq(HttpMethod.PUT), captor.capture(), eq(String.class));
+            assertThat(captor.getValue().getBody()).containsEntry("daily_price", 110);
         }
 
         @Test

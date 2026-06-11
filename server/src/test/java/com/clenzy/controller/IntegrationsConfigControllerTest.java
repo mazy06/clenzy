@@ -2,13 +2,13 @@ package com.clenzy.controller;
 
 import com.clenzy.model.OrgIntegrationConfig;
 import com.clenzy.repository.OrgIntegrationConfigRepository;
+import com.clenzy.service.OrgIntegrationConfigService;
 import com.clenzy.service.signature.SignatureProviderType;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -27,11 +27,13 @@ class IntegrationsConfigControllerTest {
     @Mock private OrgIntegrationConfigRepository repository;
     @Mock private TenantContext tenantContext;
 
-    @InjectMocks
     private IntegrationsConfigController controller;
 
     @BeforeEach
     void setUp() {
+        // Service REEL construit au-dessus du repository mocke (pattern Vague A)
+        controller = new IntegrationsConfigController(
+                new OrgIntegrationConfigService(repository, tenantContext));
         lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(7L);
     }
 

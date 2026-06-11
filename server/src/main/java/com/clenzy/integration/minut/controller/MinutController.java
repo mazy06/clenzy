@@ -3,8 +3,8 @@ package com.clenzy.integration.minut.controller;
 import com.clenzy.dto.noise.MinutConnectionStatusDto;
 import com.clenzy.integration.minut.model.MinutConnection;
 import com.clenzy.integration.minut.service.MinutApiService;
+import com.clenzy.integration.minut.service.MinutDeviceQueryService;
 import com.clenzy.integration.minut.service.MinutOAuthService;
-import com.clenzy.repository.NoiseDeviceRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -18,7 +18,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.security.access.prepost.PreAuthorize;
-import com.clenzy.model.NoiseDevice;
 
 /**
  * Controller OAuth2 et API pour l'integration Minut.
@@ -41,14 +40,14 @@ public class MinutController {
 
     private final MinutOAuthService oAuthService;
     private final MinutApiService apiService;
-    private final NoiseDeviceRepository noiseDeviceRepository;
+    private final MinutDeviceQueryService deviceQueryService;
 
     public MinutController(MinutOAuthService oAuthService,
                            MinutApiService apiService,
-                           NoiseDeviceRepository noiseDeviceRepository) {
+                           MinutDeviceQueryService deviceQueryService) {
         this.oAuthService = oAuthService;
         this.apiService = apiService;
-        this.noiseDeviceRepository = noiseDeviceRepository;
+        this.deviceQueryService = deviceQueryService;
     }
 
     // ─── OAuth Flow ──────────────────────────────────────────────
@@ -151,7 +150,7 @@ public class MinutController {
             statusDto.setLastSyncAt(connection.getLastSyncAt());
             statusDto.setErrorMessage(connection.getErrorMessage());
 
-            long deviceCount = noiseDeviceRepository.countByUserId(userId);
+            long deviceCount = deviceQueryService.countDevicesForUser(userId);
             statusDto.setDeviceCount(deviceCount);
         } else {
             statusDto.setConnected(false);
@@ -168,16 +167,14 @@ public class MinutController {
      * Verifie que l'utilisateur possede un device Minut avec l'externalDeviceId donne.
      */
     private boolean userOwnsDevice(String userId, String externalDeviceId) {
-        return noiseDeviceRepository.findByUserId(userId).stream()
-                .anyMatch(d -> externalDeviceId.equals(d.getExternalDeviceId()));
+        return deviceQueryService.userOwnsDevice(userId, externalDeviceId);
     }
 
     /**
      * Verifie que l'utilisateur possede un device Minut lie au homeId donne.
      */
     private boolean userOwnsHome(String userId, String externalHomeId) {
-        return noiseDeviceRepository.findByUserId(userId).stream()
-                .anyMatch(d -> externalHomeId.equals(d.getExternalHomeId()));
+        return deviceQueryService.userOwnsHome(userId, externalHomeId);
     }
 
     // ─── API Proxy ───────────────────────────────────────────────

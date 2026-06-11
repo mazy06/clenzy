@@ -3,6 +3,7 @@ package com.clenzy.booking.dto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -18,9 +19,15 @@ import java.util.List;
  * <p>Le guest est partage entre tous les items (un seul voyageur paie pour plusieurs
  * sejours, eventuellement sur plusieurs proprietes ou plusieurs creneaux).</p>
  *
- * <p>Le backend cree N reservations PENDING individuelles et retourne leurs codes. Le
- * paiement Stripe (via {@code /checkout/create-session-batch}) groupera les N en une
- * seule session Embedded Checkout dont la metadata pointera vers les N codes.</p>
+ * <p>Le backend cree N reservations PENDING individuelles et retourne leurs codes.
+ * <b>Le paiement se fait item par item</b> : un appel {@code /checkout} par
+ * {@code reservationCode} retourne (Z4A-BUGS-09 — aucun endpoint
+ * {@code create-session-batch} n'existe ; l'ancienne javadoc qui l'annoncait
+ * etait un contrat fantome). Le {@code batchCode} retourne sert uniquement de
+ * correlation cote SDK/logs.</p>
+ *
+ * <p>La creation est atomique : si un item est indisponible ou si deux items du
+ * panier se chevauchent sur la meme propriete, AUCUNE reservation n'est creee.</p>
  */
 public record BookingReserveBatchRequestDto(
     @NotEmpty(message = "Le panier doit contenir au moins un item")
@@ -37,7 +44,7 @@ public record BookingReserveBatchRequestDto(
         Long propertyId,
 
         @NotNull(message = "checkIn est obligatoire")
-        @Future(message = "checkIn doit etre dans le futur")
+        @FutureOrPresent(message = "checkIn ne peut pas etre dans le passe")
         LocalDate checkIn,
 
         @NotNull(message = "checkOut est obligatoire")

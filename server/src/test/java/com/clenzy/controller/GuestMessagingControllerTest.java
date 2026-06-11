@@ -5,6 +5,7 @@ import com.clenzy.dto.SendManualMessageRequest;
 import com.clenzy.model.*;
 import com.clenzy.repository.GuestMessageLogRepository;
 import com.clenzy.repository.MessagingAutomationConfigRepository;
+import com.clenzy.service.messaging.GuestMessagingQueryService;
 import com.clenzy.service.messaging.GuestMessagingService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,9 +36,12 @@ class GuestMessagingControllerTest {
     @BeforeEach
     void setUp() {
         tenantContext = new TenantContext();
+        tenantContext.clear(); // ThreadLocal statique : reset entre tests (superAdmin notamment)
         tenantContext.setOrganizationId(1L);
+        // Query service REEL au-dessus des repositories mockes (pattern Vague A).
         controller = new GuestMessagingController(
-            configRepository, messageLogRepository, messagingService, tenantContext);
+            new GuestMessagingQueryService(configRepository, messageLogRepository),
+            messagingService, tenantContext);
     }
 
     // ── Config tests ──
@@ -170,6 +174,35 @@ class GuestMessagingControllerTest {
         var result = controller.getReservationHistory(100L);
 
         assertEquals(1, result.size());
+    }
+
+    @Test
+    void whenGetReservationHistory_logsFromOtherOrg_thenFilteredOut() {
+        GuestMessageLog otherOrgLog = buildLogEntry();
+        otherOrgLog.setOrganizationId(999L);
+        when(messageLogRepository.findByReservationIdOrderByCreatedAtDesc(100L))
+            .thenReturn(List.of(otherOrgLog));
+
+        var result = controller.getReservationHistory(100L);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void whenGetReservationHistory_superAdmin_thenSeesAllOrgs() {
+        tenantContext.setSuperAdmin(true);
+        try {
+            GuestMessageLog otherOrgLog = buildLogEntry();
+            otherOrgLog.setOrganizationId(999L);
+            when(messageLogRepository.findByReservationIdOrderByCreatedAtDesc(100L))
+                .thenReturn(List.of(otherOrgLog));
+
+            var result = controller.getReservationHistory(100L);
+
+            assertEquals(1, result.size());
+        } finally {
+            tenantContext.setSuperAdmin(false); // ThreadLocal statique partage entre tests
+        }
     }
 
     @Test

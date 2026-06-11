@@ -1,16 +1,13 @@
 package com.clenzy.controller;
 
-import com.clenzy.model.ReceivedForm;
-import com.clenzy.repository.ReceivedFormRepository;
-import jakarta.persistence.EntityManager;
-import org.hibernate.Session;
+import com.clenzy.dto.ReceivedFormDto;
+import com.clenzy.service.ReceivedFormService;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 
@@ -20,15 +17,12 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ReceivedFormControllerTest {
 
-    @Mock private ReceivedFormRepository receivedFormRepository;
-    @Mock private EntityManager entityManager;
-    @Mock private Session hibernateSession;
+    @Mock private ReceivedFormService receivedFormService;
 
     private ReceivedFormController controller;
 
@@ -42,13 +36,15 @@ class ReceivedFormControllerTest {
                 .build();
     }
 
+    private ReceivedFormDto formDto() {
+        return new ReceivedFormDto(1L, null, "DEVIS", "Jean Dupont", "jean@test.com",
+                null, null, null, "Demande de devis", "{}", "NEW", "127.0.0.1",
+                null, null, null);
+    }
+
     @BeforeEach
     void setUp() {
-        // Stub la chaine entityManager.unwrap(Session.class) → session.disableFilter(...)
-        // utilisee par disableTenantFilter() dans le controleur. Lenient car certains
-        // tests (UNAUTHORIZED, FORBIDDEN) court-circuitent avant ce code.
-        lenient().when(entityManager.unwrap(Session.class)).thenReturn(hibernateSession);
-        controller = new ReceivedFormController(receivedFormRepository, entityManager);
+        controller = new ReceivedFormController(receivedFormService);
     }
 
     @Nested
@@ -56,9 +52,8 @@ class ReceivedFormControllerTest {
     class ListForms {
         @Test
         void whenAdmin_thenReturnsOk() {
-            ReceivedForm form = new ReceivedForm();
-            Page<ReceivedForm> page = new PageImpl<>(List.of(form));
-            when(receivedFormRepository.findByStatusNotOrderByCreatedAtDesc(eq("ARCHIVED"), any(PageRequest.class))).thenReturn(page);
+            Page<ReceivedFormDto> page = new PageImpl<>(List.of(formDto()));
+            when(receivedFormService.listForms(0, 20, null, null)).thenReturn(page);
 
             ResponseEntity<?> response = controller.listForms(createJwt("SUPER_ADMIN"), 0, 20, null, null);
 
@@ -67,13 +62,13 @@ class ReceivedFormControllerTest {
 
         @Test
         void whenAdminWithType_thenFiltersResult() {
-            Page<ReceivedForm> page = new PageImpl<>(List.of());
-            when(receivedFormRepository.findByFormTypeAndStatusNotOrderByCreatedAtDesc(eq("DEVIS"), eq("ARCHIVED"), any(PageRequest.class))).thenReturn(page);
+            Page<ReceivedFormDto> page = new PageImpl<>(List.of());
+            when(receivedFormService.listForms(0, 20, "devis", null)).thenReturn(page);
 
             ResponseEntity<?> response = controller.listForms(createJwt("SUPER_ADMIN"), 0, 20, "devis", null);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(receivedFormRepository).findByFormTypeAndStatusNotOrderByCreatedAtDesc(eq("DEVIS"), eq("ARCHIVED"), any(PageRequest.class));
+            verify(receivedFormService).listForms(0, 20, "devis", null);
         }
 
         @Test
@@ -94,8 +89,7 @@ class ReceivedFormControllerTest {
     class GetForm {
         @Test
         void whenFound_thenReturnsOk() {
-            ReceivedForm form = new ReceivedForm();
-            when(receivedFormRepository.findById(1L)).thenReturn(Optional.of(form));
+            when(receivedFormService.getForm(1L)).thenReturn(Optional.of(formDto()));
 
             ResponseEntity<?> response = controller.getForm(createJwt("SUPER_ADMIN"), 1L);
 
@@ -104,7 +98,7 @@ class ReceivedFormControllerTest {
 
         @Test
         void whenNotFound_thenReturns404() {
-            when(receivedFormRepository.findById(1L)).thenReturn(Optional.empty());
+            when(receivedFormService.getForm(1L)).thenReturn(Optional.empty());
 
             ResponseEntity<?> response = controller.getForm(createJwt("SUPER_ADMIN"), 1L);
 
@@ -117,9 +111,7 @@ class ReceivedFormControllerTest {
     class UpdateStatus {
         @Test
         void whenValidStatus_thenReturnsOk() {
-            ReceivedForm form = new ReceivedForm();
-            when(receivedFormRepository.findById(1L)).thenReturn(Optional.of(form));
-            when(receivedFormRepository.save(form)).thenReturn(form);
+            when(receivedFormService.updateStatus(1L, "READ")).thenReturn(Optional.of(formDto()));
 
             ResponseEntity<?> response = controller.updateStatus(createJwt("SUPER_MANAGER"), 1L, "READ");
 
@@ -135,7 +127,7 @@ class ReceivedFormControllerTest {
 
         @Test
         void whenFormNotFound_thenReturns404() {
-            when(receivedFormRepository.findById(1L)).thenReturn(Optional.empty());
+            when(receivedFormService.updateStatus(1L, "READ")).thenReturn(Optional.empty());
 
             ResponseEntity<?> response = controller.updateStatus(createJwt("SUPER_ADMIN"), 1L, "READ");
 
@@ -148,13 +140,8 @@ class ReceivedFormControllerTest {
     class GetStats {
         @Test
         void whenAdmin_thenReturnsStats() {
-            when(receivedFormRepository.countByStatus("NEW")).thenReturn(3L);
-            when(receivedFormRepository.countByStatus("READ")).thenReturn(2L);
-            when(receivedFormRepository.countByStatus("PROCESSED")).thenReturn(5L);
-            when(receivedFormRepository.countByStatus("ARCHIVED")).thenReturn(1L);
-            when(receivedFormRepository.countByFormType("DEVIS")).thenReturn(4L);
-            when(receivedFormRepository.countByFormType("MAINTENANCE")).thenReturn(3L);
-            when(receivedFormRepository.countByFormType("SUPPORT")).thenReturn(2L);
+            when(receivedFormService.getStats()).thenReturn(
+                    new ReceivedFormService.ReceivedFormStats(3L, 2L, 5L, 1L, 4L, 3L, 2L));
 
             ResponseEntity<?> response = controller.getStats(createJwt("SUPER_ADMIN"));
 

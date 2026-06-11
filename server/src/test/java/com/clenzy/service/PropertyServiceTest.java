@@ -41,6 +41,7 @@ class PropertyServiceTest {
     @Mock private PortfolioClientRepository portfolioClientRepository;
     @Mock private PortfolioRepository portfolioRepository;
     @Mock private CheckInInstructionsRepository checkInInstructionsRepository;
+    @Mock private com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository listingMappingRepository;
     @Mock private NotificationService notificationService;
 
     private TenantContext tenantContext;
@@ -56,7 +57,7 @@ class PropertyServiceTest {
         propertyService = new PropertyService(
                 propertyRepository, userRepository, managerPropertyRepository,
                 portfolioClientRepository, portfolioRepository,
-                checkInInstructionsRepository,
+                checkInInstructionsRepository, listingMappingRepository,
                 notificationService, tenantContext);
     }
 
@@ -798,6 +799,53 @@ class PropertyServiceTest {
             when(propertyRepository.findById(999L)).thenReturn(Optional.empty());
             assertThatThrownBy(() -> propertyService.getPropertyEntityById(999L))
                     .isInstanceOf(NotFoundException.class);
+        }
+    }
+
+    // ===== getAirbnbListingMapping (statut channel, audit regle 3 : org validee) =====
+
+    @Nested
+    class GetAirbnbListingMapping {
+
+        @Test
+        void whenPropertyInSameOrg_thenReturnsMapping() {
+            Property property = buildProperty(10L, buildOwner(1L));
+            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(listingMappingRepository.findByPropertyId(10L))
+                    .thenReturn(Optional.of(new com.clenzy.integration.airbnb.model.AirbnbListingMapping()));
+
+            assertThat(propertyService.getAirbnbListingMapping(10L)).isPresent();
+        }
+
+        @Test
+        void whenPropertyFromOtherOrg_thenAccessDenied() {
+            Property property = buildProperty(10L, buildOwner(1L));
+            property.setOrganizationId(ORG_ID + 1);
+            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+
+            assertThatThrownBy(() -> propertyService.getAirbnbListingMapping(10L))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+            verify(listingMappingRepository, never()).findByPropertyId(anyLong());
+        }
+
+        @Test
+        void whenPropertyNotFound_thenThrowsNotFound() {
+            when(propertyRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> propertyService.getAirbnbListingMapping(999L))
+                    .isInstanceOf(NotFoundException.class);
+        }
+
+        @Test
+        void whenSuperAdminCrossOrg_thenAllowed() {
+            tenantContext.setSuperAdmin(true);
+            Property property = buildProperty(10L, buildOwner(1L));
+            property.setOrganizationId(ORG_ID + 1);
+            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(listingMappingRepository.findByPropertyId(10L)).thenReturn(Optional.empty());
+
+            assertThat(propertyService.getAirbnbListingMapping(10L)).isEmpty();
         }
     }
 }

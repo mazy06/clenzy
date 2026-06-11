@@ -93,7 +93,9 @@ class ICalImportServiceExtendedTest {
             propertyRepository, userRepository,
             auditLogService, notificationService, pricingConfigService,
             priceEngine, calendarEngine, guestService, tenantContext,
-            serviceRequestService, otaInvoicingService);
+            serviceRequestService, otaInvoicingService,
+            new com.clenzy.service.ical.ICalFeedDownloader(),
+            org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class));
     }
 
     private User host(Long id, String kc, String forfait) {

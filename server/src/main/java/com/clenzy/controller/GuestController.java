@@ -4,9 +4,6 @@ import com.clenzy.dto.GuestDto;
 import com.clenzy.dto.GuestListDto;
 import com.clenzy.model.Guest;
 import com.clenzy.model.GuestChannel;
-import com.clenzy.model.Organization;
-import com.clenzy.repository.GuestRepository;
-import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.service.GuestService;
 import com.clenzy.tenant.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/guests")
@@ -26,17 +22,11 @@ import java.util.stream.Collectors;
 public class GuestController {
 
     private final GuestService guestService;
-    private final GuestRepository guestRepository;
-    private final OrganizationRepository organizationRepository;
     private final TenantContext tenantContext;
 
     public GuestController(GuestService guestService,
-                           GuestRepository guestRepository,
-                           OrganizationRepository organizationRepository,
                            TenantContext tenantContext) {
         this.guestService = guestService;
-        this.guestRepository = guestRepository;
-        this.organizationRepository = organizationRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -51,43 +41,9 @@ public class GuestController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String channel) {
 
-        boolean crossTenant = tenantContext.isSuperAdmin();
-        List<Guest> guests = crossTenant
-                ? guestRepository.findAllOrderByLastName()
-                : guestRepository.findByOrganizationId(tenantContext.getRequiredOrganizationId());
-
-        // Build org name lookup for cross-tenant view
-        Map<Long, String> orgNames = crossTenant
-                ? organizationRepository.findAll().stream()
-                    .collect(Collectors.toMap(Organization::getId, Organization::getName, (a, b) -> a))
-                : Map.of();
-
-        String lowerSearch = (search != null && search.length() >= 2)
-                ? search.toLowerCase().trim() : null;
-
-        List<GuestListDto> results = guests.stream()
-                .filter(g -> {
-                    // Search filter (in-memory — encrypted fields)
-                    if (lowerSearch != null) {
-                        String fn = g.getFirstName() != null ? g.getFirstName().toLowerCase() : "";
-                        String ln = g.getLastName() != null ? g.getLastName().toLowerCase() : "";
-                        String email = g.getEmail() != null ? g.getEmail().toLowerCase() : "";
-                        String full = fn + " " + ln;
-                        if (!fn.contains(lowerSearch) && !ln.contains(lowerSearch)
-                                && !full.contains(lowerSearch) && !email.contains(lowerSearch)) {
-                            return false;
-                        }
-                    }
-                    // Channel filter
-                    if (channel != null && !channel.isBlank()) {
-                        return g.getChannel() != null && g.getChannel().name().equalsIgnoreCase(channel);
-                    }
-                    return true;
-                })
-                .map(g -> toListDto(g, orgNames.getOrDefault(g.getOrganizationId(), null)))
-                .toList();
-
-        return ResponseEntity.ok(results);
+        // null = platform staff, lecture cross-org
+        Long orgId = tenantContext.isSuperAdmin() ? null : tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(guestService.listGuests(orgId, search, channel));
     }
 
     // ── GET : recherche par nom ──────────────────────────────────────────────
@@ -102,22 +58,7 @@ public class GuestController {
         }
 
         Long orgId = tenantContext.getRequiredOrganizationId();
-        String lowerSearch = search.toLowerCase().trim();
-
-        // Recherche en memoire car firstName/lastName sont chiffres en base
-        List<GuestDto> results = guestRepository.findByOrganizationId(orgId).stream()
-                .filter(g -> {
-                    String fn = g.getFirstName() != null ? g.getFirstName().toLowerCase() : "";
-                    String ln = g.getLastName() != null ? g.getLastName().toLowerCase() : "";
-                    String full = fn + " " + ln;
-                    return fn.contains(lowerSearch) || ln.contains(lowerSearch)
-                            || full.contains(lowerSearch);
-                })
-                .limit(20)
-                .map(this::toDto)
-                .toList();
-
-        return ResponseEntity.ok(results);
+        return ResponseEntity.ok(guestService.searchByName(orgId, search));
     }
 
     // ── POST : creer une fiche client ────────────────────────────────────────
@@ -139,7 +80,7 @@ public class GuestController {
                 orgId
         );
 
-        return ResponseEntity.ok(toDto(guest));
+        return ResponseEntity.ok(GuestService.toDto(guest));
     }
 
     // ── PATCH : mettre a jour l'email d'un voyageur ─────────────────────────
@@ -157,31 +98,9 @@ public class GuestController {
             return ResponseEntity.badRequest().build();
         }
 
-        Guest guest = guestRepository.findById(guestId)
-            .filter(g -> g.getOrganizationId().equals(orgId))
-            .orElse(null);
-
-        if (guest == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        guest.setEmail(email.trim());
-        guestRepository.save(guest);
-
-        return ResponseEntity.ok(toDto(guest));
-    }
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
-    private GuestDto toDto(Guest g) {
-        return new GuestDto(
-                g.getId(),
-                g.getFirstName(),
-                g.getLastName(),
-                g.getEmail(),
-                g.getPhone(),
-                g.getFullName()
-        );
+        return guestService.updateGuestEmail(guestId, orgId, email)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // ── POST /recalculate-stats : recalcul des compteurs totalStays/totalSpent ──
@@ -191,23 +110,5 @@ public class GuestController {
     public Map<String, Object> recalculateStats() {
         int updated = guestService.recalculateAllStats();
         return Map.of("updated", updated, "status", "ok");
-    }
-
-    private GuestListDto toListDto(Guest g, String organizationName) {
-        return new GuestListDto(
-                g.getId(),
-                g.getFirstName(),
-                g.getLastName(),
-                g.getEmail(),
-                g.getPhone(),
-                g.getFullName(),
-                g.getChannel() != null ? g.getChannel().name() : null,
-                g.getTotalStays(),
-                g.getTotalSpent(),
-                g.getLanguage(),
-                g.getCreatedAt(),
-                g.getOrganizationId(),
-                organizationName
-        );
     }
 }

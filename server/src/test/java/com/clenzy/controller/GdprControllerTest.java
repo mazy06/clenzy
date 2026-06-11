@@ -3,8 +3,8 @@ package com.clenzy.controller;
 import com.clenzy.dto.GdprConsentUpdateDto;
 import com.clenzy.dto.GdprExportDto;
 import com.clenzy.model.User;
-import com.clenzy.repository.UserRepository;
 import com.clenzy.service.GdprService;
+import com.clenzy.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +17,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,7 +26,7 @@ import static org.mockito.Mockito.*;
 class GdprControllerTest {
 
     @Mock private GdprService gdprService;
-    @Mock private UserRepository userRepository;
+    @Mock private UserService userService;
     @Mock private Authentication authentication;
     @Mock private HttpServletRequest httpRequest;
 
@@ -47,12 +46,12 @@ class GdprControllerTest {
         when(authentication.getPrincipal()).thenReturn(jwt);
         User user = new User();
         user.setId(1L);
-        when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+        when(userService.findByKeycloakId("user-123")).thenReturn(user);
     }
 
     @BeforeEach
     void setUp() {
-        controller = new GdprController(gdprService, userRepository);
+        controller = new GdprController(gdprService, userService);
     }
 
     @Nested
@@ -149,7 +148,7 @@ class GdprControllerTest {
         void whenUserNotFound_thenThrows() {
             Jwt jwt = createJwt();
             when(authentication.getPrincipal()).thenReturn(jwt);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.empty());
+            when(userService.findByKeycloakId("user-123")).thenReturn(null);
 
             assertThatThrownBy(() -> controller.exportMyData(authentication))
                     .isInstanceOf(RuntimeException.class);

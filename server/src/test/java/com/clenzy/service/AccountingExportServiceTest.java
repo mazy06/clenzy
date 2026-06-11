@@ -3,6 +3,8 @@ package com.clenzy.service;
 import com.clenzy.model.*;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
 import com.clenzy.repository.InvoiceRepository;
+import com.clenzy.repository.OrganizationRepository;
+import com.clenzy.repository.OwnerPayoutConfigRepository;
 import com.clenzy.repository.OwnerPayoutRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReservationRepository;
@@ -32,11 +34,145 @@ class AccountingExportServiceTest {
     @Mock private ProviderExpenseRepository expenseRepository;
     @Mock private InvoiceRepository invoiceRepository;
     @Mock private UserRepository userRepository;
+    @Mock private OwnerPayoutConfigRepository payoutConfigRepository;
+    @Mock private OrganizationRepository organizationRepository;
+    @Mock private SepaXmlService sepaXmlService;
 
     @InjectMocks
     private AccountingExportService service;
 
     private static final Long ORG_ID = 1L;
+
+    // ── generateSepaXml (deplace de AccountingExportControllerTest) ──────────
+
+    @Nested
+    @org.junit.jupiter.api.DisplayName("generateSepaXml")
+    class GenerateSepaXml {
+
+        private OwnerPayout sepaPayout(Long id, Long ownerId, PayoutStatus status) {
+            OwnerPayout p = new OwnerPayout();
+            p.setId(id);
+            p.setOwnerId(ownerId);
+            p.setStatus(status);
+            p.setOrganizationId(ORG_ID);
+            p.setNetAmount(new BigDecimal("100"));
+            return p;
+        }
+
+        private OwnerPayoutConfig sepaConfig(Long ownerId, boolean verified) {
+            OwnerPayoutConfig c = new OwnerPayoutConfig();
+            c.setOwnerId(ownerId);
+            c.setVerified(verified);
+            c.setPayoutMethod(PayoutMethod.SEPA_TRANSFER);
+            return c;
+        }
+
+        @Test
+        void valid_returnsXml() {
+            Organization org = new Organization();
+            org.setId(ORG_ID);
+            org.setName("MyOrg");
+            when(organizationRepository.findById(ORG_ID)).thenReturn(java.util.Optional.of(org));
+
+            OwnerPayout p1 = sepaPayout(1L, 10L, PayoutStatus.APPROVED);
+            when(payoutRepository.findByIdsAndOrgId(List.of(1L), ORG_ID)).thenReturn(List.of(p1));
+
+            OwnerPayoutConfig c = sepaConfig(10L, true);
+            when(payoutConfigRepository.findAllByOrgId(ORG_ID)).thenReturn(List.of(c));
+
+            when(sepaXmlService.generatePain001(eq(org), any(), any()))
+                .thenReturn("<xml>test</xml>");
+
+            String xml = service.generateSepaXml(List.of(1L), ORG_ID);
+
+            assertEquals("<xml>test</xml>", xml);
+        }
+
+        @Test
+        void processingStatus_alsoEligible() {
+            Organization org = new Organization();
+            org.setId(ORG_ID);
+            when(organizationRepository.findById(ORG_ID)).thenReturn(java.util.Optional.of(org));
+
+            OwnerPayout p1 = sepaPayout(1L, 10L, PayoutStatus.PROCESSING);
+            when(payoutRepository.findByIdsAndOrgId(List.of(1L), ORG_ID)).thenReturn(List.of(p1));
+
+            OwnerPayoutConfig c = sepaConfig(10L, true);
+            when(payoutConfigRepository.findAllByOrgId(ORG_ID)).thenReturn(List.of(c));
+
+            when(sepaXmlService.generatePain001(any(), any(), any())).thenReturn("<xml/>");
+
+            assertEquals("<xml/>", service.generateSepaXml(List.of(1L), ORG_ID));
+        }
+
+        @Test
+        void organizationNotFound_throws() {
+            when(organizationRepository.findById(ORG_ID)).thenReturn(java.util.Optional.empty());
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.generateSepaXml(List.of(1L), ORG_ID));
+            assertTrue(ex.getMessage().contains("Organisation introuvable"));
+        }
+
+        @Test
+        void noEligiblePayouts_throws() {
+            Organization org = new Organization();
+            org.setId(ORG_ID);
+            when(organizationRepository.findById(ORG_ID)).thenReturn(java.util.Optional.of(org));
+            // payout is PENDING => not eligible
+            OwnerPayout p1 = sepaPayout(1L, 10L, PayoutStatus.PENDING);
+            when(payoutRepository.findByIdsAndOrgId(List.of(1L), ORG_ID)).thenReturn(List.of(p1));
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.generateSepaXml(List.of(1L), ORG_ID));
+            assertTrue(ex.getMessage().contains("Aucun payout eligible"));
+        }
+
+        @Test
+        void emptyEligiblePayouts_throws() {
+            Organization org = new Organization();
+            org.setId(ORG_ID);
+            when(organizationRepository.findById(ORG_ID)).thenReturn(java.util.Optional.of(org));
+            when(payoutRepository.findByIdsAndOrgId(List.of(1L), ORG_ID)).thenReturn(List.of());
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.generateSepaXml(List.of(1L), ORG_ID));
+            assertTrue(ex.getMessage().contains("Aucun payout eligible"));
+        }
+
+        @Test
+        void unverifiedConfig_throws() {
+            Organization org = new Organization();
+            org.setId(ORG_ID);
+            when(organizationRepository.findById(ORG_ID)).thenReturn(java.util.Optional.of(org));
+
+            OwnerPayout p1 = sepaPayout(1L, 10L, PayoutStatus.APPROVED);
+            when(payoutRepository.findByIdsAndOrgId(List.of(1L), ORG_ID)).thenReturn(List.of(p1));
+
+            OwnerPayoutConfig unverified = sepaConfig(10L, false);
+            when(payoutConfigRepository.findAllByOrgId(ORG_ID)).thenReturn(List.of(unverified));
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.generateSepaXml(List.of(1L), ORG_ID));
+            assertTrue(ex.getMessage().contains("non verifiee"));
+        }
+
+        @Test
+        void missingConfigForOwner_throws() {
+            Organization org = new Organization();
+            org.setId(ORG_ID);
+            when(organizationRepository.findById(ORG_ID)).thenReturn(java.util.Optional.of(org));
+
+            OwnerPayout p1 = sepaPayout(1L, 10L, PayoutStatus.APPROVED);
+            when(payoutRepository.findByIdsAndOrgId(List.of(1L), ORG_ID)).thenReturn(List.of(p1));
+            // No config for owner 10
+            when(payoutConfigRepository.findAllByOrgId(ORG_ID)).thenReturn(List.of());
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.generateSepaXml(List.of(1L), ORG_ID));
+            assertTrue(ex.getMessage().contains("non verifiee"));
+        }
+    }
 
     @Test
     void exportFec_containsHeaderAndLines() {

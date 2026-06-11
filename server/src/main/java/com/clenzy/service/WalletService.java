@@ -1,11 +1,23 @@
 package com.clenzy.service;
 
+import com.clenzy.model.Intervention;
+import com.clenzy.model.LedgerEntry;
+import com.clenzy.model.LedgerReferenceType;
+import com.clenzy.model.PaymentStatus;
+import com.clenzy.model.Reservation;
+import com.clenzy.model.ServiceRequest;
 import com.clenzy.model.Wallet;
 import com.clenzy.model.WalletType;
+import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.WalletRepository;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,13 +32,22 @@ public class WalletService {
 
     private final WalletRepository walletRepository;
     private final LedgerService ledgerService;
+    private final InterventionRepository interventionRepository;
+    private final ReservationRepository reservationRepository;
+    private final ServiceRequestRepository serviceRequestRepository;
     private final TenantContext tenantContext;
 
     public WalletService(WalletRepository walletRepository,
                          LedgerService ledgerService,
+                         InterventionRepository interventionRepository,
+                         ReservationRepository reservationRepository,
+                         ServiceRequestRepository serviceRequestRepository,
                          TenantContext tenantContext) {
         this.walletRepository = walletRepository;
         this.ledgerService = ledgerService;
+        this.interventionRepository = interventionRepository;
+        this.reservationRepository = reservationRepository;
+        this.serviceRequestRepository = serviceRequestRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -74,6 +95,119 @@ public class WalletService {
      */
     public Wallet getOrCreateEscrowWallet(Long orgId, String currency) {
         return getOrCreateWallet(orgId, WalletType.ESCROW, null, currency);
+    }
+
+    /**
+     * Resultat de l'initialisation des wallets d'une organisation.
+     */
+    public record WalletInitializationResult(int walletsCreated, int paymentsRecorded) {}
+
+    /**
+     * Initialise les wallets de base (PLATFORM + ESCROW) de l'organisation et
+     * rejoue dans le ledger les paiements deja effectues (interventions,
+     * reservations, demandes de service) qui n'ont pas encore d'ecriture.
+     *
+     * Idempotent : un paiement deja present dans le ledger (reference
+     * PAYMENT + refId) n'est pas re-enregistre. Toute l'operation est
+     * transactionnelle (T-ARCH-03 : logique deplacee de WalletController).
+     */
+    @Transactional
+    public WalletInitializationResult initializeWallets(Long orgId) {
+        final String curr = "EUR";
+
+        Wallet platformWallet = getOrCreatePlatformWallet(orgId, curr);
+        Wallet escrowWallet = getOrCreateEscrowWallet(orgId, curr);
+
+        int paymentsRecorded = 0;
+        paymentsRecorded += backfillPaidInterventions(orgId, escrowWallet, platformWallet, curr);
+        paymentsRecorded += backfillPaidReservations(orgId, escrowWallet, platformWallet, curr);
+        paymentsRecorded += backfillPaidServiceRequests(orgId, escrowWallet, platformWallet);
+
+        List<Wallet> wallets = getWalletsByOrganization(orgId);
+
+        log.info("Wallets initialized for org {}: {} wallets, {} payments backfilled",
+                orgId, wallets.size(), paymentsRecorded);
+
+        return new WalletInitializationResult(wallets.size(), paymentsRecorded);
+    }
+
+    private int backfillPaidInterventions(Long orgId, Wallet escrowWallet, Wallet platformWallet, String curr) {
+        int recorded = 0;
+        Pageable all = PageRequest.of(0, 10000);
+        Page<Intervention> interventions = interventionRepository.findPaymentHistory(
+                PaymentStatus.PAID, null, all, orgId);
+        for (Intervention i : interventions.getContent()) {
+            BigDecimal cost = i.getEstimatedCost();
+            if (cost == null || cost.compareTo(BigDecimal.ZERO) <= 0) continue;
+
+            String refId = String.valueOf(i.getId());
+            if (hasLedgerEntry(refId)) continue;
+
+            // Ensure owner wallet
+            if (i.getProperty() != null && i.getProperty().getOwner() != null) {
+                getOrCreateWallet(orgId, WalletType.OWNER, i.getProperty().getOwner().getId(), curr);
+            }
+            ledgerService.recordTransfer(escrowWallet, platformWallet, cost,
+                    LedgerReferenceType.PAYMENT, refId,
+                    "Paiement intervention: " + i.getTitle());
+            recorded++;
+        }
+        return recorded;
+    }
+
+    private int backfillPaidReservations(Long orgId, Wallet escrowWallet, Wallet platformWallet, String curr) {
+        int recorded = 0;
+        for (Reservation r : reservationRepository.findAllWithPayment(orgId)) {
+            if (r.getPaymentStatus() != PaymentStatus.PAID) continue;
+            BigDecimal cost = r.getTotalPrice();
+            if (cost == null || cost.compareTo(BigDecimal.ZERO) <= 0) continue;
+
+            String refId = String.valueOf(r.getId());
+            if (hasLedgerEntry(refId)) continue;
+
+            if (r.getProperty() != null && r.getProperty().getOwner() != null) {
+                getOrCreateWallet(orgId, WalletType.OWNER, r.getProperty().getOwner().getId(), curr);
+            }
+            ledgerService.recordTransfer(escrowWallet, platformWallet, cost,
+                    LedgerReferenceType.PAYMENT, refId,
+                    "Paiement reservation: " + (r.getGuestName() != null ? r.getGuestName() : "guest"));
+            recorded++;
+        }
+        return recorded;
+    }
+
+    /**
+     * NOTE optimisation : ServiceRequestRepository n'expose pas (encore) de
+     * finder organizationId + paymentStatus=PAID (findPaymentHistory filtre sur
+     * le statut AWAITING_PAYMENT, semantique differente). Le scan findAll() +
+     * filtre memoire est conserve a l'identique en attendant une derived query
+     * findByOrganizationIdAndPaymentStatus (hors perimetre de ce refactor).
+     */
+    private int backfillPaidServiceRequests(Long orgId, Wallet escrowWallet, Wallet platformWallet) {
+        int recorded = 0;
+        for (ServiceRequest sr : serviceRequestRepository.findAll()) {
+            if (sr.getOrganizationId() == null || !sr.getOrganizationId().equals(orgId)
+                    || sr.getPaymentStatus() != PaymentStatus.PAID) {
+                continue;
+            }
+            BigDecimal cost = sr.getEstimatedCost();
+            if (cost == null || cost.compareTo(BigDecimal.ZERO) <= 0) continue;
+
+            String refId = String.valueOf(sr.getId());
+            if (hasLedgerEntry(refId)) continue;
+
+            ledgerService.recordTransfer(escrowWallet, platformWallet, cost,
+                    LedgerReferenceType.PAYMENT, refId,
+                    "Paiement demande de service: " + sr.getTitle());
+            recorded++;
+        }
+        return recorded;
+    }
+
+    private boolean hasLedgerEntry(String refId) {
+        List<LedgerEntry> existing = ledgerService.getEntriesByReference(
+                LedgerReferenceType.PAYMENT, refId);
+        return !existing.isEmpty();
     }
 
     /**

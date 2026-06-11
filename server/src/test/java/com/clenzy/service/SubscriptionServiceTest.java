@@ -3,20 +3,28 @@ package com.clenzy.service;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.UserStatus;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.UserRepository;
+import com.stripe.exception.ApiException;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,14 +34,14 @@ class SubscriptionServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private AuditLogService auditLogService;
     @Mock private PricingConfigService pricingConfigService;
+    @Mock private StripeGateway stripeGateway;
 
     private SubscriptionService subscriptionService;
 
     @BeforeEach
     void setUp() throws Exception {
-        subscriptionService = new SubscriptionService(userRepository, auditLogService, pricingConfigService);
+        subscriptionService = new SubscriptionService(userRepository, auditLogService, pricingConfigService, stripeGateway);
 
-        setField(subscriptionService, "stripeSecretKey", "sk_test_dummy");
         setField(subscriptionService, "currency", "EUR");
         setField(subscriptionService, "frontendUrl", "http://localhost:3000");
     }
@@ -254,16 +262,22 @@ class SubscriptionServiceTest {
 
         @Test
         @DisplayName("should wrap Stripe exception as RuntimeException")
-        void whenStripeCallFails_thenWrapsInRuntimeException() {
-            // Arrange & Act & Assert
-            // Session.retrieve will throw because Stripe.apiKey is fake
+        void whenStripeCallFails_thenWrapsInRuntimeException() throws Exception {
+            // Arrange — le gateway echoue (Stripe indisponible / session inconnue)
+            when(stripeGateway.retrieveSession("cs_test_fake_session"))
+                    .thenThrow(new ApiException("session inconnue", null, "c", 404, null));
+
+            // Act & Assert
             assertThatThrownBy(() -> subscriptionService.completeUpgrade("cs_test_fake_session"))
                     .isInstanceOf(RuntimeException.class);
         }
 
         @Test
         @DisplayName("should wrap with message containing 'Erreur Stripe' prefix")
-        void whenStripeFails_thenMessageHasPrefix() {
+        void whenStripeFails_thenMessageHasPrefix() throws Exception {
+            when(stripeGateway.retrieveSession("cs_bad"))
+                    .thenThrow(new ApiException("indisponible", null, "c", 500, null));
+
             assertThatThrownBy(() -> subscriptionService.completeUpgrade("cs_bad"))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("Erreur Stripe");
@@ -436,6 +450,36 @@ class SubscriptionServiceTest {
     }
 
     @Nested
+    @DisplayName("createUpgradeCheckout - gateway happy path")
+    class GatewayHappyPath {
+
+        @Test
+        @DisplayName("creates checkout session via StripeGateway with upgrade metadata")
+        void whenValidUpgrade_thenCreatesSessionViaGateway() throws Exception {
+            User user = buildUser("kc-1", "essentiel");
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
+            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(2900);
+
+            Session session = mock(Session.class);
+            when(session.getId()).thenReturn("cs_upg_1");
+            when(session.getUrl()).thenReturn("https://checkout.stripe.com/cs_upg_1");
+            when(stripeGateway.createSession(any(SessionCreateParams.class))).thenReturn(session);
+
+            Map<String, String> result = subscriptionService.createUpgradeCheckout("kc-1", "premium");
+
+            assertThat(result).containsEntry("checkoutUrl", "https://checkout.stripe.com/cs_upg_1");
+
+            // T-SOLID-3 : les params passent par le gateway (plus de Stripe.apiKey statique)
+            ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
+            verify(stripeGateway).createSession(paramsCaptor.capture());
+            assertThat(paramsCaptor.getValue().getMetadata())
+                    .containsEntry("type", "upgrade")
+                    .containsEntry("forfait", "premium")
+                    .containsEntry("previousForfait", "essentiel");
+        }
+    }
+
+    @Nested
     @DisplayName("Currency configuration")
     class CurrencyConfig {
 
@@ -461,7 +505,10 @@ class SubscriptionServiceTest {
 
         @Test
         @DisplayName("session retrieval failure throws RuntimeException with stripe message")
-        void completeUpgradeFails() {
+        void completeUpgradeFails() throws Exception {
+            when(stripeGateway.retrieveSession("cs_fake_session_id"))
+                    .thenThrow(new ApiException("retrieve KO", null, "c", 500, null));
+
             assertThatThrownBy(() -> subscriptionService.completeUpgrade("cs_fake_session_id"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Erreur Stripe");

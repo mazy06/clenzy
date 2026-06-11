@@ -1,16 +1,14 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.QuoteRequestDto;
-import com.clenzy.model.ReceivedForm;
-import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.DocumentGeneratorService;
 import com.clenzy.service.EmailService;
 import com.clenzy.dto.WaitlistSignupDto;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.PlatformSettingsService;
 import com.clenzy.service.PricingConfigService;
+import com.clenzy.service.ReceivedFormService;
 import com.clenzy.service.WaitlistService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,7 +27,7 @@ class QuoteControllerTest {
 
     @Mock private EmailService emailService;
     @Mock private PricingConfigService pricingConfigService;
-    @Mock private ReceivedFormRepository receivedFormRepository;
+    @Mock private ReceivedFormService receivedFormService;
     @Mock private NotificationService notificationService;
     @Mock private DocumentGeneratorService documentGeneratorService;
     @Mock private PlatformSettingsService platformSettingsService;
@@ -40,8 +38,8 @@ class QuoteControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new QuoteController(emailService, pricingConfigService, receivedFormRepository,
-                new ObjectMapper(), notificationService, documentGeneratorService, platformSettingsService,
+        controller = new QuoteController(emailService, pricingConfigService, receivedFormService,
+                notificationService, documentGeneratorService, platformSettingsService,
                 waitlistService);
         // Par défaut, emails prospect activés (comportement nominal pré-toggle).
         lenient().when(platformSettingsService.isSendProspectDevisEmails()).thenReturn(true);
@@ -101,13 +99,9 @@ class QuoteControllerTest {
             when(pricingConfigService.getFrequencyCoeffs()).thenReturn(Map.of("weekly", 1.0));
             when(pricingConfigService.getMinPrice()).thenReturn(25);
 
-            // ReceivedForm save retourne maintenant un form persiste (le controleur
-            // utilise l'id du form sauve pour les logs des etapes suivantes)
-            when(receivedFormRepository.save(any(ReceivedForm.class))).thenAnswer(invocation -> {
-                ReceivedForm form = invocation.getArgument(0);
-                form.setId(42L);
-                return form;
-            });
+            // Le service de persistance retourne l'id du form sauve (le controleur
+            // utilise cet id pour les logs des etapes suivantes)
+            when(receivedFormService.recordQuoteForm(any(QuoteRequestDto.class), anyString())).thenReturn(42L);
 
             ResponseEntity<?> response = controller.submitQuoteRequest(dto, httpRequest);
 
@@ -138,11 +132,7 @@ class QuoteControllerTest {
             when(pricingConfigService.getSurfaceCoeff(50)).thenReturn(1.0);
             when(pricingConfigService.getFrequencyCoeffs()).thenReturn(Map.of("weekly", 1.0));
             when(pricingConfigService.getMinPrice()).thenReturn(25);
-            when(receivedFormRepository.save(any(ReceivedForm.class))).thenAnswer(invocation -> {
-                ReceivedForm form = invocation.getArgument(0);
-                form.setId(42L);
-                return form;
-            });
+            when(receivedFormService.recordQuoteForm(any(QuoteRequestDto.class), anyString())).thenReturn(42L);
 
             ResponseEntity<?> response = controller.submitQuoteRequest(dto, httpRequest);
 
@@ -176,11 +166,7 @@ class QuoteControllerTest {
             when(pricingConfigService.getSurfaceCoeff(50)).thenReturn(1.0);
             when(pricingConfigService.getFrequencyCoeffs()).thenReturn(Map.of("weekly", 1.0));
             when(pricingConfigService.getMinPrice()).thenReturn(25);
-            when(receivedFormRepository.save(any(ReceivedForm.class))).thenAnswer(invocation -> {
-                ReceivedForm form = invocation.getArgument(0);
-                form.setId(42L);
-                return form;
-            });
+            when(receivedFormService.recordQuoteForm(any(QuoteRequestDto.class), anyString())).thenReturn(42L);
 
             ResponseEntity<?> response = controller.submitQuoteRequest(dto, httpRequest);
 
@@ -290,7 +276,7 @@ class QuoteControllerTest {
             when(pricingConfigService.getSurfaceCoeff(40)).thenReturn(1.0);
             when(pricingConfigService.getFrequencyCoeffs()).thenReturn(Map.of());
             when(pricingConfigService.getMinPrice()).thenReturn(25);
-            when(receivedFormRepository.save(any(ReceivedForm.class)))
+            when(receivedFormService.recordQuoteForm(any(QuoteRequestDto.class), anyString()))
                 .thenThrow(new RuntimeException("DB unavailable"));
 
             ResponseEntity<?> response = controller.submitQuoteRequest(dto, httpRequest);
@@ -318,11 +304,7 @@ class QuoteControllerTest {
             when(pricingConfigService.getSurfaceCoeff(40)).thenReturn(1.0);
             when(pricingConfigService.getFrequencyCoeffs()).thenReturn(Map.of());
             when(pricingConfigService.getMinPrice()).thenReturn(25);
-            when(receivedFormRepository.save(any(ReceivedForm.class))).thenAnswer(inv -> {
-                ReceivedForm f = inv.getArgument(0);
-                f.setId(7L);
-                return f;
-            });
+            when(receivedFormService.recordQuoteForm(any(QuoteRequestDto.class), anyString())).thenReturn(7L);
             // La génération/envoi du devis (avec info@ en CC) ne doit pas bloquer
             // la réponse au prospect si elle échoue.
             doThrow(new RuntimeException("PDF/email KO")).when(documentGeneratorService)
@@ -356,9 +338,7 @@ class QuoteControllerTest {
             when(pricingConfigService.getSurfaceCoeff(40)).thenReturn(1.0);
             when(pricingConfigService.getFrequencyCoeffs()).thenReturn(Map.of());
             when(pricingConfigService.getMinPrice()).thenReturn(25);
-            when(receivedFormRepository.save(any(ReceivedForm.class))).thenAnswer(inv -> {
-                ReceivedForm f = inv.getArgument(0); f.setId(1L); return f;
-            });
+            when(receivedFormService.recordQuoteForm(any(QuoteRequestDto.class), anyString())).thenReturn(1L);
             when(httpRequest.getHeader("X-Forwarded-For")).thenReturn("10.0.0.1, 192.168.1.1");
 
             ResponseEntity<?> response = controller.submitQuoteRequest(dto, httpRequest);
@@ -386,9 +366,7 @@ class QuoteControllerTest {
             when(pricingConfigService.getSurfaceCoeff(40)).thenReturn(1.0);
             when(pricingConfigService.getFrequencyCoeffs()).thenReturn(Map.of());
             when(pricingConfigService.getMinPrice()).thenReturn(25);
-            when(receivedFormRepository.save(any(ReceivedForm.class))).thenAnswer(inv -> {
-                ReceivedForm f = inv.getArgument(0); f.setId(1L); return f;
-            });
+            when(receivedFormService.recordQuoteForm(any(QuoteRequestDto.class), anyString())).thenReturn(1L);
             when(httpRequest.getHeader("X-Forwarded-For")).thenReturn(null);
             when(httpRequest.getHeader("X-Real-IP")).thenReturn("5.5.5.5");
 
@@ -417,9 +395,7 @@ class QuoteControllerTest {
             when(pricingConfigService.getSurfaceCoeff(anyInt())).thenReturn(1.0);
             when(pricingConfigService.getFrequencyCoeffs()).thenReturn(Map.of());
             when(pricingConfigService.getMinPrice()).thenReturn(25);
-            when(receivedFormRepository.save(any(ReceivedForm.class))).thenAnswer(inv -> {
-                ReceivedForm f = inv.getArgument(0); f.setId(1L); return f;
-            });
+            when(receivedFormService.recordQuoteForm(any(QuoteRequestDto.class), anyString())).thenReturn(1L);
 
             // Fire 5 successful submissions
             for (int i = 0; i < 5; i++) {
@@ -460,9 +436,7 @@ class QuoteControllerTest {
             when(pricingConfigService.getSurfaceCoeff(anyInt())).thenReturn(1.0);
             when(pricingConfigService.getFrequencyCoeffs()).thenReturn(Map.of());
             when(pricingConfigService.getMinPrice()).thenReturn(25);
-            when(receivedFormRepository.save(any(ReceivedForm.class))).thenAnswer(inv -> {
-                ReceivedForm f = inv.getArgument(0); f.setId(1L); return f;
-            });
+            when(receivedFormService.recordQuoteForm(any(QuoteRequestDto.class), anyString())).thenReturn(1L);
         }
 
         private String pkgOf(ResponseEntity<?> r) {

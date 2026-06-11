@@ -3,6 +3,7 @@ package com.clenzy.service.messaging;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.SystemEmailTemplate;
 import com.clenzy.repository.SystemEmailTemplateRepository;
+import com.clenzy.util.EmailHtmlSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -126,13 +127,24 @@ public class SystemEmailTemplateService {
                 "body depasse 100000 caracteres (100KB) : " + newBody.length());
         }
 
+        // Defense stored XSS : le body est emis dans des emails recus par des tiers
+        // (owners, guests). Suppression des constructs dangereux (script/iframe/
+        // object/embed, on*=, javascript:) AVANT stockage. Le rendu re-sanitise
+        // par defense en profondeur (EmailWrapperService) pour couvrir les
+        // overrides historiques anterieurs a ce correctif.
+        String safeBody = EmailHtmlSanitizer.sanitize(newBody);
+        if (safeBody.isBlank()) {
+            throw new IllegalArgumentException(
+                "body ne contient plus de contenu apres suppression du HTML dangereux");
+        }
+
         Optional<SystemEmailTemplate> existing = repository
             .findByOrganizationIdAndTemplateKeyAndLanguage(organizationId, templateKey, language);
 
         if (existing.isPresent()) {
             SystemEmailTemplate override = existing.get();
             override.setSubject(newSubject);
-            override.setBody(newBody);
+            override.setBody(safeBody);
             // updated_at bumped par trigger DB + @PreUpdate
             return repository.save(override);
         }
@@ -145,7 +157,7 @@ public class SystemEmailTemplateService {
 
         SystemEmailTemplate override = new SystemEmailTemplate(
             organizationId, templateKey, language, system.getRecipientType(),
-            newSubject, newBody, system.getWrapperStyle(), system.getId());
+            newSubject, safeBody, system.getWrapperStyle(), system.getId());
         log.info("Creation override email template org={} key={} lang={}",
             organizationId, templateKey, language);
         return repository.save(override);

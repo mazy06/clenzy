@@ -39,6 +39,11 @@ class ReservationServiceTest {
     @Mock private com.clenzy.service.messaging.AutomationEvaluationService automationEvaluationService;
     @Mock private com.clenzy.repository.SmartLockDeviceRepository smartLockDeviceRepository;
     @Mock private com.clenzy.service.smartlock.SmartLockAccessCodeService smartLockAccessCodeService;
+    @Mock private ReservationMapper reservationMapper;
+    @Mock private com.clenzy.repository.InterventionRepository interventionRepository;
+    @Mock private com.clenzy.repository.PropertyRepository propertyRepository;
+    @Mock private com.clenzy.repository.GuestRepository guestRepository;
+    @Mock private StripeService stripeService;
 
     private TenantContext tenantContext;
     private ReservationService reservationService;
@@ -59,7 +64,9 @@ class ReservationServiceTest {
                 calendarEngine, guestService, syncMetrics,
                 serviceRequestRepository, notificationService,
                 minNightsOverrideRepository, automationEvaluationService,
-                smartLockDeviceRepository, smartLockAccessCodeService
+                smartLockDeviceRepository, smartLockAccessCodeService,
+                reservationMapper, interventionRepository,
+                propertyRepository, guestRepository, stripeService
         );
 
         // Pas d'override min-nights par defaut dans les tests (resolution
@@ -441,6 +448,71 @@ class ReservationServiceTest {
             assertThatThrownBy(() -> reservationService.cancel(100L))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("organisation");
+        }
+
+        @Test
+        @DisplayName("reliquat A3: cancelling a pending reservation with an open Stripe session expires it")
+        void whenCancellingPendingWithStripeSession_thenExpiresSession() {
+            // Arrange
+            Reservation reservation = new Reservation();
+            reservation.setId(100L);
+            reservation.setOrganizationId(orgId);
+            reservation.setStatus("pending");
+            reservation.setPaymentStatus(PaymentStatus.PENDING);
+            reservation.setStripeSessionId("cs_open");
+
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
+            when(reservationRepository.save(reservation)).thenReturn(reservation);
+            when(stripeService.expireCheckoutSession("cs_open"))
+                    .thenReturn(StripeService.CheckoutSessionExpiryResult.EXPIRED);
+
+            // Act
+            reservationService.cancel(100L);
+
+            // Assert
+            verify(stripeService).expireCheckoutSession("cs_open");
+        }
+
+        @Test
+        @DisplayName("reliquat A3: session paid during cancellation race triggers automatic refund")
+        void whenCancelledSessionAlreadyPaid_thenRefunds() throws Exception {
+            // Arrange
+            Reservation reservation = new Reservation();
+            reservation.setId(101L);
+            reservation.setOrganizationId(orgId);
+            reservation.setStatus("pending");
+            reservation.setPaymentStatus(PaymentStatus.PENDING);
+            reservation.setStripeSessionId("cs_paid");
+
+            when(reservationRepository.findById(101L)).thenReturn(Optional.of(reservation));
+            when(reservationRepository.save(reservation)).thenReturn(reservation);
+            when(stripeService.expireCheckoutSession("cs_paid"))
+                    .thenReturn(StripeService.CheckoutSessionExpiryResult.PAID);
+
+            // Act
+            reservationService.cancel(101L);
+
+            // Assert
+            verify(stripeService).refundCheckoutSessionPayment(eq("cs_paid"), anyString());
+        }
+
+        @Test
+        @DisplayName("no Stripe call when cancelled reservation has no session")
+        void whenNoStripeSession_thenNoStripeCall() {
+            // Arrange
+            Reservation reservation = new Reservation();
+            reservation.setId(102L);
+            reservation.setOrganizationId(orgId);
+            reservation.setStatus("confirmed");
+
+            when(reservationRepository.findById(102L)).thenReturn(Optional.of(reservation));
+            when(reservationRepository.save(reservation)).thenReturn(reservation);
+
+            // Act
+            reservationService.cancel(102L);
+
+            // Assert
+            verifyNoInteractions(stripeService);
         }
     }
 
@@ -925,6 +997,215 @@ class ReservationServiceTest {
 
             reservationService.notifyReservationUpdated(reservation);
             // No exception propagated
+        }
+    }
+
+    // ── Methodes deplacees de ReservationController (T-ARCH-01) ─────────────
+
+    @Nested
+    @DisplayName("getByIdFetchAll / reloadWithRelations")
+    class FetchAll {
+
+        @Test
+        void whenReservationExists_thenReturnsIt() {
+            Reservation r = new Reservation();
+            r.setId(5L);
+            when(reservationRepository.findByIdFetchAll(5L)).thenReturn(Optional.of(r));
+
+            assertThat(reservationService.getByIdFetchAll(5L)).isSameAs(r);
+        }
+
+        @Test
+        void whenReservationMissing_thenThrowsNotFound() {
+            when(reservationRepository.findByIdFetchAll(99L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> reservationService.getByIdFetchAll(99L))
+                    .isInstanceOf(com.clenzy.exception.NotFoundException.class)
+                    .hasMessageContaining("99");
+        }
+
+        @Test
+        void whenReloadSucceeds_thenReturnsReloadedInstance() {
+            Reservation stale = new Reservation();
+            stale.setId(7L);
+            Reservation fresh = new Reservation();
+            fresh.setId(7L);
+            when(reservationRepository.findByIdFetchAll(7L)).thenReturn(Optional.of(fresh));
+
+            assertThat(reservationService.reloadWithRelations(stale)).isSameAs(fresh);
+        }
+
+        @Test
+        void whenReloadFails_thenFallsBackToGivenInstance() {
+            Reservation stale = new Reservation();
+            stale.setId(7L);
+            when(reservationRepository.findByIdFetchAll(7L)).thenReturn(Optional.empty());
+
+            assertThat(reservationService.reloadWithRelations(stale)).isSameAs(stale);
+        }
+    }
+
+    @Nested
+    @DisplayName("searchByGuestOrProperty / getLinkedInterventions")
+    class SearchAndLinked {
+
+        @Test
+        void whenSearching_thenDelegatesWithLimit() {
+            Reservation r = new Reservation();
+            when(reservationRepository.searchByGuestOrProperty(eq("ali"),
+                    eq(org.springframework.data.domain.PageRequest.of(0, 15))))
+                    .thenReturn(List.of(r));
+
+            List<Reservation> result = reservationService.searchByGuestOrProperty("ali", 15);
+
+            assertThat(result).containsExactly(r);
+        }
+
+        @Test
+        void whenListingLinkedInterventions_thenScopedToCurrentOrg() {
+            Intervention intervention = new Intervention();
+            when(interventionRepository.findByReservationId(3L, orgId))
+                    .thenReturn(List.of(intervention));
+
+            List<Intervention> result = reservationService.getLinkedInterventions(3L);
+
+            assertThat(result).containsExactly(intervention);
+            verify(interventionRepository).findByReservationId(3L, orgId);
+        }
+    }
+
+    @Nested
+    @DisplayName("validateGuestBelongsToOrganization")
+    class ValidateGuest {
+
+        @Test
+        void whenGuestIdNull_thenNoLookup() {
+            reservationService.validateGuestBelongsToOrganization(null);
+
+            verifyNoInteractions(guestRepository);
+        }
+
+        @Test
+        void whenGuestInOrg_thenPasses() {
+            when(guestRepository.findByIdAndOrganizationId(50L, orgId))
+                    .thenReturn(Optional.of(new Guest()));
+
+            reservationService.validateGuestBelongsToOrganization(50L);
+
+            verify(guestRepository).findByIdAndOrganizationId(50L, orgId);
+        }
+
+        @Test
+        void whenGuestMissing_thenThrowsNotFound() {
+            when(guestRepository.findByIdAndOrganizationId(50L, orgId))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> reservationService.validateGuestBelongsToOrganization(50L))
+                    .isInstanceOf(com.clenzy.exception.NotFoundException.class)
+                    .hasMessageContaining("50");
+        }
+    }
+
+    @Nested
+    @DisplayName("validatePropertyAccess")
+    class ValidatePropertyAccessTests {
+
+        private Property buildOwnedProperty(Long ownerId, String ownerKeycloakId, Long propertyOrgId) {
+            Property p = new Property();
+            p.setId(1L);
+            p.setOrganizationId(propertyOrgId);
+            User owner = buildUser(ownerId, ownerKeycloakId, UserRole.HOST);
+            p.setOwner(owner);
+            return p;
+        }
+
+        @Test
+        void whenPropertyMissing_thenThrowsNotFound() {
+            when(propertyRepository.findById(99L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> reservationService.validatePropertyAccess(99L, "user-1"))
+                    .isInstanceOf(com.clenzy.exception.NotFoundException.class);
+        }
+
+        @Test
+        void whenPropertyInOtherOrg_thenAccessDenied() {
+            Property p = buildOwnedProperty(1L, "user-1", 99L);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(p));
+
+            assertThatThrownBy(() -> reservationService.validatePropertyAccess(1L, "user-1"))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                    .hasMessageContaining("hors de votre organisation");
+        }
+
+        @Test
+        void whenOwnerMatches_thenPasses() {
+            Property p = buildOwnedProperty(1L, "user-1", orgId);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(p));
+            when(userRepository.findByKeycloakId("user-1"))
+                    .thenReturn(Optional.of(p.getOwner()));
+
+            reservationService.validatePropertyAccess(1L, "user-1");
+        }
+
+        @Test
+        void whenNotOwnerNorStaff_thenAccessDenied() {
+            Property p = buildOwnedProperty(1L, "real-owner", orgId);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(p));
+            User intruder = buildUser(42L, "intruder", UserRole.HOST);
+            when(userRepository.findByKeycloakId("intruder")).thenReturn(Optional.of(intruder));
+
+            assertThatThrownBy(() -> reservationService.validatePropertyAccess(1L, "intruder"))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                    .hasMessageContaining("proprietaire");
+        }
+
+        @Test
+        void whenPlatformStaff_thenBypassesOwnership() {
+            Property p = buildOwnedProperty(1L, "real-owner", orgId);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(p));
+            User staff = buildUser(42L, "staff", UserRole.SUPER_MANAGER);
+            when(userRepository.findByKeycloakId("staff")).thenReturn(Optional.of(staff));
+
+            reservationService.validatePropertyAccess(1L, "staff");
+        }
+
+        @Test
+        void whenSuperAdminContext_thenBypassesOwnership() {
+            tenantContext.setSuperAdmin(true);
+            Property p = buildOwnedProperty(1L, "real-owner", orgId);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(p));
+
+            reservationService.validatePropertyAccess(1L, "anyone");
+
+            verifyNoInteractions(userRepository);
+        }
+
+        @Test
+        void whenPropertyOrgIdNull_thenOwnershipStillChecked() {
+            Property p = buildOwnedProperty(1L, "user-1", null);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(p));
+            when(userRepository.findByKeycloakId("user-1"))
+                    .thenReturn(Optional.of(p.getOwner()));
+
+            reservationService.validatePropertyAccess(1L, "user-1");
+        }
+    }
+
+    @Nested
+    @DisplayName("persistHiddenFromPlanning")
+    class PersistHiddenFromPlanning {
+
+        @Test
+        void whenPersisting_thenSavesAsIs() {
+            Reservation r = new Reservation();
+            r.setId(4L);
+            r.setHiddenFromPlanning(true);
+            when(reservationRepository.save(r)).thenReturn(r);
+
+            Reservation result = reservationService.persistHiddenFromPlanning(r);
+
+            assertThat(result).isSameAs(r);
+            verify(reservationRepository).save(r);
         }
     }
 }

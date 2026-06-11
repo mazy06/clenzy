@@ -1,5 +1,6 @@
 package com.clenzy.config;
 
+import com.clenzy.exception.FieldDecryptionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -11,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Tests for {@link EncryptedFieldConverter}.
  * Validates AES-256 encryption/decryption, null/empty handling,
- * ANONYMIZED bypass, and graceful decryption fallback.
+ * ANONYMIZED bypass, and typed failure on undecryptable values (Z1-SEC-08).
  */
 class EncryptedFieldConverterTest {
 
@@ -22,6 +23,8 @@ class EncryptedFieldConverterTest {
         converter = new EncryptedFieldConverter();
         // Initialize encryptor with a test password
         converter.setEncryptorPassword("test-encryption-password-for-unit-tests");
+        // Etat statique partage : remettre le mode strict (defaut prod)
+        converter.setFailOnDecryptError(true);
     }
 
     @Nested
@@ -102,9 +105,35 @@ class EncryptedFieldConverterTest {
         }
 
         @Test
-        void whenDecryptionFails_thenReturnsRawValue() {
-            // Simulates a value that was never encrypted (migration progressive)
+        void whenDecryptionFails_thenThrowsTypedExceptionWithoutLeakingValue() {
+            // Une valeur indechiffrable (donnee alteree, cle incorrecte ou valeur
+            // jamais chiffree) ne doit plus etre renvoyee silencieusement (Z1-SEC-08)
             String rawValue = "not-encrypted-value";
+
+            assertThatThrownBy(() -> converter.convertToEntityAttribute(rawValue))
+                .isInstanceOf(FieldDecryptionException.class)
+                .satisfies(ex -> assertThat(ex.getMessage()).doesNotContain(rawValue));
+        }
+
+        @Test
+        void whenDecryptionFailsWithWrongKey_thenThrowsTypedException() {
+            // Simule une rotation de cle ratee : chiffre avec une cle, lit avec une autre
+            String encrypted = converter.convertToDatabaseColumn("+33612345678");
+            EncryptedFieldConverter otherKeyConverter = new EncryptedFieldConverter();
+            otherKeyConverter.setEncryptorPassword("another-password-after-bad-rotation");
+
+            assertThatThrownBy(() -> otherKeyConverter.convertToEntityAttribute(encrypted))
+                .isInstanceOf(FieldDecryptionException.class)
+                .satisfies(ex -> assertThat(ex.getMessage()).doesNotContain(encrypted));
+        }
+
+        @Test
+        void whenTolerantModeEnabled_thenReturnsRawValueWithoutThrowing() {
+            // Soupape de transition (migration progressive sans backfill SQL) :
+            // fail-on-decrypt-error=false sert la valeur brute au lieu de lever
+            converter.setFailOnDecryptError(false);
+            String rawValue = "legacy-plaintext-value";
+
             String result = converter.convertToEntityAttribute(rawValue);
 
             assertThat(result).isEqualTo(rawValue);

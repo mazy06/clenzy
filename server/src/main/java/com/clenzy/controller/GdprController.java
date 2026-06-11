@@ -3,8 +3,8 @@ package com.clenzy.controller;
 import com.clenzy.dto.GdprConsentUpdateDto;
 import com.clenzy.dto.GdprExportDto;
 import com.clenzy.model.User;
-import com.clenzy.repository.UserRepository;
 import com.clenzy.service.GdprService;
+import com.clenzy.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,11 +35,11 @@ public class GdprController {
     private static final Logger log = LoggerFactory.getLogger(GdprController.class);
 
     private final GdprService gdprService;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
-    public GdprController(GdprService gdprService, UserRepository userRepository) {
+    public GdprController(GdprService gdprService, UserService userService) {
         this.gdprService = gdprService;
-        this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     /**
@@ -112,8 +112,10 @@ public class GdprController {
             throw new RuntimeException("Authentification requise pour les operations RGPD");
         }
         String keycloakId = jwt.getSubject();
-        User user = userRepository.findByKeycloakId(keycloakId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve pour keycloakId: " + keycloakId));
+        User user = userService.findByKeycloakId(keycloakId);
+        if (user == null) {
+            throw new RuntimeException("Utilisateur non trouve pour keycloakId: " + keycloakId);
+        }
         return user.getId();
     }
 }

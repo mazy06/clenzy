@@ -29,10 +29,7 @@ import com.clenzy.service.LoginProtectionService;
 import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.service.OrganizationInvitationService;
 import com.clenzy.model.UserRole;
-import com.clenzy.model.Organization;
-import com.clenzy.model.OrganizationMember;
-import com.clenzy.repository.OrganizationRepository;
-import com.clenzy.repository.OrganizationMemberRepository;
+import com.clenzy.service.OrganizationService;
 import com.clenzy.dto.RolePermissionsDto;
 
 @RestController
@@ -62,16 +59,14 @@ public class AuthController {
     private final SecurityAuditService securityAuditService;
     private final LoginProtectionService loginProtectionService;
     private final OrganizationInvitationService invitationService;
-    private final OrganizationRepository organizationRepository;
-    private final OrganizationMemberRepository organizationMemberRepository;
+    private final OrganizationService organizationService;
     private final RestTemplate restTemplate;
 
     public AuthController(UserService userService, PermissionService permissionService,
                           AuditLogService auditLogService, SecurityAuditService securityAuditService,
                           LoginProtectionService loginProtectionService,
                           OrganizationInvitationService invitationService,
-                          OrganizationRepository organizationRepository,
-                          OrganizationMemberRepository organizationMemberRepository,
+                          OrganizationService organizationService,
                           RestTemplate restTemplate) {
         this.userService = userService;
         this.permissionService = permissionService;
@@ -79,8 +74,7 @@ public class AuthController {
         this.securityAuditService = securityAuditService;
         this.loginProtectionService = loginProtectionService;
         this.invitationService = invitationService;
-        this.organizationRepository = organizationRepository;
-        this.organizationMemberRepository = organizationMemberRepository;
+        this.organizationService = organizationService;
         this.restTemplate = restTemplate;
     }
 
@@ -325,14 +319,14 @@ public class AuthController {
                 }
                 if (user.getOrganizationId() != null) {
                     claims.put("organizationId", user.getOrganizationId());
-                    organizationRepository.findById(user.getOrganizationId()).ifPresent(org -> {
+                    organizationService.findById(user.getOrganizationId()).ifPresent(org -> {
                         claims.put("organizationName", org.getName());
                         claims.put("organizationType", org.getType().name());
                     });
                 }
                 // Ajouter le role dans l'organisation si applicable
                 try {
-                    organizationMemberRepository.findByUserId(user.getId()).ifPresent(member ->
+                    organizationService.findMembershipByUserId(user.getId()).ifPresent(member ->
                         claims.put("orgRole", member.getRoleInOrg().name())
                     );
                 } catch (Exception e) {

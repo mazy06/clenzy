@@ -1,5 +1,7 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.ContactAttachmentBase64Dto;
+import com.clenzy.dto.ContactAttachmentContentDto;
 import com.clenzy.dto.ContactAttachmentDto;
 import com.clenzy.dto.ContactMessageDto;
 import com.clenzy.dto.ContactUserDto;
@@ -12,6 +14,7 @@ import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
 import com.clenzy.util.AttachmentValidator;
 import com.clenzy.util.StringUtils;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.mail.internet.InternetAddress;
 import org.slf4j.Logger;
@@ -157,6 +160,55 @@ public class ContactMessageService {
         String userId = requireUserId(jwt);
         return contactMessageRepository.findByIdForUser(messageId, userId)
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
+    }
+
+    /**
+     * Charge le contenu binaire d'une piece jointe pour telechargement.
+     * L'acces est valide via {@link #getMessageForUser} (sender ou recipient
+     * du message uniquement) ; le nom et le content-type retournes proviennent
+     * des metadonnees JSONB du message.
+     *
+     * @throws NoSuchElementException si la piece jointe est absente des
+     *         metadonnees ou si le fichier n'est pas stocke en base
+     */
+    @Transactional(readOnly = true)
+    public ContactAttachmentContentDto getAttachmentContent(Jwt jwt, Long messageId, String attachmentId) {
+        ContactMessage message = getMessageForUser(messageId, jwt);
+
+        ContactAttachmentDto attachment = deserializeAttachments(message.getAttachments()).stream()
+                .filter(a -> attachmentId.equals(a.id()))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("Piece jointe introuvable"));
+
+        ContactAttachmentFile file = attachmentFileRepository
+                .findByMessageIdAndAttachmentId(messageId, attachmentId)
+                .orElseThrow(() -> new NoSuchElementException("Fichier non disponible en telechargement"));
+
+        return new ContactAttachmentContentDto(attachment.originalName(), attachment.contentType(), file.getData());
+    }
+
+    /**
+     * Retourne une piece jointe encodee en data URI base64 (affichage inline
+     * mobile). L'acces est valide via {@link #getMessageForUser}.
+     *
+     * @throws NoSuchElementException si le fichier n'est pas stocke en base
+     */
+    @Transactional(readOnly = true)
+    public ContactAttachmentBase64Dto getAttachmentAsBase64(Jwt jwt, Long messageId, String attachmentId) {
+        getMessageForUser(messageId, jwt);
+
+        ContactAttachmentFile file = attachmentFileRepository
+                .findByMessageIdAndAttachmentId(messageId, attachmentId)
+                .orElseThrow(() -> new NoSuchElementException("Fichier non disponible"));
+
+        String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
+        String dataUri = "data:" + contentType + ";base64," + Base64.getEncoder().encodeToString(file.getData());
+        return new ContactAttachmentBase64Dto(
+                dataUri,
+                contentType,
+                file.getOriginalName() != null ? file.getOriginalName() : "",
+                file.getSize() != null ? file.getSize() : 0L
+        );
     }
 
     // ─── Envoi ──────────────────────────────────────────────────────────────
@@ -476,7 +528,10 @@ public class ContactMessageService {
             message.setProviderMessageId(providerMessageId);
             applyStatus(message, ContactMessageStatus.DELIVERED);
         } catch (Exception e) {
-            log.error("Erreur d'envoi email contact #{} : {}", message.getId(), e.getMessage());
+            // Best-effort assume : le message in-app est deja persiste (source de
+            // verite) ; l'echec email ne doit pas annuler l'envoi. Le statut reste
+            // SENT (non DELIVERED), trace complete pour diagnostic SMTP.
+            log.error("Erreur d'envoi email contact #{} : {}", message.getId(), e.getMessage(), e);
         }
     }
 
@@ -547,7 +602,10 @@ public class ContactMessageService {
                             u -> u,
                             (a, b) -> a));
         } catch (Exception e) {
-            log.warn("Batch user lookup failed for thread summaries: {}", e.getMessage());
+            // Degradation volontaire (threads affiches sans avatar/id), mais trace
+            // complete : un echec ici signale un probleme BDD (T-SOLID-7 : avant,
+            // message seul sans stack trace exploitable).
+            log.warn("Batch user lookup failed for thread summaries: {}", e.getMessage(), e);
             usersByKeycloak = java.util.Map.of();
         }
 
@@ -683,6 +741,9 @@ public class ContactMessageService {
             if (!(roles instanceof List<?> list)) return List.of();
             return list.stream().map(String::valueOf).toList();
         } catch (Exception e) {
+            // Parsing defensif d'un claim JWT malformee : le flux continue avec le
+            // role en BDD (resolveActor), mais on trace (avant : avale sans log).
+            log.warn("Extraction des roles du claim realm_access impossible : {}", e.getMessage());
             return List.of();
         }
     }
@@ -816,8 +877,23 @@ public class ContactMessageService {
             message.setAttachments(serializeAttachments(updated));
             // L'entite dirty sera flushee au commit de la @Transactional
         } catch (Exception e) {
-            log.error("Echec du stockage des pieces jointes pour le message #{}: {}", message.getId(), e.getMessage());
+            log.error("Echec du stockage des pieces jointes pour le message #{}: {}",
+                    message.getId(), e.getMessage(), e);
             // Ne PAS relancer — l'email a deja ete envoye avec succes
+        }
+    }
+
+    /**
+     * Relit les metadonnees JSONB de pieces jointes d'un message.
+     * Tolerant : JSON null/blanc ou illisible → liste vide (jamais d'exception),
+     * le message reste consultable meme si les metadonnees sont corrompues.
+     */
+    private List<ContactAttachmentDto> deserializeAttachments(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<ContactAttachmentDto>>() {});
+        } catch (Exception e) {
+            return List.of();
         }
     }
 
@@ -825,6 +901,11 @@ public class ContactMessageService {
         try {
             return objectMapper.writeValueAsString(attachments);
         } catch (Exception e) {
+            // Fallback defensif : ne pas bloquer l'envoi du message pour un echec de
+            // serialisation des metadonnees, mais tracer en ERROR (avant : avale
+            // silencieusement → pieces jointes perdues sans aucune trace).
+            log.error("Echec de serialisation des metadonnees de pieces jointes ({} fichier(s)) : {}",
+                    attachments != null ? attachments.size() : 0, e.getMessage(), e);
             return "[]";
         }
     }

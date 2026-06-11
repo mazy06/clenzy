@@ -34,7 +34,15 @@ class BookingApiKeyFilterTest {
     @BeforeEach
     void setUp() {
         mapper = new ObjectMapper();
-        filter = new BookingApiKeyFilter(configRepository, mapper);
+        filter = new BookingApiKeyFilter(configRepository, mapper,
+            new org.springframework.mock.env.MockEnvironment());
+    }
+
+    /** Filtre en mode production (profil prod actif → deny by default sans allowedOrigins). */
+    private BookingApiKeyFilter prodFilter() {
+        org.springframework.mock.env.MockEnvironment env = new org.springframework.mock.env.MockEnvironment();
+        env.setActiveProfiles("prod");
+        return new BookingApiKeyFilter(configRepository, mapper, env);
     }
 
     private static BookingEngineConfig config(boolean enabled, String allowedOrigins) {
@@ -221,6 +229,73 @@ class BookingApiKeyFilterTest {
         filter.doFilterInternal(req, resp, new MockFilterChain());
 
         assertThat(resp.getStatus()).isEqualTo(200);
+        assertThat(resp.getHeader("Access-Control-Allow-Origin")).isNull();
+    }
+
+    // ─── Z4A-SEC-04 : controle d'origine durci ───────────────────────────
+
+    @Test
+    void doFilterInternal_prodWithoutAllowedOrigins_deniesCrossSiteOrigin() throws Exception {
+        BookingEngineConfig cfg = config(true, "");
+        when(configRepository.findByApiKey("ok")).thenReturn(Optional.of(cfg));
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/public/booking/x");
+        req.addHeader("X-Booking-Key", "ok");
+        req.addHeader("Origin", "https://any-origin.com");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        prodFilter().doFilterInternal(req, resp, chain);
+
+        assertThat(resp.getStatus()).isEqualTo(403);
+        verify(chain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    void doFilterInternal_prodWithConfiguredOrigin_stillAccepts() throws Exception {
+        BookingEngineConfig cfg = config(true, "https://shop.example.com");
+        when(configRepository.findByApiKey("ok")).thenReturn(Optional.of(cfg));
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/public/booking/x");
+        req.addHeader("X-Booking-Key", "ok");
+        req.addHeader("Origin", "https://shop.example.com");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        prodFilter().doFilterInternal(req, resp, chain);
+
+        verify(chain).doFilter(req, resp);
+        assertThat(resp.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void doFilterInternal_refererCheckedWhenOriginAbsent_denied() throws Exception {
+        BookingEngineConfig cfg = config(true, "https://only.example.com");
+        when(configRepository.findByApiKey("ok")).thenReturn(Optional.of(cfg));
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/public/booking/x");
+        req.addHeader("X-Booking-Key", "ok");
+        req.addHeader("Referer", "https://malicious.com/page.html");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilterInternal(req, resp, chain);
+
+        assertThat(resp.getStatus()).isEqualTo(403);
+        verify(chain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    void doFilterInternal_refererMatchingAllowedOrigin_accepted() throws Exception {
+        BookingEngineConfig cfg = config(true, "https://only.example.com");
+        when(configRepository.findByApiKey("ok")).thenReturn(Optional.of(cfg));
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/public/booking/x");
+        req.addHeader("X-Booking-Key", "ok");
+        req.addHeader("Referer", "https://only.example.com/booking/widget");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilterInternal(req, resp, chain);
+
+        verify(chain).doFilter(req, resp);
+        // Pas d'Origin → pas de headers CORS refletes
         assertThat(resp.getHeader("Access-Control-Allow-Origin")).isNull();
     }
 }

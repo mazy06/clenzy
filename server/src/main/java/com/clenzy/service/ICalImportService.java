@@ -10,9 +10,12 @@ import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.model.NotificationKey;
+import com.clenzy.service.ical.FeedUrlMasker;
+import com.clenzy.service.ical.ICalFeedDownloader;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -22,14 +25,10 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,6 +36,8 @@ import java.util.stream.Collectors;
  * Service de gestion de l'import iCal.
  * Parse les fichiers .ics (Airbnb, Booking, Vrbo, etc.)
  * et cree les interventions de menage correspondantes.
+ * Le telechargement (validation SSRF + connexion epinglee anti DNS-rebinding)
+ * est delegue a {@link ICalFeedDownloader}.
  */
 @Service
 public class ICalImportService {
@@ -45,12 +46,29 @@ public class ICalImportService {
 
     private static final Set<String> ALLOWED_FORFAITS = Set.of("confort", "premium");
 
-    // SSRF protection: max response size (5 MB)
-    private static final long MAX_ICAL_RESPONSE_BYTES = 5 * 1024 * 1024;
+    /**
+     * Heures par defaut quand la propriete ne definit pas les siennes.
+     * Utilisees a la fois pour la reservation importee ET pour la fenetre de
+     * menage (guestCheckinTime) — les deux doivent rester alignees (T-BP-09).
+     */
+    private static final String DEFAULT_CHECK_IN_TIME = "15:00";
+    private static final String DEFAULT_CHECK_OUT_TIME = "11:00";
+
+    /**
+     * Seuil d'avortement de la detection d'orphelins. Si la part des reservations
+     * futures actives qui disparaitraient du feed depasse ce ratio, on n'annule
+     * RIEN : un feed transitoirement tronque (HTTP 200 partiel, drop de parsing)
+     * ne doit jamais declencher d'annulation en masse — l'annulation cascade
+     * libere les jours (CalendarEngine -> sync sortante vers les autres canaux)
+     * et n'est pas reversible automatiquement (pas de reactivation au retour de
+     * l'UID). Valeur choisie : 20% — l'ancien seuil de 50% laissait s'annuler
+     * jusqu'a la moitie du carnet de reservations sur un feed incomplet.
+     */
+    private static final double MAX_ORPHAN_RATIO = 0.20;
 
     private final ICalFeedRepository icalFeedRepository;
     private final ServiceRequestRepository serviceRequestRepository;
-    private final ReservationRepository reservationRepository2;
+    private final ReservationRepository reservationRepository;
     private final InterventionRepository interventionRepository;
     private final InvoiceRepository invoiceRepository;
     private final PropertyRepository propertyRepository;
@@ -64,11 +82,14 @@ public class ICalImportService {
     private final TenantContext tenantContext;
     private final ServiceRequestService serviceRequestService;
     private final OtaReservationInvoicingService otaInvoicingService;
-    private final HttpClient httpClient;
+    private final ICalFeedDownloader feedDownloader;
+    /** Proxy Spring de ce bean : permet a syncFeeds d'invoquer importICalFeed AVEC sa
+     *  propre transaction (l'auto-invocation directe contournerait le proxy, T-BP-06). */
+    private final ObjectProvider<ICalImportService> self;
 
     public ICalImportService(ICalFeedRepository icalFeedRepository,
                              ServiceRequestRepository serviceRequestRepository,
-                             ReservationRepository reservationRepository2,
+                             ReservationRepository reservationRepository,
                              InterventionRepository interventionRepository,
                              InvoiceRepository invoiceRepository,
                              PropertyRepository propertyRepository,
@@ -81,10 +102,12 @@ public class ICalImportService {
                              GuestService guestService,
                              TenantContext tenantContext,
                              @org.springframework.context.annotation.Lazy ServiceRequestService serviceRequestService,
-                             OtaReservationInvoicingService otaInvoicingService) {
+                             OtaReservationInvoicingService otaInvoicingService,
+                             ICalFeedDownloader feedDownloader,
+                             ObjectProvider<ICalImportService> self) {
         this.icalFeedRepository = icalFeedRepository;
         this.serviceRequestRepository = serviceRequestRepository;
-        this.reservationRepository2 = reservationRepository2;
+        this.reservationRepository = reservationRepository;
         this.interventionRepository = interventionRepository;
         this.invoiceRepository = invoiceRepository;
         this.propertyRepository = propertyRepository;
@@ -98,10 +121,8 @@ public class ICalImportService {
         this.tenantContext = tenantContext;
         this.serviceRequestService = serviceRequestService;
         this.otaInvoicingService = otaInvoicingService;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(15))
-                .followRedirects(HttpClient.Redirect.NEVER) // SSRF: disable redirects to prevent bypass
-                .build();
+        this.feedDownloader = feedDownloader;
+        this.self = self;
     }
 
     /**
@@ -130,7 +151,7 @@ public class ICalImportService {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable : " + propertyId));
 
-        List<ICalEventPreview> events = fetchAndParseICalFeed(url);
+        List<ICalEventPreview> events = fetchAndParseICalFeed(url, resolvePropertyZone(property));
 
         long blockedCount = events.stream().filter(e -> "blocked".equals(e.getType())).count();
         List<ICalEventPreview> reservationEvents = events.stream()
@@ -147,16 +168,109 @@ public class ICalImportService {
 
     /**
      * Importe les reservations depuis un feed iCal et cree les interventions.
+     * Orchestration : garde forfait/ownership -> fetch+parse -> upsert feed ->
+     * import evenement par evenement -> detection orphelins -> persistance des
+     * resultats -> notifications -> hooks afterCommit.
      */
     @Transactional
     public ImportResponse importICalFeed(ImportRequest request, String keycloakId) {
-        // Verifier le forfait
         if (!isUserAllowed(keycloakId)) {
             throw new SecurityException("Votre forfait ne permet pas l'import iCal. Forfait Confort ou Premium requis.");
         }
+        Property property = loadPropertyCheckingOwnership(request.getPropertyId(), keycloakId);
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        assertFeedNotLinkedToAnotherProperty(request, property, orgId);
 
-        Property property = propertyRepository.findById(request.getPropertyId())
-                .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable : " + request.getPropertyId()));
+        ICalEventParser.ParseResult parseResult = fetchAndParseICalFeedDetailed(request.getUrl(), resolvePropertyZone(property));
+        List<ICalEventPreview> reservationEvents = filterReservationEvents(parseResult.events());
+
+        ICalFeed feed = upsertFeed(property, request);
+        ImportSession session = new ImportSession(request, property, feed, orgId,
+                detectSource(request.getSourceName()));
+        recordParseAnomalies(session, parseResult);
+        preloadKnownFeedReservations(session);
+
+        for (ICalEventPreview event : reservationEvents) {
+            importEvent(session, event);
+        }
+
+        detectAndCancelOrphans(session, reservationEvents);
+        persistFeedSyncResult(session);
+        auditAndLogResult(session);
+
+        ImportResponse response = buildResponse(session);
+        notifyImportResult(session, keycloakId);
+
+        // Auto-assignation differee : tournee apres le commit dans des transactions
+        // independantes, pour qu'une defaillance ne casse pas l'import.
+        scheduleAutoAssignAfterCommit(session.srsToAutoAssign, orgId);
+        // Auto-facture OTA differee : apres le commit, dans des transactions independantes.
+        scheduleReservationInvoicesAfterCommit(session.reservationsToInvoice);
+
+        return response;
+    }
+
+    // ── Etapes privees de l'import ──────────────────────────────────────────────
+
+    /**
+     * Etat mutable d'une passe d'import : compteurs, erreurs et travaux differes
+     * apres commit. Les SR sont auto-assignees en afterCommit car les services
+     * {@code @Transactional} appeles (findAvailableTeamForProperty, notifications...)
+     * peuvent marquer la transaction d'import rollback-only meme si l'exception est
+     * avalee localement (UnexpectedRollbackException au commit sinon).
+     */
+    private static final class ImportSession {
+        final ImportRequest request;
+        final Property property;
+        final ICalFeed feed;
+        final Long orgId;
+        final String sourceKey;
+        /**
+         * Source OTA "deja payee" (regle alignee sur PanelFinancial / PaymentController) :
+         * ces reservations sont reglees sur le canal externe -> auto-facturees a l'import
+         * (pas via Stripe).
+         */
+        final boolean otaPaidSource;
+        int imported;
+        int skipped;
+        int cancelled;
+        final List<String> errors = new ArrayList<>();
+        /** SR dont l'auto-assignation est differee jusqu'apres le commit. */
+        final List<Long> srsToAutoAssign = new ArrayList<>();
+        /** Reservations OTA nouvellement creees, facturees apres le commit. */
+        final List<Long> reservationsToInvoice = new ArrayList<>();
+        /**
+         * UID presents dans le feed mais non parsables : proteges de la detection
+         * d'orphelins (une date malformee ne doit pas annuler la reservation en base).
+         */
+        final Set<String> unparsableUids = new HashSet<>();
+        /**
+         * Dedoublonnage par UID scope au feed (Z6-SECBUGS-06) : UID -> reservationId
+         * pour les reservations de CE feed (ou sans feed : feed supprime puis recree,
+         * FK ON DELETE SET NULL). Un meme UID porte par un AUTRE feed de la propriete
+         * n'est pas un doublon — c'est une vraie reservation d'un autre canal.
+         */
+        final Map<String, Long> knownUidToReservationId = new HashMap<>();
+        /**
+         * Compteur local pour les noms generiques (ex: "Reserved" -> #1, #2, #3...).
+         * Cle = propertyId + "_" + nomGenerique (lowercase).
+         */
+        final Map<String, Long> guestNameCounters = new HashMap<>();
+
+        ImportSession(ImportRequest request, Property property, ICalFeed feed, Long orgId, String sourceKey) {
+            this.request = request;
+            this.property = property;
+            this.feed = feed;
+            this.orgId = orgId;
+            this.sourceKey = sourceKey;
+            this.otaPaidSource = "airbnb".equals(sourceKey)
+                    || "booking".equals(sourceKey) || "other".equals(sourceKey);
+        }
+    }
+
+    private Property loadPropertyCheckingOwnership(Long propertyId, String keycloakId) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable : " + propertyId));
 
         // Verifier l'ownership (Admin et Manager peuvent importer sur toute propriete)
         User user = userRepository.findByKeycloakId(keycloakId)
@@ -166,9 +280,11 @@ public class ICalImportService {
         if (!isAdminOrManager && !property.getOwner().getId().equals(user.getId())) {
             throw new SecurityException("Vous n'etes pas proprietaire de ce logement");
         }
+        return property;
+    }
 
-        // Verifier que ce calendrier iCal n'est pas deja importe sur un autre logement
-        Long orgId = tenantContext.getRequiredOrganizationId();
+    /** Verifie que ce calendrier iCal n'est pas deja importe sur un autre logement. */
+    private void assertFeedNotLinkedToAnotherProperty(ImportRequest request, Property property, Long orgId) {
         List<ICalFeed> duplicateFeeds = icalFeedRepository.findByUrlAndDifferentProperty(
                 request.getUrl(), property.getId(), orgId);
         if (!duplicateFeeds.isEmpty()) {
@@ -177,11 +293,13 @@ public class ICalImportService {
                     "Ce calendrier iCal est deja importe sur le logement \"" + otherPropertyName
                             + "\". Un calendrier iCal correspond a un seul logement.");
         }
+    }
 
-        // Parser le feed
-        List<ICalEventPreview> events = fetchAndParseICalFeed(request.getUrl());
-
-        // Filtrer : ne garder que les vraies reservations (ignorer les blocs "Not available", "Blocked", etc.)
+    /**
+     * Filtre les blocs ("Not available", "Blocked", etc.) :
+     * seules les vraies reservations sont retournees.
+     */
+    private static List<ICalEventPreview> filterReservationEvents(List<ICalEventPreview> events) {
         List<ICalEventPreview> reservations = events.stream()
                 .filter(e -> !"blocked".equals(e.getType()))
                 .collect(Collectors.toList());
@@ -189,304 +307,448 @@ public class ICalImportService {
         if (blocksIgnored > 0) {
             log.info("iCal import: {} bloc(s) ignore(s) (Not available / Blocked)", blocksIgnored);
         }
+        return reservations;
+    }
 
-        // Dedoublonnage : on ne skip QUE si la Reservation existe deja en base.
-        // Les interventions orphelines (sans reservation) ne bloquent PAS le re-import.
-        // Cela permet de recreer les reservations manquantes apres mise a jour du code.
+    /**
+     * Remonte dans le resultat de sync les anomalies de parsing (Z6-SECBUGS-05/07) :
+     * evenements ecartes (dates non parsables) et evenements recurrents non expanses.
+     * Pas de perte silencieuse : ces compteurs alimentent {@code session.errors}
+     * (statut PARTIAL + notification utilisateur).
+     */
+    private void recordParseAnomalies(ImportSession session, ICalEventParser.ParseResult parseResult) {
+        if (parseResult.unparsableEvents() > 0) {
+            session.unparsableUids.addAll(parseResult.unparsableUids());
+            String msg = parseResult.unparsableEvents()
+                    + " evenement(s) ignore(s) (DTSTART manquant ou date non parsable)";
+            log.warn("iCal import feed #{}: {}", session.feed.getId(), msg);
+            session.errors.add(msg);
+        }
+        if (parseResult.recurringEvents() > 0) {
+            String msg = parseResult.recurringEvents()
+                    + " evenement(s) recurrent(s) (RRULE/RDATE) non expanse(s) : seule la premiere occurrence est importee";
+            log.warn("iCal import feed #{}: {}", session.feed.getId(), msg);
+            session.errors.add(msg);
+        }
+    }
 
-        // Sauvegarder/mettre a jour le feed en premier (pour avoir le feedId)
-        ICalFeed feed = icalFeedRepository.findByPropertyIdAndUrl(property.getId(), request.getUrl(), tenantContext.getRequiredOrganizationId());
+    /**
+     * Precharge la table de dedoublonnage UID -> reservation, scope au feed
+     * (Z6-SECBUGS-06). Les reservations rattachees a un AUTRE feed de la meme
+     * propriete sont exclues : un channel manager peut reutiliser le meme UID
+     * sur deux canaux, et la reservation du second canal ne doit pas etre
+     * silencieusement skippee. Les reservations sans feed restent dedupliquees
+     * (feed supprime puis recree : la FK reservations.ical_feed_id est
+     * ON DELETE SET NULL) — priorite aux reservations rattachees a CE feed.
+     */
+    private void preloadKnownFeedReservations(ImportSession session) {
+        Long feedId = session.feed.getId();
+        for (Reservation reservation : reservationRepository.findByPropertyId(
+                session.property.getId(), session.orgId)) {
+            String uid = reservation.getExternalUid();
+            if (uid == null) {
+                continue;
+            }
+            ICalFeed reservationFeed = reservation.getIcalFeed();
+            if (reservationFeed != null && !feedId.equals(reservationFeed.getId())) {
+                continue; // UID d'un autre feed : pas un doublon pour ce feed
+            }
+            if (reservationFeed != null || !session.knownUidToReservationId.containsKey(uid)) {
+                session.knownUidToReservationId.put(uid, reservation.getId());
+            }
+        }
+    }
+
+    /** Sauvegarde/met a jour le feed en premier (pour avoir le feedId). */
+    private ICalFeed upsertFeed(Property property, ImportRequest request) {
+        ICalFeed feed = icalFeedRepository.findByPropertyIdAndUrl(
+                property.getId(), request.getUrl(), tenantContext.getRequiredOrganizationId());
         if (feed == null) {
             feed = new ICalFeed(property, request.getUrl(), request.getSourceName());
             feed.setOrganizationId(tenantContext.getOrganizationId());
         }
         feed.setAutoCreateInterventions(request.isAutoCreateInterventions());
-        feed = icalFeedRepository.save(feed);
+        return icalFeedRepository.save(feed);
+    }
 
-        int imported = 0;
-        int skipped = 0;
-        int cancelled = 0;
-        List<String> errors = new ArrayList<>();
-
-        // SR IDs dont l'auto-assignation est differee jusqu'apres le commit.
-        // Pourquoi : les services @Transactional appeles par attemptAutoAssignByOrgId
-        // (findAvailableTeamForProperty, notifyAdminsAndManagersByOrgId, ...) peuvent
-        // lever une exception qui marque la transaction d'import comme rollback-only,
-        // meme avalee localement. Le commit explose alors avec UnexpectedRollbackException.
-        // En differant l'auto-assign en afterCommit, chaque appel tourne dans sa propre
-        // transaction et ne peut plus polluer l'import.
-        final List<Long> srsToAutoAssignAfterCommit = new ArrayList<>();
-        // Reservations OTA nouvellement creees, facturees apres le commit (auto-facture OTA).
-        final List<Long> reservationsToInvoiceAfterCommit = new ArrayList<>();
-
-        // Compteur local pour les noms generiques (ex: "Reserved" → #1, #2, #3...)
-        // Cle = propertyId + "_" + nomGenerique (lowercase)
-        Map<String, Long> guestNameCounters = new HashMap<>();
-
-        // Determiner la source a partir du nom
-        String sourceKey = detectSource(request.getSourceName());
-        // Source OTA "deja payee" (regle alignee sur PanelFinancial / PaymentController) : ces
-        // reservations sont reglees sur le canal externe -> auto-facturees a l'import (pas via Stripe).
-        final boolean isOtaPaidSource = "airbnb".equals(sourceKey)
-                || "booking".equals(sourceKey) || "other".equals(sourceKey);
-
-        for (ICalEventPreview event : reservations) {
-            try {
-                // Dedoublonnage par UID : skip la creation de Reservation si elle existe deja
-                Long reservationId = null;
-                if (event.getUid() != null) {
-                    Optional<Reservation> existingRes = reservationRepository2.findByExternalUidAndPropertyId(event.getUid(), property.getId());
-                    if (existingRes.isPresent()) {
-                        reservationId = existingRes.get().getId();
-                    }
-                }
-
-                if (reservationId != null) {
-                    // Reservation deja existante — verifier si annulee cote OTA
-                    Reservation existing = reservationRepository2.findById(reservationId).orElse(null);
-                    if (existing != null && "cancelled".equals(event.getStatus())
-                            && !"cancelled".equals(existing.getStatus())) {
-                        cancelReservationWithCascade(existing, orgId);
-                        cancelled++;
-                    } else {
-                        skipped++;
-                    }
-                } else {
-                    // 1. Creer la Reservation
-                    Reservation reservation = new Reservation();
-                    reservation.setProperty(property);
-
-                    // Si le guest name est generique ("Reserved", "Not available", etc.),
-                    // on l'incremente pour individualiser chaque fiche client
-                    String guestName = disambiguateGuestName(event.getGuestName(), property.getId(), guestNameCounters);
-                    reservation.setGuestName(guestName);
-                    reservation.setGuestCount(property.getMaxGuests() != null ? property.getMaxGuests() : 2);
-                    reservation.setCheckIn(event.getDtStart());
-                    LocalDate checkOut = event.getDtEnd() != null ? event.getDtEnd() : event.getDtStart().plusDays(1);
-                    reservation.setCheckOut(checkOut);
-                    // Utiliser les heures par defaut de la propriete, sinon fallback global
-                    String defaultCheckIn = property.getDefaultCheckInTime() != null ? property.getDefaultCheckInTime() : "15:00";
-                    String defaultCheckOut = property.getDefaultCheckOutTime() != null ? property.getDefaultCheckOutTime() : "11:00";
-                    reservation.setCheckInTime(defaultCheckIn);
-                    reservation.setCheckOutTime(defaultCheckOut);
-                    // Utiliser le statut parse depuis l'iCal (CONFIRMED/TENTATIVE/CANCELLED).
-                    // Si absent (la plupart des OTA ne le fournissent pas), defaut = "confirmed" :
-                    // les blocages ("Not available", "Blocked") sont deja filtres en amont (type
-                    // "blocked"), donc tout evenement restant est une vraie reservation OTA = booking
-                    // confirme. "pending" excluait a tort ces reservations des traitements filtres sur
-                    // "confirmed" (livret d'accueil, envoi auto des instructions check-in, revenus).
-                    reservation.setStatus(event.getStatus() != null ? event.getStatus() : "confirmed");
-                    reservation.setSource(sourceKey);
-                    reservation.setSourceName(request.getSourceName());
-                    reservation.setConfirmationCode(event.getConfirmationCode());
-                    reservation.setExternalUid(event.getUid());
-                    reservation.setIcalFeed(feed);
-                    reservation.setNotes(event.getDescription());
-                    reservation.setOrganizationId(tenantContext.getOrganizationId());
-
-                    // Calculer le prix total via le moteur de pricing dynamique
-                    // Resout les overrides, rate plans (promo/seasonal/base) et fallback property.nightlyPrice
-                    Map<LocalDate, BigDecimal> priceMap = priceEngine.resolvePriceRange(
-                            property.getId(), reservation.getCheckIn(), checkOut, orgId);
-                    BigDecimal totalPrice = BigDecimal.ZERO;
-                    for (LocalDate date = reservation.getCheckIn(); date.isBefore(checkOut); date = date.plusDays(1)) {
-                        BigDecimal nightlyPrice = priceMap.get(date);
-                        if (nightlyPrice != null) {
-                            totalPrice = totalPrice.add(nightlyPrice);
-                        }
-                    }
-                    if (totalPrice.compareTo(BigDecimal.ZERO) > 0) {
-                        reservation.setTotalPrice(totalPrice);
-                    }
-
-                    reservation = reservationRepository2.save(reservation);
-                    reservationId = reservation.getId();
-
-                    // Auto-facture OTA : reservation de canal externe (deja payee). Facturee APRES
-                    // le commit (date facture = maintenant ≈ date d'import). Pas de backfill : seules
-                    // les reservations nouvellement creees ici sont concernees (dedup par UID au-dessus).
-                    if (isOtaPaidSource && reservation.getTotalPrice() != null
-                            && reservation.getTotalPrice().compareTo(BigDecimal.ZERO) > 0) {
-                        reservationsToInvoiceAfterCommit.add(reservationId);
-                    }
-
-                    // Creer/lier le Guest des l'import pour que guestEmail soit persistable via PUT
-                    if (reservation.getGuest() == null && guestName != null && !guestName.isBlank()) {
-                        try {
-                            Guest guest = guestService.findOrCreateFromName(guestName, sourceKey, orgId);
-                            if (guest != null) {
-                                reservation.setGuest(guest);
-                                reservationRepository2.save(reservation);
-                            }
-                        } catch (Exception e) {
-                            log.warn("Impossible de creer le Guest pour reservation #{}: {}", reservationId, e.getMessage());
-                        }
-                    }
-
-                    // Auto-masquer les reservations annulees qui chevauchent la nouvelle
-                    List<Reservation> cancelledOverlapping = reservationRepository2.findCancelledOverlapping(
-                            property.getId(), reservation.getCheckIn(), reservation.getCheckOut(),
-                            tenantContext.getRequiredOrganizationId());
-                    for (Reservation cancelledRes : cancelledOverlapping) {
-                        cancelledRes.setHiddenFromPlanning(true);
-                        reservationRepository2.save(cancelledRes);
-                        log.info("Auto-masque reservation annulee #{} (chevauche nouvelle OTA #{})",
-                                cancelledRes.getId(), reservation.getId());
-                    }
-
-                    imported++;
-                }
-
-                // 2. Creer ou reactiver la demande de menage (si auto-create active)
-                // IMPORTANT: verifie meme si la reservation est un doublon, car l'utilisateur
-                // peut activer l'auto-menage apres un premier import sans cette option,
-                // ou ajouter une equipe apres que le scheduler ait epuise ses retries.
-                if (request.isAutoCreateInterventions() && reservationId != null) {
-                    ServiceRequest existingSR = null;
-                    if (event.getUid() != null) {
-                        String marker = "[ICAL:" + event.getUid() + "]";
-                        List<ServiceRequest> existingSRs = serviceRequestRepository.findByPropertyId(property.getId(), orgId);
-                        existingSR = existingSRs.stream()
-                                .filter(sr -> sr.getSpecialInstructions() != null
-                                        && sr.getSpecialInstructions().contains(marker))
-                                .findFirst()
-                                .orElse(null);
-                    }
-                    if (existingSR == null) {
-                        // Aucune SR : on la cree puis on planifie l'auto-assignation
-                        // post-commit (cf. srsToAutoAssignAfterCommit) pour eviter qu'une
-                        // exception interne ne marque la transaction rollback-only.
-                        ServiceRequest created = createCleaningServiceRequest(
-                                property, event, request.getSourceName(), reservationId);
-                        if (created != null) {
-                            srsToAutoAssignAfterCommit.add(created.getId());
-                        }
-                    } else if (existingSR.getStatus() == RequestStatus.PENDING
-                            && existingSR.getAssignedToId() == null) {
-                        // SR existe mais coincee en PENDING non-assignee. Cause typique :
-                        // l'utilisateur a ajoute une equipe / config apres l'import initial,
-                        // et le scheduler a deja epuise ses 10 retries (autoAssignStatus='exhausted').
-                        // On reset le compteur et on retente apres commit.
-                        existingSR.setAutoAssignRetryCount(0);
-                        existingSR.setAutoAssignStatus("searching");
-                        existingSR.setLastAutoAssignAttempt(null);
-                        ServiceRequest reset = serviceRequestRepository.save(existingSR);
-                        srsToAutoAssignAfterCommit.add(reset.getId());
-                    }
-                }
-
-            } catch (Exception e) {
-                log.warn("Erreur import evenement {}: {}", event.getUid(), e.getMessage());
-                errors.add("Evenement " + event.getSummary() + " : " + e.getMessage());
+    /**
+     * Importe un evenement : dedoublonnage par UID, creation ou annulation de la
+     * reservation, puis creation/relance de la demande de menage. Une erreur sur
+     * un evenement n'arrete pas les suivants.
+     */
+    private void importEvent(ImportSession session, ICalEventPreview event) {
+        try {
+            Long reservationId = findExistingReservationId(session, event);
+            if (reservationId != null) {
+                handleExistingReservation(session, event, reservationId);
+            } else {
+                reservationId = createReservationFromEvent(session, event);
             }
+            maybeCreateOrRetryCleaningRequest(session, event, reservationId);
+        } catch (Exception e) {
+            // Pas un swallow : l'erreur est comptee dans le resultat de sync (statut PARTIAL).
+            log.warn("Erreur import evenement {}: {}", event.getUid(), e.getMessage());
+            session.errors.add("Evenement " + event.getSummary() + " : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Dedoublonnage par UID scope au feed (cf. {@link #preloadKnownFeedReservations}) :
+     * retourne l'id de la Reservation si elle existe deja pour CE feed.
+     */
+    private Long findExistingReservationId(ImportSession session, ICalEventPreview event) {
+        if (event.getUid() == null) {
+            return null;
+        }
+        return session.knownUidToReservationId.get(event.getUid());
+    }
+
+    /** Reservation deja existante — verifier si annulee cote OTA, sinon skip. */
+    private void handleExistingReservation(ImportSession session, ICalEventPreview event, Long reservationId) {
+        Reservation existing = reservationRepository.findById(reservationId).orElse(null);
+        if (existing != null && "cancelled".equals(event.getStatus())
+                && !"cancelled".equals(existing.getStatus())) {
+            cancelReservationWithCascade(existing, session);
+            session.cancelled++;
+            return;
+        }
+        if (existing != null && "cancelled".equals(existing.getStatus())
+                && !"cancelled".equals(event.getStatus())) {
+            // L'UID est revenu actif dans le feed alors que la reservation est annulee
+            // localement : pas de reactivation automatique (risque de re-bloquer des
+            // dates revendues) — visibilite operateur via ce warn.
+            log.warn("iCal sync: reservation #{} (uid={}) annulee cote PMS mais active dans le feed — reactivation manuelle requise",
+                    existing.getId(), existing.getExternalUid());
+        }
+        session.skipped++;
+    }
+
+    /** Cree la Reservation a partir de l'evenement iCal et planifie la facture OTA. */
+    private Long createReservationFromEvent(ImportSession session, ICalEventPreview event) {
+        Reservation reservation = buildReservation(session, event);
+        reservation = reservationRepository.save(reservation);
+        Long reservationId = reservation.getId();
+
+        // Dedup intra-batch : un meme UID repete dans ce feed sera skippe.
+        if (event.getUid() != null) {
+            session.knownUidToReservationId.put(event.getUid(), reservationId);
         }
 
-        // Detection des reservations orphelines : presentes en DB mais disparues du feed iCal.
-        // Cas le plus courant : Airbnb supprime l'evenement du calendrier lors d'une annulation.
-        //
-        // Garde-fous (anti-fausse-annulation-massive) :
-        //   1. On exige au moins 1 UID dans le feed (sinon feed vide/erreur de parsing → skip)
-        //   2. Seules les reservations FUTURES sont candidates (les feeds OTA omettent souvent le passe)
-        //   3. Si > 50% des futures actives deviendraient orphelines, on annule rien (feed incomplet)
+        // Auto-facture OTA : reservation de canal externe (deja payee). Facturee APRES
+        // le commit (date facture = maintenant ≈ date d'import). Pas de backfill : seules
+        // les reservations nouvellement creees ici sont concernees (dedup par UID en amont).
+        if (session.otaPaidSource && reservation.getTotalPrice() != null
+                && reservation.getTotalPrice().compareTo(BigDecimal.ZERO) > 0) {
+            session.reservationsToInvoice.add(reservationId);
+        }
+
+        linkGuest(session, reservation);
+        hideCancelledOverlapping(session, reservation);
+
+        session.imported++;
+        return reservationId;
+    }
+
+    private Reservation buildReservation(ImportSession session, ICalEventPreview event) {
+        Property property = session.property;
+        Reservation reservation = new Reservation();
+        reservation.setProperty(property);
+
+        // Si le guest name est generique ("Reserved", "Not available", etc.),
+        // on l'incremente pour individualiser chaque fiche client
+        String guestName = disambiguateGuestName(event.getGuestName(), property.getId(), session.guestNameCounters);
+        reservation.setGuestName(guestName);
+        reservation.setGuestCount(property.getMaxGuests() != null ? property.getMaxGuests() : 2);
+        reservation.setCheckIn(event.getDtStart());
+        LocalDate checkOut = event.getDtEnd() != null ? event.getDtEnd() : event.getDtStart().plusDays(1);
+        reservation.setCheckOut(checkOut);
+        // Utiliser les heures par defaut de la propriete, sinon fallback global
+        String defaultCheckIn = property.getDefaultCheckInTime() != null ? property.getDefaultCheckInTime() : DEFAULT_CHECK_IN_TIME;
+        String defaultCheckOut = property.getDefaultCheckOutTime() != null ? property.getDefaultCheckOutTime() : DEFAULT_CHECK_OUT_TIME;
+        reservation.setCheckInTime(defaultCheckIn);
+        reservation.setCheckOutTime(defaultCheckOut);
+        // Utiliser le statut parse depuis l'iCal (CONFIRMED/TENTATIVE/CANCELLED).
+        // Si absent (la plupart des OTA ne le fournissent pas), defaut = "confirmed" :
+        // les blocages ("Not available", "Blocked") sont deja filtres en amont (type
+        // "blocked"), donc tout evenement restant est une vraie reservation OTA = booking
+        // confirme. "pending" excluait a tort ces reservations des traitements filtres sur
+        // "confirmed" (livret d'accueil, envoi auto des instructions check-in, revenus).
+        reservation.setStatus(event.getStatus() != null ? event.getStatus() : "confirmed");
+        reservation.setSource(session.sourceKey);
+        reservation.setSourceName(session.request.getSourceName());
+        reservation.setConfirmationCode(event.getConfirmationCode());
+        reservation.setExternalUid(event.getUid());
+        reservation.setIcalFeed(session.feed);
+        reservation.setNotes(event.getDescription());
+        reservation.setOrganizationId(tenantContext.getOrganizationId());
+
+        applyDynamicPrice(session, reservation, checkOut);
+        return reservation;
+    }
+
+    /**
+     * Calcule le prix total via le moteur de pricing dynamique.
+     * Resout les overrides, rate plans (promo/seasonal/base) et fallback property.nightlyPrice.
+     */
+    private void applyDynamicPrice(ImportSession session, Reservation reservation, LocalDate checkOut) {
+        Map<LocalDate, BigDecimal> priceMap = priceEngine.resolvePriceRange(
+                session.property.getId(), reservation.getCheckIn(), checkOut, session.orgId);
+        BigDecimal totalPrice = BigDecimal.ZERO;
+        for (LocalDate date = reservation.getCheckIn(); date.isBefore(checkOut); date = date.plusDays(1)) {
+            BigDecimal nightlyPrice = priceMap.get(date);
+            if (nightlyPrice != null) {
+                totalPrice = totalPrice.add(nightlyPrice);
+            }
+        }
+        if (totalPrice.compareTo(BigDecimal.ZERO) > 0) {
+            reservation.setTotalPrice(totalPrice);
+        }
+    }
+
+    /** Cree/lie le Guest des l'import pour que guestEmail soit persistable via PUT. */
+    private void linkGuest(ImportSession session, Reservation reservation) {
+        String guestName = reservation.getGuestName();
+        if (reservation.getGuest() != null || guestName == null || guestName.isBlank()) {
+            return;
+        }
         try {
-            Set<String> feedUids = reservations.stream()
-                    .map(ICalEventPreview::getUid)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
-
-            if (feedUids.isEmpty()) {
-                log.warn("iCal sync feed #{}: aucun UID parse, detection des orphelins ignoree (securite)",
-                        feed.getId());
-            } else {
-                LocalDate today = LocalDate.now();
-                List<Reservation> futureActive = reservationRepository2.findActiveByICalFeedId(feed.getId(), orgId)
-                        .stream()
-                        .filter(r -> r.getCheckOut() != null && r.getCheckOut().isAfter(today))
-                        .collect(Collectors.toList());
-
-                List<Reservation> orphans = futureActive.stream()
-                        .filter(r -> r.getExternalUid() != null && !feedUids.contains(r.getExternalUid()))
-                        .collect(Collectors.toList());
-
-                if (!futureActive.isEmpty() && orphans.size() * 2 > futureActive.size()) {
-                    log.warn("iCal sync feed #{}: {}/{} reservations futures seraient annulees — abort (feed incomplet ?)",
-                            feed.getId(), orphans.size(), futureActive.size());
-                    errors.add("Detection orphelins ignoree: trop de reservations seraient annulees (feed potentiellement incomplet)");
-                } else {
-                    for (Reservation orphan : orphans) {
-                        cancelReservationWithCascade(orphan, orgId);
-                        cancelled++;
-                        log.info("iCal sync: reservation orpheline #{} (uid={}) annulee — absente du feed",
-                                orphan.getId(), orphan.getExternalUid());
-                    }
-                }
+            Guest guest = guestService.findOrCreateFromName(guestName, session.sourceKey, session.orgId);
+            if (guest != null) {
+                reservation.setGuest(guest);
+                reservationRepository.save(reservation);
             }
         } catch (Exception e) {
-            log.warn("Erreur detection orphelins iCal feed #{}: {}", feed.getId(), e.getMessage());
-            errors.add("Detection orphelins: " + e.getMessage());
+            // Comptage explicite dans le resultat de sync : sans fiche Guest, le guestEmail
+            // n'est pas persistable (PUT) — l'echec ne doit pas etre silencieux.
+            log.error("Impossible de creer le Guest pour reservation #{}: {}",
+                    reservation.getId(), e.getMessage());
+            session.errors.add("Guest non lie pour la reservation #" + reservation.getId()
+                    + " : " + e.getMessage());
         }
+    }
 
-        // Mettre a jour le feed avec les resultats
+    /** Auto-masque les reservations annulees qui chevauchent la nouvelle. */
+    private void hideCancelledOverlapping(ImportSession session, Reservation reservation) {
+        List<Reservation> cancelledOverlapping = reservationRepository.findCancelledOverlapping(
+                session.property.getId(), reservation.getCheckIn(), reservation.getCheckOut(),
+                tenantContext.getRequiredOrganizationId());
+        for (Reservation cancelledRes : cancelledOverlapping) {
+            cancelledRes.setHiddenFromPlanning(true);
+            reservationRepository.save(cancelledRes);
+            log.info("Auto-masque reservation annulee #{} (chevauche nouvelle OTA #{})",
+                    cancelledRes.getId(), reservation.getId());
+        }
+    }
+
+    /**
+     * Cree ou reactive la demande de menage (si auto-create active).
+     * IMPORTANT: verifie meme si la reservation est un doublon, car l'utilisateur
+     * peut activer l'auto-menage apres un premier import sans cette option,
+     * ou ajouter une equipe apres que le scheduler ait epuise ses retries.
+     */
+    private void maybeCreateOrRetryCleaningRequest(ImportSession session, ICalEventPreview event, Long reservationId) {
+        if (!session.request.isAutoCreateInterventions() || reservationId == null) {
+            return;
+        }
+        ServiceRequest existingSR = findExistingCleaningRequest(session, event);
+        if (existingSR == null) {
+            // Aucune SR : on la cree puis on planifie l'auto-assignation post-commit
+            // (cf. srsToAutoAssign) pour eviter qu'une exception interne ne marque
+            // la transaction rollback-only.
+            ServiceRequest created = createCleaningServiceRequest(
+                    session.property, event, session.request.getSourceName(), reservationId);
+            if (created != null) {
+                session.srsToAutoAssign.add(created.getId());
+            }
+            return;
+        }
+        if (existingSR.getStatus() == RequestStatus.PENDING && existingSR.getAssignedToId() == null) {
+            // SR existe mais coincee en PENDING non-assignee. Cause typique :
+            // l'utilisateur a ajoute une equipe / config apres l'import initial,
+            // et le scheduler a deja epuise ses 10 retries (autoAssignStatus='exhausted').
+            // On reset le compteur et on retente apres commit.
+            existingSR.setAutoAssignRetryCount(0);
+            existingSR.setAutoAssignStatus("searching");
+            existingSR.setLastAutoAssignAttempt(null);
+            ServiceRequest reset = serviceRequestRepository.save(existingSR);
+            session.srsToAutoAssign.add(reset.getId());
+        }
+    }
+
+    private ServiceRequest findExistingCleaningRequest(ImportSession session, ICalEventPreview event) {
+        if (event.getUid() == null) {
+            return null;
+        }
+        String marker = "[ICAL:" + event.getUid() + "]";
+        return serviceRequestRepository.findByPropertyId(session.property.getId(), session.orgId).stream()
+                .filter(sr -> sr.getSpecialInstructions() != null
+                        && sr.getSpecialInstructions().contains(marker))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Detection des reservations orphelines : presentes en DB mais disparues du feed iCal.
+     * Cas le plus courant : Airbnb supprime l'evenement du calendrier lors d'une annulation.
+     *
+     * Garde-fous (anti-fausse-annulation-massive) :
+     *   1. Feed sans aucun UID (vide / erreur de parsing) -> aucune suppression + alerte
+     *      si des reservations futures existent
+     *   2. Feed sans aucun evenement futur alors que des reservations futures actives
+     *      existent (feed tronque) -> aucune suppression + alerte
+     *   3. Seules les reservations FUTURES sont candidates (les feeds OTA omettent le passe)
+     *   4. Si plus de {@link #MAX_ORPHAN_RATIO} des futures actives deviendraient
+     *      orphelines, on n'annule rien (feed incomplet)
+     */
+    private void detectAndCancelOrphans(ImportSession session, List<ICalEventPreview> feedEvents) {
+        try {
+            Set<String> feedUids = feedEvents.stream()
+                    .map(ICalEventPreview::getUid)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toCollection(HashSet::new));
+            // Z6-SECBUGS-05 : un UID present dans le feed mais dont l'evenement n'a pas pu
+            // etre parse (date malformee) ne doit PAS rendre la reservation orpheline —
+            // sinon une simple date non standard declenche une annulation cascade.
+            feedUids.addAll(session.unparsableUids);
+
+            LocalDate today = LocalDate.now();
+            List<Reservation> futureActive = reservationRepository
+                    .findActiveByICalFeedId(session.feed.getId(), session.orgId)
+                    .stream()
+                    .filter(r -> r.getCheckOut() != null && r.getCheckOut().isAfter(today))
+                    .collect(Collectors.toList());
+
+            List<Reservation> orphans = futureActive.stream()
+                    .filter(r -> r.getExternalUid() != null && !feedUids.contains(r.getExternalUid()))
+                    .collect(Collectors.toList());
+
+            if (shouldAbortOrphanPass(session, feedUids, feedEvents, futureActive, orphans, today)) {
+                return;
+            }
+
+            for (Reservation orphan : orphans) {
+                cancelReservationWithCascade(orphan, session);
+                session.cancelled++;
+                log.info("iCal sync: reservation orpheline #{} (uid={}) annulee — absente du feed",
+                        orphan.getId(), orphan.getExternalUid());
+            }
+        } catch (Exception e) {
+            // Pas un swallow : l'erreur est comptee dans le resultat de sync (statut PARTIAL).
+            log.warn("Erreur detection orphelins iCal feed #{}: {}", session.feed.getId(), e.getMessage());
+            session.errors.add("Detection orphelins: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Applique les garde-fous de la detection d'orphelins. Retourne true si la passe
+     * doit etre abandonnee (et ajoute l'alerte correspondante a la session).
+     */
+    private boolean shouldAbortOrphanPass(ImportSession session, Set<String> feedUids,
+                                          List<ICalEventPreview> feedEvents,
+                                          List<Reservation> futureActive,
+                                          List<Reservation> orphans, LocalDate today) {
+        if (feedUids.isEmpty()) {
+            log.warn("iCal sync feed #{}: aucun UID parse, detection des orphelins ignoree (securite)",
+                    session.feed.getId());
+            if (!futureActive.isEmpty()) {
+                session.errors.add("Detection orphelins ignoree: le feed distant est vide alors que "
+                        + futureActive.size() + " reservation(s) future(s) existe(nt) (feed potentiellement tronque)");
+            }
+            return true;
+        }
+        if (futureActive.isEmpty()) {
+            return true;
+        }
+        boolean feedHasFutureEvents = feedEvents.stream().anyMatch(e -> isFutureEvent(e, today));
+        if (!feedHasFutureEvents) {
+            log.warn("iCal sync feed #{}: aucun evenement futur dans le feed alors que {} reservation(s) future(s) active(s) existe(nt) — abort (feed tronque ?)",
+                    session.feed.getId(), futureActive.size());
+            session.errors.add("Detection orphelins ignoree: aucun evenement futur dans le feed (feed potentiellement tronque)");
+            return true;
+        }
+        if (!orphans.isEmpty() && orphans.size() > futureActive.size() * MAX_ORPHAN_RATIO) {
+            log.warn("iCal sync feed #{}: {}/{} reservations futures seraient annulees (> {}%) — abort (feed incomplet ?)",
+                    session.feed.getId(), orphans.size(), futureActive.size(), (int) (MAX_ORPHAN_RATIO * 100));
+            session.errors.add("Detection orphelins ignoree: trop de reservations seraient annulees (feed potentiellement incomplet)");
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isFutureEvent(ICalEventPreview event, LocalDate today) {
+        LocalDate end = event.getDtEnd() != null ? event.getDtEnd() : event.getDtStart();
+        return end != null && end.isAfter(today);
+    }
+
+    /** Met a jour le feed avec les resultats de la synchronisation. */
+    private void persistFeedSyncResult(ImportSession session) {
+        ICalFeed feed = session.feed;
         feed.setLastSyncAt(LocalDateTime.now());
-        feed.setLastSyncStatus(errors.isEmpty() ? "SUCCESS" : "PARTIAL");
-        feed.setLastSyncError(errors.isEmpty() ? null : String.join("; ", errors));
-        feed.setEventsImported(feed.getEventsImported() + imported);
+        feed.setLastSyncStatus(session.errors.isEmpty() ? "SUCCESS" : "PARTIAL");
+        feed.setLastSyncError(session.errors.isEmpty() ? null : String.join("; ", session.errors));
+        feed.setEventsImported(feed.getEventsImported() + session.imported);
         icalFeedRepository.save(feed);
+    }
 
-        // Audit
+    private void auditAndLogResult(ImportSession session) {
         String auditMsg = String.format("Import iCal: %d importees, %d doublons, %d annulees, %d erreurs",
-                imported, skipped, cancelled, errors.size());
-        auditLogService.logSync("ICalImport", feed.getId().toString(), auditMsg);
+                session.imported, session.skipped, session.cancelled, session.errors.size());
+        auditLogService.logSync("ICalImport", session.feed.getId().toString(), auditMsg);
 
         log.info("Import iCal termine pour propriete {} ({}): {} importees, {} doublons, {} annulees, {} erreurs",
-                property.getName(), request.getSourceName(), imported, skipped, cancelled, errors.size());
+                session.property.getName(), session.request.getSourceName(),
+                session.imported, session.skipped, session.cancelled, session.errors.size());
+    }
 
+    private ImportResponse buildResponse(ImportSession session) {
         ImportResponse response = new ImportResponse();
-        response.setImported(imported);
-        response.setSkipped(skipped);
-        response.setCancelled(cancelled);
-        response.setErrors(errors);
-        response.setFeedId(feed.getId());
+        response.setImported(session.imported);
+        response.setSkipped(session.skipped);
+        response.setCancelled(session.cancelled);
+        response.setErrors(session.errors);
+        response.setFeedId(session.feed.getId());
+        return response;
+    }
 
-        // Notify user about import result
-        // Only notify when there are actual new reservations, cancellations or errors — skip silent syncs
+    /**
+     * Notifie l'utilisateur du resultat de l'import.
+     * Uniquement quand il y a de nouvelles reservations, annulations ou erreurs —
+     * les syncs silencieuses ne notifient pas.
+     */
+    private void notifyImportResult(ImportSession session, String keycloakId) {
         try {
-            if (!errors.isEmpty()) {
+            if (!session.errors.isEmpty()) {
                 // Errors occurred — always notify
                 notificationService.notify(
                     keycloakId,
                     NotificationKey.ICAL_IMPORT_FAILED,
-                    "Import iCal partiel — " + property.getName(),
-                    imported + " importee(s), " + cancelled + " annulee(s), " + errors.size() + " erreur(s) via " + request.getSourceName(),
+                    "Import iCal partiel — " + session.property.getName(),
+                    session.imported + " importee(s), " + session.cancelled + " annulee(s), "
+                            + session.errors.size() + " erreur(s) via " + session.request.getSourceName(),
                     "/planning"
                 );
-            } else if (imported > 0 || cancelled > 0) {
+            } else if (session.imported > 0 || session.cancelled > 0) {
                 // New reservations or cancellations — notify
-                String plural = imported > 1 ? "s" : "";
-                String cancelledInfo = cancelled > 0
-                        ? ", " + cancelled + " annulee" + (cancelled > 1 ? "s" : "")
+                String plural = session.imported > 1 ? "s" : "";
+                String cancelledInfo = session.cancelled > 0
+                        ? ", " + session.cancelled + " annulee" + (session.cancelled > 1 ? "s" : "")
                         : "";
                 notificationService.notify(
                     keycloakId,
                     NotificationKey.ICAL_IMPORT_SUCCESS,
-                    imported + " nouvelle" + plural + " reservation" + plural + cancelledInfo + " — " + property.getName(),
-                    imported + " reservation" + plural + " importee" + plural + cancelledInfo + " via " + request.getSourceName()
-                        + (request.isAutoCreateInterventions() ? " (menages crees automatiquement)" : ""),
+                    session.imported + " nouvelle" + plural + " reservation" + plural + cancelledInfo
+                            + " — " + session.property.getName(),
+                    session.imported + " reservation" + plural + " importee" + plural + cancelledInfo
+                            + " via " + session.request.getSourceName()
+                            + (session.request.isAutoCreateInterventions() ? " (menages crees automatiquement)" : ""),
                     "/planning"
                 );
             }
             // imported == 0 && no errors → silent sync, no notification needed
         } catch (Exception e) {
-            log.warn("Erreur notification import iCal: {}", e.getMessage());
+            // Notification best-effort : propager annulerait l'import deja persiste.
+            log.error("Erreur notification import iCal: {}", e.getMessage());
         }
-
-        // Auto-assignation differee : tournee apres le commit dans des transactions
-        // independantes, pour qu'une defaillance ne casse pas l'import.
-        scheduleAutoAssignAfterCommit(srsToAutoAssignAfterCommit, orgId);
-        // Auto-facture OTA differee : apres le commit, dans des transactions independantes.
-        scheduleReservationInvoicesAfterCommit(reservationsToInvoiceAfterCommit);
-
-        return response;
     }
 
     /**
@@ -526,6 +788,8 @@ public class ICalImportService {
                     }
                 }
             } catch (Exception e) {
+                // Pas un swallow definitif : la SR reste PENDING/searching et le scheduler
+                // d'auto-assignation retente (jusqu'a epuisement de ses retries).
                 log.warn("iCal sync (post-commit): erreur auto-assign SR #{}: {}", srId, e.getMessage());
             }
         }
@@ -557,82 +821,84 @@ public class ICalImportService {
     private void runDeferredReservationInvoices(List<Long> reservationIds) {
         for (Long resId : reservationIds) {
             try {
-                Reservation reservation = reservationRepository2.findById(resId).orElse(null);
+                Reservation reservation = reservationRepository.findById(resId).orElse(null);
                 if (reservation != null) {
                     // Route séjour/commission selon le modèle de paiement du contrat (idempotent).
                     otaInvoicingService.invoiceImportedReservation(reservation);
                 }
             } catch (Exception e) {
-                log.warn("Auto-facture OTA (post-commit) echouee pour reservation #{}: {}", resId, e.getMessage());
+                // Aucun retry automatique (la reservation sera skippee aux syncs suivants,
+                // donc jamais re-facturee) : ERROR pour garantir la visibilite operateur.
+                log.error("Auto-facture OTA (post-commit) echouee pour reservation #{}: {}", resId, e.getMessage());
             }
         }
     }
 
     /**
      * Telecharge et parse un fichier iCal depuis une URL.
-     * Inclut : validation SSRF (via ICalUrlValidator), limite de taille,
-     * parsing des evenements (via ICalEventParser).
-     * La validation SSRF resout le DNS et verifie que l'IP n'est pas privee/loopback.
-     * La requete HTTP utilise l'URL originale pour garantir un SNI TLS correct.
+     * La validation SSRF (HTTPS only, IP publique) et le pinning de la connexion sur
+     * l'IP validee (anti DNS-rebinding) sont assures par {@link ICalFeedDownloader},
+     * qui limite aussi la taille de la reponse.
+     * L'URL n'est jamais loggee en clair (la query string contient le token du feed).
      */
     @CircuitBreaker(name = "ical-import")
     public List<ICalEventPreview> fetchAndParseICalFeed(String url) {
-        // Validate URL and resolve DNS (SSRF protection: rejects private/loopback IPs)
-        ICalUrlValidator.validateAndResolve(url);
+        return fetchAndParseICalFeedDetailed(url).events();
+    }
 
-        try {
-            InputStream limitedStream = downloadICalContent(url);
-            return ICalEventParser.parseEvents(limitedStream);
-        } catch (IOException | InterruptedException e) {
-            log.error("Erreur telechargement iCal depuis {}: {}", url, e.getMessage());
+    /**
+     * Variante timezone-aware : les DATE-TIME UTC (suffixe Z) ou TZID du feed sont
+     * convertis vers la zone de la propriete (Z6-SECBUGS-04) au lieu de la zone systeme.
+     */
+    @CircuitBreaker(name = "ical-import")
+    public List<ICalEventPreview> fetchAndParseICalFeed(String url, ZoneId targetZone) {
+        return fetchAndParseICalFeedDetailed(url, targetZone).events();
+    }
+
+    /**
+     * Variante detaillee : retourne aussi le comptage des evenements ecartes
+     * (dates non parsables) et recurrents, pour les remonter dans le resultat de sync.
+     */
+    @CircuitBreaker(name = "ical-import")
+    public ICalEventParser.ParseResult fetchAndParseICalFeedDetailed(String url) {
+        return fetchAndParseICalFeedDetailed(url, null);
+    }
+
+    /**
+     * Variante timezone-aware : delegue la conversion des DATE-TIME (Z / TZID) a la
+     * zone cible fournie ; {@code null} = repli historique sur la zone systeme (trace
+     * par le parser).
+     */
+    @CircuitBreaker(name = "ical-import")
+    public ICalEventParser.ParseResult fetchAndParseICalFeedDetailed(String url, ZoneId targetZone) {
+        // try-with-resources : ical4j ne ferme pas l'InputStream, et le close() est le seul
+        // mecanisme qui libere la socket TLS ouverte par ICalFeedDownloader (sinon fuite de FD
+        // en CLOSE_WAIT a chaque telechargement, y compris quand le parsing leve).
+        try (InputStream limitedStream = feedDownloader.download(url)) {
+            return targetZone != null
+                    ? ICalEventParser.parse(limitedStream, targetZone)
+                    : ICalEventParser.parse(limitedStream);
+        } catch (IOException e) {
+            log.error("Erreur telechargement iCal depuis {}: {}", FeedUrlMasker.mask(url), e.getMessage());
             throw new RuntimeException("Impossible de telecharger le calendrier iCal : " + e.getMessage());
         }
     }
 
     /**
-     * Downloads iCal content from the given URL (already validated by ICalUrlValidator).
-     * Uses the original URL to ensure correct TLS SNI hostname.
-     * Returns a size-limited InputStream to prevent memory exhaustion.
+     * Zone de la propriete pour l'interpretation des dates iCal ; repli documente
+     * sur Europe/Paris (defaut projet) si la timezone est absente ou invalide.
      */
-    private InputStream downloadICalContent(String url)
-            throws IOException, InterruptedException {
-        URI originalUri = URI.create(url.trim());
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(originalUri)
-                .GET()
-                .timeout(Duration.ofSeconds(30))
-                .header("User-Agent", "Clenzy-PMS/1.0")
-                .build();
-
-        HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
-
-        if (response.statusCode() != 200) {
-            throw new IOException("Erreur HTTP " + response.statusCode() + " lors du telechargement du calendrier");
+    private ZoneId resolvePropertyZone(Property property) {
+        String tz = property.getTimezone();
+        if (tz == null || tz.isBlank()) {
+            return ZoneId.of("Europe/Paris");
         }
-
-        // Limit response size to prevent memory exhaustion
-        return new java.io.FilterInputStream(response.body()) {
-            private long bytesRead = 0;
-            @Override
-            public int read() throws IOException {
-                if (bytesRead >= MAX_ICAL_RESPONSE_BYTES) {
-                    throw new IOException("Calendrier iCal trop volumineux (limite: " + MAX_ICAL_RESPONSE_BYTES / 1024 / 1024 + " Mo)");
-                }
-                int b = super.read();
-                if (b != -1) bytesRead++;
-                return b;
-            }
-            @Override
-            public int read(byte[] buf, int off, int len) throws IOException {
-                if (bytesRead >= MAX_ICAL_RESPONSE_BYTES) {
-                    throw new IOException("Calendrier iCal trop volumineux (limite: " + MAX_ICAL_RESPONSE_BYTES / 1024 / 1024 + " Mo)");
-                }
-                int n = super.read(buf, off, (int) Math.min(len, MAX_ICAL_RESPONSE_BYTES - bytesRead));
-                if (n > 0) bytesRead += n;
-                return n;
-            }
-        };
+        try {
+            return ZoneId.of(tz);
+        } catch (Exception e) {
+            log.warn("Timezone invalide '{}' pour la propriete #{} — repli sur Europe/Paris", tz, property.getId());
+            return ZoneId.of("Europe/Paris");
+        }
     }
 
     /**
@@ -646,9 +912,13 @@ public class ICalImportService {
 
         // Date du checkout avec l'heure par defaut de la propriete
         LocalDate checkOut = event.getDtEnd() != null ? event.getDtEnd() : event.getDtStart().plusDays(1);
-        String defaultCheckOutTime = property.getDefaultCheckOutTime() != null ? property.getDefaultCheckOutTime() : "11:00";
+        String defaultCheckOutTime = property.getDefaultCheckOutTime() != null ? property.getDefaultCheckOutTime() : DEFAULT_CHECK_OUT_TIME;
         LocalTime checkOutTime = LocalTime.parse(defaultCheckOutTime);
         LocalDateTime scheduledDate = LocalDateTime.of(checkOut, checkOutTime);
+        // Fenetre de menage bornee par le check-in du guest suivant : respecter l'heure
+        // de check-in de la propriete (T-BP-09), alignee sur buildReservation.
+        String defaultCheckInTime = property.getDefaultCheckInTime() != null ? property.getDefaultCheckInTime() : DEFAULT_CHECK_IN_TIME;
+        LocalTime checkInTime = LocalTime.parse(defaultCheckInTime);
 
         // Duree estimee : utiliser cleaningDurationMinutes de la propriete (calcule par PropertyService)
         // Convertir minutes -> heures arrondi au superieur (ex: 150 min -> 3h)
@@ -697,7 +967,7 @@ public class ICalImportService {
         serviceRequest.setEstimatedDurationHours(estimatedDuration);
         serviceRequest.setEstimatedCost(estimatedCost);
         serviceRequest.setGuestCheckoutTime(scheduledDate);
-        serviceRequest.setGuestCheckinTime(LocalDateTime.of(checkOut, LocalTime.of(15, 0)));
+        serviceRequest.setGuestCheckinTime(LocalDateTime.of(checkOut, checkInTime));
         serviceRequest.setSpecialInstructions(specialInstructions);
         serviceRequest.setDescription("Import iCal " + sourceName
                 + (event.getGuestName() != null ? " — Guest: " + event.getGuestName() : "")
@@ -823,7 +1093,8 @@ public class ICalImportService {
                 "/dashboard"
             );
         } catch (Exception e) {
-            log.warn("Erreur notification ICAL_FEED_DELETED: {}", e.getMessage());
+            // Notification best-effort : propager annulerait la suppression deja effectuee.
+            log.error("Erreur notification ICAL_FEED_DELETED: {}", e.getMessage());
         }
     }
 
@@ -856,7 +1127,8 @@ public class ICalImportService {
                 "/dashboard"
             );
         } catch (Exception e) {
-            log.warn("Erreur notification ICAL_AUTO_INTERVENTIONS_TOGGLED: {}", e.getMessage());
+            // Notification best-effort : propager annulerait le toggle deja persiste.
+            log.error("Erreur notification ICAL_AUTO_INTERVENTIONS_TOGGLED: {}", e.getMessage());
         }
 
         return toFeedDto(feed);
@@ -887,7 +1159,6 @@ public class ICalImportService {
      * @deprecated Utiliser {@link #syncFeeds(List)} avec groupement par org depuis le scheduler.
      */
     @Deprecated
-    @Transactional
     public void syncAllActiveFeeds() {
         List<ICalFeed> activeFeeds = icalFeedRepository.findBySyncEnabledTrue();
         syncFeeds(activeFeeds);
@@ -895,9 +1166,11 @@ public class ICalImportService {
 
     /**
      * Synchronise une liste de feeds iCal (appele par le scheduler, groupe par org).
-     * Chaque feed est traite independamment — une erreur sur un feed n'arrete pas les suivants.
+     * Chaque feed est traite independamment, dans SA PROPRE transaction (import via le
+     * proxy {@link #self}) : une erreur sur un feed n'arrete pas les suivants et ne peut
+     * plus marquer rollback-only les imports deja commites (T-BP-06 — l'ancienne version
+     * @Transactional partageait une transaction unique entre tous les feeds).
      */
-    @Transactional
     public void syncFeeds(List<ICalFeed> feeds) {
         log.info("Synchro iCal : {} feeds a traiter", feeds.size());
 
@@ -920,7 +1193,7 @@ public class ICalImportService {
                 request.setSourceName(feed.getSourceName());
                 request.setAutoCreateInterventions(feed.isAutoCreateInterventions());
 
-                ImportResponse result = importICalFeed(request, ownerKeycloakId);
+                ImportResponse result = self.getObject().importICalFeed(request, ownerKeycloakId);
                 log.info("Synchro feed {} (org={}) : {} importees, {} doublons",
                         feed.getId(),
                         property.getOrganizationId(),
@@ -966,7 +1239,7 @@ public class ICalImportService {
         if (!counters.containsKey(counterKey)) {
             // Premiere occurrence dans ce batch : initialiser depuis la base
             long orgId = tenantContext.getRequiredOrganizationId();
-            long dbCount = reservationRepository2.countByGuestNameStartingWithAndPropertyId(
+            long dbCount = reservationRepository.countByGuestNameStartingWithAndPropertyId(
                     originalName.trim(), propertyId, orgId);
             counters.put(counterKey, dbCount);
         }
@@ -1018,7 +1291,7 @@ public class ICalImportService {
      * Le bloc s'affiche en rouge avec une croix pour que l'utilisateur puisse choisir
      * de le retirer manuellement (PATCH /api/reservations/{id}/hide).
      */
-    private void cancelReservationWithCascade(Reservation reservation, Long orgId) {
+    private void cancelReservationWithCascade(Reservation reservation, ImportSession session) {
         reservation.setStatus("cancelled");
 
         // Annuler le paiement reservation (sauf si deja rembourse ou annule)
@@ -1027,17 +1300,20 @@ public class ICalImportService {
                 && reservation.getPaymentStatus() != PaymentStatus.CANCELLED) {
             reservation.setPaymentStatus(PaymentStatus.CANCELLED);
         }
-        reservationRepository2.save(reservation);
+        reservationRepository.save(reservation);
 
-        // Liberer les jours du calendrier
+        // Liberer les jours du calendrier — un echec laisse les jours bloques sans
+        // retry automatique : compte dans le resultat de sync (pas de swallow).
         try {
-            calendarEngine.cancel(reservation.getId(), orgId, "ical-sync");
+            calendarEngine.cancel(reservation.getId(), session.orgId, "ical-sync");
         } catch (Exception e) {
-            log.warn("Erreur liberation calendrier reservation #{}: {}", reservation.getId(), e.getMessage());
+            log.error("Erreur liberation calendrier reservation #{}: {}", reservation.getId(), e.getMessage());
+            session.errors.add("Liberation calendrier reservation #" + reservation.getId()
+                    + " : " + e.getMessage());
         }
 
         // Annuler les interventions (menage) liees
-        cancelLinkedInterventions(reservation.getId(), orgId);
+        cancelLinkedInterventions(reservation.getId(), session.orgId);
 
         // Annuler la facture brouillon liee
         cancelLinkedDraftInvoice(reservation.getId());

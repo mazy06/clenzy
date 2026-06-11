@@ -3,6 +3,7 @@ package com.clenzy.config;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +15,7 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.ContainerProperties;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
@@ -34,7 +36,9 @@ import java.util.Map;
  * - airbnb.listings.sync       : sync annonces
  * - notifications.send         : notifications internes (email, push)
  * - audit.events               : evenements d'audit
- * - airbnb.dlq                 : Dead Letter Queue (messages en echec)
+ * - airbnb.dlq                 : Dead Letter Queue (webhooks en echec au produce)
+ * - <topic>.DLT                : Dead Letter Topic par topic source (echecs de
+ *                                consommation apres epuisement des retries)
  * - minut.webhooks.incoming     : evenements bruts recus de Minut
  * - minut.noise.events          : evenements bruit traites Minut
  * - calendar.updates             : propagation mutations calendrier (outbox G6)
@@ -117,7 +121,8 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
+            DefaultErrorHandler kafkaErrorHandler) {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
@@ -126,12 +131,31 @@ public class KafkaConfig {
         // Concurrence : 1 consumer par partition (max 3 partitions)
         factory.setConcurrency(3);
 
-        // Retry : 5 tentatives avec 2s d'intervalle, puis DLQ
-        factory.setCommonErrorHandler(new DefaultErrorHandler(
-                new FixedBackOff(2000L, 5)
-        ));
+        // Retry : 5 tentatives avec 2s d'intervalle, puis publication en DLQ <topic>.DLT
+        factory.setCommonErrorHandler(kafkaErrorHandler);
 
         return factory;
+    }
+
+    /**
+     * Recoverer DLQ : publie les messages en echec definitif vers {@code <topic>.DLT}.
+     * Partition -1 : laisse Kafka choisir la partition, car le topic .DLT (auto-cree)
+     * peut avoir moins de partitions que le topic source.
+     */
+    @Bean
+    public DeadLetterPublishingRecoverer kafkaDeadLetterPublishingRecoverer(
+            KafkaTemplate<String, Object> kafkaTemplate) {
+        return new DeadLetterPublishingRecoverer(kafkaTemplate,
+                (consumerRecord, exception) -> new TopicPartition(consumerRecord.topic() + ".DLT", -1));
+    }
+
+    /**
+     * Gestion d'erreur des listeners : 5 tentatives espacees de 2s, puis le message
+     * est route vers la DLQ {@code <topic>.DLT} (au lieu d'etre logge puis perdu).
+     */
+    @Bean
+    public DefaultErrorHandler kafkaErrorHandler(DeadLetterPublishingRecoverer kafkaDeadLetterPublishingRecoverer) {
+        return new DefaultErrorHandler(kafkaDeadLetterPublishingRecoverer, new FixedBackOff(2000L, 5));
     }
 
     // ---- Creation des topics ----

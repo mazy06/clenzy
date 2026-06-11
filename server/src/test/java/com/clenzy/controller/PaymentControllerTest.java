@@ -10,25 +10,26 @@ import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PaymentTransactionRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
-import com.clenzy.repository.UserRepository;
+import com.clenzy.service.InterventionPaymentService;
 import com.clenzy.service.PaymentOrchestrationService;
+import com.clenzy.service.PaymentQueryService;
+import com.clenzy.service.PaymentTransactionService;
 import com.clenzy.service.StripeService;
+import com.clenzy.service.UserService;
 import com.clenzy.tenant.TenantContext;
-import com.stripe.Stripe;
 import com.stripe.exception.ApiException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.MockedStatic;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
 
-import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -37,9 +38,20 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Tests unitaires de PaymentController.
+ *
+ * <p>NOTE : depuis le refactor T-ARCH-01, le controller n'injecte plus aucun
+ * repository — il delegue a {@code InterventionPaymentService},
+ * {@code PaymentQueryService} et {@code PaymentTransactionService}. Les tests
+ * conservent leurs stubs repository : les services sont instancies en REEL
+ * au-dessus des repositories mockes (comportement bout-en-bout inchange,
+ * assertions identiques).</p>
+ */
 @ExtendWith(MockitoExtension.class)
 class PaymentControllerTest {
 
@@ -48,7 +60,7 @@ class PaymentControllerTest {
     @Mock private InterventionRepository interventionRepository;
     @Mock private ReservationRepository reservationRepository;
     @Mock private ServiceRequestRepository serviceRequestRepository;
-    @Mock private UserRepository userRepository;
+    @Mock private UserService userService;
     @Mock private PaymentTransactionRepository paymentTransactionRepository;
     @Mock private TenantContext tenantContext;
 
@@ -57,10 +69,15 @@ class PaymentControllerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new PaymentController(stripeService, orchestrationService, interventionRepository, reservationRepository, serviceRequestRepository, userRepository, paymentTransactionRepository, tenantContext);
-        Field field = PaymentController.class.getDeclaredField("stripeSecretKey");
-        field.setAccessible(true);
-        field.set(controller, "sk_test_xxx");
+        PaymentTransactionService paymentTransactionService =
+                new PaymentTransactionService(paymentTransactionRepository, tenantContext);
+        PaymentQueryService paymentQueryService = new PaymentQueryService(
+                interventionRepository, reservationRepository, serviceRequestRepository,
+                userService, stripeService, tenantContext);
+        InterventionPaymentService interventionPaymentService = new InterventionPaymentService(
+                interventionRepository, orchestrationService, stripeService,
+                paymentTransactionService, tenantContext);
+        controller = new PaymentController(interventionPaymentService, paymentQueryService, paymentTransactionService);
 
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
@@ -166,6 +183,7 @@ class PaymentControllerTest {
             Intervention intervention = mock(Intervention.class);
             when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
             when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PENDING);
+            when(intervention.getEstimatedCost()).thenReturn(new BigDecimal("100"));
             when(intervention.getCurrency()).thenReturn("EUR");
             when(intervention.getId()).thenReturn(7L);
             when(interventionRepository.findById(7L)).thenReturn(Optional.of(intervention));
@@ -192,6 +210,7 @@ class PaymentControllerTest {
             Intervention intervention = mock(Intervention.class);
             when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
             when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PENDING);
+            when(intervention.getEstimatedCost()).thenReturn(new BigDecimal("100"));
             when(intervention.getCurrency()).thenReturn(null); // falls back to EUR
             when(interventionRepository.findById(7L)).thenReturn(Optional.of(intervention));
 
@@ -204,6 +223,52 @@ class PaymentControllerTest {
 
             assertThat(response.getStatusCode().value()).isEqualTo(500);
             verify(intervention, never()).setStripeSessionId(anyString());
+        }
+
+        @Test
+        void whenClientAmountDiffersFromEstimatedCost_thenBadRequest() {
+            // Z3-SEC-01 : le montant client n'est qu'un cross-check
+            PaymentSessionRequest request = sessionRequest(7L, new BigDecimal("1"));
+            Intervention intervention = mock(Intervention.class);
+            when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
+            when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PENDING);
+            when(intervention.getEstimatedCost()).thenReturn(new BigDecimal("500"));
+            when(interventionRepository.findById(7L)).thenReturn(Optional.of(intervention));
+
+            ResponseEntity<?> response = controller.createPaymentSession(request, jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            verify(orchestrationService, never()).initiatePayment(any());
+        }
+
+        @Test
+        void whenEstimatedCostMissing_thenBadRequest() {
+            PaymentSessionRequest request = sessionRequest(7L, new BigDecimal("100"));
+            Intervention intervention = mock(Intervention.class);
+            when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
+            when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PENDING);
+            when(intervention.getEstimatedCost()).thenReturn(null);
+            when(interventionRepository.findById(7L)).thenReturn(Optional.of(intervention));
+
+            ResponseEntity<?> response = controller.createPaymentSession(request, jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            verify(orchestrationService, never()).initiatePayment(any());
+        }
+
+        @Test
+        void whenInterventionFromOtherOrg_thenAccessDenied() {
+            // findById contourne le filtre Hibernate → l'ownership org doit etre verifie explicitement
+            PaymentSessionRequest request = sessionRequest(8L, BigDecimal.TEN);
+            Intervention intervention = mock(Intervention.class);
+            when(intervention.getOrganizationId()).thenReturn(2L);
+            when(interventionRepository.findById(8L)).thenReturn(Optional.of(intervention));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> controller.createPaymentSession(request, jwt))
+                    .isInstanceOf(AccessDeniedException.class);
+            verify(orchestrationService, never()).initiatePayment(any());
+            verify(interventionRepository, never()).save(any());
         }
     }
 
@@ -269,6 +334,7 @@ class PaymentControllerTest {
             Intervention intervention = mock(Intervention.class);
             when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
             when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PENDING);
+            when(intervention.getEstimatedCost()).thenReturn(new BigDecimal("50"));
             when(intervention.getId()).thenReturn(42L);
             when(interventionRepository.findById(42L)).thenReturn(Optional.of(intervention));
 
@@ -293,6 +359,7 @@ class PaymentControllerTest {
             Intervention intervention = mock(Intervention.class);
             when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
             when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PENDING);
+            when(intervention.getEstimatedCost()).thenReturn(new BigDecimal("50"));
             when(interventionRepository.findById(42L)).thenReturn(Optional.of(intervention));
 
             when(stripeService.createEmbeddedCheckoutSession(anyLong(), any(), anyString()))
@@ -301,6 +368,36 @@ class PaymentControllerTest {
             ResponseEntity<?> response = controller.createEmbeddedPaymentSession(request, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void whenClientAmountDiffersFromEstimatedCost_thenBadRequest() throws StripeException {
+            // Z3-SEC-01 : paiement de 1 EUR pour une intervention a 500 EUR -> rejete
+            PaymentSessionRequest request = sessionRequest(42L, new BigDecimal("1"));
+            Intervention intervention = mock(Intervention.class);
+            when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
+            when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PENDING);
+            when(intervention.getEstimatedCost()).thenReturn(new BigDecimal("500"));
+            when(interventionRepository.findById(42L)).thenReturn(Optional.of(intervention));
+
+            ResponseEntity<?> response = controller.createEmbeddedPaymentSession(request, jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            verify(stripeService, never()).createEmbeddedCheckoutSession(anyLong(), any(), anyString());
+        }
+
+        @Test
+        void whenInterventionFromOtherOrg_thenAccessDenied() throws StripeException {
+            // findById contourne le filtre Hibernate → l'ownership org doit etre verifie explicitement
+            PaymentSessionRequest request = sessionRequest(43L, BigDecimal.TEN);
+            Intervention intervention = mock(Intervention.class);
+            when(intervention.getOrganizationId()).thenReturn(2L);
+            when(interventionRepository.findById(43L)).thenReturn(Optional.of(intervention));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> controller.createEmbeddedPaymentSession(request, jwt))
+                    .isInstanceOf(AccessDeniedException.class);
+            verify(stripeService, never()).createEmbeddedCheckoutSession(anyLong(), any(), anyString());
         }
     }
 
@@ -335,17 +432,12 @@ class PaymentControllerTest {
             when(interventionRepository.findByStripeSessionId("sess-proc", 1L))
                     .thenReturn(Optional.of(intervention));
 
-            Session stripeSession = mock(Session.class);
-            when(stripeSession.getPaymentStatus()).thenReturn("paid");
+            when(stripeService.isCheckoutSessionPaid("sess-proc")).thenReturn(true);
 
-            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
-                staticSession.when(() -> Session.retrieve("sess-proc")).thenReturn(stripeSession);
+            ResponseEntity<?> response = controller.getSessionStatus("sess-proc");
 
-                ResponseEntity<?> response = controller.getSessionStatus("sess-proc");
-
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-                verify(stripeService).confirmPayment("sess-proc");
-            }
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(stripeService).confirmPayment("sess-proc");
         }
 
         @Test
@@ -357,14 +449,12 @@ class PaymentControllerTest {
             when(interventionRepository.findByStripeSessionId("sess-err", 1L))
                     .thenReturn(Optional.of(intervention));
 
-            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
-                staticSession.when(() -> Session.retrieve("sess-err"))
-                        .thenThrow(new ApiException("api down", null, "c", 500, null));
+            // isCheckoutSessionPaid avale les erreurs Stripe et retourne false
+            when(stripeService.isCheckoutSessionPaid("sess-err")).thenReturn(false);
 
-                ResponseEntity<?> response = controller.getSessionStatus("sess-err");
+            ResponseEntity<?> response = controller.getSessionStatus("sess-err");
 
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-            }
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
 
         @Test
@@ -397,17 +487,12 @@ class PaymentControllerTest {
             when(reservationRepository.findByStripeSessionId("sess-res-pend"))
                     .thenReturn(Optional.of(reservation));
 
-            Session stripeSession = mock(Session.class);
-            when(stripeSession.getPaymentStatus()).thenReturn("paid");
+            when(stripeService.isCheckoutSessionPaid("sess-res-pend")).thenReturn(true);
 
-            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
-                staticSession.when(() -> Session.retrieve("sess-res-pend")).thenReturn(stripeSession);
+            ResponseEntity<?> response = controller.getSessionStatus("sess-res-pend");
 
-                ResponseEntity<?> response = controller.getSessionStatus("sess-res-pend");
-
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-                verify(stripeService).confirmReservationPayment("sess-res-pend");
-            }
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(stripeService).confirmReservationPayment("sess-res-pend");
         }
 
         @Test
@@ -420,16 +505,13 @@ class PaymentControllerTest {
             when(reservationRepository.findByStripeSessionId(anyString()))
                     .thenReturn(Optional.of(reservation));
 
-            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
-                staticSession.when(() -> Session.retrieve(anyString()))
-                        .thenReturn(mock(Session.class));
+            when(stripeService.isCheckoutSessionPaid(anyString())).thenReturn(false);
 
-                ResponseEntity<?> response = controller.getSessionStatus("sess-null");
+            ResponseEntity<?> response = controller.getSessionStatus("sess-null");
 
-                @SuppressWarnings("unchecked")
-                Map<String, Object> body = (Map<String, Object>) response.getBody();
-                assertThat(body).containsEntry("paymentStatus", "PENDING");
-            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> body = (Map<String, Object>) response.getBody();
+            assertThat(body).containsEntry("paymentStatus", "PENDING");
         }
 
         @Test
@@ -466,17 +548,12 @@ class PaymentControllerTest {
             when(serviceRequestRepository.findByStripeSessionId("sess-sr-p"))
                     .thenReturn(Optional.of(sr));
 
-            Session stripeSession = mock(Session.class);
-            when(stripeSession.getPaymentStatus()).thenReturn("paid");
+            when(stripeService.isCheckoutSessionPaid("sess-sr-p")).thenReturn(true);
 
-            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
-                staticSession.when(() -> Session.retrieve("sess-sr-p")).thenReturn(stripeSession);
+            ResponseEntity<?> response = controller.getSessionStatus("sess-sr-p");
 
-                ResponseEntity<?> response = controller.getSessionStatus("sess-sr-p");
-
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-                verify(stripeService).confirmServiceRequestPayment("sess-sr-p");
-            }
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(stripeService).confirmServiceRequestPayment("sess-sr-p");
         }
 
         @Test
@@ -550,7 +627,7 @@ class PaymentControllerTest {
         void whenAdminUser_thenReturnsHistory() {
             User user = mock(User.class);
             when(user.getRole()).thenReturn(UserRole.SUPER_ADMIN);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("user-123")).thenReturn(user);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
             Page<Intervention> page = new PageImpl<>(List.of());
@@ -572,7 +649,7 @@ class PaymentControllerTest {
             User user = mock(User.class);
             when(user.getRole()).thenReturn(UserRole.HOST);
             when(user.getId()).thenReturn(42L);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("user-123")).thenReturn(user);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
             Page<Intervention> page = new PageImpl<>(List.of());
@@ -592,7 +669,7 @@ class PaymentControllerTest {
         void whenWithValidStatusFilter_thenReturns200() {
             User user = mock(User.class);
             when(user.getRole()).thenReturn(UserRole.SUPER_ADMIN);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("user-123")).thenReturn(user);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
             when(interventionRepository.findPaymentHistory(eq(PaymentStatus.PAID), isNull(), any(), eq(1L)))
@@ -611,7 +688,7 @@ class PaymentControllerTest {
 
         @Test
         void whenUserNotFound_thenUnauthorized() {
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.empty());
+            when(userService.findByKeycloakId("user-123")).thenReturn(null);
 
             ResponseEntity<?> response = controller.getPaymentHistory(0, 10, null, null, jwt);
 
@@ -635,7 +712,7 @@ class PaymentControllerTest {
         void whenAdmin_thenReturnsSummary() {
             User user = mock(User.class);
             when(user.getRole()).thenReturn(UserRole.SUPER_ADMIN);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("user-123")).thenReturn(user);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
             Page<Intervention> page = new PageImpl<>(List.of());
@@ -653,7 +730,7 @@ class PaymentControllerTest {
             User user = mock(User.class);
             when(user.getRole()).thenReturn(UserRole.HOST);
             when(user.getId()).thenReturn(7L);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("user-123")).thenReturn(user);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
             Page<Intervention> page = new PageImpl<>(List.of());
@@ -671,7 +748,7 @@ class PaymentControllerTest {
         void whenWithReservations_thenAccumulatesPaid() {
             User user = mock(User.class);
             when(user.getRole()).thenReturn(UserRole.SUPER_ADMIN);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("user-123")).thenReturn(user);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
             Intervention paidI = mock(Intervention.class);
@@ -702,7 +779,7 @@ class PaymentControllerTest {
 
         @Test
         void whenUserNotFound_thenUnauthorized() {
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.empty());
+            when(userService.findByKeycloakId("user-123")).thenReturn(null);
 
             ResponseEntity<?> response = controller.getPaymentSummary(null, jwt);
 
@@ -860,6 +937,20 @@ class PaymentControllerTest {
 
             assertThat(response.getStatusCode().value()).isEqualTo(500);
         }
+
+        @Test
+        void whenInterventionFromOtherOrg_thenAccessDenied() throws Exception {
+            // findById contourne le filtre Hibernate → l'ownership org doit etre verifie explicitement
+            Intervention intervention = mock(Intervention.class);
+            when(intervention.getOrganizationId()).thenReturn(2L);
+            when(interventionRepository.findById(5L)).thenReturn(Optional.of(intervention));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> controller.refundPayment(5L))
+                    .isInstanceOf(AccessDeniedException.class);
+            verify(orchestrationService, never()).processRefund(anyString(), any(), anyString());
+            verify(stripeService, never()).refundPayment(anyLong());
+        }
     }
 
     // ─── Branches additionnelles ────────────────────────────────────────────
@@ -874,6 +965,7 @@ class PaymentControllerTest {
             Intervention intervention = mock(Intervention.class);
             when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
             when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PENDING);
+            when(intervention.getEstimatedCost()).thenReturn(new BigDecimal("100"));
             when(intervention.getCurrency()).thenReturn("EUR");
             when(interventionRepository.findById(7L)).thenReturn(Optional.of(intervention));
 
@@ -893,6 +985,7 @@ class PaymentControllerTest {
             Intervention intervention = mock(Intervention.class);
             when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
             when(intervention.getPaymentStatus()).thenReturn(PaymentStatus.PENDING);
+            when(intervention.getEstimatedCost()).thenReturn(new BigDecimal("100"));
             when(intervention.getCurrency()).thenReturn("EUR");
             when(interventionRepository.findById(7L)).thenReturn(Optional.of(intervention));
 
@@ -935,17 +1028,12 @@ class PaymentControllerTest {
             when(interventionRepository.findByStripeSessionId("sess-not-paid", 1L))
                     .thenReturn(Optional.of(intervention));
 
-            Session stripeSession = mock(Session.class);
-            when(stripeSession.getPaymentStatus()).thenReturn("unpaid");
+            when(stripeService.isCheckoutSessionPaid("sess-not-paid")).thenReturn(false);
 
-            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
-                staticSession.when(() -> Session.retrieve("sess-not-paid")).thenReturn(stripeSession);
+            ResponseEntity<?> response = controller.getSessionStatus("sess-not-paid");
 
-                ResponseEntity<?> response = controller.getSessionStatus("sess-not-paid");
-
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-                verify(stripeService, never()).confirmPayment(anyString());
-            }
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(stripeService, never()).confirmPayment(anyString());
         }
 
         @Test
@@ -960,17 +1048,12 @@ class PaymentControllerTest {
             when(reservationRepository.findByStripeSessionId("sess-res-unpaid"))
                     .thenReturn(Optional.of(reservation));
 
-            Session stripeSession = mock(Session.class);
-            when(stripeSession.getPaymentStatus()).thenReturn("unpaid");
+            when(stripeService.isCheckoutSessionPaid("sess-res-unpaid")).thenReturn(false);
 
-            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
-                staticSession.when(() -> Session.retrieve("sess-res-unpaid")).thenReturn(stripeSession);
+            ResponseEntity<?> response = controller.getSessionStatus("sess-res-unpaid");
 
-                ResponseEntity<?> response = controller.getSessionStatus("sess-res-unpaid");
-
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-                verify(stripeService, never()).confirmReservationPayment(anyString());
-            }
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(stripeService, never()).confirmReservationPayment(anyString());
         }
 
         @Test
@@ -984,13 +1067,11 @@ class PaymentControllerTest {
             when(reservationRepository.findByStripeSessionId("sess-res-err"))
                     .thenReturn(Optional.of(reservation));
 
-            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
-                staticSession.when(() -> Session.retrieve("sess-res-err"))
-                        .thenThrow(new ApiException("down", null, "c", 500, null));
+            // isCheckoutSessionPaid avale les erreurs Stripe et retourne false
+            when(stripeService.isCheckoutSessionPaid("sess-res-err")).thenReturn(false);
 
-                ResponseEntity<?> response = controller.getSessionStatus("sess-res-err");
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-            }
+            ResponseEntity<?> response = controller.getSessionStatus("sess-res-err");
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
 
         @Test
@@ -1026,13 +1107,11 @@ class PaymentControllerTest {
             when(serviceRequestRepository.findByStripeSessionId("sess-sr-err"))
                     .thenReturn(Optional.of(sr));
 
-            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
-                staticSession.when(() -> Session.retrieve("sess-sr-err"))
-                        .thenThrow(new ApiException("down", null, "c", 500, null));
+            // isCheckoutSessionPaid avale les erreurs Stripe et retourne false
+            when(stripeService.isCheckoutSessionPaid("sess-sr-err")).thenReturn(false);
 
-                ResponseEntity<?> response = controller.getSessionStatus("sess-sr-err");
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-            }
+            ResponseEntity<?> response = controller.getSessionStatus("sess-sr-err");
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
 
         @Test
@@ -1049,16 +1128,57 @@ class PaymentControllerTest {
             when(serviceRequestRepository.findByStripeSessionId("sess-sr-unpaid"))
                     .thenReturn(Optional.of(sr));
 
-            Session stripeSession = mock(Session.class);
-            when(stripeSession.getPaymentStatus()).thenReturn("unpaid");
+            when(stripeService.isCheckoutSessionPaid("sess-sr-unpaid")).thenReturn(false);
 
-            try (MockedStatic<Session> staticSession = mockStatic(Session.class)) {
-                staticSession.when(() -> Session.retrieve("sess-sr-unpaid")).thenReturn(stripeSession);
+            ResponseEntity<?> response = controller.getSessionStatus("sess-sr-unpaid");
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(stripeService, never()).confirmServiceRequestPayment(anyString());
+        }
 
-                ResponseEntity<?> response = controller.getSessionStatus("sess-sr-unpaid");
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-                verify(stripeService, never()).confirmServiceRequestPayment(anyString());
-            }
+        @Test
+        void whenReservationFromOtherOrg_thenNotFoundAndNoConfirm() {
+            // Durcissement T-ARCH-01 : findByStripeSessionId(reservation) ne passe pas par le
+            // filtre Hibernate → une reservation d'une autre org est filtree (introuvable),
+            // pattern aligne sur le lookup intervention (deja org-scope) et transaction-status.
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(interventionRepository.findByStripeSessionId("sess-cross-res", 1L))
+                    .thenReturn(Optional.empty());
+            Reservation reservation = new Reservation();
+            reservation.setOrganizationId(2L);
+            reservation.setPaymentStatus(PaymentStatus.PENDING);
+            when(reservationRepository.findByStripeSessionId("sess-cross-res"))
+                    .thenReturn(Optional.of(reservation));
+            when(serviceRequestRepository.findByStripeSessionId("sess-cross-res"))
+                    .thenReturn(Optional.empty());
+
+            ResponseEntity<?> response = controller.getSessionStatus("sess-cross-res");
+
+            assertThat(response.getStatusCode().value()).isEqualTo(404);
+            verify(stripeService, never()).isCheckoutSessionPaid(anyString());
+            verify(stripeService, never()).confirmReservationPayment(anyString());
+        }
+
+        @Test
+        void whenServiceRequestFromOtherOrg_thenNotFoundAndNoConfirm() {
+            // Durcissement T-ARCH-01 : meme validation d'org explicite pour les SR.
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(interventionRepository.findByStripeSessionId("sess-cross-sr", 1L))
+                    .thenReturn(Optional.empty());
+            when(reservationRepository.findByStripeSessionId("sess-cross-sr"))
+                    .thenReturn(Optional.empty());
+            ServiceRequest sr = new ServiceRequest();
+            sr.setOrganizationId(2L);
+            sr.setPaymentStatus(PaymentStatus.PENDING);
+            when(serviceRequestRepository.findByStripeSessionId("sess-cross-sr"))
+                    .thenReturn(Optional.of(sr));
+
+            ResponseEntity<?> response = controller.getSessionStatus("sess-cross-sr");
+
+            assertThat(response.getStatusCode().value()).isEqualTo(404);
+            verify(stripeService, never()).isCheckoutSessionPaid(anyString());
+            verify(stripeService, never()).confirmServiceRequestPayment(anyString());
         }
     }
 
@@ -1072,7 +1192,7 @@ class PaymentControllerTest {
         void whenWithHostIdFilter_thenAdminPasses() {
             User user = mock(User.class);
             when(user.getRole()).thenReturn(UserRole.SUPER_ADMIN);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("user-123")).thenReturn(user);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
             Page<Intervention> page = new PageImpl<>(List.of());
@@ -1090,7 +1210,7 @@ class PaymentControllerTest {
         void whenInterventionsAndReservationsExist_thenMergedAndPaginated() {
             User user = mock(User.class);
             when(user.getRole()).thenReturn(UserRole.SUPER_ADMIN);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("user-123")).thenReturn(user);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
             Intervention i = mock(Intervention.class);
@@ -1155,7 +1275,7 @@ class PaymentControllerTest {
         void whenAdminAndAllStatusesPresent_thenAggregatesCorrectly() {
             User user = mock(User.class);
             when(user.getRole()).thenReturn(UserRole.SUPER_ADMIN);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("user-123")).thenReturn(user);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
             Intervention paid = mock(Intervention.class);
@@ -1189,7 +1309,7 @@ class PaymentControllerTest {
         void whenSrAwaitingPaymentNullEstimatedCost_thenTreatsAsZero() {
             User user = mock(User.class);
             when(user.getRole()).thenReturn(UserRole.SUPER_ADMIN);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("user-123")).thenReturn(user);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
             Page<Intervention> ip = new PageImpl<>(List.of());
@@ -1213,10 +1333,10 @@ class PaymentControllerTest {
 
         @Test
         void whenKeycloakIdAbsentInDb_thenFallsBackToEmail() {
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.empty());
+            when(userService.findByKeycloakId("user-123")).thenReturn(null);
             User u = mock(User.class);
             when(u.getRole()).thenReturn(UserRole.SUPER_ADMIN);
-            when(userRepository.findByEmailHash(anyString())).thenReturn(Optional.of(u));
+            when(userService.findByEmail(anyString())).thenReturn(u);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
             Page<Intervention> ip = new PageImpl<>(List.of());

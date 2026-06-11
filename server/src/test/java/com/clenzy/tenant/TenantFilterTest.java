@@ -25,7 +25,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 import jakarta.servlet.FilterChain;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -192,23 +191,40 @@ class TenantFilterTest {
     }
 
     @Test
-    void doFilter_userNotInDb_fallbackDefaultOrg() throws Exception {
+    void doFilter_userNotInDb_orgScopedPath_thenRefused403() throws Exception {
+        // Z2-SEC-05 : plus de fallback implicite sur l'unique org existante —
+        // un sujet JWT inconnu en base est refuse sur les endpoints org-scopes.
         String keycloakId = "new-user";
-        Long defaultOrgId = 99L;
         setupJwtAuth(keycloakId);
 
         when(valueOperations.get("tenant:" + keycloakId)).thenReturn(null);
         when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.empty());
 
-        Organization org = new Organization("Default Org", OrganizationType.INDIVIDUAL, "default-org");
-        org.setId(defaultOrgId);
-        when(organizationRepository.findAll()).thenReturn(List.of(org));
-
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setRequestURI("/api/properties");
 
-        Long[] capturedOrgId = {null};
+        tenantFilter.doFilter(request, response, filterChain);
+
+        assertEquals(403, response.getStatus());
+        verify(organizationRepository, never()).findAll();
+        verify(filterChain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    void doFilter_userNotInDb_tenantOptionalPath_thenProceedsWithoutOrg() throws Exception {
+        // /api/me est tenant-optionnel (auto-provisioning premier login)
+        String keycloakId = "first-login-user";
+        setupJwtAuth(keycloakId);
+
+        when(valueOperations.get("tenant:" + keycloakId)).thenReturn(null);
+        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.empty());
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setRequestURI("/api/me");
+
+        Long[] capturedOrgId = {-1L};
         doAnswer(inv -> {
             capturedOrgId[0] = tenantContext.getOrganizationId();
             return null;
@@ -216,8 +232,29 @@ class TenantFilterTest {
 
         tenantFilter.doFilter(request, response, filterChain);
 
-        assertEquals(defaultOrgId, capturedOrgId[0]);
+        assertNull(capturedOrgId[0]);
         verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    void doFilter_resolutionError_thenRefused500AndChainNotCalled() throws Exception {
+        // Z2-SEC-04 : fail-closed — une erreur de resolution (DB down) ne doit
+        // JAMAIS laisser passer la requete sans isolation tenant.
+        String keycloakId = "err-user";
+        setupJwtAuth(keycloakId);
+
+        when(valueOperations.get("tenant:" + keycloakId)).thenReturn(null);
+        when(userRepository.findByKeycloakId(keycloakId))
+                .thenThrow(new RuntimeException("DB down"));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setRequestURI("/api/properties");
+
+        tenantFilter.doFilter(request, response, filterChain);
+
+        assertEquals(500, response.getStatus());
+        verify(filterChain, never()).doFilter(any(), any());
     }
 
     @Test
@@ -317,9 +354,10 @@ class TenantFilterTest {
     }
 
     @Test
-    void doFilter_userWithNullOrg_nonStaff_attemptsFallback() throws Exception {
+    void doFilter_userWithNullOrg_nonStaff_thenRefused403() throws Exception {
+        // Z2-SEC-05 : un non-staff sans organization_id n'obtient AUCUN acces
+        // org-scope (plus d'assignation implicite a une org par defaut).
         String keycloakId = "no-org-user";
-        Long defaultOrgId = 7L;
         setupJwtAuth(keycloakId);
 
         User user = new User("No", "Org", "no@org.com", "p");
@@ -329,23 +367,15 @@ class TenantFilterTest {
         when(valueOperations.get("tenant:" + keycloakId)).thenReturn(null);
         when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(user));
 
-        Organization org = new Organization("Default", OrganizationType.INDIVIDUAL, "default");
-        org.setId(defaultOrgId);
-        when(organizationRepository.findAll()).thenReturn(List.of(org));
-
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setRequestURI("/api/properties");
 
-        Long[] capturedOrgId = {null};
-        doAnswer(inv -> {
-            capturedOrgId[0] = tenantContext.getOrganizationId();
-            return null;
-        }).when(filterChain).doFilter(any(), any());
-
         tenantFilter.doFilter(request, response, filterChain);
 
-        assertEquals(defaultOrgId, capturedOrgId[0]);
+        assertEquals(403, response.getStatus());
+        verify(organizationRepository, never()).findAll();
+        verify(filterChain, never()).doFilter(any(), any());
     }
 
     @Test
@@ -460,14 +490,13 @@ class TenantFilterTest {
     }
 
     @Test
-    void doFilter_userNotInDbNoFallback_skipsResolution() throws Exception {
-        String keycloakId = "no-db-user";
+    void doFilter_cachedNullOrg_nonStaff_thenRefused403() throws Exception {
+        // Entree de cache sans org pour un non-staff : fail-closed egalement
+        String keycloakId = "cached-no-org";
         setupJwtAuth(keycloakId);
 
-        when(valueOperations.get("tenant:" + keycloakId)).thenReturn(null);
-        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.empty());
-        // 0 or > 1 orgs prevents fallback
-        when(organizationRepository.findAll()).thenReturn(List.of());
+        TenantFilter.TenantInfo cached = new TenantFilter.TenantInfo(null, false, false);
+        when(valueOperations.get("tenant:" + keycloakId)).thenReturn(cached);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -475,6 +504,7 @@ class TenantFilterTest {
 
         tenantFilter.doFilter(request, response, filterChain);
 
-        verify(filterChain).doFilter(request, response);
+        assertEquals(403, response.getStatus());
+        verify(filterChain, never()).doFilter(any(), any());
     }
 }

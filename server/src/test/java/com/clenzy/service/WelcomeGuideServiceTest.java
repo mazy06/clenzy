@@ -257,6 +257,62 @@ class WelcomeGuideServiceTest {
     }
 
     @Test
+    void getAccessPhotoBytes_beforeCheckInTime_returnsEmpty() {
+        // Anti entree anticipee (Z4B-SECBUGS-02) : la fenetre du token s'ouvre leadDays
+        // avant l'arrivee, mais les photos d'indication d'acces (boite a cle, digicode
+        // photographie...) ne doivent etre servies qu'a partir de l'heure de check-in.
+        Property prop = new Property();
+        prop.setId(1L);
+        prop.setTimezone("Europe/Paris");
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setPublished(true);
+        guide.setProperty(prop);
+        Reservation reservation = new Reservation();
+        reservation.setCheckIn(LocalDate.now().plusDays(2)); // arrivee dans le futur
+        reservation.setCheckInTime("15:00");
+        reservation.setCheckOut(LocalDate.now().plusDays(5));
+        guide.setReservation(reservation);
+        WelcomeGuideToken tok = new WelcomeGuideToken();
+        tok.setGuide(guide);
+        tok.setExpiresAt(LocalDateTime.now().plusDays(5));
+        UUID token = UUID.randomUUID();
+        when(tokenRepository.findByToken(token)).thenReturn(Optional.of(tok));
+
+        Optional<byte[]> result = service.getAccessPhotoBytes(token, "abc");
+
+        assertThat(result).isEmpty();
+        verify(photoStorageService, never()).retrieve(any());
+    }
+
+    @Test
+    void getAccessPhotoBytes_afterCheckInTime_returnsBytes() {
+        Property prop = new Property();
+        prop.setId(1L);
+        prop.setTimezone("Europe/Paris");
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setPublished(true);
+        guide.setProperty(prop);
+        Reservation reservation = new Reservation();
+        reservation.setCheckIn(LocalDate.now().minusDays(1)); // arrivee deja passee
+        reservation.setCheckInTime("15:00");
+        reservation.setCheckOut(LocalDate.now().plusDays(2));
+        guide.setReservation(reservation);
+        WelcomeGuideToken tok = new WelcomeGuideToken();
+        tok.setGuide(guide);
+        tok.setExpiresAt(LocalDateTime.now().plusDays(2));
+        UUID token = UUID.randomUUID();
+        when(tokenRepository.findByToken(token)).thenReturn(Optional.of(tok));
+        CheckInInstructions ci = new CheckInInstructions();
+        ci.setArrivalPhotos("[{\"key\":\"abc\",\"caption\":\"\"}]");
+        when(checkInInstructionsRepository.findByPropertyId(1L)).thenReturn(Optional.of(ci));
+        when(photoStorageService.retrieve("abc")).thenReturn(new byte[]{1, 2, 3});
+
+        Optional<byte[]> result = service.getAccessPhotoBytes(token, "abc");
+
+        assertThat(result).isPresent();
+    }
+
+    @Test
     void updateGuide_updatesFields() {
         WelcomeGuide guide = new WelcomeGuide();
         guide.setId(1L);
@@ -374,6 +430,90 @@ class WelcomeGuideServiceTest {
         assertThat(dto.practical()).isNotNull();
         assertThat(dto.practical().accessCode()).isNull();        // code masqué avant l'arrivée
         assertThat(dto.practical().accessCodeLocked()).isTrue();   // cadenas affiché côté front
+    }
+
+    @Test
+    void getPublicGuidePayload_beforeCheckInTime_masksArrivalInstructionsAndPhotos() {
+        // Anti entree anticipee (Z4B-SECBUGS-02) : les instructions d'arrivee en texte
+        // libre et les photos d'indication d'acces peuvent contenir le code de porte /
+        // l'emplacement de la boite a cle — masquees comme le code avant le check-in.
+        UUID tokenValue = UUID.randomUUID();
+        Property property = new Property();
+        property.setId(99L);
+        property.setTimezone("Europe/Paris");
+
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(1L);
+        guide.setTitle("G");
+        guide.setProperty(property);
+        guide.setPublished(true);
+        Reservation reservation = new Reservation();
+        reservation.setCheckIn(LocalDate.now().plusDays(2)); // arrivee dans le futur
+        reservation.setCheckInTime("15:00");
+        reservation.setCheckOut(LocalDate.now().plusDays(5));
+        guide.setReservation(reservation);
+
+        WelcomeGuideToken token = new WelcomeGuideToken();
+        token.setToken(tokenValue);
+        token.setGuide(guide);
+        token.setExpiresAt(LocalDateTime.now().plusDays(5));
+
+        CheckInInstructions ci = new CheckInInstructions();
+        ci.setWifiName("Loft-WiFi");
+        ci.setAccessCode("4827#");
+        ci.setArrivalInstructions("Boite a cle derriere le pot, code 4827");
+        ci.setDepartureInstructions("Laisser les cles sur la table");
+        ci.setArrivalPhotos("[{\"key\":\"abc\",\"caption\":\"boite a cle\"}]");
+
+        when(tokenRepository.findByToken(tokenValue)).thenReturn(Optional.of(token));
+        when(checkInInstructionsRepository.findByPropertyId(99L)).thenReturn(Optional.of(ci));
+
+        WelcomeGuidePublicDto dto = service.getPublicGuidePayload(tokenValue).orElseThrow();
+        assertThat(dto.practical()).isNotNull();
+        assertThat(dto.practical().arrivalInstructions()).isNull();   // masquees avant l'arrivee
+        assertThat(dto.practical().arrivalPhotos()).isEqualTo("[]");  // photos d'acces masquees
+        assertThat(dto.practical().accessCode()).isNull();
+        // Le reste du livret reste utilisable avant l'arrivee
+        assertThat(dto.practical().wifiName()).isEqualTo("Loft-WiFi");
+        assertThat(dto.practical().departureInstructions()).isEqualTo("Laisser les cles sur la table");
+    }
+
+    @Test
+    void getPublicGuidePayload_afterCheckInTime_revealsArrivalInstructionsAndPhotos() {
+        UUID tokenValue = UUID.randomUUID();
+        Property property = new Property();
+        property.setId(99L);
+        property.setTimezone("Europe/Paris");
+
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(1L);
+        guide.setTitle("G");
+        guide.setProperty(property);
+        guide.setPublished(true);
+        Reservation reservation = new Reservation();
+        reservation.setCheckIn(LocalDate.now().minusDays(1)); // arrivee deja passee
+        reservation.setCheckInTime("15:00");
+        reservation.setCheckOut(LocalDate.now().plusDays(2));
+        guide.setReservation(reservation);
+
+        WelcomeGuideToken token = new WelcomeGuideToken();
+        token.setToken(tokenValue);
+        token.setGuide(guide);
+        token.setExpiresAt(LocalDateTime.now().plusDays(2));
+
+        CheckInInstructions ci = new CheckInInstructions();
+        ci.setArrivalInstructions("Boite a cle derriere le pot, code 4827");
+        ci.setArrivalPhotos("[{\"key\":\"abc\",\"caption\":\"boite a cle\"}]");
+
+        when(tokenRepository.findByToken(tokenValue)).thenReturn(Optional.of(token));
+        when(checkInInstructionsRepository.findByPropertyId(99L)).thenReturn(Optional.of(ci));
+
+        WelcomeGuidePublicDto dto = service.getPublicGuidePayload(tokenValue).orElseThrow();
+        assertThat(dto.practical()).isNotNull();
+        assertThat(dto.practical().arrivalInstructions())
+            .isEqualTo("Boite a cle derriere le pot, code 4827");
+        assertThat(dto.practical().arrivalPhotos())
+            .isEqualTo("[{\"key\":\"abc\",\"caption\":\"boite a cle\"}]");
     }
 
     @Test

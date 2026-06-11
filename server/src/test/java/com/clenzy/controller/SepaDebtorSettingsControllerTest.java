@@ -1,7 +1,10 @@
 package com.clenzy.controller;
 
 import com.clenzy.model.Organization;
+import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.repository.OrganizationRepository;
+import com.clenzy.repository.UserRepository;
+import com.clenzy.service.OrganizationService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +33,10 @@ import static org.mockito.Mockito.when;
  *   <li>PUT : sauvegarde l'organisation + renvoie IBAN masque</li>
  *   <li>PUT : si champ null dans request, ne touche pas l'org</li>
  * </ul>
+ *
+ * <p>T-ARCH-01 : le controller delegue desormais a {@link OrganizationService}
+ * (updateSepaDebtorConfig / findById). Le test cable un service REEL sur des
+ * repositories mockes pour conserver les memes assertions de bout en bout.</p>
  */
 @ExtendWith(MockitoExtension.class)
 class SepaDebtorSettingsControllerTest {
@@ -38,13 +45,21 @@ class SepaDebtorSettingsControllerTest {
     private OrganizationRepository organizationRepository;
 
     @Mock
+    private OrganizationMemberRepository memberRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
     private TenantContext tenantContext;
 
     private SepaDebtorSettingsController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new SepaDebtorSettingsController(organizationRepository, tenantContext);
+        OrganizationService organizationService =
+                new OrganizationService(organizationRepository, memberRepository, userRepository);
+        controller = new SepaDebtorSettingsController(organizationService, tenantContext);
     }
 
     private Organization org(Long id, String name, String iban, String bic) {

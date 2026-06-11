@@ -3,10 +3,8 @@ package com.clenzy.controller;
 import com.clenzy.dto.OrganizationDto;
 import com.clenzy.model.Organization;
 import com.clenzy.model.OrganizationType;
-import com.clenzy.repository.OrganizationMemberRepository;
-import com.clenzy.repository.OrganizationRepository;
+import com.clenzy.service.OrganizationBillingService;
 import com.clenzy.service.OrganizationService;
-import com.clenzy.service.PricingConfigService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,17 +20,14 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class OrganizationControllerTest {
 
-    @Mock private OrganizationRepository organizationRepository;
-    @Mock private OrganizationMemberRepository memberRepository;
     @Mock private OrganizationService organizationService;
-    @Mock private PricingConfigService pricingConfigService;
+    @Mock private OrganizationBillingService organizationBillingService;
 
     private OrganizationController controller;
 
@@ -47,7 +42,7 @@ class OrganizationControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new OrganizationController(organizationRepository, memberRepository, organizationService, pricingConfigService);
+        controller = new OrganizationController(organizationService, organizationBillingService);
     }
 
     @Nested
@@ -56,8 +51,8 @@ class OrganizationControllerTest {
         @Test
         void whenListAll_thenReturnsOrganizations() {
             Organization org = createOrg(1L, "Org A");
-            when(organizationRepository.findAll()).thenReturn(List.of(org));
-            when(memberRepository.countByOrganizationId(1L)).thenReturn(5L);
+            when(organizationService.findAll()).thenReturn(List.of(org));
+            when(organizationService.countMembers(1L)).thenReturn(5L);
 
             ResponseEntity<List<OrganizationDto>> response = controller.listAll();
             assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -73,8 +68,8 @@ class OrganizationControllerTest {
         @Test
         void whenExists_thenReturnsOrg() {
             Organization org = createOrg(1L, "Org A");
-            when(organizationRepository.findById(1L)).thenReturn(Optional.of(org));
-            when(memberRepository.countByOrganizationId(1L)).thenReturn(3L);
+            when(organizationService.findById(1L)).thenReturn(Optional.of(org));
+            when(organizationService.countMembers(1L)).thenReturn(3L);
 
             ResponseEntity<OrganizationDto> response = controller.getById(1L);
             assertThat(response.getBody().getName()).isEqualTo("Org A");
@@ -82,7 +77,7 @@ class OrganizationControllerTest {
 
         @Test
         void whenNotFound_thenThrows() {
-            when(organizationRepository.findById(1L)).thenReturn(Optional.empty());
+            when(organizationService.findById(1L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> controller.getById(1L))
                     .isInstanceOf(RuntimeException.class);
@@ -96,7 +91,7 @@ class OrganizationControllerTest {
         void whenValidName_thenCreates() {
             Organization org = createOrg(1L, "New Org");
             when(organizationService.createStandalone("New Org", OrganizationType.INDIVIDUAL)).thenReturn(org);
-            when(memberRepository.countByOrganizationId(1L)).thenReturn(0L);
+            when(organizationService.countMembers(1L)).thenReturn(0L);
 
             ResponseEntity<OrganizationDto> response = controller.create(Map.of("name", "New Org"));
             assertThat(response.getStatusCode().value()).isEqualTo(201);
@@ -119,7 +114,7 @@ class OrganizationControllerTest {
             Organization org = createOrg(1L, "Conciergerie");
             org.setType(OrganizationType.CONCIERGE);
             when(organizationService.createStandalone("Conciergerie", OrganizationType.CONCIERGE)).thenReturn(org);
-            when(memberRepository.countByOrganizationId(1L)).thenReturn(0L);
+            when(organizationService.countMembers(1L)).thenReturn(0L);
 
             Map<String, String> body = Map.of("name", "Conciergerie", "type", "CONCIERGE");
             ResponseEntity<OrganizationDto> response = controller.create(body);
@@ -141,7 +136,7 @@ class OrganizationControllerTest {
         void whenUpdate_thenDelegates() {
             Organization org = createOrg(1L, "Updated");
             when(organizationService.updateOrganization(1L, "Updated", null)).thenReturn(org);
-            when(memberRepository.countByOrganizationId(1L)).thenReturn(0L);
+            when(organizationService.countMembers(1L)).thenReturn(0L);
 
             ResponseEntity<OrganizationDto> response = controller.update(1L, Map.of("name", "Updated"));
             assertThat(response.getBody().getName()).isEqualTo("Updated");

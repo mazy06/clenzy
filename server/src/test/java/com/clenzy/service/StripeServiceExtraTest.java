@@ -9,9 +9,13 @@ import com.clenzy.model.Reservation;
 import com.clenzy.model.ServiceRequest;
 import com.clenzy.model.User;
 import com.clenzy.model.Wallet;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.tenant.TenantContext;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -55,6 +59,8 @@ class StripeServiceExtraTest {
     @Mock private SplitPaymentService splitPaymentService;
     @Mock private AutoInvoiceService autoInvoiceService;
     @Mock private KafkaTemplate<String, Object> kafkaTemplate;
+    @Mock private StripeGateway stripeGateway;
+    @Mock private PaymentStatusTransitionService paymentStatusTransitionService;
 
     private TenantContext tenantContext;
     private StripeService stripeService;
@@ -65,11 +71,18 @@ class StripeServiceExtraTest {
         tenantContext.setOrganizationId(1L);
         stripeService = new StripeService(interventionRepository, reservationRepository,
             serviceRequestRepository, notificationService, serviceRequestService, walletService,
-            ledgerService, splitPaymentService, autoInvoiceService, kafkaTemplate, tenantContext);
-        setField("stripeSecretKey", "sk_test_xxx");
+            ledgerService, splitPaymentService, autoInvoiceService, kafkaTemplate, tenantContext,
+            stripeGateway, paymentStatusTransitionService,
+            org.mockito.Mockito.mock(PaymentLedgerReversalService.class));
         setField("currency", "EUR");
         setField("successUrl", "https://ok.test");
         setField("cancelUrl", "https://ko.test");
+        org.mockito.Mockito.lenient()
+            .when(paymentStatusTransitionService.markInterventionPaid(any())).thenReturn(true);
+        org.mockito.Mockito.lenient()
+            .when(paymentStatusTransitionService.markReservationPaid(any())).thenReturn(true);
+        org.mockito.Mockito.lenient()
+            .when(paymentStatusTransitionService.markServiceRequestPaid(any())).thenReturn(true);
     }
 
     private void setField(String name, String value) throws Exception {
@@ -130,8 +143,20 @@ class StripeServiceExtraTest {
     // ─── Currency resolution path via Property.defaultCurrency ────────────────
 
     @Nested
-    @DisplayName("createCheckoutSession: currency resolution falls back to config when property has none")
+    @DisplayName("createCheckoutSession: currency resolution property -> config fallback")
     class CurrencyResolutionPath {
+
+        private Session sessionMock() {
+            Session session = org.mockito.Mockito.mock(Session.class);
+            when(session.getId()).thenReturn("cs_x");
+            return session;
+        }
+
+        private String capturedCurrency() throws Exception {
+            ArgumentCaptor<SessionCreateParams> captor = ArgumentCaptor.forClass(SessionCreateParams.class);
+            verify(stripeGateway).createSession(captor.capture());
+            return captor.getValue().getLineItems().get(0).getPriceData().getCurrency();
+        }
 
         @Test
         @DisplayName("intervention not found -> throws (resolveInterventionCurrency not even reached)")
@@ -143,84 +168,82 @@ class StripeServiceExtraTest {
         }
 
         @Test
-        @DisplayName("property has defaultCurrency -> currency resolution path exercised before Stripe call fails")
+        @DisplayName("property has defaultCurrency USD -> session charged in usd")
         void propertyDefaultCurrency_resolved() throws Exception {
             Intervention intervention = buildInterventionWithProperty(1L, "USD");
+            Session session = sessionMock();
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(stripeGateway.createSession(any())).thenReturn(session);
 
-            // Stripe call fails (no real API), but path resolveInterventionCurrency is exercised
-            try {
-                stripeService.createCheckoutSession(1L, BigDecimal.TEN, "g@h.com");
-            } catch (Exception expected) {
-                // OK — Stripe.create() fails because no real key, but currency resolution branch executed
-            }
-            verify(interventionRepository).findById(1L);
+            stripeService.createCheckoutSession(1L, BigDecimal.valueOf(100), "g@h.com");
+
+            assertThat(capturedCurrency()).isEqualTo("usd");
         }
 
         @Test
-        @DisplayName("property has blank defaultCurrency -> fallback to config currency")
+        @DisplayName("property has blank defaultCurrency -> fallback to config currency (eur)")
         void propertyBlankCurrency_fallsBackToConfig() throws Exception {
             Intervention intervention = buildInterventionWithProperty(1L, "");
+            Session session = sessionMock();
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(stripeGateway.createSession(any())).thenReturn(session);
 
-            try {
-                stripeService.createCheckoutSession(1L, BigDecimal.TEN, "g@h.com");
-            } catch (Exception expected) {
-                // path executed: blank string skipped, falls to config currency
-            }
-            verify(interventionRepository).findById(1L);
+            stripeService.createCheckoutSession(1L, BigDecimal.valueOf(100), "g@h.com");
+
+            assertThat(capturedCurrency()).isEqualTo("eur");
         }
 
         @Test
-        @DisplayName("intervention without property -> fallback config currency")
+        @DisplayName("intervention without property -> fallback config currency (eur)")
         void interventionWithoutProperty_fallsBack() throws Exception {
             Intervention intervention = new Intervention();
             intervention.setId(2L);
             intervention.setTitle("No-prop");
             intervention.setProperty(null);
+            intervention.setEstimatedCost(BigDecimal.valueOf(100));
+            Session session = sessionMock();
             when(interventionRepository.findById(2L)).thenReturn(Optional.of(intervention));
+            when(stripeGateway.createSession(any())).thenReturn(session);
 
-            try {
-                stripeService.createCheckoutSession(2L, BigDecimal.TEN, "g@h.com");
-            } catch (Exception expected) {
-                // path executed
-            }
-            verify(interventionRepository).findById(2L);
+            stripeService.createCheckoutSession(2L, BigDecimal.valueOf(100), "g@h.com");
+
+            assertThat(capturedCurrency()).isEqualTo("eur");
         }
 
         @Test
-        @DisplayName("createEmbeddedCheckoutSession: same currency resolution chain")
+        @DisplayName("createEmbeddedCheckoutSession: same currency resolution chain (gbp)")
         void createEmbeddedCheckoutSession_currencyResolution() throws Exception {
             Intervention intervention = buildInterventionWithProperty(5L, "GBP");
+            Session session = sessionMock();
             when(interventionRepository.findById(5L)).thenReturn(Optional.of(intervention));
+            when(stripeGateway.createSession(any())).thenReturn(session);
 
-            try {
-                stripeService.createEmbeddedCheckoutSession(5L, BigDecimal.TEN, "x@y.z");
-            } catch (Exception expected) {
-                // ok
-            }
-            verify(interventionRepository).findById(5L);
+            stripeService.createEmbeddedCheckoutSession(5L, BigDecimal.valueOf(100), "x@y.z");
+
+            assertThat(capturedCurrency()).isEqualTo("gbp");
         }
     }
 
-    // ─── refundPayment validation paths (Stripe fails) ────────────────────────
+    // ─── refundPayment : PaymentIntent manquant ───────────────────────────────
 
     @Nested
     @DisplayName("refundPayment validation paths")
     class RefundValidation {
 
         @Test
-        @DisplayName("intervention paid + session id present -> retrieval attempted (Stripe fails)")
-        void paidWithSession_attemptsRetrieve() throws Exception {
-            Intervention intervention = buildInterventionWithProperty(1L, "EUR");
-            intervention.setPaymentStatus(PaymentStatus.PAID);
-            intervention.setStripeSessionId("cs_xxx");
-            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+        @DisplayName("session without PaymentIntent -> throws and never calls Refund.create")
+        void paidWithSession_butNoPaymentIntent_throws() throws Exception {
+            when(paymentStatusTransitionService.loadRefundableIntervention(1L)).thenReturn(
+                new PaymentStatusTransitionService.InterventionRefundContext(
+                    1L, "cs_xxx", "Test", "kc-99", "o@x.com"));
+            Session session = org.mockito.Mockito.mock(Session.class);
+            when(session.getPaymentIntent()).thenReturn(null);
+            when(stripeGateway.retrieveSession("cs_xxx")).thenReturn(session);
 
-            // Stripe.Session.retrieve will throw because no real API — but the path is exercised
             assertThatThrownBy(() -> stripeService.refundPayment(1L))
-                .isInstanceOf(Exception.class);
-            verify(interventionRepository).findById(1L);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Aucun PaymentIntent");
+            verify(stripeGateway, never()).createRefund(any(), any());
         }
     }
 

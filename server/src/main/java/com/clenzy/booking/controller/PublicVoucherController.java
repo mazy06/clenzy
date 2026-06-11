@@ -2,8 +2,7 @@ package com.clenzy.booking.controller;
 
 import com.clenzy.dto.voucher.VoucherValidationRequestDto;
 import com.clenzy.dto.voucher.VoucherValidationResponseDto;
-import com.clenzy.model.Property;
-import com.clenzy.repository.PropertyRepository;
+import com.clenzy.service.voucher.BookingVoucherService;
 import com.clenzy.service.voucher.VoucherApplyResult;
 import com.clenzy.service.voucher.VoucherEngine;
 import com.clenzy.service.voucher.VoucherValidationError;
@@ -17,8 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Optional;
 
 /**
  * Endpoints publics pour la validation d'un voucher cote booking engine
@@ -52,14 +49,14 @@ public class PublicVoucherController {
     private static final Logger log = LoggerFactory.getLogger(PublicVoucherController.class);
 
     private final VoucherEngine voucherEngine;
-    private final PropertyRepository propertyRepository;
+    private final BookingVoucherService voucherService;
 
     public PublicVoucherController(
         VoucherEngine voucherEngine,
-        PropertyRepository propertyRepository
+        BookingVoucherService voucherService
     ) {
         this.voucherEngine = voucherEngine;
-        this.propertyRepository = propertyRepository;
+        this.voucherService = voucherService;
     }
 
     @PostMapping("/validate")
@@ -73,9 +70,7 @@ public class PublicVoucherController {
         // l'existence d'un code chez X via les codes d'erreur (NOT_FOUND vs
         // PAUSED vs EXPIRED). En cas de mismatch, on renvoie NOT_FOUND (pas
         // UNAUTHORIZED, pour ne pas confirmer l'existence de la property).
-        Optional<Property> propertyOpt = propertyRepository.findById(request.propertyId());
-        if (propertyOpt.isEmpty()
-            || !propertyOpt.get().getOrganizationId().equals(request.organizationId())) {
+        if (!voucherService.propertyBelongsToOrganization(request.propertyId(), request.organizationId())) {
             log.warn("Voucher validation refused : property {} hors org {} (possible enumeration)",
                 request.propertyId(), request.organizationId());
             return VoucherValidationResponseDto.invalid(

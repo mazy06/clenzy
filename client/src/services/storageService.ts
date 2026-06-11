@@ -204,6 +204,38 @@ export function setMockEnabled(flag: MockFlag, enabled: boolean): void {
 const SESSION_COOKIE = 'clenzy_session';
 
 /**
+ * Valeur opaque du cookie cross-domain. La landing (clenzy.fr) n'a besoin
+ * que de DETECTER la presence d'une session sur app.clenzy.fr — jamais du
+ * token lui-meme. Z1-SEC-FRONTAUX-01 : on ne stocke PLUS le JWT brut dans
+ * ce cookie non-HttpOnly (lisible par JS sur tous les sous-domaines).
+ */
+const SESSION_COOKIE_VALUE = 'authenticated';
+
+/** TTL de repli si le token est illisible (1h = TTL typique d'un access token Keycloak). */
+const SESSION_COOKIE_FALLBACK_MAX_AGE_SECONDS = 3600;
+
+/** Borne haute de securite pour le max-age du cookie (8h). */
+const SESSION_COOKIE_MAX_AGE_CAP_SECONDS = 28800;
+
+/**
+ * Calcule le max-age du cookie a partir du claim `exp` du JWT, borne entre
+ * 0 et {@link SESSION_COOKIE_MAX_AGE_CAP_SECONDS}. Le token n'est PAS stocke,
+ * il sert uniquement a aligner la duree de vie du cookie sur la session reelle.
+ */
+function getTokenRemainingSeconds(accessToken: string): number {
+  try {
+    const parts = accessToken.split('.');
+    if (parts.length !== 3) return SESSION_COOKIE_FALLBACK_MAX_AGE_SECONDS;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))) as { exp?: number };
+    if (typeof payload.exp !== 'number') return SESSION_COOKIE_FALLBACK_MAX_AGE_SECONDS;
+    const remaining = Math.floor(payload.exp - Date.now() / 1000);
+    return Math.min(Math.max(remaining, 0), SESSION_COOKIE_MAX_AGE_CAP_SECONDS);
+  } catch {
+    return SESSION_COOKIE_FALLBACK_MAX_AGE_SECONDS;
+  }
+}
+
+/**
  * Retourne le domaine racine pour le cookie.
  * - localhost → pas de domain (partagé entre tous les ports)
  * - app.clenzy.fr → .clenzy.fr (partagé entre tous les sous-domaines)
@@ -222,32 +254,62 @@ function getCookieDomain(): string {
 }
 
 /**
- * Save access token as a cookie readable by the landing page.
+ * Pose le marqueur de session cross-domain lisible par la landing.
  * En dev : partagé entre tous les ports de localhost.
  * En prod : partagé entre tous les sous-domaines de clenzy.fr.
  *
- * SECURITE: Ce cookie est cree via document.cookie (client-side), donc
- * le flag HttpOnly n'est PAS possible ici (serveur-only). SameSite=Lax
- * (au lieu de Strict) permet au cookie d'etre lu apres une navigation
- * top-level depuis un autre site ou sous-domaine — necessaire pour que
- * la landing (clenzy.fr) detecte la session etablie sur app.clenzy.fr
- * sans forcer un refresh dur. Lax bloque toujours les requetes
- * cross-site non top-level, ce qui couvre le CSRF classique.
- * max-age=28800 (8h) aligne sur la duree de vie typique d'un access token.
+ * SECURITE (Z1-SEC-FRONTAUX-01) : ce cookie ne contient PLUS le JWT —
+ * seulement le marqueur opaque {@link SESSION_COOKIE_VALUE}. Le token recu
+ * en parametre sert uniquement a aligner le max-age du cookie sur
+ * l'expiration reelle de la session (claim `exp`). Une XSS sur un
+ * sous-domaine ne peut donc plus exfiltrer de credential via ce cookie.
+ *
+ * Ce cookie est cree via document.cookie (client-side), donc le flag
+ * HttpOnly n'est PAS possible ici (serveur-only). SameSite=Lax (au lieu
+ * de Strict) permet au cookie d'etre lu apres une navigation top-level
+ * depuis un autre site ou sous-domaine — necessaire pour que la landing
+ * (clenzy.fr) detecte la session etablie sur app.clenzy.fr sans forcer
+ * un refresh dur. Lax bloque toujours les requetes cross-site non
+ * top-level, ce qui couvre le CSRF classique.
  * TODO: Migrer vers un cookie HttpOnly emis par le serveur (AUTH-VULN-02/03).
  */
 export function setSessionCookie(accessToken: string): void {
   try {
-    const domain = getCookieDomain();
-    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(accessToken)}; path=/${domain}; max-age=28800; SameSite=Lax${secure}`;
+    writeSessionMarkerCookie(getTokenRemainingSeconds(accessToken));
   } catch {
     // Silent fail
   }
 }
 
 /**
- * Read the session cookie.
+ * Variante de {@link setSessionCookie} quand le token brut n'est pas
+ * disponible cote JS (session restauree via les metadonnees du cookie
+ * HttpOnly — Z1-SEC-FRONTAUX-02) : le max-age est cale directement sur
+ * l'expiration de session fournie par le backend (claim `exp`).
+ */
+export function setSessionCookieUntil(expiresAtEpochSeconds: number): void {
+  try {
+    const remaining = Math.floor(expiresAtEpochSeconds - Date.now() / 1000);
+    writeSessionMarkerCookie(Math.min(Math.max(remaining, 0), SESSION_COOKIE_MAX_AGE_CAP_SECONDS));
+  } catch {
+    // Silent fail
+  }
+}
+
+function writeSessionMarkerCookie(maxAge: number): void {
+  if (maxAge <= 0) {
+    clearSessionCookie();
+    return;
+  }
+  const domain = getCookieDomain();
+  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${SESSION_COOKIE}=${SESSION_COOKIE_VALUE}; path=/${domain}; max-age=${maxAge}; SameSite=Lax${secure}`;
+}
+
+/**
+ * Read the session cookie marker. Retourne la valeur opaque
+ * ({@link SESSION_COOKIE_VALUE}) si une session est signalee, sinon null.
+ * Ne contient jamais de token.
  */
 export function getSessionCookie(): string | null {
   try {
@@ -284,6 +346,7 @@ const storageService = {
   isMockEnabled,
   setMockEnabled,
   setSessionCookie,
+  setSessionCookieUntil,
   getSessionCookie,
   clearSessionCookie,
   KEYS: STORAGE_KEYS,

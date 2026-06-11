@@ -2211,3 +2211,57 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Numérotation des factures (audit Z3-BUGS-07 / Z3-BUGS-08) : unicité
+  # (organization_id, current_year) sur invoice_number_sequences (requise par
+  # l'INSERT ... ON CONFLICT de InvoiceNumberingService), dédoublonnage défensif,
+  # puis index uniques partiels sur invoices (numéro par org, facture active par
+  # réservation/type et par intervention) fermant les courses Kafka/webhook.
+  - changeSet:
+      id: "0226-facture-numerotation-contrainte"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0226__facture_numerotation_contrainte.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Lead time sur les rate plans (audit Z5-BUGS-05) : colonnes nullables
+  # min_lead_days / max_lead_days exploitées par le PriceEngine pour borner
+  # l'application des plans EARLY_BIRD / LAST_MINUTE (fenêtre par défaut si NULL).
+  - changeSet:
+      id: "0227-pricing-lead-time-et-source"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0227__pricing_lead_time_et_source.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Retour PayPal (audit Z3-SEC-04) : index sur payment_transactions.provider_tx_id
+  # pour la derived query findByProviderTxId (résolution O(log n) de l'order_id /
+  # capture_id PayPal sur l'endpoint public /api/payments/paypal/return, fin du
+  # full scan cross-tenant exploitable en DoS).
+  - changeSet:
+      id: "0228-paypal-provider-tx-id-index"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0228__paypal_provider_tx_id_index.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
+
+  # Intégrations mortes (audit T-MORT / C11) : drop des tables orphelines du
+  # changeset 0061 — webhook_subscriptions (entité Zapier supprimée avec le
+  # paquet integration/zapier) et signature_requests (jamais mappée par une
+  # entité JPA ; la signature électronique réelle utilise
+  # contract_signature_requests, changeset 0225). Tables vides par construction,
+  # DROP IF EXISTS par sécurité.
+  - changeSet:
+      id: "0229-drop-tables-integrations-mortes"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0229__drop_tables_integrations_mortes.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+        stripComments: false
