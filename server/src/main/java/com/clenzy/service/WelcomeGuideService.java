@@ -525,9 +525,12 @@ public class WelcomeGuideService {
         if (guide == null || !guide.isPublished()) {
             return Optional.empty();
         }
-        // Disponibilité : le livret est rattaché à une réservation. Orphelin (aucune résa liée) ou
-        // réservation révolue (départ passé) → écran « non disponible » côté voyageur (pas de 404 brut).
-        Reservation reservation = guide.getReservation();
+        // Disponibilité : on se base sur la réservation portée par CE token (un lien partagé ou un
+        // email cible une réservation précise), avec repli sur la réservation rattachée au livret.
+        // Sinon un token valide pour le séjour courant afficherait « réservation révolue » à cause de
+        // l'ancienne réservation figée à la création du livret. Orphelin (aucune résa) ou réservation
+        // révolue (départ passé) → écran « non disponible » côté voyageur (pas de 404 brut).
+        Reservation reservation = t.getReservation() != null ? t.getReservation() : guide.getReservation();
         if (reservation == null) {
             return Optional.of(WelcomeGuidePublicDto.unavailable(guide, "NO_RESERVATION"));
         }
