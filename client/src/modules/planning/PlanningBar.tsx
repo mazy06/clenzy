@@ -138,19 +138,19 @@ const RadarPastille: React.FC<{
 
 // ─── Pastille blanche (langage Signature, dans la brique) ───────────────────
 //
-// Indicateurs groupes a droite de la brique : carre arrondi clair de 20px
-// avec icone coloree (paiement, info manquante) ou logo canal. Tooltip au
-// survol. Variante "combo" : repli « +N » quand la place manque.
+// Indicateurs groupes a droite de la brique : carre arrondi blanc de 21px
+// (spec .s-brick__badge) avec icone coloree 13px (paiement, info manquante)
+// ou logo canal. Tooltip au survol. Variante "combo" : repli « +N ».
 const BAR_BADGE_SX = {
-  width: 20,
-  height: 20,
+  width: 21,
+  height: 21,
   borderRadius: '7px',
-  backgroundColor: 'var(--on-accent)',
+  backgroundColor: '#fff',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   flexShrink: 0,
-  boxShadow: '0 1px 2px color-mix(in srgb, var(--ink) 14%, transparent)',
+  boxShadow: '0 1px 2px rgba(0,0,0,.14)',
 } as const;
 
 // ─── Resize Handle (right edge) ──────────────────────────────────────────────
@@ -273,7 +273,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       color: event.paymentBadgeStatus === 'FAILED'
         ? 'color-mix(in srgb, var(--err) 75%, var(--ink))'
         : 'var(--err)',
-      icon: <CreditCard size={12} strokeWidth={2} />,
+      icon: <CreditCard size={13} strokeWidth={2} />,
     });
   }
   if (missingEmail) {
@@ -281,7 +281,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       key: 'miss',
       tooltip: 'Email voyageur manquant — les messages automatiques ne seront pas envoyés',
       color: 'var(--warn)',
-      icon: <Warning size={12} strokeWidth={2} />,
+      icon: <Warning size={13} strokeWidth={2} />,
     });
   }
   // Interventions rattachees a la reservation : pastille blanche avec l'icone
@@ -294,8 +294,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       tooltip: linked.label && linked.label !== typeLabel ? `${typeLabel} — ${linked.label}` : typeLabel,
       color: isCleaning ? 'var(--info)' : 'var(--warn)',
       icon: isCleaning
-        ? <CleaningServices size={12} strokeWidth={2} />
-        : <Build size={12} strokeWidth={2} />,
+        ? <CleaningServices size={13} strokeWidth={2} />
+        : <Build size={13} strokeWidth={2} />,
       onClick: (e) => {
         e.stopPropagation();
         onClick(linked);
@@ -312,9 +312,14 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     : indicators.slice(0, Math.max(0, indicatorSlots - 1));
   const hiddenIndicators = indicators.slice(shownIndicators.length);
 
-  // Avatar voyageur (rond, bord clair) — si la place le permet
-  const avatarSize = Math.max(20, Math.min(28, height - 16));
+  // Avatar voyageur (rond, bord clair, 30px — spec .s-brick__av) — si la
+  // place le permet. La taille ne varie PAS : variante étroite = masqué.
   const showAvatar = isReservation && displayWidth > 90 && height >= 32;
+  // Pastille d'alerte sur l'avatar (spec .s-brick__alert) : err = paiement,
+  // warn = info voyageur manquante. Purement visuelle (tooltips sur badges).
+  const avatarAlertColor = !isCancelled
+    ? (event.needsPaymentBadge ? 'var(--err)' : missingEmail ? 'var(--warn)' : null)
+    : null;
 
   // Only reduce opacity for move drag, not resize
   const draggedOpacity = isDragging ? 0.3 : 1;
@@ -365,7 +370,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               border: 'none',
             }),
         borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
-        cursor: isResizing ? 'col-resize' : isDragDisabled ? 'pointer' : 'grab',
+        // Spec .s-brick : cursor pointer (le drag reste actif via dnd-kit).
+        cursor: isResizing ? 'col-resize' : 'pointer',
         touchAction: 'none',
         // visible : laisse les pastilles (warning, payment, hide) deborder
         // de -6px. Le clipping du texte est fait sur le wrapper interne.
@@ -378,19 +384,21 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           ? 'center'
           : showLabel ? 'flex-start' : 'center',
         gap: isReservation ? 0 : (showLabel ? 0.5 : 0),
-        px: isReservation ? 0.625 : (showLabel ? 0.75 : 0),
-        py: isReservation ? 0.5 : 0,
-        transition: (isDragging || isResizing) ? 'none' : 'box-shadow 0.15s ease, transform 0.1s ease, width 0.1s ease',
+        // Spec .s-brick : padding 0 8px (littéral — le spacing du thème vaut 6px).
+        px: isReservation ? '8px' : (showLabel ? 0.75 : 0),
+        py: 0,
+        // Spec .s-brick : transition transform .12s, box-shadow .12s
+        // (+ width pour le feedback resize, spécifique timeline).
+        transition: (isDragging || isResizing) ? 'none' : 'transform .12s, box-shadow .12s, width .12s',
         userSelect: 'none',
         opacity: draggedOpacity,
         zIndex: isSelected ? 5 : isIntervention ? 2 : 3,
-        '&:hover': isCancelled
-          ? { zIndex: 6 }
-          : {
-              boxShadow: `0 7px 16px -8px color-mix(in srgb, ${barColor} 60%, transparent)`,
-              transform: 'translateY(-1px)',
-              zIndex: 6,
-            },
+        // Spec .s-brick:hover (signature.css L208), transposée telle quelle.
+        '&:hover': {
+          boxShadow: '0 7px 16px -8px var(--shadow-pop)',
+          transform: 'translateY(-1px)',
+          zIndex: 6,
+        },
         '@media (prefers-reduced-motion: reduce)': {
           transition: 'none',
           '&:hover': { transform: 'none' },
@@ -428,7 +436,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 0.625,
+            // Spec .s-brick : gap 9px entre avatar / texte / pastilles.
+            gap: '9px',
             width: '100%',
             height: '100%',
             color: isCancelled ? 'var(--muted)' : 'var(--on-accent)',
@@ -439,40 +448,69 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             borderRadius: `${BAR_BORDER_RADIUS}px`,
           }}
         >
-          {/* Avatar voyageur : rond, bord clair, initiales */}
+          {/* Avatar voyageur (spec .s-brick__avw + .s-brick__av) : wrapper
+              relatif + rond 30px, bord clair, initiales 11px. La pastille
+              d'alerte (.s-brick__alert) se pose en haut-gauche de l'avatar. */}
           {showAvatar && (
-            <Box
-              sx={{
-                width: avatarSize,
-                height: avatarSize,
-                borderRadius: '50%',
-                flexShrink: 0,
-                border: '1.5px solid color-mix(in srgb, var(--on-accent) 55%, transparent)',
-                backgroundColor: 'color-mix(in srgb, var(--on-accent) 22%, transparent)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.59375rem',
-                fontWeight: 700,
-                color: isCancelled ? 'var(--muted)' : 'var(--on-accent)',
-                ...(isCancelled && {
-                  filter: 'grayscale(1)',
-                  opacity: 0.6,
-                  borderColor: 'var(--line-2)',
-                }),
-              }}
-            >
-              {getInitials(event.label)}
+            <Box sx={{ position: 'relative', display: 'flex', flexShrink: 0 }}>
+              <Box
+                sx={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: '50%',
+                  flexShrink: 0,
+                  border: '1.5px solid rgba(255,255,255,.55)',
+                  backgroundColor: 'rgba(255,255,255,.22)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: isCancelled ? 'var(--muted)' : '#fff',
+                  ...(isCancelled && {
+                    filter: 'grayscale(1)',
+                    opacity: 0.6,
+                    borderColor: 'var(--line-2)',
+                  }),
+                }}
+              >
+                {getInitials(event.label)}
+              </Box>
+              {avatarAlertColor && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '3px',
+                    left: '3px',
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    border: '1.6px solid #fff',
+                    backgroundColor: avatarAlertColor,
+                    zIndex: 2,
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
             </Box>
           )}
-          <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {/* Ligne 1 : nombre de nuits */}
+          {/* Spec .s-brick__t : colonne centrée, line-height 1.2. */}
+          <Box
+            sx={{
+              minWidth: 0,
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              lineHeight: 1.2,
+            }}
+          >
+            {/* Ligne 1 (spec .s-brick__n) : nombre de nuits — 9.5px fw600 */}
             <Box
               component="span"
               sx={{
-                fontSize: '0.59375rem',
+                fontSize: '9.5px',
                 fontWeight: 600,
-                lineHeight: 1.15,
                 opacity: 0.85,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -481,18 +519,16 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             >
               {nights} {nights > 1 ? 'nuits' : 'nuit'}
             </Box>
-            {/* Ligne 2 : nom du voyageur */}
+            {/* Ligne 2 (spec .s-brick__g) : nom du voyageur — 12.5px fw600 */}
             {showLabel && (
               <Box
                 component="span"
                 sx={{
-                  fontSize: '0.75rem',
+                  fontSize: '12.5px',
                   fontWeight: 600,
-                  lineHeight: 1.2,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  letterSpacing: '-0.01em',
                   ...(isCancelled && { textDecoration: 'line-through' }),
                 }}
               >
@@ -525,8 +561,10 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   <Box
                     sx={{
                       ...BAR_BADGE_SX,
+                      // Spec .s-brick__badge.combo
+                      backgroundColor: 'rgba(255,255,255,.9)',
                       fontFamily: 'var(--font-display)',
-                      fontSize: '0.625rem',
+                      fontSize: '10px',
                       fontWeight: 700,
                       color: 'var(--ink)',
                     }}
