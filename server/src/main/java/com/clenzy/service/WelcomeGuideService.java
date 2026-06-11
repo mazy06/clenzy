@@ -253,8 +253,12 @@ public class WelcomeGuideService {
     @Transactional
     public WelcomeGuideToken generateToken(Long guideId, Long orgId, Reservation reservation) {
         WelcomeGuide guide = loadGuide(guideId, orgId);
-        // Sans réservation explicite, on borne le token sur la réservation rattachée au livret.
-        Reservation boundReservation = reservation != null ? reservation : guide.getReservation();
+        // Sans réservation explicite (bouton de partage hôte : lien / QR / share), on cible la
+        // réservation COURANTE ou prochaine du logement, et NON la réservation figée à la création
+        // du livret. Sinon, dès que ce séjour initial est terminé, tout lien partagé reste rattaché
+        // à une réservation révolue : sa fenêtre de validité (checkOut + graceDays) est déjà passée,
+        // le token est « mort-né » et la page guest répond 404 « Lien indisponible ».
+        Reservation boundReservation = reservation != null ? reservation : resolveCurrentReservation(guide);
 
         WelcomeGuideToken token = new WelcomeGuideToken();
         // L'org du token = celle du livret (non-null), pas le contexte (null pour le staff plateforme).
@@ -265,6 +269,23 @@ public class WelcomeGuideService {
         applyValidityWindow(token, boundReservation);
 
         return tokenRepository.save(token);
+    }
+
+    /**
+     * Réservation à laquelle borner un token généré sans réservation explicite : la réservation
+     * courante ou prochaine du logement (checkOut &gt;= aujourd'hui, non annulée), résolue dans le
+     * fuseau du logement (le passage d'un jour à l'autre suit l'heure locale, pas celle du serveur).
+     * Repli sur la réservation rattachée au livret si aucune réservation à venir (ex. inter-séjours).
+     */
+    private Reservation resolveCurrentReservation(WelcomeGuide guide) {
+        if (guide.getProperty() == null || guide.getOrganizationId() == null) {
+            return guide.getReservation();
+        }
+        LocalDate today = LocalDate.now(StayTimes.zoneOf(guide.getProperty()));
+        return reservationRepository
+            .findCurrentOrNextByPropertyId(guide.getProperty().getId(), today, guide.getOrganizationId())
+            .stream().findFirst()
+            .orElse(guide.getReservation());
     }
 
     /**

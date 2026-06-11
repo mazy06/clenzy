@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,6 +53,10 @@ class GuestMessagingSchedulerTest {
 
         reservation = new Reservation();
         reservation.setId(100L);
+        // Le check-in auto ne part QUE le jour de l'arrivee (date locale du logement).
+        // Property null -> StayTimes.zoneOf retombe sur le fuseau systeme, donc
+        // LocalDate.now() ici == LocalDate.now(systemDefault) cote scheduler : coherent.
+        reservation.setCheckIn(LocalDate.now());
 
         Guest guest = new Guest();
         guest.setEmail("guest@example.com");
@@ -154,6 +159,7 @@ class GuestMessagingSchedulerTest {
     void whenSendThrows_thenContinuesWithoutPropagation() {
         Reservation reservation2 = new Reservation();
         reservation2.setId(200L);
+        reservation2.setCheckIn(LocalDate.now()); // jour de l'arrivee -> eligible au check-in auto
         Guest guest2 = new Guest();
         guest2.setEmail("guest2@example.com");
         reservation2.setGuest(guest2);
@@ -174,5 +180,66 @@ class GuestMessagingSchedulerTest {
 
         // Second reservation should still be attempted
         verify(messagingService).sendForReservation(eq(reservation2), any(), eq(1L));
+    }
+
+    @Test
+    void whenCheckInIsToday_thenSends() {
+        // reservation.checkIn == aujourd'hui (cf. setUp) -> l'email part le jour J.
+        when(configRepository.findByAutoSendCheckInTrueOrAutoSendCheckOutTrue())
+            .thenReturn(List.of(config));
+        when(templateRepository.findByIdAndOrganizationId(10L, 1L))
+            .thenReturn(Optional.of(checkInTemplate));
+        when(reservationRepository.findConfirmedByCheckInRange(any(LocalDate.class), any(LocalDate.class), eq(1L)))
+            .thenReturn(List.of(reservation));
+        when(messagingService.alreadySent(100L, MessageTemplateType.CHECK_IN))
+            .thenReturn(false);
+
+        scheduler.processAutomatedMessages();
+
+        verify(messagingService).sendForReservation(reservation, checkInTemplate, 1L);
+    }
+
+    @Test
+    void whenCheckInIsNotToday_thenSkips() {
+        // Le pre-filtre BDD (+/- 1 jour) peut remonter une arrivee de demain, mais le
+        // filtre "jour de l'arrivee" (date locale du logement == checkIn) doit la rejeter :
+        // l'email ne doit JAMAIS partir en avance.
+        reservation.setCheckIn(LocalDate.now().plusDays(1));
+
+        when(configRepository.findByAutoSendCheckInTrueOrAutoSendCheckOutTrue())
+            .thenReturn(List.of(config));
+        when(templateRepository.findByIdAndOrganizationId(10L, 1L))
+            .thenReturn(Optional.of(checkInTemplate));
+        when(reservationRepository.findConfirmedByCheckInRange(any(LocalDate.class), any(LocalDate.class), eq(1L)))
+            .thenReturn(List.of(reservation));
+
+        scheduler.processAutomatedMessages();
+
+        verify(messagingService, never()).sendForReservation(any(), any(), anyLong());
+    }
+
+    @Test
+    void whenCheckInIsTodayInPropertyTimezone_thenSends() {
+        // La decision "jour J" suit le fuseau du LOGEMENT, pas celui du serveur.
+        // Pacific/Kiritimati = UTC+14 : on cale checkIn sur la date locale de ce fuseau,
+        // qui peut etre en avance d'un jour civil sur le fuseau systeme.
+        ZoneId kiritimati = ZoneId.of("Pacific/Kiritimati");
+        Property property = new Property();
+        property.setTimezone("Pacific/Kiritimati");
+        reservation.setProperty(property);
+        reservation.setCheckIn(LocalDate.now(kiritimati));
+
+        when(configRepository.findByAutoSendCheckInTrueOrAutoSendCheckOutTrue())
+            .thenReturn(List.of(config));
+        when(templateRepository.findByIdAndOrganizationId(10L, 1L))
+            .thenReturn(Optional.of(checkInTemplate));
+        when(reservationRepository.findConfirmedByCheckInRange(any(LocalDate.class), any(LocalDate.class), eq(1L)))
+            .thenReturn(List.of(reservation));
+        when(messagingService.alreadySent(100L, MessageTemplateType.CHECK_IN))
+            .thenReturn(false);
+
+        scheduler.processAutomatedMessages();
+
+        verify(messagingService).sendForReservation(reservation, checkInTemplate, 1L);
     }
 }
