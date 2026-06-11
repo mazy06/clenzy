@@ -1,5 +1,6 @@
 package com.clenzy.integration.nuki.model;
 
+import com.clenzy.config.EncryptedFieldConverter;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -42,6 +43,18 @@ public class NukiConnection {
 
     @Column(name = "token_expires_at")
     private LocalDateTime tokenExpiresAt;
+
+    /**
+     * Secret partage par connexion porte dans l'URL du callback Bridge
+     * ({@code /api/webhooks/nuki/bridge-callback/{token}}). Le webhook public
+     * (I2-IOT-01) compare ce secret en temps constant pour authentifier l'origine
+     * de l'evenement et resoudre l'organisation cible. Chiffre au repos (AES-256).
+     * Colonne nouvelle (migration 0234) : les lignes existantes ont NULL, aucun
+     * backfill de chiffrement requis (pas de valeur en clair preexistante).
+     */
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "webhook_secret_encrypted", columnDefinition = "TEXT")
+    private String webhookSecret;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -102,6 +115,9 @@ public class NukiConnection {
 
     public LocalDateTime getTokenExpiresAt() { return tokenExpiresAt; }
     public void setTokenExpiresAt(LocalDateTime tokenExpiresAt) { this.tokenExpiresAt = tokenExpiresAt; }
+
+    public String getWebhookSecret() { return webhookSecret; }
+    public void setWebhookSecret(String webhookSecret) { this.webhookSecret = webhookSecret; }
 
     public NukiConnectionStatus getStatus() { return status; }
     public void setStatus(NukiConnectionStatus status) { this.status = status; }

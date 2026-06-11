@@ -14,6 +14,7 @@ import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -346,6 +347,15 @@ public class CalendarEngine {
 
             Property property = propertyRepository.findById(propertyId)
                     .orElseThrow(() -> new RuntimeException("Propriete introuvable: " + propertyId));
+
+            // Ownership (regle audit 2026-06 #3) : findById contourne le filtre Hibernate.
+            // Le propertyId peut etre controle par l'appelant (ex: tool LLM block_calendar_day) ;
+            // refuser si la propriete n'appartient pas a l'organisation du caller, sinon
+            // pollution de calendrier cross-org + outbox event sur une org tierce.
+            if (property.getOrganizationId() != null && !property.getOrganizationId().equals(orgId)) {
+                throw new AccessDeniedException(
+                        "Propriete " + propertyId + " hors de l'organisation " + orgId);
+            }
 
             List<CalendarDay> days = upsertDays(property, from, to, orgId);
             for (CalendarDay day : days) {

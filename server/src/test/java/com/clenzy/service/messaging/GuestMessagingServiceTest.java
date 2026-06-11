@@ -426,6 +426,23 @@ class GuestMessagingServiceTest {
         }
 
         @Test
+        void sendMessage_crossOrgReservation_isRejected() {
+            // IDOR : reservationId controle par l'appelant (tool LLM send_guest_message),
+            // mais la reservation appartient a une AUTRE organisation que le caller (orgId=1).
+            Reservation foreign = new Reservation();
+            foreign.setId(100L);
+            foreign.setOrganizationId(2L); // org tierce
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(foreign));
+
+            org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.security.access.AccessDeniedException.class,
+                () -> service.sendMessage(100L, 5L, 1L, MessageChannelType.EMAIL));
+
+            // Le template ne doit meme pas etre charge (garde en amont).
+            verify(templateRepository, never()).findByIdAndOrganizationId(anyLong(), anyLong());
+        }
+
+        @Test
         void sendMessage_defaultEmailChannel_succeeds() {
             Property property = new Property();
             property.setId(10L);

@@ -1,5 +1,6 @@
 package com.clenzy.model;
 
+import com.clenzy.config.EncryptedFieldConverter;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -33,13 +34,19 @@ public class CheckInInstructions {
     @JoinColumn(name = "property_id", nullable = false, unique = true)
     private Property property;
 
-    @Column(name = "access_code", length = 200)
+    /** Code d'acces statique — secret d'acces physique, CHIFFRE au repos (M1-MODEL-04,
+     *  aligne sur {@link SmartLockAccessCode#getCode()}). Colonne TEXT (le ciphertext
+     *  Jasypt depasse l'ancien varchar(200)), voir changeset 0233. */
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "access_code", columnDefinition = "TEXT")
     private String accessCode;
 
     @Column(name = "wifi_name", length = 200)
     private String wifiName;
 
-    @Column(name = "wifi_password", length = 200)
+    /** Mot de passe WiFi — secret, CHIFFRE au repos (M1-MODEL-04). Colonne TEXT, voir changeset 0233. */
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "wifi_password", columnDefinition = "TEXT")
     private String wifiPassword;
 
     @Column(name = "parking_info", columnDefinition = "TEXT")
@@ -65,9 +72,19 @@ public class CheckInInstructions {
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String arrivalPhotos = "[]";
 
-    /** Codes additionnels libres (JSON : [{label, code}]) — résidence, immeuble, parking… */
-    @Column(name = "extra_access_codes", columnDefinition = "JSONB", nullable = false)
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    /**
+     * Codes additionnels libres (JSON : [{label, code}]) — résidence, immeuble, parking…
+     *
+     * <p>Ces valeurs sont des secrets d'accès physique : le blob JSON entier est
+     * CHIFFRE au repos (M1-MODEL-04). La colonne passe donc de {@code JSONB} à
+     * {@code TEXT} (changeset 0233) — on ne peut pas stocker du ciphertext Jasypt
+     * dans une colonne {@code jsonb} (le type Postgres rejette le non-JSON). Le
+     * contenu reste un JSON applicatif (parse côté service / DTO), servi déchiffré
+     * transparemment par le converter. {@code nullable=false} conservé : le défaut
+     * {@code "[]"} est chiffré comme toute autre valeur (jamais null/vide).</p>
+     */
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "extra_access_codes", columnDefinition = "TEXT", nullable = false)
     private String extraAccessCodes = "[]";
 
     /** Régénère automatiquement le code d'accès statique après chaque départ (opt-in par logement). */

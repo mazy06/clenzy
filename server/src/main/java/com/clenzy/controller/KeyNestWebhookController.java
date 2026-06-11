@@ -44,8 +44,19 @@ public class KeyNestWebhookController {
 
         log.info("Webhook KeyNest recu (signature present: {})", signature != null);
 
-        // Verifier la signature HMAC-SHA256
-        if (signature != null && !webhookHandler.verifySignature(payload, signature)) {
+        // I2-IOT-02 : le header de signature est OBLIGATOIRE. Sans lui, on ne peut pas
+        // authentifier l'origine → 401 (plus de fail-open « signature == null on accepte »).
+        if (signature == null || signature.isBlank()) {
+            log.warn("Webhook KeyNest rejete : header X-KeyNest-Signature absent");
+            return ResponseEntity.status(401).body(Map.of(
+                    "error", "missing_signature",
+                    "message", "Header X-KeyNest-Signature requis"
+            ));
+        }
+
+        // Verifier la signature HMAC-SHA256 (le handler est fail-closed si le secret
+        // n'est pas configure : voir KeyNestWebhookHandler.verifySignature).
+        if (!webhookHandler.verifySignature(payload, signature)) {
             log.warn("Webhook KeyNest rejete : signature invalide");
             return ResponseEntity.status(401).body(Map.of(
                     "error", "invalid_signature",

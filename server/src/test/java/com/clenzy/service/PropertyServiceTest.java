@@ -506,6 +506,33 @@ class PropertyServiceTest {
             assertThatThrownBy(() -> propertyService.updateStatus(999L, "ACTIVE"))
                     .isInstanceOf(NotFoundException.class);
         }
+
+        @Test
+        void whenPropertyFromOtherOrg_thenAccessDenied() {
+            // A1-AGENT-IA-02 : le tool update_property_status passe un propertyId
+            // controle par le LLM/user. Sans garde org, IDOR write cross-org.
+            Property existing = buildProperty(10L, buildOwner(1L));
+            existing.setOrganizationId(ORG_ID + 1);
+            when(propertyRepository.findById(10L)).thenReturn(Optional.of(existing));
+
+            assertThatThrownBy(() -> propertyService.updateStatus(10L, "ARCHIVED"))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+            verify(propertyRepository, never()).save(any());
+        }
+
+        @Test
+        void whenSuperAdminCrossOrg_thenAllowed() {
+            tenantContext.setSuperAdmin(true);
+            Property existing = buildProperty(10L, buildOwner(1L));
+            existing.setOrganizationId(ORG_ID + 1);
+            existing.setStatus(PropertyStatus.ACTIVE);
+            when(propertyRepository.findById(10L)).thenReturn(Optional.of(existing));
+            when(propertyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            PropertyDto result = propertyService.updateStatus(10L, "INACTIVE");
+            assertThat(result.status).isEqualTo(PropertyStatus.INACTIVE);
+        }
     }
 
     @Nested

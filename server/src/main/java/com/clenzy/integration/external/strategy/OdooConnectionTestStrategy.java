@@ -1,9 +1,9 @@
 package com.clenzy.integration.external.strategy;
 
+import com.clenzy.service.ICalUrlValidator;
 import com.clenzy.service.signature.SignatureProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -48,6 +48,18 @@ public class OdooConnectionTestStrategy implements ConnectionTestStrategy {
         }
         String dbName = parts[0];
         String userLogin = parts[1];
+
+        // I1-OTA-02 : serverUrl est fourni par l'utilisateur → risque SSRF (le serveur
+        // ferait une requete vers une URL arbitraire, ex. metadata cloud ou service
+        // interne RFC1918). Valider AVANT tout appel via le validateur SSRF partage :
+        // HTTPS uniquement, refus loopback/link-local/RFC1918/metadata cloud,
+        // resolution DNS effectuee. Une URL non conforme refuse la connexion.
+        try {
+            ICalUrlValidator.validateAndResolve(serverUrl);
+        } catch (IllegalArgumentException e) {
+            log.warn("Odoo testConnection: serverUrl refuse (SSRF) {} → {}", serverUrl, e.getMessage());
+            return false;
+        }
 
         String url = serverUrl.endsWith("/") ? serverUrl + "web/session/authenticate"
                 : serverUrl + "/web/session/authenticate";

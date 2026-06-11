@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.IntegrationPartnerDto;
+import com.clenzy.integration.external.service.ApiKeyEncryptionService;
 import com.clenzy.model.IntegrationPartner;
 import com.clenzy.model.IntegrationPartner.IntegrationCategory;
 import com.clenzy.model.IntegrationPartner.IntegrationStatus;
@@ -49,9 +50,12 @@ public class MarketplaceService {
     );
 
     private final IntegrationPartnerRepository partnerRepository;
+    private final ApiKeyEncryptionService apiKeyEncryption;
 
-    public MarketplaceService(IntegrationPartnerRepository partnerRepository) {
+    public MarketplaceService(IntegrationPartnerRepository partnerRepository,
+                              ApiKeyEncryptionService apiKeyEncryption) {
         this.partnerRepository = partnerRepository;
+        this.apiKeyEncryption = apiKeyEncryption;
     }
 
     public List<IntegrationPartnerDto> getAllIntegrations(Long orgId) {
@@ -104,6 +108,12 @@ public class MarketplaceService {
 
     /**
      * Connecte une integration partenaire avec les credentials fournis.
+     *
+     * <p>La cle API est CHIFFREE (Jasypt AES-256 via {@link ApiKeyEncryptionService})
+     * avant persistance — comme {@code PricingConnectionService} et les autres
+     * services {@code integration/}. La colonne {@code api_key_encrypted} ne doit
+     * jamais contenir la cle en clair : une fuite de la DB donnerait acces aux
+     * services externes de toutes les organisations (M1-MODEL-02).</p>
      */
     @Transactional
     public IntegrationPartnerDto connectIntegration(Long id, Long orgId, String apiKey, String config) {
@@ -111,13 +121,21 @@ public class MarketplaceService {
             .orElseThrow(() -> new IllegalArgumentException("Integration not found: " + id));
 
         partner.setStatus(IntegrationStatus.CONNECTED);
-        partner.setApiKeyEncrypted(apiKey);
+        partner.setApiKeyEncrypted(apiKeyEncryption.encrypt(apiKey));
         if (config != null) partner.setConfig(config);
         partner.setConnectedAt(Instant.now());
 
         IntegrationPartner saved = partnerRepository.save(partner);
         log.info("Connected integration '{}' for org {}", partner.getPartnerName(), orgId);
         return IntegrationPartnerDto.from(saved);
+    }
+
+    /**
+     * Dechiffre la cle API stockee d'une integration connectee (a l'usage).
+     * Retourne {@code null} si aucune cle n'est stockee.
+     */
+    public String decryptApiKey(IntegrationPartner partner) {
+        return apiKeyEncryption.decrypt(partner.getApiKeyEncrypted());
     }
 
     @Transactional
