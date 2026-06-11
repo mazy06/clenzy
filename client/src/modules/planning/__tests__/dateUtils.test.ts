@@ -130,6 +130,13 @@ describe('computeDateRange', () => {
     expect(range.start.getDay()).toBe(1); // Monday
   });
 
+  it('fortnight zoom spans 14 days from week start', () => {
+    const date = new Date(2026, 2, 5); // Thursday
+    const range = computeDateRange(date, 'fortnight');
+    expect(range.start.getDay()).toBe(1); // Monday
+    expect(daysBetween(range.start, range.end)).toBe(13); // 14 jours inclus
+  });
+
   it('month zoom starts at month start', () => {
     const date = new Date(2026, 2, 15);
     const range = computeDateRange(date, 'month');
@@ -188,8 +195,8 @@ describe('getOverlappingChunks', () => {
 describe('computeBufferRange', () => {
   it('extends range by multiplier * visible days on each side', () => {
     const anchor = new Date(2026, 2, 15);
-    const range = computeBufferRange(anchor, 'week', 3);
-    // week has 14 visible days * 3 = 42 buffer days on each side
+    const range = computeBufferRange(anchor, 'fortnight', 3);
+    // fortnight has 14 visible days * 3 = 42 buffer days on each side
     const totalDays = daysBetween(range.start, range.end);
     expect(totalDays).toBe(84); // 42 + 42
   });

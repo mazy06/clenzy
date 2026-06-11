@@ -104,7 +104,7 @@ function renderRow(overrides?: Partial<React.ComponentProps<typeof PlanningRow>>
         days={testDays}
         dayWidth={80}
         density="normal"
-        zoom="week"
+        zoom="fortnight"
         totalGridWidth={560}
         rowIndex={0}
         selectedEventId={null}
@@ -119,6 +119,7 @@ function renderRow(overrides?: Partial<React.ComponentProps<typeof PlanningRow>>
         pricingMap={emptyPricingMap}
         effectiveRowHeight={68}
         allEvents={[reservationEvent]}
+        loadedReservationIds={new Set()}
         {...overrides}
       />
     </ThemeProvider>,

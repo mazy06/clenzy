@@ -58,9 +58,17 @@ const PlanningPage: React.FC = () => {
   });
 
   // Data fetching (chunked by 30-day aligned windows)
-  const { properties, events, interventions, loading, error } = usePlanningData(
+  const { properties, events, reservations, interventions, loading, error } = usePlanningData(
     timeline.bufferStart,
     timeline.bufferEnd,
+  );
+
+  // Ids de TOUTES les réservations chargées (avant filtres/légende) : sert à
+  // PlanningRow pour ne JAMAIS rendre en pastille isolée une intervention
+  // liée à une réservation connue dont la brique est masquée ou hors plage.
+  const loadedReservationIds = useMemo(
+    () => new Set(reservations.map((r) => r.id)),
+    [reservations],
   );
 
   // Filters
@@ -488,6 +496,7 @@ const PlanningPage: React.FC = () => {
             totalGridWidth={totalGridWidth}
             selectedEventId={selection.selectedEventId}
             events={visibleEvents}
+            loadedReservationIds={loadedReservationIds}
             drag={drag}
             onEventClick={handleEventClick}
             onHideEvent={handleHideEvent}
