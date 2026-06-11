@@ -17,11 +17,11 @@ import { useAiUsageStats } from '../../hooks/useAi';
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const FEATURE_COLORS: Record<string, string> = {
-  DESIGN:    '#64B5F6',
-  PRICING:   '#81C784',
-  MESSAGING: '#FFB74D',
-  ANALYTICS: '#BA68C8',
-  SENTIMENT: '#4DB6AC',
+  DESIGN:    'var(--info)',
+  PRICING:   'var(--ok)',
+  MESSAGING: 'var(--warn)',
+  ANALYTICS: 'var(--accent)',
+  SENTIMENT: 'var(--err)',
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -55,12 +55,11 @@ const AiUsageWidget: React.FC<AiUsageWidgetProps> = React.memo(({ layout = 'defa
   const isInline = layout === 'inline';
 
   const cardSx = {
-    border: '1px solid',
-    borderColor: 'divider',
-    borderRadius: 1.5,
+    border: '1px solid var(--line)',
+    borderRadius: 'var(--radius-lg)',
     p: 1.5,
     transition: 'border-color 0.15s ease',
-    '&:hover': { borderColor: 'text.secondary' },
+    '&:hover': { borderColor: 'var(--line-2)' },
   } as const;
 
   const headerSx = {
@@ -195,7 +194,7 @@ const AiUsageWidget: React.FC<AiUsageWidgetProps> = React.memo(({ layout = 'defa
         {featureEntries.map(([feature, tokens]) => {
           const limit = data.budgetByFeature[feature] ?? 0;
           const pct = limit > 0 ? Math.min((tokens / limit) * 100, 100) : 0;
-          const color = FEATURE_COLORS[feature] ?? '#90A4AE';
+          const color = FEATURE_COLORS[feature] ?? 'var(--faint)';
 
           return (
             <Box key={feature} sx={{ flex: isInline ? 1 : undefined, minWidth: 0 }}>
@@ -217,7 +216,7 @@ const AiUsageWidget: React.FC<AiUsageWidgetProps> = React.memo(({ layout = 'defa
                 sx={{
                   height: 6,
                   borderRadius: 3,
-                  bgcolor: 'action.hover',
+                  bgcolor: 'var(--field)',
                   '& .MuiLinearProgress-bar': {
                     bgcolor: color,
                     borderRadius: 3,

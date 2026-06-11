@@ -7,7 +7,6 @@ import {
   Skeleton,
   Chip,
   Tooltip,
-  useTheme,
 } from '@mui/material';
 import {
   Handshake,
@@ -29,12 +28,12 @@ import { propertiesApi, type Property } from '../../services/api/propertiesApi';
 import { STORAGE_KEYS, getItem, setItem } from '../../services/storageService';
 import { useCurrency } from '../../hooks/useCurrency';
 
-// ─── Couleurs Baitly (brand) ───────────────────────────────────────────────
+// ─── Couleurs (tokens Signature) ────────────────────────────────────────────
 const C = {
-  primary:      '#6B8A9A',
-  success:      '#4A9B8E',
-  warm:         '#D4A574',
-  warmLight:    '#E8C9A8',
+  primary:      'var(--accent)',
+  success:      'var(--ok)',
+  warm:         'var(--warn)',
+  warmLight:    'var(--warn-soft)',
 } as const;
 
 // Couleurs par type de contrat
@@ -42,7 +41,7 @@ const TYPE_COLORS: Record<string, string> = {
   FULL_MANAGEMENT:  C.success,
   BOOKING_ONLY:     C.primary,
   MAINTENANCE_ONLY: C.warm,
-  CUSTOM:           '#AB47BC',
+  CUSTOM:           'var(--info)',
 };
 
 /** Max contracts to show in the compact sidebar list */
@@ -122,8 +121,6 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
   const { convertAndFormat } = useCurrency();
   const fmtCurrency = (v: number) => convertAndFormat(v, 'EUR');
 
@@ -199,12 +196,9 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
     return (
       <Box
         sx={{
-          bgcolor: 'background.paper',
-          borderRadius: '12px',
-          borderLeft: `4px solid ${C.success}`,
-          boxShadow: isDark
-            ? '0 2px 8px rgba(0,0,0,0.3)'
-            : '0 2px 8px rgba(74,155,142,0.10)',
+          bgcolor: 'var(--card)',
+          border: '1px solid var(--line)',
+          borderRadius: 'var(--radius-lg)',
           p: 2,
           display: 'flex',
           flexDirection: 'column',
@@ -217,11 +211,11 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
             <Box component="span" sx={{ display: 'inline-flex', color: C.success }}><Handshake size={16} strokeWidth={1.75} /></Box>
             <Typography
               sx={{
-                fontSize: '0.75rem',
+                fontSize: '10.5px',
                 fontWeight: 700,
                 textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                color: 'text.secondary',
+                letterSpacing: '0.05em',
+                color: 'var(--faint)',
               }}
             >
               {t('dashboard.contractCta.activeTitle')}
@@ -234,7 +228,8 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
               height: 20,
               fontSize: '0.65rem',
               fontWeight: 700,
-              bgcolor: isDark ? `${C.success}30` : `${C.success}18`,
+              fontVariantNumeric: 'tabular-nums',
+              bgcolor: 'var(--ok-soft)',
               color: C.success,
             }}
           />
@@ -248,14 +243,14 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
               sx={{
                 flex: 1,
                 p: 1,
-                borderRadius: '8px',
-                bgcolor: isDark ? 'rgba(74,155,142,0.08)' : 'rgba(74,155,142,0.05)',
+                borderRadius: 'var(--radius-md)',
+                bgcolor: 'var(--ok-soft)',
               }}
             >
               <Typography sx={{ fontSize: '0.6rem', color: 'text.disabled', fontWeight: 600, mb: 0.25 }}>
                 {t('dashboard.contractCta.commissions')}
               </Typography>
-              <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: C.success, fontVariantNumeric: 'tabular-nums' }}>
+              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', fontWeight: 600, color: C.success, fontVariantNumeric: 'tabular-nums' }}>
                 {fmtCurrency(summary.totalCommissions)}
               </Typography>
             </Box>
@@ -264,14 +259,14 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
               sx={{
                 flex: 1,
                 p: 1,
-                borderRadius: '8px',
-                bgcolor: isDark ? 'rgba(107,138,154,0.08)' : 'rgba(107,138,154,0.05)',
+                borderRadius: 'var(--radius-md)',
+                bgcolor: 'var(--accent-soft)',
               }}
             >
               <Typography sx={{ fontSize: '0.6rem', color: 'text.disabled', fontWeight: 600, mb: 0.25 }}>
                 {t('dashboard.contractCta.ownerPayouts')}
               </Typography>
-              <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: C.primary, fontVariantNumeric: 'tabular-nums' }}>
+              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', fontWeight: 600, color: C.primary, fontVariantNumeric: 'tabular-nums' }}>
                 {fmtCurrency(summary.totalOwnerPayouts)}
               </Typography>
             </Box>
@@ -280,8 +275,8 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
           <Box
             sx={{
               p: 1,
-              borderRadius: '8px',
-              bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(107,138,154,0.04)',
+              borderRadius: 'var(--radius-md)',
+              bgcolor: 'var(--hover)',
               textAlign: 'center',
             }}
           >
@@ -306,9 +301,9 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
                   gap: 0.75,
                   px: 1,
                   py: 0.5,
-                  borderRadius: '6px',
+                  borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
-                  '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' },
+                  '&:hover': { bgcolor: 'var(--hover)' },
                 }}
               >
                 {/* Color dot */}
@@ -350,6 +345,7 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
                 {row.commissionAmount != null && (
                   <Typography
                     sx={{
+                      fontFamily: 'var(--font-display)',
                       fontSize: '0.68rem',
                       fontWeight: 600,
                       color: C.success,
@@ -385,8 +381,8 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
               px: 1,
               py: 0.25,
               minWidth: 0,
-              borderRadius: '6px',
-              '&:hover': { bgcolor: `${C.success}08` },
+              borderRadius: 'var(--radius-sm)',
+              '&:hover': { bgcolor: 'var(--ok-soft)' },
             }}
           >
             {t('dashboard.contractCta.viewAll')}
@@ -410,12 +406,9 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
   return (
     <Box
       sx={{
-        bgcolor: 'background.paper',
-        borderRadius: '12px',
-        borderLeft: `4px solid ${C.warm}`,
-        boxShadow: isDark
-          ? '0 2px 8px rgba(0,0,0,0.3)'
-          : '0 2px 8px rgba(212,165,116,0.12)',
+        bgcolor: 'var(--card)',
+        border: '1px solid var(--line)',
+        borderRadius: 'var(--radius-lg)',
         p: 2.5,
         display: 'flex',
         flexDirection: 'column',
@@ -430,10 +423,8 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
             sx={{
               width: 40,
               height: 40,
-              borderRadius: '10px',
-              background: isDark
-                ? 'linear-gradient(135deg, rgba(212,165,116,0.15), rgba(74,155,142,0.10))'
-                : 'linear-gradient(135deg, rgba(212,165,116,0.12), rgba(74,155,142,0.08))',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--warn-soft)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -473,8 +464,8 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
               gap: 1,
               px: 1.25,
               py: 0.75,
-              borderRadius: '6px',
-              bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(212,165,116,0.04)',
+              borderRadius: 'var(--radius-sm)',
+              bgcolor: 'var(--hover)',
             }}
           >
             <Box
@@ -503,19 +494,17 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
         endIcon={<ArrowForward size={16} strokeWidth={1.75} />}
         sx={{
           mt: 'auto',
-          background: `linear-gradient(135deg, ${C.warm} 0%, ${C.success} 100%)`,
-          color: '#fff',
+          background: 'var(--accent)',
+          color: 'var(--on-accent)',
           fontWeight: 600,
           textTransform: 'none',
-          borderRadius: '8px',
+          borderRadius: 'var(--radius-md)',
           py: 0.9,
           fontSize: '0.8rem',
-          boxShadow: isDark
-            ? '0 2px 8px rgba(0,0,0,0.3)'
-            : '0 2px 8px rgba(212,165,116,0.25)',
+          boxShadow: 'none',
           '&:hover': {
-            background: `linear-gradient(135deg, #C99560 0%, #3D8A7E 100%)`,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            background: 'var(--accent-deep)',
+            boxShadow: 'none',
           },
         }}
       >

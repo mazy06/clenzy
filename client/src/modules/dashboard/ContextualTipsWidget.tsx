@@ -4,7 +4,6 @@ import {
   Typography,
   IconButton,
   Button,
-  useTheme,
 } from '@mui/material';
 import {
   Lightbulb,
@@ -24,11 +23,19 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 
-// ─── Brand colors ───────────────────────────────────────────────────────────
+// ─── Couleurs (tokens Signature) ────────────────────────────────────────────
 const C = {
-  primary: '#6B8A9A',
-  success: '#4A9B8E',
-  warm:    '#D4A574',
+  primary: 'var(--accent)',
+  success: 'var(--ok)',
+  warm:    'var(--warn)',
+} as const;
+
+const SOFT = {
+  primary: 'var(--accent-soft)',
+  success: 'var(--ok-soft)',
+  warm:    'var(--warn-soft)',
+  info:    'var(--info-soft)',
+  airbnb:  'var(--airbnb-soft)',
 } as const;
 
 // ─── Tip definition ─────────────────────────────────────────────────────────
@@ -37,6 +44,7 @@ interface Tip {
   id: string;
   icon: React.ReactNode;
   color: string;
+  soft: string;
   titleKey: string;
   descKey: string;
   actionKey: string;
@@ -49,6 +57,7 @@ const ALL_TIPS: Tip[] = [
     id: 'automate-cleaning',
     icon: <AutoAwesome size={18} strokeWidth={1.75} />,
     color: C.success,
+    soft: SOFT.success,
     titleKey: 'dashboard.tips.automateCleaning.title',
     descKey: 'dashboard.tips.automateCleaning.desc',
     actionKey: 'dashboard.tips.automateCleaning.action',
@@ -59,6 +68,7 @@ const ALL_TIPS: Tip[] = [
     id: 'contracts-commission',
     icon: <Handshake size={18} strokeWidth={1.75} />,
     color: C.warm,
+    soft: SOFT.warm,
     titleKey: 'dashboard.tips.contracts.title',
     descKey: 'dashboard.tips.contracts.desc',
     actionKey: 'dashboard.tips.contracts.action',
@@ -69,6 +79,7 @@ const ALL_TIPS: Tip[] = [
     id: 'planning-ical',
     icon: <CalendarMonth size={18} strokeWidth={1.75} />,
     color: C.primary,
+    soft: SOFT.primary,
     titleKey: 'dashboard.tips.planning.title',
     descKey: 'dashboard.tips.planning.desc',
     actionKey: 'dashboard.tips.planning.action',
@@ -78,7 +89,8 @@ const ALL_TIPS: Tip[] = [
   {
     id: 'channels-sync',
     icon: <Campaign size={18} strokeWidth={1.75} />,
-    color: '#FF5A5F',
+    color: 'var(--airbnb)',
+    soft: SOFT.airbnb,
     titleKey: 'dashboard.tips.channels.title',
     descKey: 'dashboard.tips.channels.desc',
     actionKey: 'dashboard.tips.channels.action',
@@ -88,7 +100,8 @@ const ALL_TIPS: Tip[] = [
   {
     id: 'noise-monitoring',
     icon: <VolumeUp size={18} strokeWidth={1.75} />,
-    color: '#4FC3F7',
+    color: 'var(--info)',
+    soft: SOFT.info,
     titleKey: 'dashboard.tips.noise.title',
     descKey: 'dashboard.tips.noise.desc',
     actionKey: 'dashboard.tips.noise.action',
@@ -98,7 +111,8 @@ const ALL_TIPS: Tip[] = [
   {
     id: 'smart-locks',
     icon: <LockOutlined size={18} strokeWidth={1.75} />,
-    color: '#AB47BC',
+    color: C.primary,
+    soft: SOFT.primary,
     titleKey: 'dashboard.tips.smartLocks.title',
     descKey: 'dashboard.tips.smartLocks.desc',
     actionKey: 'dashboard.tips.smartLocks.action',
@@ -109,6 +123,7 @@ const ALL_TIPS: Tip[] = [
     id: 'reports-analytics',
     icon: <TrendingUp size={18} strokeWidth={1.75} />,
     color: C.success,
+    soft: SOFT.success,
     titleKey: 'dashboard.tips.reports.title',
     descKey: 'dashboard.tips.reports.desc',
     actionKey: 'dashboard.tips.reports.action',
@@ -119,6 +134,7 @@ const ALL_TIPS: Tip[] = [
     id: 'team-management',
     icon: <Groups size={18} strokeWidth={1.75} />,
     color: C.primary,
+    soft: SOFT.primary,
     titleKey: 'dashboard.tips.teams.title',
     descKey: 'dashboard.tips.teams.desc',
     actionKey: 'dashboard.tips.teams.action',
@@ -129,6 +145,7 @@ const ALL_TIPS: Tip[] = [
     id: 'billing-invoices',
     icon: <Receipt size={18} strokeWidth={1.75} />,
     color: C.warm,
+    soft: SOFT.warm,
     titleKey: 'dashboard.tips.billing.title',
     descKey: 'dashboard.tips.billing.desc',
     actionKey: 'dashboard.tips.billing.action',
@@ -146,8 +163,6 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
 
   // Filter tips by user role
   const filteredTips = useMemo(() => {
@@ -205,11 +220,9 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
   return (
     <Box
       sx={{
-        bgcolor: 'background.paper',
-        borderRadius: '12px',
-        boxShadow: isDark
-          ? '0 2px 8px rgba(0,0,0,0.3)'
-          : '0 2px 8px rgba(107,138,154,0.08)',
+        bgcolor: 'var(--card)',
+        border: '1px solid var(--line)',
+        borderRadius: 'var(--radius-lg)',
         p: 2,
         display: 'flex',
         flexDirection: 'column',
@@ -221,7 +234,7 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Box component="span" sx={{ display: 'inline-flex', color: C.warm }}><Lightbulb size={16} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
+          <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--faint)' }}>
             {t('dashboard.tips.title')}
           </Typography>
         </Box>
@@ -247,10 +260,8 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
           sx={{
             width: 36,
             height: 36,
-            borderRadius: '10px',
-            bgcolor: isDark
-              ? `${currentTip.color}18`
-              : `${currentTip.color}10`,
+            borderRadius: 'var(--radius-md)',
+            bgcolor: currentTip.soft,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -327,11 +338,11 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
             px: 1,
             py: 0.25,
             minWidth: 0,
-            borderRadius: '6px',
+            borderRadius: 'var(--radius-sm)',
             opacity: fade ? 1 : 0,
             transition: 'opacity 0.2s ease',
             '&:hover': {
-              bgcolor: `${currentTip.color}08`,
+              bgcolor: currentTip.soft,
             },
           }}
         >

@@ -5,7 +5,6 @@ import {
   Button,
   Chip,
   Skeleton,
-  useTheme,
 } from '@mui/material';
 import {
   VolumeUp,
@@ -25,15 +24,22 @@ import { smartLockApi } from '../../services/api/smartLockApi';
 import { keyExchangeApi } from '../../services/api/keyExchangeApi';
 import { bookingEngineApi } from '../../services/api/bookingEngineApi';
 
-// ─── Brand colors ───────────────────────────────────────────────────────────
+// ─── Couleurs (tokens Signature) ────────────────────────────────────────────
 
 const C = {
-  primary: '#6B8A9A',
-  success: '#4A9B8E',
-  noise:   '#4FC3F7',
-  lock:    '#AB47BC',
-  key:     '#D4A574',
-  booking: '#26A69A',
+  primary: 'var(--accent)',
+  success: 'var(--ok)',
+  noise:   'var(--info)',
+  lock:    'var(--accent)',
+  key:     'var(--warn)',
+  booking: 'var(--ok)',
+} as const;
+
+const C_SOFT = {
+  noise:   'var(--info-soft)',
+  lock:    'var(--accent-soft)',
+  key:     'var(--warn-soft)',
+  booking: 'var(--ok-soft)',
 } as const;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -52,8 +58,6 @@ interface ServicesStatusWidgetProps {
 
 const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ onReady }) => {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
   const navigate = useNavigate();
 
   const [noise, setNoise] = useState<ServiceStatus>({ configured: false, count: 0, loading: true });
@@ -113,6 +117,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       key: 'noise',
       icon: <VolumeUp size={18} strokeWidth={1.75} />,
       color: C.noise,
+      soft: C_SOFT.noise,
       label: t('dashboard.services.noise'),
       status: noise,
       route: '/properties?tab=connected-objects',
@@ -123,6 +128,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       key: 'locks',
       icon: <LockOutlined size={18} strokeWidth={1.75} />,
       color: C.lock,
+      soft: C_SOFT.lock,
       label: t('dashboard.services.locks'),
       status: locks,
       route: '/properties?tab=connected-objects',
@@ -133,6 +139,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       key: 'keys',
       icon: <VpnKey size={18} strokeWidth={1.75} />,
       color: C.key,
+      soft: C_SOFT.key,
       label: t('dashboard.services.keys'),
       status: keys,
       route: '/properties?tab=connected-objects',
@@ -143,6 +150,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       key: 'booking',
       icon: <BookingIcon size={18} strokeWidth={1.75} />,
       color: C.booking,
+      soft: C_SOFT.booking,
       label: t('dashboard.services.booking', 'Booking Engine'),
       status: booking,
       route: '/booking-engine',
@@ -170,11 +178,9 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
   return (
     <Box
       sx={{
-        bgcolor: 'background.paper',
-        borderRadius: '10px',
-        boxShadow: isDark
-          ? '0 1px 6px rgba(0,0,0,0.3)'
-          : '0 1px 6px rgba(107,138,154,0.08)',
+        bgcolor: 'var(--card)',
+        border: '1px solid var(--line)',
+        borderRadius: 'var(--radius-lg)',
         p: 1.5,
         display: 'flex',
         flexDirection: 'column',
@@ -184,11 +190,11 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       {/* ── Header ─────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography sx={{
-          fontSize: '0.7rem',
+          fontSize: '10.5px',
           fontWeight: 700,
           textTransform: 'uppercase',
-          letterSpacing: '0.04em',
-          color: 'text.secondary',
+          letterSpacing: '0.05em',
+          color: 'var(--faint)',
         }}>
           {t('dashboard.services.title')}
         </Typography>
@@ -199,7 +205,8 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
             height: 18,
             fontSize: '0.6rem',
             fontWeight: 700,
-            bgcolor: isDark ? 'rgba(74,155,142,0.10)' : 'rgba(74,155,142,0.06)',
+            fontVariantNumeric: 'tabular-nums',
+            bgcolor: 'var(--ok-soft)',
             color: C.success,
             '& .MuiChip-label': { px: 0.6 },
           }}
@@ -220,22 +227,22 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
               gap: 0.75,
               px: 1.25,
               py: 1.25,
-              borderRadius: '8px',
+              borderRadius: 'var(--radius-md)',
               border: '1px solid',
               borderColor: svc.status.configured
-                ? (isDark ? `${svc.color}30` : `${svc.color}20`)
-                : 'divider',
-              bgcolor: svc.status.configured
-                ? (isDark ? `${svc.color}08` : `${svc.color}04`)
-                : 'transparent',
+                ? `color-mix(in srgb, ${svc.color} 25%, transparent)`
+                : 'var(--line)',
+              bgcolor: svc.status.configured ? svc.soft : 'transparent',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
               '&:hover': {
                 borderColor: svc.color,
                 transform: 'translateY(-1px)',
-                boxShadow: isDark
-                  ? `0 3px 10px ${svc.color}15`
-                  : `0 3px 10px ${svc.color}12`,
+                bgcolor: svc.status.configured ? svc.soft : 'var(--hover)',
+              },
+              '@media (prefers-reduced-motion: reduce)': {
+                transition: 'none',
+                '&:hover': { transform: 'none' },
               },
             }}
           >
@@ -244,8 +251,8 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
               sx={{
                 width: 34,
                 height: 34,
-                borderRadius: '50%',
-                bgcolor: isDark ? `${svc.color}18` : `${svc.color}10`,
+                borderRadius: 'var(--radius-md)',
+                bgcolor: svc.soft,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

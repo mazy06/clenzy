@@ -13,17 +13,17 @@ interface GridSectionProps {
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
 const SECTION_TITLE_SX = {
-  fontSize: '0.75rem',
+  fontSize: '10.5px',
   fontWeight: 700,
   textTransform: 'uppercase' as const,
-  letterSpacing: '0.04em',
-  color: 'text.secondary',
+  letterSpacing: '0.05em',
+  color: 'var(--faint)',
   lineHeight: 1.2,
 } as const;
 
 const SUBTITLE_SX = {
   fontSize: '0.625rem',
-  color: 'text.disabled',
+  color: 'var(--muted)',
   mt: 0.25,
   lineHeight: 1.2,
 } as const;
@@ -34,11 +34,12 @@ const BADGE_SX = {
   justifyContent: 'center',
   minWidth: 18,
   height: 18,
-  borderRadius: '9px',
-  bgcolor: 'error.main',
-  color: '#fff',
+  borderRadius: 'var(--radius-pill)',
+  bgcolor: 'var(--err)',
+  color: 'var(--on-accent)',
   fontSize: '0.5625rem',
   fontWeight: 700,
+  fontVariantNumeric: 'tabular-nums',
   ml: 0.75,
   px: 0.5,
 } as const;

@@ -35,7 +35,7 @@ interface AnalyticsWidgetCardProps {
 const CARD_SX = {
   width: '100%',
   transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'text.secondary' },
+  '&:hover': { borderColor: 'var(--line-2)' },
 } as const;
 
 const CARD_CONTENT_SX = {
@@ -47,19 +47,22 @@ const CARD_CONTENT_SX = {
 } as const;
 
 const VALUE_SX = {
-  fontWeight: 700,
+  fontFamily: 'var(--font-display)',
+  fontWeight: 600,
   lineHeight: 1.2,
-  letterSpacing: '-0.02em',
+  letterSpacing: '-0.025em',
   fontSize: '1.125rem',
+  color: 'var(--ink)',
   fontVariantNumeric: 'tabular-nums',
 } as const;
 
 const TITLE_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 600,
+  fontSize: '10.5px',
+  fontWeight: 700,
   lineHeight: 1.2,
-  letterSpacing: '0.02em',
+  letterSpacing: '0.05em',
   textTransform: 'uppercase' as const,
+  color: 'var(--faint)',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
@@ -121,8 +124,8 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
                     justifyContent: 'center',
                     minWidth: 28,
                     height: 28,
-                    borderRadius: 0.75,
-                    bgcolor: 'rgba(107, 138, 154, 0.07)',
+                    borderRadius: 'var(--radius-sm)',
+                    bgcolor: 'var(--accent-soft)',
                     '& .MuiSvgIcon-root': { fontSize: 16 },
                   }}
                 >

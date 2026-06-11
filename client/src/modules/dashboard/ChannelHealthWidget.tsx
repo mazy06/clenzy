@@ -6,7 +6,6 @@ import {
   Chip,
   Button,
   Tooltip,
-  useTheme,
 } from '@mui/material';
 import {
   Wifi,
@@ -20,11 +19,11 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { airbnbApi, type AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 import { channelConnectionApi, type ChannelConnectionStatus } from '../../services/api/channelConnectionApi';
 
-// ─── Brand colors ───────────────────────────────────────────────────────────
+// ─── Couleurs (tokens Signature) ────────────────────────────────────────────
 const C = {
-  primary: '#6B8A9A',
-  success: '#4A9B8E',
-  error:   '#D47474',
+  primary: 'var(--accent)',
+  success: 'var(--ok)',
+  error:   'var(--err)',
 } as const;
 
 // ─── All available OTAs (implemented in backend) ────────────────────────────
@@ -36,14 +35,16 @@ interface OtaDef {
   type: 'oauth' | 'credentials';
 }
 
+// Pastilles canal : tokens dédiés pour Airbnb/Booking ; les OTA sans token de
+// marque retombent sur la palette sémantique la plus proche de leur teinte.
 const ALL_OTAS: OtaDef[] = [
-  { key: 'AIRBNB',       label: 'Airbnb',           color: '#FF5A5F', type: 'oauth' },
-  { key: 'BOOKING',      label: 'Booking.com',      color: '#003580', type: 'credentials' },
-  { key: 'EXPEDIA',      label: 'Expedia',          color: '#FBAF17', type: 'credentials' },
-  { key: 'HOTELS_COM',   label: 'Hotels.com',       color: '#D32F2F', type: 'credentials' },
-  { key: 'AGODA',        label: 'Agoda',            color: '#6B2C91', type: 'credentials' },
-  { key: 'HOMEAWAY',     label: 'Vrbo',             color: '#0066CC', type: 'credentials' },
-  { key: 'HOMEAWAY_2',   label: 'Abritel',          color: '#1668E3', type: 'credentials' },
+  { key: 'AIRBNB',       label: 'Airbnb',           color: 'var(--airbnb)',      type: 'oauth' },
+  { key: 'BOOKING',      label: 'Booking.com',      color: 'var(--booking)',     type: 'credentials' },
+  { key: 'EXPEDIA',      label: 'Expedia',          color: 'var(--warn)',        type: 'credentials' },
+  { key: 'HOTELS_COM',   label: 'Hotels.com',       color: 'var(--err)',         type: 'credentials' },
+  { key: 'AGODA',        label: 'Agoda',            color: 'var(--accent)',      type: 'credentials' },
+  { key: 'HOMEAWAY',     label: 'Vrbo',             color: 'var(--booking-ink)', type: 'credentials' },
+  { key: 'HOMEAWAY_2',   label: 'Abritel',          color: 'var(--info)',        type: 'credentials' },
 ];
 
 interface ChannelItem {
@@ -60,8 +61,6 @@ interface ChannelItem {
 const ChannelHealthWidget: React.FC<{ onReady?: () => void }> = React.memo(({ onReady }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
 
   const [channels, setChannels] = useState<ChannelItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,11 +136,9 @@ const ChannelHealthWidget: React.FC<{ onReady?: () => void }> = React.memo(({ on
   return (
     <Box
       sx={{
-        bgcolor: 'background.paper',
-        borderRadius: '12px',
-        boxShadow: isDark
-          ? '0 2px 8px rgba(0,0,0,0.3)'
-          : '0 2px 8px rgba(107,138,154,0.08)',
+        bgcolor: 'var(--card)',
+        border: '1px solid var(--line)',
+        borderRadius: 'var(--radius-lg)',
         p: 2,
         display: 'flex',
         flexDirection: 'column',
@@ -153,7 +150,7 @@ const ChannelHealthWidget: React.FC<{ onReady?: () => void }> = React.memo(({ on
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Box component="span" sx={{ display: 'inline-flex', color: connectedCount > 0 ? C.success : 'text.disabled' }}><Wifi size={16} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
+          <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--faint)' }}>
             {t('dashboard.channelHealth.title')}
           </Typography>
         </Box>
@@ -164,11 +161,12 @@ const ChannelHealthWidget: React.FC<{ onReady?: () => void }> = React.memo(({ on
             height: 20,
             fontSize: '0.65rem',
             fontWeight: 700,
+            fontVariantNumeric: 'tabular-nums',
             bgcolor: errorCount > 0
-              ? (isDark ? 'rgba(212,116,116,0.12)' : 'rgba(212,116,116,0.08)')
+              ? 'var(--err-soft)'
               : connectedCount > 0
-                ? (isDark ? 'rgba(74,155,142,0.12)' : 'rgba(74,155,142,0.08)')
-                : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
+                ? 'var(--ok-soft)'
+                : 'var(--hover)',
             color: errorCount > 0 ? C.error : connectedCount > 0 ? C.success : 'text.disabled',
             '& .MuiChip-label': { px: 0.75 },
           }}
@@ -198,14 +196,12 @@ const ChannelHealthWidget: React.FC<{ onReady?: () => void }> = React.memo(({ on
                 gap: 0.75,
                 px: 1,
                 py: 0.5,
-                borderRadius: '6px',
+                borderRadius: 'var(--radius-sm)',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                bgcolor: ch.hasError
-                  ? (isDark ? 'rgba(212,116,116,0.06)' : 'rgba(212,116,116,0.03)')
-                  : 'transparent',
+                transition: 'background-color 0.15s ease',
+                bgcolor: ch.hasError ? 'var(--err-soft)' : 'transparent',
                 '&:hover': {
-                  bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(107,138,154,0.04)',
+                  bgcolor: 'var(--hover)',
                 },
               }}
             >
@@ -266,7 +262,7 @@ const ChannelHealthWidget: React.FC<{ onReady?: () => void }> = React.memo(({ on
           justifyContent: 'flex-start',
           p: 0,
           minWidth: 0,
-          '&:hover': { bgcolor: 'transparent', color: C.success },
+          '&:hover': { bgcolor: 'transparent', color: 'var(--accent-deep)' },
         }}
       >
         {t('dashboard.channelHealth.manage')}
